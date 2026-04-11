@@ -13,11 +13,9 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, switchMap } from 'rxjs'
@@ -45,11 +43,11 @@ import { CopilotAiProviderAuthComponent } from '../provider-authorization/author
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatTooltipModule,
-    MatInputModule,
-    MatSlideToggleModule,
+    ...ZardTooltipImports,
+    ZardInputDirective,
     NgmI18nPipe,
-    NgmSpinComponent
+    NgmSpinComponent,
+    ZardSwitchComponent
   ],
   host: {
     '[style.background]': 'background()'

@@ -1,6 +1,11 @@
+@reference "tailwindcss";
 .ngm-cdk-listbox {
   .ngm-cdk-option {
     @apply relative px-4 py-3;
+
+    &[aria-selected="true"] {
+      @apply bg-components-list-option-active-bg;
+    }
 
     &[aria-disabled="true"] {
       @apply opacity-80 cursor-not-allowed;
@@ -10,6 +15,12 @@
     .ngm-cdk-option {
       // @apply px-8;
     }
+  }
+}
+
+.ngm-nav-list.ngm-cdk-listbox {
+  .ngm-cdk-option[aria-selected="true"] {
+    @apply font-semibold bg-white/90 text-primary-500;
   }
 }
 

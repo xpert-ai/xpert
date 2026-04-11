@@ -1,5 +1,5 @@
-import { Employee } from '@metad/server-core'
-import { getConnectionOptions } from '@metad/server-config'
+import { Employee } from '@xpert-ai/server-core'
+import { getConnectionOptions } from '@xpert-ai/server-config'
 import { Repository } from 'typeorm'
 import { DataSourceTypeService } from '../../../../data-source-type'
 import { SemanticModelService, SemanticModelUpdateCommand } from '../../../../model'
@@ -13,15 +13,148 @@ import {
 	StoryPoint,
 	StoryWidget,
 } from '../../../entities/internal'
-import { BUSINESS_AREAS, createBusinessArea } from './business-area'
-import { createDemoBigViewStory } from './demo-bigview/story'
-import { createDemoChartsStory } from './demo-charts'
-import { createDemoFoodMartStory } from './demo-foodmart/story'
+import { BUSINESS_AREAS } from './business-area'
 import { createDemoCalculationStory } from './demo-calculation/story'
 import { createIndicators } from './indicator'
 import { SEMANTIC_MODEL, SEMANTIC_MODEL_NAME, SEMANTIC_MODEL_ROLES } from './semantic-model'
-import { BusinessAreaRole, IModelRole } from '@metad/contracts'
+import { BusinessAreaRole, IModelRole } from '@xpert-ai/contracts'
 import { CommandBus, ICommand } from '@nestjs/cqrs'
+import { STORY_NAME } from './demo-calculation/story'
+
+export type AnalyticsBootstrapMode = 'semantic-only' | 'full-demo'
+
+type SeedOrganizationAnalyticsDataOptions = {
+	mode?: AnalyticsBootstrapMode
+}
+
+/**
+ * @deprecated
+ */
+export async function seedOrganizationAnalyticsData(
+	dstService: DataSourceTypeService,
+	dsRepository: Repository<DataSource>,
+	businessAreaRepository: Repository<BusinessArea>,
+	businessAreaUserRepository: Repository<BusinessAreaUser>,
+	modelRepository: Repository<SemanticModel>,
+	modelService: SemanticModelService,
+	storyRepository: Repository<Story>,
+	storyPointRepository: Repository<StoryPoint>,
+	storyWidgetRepository: Repository<StoryWidget>,
+	indicatorRepository: Repository<Indicator>,
+	tenantId: string,
+	userId: string | null,
+	organizationId: string | null,
+	commandBus: CommandBus<ICommand>,
+	options: SeedOrganizationAnalyticsDataOptions = {}
+) {
+	const mode = options.mode ?? 'semantic-only'
+
+	const dataSource = await ensureDemoDataSource(dstService, dsRepository, tenantId, organizationId, userId)
+
+	const areas = await Promise.all(
+		BUSINESS_AREAS.map((item) =>
+			ensureBusinessArea(businessAreaRepository, tenantId, organizationId, userId, item)
+		)
+	)
+
+	if (userId) {
+		for (const businessArea of areas) {
+			const existing = await businessAreaUserRepository.findOne({
+				where: {
+					tenantId,
+					organizationId,
+					userId,
+					businessAreaId: businessArea.id
+				}
+			})
+
+			if (!existing) {
+				await businessAreaUserRepository.save({
+					tenantId,
+					organizationId,
+					createdById: userId,
+					userId,
+					businessArea,
+					businessAreaId: businessArea.id,
+					role: BusinessAreaRole.Modeler
+				})
+			}
+		}
+	}
+
+	let semanticModel = await modelRepository.findOne({
+		where: {
+			tenantId,
+			organizationId,
+			name: SEMANTIC_MODEL_NAME
+		}
+	})
+
+	if (!semanticModel) {
+		semanticModel = new SemanticModel()
+	}
+
+	semanticModel.tenantId = tenantId
+	semanticModel.createdById = userId
+	semanticModel.ownerId = userId
+	semanticModel.organizationId = organizationId
+	semanticModel.businessAreaId = areas[0]?.id ?? null
+	semanticModel.dataSourceId = dataSource.id
+	semanticModel.name = SEMANTIC_MODEL_NAME
+	semanticModel.type = 'XMLA'
+	semanticModel.catalog = 'foodmart'
+	semanticModel.options ??= SEMANTIC_MODEL as any
+
+	semanticModel = await modelRepository.save(semanticModel)
+	semanticModel.roles = SEMANTIC_MODEL_ROLES as IModelRole[]
+	semanticModel = await commandBus.execute(new SemanticModelUpdateCommand(semanticModel))
+	await modelService.updateCatalogContent(semanticModel.id)
+
+	if (mode === 'full-demo' && userId) {
+		const indicatorCount = await indicatorRepository.count({
+			where: {
+				tenantId,
+				organizationId,
+				modelId: semanticModel.id
+			}
+		})
+
+		if (!indicatorCount) {
+			await createIndicators(
+				indicatorRepository,
+				businessAreaRepository,
+				tenantId,
+				organizationId,
+				userId,
+				semanticModel.id
+			)
+		}
+
+		const existingStory = await storyRepository.findOne({
+			where: {
+				tenantId,
+				organizationId,
+				name: STORY_NAME
+			}
+		})
+
+		if (!existingStory) {
+			await createDemoCalculationStory(
+				{ tenantId, userId, organizationId } as Employee,
+				semanticModel,
+				storyRepository,
+				storyPointRepository,
+				storyWidgetRepository
+			)
+		}
+	}
+
+	return {
+		dataSource,
+		businessAreas: areas,
+		semanticModel
+	}
+}
 
 /**
  * @deprecated
@@ -38,12 +171,50 @@ export async function seedTenantDefaultData(
 	storyWidgetRepository: Repository<StoryWidget>,
 	indicatorRepository: Repository<Indicator>,
 	tenantId: string,
-	userId: string,
-	organizationId: string,
+	userId: string | null,
+	organizationId: string | null,
 	commandBus: CommandBus<ICommand>
 ) {
-	// 数据源
-	let dataSource = new DataSource()
+	return seedOrganizationAnalyticsData(
+		dstService,
+		dsRepository,
+		businessAreaRepository,
+		businessAreaUserRepository,
+		modelRepository,
+		modelService,
+		storyRepository,
+		storyPointRepository,
+		storyWidgetRepository,
+		indicatorRepository,
+		tenantId,
+		userId,
+		organizationId,
+		commandBus,
+		{ mode: 'full-demo' }
+	)
+}
+
+async function ensureDemoDataSource(
+	dstService: DataSourceTypeService,
+	dsRepository: Repository<DataSource>,
+	tenantId: string,
+	organizationId: string | null,
+	userId: string | null
+) {
+	let dataSource = await dsRepository.findOne({
+		where: {
+			tenantId,
+			organizationId,
+			name: 'Demo - PG DB'
+		},
+		relations: ['type']
+	})
+
+	if (dataSource) {
+		return dataSource
+	}
+
+	dataSource = new DataSource()
 	dataSource.name = 'Demo - PG DB'
 	dataSource.tenantId = tenantId
 	dataSource.createdById = userId
@@ -62,94 +233,45 @@ export async function seedTenantDefaultData(
 		username: 'demo',
 		password: 'GYIb9sx71LRdMVh&qc$!',
 	}
-	dataSource = await dsRepository.save(dataSource)
 
-	// 业务域
-	const areas = await Promise.all(
-		BUSINESS_AREAS.map((item) =>
-			createBusinessArea(
-				businessAreaRepository,
-				tenantId,
-				organizationId,
-				userId,
-				item
-			)
-		)
-	)
+	return dsRepository.save(dataSource)
+}
 
-	for (const businessArea of areas) {
-		await businessAreaUserRepository.save({
+async function ensureBusinessArea(
+	repository: Repository<BusinessArea>,
+	tenantId: string,
+	organizationId: string | null,
+	createdById: string | null,
+	options: any,
+	parent?: BusinessArea
+) {
+	let area = await repository.findOne({
+		where: {
 			tenantId,
 			organizationId,
-			createdById: userId,
-			userId,
-			businessArea,
-			role: BusinessAreaRole.Modeler
-		})
+			name: options.name,
+			parentId: parent?.id ?? null
+		}
+	})
+
+	if (!area) {
+		area = new BusinessArea()
+		area.tenantId = tenantId
+		area.organizationId = organizationId
+		area.createdById = createdById
+		area.name = options.name
+		area.parent = parent
+		area.parentId = parent?.id ?? null
+		area = await repository.save(area)
 	}
 
-	// 语义模型
-	let semanticModel = new SemanticModel()
-	semanticModel.tenantId = tenantId
-	semanticModel.createdById = userId
-	semanticModel.organizationId = organizationId
-	semanticModel.businessAreaId = areas[0].id
-	semanticModel.dataSourceId = dataSource.id
+	if (options.children?.length) {
+		area.children = await Promise.all(
+			options.children.map((child) =>
+				ensureBusinessArea(repository, tenantId, organizationId, createdById, child, area)
+			)
+		)
+	}
 
-	semanticModel.name = SEMANTIC_MODEL_NAME
-	semanticModel.type = 'XMLA'
-	semanticModel.catalog = 'foodmart'
-	// semanticModel.options = SEMANTIC_MODEL
-
-	// Save Model
-	semanticModel = await modelRepository.save(semanticModel)
-
-	// Update Roles
-	semanticModel.roles = SEMANTIC_MODEL_ROLES as IModelRole[]
-	semanticModel = await commandBus.execute(new SemanticModelUpdateCommand(semanticModel))
-	// Update Xmla Schema
-	await modelService.updateCatalogContent(semanticModel.id)
-
-	// 指标
-	await createIndicators(
-		indicatorRepository,
-		businessAreaRepository,
-		tenantId,
-		organizationId,
-		userId,
-		semanticModel.id
-	)
-
-	// await createDemoFoodMartStory(
-	// 	{ tenantId, userId, organizationId } as Employee,
-	// 	semanticModel,
-	// 	storyRepository,
-	// 	storyPointRepository,
-	// 	storyWidgetRepository,
-	// 	indicatorRepository
-	// )
-
-	// await createDemoChartsStory(
-	// 	{ tenantId, userId, organizationId } as Employee,
-	// 	semanticModel,
-	// 	storyRepository,
-	// 	storyPointRepository,
-	// 	storyWidgetRepository
-	// )
-
-	// await createDemoBigViewStory(
-	// 	{ tenantId, userId, organizationId } as Employee,
-	// 	semanticModel,
-	// 	storyRepository,
-	// 	storyPointRepository,
-	// 	storyWidgetRepository
-	// )
-
-	await createDemoCalculationStory(
-		{ tenantId, userId, organizationId } as Employee,
-		semanticModel,
-		storyRepository,
-		storyPointRepository,
-		storyWidgetRepository
-	)
+	return area
 }

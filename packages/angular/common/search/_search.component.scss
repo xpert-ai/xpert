@@ -1,4 +1,5 @@
-.ngm-search__input.mat-mdc-input-element {
+@reference "../../../tailwind-workspace-reference.css";
+.ngm-search__input[z-input] {
   @apply rounded-md relative flex justify-start items-center
     hover:bg-gray-500/10 focus:bg-gray-500/20
     dark:hover:bg-white/10 dark:focus:bg-white/20 dark:hover:bg-gradient-to-r;

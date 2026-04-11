@@ -1,27 +1,27 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $primary: map.get($config, primary);
   $accent: map.get($config, 'accent');
 
   .ngm-entity-schema {
-    .mat-tree-node {
+    [data-slot='tree-node'] {
       padding-right: 1rem;
 
-      .mat-icon-rtl-mirror {
-        color: color.change(mat.get-color-from-palette($primary), $alpha: 0.3);
+      .z-icon-rtl-mirror {
+        color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.3);
       }
 
       &.selected {
-        background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.05);
+        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.05);
       }
 
       &:hover {
-        background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.1);
-        color: mat.get-color-from-palette($primary);
+        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1);
+        color: themeCompat.m2-get-color-from-palette($primary);
       }
     }
 
@@ -33,9 +33,9 @@
       margin-right: 5px;
       font-size: 12px;
       font-weight: 500;
-      color: mat.get-color-from-palette($accent);
+      color: themeCompat.m2-get-color-from-palette($accent);
       text-align: center;
-      background-color: color.change(mat.get-color-from-palette($accent), $alpha: 0.1);
+      background-color: color.change(themeCompat.m2-get-color-from-palette($accent), $alpha: 0.1);
       border-radius: 3px;
       padding: 0 3px;
       max-width: 60px;
@@ -55,9 +55,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

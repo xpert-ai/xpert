@@ -1,15 +1,14 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, ElementRef, inject, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertVariableInputComponent } from '@cloud/app/@shared/agent'
 import {
   XpertWorkflowAuthorizationComponent,
   XpertWorkflowErrorHandlingComponent,
   XpertWorkflowRetryComponent
 } from '@cloud/app/@shared/workflow'
-import { linkedModel } from '@metad/core'
-import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
+import { linkedModel } from '@xpert-ai/core'
+import { NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BodyType,
@@ -29,6 +28,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +36,7 @@ import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
   templateUrl: './http.component.html',
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmSelectComponent,
     NgmRadioSelectComponent,

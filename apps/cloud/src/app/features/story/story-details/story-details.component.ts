@@ -1,48 +1,51 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
-import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core'
+
+import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatChipsModule } from '@angular/material/chips'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatListModule } from '@angular/material/list'
-import { MatSelectModule } from '@angular/material/select'
+import {
+  ZardButtonComponent,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardChipsImports,
+  ZardDialogModule,
+  type ZardComboboxDeprecatedOption,
+  Z_MODAL_DATA,
+  ZardDialogRef
+} from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { cloneDeep } from '@metad/ocap-core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { cloneDeep } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { Story, StoryModel, StoryOptions } from '@metad/story/core'
+import { Story, StoryModel, StoryOptions } from '@xpert-ai/story/core'
 import { Subject, combineLatestWith, filter, firstValueFrom, map, startWith, switchMap, tap } from 'rxjs'
 import { ISemanticModel, ProjectAPIService, ScreenshotService, ToastrService } from '../../../@core'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective, NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatIconModule,
-    MatButtonModule,
-    MatListModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDialogModule,
-    MatCheckboxModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatChipsModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ...ZardFormImports,
+    ZardInputDirective,
+    ZardDialogModule,
+    ZardCheckboxComponent,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
+    ...ZardChipsImports,
     DragDropModule,
     OcapCoreModule,
-    NgmHighlightDirective
-  ],
+    NgmHighlightDirective,
+    NgmSelectComponent
+],
   selector: 'ngm-story-details',
   templateUrl: './story-details.component.html',
   styleUrls: ['./story-details.component.scss']
@@ -51,12 +54,11 @@ export class StoryDetailsComponent implements OnInit {
   private readonly screenshotService = inject(ScreenshotService)
   private readonly projectAPI = inject(ProjectAPIService)
   public readonly toastrService = inject(ToastrService)
-  public readonly data = inject<Story>(MAT_DIALOG_DATA)
-  public dialogRef? = inject(MatDialogRef<StoryDetailsComponent>)
+  public readonly data = inject<Story>(Z_MODAL_DATA)
+  public dialogRef? = inject(ZardDialogRef<StoryDetailsComponent>)
   private readonly router = inject(Router)
   private readonly translate = inject(TranslateService)
-
-  @ViewChild('modelInput') modelInput: ElementRef<HTMLInputElement>
+  private skipNextModelSearchSync = false
 
   c_details = 'details'
   c_thumbnail = 'thumbnail'
@@ -72,7 +74,7 @@ export class StoryDetailsComponent implements OnInit {
   imagePreview: string | ArrayBuffer | null
   error: string = null
 
-  modelCtrl = new FormControl(null)
+  modelCtrl = new FormControl<string | null>(null)
   projectId$ = new Subject<string>()
 
   models$ = toSignal<ISemanticModel[], ISemanticModel[]>(
@@ -100,6 +102,14 @@ export class StoryDetailsComponent implements OnInit {
   }
 
   models = signal<ISemanticModel[]>([])
+  readonly modelOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
+    this.models$().map((model) => ({
+      id: model.id,
+      label: model.name,
+      value: model,
+      data: model
+    }))
+  )
 
   constructor() {
     this.projectId$.next(this.data.projectId)
@@ -118,21 +128,30 @@ export class StoryDetailsComponent implements OnInit {
     this.reset()
   }
 
-  displayWithName(model: ISemanticModel) {
-    return model?.name
+  displayWithName(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
+    return (value as ISemanticModel | null)?.name ?? ''
   }
 
   removeModel(model: ISemanticModel) {
     this.models.set(this.models().filter((m) => m.id !== model.id))
   }
 
-  modelSelected(event: MatAutocompleteSelectedEvent): void {
-    const model = event.option.value as ISemanticModel
-    if (!this.models().some((m) => m.id === model.id)) {
-      this.models.set([...this.models(), event.option.value])
+  onModelSearchTermChange(value: string) {
+    if (this.skipNextModelSearchSync) {
+      this.skipNextModelSearchSync = false
+      this.modelCtrl.setValue('', { emitEvent: false })
+      return
     }
-    this.modelInput.nativeElement.value = ''
-    this.modelCtrl.setValue(null)
+
+    this.modelCtrl.setValue(value)
+  }
+
+  modelSelected(value: unknown): void {
+    const model = value as ISemanticModel | null
+    if (model && !this.models().some((m) => m.id === model.id)) {
+      this.models.set([...this.models(), model])
+    }
+    this.resetModelSearch()
   }
 
   onFileSelected(event: Event): void {
@@ -142,8 +161,9 @@ export class StoryDetailsComponent implements OnInit {
       const reader = new FileReader()
       reader.onload = () => {
         const result = reader.result as string
-        if (result.length > 3*(2**20)) { // Note: 2*2**20 = 2MB
-          this.error = `${this.translate.instant('Story.StoryDetails.PreviewExceedsMaximum', {Default: 'File exceeds the maximum size'})} 2MB`
+        if (result.length > 3 * 2 ** 20) {
+          // Note: 2*2**20 = 2MB
+          this.error = `${this.translate.instant('Story.StoryDetails.PreviewExceedsMaximum', { Default: 'File exceeds the maximum size' })} 2MB`
           this.file = null
         } else {
           this.imagePreview = result
@@ -180,7 +200,7 @@ export class StoryDetailsComponent implements OnInit {
     // If new thumbnail file
     if (this.file) {
       const screenshot = await this.uploadScreenshot(this.file)
-      ;(story.previewId = screenshot.id), (story.thumbnail = screenshot.url)
+      ;((story.previewId = screenshot.id), (story.thumbnail = screenshot.url))
     }
     this.dialogRef.close(story)
   }
@@ -192,11 +212,17 @@ export class StoryDetailsComponent implements OnInit {
     this.imagePreview = this.data.thumbnail || this.data.preview?.url
     this.thumbnail = this.data.thumbnail
     this.details = cloneDeep(this.data.options) || {}
+    this.modelCtrl.setValue('', { emitEvent: true })
   }
 
   async uploadScreenshot(fileUpload: File) {
     const formData = new FormData()
     formData.append('file', fileUpload)
     return await firstValueFrom(this.screenshotService.create(formData))
+  }
+
+  private resetModelSearch() {
+    this.skipNextModelSearchSync = true
+    this.modelCtrl.setValue('', { emitEvent: true })
   }
 }

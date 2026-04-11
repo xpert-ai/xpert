@@ -1,4 +1,4 @@
-import { IIntegration, IPagination } from "@metad/contracts"
+import { IIntegration, IPagination } from "@xpert-ai/contracts"
 import { Injectable } from "@nestjs/common"
 import { ModuleRef } from "@nestjs/core"
 import { IntegrationPermissionService } from "@xpert-ai/plugin-sdk"

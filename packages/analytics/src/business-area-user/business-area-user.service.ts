@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { BusinessAreaRole, IUser } from '@metad/contracts'
+import { BusinessAreaRole, IUser } from '@xpert-ai/contracts'
 import {
 	RequestContext,
 	TenantOrganizationAwareCrudService,
 	User,
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { FindManyOptions, Repository } from 'typeorm'
 import { BusinessAreaUser } from './business-area-user.entity'
 

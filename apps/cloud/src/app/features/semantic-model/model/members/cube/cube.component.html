@@ -1,23 +1,36 @@
-<mat-expansion-panel class="mat-elevation-z" displayDensity="cosy">
-  <mat-expansion-panel-header class="whitespace-nowrap">
-    <mat-panel-title> {{cube().caption}} <span class="text-sm italic ml-2">({{cube().name}})</span> </mat-panel-title>
-    <mat-panel-description>
+<z-accordion-item class="shadow-sm rounded-[1rem]" displayDensity="cosy">
+  <z-accordion-header class="whitespace-nowrap">
+    <z-accordion-title>
+      {{ cube().caption }} <span class="text-sm italic ml-2">({{ cube().name }})</span>
+    </z-accordion-title>
+    <z-accordion-description class="gap-1">
       @if (entity()?.job?.endAt) {
-        <span class="text-sm">{{ 'PAC.MODEL.LastSyncTime' | translate: {Default: 'Last sync time'} }}:</span>
-        <span class="text-sm font-mono">{{entity().job.endAt | date:'short'}}</span>
+        <span class="text-sm">{{ 'PAC.MODEL.LastSyncTime' | translate: { Default: 'Last sync time' } }}:</span>
+        <span class="text-sm font-mono">{{ entity().job.endAt | date: 'short' }}</span>
       }
-      <button mat-icon-button class="ml-2" [disabled]="loading() || !entity()?.id"
-        [matTooltip]="'PAC.MODEL.RetrievalTesting' | translate: {Default: 'Retrieval Testing'}"
-        matTooltipPosition="above"
-        (click)="$event.stopPropagation();retrievalTesting()"
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="ml-2"
+        [disabled]="loading() || !entity()?.id"
+        [zTooltip]="'PAC.MODEL.RetrievalTesting' | translate: { Default: 'Retrieval Testing' }"
+        zPosition="top"
+        (click)="$event.stopPropagation(); retrievalTesting()"
       >
         <i class="ri-focus-2-line"></i>
       </button>
 
-      <button mat-icon-button [disabled]="loading() || !entity()?.id"
-        [matTooltip]="'PAC.MODEL.ScheduledSyncTask' | translate: {Default: 'Scheduled synchronization task'}"
-        matTooltipPosition="above"
-        (click)="$event.stopPropagation();scheduledSyncTask()"
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        [disabled]="loading() || !entity()?.id"
+        [zTooltip]="'PAC.MODEL.ScheduledSyncTask' | translate: { Default: 'Scheduled synchronization task' }"
+        zPosition="top"
+        (click)="$event.stopPropagation(); scheduledSyncTask()"
       >
         @if (entity()?.schedule) {
           <i class="ri-calendar-schedule-fill text-accent-700"></i>
@@ -27,28 +40,43 @@
       </button>
 
       @if (entity()?.job?.status === 'processing' || entity()?.job?.status === 'completed') {
-        <div class="flex justify-center items-center gap-1" [matTooltip]="'PAC.MODEL.EmbeddingProgress' | translate: {Default: 'Embedding progress'}" matTooltipPosition="above">
+        <div
+          class="flex justify-center items-center gap-1"
+          [zTooltip]="'PAC.MODEL.EmbeddingProgress' | translate: { Default: 'Embedding progress' }"
+          zPosition="top"
+        >
           @if (entity().job.progress < 100) {
-            <mat-progress-spinner [strokeWidth]="2"
-              mode="determinate" diameter="20" color="accent"
-              [value]="entity()?.job.progress" 
+            <z-progress-circle
+              strokeWidth="2"
+              zType="accent"
+              diameter="20"
+              [value]="entity()?.job.progress"
             />
           } @else {
             <i class="ri-checkbox-circle-line text-xl text-text-success"></i>
           }
 
-          <span>{{entity()?.job.progress}}%</span>
+          <span>{{ entity()?.job.progress }}%</span>
         </div>
       }
       @if (entity()?.job) {
         @if (entity().job?.error) {
-          <i class="ri-error-warning-fill text-xl text-text-destructive"
-            [matTooltip]="entity().job.error" matTooltipPosition="above"></i>
+          <i
+            class="ri-error-warning-fill text-xl text-text-destructive"
+            [zTooltip]="entity().job.error"
+            zPosition="top"
+          ></i>
         } @else if (job()?.status === 'processing') {
-          <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
-            [matTooltip]="'PAC.MODEL.StopSyncJob' | translate: {Default: 'Stop the synchronization job'}"
-            matTooltipPosition="above"
-            (click)="$event.stopPropagation();stopJob()"
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            [disabled]="loading()"
+            ngmAppearance="danger"
+            [zTooltip]="'PAC.MODEL.StopSyncJob' | translate: { Default: 'Stop the synchronization job' }"
+            zPosition="top"
+            (click)="$event.stopPropagation(); stopJob()"
           >
             <i class="ri-stop-circle-line"></i>
           </button>
@@ -56,46 +84,66 @@
       }
 
       @if (entity()?.id && job()?.status !== 'processing') {
-        <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
-          [matTooltip]="'PAC.MODEL.DeleteEmbeddedDimensionMembers' | translate: {Default: 'Delete Embedded Dimension Members'}"
-          matTooltipPosition="above"
-          (click)="$event.stopPropagation();deleteMembers(entity().id)"
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          [disabled]="loading()"
+          ngmAppearance="danger"
+          [zTooltip]="
+            'PAC.MODEL.DeleteEmbeddedDimensionMembers' | translate: { Default: 'Delete Embedded Dimension Members' }
+          "
+          zPosition="top"
+          (click)="$event.stopPropagation(); deleteMembers(entity().id)"
         >
           <i class="ri-delete-bin-7-line"></i>
         </button>
       }
-      
-        <button mat-icon-button class="flex justify-center items-center"
-          [disabled]="loading() || !selectedDims()?.length"
-          [matTooltip]="'PAC.MODEL.RefreshMembers' | translate: {Default: 'Refresh members'}"
-          matTooltipPosition="above"
-          (click)="$event.stopPropagation();refresh()"
-        >
-          <i class="ri-refresh-line" [class.animate-spin]="refreshing()"></i>
-        </button>
 
-        <button mat-icon-button class="flex justify-center items-center"
-          [disabled]="loading() || !loaded() || entity()?.job?.status === 'processing' || !selectedDims()?.length"
-          [matTooltip]="'PAC.MODEL.UploadDimensionMembers' | translate: {Default: 'Upload Dimension Members'}"
-          matTooltipPosition="above"
-          (click)="$event.stopPropagation();createModelEntity(selectedDims())"
-        >
-          <i class="ri-git-repository-commits-line"></i>
-        </button>
-    </mat-panel-description>
-  </mat-expansion-panel-header>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="flex justify-center items-center"
+        [disabled]="loading() || !selectedDims()?.length"
+        [zTooltip]="'PAC.MODEL.RefreshMembers' | translate: { Default: 'Refresh members' }"
+        zPosition="top"
+        (click)="$event.stopPropagation(); refresh()"
+      >
+        <i class="ri-refresh-line" [class.animate-spin]="refreshing()"></i>
+      </button>
+
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="flex justify-center items-center"
+        [disabled]="loading() || !loaded() || entity()?.job?.status === 'processing' || !selectedDims()?.length"
+        [zTooltip]="'PAC.MODEL.UploadDimensionMembers' | translate: { Default: 'Upload Dimension Members' }"
+        zPosition="top"
+        (click)="$event.stopPropagation(); createModelEntity(selectedDims())"
+      >
+        <i class="ri-git-repository-commits-line"></i>
+      </button>
+    </z-accordion-description>
+  </z-accordion-header>
 
   <div class="relative overflow-x-auto sm:rounded-lg">
-    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-      <thead class=" text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+    <table class="w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
+      <thead class="text-text-secondary uppercase bg-background-default-subtle dark:text-text-quaternary">
         <tr>
           <th scope="col" class="py-3 px-4 pe-0">
-            <ngm-checkbox [disabled]="loading()"
+            <ngm-checkbox
+              [disabled]="loading()"
               [ngModel]="allSelected()"
               [indeterminate]="someSelected()"
-              (ngModelChange)="setAll($event)" />
+              (ngModelChange)="setAll($event)"
+            />
             <!-- <div class="flex items-center h-5">
-              <input id="hs-table-search-checkbox-all" type="checkbox" class="border-gray-200 rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-500 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
+              <input id="hs-table-search-checkbox-all" type="checkbox" class="border-divider-deep rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-500 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
                 [disabled]="loading()"
                 [ngModel]="allSelected()"
                 [indeterminate]="someSelected()"
@@ -105,16 +153,16 @@
             </div> -->
           </th>
           <th scope="col" class="px-6 py-3">
-            {{ 'PAC.KEY_WORDS.Dimension' | translate: {Default: 'Dimension'} }}
+            {{ 'PAC.KEY_WORDS.Dimension' | translate: { Default: 'Dimension' } }}
           </th>
           <th scope="col" class="px-6 py-3">
-            {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
+            {{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
           </th>
           <th scope="col" class="px-6 py-3">
-            {{ 'PAC.MODEL.MemberCount' | translate: {Default: 'Member Count'} }}
+            {{ 'PAC.MODEL.MemberCount' | translate: { Default: 'Member Count' } }}
           </th>
           <th scope="col" class="px-6 py-3">
-            {{ 'PAC.KEY_WORDS.Embedded' | translate: {Default: 'Embedded'} }}
+            {{ 'PAC.KEY_WORDS.Embedded' | translate: { Default: 'Embedded' } }}
           </th>
           <!-- <th scope="col" class="px-6 py-3">
             {{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}
@@ -123,14 +171,15 @@
       </thead>
       <tbody>
         @for (dimension of dimensions(); track dimension.name) {
-          <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+          <tr class="bg-surface-l1 border-b border-divider-regular hover:bg-hover-bg">
             <td class="py-3 ps-4">
-              <ngm-checkbox [disabled]="loading() || dimension.semantics?.disableEmbeddingMembers"
+              <ngm-checkbox
+                [disabled]="loading() || dimension.semantics?.disableEmbeddingMembers"
                 [ngModel]="getSelected(dimension.name)"
-                (ngModelChange)="setSelected(dimension.name, $event)" 
+                (ngModelChange)="setSelected(dimension.name, $event)"
               />
             </td>
-            <th scope="row" class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap dark:text-white">
+            <th scope="row" class="px-6 py-4 font-semibold text-text-primary whitespace-nowrap">
               {{ dimension.caption || dimension.name }}
             </th>
             <td class="px-6 py-4 font-semibold">
@@ -139,7 +188,7 @@
             <td class="px-6 py-4">
               @for (hierarchy of dimension.hierarchies; track hierarchy.name; let last = $last) {
                 @if (members()[hierarchy.name]) {
-                  {{members()[hierarchy.name].length | number: '0.0-0'}}
+                  {{ members()[hierarchy.name].length | number: '0.0-0' }}
                   @if (!last) {
                     <span class="mx-1">|</span>
                   }
@@ -149,7 +198,7 @@
             <td class="px-6 py-4">
               @for (hierarchy of dimension.hierarchies; track hierarchy.name; let last = $last) {
                 @if (syncMembers()[hierarchy.name]) {
-                  {{syncMembers()[hierarchy.name] | number: '0.0-0'}}
+                  {{ syncMembers()[hierarchy.name] | number: '0.0-0' }}
                   @if (!last) {
                     <span class="mx-1">|</span>
                   }
@@ -159,47 +208,52 @@
           </tr>
 
           <!-- @if (dimension.expand) { -->
-            @for (hierarchy of dimension.hierarchies; track hierarchy.name) {
-              <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-500">
-                <td class="py-3 ps-4">
-                  <div class="flex items-center h-5">
-                    <!-- <ngm-checkbox [disabled]="loading()"
+          @for (hierarchy of dimension.hierarchies; track hierarchy.name) {
+            <tr
+              class="bg-surface-l1 border-b border-divider-regular hover:bg-hover-bg"
+            >
+              <td class="py-3 ps-4">
+                <div class="flex items-center h-5">
+                  <!-- <ngm-checkbox [disabled]="loading()"
                       [ngModel]="getSelected(hierarchy.name)"
                       (ngModelChange)="setSelected(hierarchy.name, $event)" 
                     /> -->
-                    <!-- <label for="hs-table-search-checkbox-1" class="sr-only">Checkbox</label> -->
-                  </div>
-                </td>
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                  <div class="inline-block w-4"></div> 
-                  <a class="cursor-pointer hover:underline" (click)="openValueHelp(dimension.name, hierarchy.name)">
-                    {{ hierarchy.caption || hierarchy.name }}</a>
-                </th>
-                <td class="px-6 py-4">
-                  {{ hierarchy.name }}
-                </td>
-                <td class="px-6 py-4">
-                  @if (members()[hierarchy.name]) {
-                    {{members()[hierarchy.name].length | number: '0.0-0'}}
-                  }
-                </td>
-                <td class="px-6 py-4 text-end">
-                  @if (syncMembers()[hierarchy.name]) {
-                    <span class='inline-flex items-center bg-emerald-50 text-emerald-600 font-medium mr-2 pl-1.5 pr-2 rounded-lg py-1'
-                      [matTooltip]="'PAC.MODEL.SynchronizedMembers' | translate: {Default: 'Synchronized members'}"
-                      matTooltipPosition="above">
-                      <i class="ri-ai-generate-text mr-1"></i>
-                      <span class="italic text-sm overflow-hidden text-ellipsis">
-                        {{ syncMembers()[hierarchy.name] | number: '0.0-0' }}
-                      </span>
+                  <!-- <label for="hs-table-search-checkbox-1" class="sr-only">Checkbox</label> -->
+                </div>
+              </td>
+              <th scope="row" class="px-6 py-4 font-medium text-text-primary whitespace-nowrap">
+                <div class="inline-block w-4"></div>
+                <a class="cursor-pointer hover:underline" (click)="openValueHelp(dimension.name, hierarchy.name)">
+                  {{ hierarchy.caption || hierarchy.name }}</a
+                >
+              </th>
+              <td class="px-6 py-4">
+                {{ hierarchy.name }}
+              </td>
+              <td class="px-6 py-4">
+                @if (members()[hierarchy.name]) {
+                  {{ members()[hierarchy.name].length | number: '0.0-0' }}
+                }
+              </td>
+              <td class="px-6 py-4 text-end">
+                @if (syncMembers()[hierarchy.name]) {
+                  <span
+                    class="inline-flex items-center bg-emerald-50 text-emerald-600 font-medium mr-2 pl-1.5 pr-2 rounded-lg py-1"
+                    [zTooltip]="'PAC.MODEL.SynchronizedMembers' | translate: { Default: 'Synchronized members' }"
+                    zPosition="top"
+                  >
+                    <i class="ri-ai-generate-text mr-1"></i>
+                    <span class="italic text-sm overflow-hidden text-ellipsis">
+                      {{ syncMembers()[hierarchy.name] | number: '0.0-0' }}
                     </span>
-                  }
-                </td>
-              </tr>
-            }
+                  </span>
+                }
+              </td>
+            </tr>
+          }
           <!-- } -->
         }
       </tbody>
     </table>
   </div>
-</mat-expansion-panel>
+</z-accordion-item>

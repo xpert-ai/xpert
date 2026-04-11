@@ -1,5 +1,7 @@
-@use '@angular/material' as mat;
 
+
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   // @apply inline-block; // Why inline-block?
   @apply block;
@@ -75,7 +77,7 @@
       .ngm-story__widget.ngm-story__focus {
         .ngm-story-widget__content {
           background-color: var(--ngm-color-surface-container);
-          @include mat.elevation(8);
+          @include themeCompat.elevation(8);
         }
       }
     }
@@ -164,7 +166,7 @@ gridster {
       
   /* page size styling */
   &.ngm-story-point__size-a4 {
-    @include mat.elevation(8);
+    @include themeCompat.elevation(8);
     margin: auto;
     padding: 1rem;
     width: 1240px;

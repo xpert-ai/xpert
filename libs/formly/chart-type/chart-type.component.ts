@@ -1,8 +1,8 @@
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   HostBinding,
   inject,
   OnInit,
@@ -12,12 +12,9 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormArray, FormControl, FormGroup } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { CommandDialogComponent, NgmCopilotService } from '@metad/copilot-angular'
-import { injectChartCommand } from '@metad/core'
-import { NgmFormlyArrayComponent } from '@metad/formly/array'
-import { NgmThemeService } from '@metad/ocap-angular/core'
-import { EditorThemeMap } from '@metad/ocap-angular/formula'
+import { NgmFormlyArrayComponent } from '@xpert-ai/formly/array'
+import { NgmThemeService } from '@xpert-ai/ocap-angular/core'
+import { EditorThemeMap } from '@xpert-ai/ocap-angular/formula'
 import {
   BarVariant,
   ChartTypeEnum,
@@ -30,9 +27,7 @@ import {
   ScatterVariant,
   TreeVariant,
   WaterfallVariant
-} from '@metad/ocap-core'
-import { STORY_DESIGNER_SCHEMA } from '@metad/story/designer'
-import { ChartOptionsSchemaService } from '@metad/story/widgets/analytical-card'
+} from '@xpert-ai/ocap-core'
 import { FieldType } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -42,17 +37,13 @@ import { CHART_TYPES, GeoProjections } from './types'
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-chart-type',
+  standalone: false,
   templateUrl: './chart-type.component.html',
-  styleUrls: ['chart-type.component.scss'],
-  providers: [
-    {
-      provide: STORY_DESIGNER_SCHEMA,
-      useClass: ChartOptionsSchemaService
-    }
-  ]
+  styleUrls: ['chart-type.component.scss']
 })
 export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   @HostBinding('class.pac-formly-chart-type') readonly _hostClass = true
+  readonly noneChartTypeValue = '__none__'
 
   ChartTypeEnum = ChartTypeEnum
   GeoProjections = [
@@ -67,12 +58,10 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   ]
 
   readonly formlyArray2? = inject(NgmFormlyArrayComponent, { optional: true })
-  readonly schema = inject<ChartOptionsSchemaService>(STORY_DESIGNER_SCHEMA)
-  readonly #copilotService = inject(NgmCopilotService)
   readonly #translate = inject(TranslateService)
   readonly #logger = inject(NGXLogger)
   readonly #themeService = inject(NgmThemeService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
 
   @ViewChild('mapTemp') mapTemplate: TemplateRef<unknown>
 
@@ -147,6 +136,14 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   }
 
   chartTypeGroups = CHART_TYPES
+  readonly chartTypeOptionGroups = CHART_TYPES.map((group) => ({
+    label: this.#translate.instant(`FORMLY.CHART.${group.name}`, { Default: group.name }),
+    options: group.charts.map((chart) => ({
+      value: chart.value,
+      label: this.#translate.instant(`FORMLY.CHART.${chart.label}`, { Default: chart.label }),
+      disabled: group.disabled
+    }))
+  }))
 
   get orient() {
     return this.chartTypeForm.get('orient').value
@@ -201,6 +198,8 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
 
   prompt = ''
   answering = false
+
+  chartOptionsJsonText = ''
 //   systemPrompt = `假设你一名程序员，请根据注释需求补全代码，要求：编写一个函数用于绘制 ECharts 图形，只要编写函数体内部代码，函数只返回 ECharts options，输入参数有 data chartAnnotation chartOptions chartSettings
 // data 数据类型为 {data: <实际数据对象（包含measure对应的属性）>[]} chartAnnotation 类型为 {measures: {measure: string}[]}`
 
@@ -220,31 +219,54 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   | Copilot
   |--------------------------------------------------------------------------
   */
-  #chartCommands = injectChartCommand(this.logic, async ({ logic }) => {
-    this.scripts = logic
-    return `Chart created!`
-  })
-
   constructor() {
     super()
-    effect(
-      () => {
-        this.schema.chartType = this.chartType()
-      },
-      { allowSignalWrites: true }
-    )
   }
 
   ngOnInit(): void {
+    this.chartTypeControl.valueChanges.subscribe((value) => {
+      if (value === this.noneChartTypeValue) {
+        this.chartTypeControl.setValue(null)
+      }
+    })
+
     if (isNil(this.field.formControl.value) || isString(this.field.formControl.value)) {
       this.chartTypeForm.patchValue({ type: this.field.formControl.value })
     } else {
       this.chartTypeForm.patchValue(this.field.formControl.value)
     }
+    this.chartOptionsJsonText = this.stringifyChartOptions(this.chartTypeForm.value?.chartOptions)
 
     this.chartTypeForm.valueChanges.subscribe((value) => {
       this.field.formControl.setValue(value)
+      this.chartOptionsJsonText = this.stringifyChartOptions(value?.chartOptions)
     })
+  }
+
+  onChartOptionsJsonChange(value: string) {
+    this.chartOptionsJsonText = value
+    if (!value?.trim()) {
+      this.chartOptions = null
+      return
+    }
+
+    try {
+      this.chartOptions = JSON.parse(value)
+    } catch {
+      // Keep the current valid chart options value on invalid JSON input.
+    }
+  }
+
+  private stringifyChartOptions(value: unknown): string {
+    if (value === null || value === undefined || value === '') {
+      return ''
+    }
+
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return ''
+    }
   }
 
   confirmMap(ok?: boolean) {
@@ -285,19 +307,5 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
       }
       this.field.parent.formControl.setValue(this.field.parent.model)
     }
-  }
-
-  aiGenerate() {
-    this.#dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['chart']
-        }
-      })
-      .afterClosed()
-      .subscribe(() => {
-        //
-      })
   }
 }

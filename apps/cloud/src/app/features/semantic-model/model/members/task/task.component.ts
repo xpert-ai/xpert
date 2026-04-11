@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
@@ -12,17 +12,15 @@ import {
   ToastrService
 } from '@cloud/app/@core'
 import { ScheduleFormComponent } from '@cloud/app/@shared/schedule'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
-
 
 @Component({
   selector: 'model-sync-task',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     DragDropModule,
     FormsModule,
@@ -30,7 +28,7 @@ import { omit } from 'lodash-es'
     CdkMenuModule,
     NgmSpinComponent,
     ScheduleFormComponent
-  ],
+],
   templateUrl: './task.component.html',
   styleUrl: './task.component.scss'
 })

@@ -1,3 +1,4 @@
+import { IBackendProtocol, TSandboxConfigurable } from '@xpert-ai/contracts'
 import type { SandboxExecutionOptions } from './execution'
 
 /**
@@ -206,7 +207,7 @@ export interface FileUploadResponse {
  * Methods can return either direct values or Promises, allowing both
  * synchronous and asynchronous implementations.
  */
-export interface BackendProtocol {
+export interface BackendProtocol extends IBackendProtocol {
   /**
    * Structured listing with file metadata.
    *
@@ -394,11 +395,27 @@ export interface SandboxBackendProtocol extends BackendProtocol {
  * @param backend - Backend instance to check
  * @returns True if the backend implements SandboxBackendProtocol
  */
-export function isSandboxBackend(backend: BackendProtocol): backend is SandboxBackendProtocol {
+function isObjectLike(value: unknown): value is object {
+  return typeof value === 'object' && value !== null
+}
+
+export function isSandboxBackend(backend: unknown): backend is SandboxBackendProtocol {
   return (
-    typeof (backend as SandboxBackendProtocol).execute === 'function' &&
-    typeof (backend as SandboxBackendProtocol).id === 'string'
+    isObjectLike(backend) &&
+    typeof Reflect.get(backend, 'execute') === 'function' &&
+    typeof Reflect.get(backend, 'id') === 'string'
   )
+}
+
+export function resolveSandboxBackend(
+  sandbox: TSandboxConfigurable | SandboxBackendProtocol | null | undefined | unknown
+): SandboxBackendProtocol | null {
+  if (!isObjectLike(sandbox)) {
+    return null
+  }
+
+  const candidate = Reflect.has(sandbox, 'backend') ? Reflect.get(sandbox, 'backend') : sandbox
+  return isSandboxBackend(candidate) ? candidate : null
 }
 
 /**

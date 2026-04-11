@@ -1,9 +1,9 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { myRxResource } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { myRxResource } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { interval, Subscription } from 'rxjs'
 import { getErrorMessage, IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
@@ -16,13 +16,12 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
-  ]
+]
 })
 export class ChatMessageExecutionPanelComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -87,7 +86,7 @@ export class ChatMessageExecutionPanelComponent {
       } else {
         this.#stopPolling()
       }
-    }, { allowSignalWrites: true })
+    })
 
     // Stop polling when component is destroyed
     this.#destroyRef.onDestroy(() => {

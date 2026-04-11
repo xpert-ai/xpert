@@ -1,20 +1,21 @@
 import { ChangeDetectionStrategy, Component, ElementRef, Renderer2, computed, effect, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute } from '@angular/router'
-import { NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { AgentType, omit } from '@metad/ocap-core'
-import { StoryPointsService, convertStoryResult } from '@metad/cloud/state'
-import { NxCoreService } from '@metad/core'
-import { NxStoryService } from '@metad/story/core'
-import { NxStoryPointService } from '@metad/story/story'
+import { NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { AgentType, omit } from '@xpert-ai/ocap-core'
+import { StoryPointsService, convertStoryResult } from '@xpert-ai/cloud/state'
+import { NxCoreService } from '@xpert-ai/core'
+import { NxStoryService } from '@xpert-ai/story/core'
+import { NxStoryPointService } from '@xpert-ai/story/story'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { effectStoryTheme, registerStoryThemes } from '../../@theme'
 import { registerWasmAgentModel } from '../../@core'
-import { provideStory } from '@metad/story'
+import { provideStory } from '@xpert-ai/story'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-public-point',
   templateUrl: 'point.component.html',
@@ -100,7 +101,7 @@ export class PublicPointComponent {
       if (this.story()) {
         this.storyService.setStory(this.story())
       }
-    }, {allowSignalWrites: true})
+    })
 
     effect(() => {
       const models = this.models()

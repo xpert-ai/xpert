@@ -1,31 +1,38 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
-import { booleanAttribute, ChangeDetectionStrategy, Component, effect, inject, model, input, output } from '@angular/core'
+
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  model,
+  input,
+  output
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { injectToastr, IStorageFile, StorageFileService } from '@cloud/app/@core'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { injectConfirmDelete } from '@metad/ocap-angular/common'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentComponent } from '../attachment/attachment.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     ReactiveFormsModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ChatAttachmentComponent
-  ],
+],
   selector: 'chat-attachments',
   templateUrl: './attachments.component.html',
   styleUrl: 'attachments.component.scss',
@@ -44,7 +51,8 @@ export class ChatAttachmentsComponent {
   readonly storageFileService = inject(StorageFileService)
 
   // Inputs
-  readonly attachments = model<{ file?: File; url?: string; storageFile?: IStorageFile; error?: string; uploading?: boolean }[]>()
+  readonly attachments =
+    model<{ file?: File; url?: string; storageFile?: IStorageFile; error?: string; uploading?: boolean }[]>()
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

@@ -1,4 +1,4 @@
-import { Employee } from '@metad/server-core'
+import { Employee } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import {
 	Indicator,
@@ -42,7 +42,6 @@ export const STORY_OPTIONS = {
 	},
 	options: {
 		locale: 'zh-Hans',
-		// themeName: 'thin',
 		advancedStyle:
 			"@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');\r\n\r\n.nx-story-point:not(.nx-fullscreen) .nx-story__layout.mobile {\r\n    padding: 10px;\r\n}\r\n\r\n.nx-story__story-container .nx-story__layout.mobile .nx-story-widget {\r\n    margin-bottom: 1rem;\r\n}",
 		preferences: {

@@ -1,5 +1,5 @@
-import { mapTranslationLanguage, TRagWebResult } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { mapTranslationLanguage, TRagWebResult } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, InternalServerErrorException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'

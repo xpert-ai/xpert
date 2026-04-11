@@ -6,8 +6,8 @@ import {
 	getStorageFileFromAsset,
 	StorageFileService,
 	TransformInterceptor
-} from '@metad/server-core'
-import { IFileAssetDestination, IStorageFile, IUploadFileTarget } from '@metad/contracts'
+} from '@xpert-ai/server-core'
+import { IFileAssetDestination, IStorageFile, IUploadFileTarget } from '@xpert-ai/contracts'
 import {
 	BadRequestException,
 	Body,

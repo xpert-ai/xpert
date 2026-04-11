@@ -4,7 +4,7 @@
     <ng-content select="[icon]"></ng-content>
     @if (integrationProvider(); as provider) {
       @if (provider.icon) {
-        <xp-icon [icon]="provider.icon" class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-gray-100 flex justify-center items-center" />
+        <xp-icon [icon]="provider.icon" class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-components-input-bg-normal flex justify-center items-center" />
       } @else if (provider.avatar) {
         <img class="w-5 h-5 shrink-0 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar">
       }
@@ -15,16 +15,16 @@
       @if (option.avatar) {
         <img class="w-8 h-8 shrink-0 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar">
       } @else if (option._icon) {
-        <xp-icon [icon]="option._icon" class="w-8 h-8 shrink-0 rounded-lg bg-gray-100 flex justify-center items-center" />
+        <xp-icon [icon]="option._icon" class="w-8 h-8 shrink-0 rounded-lg bg-components-input-bg-normal flex justify-center items-center" />
       }
       <div class="flex flex-col">
-        <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
-        <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+        <div class="text-text-secondary text-sm leading-5">{{ option.label | i18n }}</div>
+        <div class="text-text-tertiary text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
       </div>
     </div>
   </ng-template>
 
-  <div option class="px-4 py-1 mt-1 rounded-lg cursor-pointer hover:bg-gray-100" (click)="openIntegrations()">
+  <div option class="px-4 py-1 mt-1 rounded-lg cursor-pointer hover:bg-hover-bg" (click)="openIntegrations()">
     <i class="ri-add-line mr-2"></i>
     {{ 'PAC.KEY_WORDS.NewSystemIntegration' | translate: {Default: 'New system integration'} }}
   </div>

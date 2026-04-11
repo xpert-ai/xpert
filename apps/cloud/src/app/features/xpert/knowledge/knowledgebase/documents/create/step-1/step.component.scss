@@ -1,6 +1,5 @@
+@reference "../../../../../../../../styles/tailwind-reference.css";
 :host {
-  --mdc-linear-progress-track-height: 2px;
-  --mdc-linear-progress-active-indicator-height: 2px;
   @apply flex;
 }
 
@@ -9,11 +8,7 @@
 }
 
 .ngm-fileover {
-  @apply shadow-sm bg-gray-100;
-}
-
-.mat-mdc-progress-bar {
-  @apply absolute bottom-0;
+  @apply shadow-sm bg-components-input-bg-normal;
 }
 
 .web-option.active {

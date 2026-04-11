@@ -1,30 +1,32 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { DisappearSlideLeft, OverlayAnimations } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { DisappearSlideLeft, OverlayAnimations } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { routeAnimations, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { AppService } from '../../../app.service'
+import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 import { XpertBasicManageComponent } from './manage/manage.component'
 import { XpertService } from './xpert.service'
+import { XpertHeaderSwitcherComponent } from './switcher/switcher.component'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-
     NgmCommonModule,
     EmojiAvatarComponent,
-    XpertBasicManageComponent
+    XpertBasicManageComponent,
+    XpertHeaderSwitcherComponent,
+    ExtensionHostOutletComponent
   ],
   selector: 'xp-xpert',
   templateUrl: './xpert.component.html',
@@ -49,6 +51,7 @@ export class XpertComponent {
 
   readonly avatar = computed(() => this.xpert()?.avatar)
   readonly xpertType = computed(() => this.xpert()?.type)
+  readonly showExtensionSidebar = signal(false) // computed(() => this.xpertType() === XpertTypeEnum.Agent && !!this.xpertId())
 
   toggleSideMenu() {
     this.sideMenuOpened.update((state) => !state)

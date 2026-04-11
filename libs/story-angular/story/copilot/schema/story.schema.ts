@@ -1,5 +1,5 @@
-import { DisplayDensity } from '@metad/ocap-angular/core'
-import { CalculationType } from '@metad/ocap-core'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { CalculationType } from '@xpert-ai/ocap-core'
 import { z } from 'zod'
 
 export const ComponentStylingSchema = z.object({
@@ -40,7 +40,7 @@ export const KPIStylingSchema = z
 export const StoryStyleSchema = z.object({
   story: z
     .object({
-      themeName: z.enum(['system', 'light', 'dark', 'thin']).optional().describe('The theme name of story'),
+      themeName: z.enum(['default', 'light', 'dark']).optional().describe('The theme name of story'),
       displayDensity: z.enum([DisplayDensity.compact, DisplayDensity.cosy, null]).optional().describe('The display density of story'),
       enableWatermark: z.boolean().optional().default(false).describe('Enable watermark of story'),
       watermarkOptions: z

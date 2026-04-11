@@ -1,4 +1,4 @@
-import { setConfig } from '@metad/server-config';
+import { setConfig } from '@xpert-ai/server-config';
 import { registerAllEntities } from './bootstrap';
 import { getDbConfig } from './main';
 import { seedDefault } from './core/seeds/seed';

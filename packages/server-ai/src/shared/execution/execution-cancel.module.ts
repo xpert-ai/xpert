@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common'
-import { RedisModule } from '@metad/server-core'
+import { RedisModule } from '@xpert-ai/server-core'
 import { ExecutionCancelService } from './execution-cancel.service'
 
 @Global()

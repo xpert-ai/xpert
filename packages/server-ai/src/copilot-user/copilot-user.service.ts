@@ -1,5 +1,5 @@
-import { ICopilotUser } from '@metad/contracts'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { ICopilotUser } from '@xpert-ai/contracts'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'

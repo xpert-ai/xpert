@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/member-ordering */
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { hierarchize, Indicator, omit, pick, SemanticModel as OcapSemanticModel, Cube } from '@metad/ocap-core'
-import { StoryModel } from '@metad/story/core'
+import { hierarchize, Indicator, omit, pick, SemanticModel as OcapSemanticModel, Cube } from '@xpert-ai/ocap-core'
+import { StoryModel } from '@xpert-ai/story/core'
 import { Observable, zip } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { BusinessAreasService } from './business-area.service'

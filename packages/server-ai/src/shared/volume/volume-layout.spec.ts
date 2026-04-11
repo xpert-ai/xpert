@@ -5,7 +5,7 @@ const mockEnvironment = {
     }
 }
 
-jest.mock('@metad/server-config', () => ({
+jest.mock('@xpert-ai/server-config', () => ({
     environment: mockEnvironment
 }))
 
@@ -21,7 +21,9 @@ describe('volume layout helpers', () => {
 
     beforeEach(() => {
         mockEnvironment.envName = 'dev'
-        mockEnvironment.sandboxConfig.volume = ''
+        mockEnvironment.sandboxConfig = {
+            volume: ''
+        }
         process.env.HOME = '/Users/tester'
         process.env.USERPROFILE = '/Users/tester'
     })
@@ -37,6 +39,13 @@ describe('volume layout helpers', () => {
         expect(normalizeSandboxPublicVolumeSubpath('project/123e4567-e89b-12d3-a456-426614174000/file.txt')).toBe(
             'file.txt'
         )
+    })
+
+    it('falls back to the flattened local data layout when sandboxConfig is missing', () => {
+        delete mockEnvironment.sandboxConfig
+
+        expect(usesFlattenedSandboxVolumeLayout()).toBe(true)
+        expect(getSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data')
     })
 
     it('keeps tenant and logical subpath when sandbox volume is configured in development', () => {

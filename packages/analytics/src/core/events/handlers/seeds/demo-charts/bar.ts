@@ -1,4 +1,4 @@
-import { Employee } from '@metad/server-core'
+import { Employee } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import { Story, StoryPoint, StoryWidget } from '../../../../entities/internal'
 import { createWidget } from '../common'

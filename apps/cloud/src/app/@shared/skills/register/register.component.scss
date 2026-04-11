@@ -1,0 +1,9 @@
+:host {
+  @apply block;
+}
+
+:host::ng-deep {
+  .select-trigger {
+    @apply p-[10px];
+  }
+}

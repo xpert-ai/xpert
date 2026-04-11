@@ -1,4 +1,4 @@
-import { isClassInstance, isNotEmpty, isObject } from "@metad/server-common";
+import { isClassInstance, isNotEmpty, isObject } from "@xpert-ai/server-common";
 
 /**
  * Checks if value is needs to be wrap with specific character.

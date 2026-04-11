@@ -1,15 +1,16 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, HostBinding, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { ButtonGroupDirective, NgmThemeService } from '@metad/ocap-angular/core'
-import { EditorThemeMap } from '@metad/ocap-angular/formula'
-import { isBlank } from '@metad/ocap-core'
+
+import { ButtonGroupDirective, NgmThemeService } from '@xpert-ai/ocap-angular/core'
+import { EditorThemeMap } from '@xpert-ai/ocap-angular/formula'
+import { isBlank } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { BehaviorSubject } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface ConfirmCodeEditorData {
   language?: string
@@ -19,7 +20,7 @@ export interface ConfirmCodeEditorData {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, DragDropModule, MatButtonModule, MonacoEditorModule, ButtonGroupDirective],
+  imports: [FormsModule, TranslateModule, DragDropModule, ZardButtonComponent, MonacoEditorModule, ButtonGroupDirective],
   selector: 'ngm-confirm-code-editor',
   templateUrl: './confirm-code-editor.component.html',
   styleUrls: ['./confirm-code-editor.component.scss']

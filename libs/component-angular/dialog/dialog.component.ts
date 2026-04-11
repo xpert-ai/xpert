@@ -1,37 +1,37 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialogModule } from '@angular/material/dialog'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormGroup } from '@angular/forms'
 import { CommonModule } from '@angular/common'
+import { ZardButtonComponent, ZardDialogModule } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-    MatDialogModule,
-    MatButtonModule,
+    ZardDialogModule,
+    ZardButtonComponent,
     DragDropModule,
     TranslateModule,
     ButtonGroupDirective
-  ],
+],
   selector: 'ngm-dialog',
-  template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <span style="pointer-events: none;">{{ title }}</span>
     </header>
 
-    <div mat-dialog-content class="flex-1">
+    <div xpDialogContent class="flex-1">
       <ng-content></ng-content>
     </div>
 
-    <div mat-dialog-actions align="end">
+    <div xpDialogActions align="end">
       <div ngmButtonGroup>
-        <button mat-button mat-dialog-close cdkFocusInitial (click)="cancel.emit()">
+        <button z-button zType="ghost" xpDialogClose cdkFocusInitial (click)="cancel.emit()">
           {{ cancelLabel ?? ('COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'}) }}
         </button>
-        <button mat-raised-button color="accent" [disabled]="form?.invalid" (click)="onApply()">
+        <button z-button zType="default" [disabled]="form?.invalid" (click)="onApply()">
           {{ applyLabel ?? ('COMPONENTS.COMMON.Apply' | translate: {Default: 'Apply'}) }}
         </button>
       </div>

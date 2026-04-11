@@ -1,6 +1,7 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   .select-trigger {
-    @apply px-2 py-1.5 border-[0.5px] border-solid border-transparent bg-gray-100 hover:border-neutral-300;
+    @apply px-2 py-1.5 border-[0.5px] border-solid border-transparent bg-components-input-bg-normal hover:border-divider-deep;
   }
   &.inline {
     .select-trigger {

@@ -1,8 +1,9 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, inject } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
+
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -10,10 +11,9 @@ import { TranslateModule } from '@ngx-translate/core';
   styleUrls: ['./not-found.component.scss'],
   templateUrl: './not-found.component.html',
   imports: [
-    CommonModule,
     TranslateModule,
-    MatButtonModule
-  ]
+    ZardButtonComponent
+]
 })
 export class NotFoundComponent {
   readonly #router = inject(Router)

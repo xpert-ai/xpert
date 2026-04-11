@@ -16,13 +16,12 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
-import { CopilotChatMessageRoleEnum, CopilotEngine, nanoid } from '@metad/copilot'
-import { NgmCopilotService, provideCopilotDropAction } from '@metad/copilot-angular'
-import { calcEntityTypePrompt, convertQueryResultColumns, getErrorMessage } from '@metad/core'
-import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-angular/entity'
-import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
-import { C_MEASURES, VariableProperty, measureFormatter, nonNullable, wrapBrackets } from '@metad/ocap-core'
-import { limitSelect, serializeName } from '@metad/ocap-sql'
+import { CopilotChatMessageRoleEnum, CopilotEngine, nanoid } from '@xpert-ai/copilot'
+import { calcEntityTypePrompt, convertQueryResultColumns, getErrorMessage } from '@xpert-ai/core'
+import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@xpert-ai/ocap-angular/entity'
+import { NgmBaseEditorDirective } from '@xpert-ai/ocap-angular/formula'
+import { C_MEASURES, VariableProperty, measureFormatter, nonNullable, wrapBrackets } from '@xpert-ai/ocap-core'
+import { limitSelect, serializeName } from '@xpert-ai/ocap-sql'
 import { TranslateService } from '@ngx-translate/core'
 import { injectToastr, ModelQuery, Store } from 'apps/cloud/src/app/@core'
 import { isEqual, isPlainObject, uniqBy } from 'lodash-es'
@@ -30,21 +29,20 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Subscription, combineLatest, firstValueFrom, of } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators'
 import { FeaturesComponent } from '../../../../features.component'
-import { injectQueryCommand } from '../../copilot'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE, QueryResult, SemanticModelEntityType } from '../../types'
 import { markdownTableData, quoteLiteral, stringifyTableType } from '../../utils'
 import { QueryLabService } from '../query-lab.service'
-import { QueryCopilotEngineService } from './copilot.service'
 import { QueryService } from './query.service'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-model-query',
   templateUrl: 'query.component.html',
   styleUrls: ['query.component.scss'],
-  providers: [QueryService, QueryCopilotEngineService]
+  providers: [QueryService]
 })
 export class QueryComponent {
   MODEL_TYPE = MODEL_TYPE
@@ -54,7 +52,6 @@ export class QueryComponent {
   private readonly modelComponent = inject(ModelComponent)
   public readonly modelService = inject(SemanticModelService)
   public readonly queryLabService = inject(QueryLabService)
-  readonly copilotService = inject(NgmCopilotService)
   private readonly _cdr = inject(ChangeDetectorRef)
   private readonly route = inject(ActivatedRoute)
   private readonly store = inject(Store)
@@ -247,60 +244,6 @@ ${calcEntityTypePrompt(entityType)}
 
   /**
   |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #queryCommand = injectQueryCommand(this._statement, this.copilotContext, async (statement: string) => {
-    return await firstValueFrom(this._query(statement))
-  })
-
-  #entityDropAction = provideCopilotDropAction({
-    id: CdkDragDropContainers.QueryEntity,
-    implementation: async (event: CdkDragDrop<any[], any[], any>, copilotEngine: CopilotEngine) => {
-      this.#logger.debug(`Drop table entity to copilot chat:`, event)
-      const data = event.item.data
-      // Get the source table or source cube structure
-      const entityType = await firstValueFrom(this.modelService.selectOriginalEntityType(data.name))
-
-      const topCount = 10
-      const samples = await firstValueFrom(this.modelService.selectTableSamples(data.name, topCount))
-
-      const tableHeader = `The structure of table "${data.name}" is as follows:`
-      const dataHeader = `The first ${topCount} rows of the table "${data.name}" are as follows:`
-
-      return [
-        {
-          id: nanoid(),
-          role: CopilotChatMessageRoleEnum.User,
-          data: {
-            columns: [
-              { name: 'name', caption: 'Name' },
-              { name: 'caption', caption: 'Description' },
-              { name: 'dataType', caption: 'Type' }
-            ],
-            content: Object.values(entityType.properties) as any[],
-            header: tableHeader
-          },
-          content: tableHeader + '\n' + stringifyTableType(entityType),
-          templateRef: this.tableTemplate()
-        },
-        {
-          id: nanoid(),
-          role: CopilotChatMessageRoleEnum.User,
-          data: {
-            columns: samples.columns,
-            content: samples.data,
-            header: dataHeader
-          },
-          content: dataHeader + '\n' + markdownTableData(samples),
-          templateRef: this.tableTemplate()
-        }
-      ]
-    }
-  })
-
-  /**
-  |--------------------------------------------------------------------------
   | Subscribers
   |--------------------------------------------------------------------------
   */
@@ -322,15 +265,8 @@ ${calcEntityTypePrompt(entityType)}
           //   this.#queryService.setConversations(this.#copilotEngine.conversations())
           // }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
-
-    // Set individual engine to global copilot chat
-    // this.featuresComponent.copilotEngine = this.#copilotEngine
-    this.#destroyRef.onDestroy(() => {
-      this.featuresComponent.copilotEngine = null
-    })
 
     // Sync statement in local and store
     effect(
@@ -338,8 +274,7 @@ ${calcEntityTypePrompt(entityType)}
         if (nonNullable(this.statementSignal())) {
           this._statement.set(this.statementSignal())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -347,8 +282,7 @@ ${calcEntityTypePrompt(entityType)}
         if (nonNullable(this._statement())) {
           this.queryLabService.setStatement({ key: this.queryKey(), statement: this._statement() })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

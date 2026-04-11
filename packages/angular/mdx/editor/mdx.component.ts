@@ -4,11 +4,11 @@ import { CommonModule } from '@angular/common'
 import { Component, forwardRef, Input } from '@angular/core'
 import { NG_VALUE_ACCESSOR } from '@angular/forms'
 import { FormsModule } from '@angular/forms'
-import { EntityType, nonNullable } from '@metad/ocap-core'
+import { EntityType, nonNullable } from '@xpert-ai/ocap-core'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { filter, tap } from 'rxjs/operators'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
+import { NgmBaseEditorDirective } from '@xpert-ai/ocap-angular/formula'
 import {
   conf,
   createHierarchyProvider,
@@ -19,7 +19,6 @@ import {
   functionProposals,
   language
 } from '../providers/index'
-
 
 @Component({
   standalone: true,

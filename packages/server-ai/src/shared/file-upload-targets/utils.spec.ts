@@ -6,7 +6,7 @@ const mockEnvironment = {
     }
 }
 
-jest.mock('@metad/server-config', () => ({
+jest.mock('@xpert-ai/server-config', () => ({
     environment: mockEnvironment
 }))
 
@@ -18,7 +18,9 @@ describe('resolveVolumeTarget', () => {
 
     beforeEach(() => {
         mockEnvironment.envName = 'dev'
-        mockEnvironment.sandboxConfig.volume = ''
+        mockEnvironment.sandboxConfig = {
+            volume: ''
+        }
         process.env.HOME = '/Users/tester'
         process.env.USERPROFILE = '/Users/tester'
     })
@@ -55,5 +57,22 @@ describe('resolveVolumeTarget', () => {
         )
 
         expect(volume.rootPath).toBe('/tmp/sandbox/tenant-1/project/123e4567-e89b-12d3-a456-426614174000')
+    })
+
+    it('falls back to the flattened local root when sandboxConfig is missing', () => {
+        delete mockEnvironment.sandboxConfig
+
+        const volume = resolveVolumeTarget(
+            {
+                catalog: 'projects',
+                projectId: '123e4567-e89b-12d3-a456-426614174000'
+            } as any,
+            { tenantId: 'tenant-1', userId: 'user-1' }
+        )
+
+        expect(volume.rootPath).toBe('/Users/tester/data')
+        expect(volume.baseUrl).toBe(
+            'http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000'
+        )
     })
 })

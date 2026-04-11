@@ -15,13 +15,21 @@
           ></path>
         </svg>
       </div>
-      <div class="text-sm font-semibold text-gray-800">
+      <div class="text-sm font-semibold text-text-primary">
         <div class="flex items-center">
-          <div class="mr-1">{{ 'PAC.Xpert.Tools' | translate: {Default: 'Tools'} }}</div>
-          <div class="p-[1px] w-4 h-4 shrink-0"
-            [matTooltip]="'PAC.Xpert.ToolsetTooltip' | translate: {Default: 'Using tools can extend the capabilities of LLM, such as searching the internet or performing scientific calculations'}"
-            matTooltipPosition="above"
-            >
+          <div class="mr-1">{{ 'PAC.Xpert.Tools' | translate: { Default: 'Tools' } }}</div>
+          <div
+            class="p-[1px] w-4 h-4 shrink-0"
+            [zTooltip]="
+              'PAC.Xpert.ToolsetTooltip'
+                | translate
+                  : {
+                      Default:
+                        'Using tools can extend the capabilities of LLM, such as searching the internet or performing scientific calculations'
+                    }
+            "
+            zPosition="top"
+          >
             <svg
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
@@ -41,10 +49,10 @@
     <div class="flex gap-2 items-center">
       <div>
         <!-- <div class="flex items-center">
-          <div class="leading-[18px] text-xs font-normal text-gray-500">3/3&nbsp;Enabled</div>
-          <div class="ml-3 mr-1 h-3.5 w-px bg-gray-200"></div>
+          <div class="leading-[18px] text-xs font-normal text-text-tertiary">3/3&nbsp;Enabled</div>
+          <div class="ml-3 mr-1 h-3.5 w-px bg-components-list-option-active-bg"></div>
           <div
-            class="flex items-center rounded-md h-7 px-3 space-x-1 text-gray-700 cursor-pointer hover:bg-gray-200 select-none"
+            class="flex items-center rounded-md h-7 px-3 space-x-1 text-text-secondary cursor-pointer hover:bg-button-ghost-hover select-none"
           >
             <div>
               <svg
@@ -70,20 +78,25 @@
 <div class="mt-1 px-3">
   <div class="grid gap-1 grid-cols-1 2xl:grid-cols-2 items-center flex-wrap justify-between">
     @for (toolset of toolsets(); track toolset.key) {
-      <div class="bg-white shadow-xs group relative flex justify-between items-center last-of-type:mb-0 pl-2.5 py-2 pr-3 w-full rounded-lg border-[0.5px] border-gray-200">
+      <div
+        class="bg-components-card-bg shadow-xs group relative flex justify-between items-center last-of-type:mb-0 pl-2.5 py-2 pr-3 w-full rounded-lg border-[0.5px] border-divider-deep"
+      >
         <div class="grow w-0 flex items-center">
           <emoji-avatar [avatar]="toolset.entity.avatar" xs class="rounded-lg overflow-hidden shadow-sm" />
-          <div class="grow w-0 ml-2 text-sm font-medium text-gray-800 truncate">
-            <span class="text-gray-800 pr-2">{{toolset.entity.name}}</span>
-            <span class="text-gray-500">{{toolset.entity.description}}</span>
+          <div class="grow w-0 ml-2 text-sm font-medium text-text-primary truncate">
+            <span class="text-text-primary pr-2">{{ toolset.entity.name }}</span>
+            <span class="text-text-tertiary">{{ toolset.entity.description }}</span>
           </div>
         </div>
         <div class="shrink-0 ml-1 flex items-center">
           <div class="hidden group-hover:flex items-center">
-            <div class="ml-2 mr-3 w-px h-3.5 bg-gray-200"></div>
+            <div class="ml-2 mr-3 w-px h-3.5 bg-components-list-option-active-bg"></div>
 
-            <button type="button" class="btn w-6 h-6 p-1 justify-center rounded-md hover:bg-black/5 cursor-pointer danger"
-              (click)="remove(toolset)">
+            <button
+              type="button"
+              class="btn w-6 h-6 p-1 justify-center rounded-md hover:bg-hover-bg cursor-pointer danger"
+              (click)="remove(toolset)"
+            >
               <i class="ri-delete-bin-line"></i>
             </button>
           </div>
@@ -92,8 +105,10 @@
     }
   </div>
   @if (!toolsets()?.length) {
-    <div class="w-full text-center font-body text-text-tertiary text-sm py-1 rounded-lg border border-dashed border-divider-regular">
-      {{ 'PAC.Xpert.NoToolsetsYet' | translate: {Default: 'No toolsets added yet'} }}
+    <div
+      class="w-full text-center font-body text-text-tertiary text-sm py-1 rounded-lg border border-dashed border-divider-regular"
+    >
+      {{ 'PAC.Xpert.NoToolsetsYet' | translate: { Default: 'No toolsets added yet' } }}
     </div>
   }
 </div>

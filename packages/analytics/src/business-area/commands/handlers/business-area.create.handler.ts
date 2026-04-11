@@ -1,4 +1,4 @@
-import { BusinessAreaRole } from '@metad/contracts'
+import { BusinessAreaRole } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { BusinessAreaUserService } from '../../../business-area-user/index'
 import { BusinessArea } from '../../business-area.entity'

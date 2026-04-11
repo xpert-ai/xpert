@@ -2,8 +2,8 @@ import { Component, effect, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
-import { IOrganization } from '@metad/contracts'
-import { nonBlank } from '@metad/core'
+import { IOrganization } from '@xpert-ai/contracts'
+import { nonBlank } from '@xpert-ai/core'
 import { TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators'
 import { OrganizationsService, Store } from '../../../../@core'
@@ -13,7 +13,6 @@ import { OrgAvatarEditorComponent, OrgAvatarComponent } from 'apps/cloud/src/app
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { TagMaintainComponent } from 'apps/cloud/src/app/@shared/tag'
 import { EditOrganizationMainComponent } from './edit-organization-main/edit-organization-main.component'
-
 
 @Component({
   standalone: true,
@@ -66,7 +65,7 @@ export class EditOrganizationComponent {
       if (this.organization()) {
         this.setSelectedOrg(this.organization())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   setSelectedOrg(selectedOrg: IOrganization) {

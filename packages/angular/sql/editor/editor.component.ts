@@ -6,9 +6,9 @@ import { FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { filter } from 'rxjs/operators'
 import { format } from 'sql-formatter'
-import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
+import { NgmBaseEditorDirective } from '@xpert-ai/ocap-angular/formula'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { EntitySet, EntityType, nonNullable } from '@metad/ocap-core'
+import { EntitySet, EntityType, nonNullable } from '@xpert-ai/ocap-core'
 import { createInfoProvider } from '../providers/index'
 
 @Component({

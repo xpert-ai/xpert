@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, model, computed, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -8,17 +8,23 @@ import { ExampleVectorStoreRetriever } from 'apps/cloud/src/app/@core/copilot'
 import { CopilotExampleService, getErrorMessage, injectToastr } from 'apps/cloud/src/app/@core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { DocumentInterface } from '@langchain/core/documents'
-import { NgmSliderInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { NgmSliderInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, pipe, switchMap } from 'rxjs'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-copilot-knowledge-testing',
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, MatTooltipModule, NgmSelectComponent, NgmSpinComponent, NgmSliderInputComponent],
+  imports: [
+    TranslateModule,
+    FormsModule,
+    ...ZardTooltipImports,
+    NgmSelectComponent,
+    NgmSpinComponent,
+    NgmSliderInputComponent
+],
   templateUrl: './testing.component.html',
-  styleUrl: './testing.component.scss',
+  styleUrl: './testing.component.scss'
 })
 export class XpertCopilotKnowledgeTestingComponent {
   readonly xpertComponent = inject(XpertComponent)
@@ -63,13 +69,11 @@ export class XpertCopilotKnowledgeTestingComponent {
   readonly commands = derivedFrom(
     [this.xpertName],
     pipe(
-      switchMap(([xpertName]) =>
-        this.exampleService.getCommands({ role: xpertName })
-      ),
+      switchMap(([xpertName]) => this.exampleService.getCommands({ role: xpertName })),
       map((commands) =>
         commands.map((command) => ({
           value: command,
-          label: this.#translate.instant('PAC.Copilot.Commands.' + command, {Default: command})
+          label: this.#translate.instant('PAC.Copilot.Commands.' + command, { Default: command })
         }))
       )
     ),
@@ -89,7 +93,7 @@ export class XpertCopilotKnowledgeTestingComponent {
       try {
         const docs = await this.exampleRetriever().invoke(search)
         this.items.set(docs)
-      } catch(err) {
+      } catch (err) {
         this.#toastr.error(getErrorMessage(err))
       } finally {
         this.loading.set(false)

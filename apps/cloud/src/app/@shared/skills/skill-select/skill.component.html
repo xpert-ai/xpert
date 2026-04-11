@@ -1,0 +1,83 @@
+<div class="flex justify-between items-center">
+  <div class="relative w-[160px]">
+    <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
+    <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[3px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+      [placeholder]="'PAC.ACTIONS.Search' | translate: {Default: 'Search'}"
+      [(ngModel)]="search"
+    >
+    @if (search()) {
+      <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+        (click)="search.set('')"></i>
+    }
+  </div>
+
+  <div class="flex items-center font-mono text-sm">
+    <input
+      type="checkbox"
+      class="mr-1 h-4 w-4 rounded border-input text-primary focus:ring-ring"
+      [checked]="allSelected()"
+      [indeterminate]="partialSelected()"
+      (change)="toggleSelectAll($event)"
+      aria-label="Select all skills"
+      [zTooltip]="'PAC.Skills.UseAllDefault' | translate: {Default: 'Use all skills default.'}"
+      zPosition="top"
+    />
+    <span>
+      @if (allSelected()) {
+        {{ skillList()?.length || 0 }}
+      } @else {
+        {{ skills()?.length || 0 }}
+      }
+      <span class="truncate">{{ 'PAC.Skills.Selected' | translate: {Default: 'selected'} }}</span>
+      /
+      {{ skillList()?.length || 0 }} <span class="truncate">{{ 'PAC.Skills.Available' | translate: {Default: 'available'} }}</span>
+    </span>
+
+    <div class="ml-1 w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg"
+      (click)="skills.set([])">
+      <i class="ri-delete-bin-7-line"></i>
+    </div>
+  </div>
+</div>
+
+@if (skillList()?.length) {
+  <ul class="list-none divide-y divide-divider-regular mt-1">
+    @for (skill of skillList(); track skill.id) {
+      <li class="group flex items-start gap-4 rounded-lg px-3 py-4 transition-colors hover:bg-hover-bg">
+        <div class="mt-1 h-2 w-2 rounded-full bg-text-success/70 ring-2 ring-text-success/15"></div>
+
+        <div class="flex-1 space-y-1">
+          <div class="flex items-center gap-2">
+            <div class="text-sm font-semibold leading-tight text-text-primary">{{ skill.name }}</div>
+            @if (skill.visibility) {
+              <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-[2px] text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                {{ skill.visibility }}
+              </span>
+            }
+          </div>
+          <p class="line-clamp-2 text-sm leading-relaxed text-text-secondary">
+            {{ (skill.metadata?.description | i18n) || ('PAC.Xpert.NoDescription' | translate: {Default: 'No description yet'}) }}
+          </p>
+          <div class="font-mono text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+            {{ skill.skillIndex?.repository?.name }}
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- <button type="button" class="btn btn-ghost flex h-6 w-6 items-center justify-center rounded-lg text-text-tertiary hover:text-text-primary">
+            <i class="ri-more-2-fill"></i>
+          </button> -->
+
+          <z-switch [ngModel]="enabledSkill(skill.id)" (ngModelChange)="onChangeSkill(skill.id, $event)" zSize="sm" />
+        </div>
+      </li>
+    }
+  </ul>
+} @else {
+  <div class="px-5 py-8 text-center text-sm text-text-tertiary">
+    @if (loading()) {
+      <ngm-spin class="block w-8 h-8 mx-auto" />
+    }
+    {{ 'PAC.Xpert.NoSkillsYet' | translate: {Default: 'No skills have been added to this workflow yet.'} }}
+  </div>
+}

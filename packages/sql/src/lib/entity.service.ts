@@ -5,7 +5,7 @@ import {
   Property,
   QueryOptions,
   QueryReturn
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BehaviorSubject, Observable, switchMap } from 'rxjs'
 import { CubeContext } from './cube'
 import { queryDimension } from './dimension'

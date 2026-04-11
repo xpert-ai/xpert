@@ -1,13 +1,13 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing'
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing'
 import { NxObjectNumberComponent } from './object-number.component'
 
 describe('NxObjectNumberComponent', () => {
   let component: NxObjectNumberComponent
   let fixture: ComponentFixture<NxObjectNumberComponent>
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [NxObjectNumberComponent],
+      imports: [NxObjectNumberComponent],
     }).compileComponents()
   }))
 

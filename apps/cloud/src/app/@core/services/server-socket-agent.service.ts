@@ -1,12 +1,12 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Inject, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatBottomSheet } from '@angular/material/bottom-sheet'
-import { API_DATA_SOURCE, DataSourceService, injectOrganizationId } from '@metad/cloud/state'
+import { API_DATA_SOURCE, DataSourceService, injectOrganizationId } from '@xpert-ai/cloud/state'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { nonNullable } from '@metad/core'
-import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@metad/ocap-core'
+import { nonNullable } from '@xpert-ai/core'
+import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@xpert-ai/ocap-core'
 import { Observable, Subject, bufferToggle, filter, firstValueFrom, from, merge, mergeMap, startWith, windowToggle } from 'rxjs'
+import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { AbstractAgent, AuthInfoType } from '../auth'
 import { getErrorMessage, uuid, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel, TGatewayQueryEvent } from '../types'
 import { AgentService } from './agent.service'
@@ -14,11 +14,12 @@ import { PAC_SERVER_AGENT_DEFAULT_OPTIONS, PacServerAgentDefaultOptions } from '
 import { injectToastr } from './toastr.service'
 import { PAC_SERVER_DEFAULT_OPTIONS, PacServerDefaultOptions } from '../providers'
 
-
 /**
  * Responsible for proxying the olap data requests of page components to the server through the websocket interface
  */
-@Injectable()
+@Injectable({
+   providedIn: 'root'
+})
 export class ServerSocketAgent extends AbstractAgent implements Agent {
   readonly #i18n = inject(I18nService)
   readonly #agentService = inject(AgentService)
@@ -54,7 +55,7 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
     private options: PacServerAgentDefaultOptions,
     private httpClient: HttpClient,
     dataSourceService: DataSourceService,
-    _bottomSheet: MatBottomSheet
+    _bottomSheet: ZardSheetService
   ) {
     super(dataSourceService, _bottomSheet)
 

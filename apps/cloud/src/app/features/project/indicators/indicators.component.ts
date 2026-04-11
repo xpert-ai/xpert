@@ -1,28 +1,26 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTabsModule } from '@angular/material/tabs'
-import { MatTooltipModule } from '@angular/material/tooltip'
+
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardTabsImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { injectFetchModelDetails, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
-import { Indicator, IndicatorsService } from '@metad/cloud/state'
-import { saveAsYaml, uploadYamlFile } from '@metad/core'
-import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
+import { Indicator, IndicatorsService } from '@xpert-ai/cloud/state'
+import { saveAsYaml, uploadYamlFile } from '@xpert-ai/core'
+import { CdkConfirmDeleteComponent } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, Subject } from 'rxjs'
-import {
-  IIndicator,
-  ProjectAPIService,
-  routeAnimations,
-  ToastrService
-} from '../../../@core'
+import { IIndicator, ProjectAPIService, routeAnimations, ToastrService } from '../../../@core'
 import { ManageEntityBaseComponent } from '../../../@shared/directives'
 import { ProjectService } from '../project.service'
 import { NewIndicatorCodePlaceholder } from '../types'
@@ -31,19 +29,17 @@ import { IndicatorImportComponent } from './indicator-import/indicator-import.co
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTabsModule,
-    MatDividerModule,
-
+    ...ZardTooltipImports,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardTabsImports,
+    ZardDividerComponent,
     ButtonGroupDirective,
     DensityDirective
-  ],
+],
   selector: 'pac-project-indicators',
   templateUrl: './indicators.component.html',
   styleUrls: ['./indicators.component.scss'],
@@ -98,19 +94,17 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
     const indicators = await uploadYamlFile<Indicator[]>((<HTMLInputElement>event.target).files[0])
     const project = this.projectService.project()
     const results = await firstValueFrom(
-      this.#dialog
-        .open(IndicatorImportComponent, {
-          viewContainerRef: this.#viewContainerRef,
-          backdropClass: 'xp-overlay-share-sheet',
-          panelClass: 'xp-overlay-pane-share-sheet',
-          data: {
-            indicators,
-            models: project.models,
-            certifications: project.certifications,
-            projectId: project?.id
-          }
-        })
-        .closed
+      this.#dialog.open(IndicatorImportComponent, {
+        viewContainerRef: this.#viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          indicators,
+          models: project.models,
+          certifications: project.certifications,
+          projectId: project?.id
+        }
+      }).closed
     )
     if (results) {
       // Download and upload results

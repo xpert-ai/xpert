@@ -1,31 +1,27 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
   .cdk-virtual-scroll-viewport.ngm-smart-filter__autocomplete-viewport {
-    .mat-option-text {
+    .ngm-display-behaviour {
       overflow: visible;
     }
-    .mat-checkbox {
+    z-checkbox {
       display: flex;
-      .mat-checkbox-layout {
+
+      .z-checkbox__label {
         flex: 1;
-        .mat-checkbox-label {
-          flex: 1;
-        }
       }
     }
   }
-
 }
 
 @mixin typography($config-or-theme) {
 }
 
 @mixin density($config-or-theme) {
-
 }

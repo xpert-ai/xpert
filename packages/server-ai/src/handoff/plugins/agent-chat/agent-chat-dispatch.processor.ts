@@ -1,4 +1,4 @@
-import { runWithRequestContext as _runWithRequestContext } from '@metad/server-core'
+import { runWithRequestContext as _runWithRequestContext } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {

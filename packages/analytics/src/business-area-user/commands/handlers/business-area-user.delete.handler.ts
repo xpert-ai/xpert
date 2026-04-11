@@ -1,4 +1,4 @@
-import { UserService } from '@metad/server-core'
+import { UserService } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { DeleteResult } from 'typeorm'

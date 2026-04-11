@@ -1,7 +1,7 @@
 import { booleanAttribute, Component, computed, forwardRef, inject, input, Input, output } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import {
   DisplayBehaviour,
   getEntityDimensions,
@@ -10,7 +10,7 @@ import {
   ISlicer,
   nonNullable,
   Syntax
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { pick } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -31,6 +31,7 @@ import { SlicersCapacity } from '../types'
   selector: 'ngm-slicers',
   templateUrl: 'slicers.component.html',
   styleUrls: ['slicers.component.scss'],
+  standalone: false,
   inputs: ['dataSettings'],
   providers: [
     {
@@ -153,15 +154,11 @@ export class SlicersComponent extends BaseSlicersComponent implements ControlVal
 
   async openSlicerBar(event) {
     const slicer = await firstValueFrom(
-      this._dialog
-        .open(SlicerBarComponent, {
-          data: {
-            value: this.slicers,
-            entityType: this.entityType,
-            dataSettings: pick(this.dataSettings, ['dataSource', 'entitySet'])
-          }
-        })
-        .afterClosed()
+      this.openDialog(SlicerBarComponent, {
+        value: this.slicers,
+        entityType: this.entityType,
+        dataSettings: pick(this.dataSettings, ['dataSource', 'entitySet'])
+      }).closed
     )
     if (slicer) {
       this.slicers = [...slicer]

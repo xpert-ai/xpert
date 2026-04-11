@@ -1,19 +1,18 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { attrModel, write } from '@metad/core'
-import { linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { attrModel, write } from '@xpert-ai/core'
+import { linkedModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { assign, cloneDeep } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
 import { XpertParameterFormComponent } from '../parameter-edit-form/form.component'
 import { XpertParameterIconComponent } from '../parameter-icon/icon.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 type TXpertParameterAttr = {
   path: string[]
   param: TXpertParameter
@@ -26,16 +25,15 @@ type TXpertParameterAttr = {
   templateUrl: './input.component.html',
   styleUrl: 'input.component.scss',
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     CdkMenuModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     XpertParameterIconComponent,
     XpertParameterFormComponent
-  ],
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertParameterInputComponent {

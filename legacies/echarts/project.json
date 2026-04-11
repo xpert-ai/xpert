@@ -1,0 +1,48 @@
+{
+  "name": "echarts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "legacies/echarts/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/echarts",
+        "main": "legacies/echarts/src/index.ts",
+        "tsConfig": "legacies/echarts/tsconfig.lib.json",
+        "assets": [
+          {
+						"glob": "**/*.md",
+						"input": "legacies/echarts/",
+						"output": "./"
+					},
+          {
+						"glob": "**/*.json",
+						"input": "legacies/echarts/src/i18n/",
+						"output": "./src/i18n/"
+					}
+        ]
+      }
+    },
+    "publish": {
+      "command": "node tools/scripts/publish.mjs echarts {args.ver} {args.tag}",
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["legacies/echarts/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "legacies/echarts/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

@@ -1,11 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, Directive, effect, inject, signal } from '@angular/core'
-import { attrModel, linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { WorkspaceSelectDatabaseComponent } from '@cloud/app/@shared/workspace'
-import { IWorkflowNodeDBOperation, TXpertTableColumn } from '@metad/contracts'
+import { IWorkflowNodeDBOperation, TXpertTableColumn } from '@xpert-ai/contracts'
 import { AiModelTypeEnum, IXpertTable, ModelFeature, injectXpertTableAPI } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-
 
 @Component({
   selector: '',

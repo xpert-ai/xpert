@@ -1,11 +1,10 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { KnowledgebaseService } from '@cloud/app/@core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNUnderstanding,
@@ -16,6 +15,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { IconComponent } from '@cloud/app/@shared/avatar'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-understanding',
@@ -23,7 +23,14 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
   styleUrls: ['./understanding.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FFlowModule, MatTooltipModule, TranslateModule, IconComponent, PlusSvgComponent, NgmI18nPipe],
+  imports: [
+    FFlowModule,
+    ...ZardTooltipImports,
+    TranslateModule,
+    IconComponent,
+    PlusSvgComponent,
+    NgmI18nPipe
+],
   host: {
     tabindex: '-1'
   }
@@ -50,7 +57,7 @@ export class XpertWorkflowNodeUnderstandingComponent {
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
       .filter((_) => _.type === 'agent' || _.type === 'workflow')
-      .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)
+      .map((_) => (_.type === 'workflow' ? _.key + '/edge' : _.key))
   )
 
   // Understanding providers from knowledgebase service

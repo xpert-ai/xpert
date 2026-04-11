@@ -1,17 +1,15 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { linkedModel } from '@metad/core'
-import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
+import { linkedModel } from '@xpert-ai/core'
+import { NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiAuthType, TSelectOption, TWorkflowAuthorization, TWorkflowVarGroup } from '../../../@core/types'
 import { TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-authorization',
   templateUrl: './authorization.component.html',
@@ -19,16 +17,14 @@ import { TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     DragDropModule,
     TranslateModule,
-    MatTooltipModule,
-    MatSliderModule,
+    ...ZardTooltipImports,
     NgmRadioSelectComponent,
     XpertVariableInputComponent
-  ]
+]
 })
 export class XpertWorkflowAuthorizationComponent {
   eApiProviderAuthType = ApiAuthType

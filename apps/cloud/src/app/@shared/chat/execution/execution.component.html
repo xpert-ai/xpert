@@ -2,8 +2,10 @@
   @if (execution().status === eXpertAgentExecutionStatusEnum.RUNNING) {
     <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
   }
-  <div class="flex items-center cursor-pointer pressable rounded-md text-gray-500 hover:bg-hover-bg"
-    (click)="expand.set(!expand())">
+  <div
+    class="flex items-center cursor-pointer pressable rounded-md text-text-tertiary hover:bg-hover-bg"
+    (click)="expand.set(!expand())"
+  >
     @if (expand()) {
       <i class="ri-arrow-down-s-line"></i>
     } @else {
@@ -14,52 +16,65 @@
 
   <span class="grow"></span>
 
-  <div class="flex items-center gap-2 mr-2 h-[18px] text-sm font-medium leading-3"
-    [ngClass]="execution().status">
-
-    <span>{{execution().elapsedTime / 1000 | number: '0.0-3'}}<span class="ml-0.5 font-semibold">s</span></span>
+  <div class="flex items-center gap-2 mr-2 h-[18px] text-sm font-medium leading-3" [ngClass]="execution().status">
+    <span>{{ execution().elapsedTime / 1000 | number: '0.0-3' }}<span class="ml-0.5 font-semibold">s</span></span>
 
     <div class="indicator-container flex items-center gap-1 h-[18px] text-xs">
-      <div class="indicator w-2 h-2 border border-solid rounded-[3px] "></div>
-      <span class="uppercase">{{execution().status | isNil: 'unknow'}}</span>
+      <div class="indicator w-2 h-2 border border-solid rounded-[3px]"></div>
+      <span class="uppercase">{{ execution().status | isNil: 'unknow' }}</span>
     </div>
   </div>
 </div>
 
 @if (expand()) {
-
   @if (execution().error) {
     <div class="container flex flex-col w-full rounded-xl border border-solid border-divider-regular">
-      <div class="p-2 text-sm text-text-secondary font-semibold">{{'PAC.Xpert.Error' | translate: {Default: 'Error'} }}</div>
+      <div class="p-2 text-sm text-text-secondary font-semibold">
+        {{ 'PAC.Xpert.Error' | translate: { Default: 'Error' } }}
+      </div>
       <div class="h-[0.5px] bg-black opacity-5"></div>
       <p class="text-xs rounded-lg p-2 whitespace-break-spaces text-red-500">{{ execution().error }}</p>
     </div>
   }
 
-  <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm bg-gray-100">
+  <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm bg-components-input-bg-normal">
     <div class="flex justify-between items-center p-2">
-      <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: {Default: 'Input'} }}</span>
+      <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: { Default: 'Input' } }}</span>
 
-      <copy #copy class="opacity-20 group-hover:opacity-100"
+      <copy
+        #copy
+        class="opacity-20 group-hover:opacity-100"
         [content]="execution().inputs"
-        [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-        matTooltipPosition="above" />
+        [zTooltip]="
+          copy.copied()
+            ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
+            : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+        "
+        zPosition="top"
+      />
     </div>
 
-    <div class="px-4 pb-2 whitespace-pre overflow-auto">{{ (execution().inputs ?? undefined) | json }}</div>
+    <div class="px-4 pb-2 whitespace-pre overflow-auto">{{ execution().inputs ?? undefined | json }}</div>
   </div>
 
   @if (execution().outputs) {
-    <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-auto bg-gray-100">
+    <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-auto bg-components-input-bg-normal">
       <div class="flex justify-between items-center p-2">
-        <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: {Default: 'Output'} }}</span>
-    
-        <copy #copy class="opacity-20 group-hover:opacity-100"
-          [content]="execution().outputs" 
-          [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-          matTooltipPosition="above" />
+        <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: { Default: 'Output' } }}</span>
+
+        <copy
+          #copy
+          class="opacity-20 group-hover:opacity-100"
+          [content]="execution().outputs"
+          [zTooltip]="
+            copy.copied()
+              ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
+              : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+          "
+          zPosition="top"
+        />
       </div>
-      
+
       <div class="px-4 pb-2 whitespace-pre overflow-auto">{{ execution().outputs | json }}</div>
     </div>
   }

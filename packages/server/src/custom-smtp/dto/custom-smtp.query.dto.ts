@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsOptional, IsUUID } from "class-validator";
-import { ICustomSmtpFindInput, IOrganization } from "@metad/contracts";
+import { ICustomSmtpFindInput, IOrganization } from "@xpert-ai/contracts";
 import { IsOrganizationBelongsToUser } from "./../../shared/validators";
 
 /**

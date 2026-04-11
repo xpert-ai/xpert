@@ -1,12 +1,11 @@
 ngm-slicer {
-  .mat-chip-list-wrapper {
+  z-chip-listbox {
     max-width: 100%;
-    .mat-standard-chip {
+    z-chip-option {
       padding: 0 8px;
       min-height: 24px;
       max-width: 100%;
-      white-space: nowrap;
-      span {
+      .ngm-display-behaviour {
         overflow: hidden;
         text-overflow: ellipsis;
       }
@@ -14,7 +13,7 @@ ngm-slicer {
   }
 }
 ngm-slicers, ngm-slicer-bar {
-  .mat-divider {
+  .z-divider {
     margin: .5rem 0;
   }
 }

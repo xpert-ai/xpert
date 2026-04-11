@@ -1,9 +1,9 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { TI18N } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { TI18N } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
@@ -14,12 +14,11 @@ export type TStep = {
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkListboxModule,
     NgmI18nPipe
-  ],
+],
   selector: 'ngm-stepper',
   templateUrl: 'stepper.component.html',
   styleUrls: ['stepper.component.scss'],
@@ -45,7 +44,7 @@ export class NgmStepperComponent {
       if (this.cva.value$() != null && this.cva.value$() !== this.current()[0]) {
         this.current.set([this.cva.value$()])
       }
-    }, { allowSignalWrites: true})
+    })
   }
 
   onChange(index: number) {

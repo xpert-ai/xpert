@@ -1,3 +1,4 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply gap-2;
 }
@@ -11,7 +12,7 @@
 }
 
 .file-option.active {
-  @apply shadow-sm border-divider-regular bg-gray-100;
+  @apply shadow-sm border-divider-regular bg-components-input-bg-normal;
 }
 
 .cdk-option:not([aria-disabled="true"]) {

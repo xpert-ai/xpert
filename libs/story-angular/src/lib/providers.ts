@@ -1,6 +1,6 @@
-import { NgmDSCoreService, NgmOcapCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { NxStoryService } from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+import { NgmDSCoreService, NgmOcapCoreService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { NxStoryService } from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 
 export function provideStory() {
   return [NgmDSCoreService, NgmOcapCoreService, NxStoryService]

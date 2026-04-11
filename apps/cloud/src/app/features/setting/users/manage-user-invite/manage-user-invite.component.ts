@@ -1,22 +1,27 @@
-import { CommonModule, DatePipe, Location } from '@angular/common'
-import { Component, Inject, inject, LOCALE_ID } from '@angular/core'
+import { CommonModule, DatePipe } from '@angular/common'
+import { Component, inject, LOCALE_ID } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { InviteService, Store, ToastrService } from '@metad/cloud/state'
-import { InvitationExpirationEnum, InvitationTypeEnum } from '@metad/contracts'
-import { injectConfirmDelete, NgmTableComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
+
+import { InviteService, Store, ToastrService } from '@xpert-ai/cloud/state'
+import { type IInvite, type IOrganization, type IRole, InvitationExpirationEnum, InvitationTypeEnum, InviteStatusEnum } from '@xpert-ai/contracts'
+import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { getErrorMessage } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 import { formatDistanceToNow, isAfter } from 'date-fns'
-import { BehaviorSubject, combineLatestWith, firstValueFrom, map, switchMap, withLatestFrom } from 'rxjs'
-import { InviteMutationComponent } from '../../../../@shared/invite'
+import { BehaviorSubject, combineLatestWith, map, switchMap, withLatestFrom } from 'rxjs'
 import { PACUsersComponent } from '../users.component'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
+type InviteDisplayStatus = InviteStatusEnum | 'EXPIRED'
+type InviteRow = IInvite & {
+  createdAt: string | null
+  expireDate: string | number
+  displayStatus: InviteDisplayStatus
+  statusText: string
+}
 
 @Component({
   standalone: true,
@@ -25,8 +30,9 @@ import { TranslateModule } from '@ngx-translate/core'
   styleUrls: ['./manage-user-invite.component.scss'],
   imports: [
     CommonModule,
-    MatButtonModule,
-    MatIconModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardTooltipImports,
     TranslateModule,
     // Standard components
     ButtonGroupDirective,
@@ -37,23 +43,22 @@ import { TranslateModule } from '@ngx-translate/core'
   ]
 })
 export class ManageUserInviteComponent extends TranslationBaseComponent {
-  userLabel = userLabel
-  invitationTypeEnum = InvitationTypeEnum
-
   readonly confirmDelete = injectConfirmDelete()
 
+  private readonly store = inject(Store)
+  private readonly inviteService = inject(InviteService)
+  private readonly toastrService = inject(ToastrService)
+  private readonly locale = inject(LOCALE_ID)
   private readonly usersComponent = inject(PACUsersComponent)
 
   private readonly refresh$ = new BehaviorSubject<void>(null)
-
-  public readonly organizationName$ = this.store.selectedOrganization$.pipe(map((org) => org?.name))
 
   public readonly invites$ = this.store.selectedOrganization$.pipe(
     map((org) => org?.id),
     withLatestFrom(this.store.user$.pipe(map((user) => user?.tenantId))),
     combineLatestWith(this.refresh$),
     switchMap(([[organizationId, tenantId]]) => {
-      return this.inviteService.getAll(['projects', 'invitedBy', 'role', 'organizationContact', 'departments'], {
+      return this.inviteService.getAll(['invitedBy', 'role', 'organization', 'organizationContact'], {
         organizationId,
         tenantId
       })
@@ -61,15 +66,15 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     map(({ items }) =>
       items.map((invite) => ({
         ...invite,
-        createdAt: new DatePipe(this._locale).transform(new Date(invite.createdAt)),
+        createdAt: new DatePipe(this.locale).transform(new Date(invite.createdAt)),
         expireDate: invite.expireDate
           ? formatDistanceToNow(new Date(invite.expireDate))
           : InvitationExpirationEnum.NEVER,
-        statusText:
-          invite.status === 'ACCEPTED' || !invite.expireDate || isAfter(new Date(invite.expireDate), new Date())
-            ? this.getTranslation(`PAC.INVITE_PAGE.STATUS.${invite.status}`, { Default: invite.status })
-            : this.getTranslation(`PAC.INVITE_PAGE.STATUS.EXPIRED`, { Default: 'EXPIRED' })
-      }))
+        displayStatus: this.getDisplayStatus(invite),
+        statusText: this.getTranslation(`PAC.INVITE_PAGE.STATUS.${this.getDisplayStatus(invite)}`, {
+          Default: this.getDisplayStatus(invite)
+        })
+      } as InviteRow))
     )
   )
 
@@ -77,37 +82,60 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     this.refresh()
   })
 
-  constructor(
-    private readonly store: Store,
-    private readonly inviteService: InviteService,
-    private readonly toastrService: ToastrService,
-    private _dialog: MatDialog,
-    @Inject(LOCALE_ID)
-    private _locale: string,
-    private location: Location
-  ) {
+  constructor() {
     super()
-  }
-
-  back(): void {
-    this.location.back()
   }
 
   refresh() {
     this.refresh$.next()
   }
 
-  async invite() {
-    const dialog = this._dialog.open(InviteMutationComponent)
+  async resendInvite(
+    id: string,
+    email: string,
+    role: IRole | null | undefined,
+    organization: IOrganization | null | undefined,
+    displayStatus: InviteDisplayStatus
+  ) {
+    if (!this.canResend(displayStatus)) {
+      return
+    }
 
-    const result = await firstValueFrom(dialog.afterClosed())
-    // 成功邀请人数
-    if (result?.total) {
+    const targetOrganization = this.store.selectedOrganization ?? organization
+    if (!id || !email || !targetOrganization?.id || !role?.name) {
+      this.toastrService.error(
+        this.getTranslation('PAC.Invite.ResendMissingData', {
+          Default: 'This invite is missing organization or role information and cannot be resent.'
+        })
+      )
+      return
+    }
+
+    try {
+      await this.inviteService.resendInvite({
+        id,
+        invitedById: this.store.userId,
+        email,
+        roleName: role.name,
+        organization: targetOrganization,
+        inviteType: InvitationTypeEnum.USER
+      })
+
+      this.toastrService.success('TOASTR.MESSAGE.INVITES_RESEND', {
+        email,
+        Default: `Invite '${email}' resent`
+      })
       this.refresh$.next()
+    } catch (error) {
+      this.toastrService.error(getErrorMessage(error))
     }
   }
 
   async deleteInvite(id: string, email: string) {
+    if (!id || !email) {
+      return
+    }
+
     this.confirmDelete({
       value: email,
       information: this.translateService.instant('PAC.USERS_PAGE.ConfirmDeleteInvite', {Default: 'After deletion, the invited user will no longer be able to confirm the invitation'})
@@ -123,5 +151,32 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
         this.toastrService.error(getErrorMessage(err))
       }
     })
+  }
+
+  canResend(displayStatus: InviteDisplayStatus | null | undefined) {
+    return !!displayStatus && displayStatus !== InviteStatusEnum.ACCEPTED
+  }
+
+  statusTone(status: InviteDisplayStatus) {
+    switch (status) {
+      case InviteStatusEnum.ACCEPTED:
+        return 'bg-text-success'
+      case 'EXPIRED':
+        return 'bg-text-warning'
+      default:
+        return 'bg-text-accent'
+    }
+  }
+
+  private getDisplayStatus(invite: IInvite): InviteDisplayStatus {
+    if (
+      invite.status !== InviteStatusEnum.ACCEPTED &&
+      invite.expireDate &&
+      !isAfter(new Date(invite.expireDate), new Date())
+    ) {
+      return 'EXPIRED'
+    }
+
+    return invite.status as InviteStatusEnum
   }
 }

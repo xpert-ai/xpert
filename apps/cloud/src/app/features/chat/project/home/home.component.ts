@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
   DateRelativePipe,
@@ -24,8 +23,8 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { attrModel, FileTypePipe, linkedModel, TranslatePipe } from '@metad/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { attrModel, FileTypePipe, linkedModel, TranslatePipe } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
@@ -40,6 +39,8 @@ import { ProjectService } from '../project.service'
 import { ChatProjectFilesComponent } from '../files/files.component'
 import { FileIconComponent } from '@cloud/app/@shared/files'
 import { ChatProjectVcsComponent } from '../vcs/vcs.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
 
 /**
  *
@@ -54,7 +55,7 @@ import { ChatProjectVcsComponent } from '../vcs/vcs.component'
     A11yModule,
     CdkMenuModule,
     TextFieldModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
     TranslatePipe,
@@ -69,7 +70,8 @@ import { ChatProjectVcsComponent } from '../vcs/vcs.component'
     ChatProjectKnowledgesComponent,
     ChatProjectVcsComponent,
     ChatAttachmentsComponent,
-    FileIconComponent
+    FileIconComponent,
+    ExtensionHostOutletComponent
   ],
   selector: 'pac-chat-project-home',
   templateUrl: './home.component.html',
@@ -170,7 +172,9 @@ export class ChatProjectHomeComponent {
 
   // Attachments
   readonly attachments = this.projectService.attachments
-  
+
+  readonly showExtensionSidebar = signal(false)
+
   constructor() {
     effect(() => {
       //
@@ -208,7 +212,7 @@ export class ChatProjectHomeComponent {
     const input = text || this.form.value.input
     if (!input) return
     const projectId = this.id()
-    this.#router.navigate(['/chat/p', projectId, 'x', 'common'], { state: { input } })
+    this.#router.navigate(['/project', projectId, 'x', 'common'], { state: { input } })
   }
 
   triggerFun(event: KeyboardEvent) {
@@ -286,7 +290,7 @@ export class ChatProjectHomeComponent {
 
   openInstruction() {
     this.#dialog
-      .open<{instruction: string}>(CopilotPromptGeneratorComponent, {
+      .open<{ instruction: string }>(CopilotPromptGeneratorComponent, {
         panelClass: 'large',
         disableClose: true,
         data: {
@@ -297,7 +301,9 @@ export class ChatProjectHomeComponent {
         switchMap((result) => {
           if (result?.instruction) {
             this.loading.set(true)
-            return this.updateProject({ settings: { ...(this.settings() ?? {}), instruction: result.instruction } }).pipe(
+            return this.updateProject({
+              settings: { ...(this.settings() ?? {}), instruction: result.instruction }
+            }).pipe(
               tap(() => {
                 this.loading.set(false)
                 this.instruction.set(result.instruction)
@@ -366,7 +372,7 @@ export class ChatProjectHomeComponent {
   addAttachment(file: IStorageFile) {
     this.attachments.update((state) => {
       if (!state?.some((attachment) => attachment.storageFile?.id === file.id)) {
-        return [...state, {storageFile: file}]
+        return [...state, { storageFile: file }]
       }
       return state
     })

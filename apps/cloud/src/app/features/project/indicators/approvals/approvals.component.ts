@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { ToastrService } from '@metad/cloud/state'
-import { ButtonGroupDirective, DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
+import { ToastrService } from '@xpert-ai/cloud/state'
+import { ButtonGroupDirective, DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   PermissionApprovalService,
@@ -17,8 +17,9 @@ import { combineLatestWith, map, switchMap, tap } from 'rxjs/operators'
 import { userLabel, UserPipe } from '../../../../@shared/pipes/'
 import { UserAvatarComponent } from '../../../../@shared/user'
 import { ProjectComponent } from '../../project/project.component'
-import { NgmTableComponent } from '@metad/ocap-angular/common'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
@@ -30,9 +31,10 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     CommonModule,
     RouterModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     ButtonGroupDirective,
     DensityDirective,
+    ZardLoaderComponent,
     UserPipe,
     UserAvatarComponent,
     NgmTableComponent

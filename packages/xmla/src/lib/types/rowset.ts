@@ -1,4 +1,4 @@
-import { HttpHeaders, RuntimeLevelType } from '@metad/ocap-core'
+import { HttpHeaders, RuntimeLevelType } from '@xpert-ai/ocap-core'
 
 export interface Rowset {
   fetchAllAsObject(): any

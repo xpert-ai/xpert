@@ -35,10 +35,13 @@
       "NEW": "New",
       "NAME": "Name",
       "NOTIFICATION_DESTINATION": "Notification Destination",
+      "Role&Permissions": "Role & Permissions",
       "SEMANTIC_MODEL": "Semantic Model",
       "STORY": "Story",
       "USER": "User",
-      "SUCCEED": "Succeed"
+      "SUCCEED": "Succeed",
+      "Middleware": "Middleware",
+      "Skills": "Skills"
     },
     "Common": {
       "Tools": "Tools",
@@ -50,16 +53,38 @@
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
       "LOCAL_AGENT_STATUS": "Local Agent Status",
+      "Roles": {
+        "Administration": "Administration",
+        "General": "General"
+      },
       "USERS": "Users",
       "FEATURES": "Features",
+      "Data": "Data",
       "TENANT": {
         "TITLE": "Tenant"
       }
+    },
+    "MODEL": {
+      "AccessControl": {
+        "NewRole": "New Role"
+      }
+    },
+    "Role": {
+      "EnabledPermissions": "Enabled permissions",
+      "RoleList": "Role List",
+      "NoRoles": "No roles yet",
+      "NoRolesHint": "Create a role to start configuring role-based access for your organization.",
+      "NoRoleSelected": "Select a role",
+      "NoRoleSelectedHint": "Choose a role from the list to review permissions, rename it, or manage its access scope.",
+      "RenameTitle": "Rename role",
+      "RenameSuccess": "Role renamed successfully"
     },
     "USERS_PAGE": {
       "ADD_USER": "Add User"
     },
     "ACTIONS": {
+      "Delete": "Delete",
+      "Rename": "Rename",
       "CLEAR": "Clear",
       "CLEAR_CACHE": "Clear Cache",
       "DOWNLOAD_AGENT": "Download Agent",
@@ -70,7 +95,9 @@
         "DELETE_ORGANIZATION": "Organization '{{name}}' Deleted"
       },
       "ROLES": {
-        "PERMISSION_UPDATED": "Role '{{name}}' Updated"
+        "PERMISSION_UPDATED": "Role '{{name}}' Updated",
+        "RoleCreate": "Role '{{name}}' Created",
+        "RoleDelete": "Role '{{name}}' Deleted"
       },
       "USERS": {
         "USER_DELETED": "User '{{name}}' Deleted",
@@ -442,6 +469,120 @@
           "SHADOW_BLUR": "Shadow Blur"
         }
       }
+    },
+    "Workflow": {
+      "Trigger": "Trigger",
+      "Skill": "Skill",
+      "Chat": "Chat",
+      "NoTriggersAvailable": "No trigger providers available",
+      "NoSkillsAdded": "No skills added yet",
+      "NoMiddlewaresAvailable": "No middleware providers available"
+    },
+    "Xpert": {
+      "StartFrom": "Start from",
+      "BlankStart": "Blank",
+      "TemplateStart": "Template",
+      "StartFromHelp": "Choose a blank starter or load a template first. You can keep editing the rest of the wizard before creating the Xpert.",
+      "BlankStartHelp": "Start from the default blank wizard and choose triggers, middlewares, and skills yourself.",
+      "TemplateStartHelp": "Select an agent template, preload the wizard from its draft, and keep tailoring the result before creating.",
+      "WorkflowStartFromHelp": "Workflow templates are not available in this starter yet, so you can begin with the blank workflow setup for now.",
+      "WorkflowBlankStartHelp": "Start with the default chat-trigger workflow scaffold and choose the action and transform nodes you want.",
+      "WorkflowTemplateStartHelp": "Workflow template starters will be supported in a later iteration of the shared wizard.",
+      "KnowledgeStartFromHelp": "Choose a blank pipeline or start from a knowledge template, then keep editing triggers and stages before creating.",
+      "KnowledgeBlankStartHelp": "Start from the default knowledge pipeline wizard and choose the trigger, source, processor, chunker, and understanding stages yourself.",
+      "KnowledgeTemplateStartHelp": "Select a knowledge pipeline template, prefill the wizard from its draft, and continue customizing the pipeline stages.",
+      "BasicInformation": "Basic information",
+      "Workflow": "Workflow",
+      "WorkflowActionNodes": "Action nodes",
+      "WorkflowActionNodesHelp": "Choose the starter action nodes to place after the default Chat Trigger. We will connect them in a left-to-right workflow for you.",
+      "WorkflowTransformResponse": "Transform & response",
+      "WorkflowTransformNodesHelp": "Choose the transform and response nodes to append after the action stage. The selected nodes will keep the fixed starter order.",
+      "WorkflowChatTriggerIncluded": "Always included as the first node in this starter workflow.",
+      "WorkflowNodeWillBeChained": "Added into the starter flow",
+      "DataSource": "Data Source",
+      "Processor": "Processor",
+      "Chunker": "Chunker",
+      "ImageUnderstanding": "Image Understanding",
+      "KnowledgeBase": "Knowledge Base",
+      "SelectTriggerProviders": "Choose the triggers you want to prepare now. You can skip this and configure details later in Studio.",
+      "SelectKnowledgeTriggers": "Choose the triggers for this knowledge pipeline. You can skip this step and add more later in Studio.",
+      "SelectDataSources": "Choose the data source providers to seed this knowledge pipeline. You can adjust their configuration later in Studio.",
+      "SelectProcessors": "Choose the processors to run after the data source step. Detailed configuration stays in Studio.",
+      "SelectChunkers": "Choose the chunkers to split processed content before it reaches the knowledge base.",
+      "SelectImageUnderstandings": "Choose the image understanding providers if this pipeline needs OCR or visual extraction. You can skip this step.",
+      "AddSkillsPlaceholder": "Add placeholder skills for this blank expert. The corresponding skill nodes will be created now, and you can refine them later in Studio.",
+      "AddSkillNames": "Enter a skill name, then press Enter or comma",
+      "SelectMiddlewares": "Choose the middlewares to preload for the primary agent. Detailed configuration stays in Studio.",
+      "PreconfigurationNotSaved": "Expert created, but the preconfiguration could not be saved. You can continue in Studio.",
+      "KnowledgeBaseStepDescription": "A Knowledge Base node will be created automatically as the final stage of this pipeline. You can complete its detailed settings after entering Studio.",
+      "KnowledgeBaseNodeWillBeCreated": "The node is added by default so the new knowledge pipeline has a complete output target.",
+      "NoDataSourcesAvailable": "No data source providers available",
+      "NoProcessorsAvailable": "No processor providers available",
+      "NoChunkersAvailable": "No chunker providers available",
+      "NoImageUnderstandingsAvailable": "No image understanding providers available",
+      "ImportOverwriteConfirm": "Importing this DSL will overwrite the current draft of this xpert. The published version will remain unchanged.\n\nIf the file contains memories, current memories will be cleared and replaced.",
+      "ImportOverwriteSuccess": "DSL imported into the current draft. Publish is still required for it to take effect.",
+      "ImportMemoryIncomplete": "The draft was imported, but memory replacement did not finish.",
+      "ImportTypeMismatch": "DSL type does not match the current xpert",
+      "ImportPrimaryAgentMissing": "Primary agent not found in the DSL file",
+      "ImportCurrentPrimaryAgentMissing": "Current xpert primary agent not found",
+      "XpertUserGroups": "Xpert User Groups"
+    },
+    "UserGroup": {
+      "Title": "User Groups",
+      "Subtitle": "Manage organization-level access groups for published assistants.",
+      "ManageGroups": "Manage Groups",
+      "AuthorizationByOrganizationHint": "Tenant xperts are authorized per organization. Choose one organization, then configure which of its groups can access this xpert.",
+      "SelectedOrganization": "Selected Organization",
+      "MemberCount": "{{count}} members",
+      "Empty": "No user groups yet.",
+      "Create": "Create Group",
+      "Edit": "Edit Group",
+      "FormHint": "Bind organization users into a reusable access group.",
+      "NamePlaceholder": "Enter group name",
+      "DescriptionPlaceholder": "Describe who should belong to this group",
+      "Members": "Members",
+      "MembersHint": "Only active users in the current organization can be selected.",
+      "SearchGroups": "Search groups",
+      "SearchMembers": "Search members",
+      "CreateFirst": "Create your first group",
+      "NoMatchingGroups": "No matching groups.",
+      "SelectedGroups": "Selected Groups",
+      "SelectedGroupsHint": "Choose which organization groups are allowed to access this xpert after publication.",
+      "SelectedMembers": "Selected Members",
+      "RuntimeAccessHint": "Published xperts can only be used by members of the selected organization groups.",
+      "AccessRule": "Access Rule",
+      "AccessRuleHint": "If no group is selected, this published xpert will be blocked for organization users at runtime.",
+      "EmptySelectionHint": "Select one or more groups from the right panel to allow runtime access.",
+      "GroupPickerHint": "Search and select the organization groups that should be allowed to use this xpert.",
+      "EmptyGroupsHint": "Create organization groups first, then return here to bind them to this xpert.",
+      "InactiveMember": "Inactive",
+      "RemoveInactiveMembersHint": "Remove inactive members from this group before saving.",
+      "SelectMembersHint": "Select members from the right panel to add them to this group.",
+      "SelectVisible": "Select Visible",
+      "NoActiveMembers": "No active organization members",
+      "NoActiveMembersHint": "Invite or activate users in the current organization, then assign them here.",
+      "SelectOrganizationFirst": "Select an organization to continue.",
+      "SelectOrganizationFirstHint": "Select an organization first to configure which groups can access this xpert.",
+      "NoOrganizationsAvailable": "No organizations available for authorization.",
+      "NoOrganizationsAvailableHint": "You need access to at least one organization before you can bind organization groups to this tenant xpert.",
+      "NoMatchingMembers": "No matching members",
+      "NoMatchingMembersHint": "Try another search keyword."
+    },
+    "Certification": {
+      "Entry": "Certification entry",
+      "UpdateCertification": "Update certification",
+      "DeleteCertification": "Delete certification",
+      "CreateCertification": "Create certification",
+      "CreateFirst": "Create your first certification",
+      "EmptyHint": "Define reusable certification types for projects, assets, or review workflows.",
+      "DefaultName": "New certification",
+      "EmptyDescription": "No description added yet.",
+      "NamePlaceholder": "Enter certification name",
+      "DescriptionPlaceholder": "Describe what this certification type validates or represents",
+      "OwnerPlaceholder": "Select owner",
+      "NoOwner": "No owner assigned",
+      "Untitled": "Untitled certification"
     }
   },
   "COMPONENTS": {

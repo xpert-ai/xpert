@@ -1,7 +1,9 @@
-@use '../../../@theme/flow-common';
 
+
+@use '../../../@theme/flow-common';
+@reference "../../../../styles/tailwind-reference.css";
 :host {
-  @apply flex w-full h-full bg-gray-100;
+  @apply flex w-full h-full bg-components-input-bg-normal;
   --output-size: 14px;
   --f-component-hover-border: theme('colors.primary.300');
   --f-component-fail-branch-hover: theme('colors.orange.300');

@@ -1,9 +1,7 @@
-import { FlatTreeControl } from '@angular/cdk/tree'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
-import { Indicator } from '@metad/cloud/state'
-import { FlatTreeNode, TreeNodeInterface, isString, omitBlank } from '@metad/ocap-core'
+import { ZardFlatTreeControl, ZardTreeFlatDataSource, ZardTreeFlattener } from '@xpert-ai/headless-ui'
+import { Indicator } from '@xpert-ai/cloud/state'
+import { FlatTreeNode, TreeNodeInterface, isString, omitBlank } from '@xpert-ai/ocap-core'
 import { DefaultCollection, ICollection } from '../../@core'
-
 
 export type ProjectIndicatorsState = {
   indicators: Indicator[]
@@ -28,17 +26,17 @@ export function treeDataSourceFactory() {
       raw: node.raw
     }
   }
-  const treeControl = new FlatTreeControl<FlatTreeNode<any>>(
+  const treeControl = new ZardFlatTreeControl<FlatTreeNode<any>>(
     (node) => node.level,
     (node) => node.expandable
   )
-  const treeFlattener = new MatTreeFlattener(
+  const treeFlattener = new ZardTreeFlattener(
     transformer,
     (node) => node.level,
     (node) => node.expandable,
     (node) => node.children
   )
-  const dataSource = new MatTreeFlatDataSource(treeControl, treeFlattener)
+  const dataSource = new ZardTreeFlatDataSource(treeControl, treeFlattener)
 
   return {
     dataSource,

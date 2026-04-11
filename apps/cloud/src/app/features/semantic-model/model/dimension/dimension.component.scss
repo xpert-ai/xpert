@@ -1,19 +1,10 @@
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
-  --mat-expansion-container-background-color: transparent;
-  
   display: flex;
   flex-direction: column;
   flex: 1;
   max-width: 100%;
   height: 100%;
-}
-
-.pac-model-hierarchy {
-  #pac-model-dimension__hierarchy-levels {
-    .mat-mdc-list-text {
-      padding: 0;
-    }
-  }
 }
 
 #pac-model-dimension__hierarchy-levels {
@@ -24,11 +15,11 @@
 
 .xp-nav-toolbar {
   &.ngm-density__compact {
-    .mat-mdc-tab-header {
-      --mdc-secondary-navigation-tab-container-height: 32px;
+    .z-tab-nav-bar {
+      min-height: 32px;
     }
 
-    .mdc-tab {
+    .z-tab-link {
       @apply px-2;
     }
   }

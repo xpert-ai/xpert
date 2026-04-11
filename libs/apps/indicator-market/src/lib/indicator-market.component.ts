@@ -17,13 +17,12 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatBottomSheet, MatBottomSheetRef } from '@angular/material/bottom-sheet'
-import { MatDatepicker } from '@angular/material/datepicker'
 import { Router } from '@angular/router'
-import { Store } from '@metad/cloud/state'
-import { NgmDSCoreService, NgmLanguageEnum } from '@metad/ocap-angular/core'
-import { TimeGranularity } from '@metad/ocap-core'
-import { ComponentStore } from '@metad/store'
+import { Store } from '@xpert-ai/cloud/state'
+import { NgmDSCoreService, NgmLanguageEnum } from '@xpert-ai/ocap-angular/core'
+import { TimeGranularity } from '@xpert-ai/ocap-core'
+import { ComponentStore } from '@xpert-ai/store'
+import { ZardSheetRef, ZardSheetService } from '@xpert-ai/headless-ui'
 import { includes, some } from 'lodash-es'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
@@ -32,10 +31,10 @@ import { distinctUntilChanged, map, shareReplay, switchMap, tap } from 'rxjs/ope
 import { IndicatorDetailComponent } from './indicator-detail/indicator-detail.component'
 import { IndicatorsStore } from './services/store'
 import { IndicatorState, IndicatorTagEnum, LookbackLimit } from './types'
-import { TIndicatorItemData } from '@metad/ocap-angular/indicator'
-
+import { TIndicatorItemData } from '@xpert-ai/ocap-angular/indicator'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-indicator-market',
   templateUrl: 'indicator-market.component.html',
@@ -77,7 +76,7 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
   readonly currentIndicatorIds$ = computed(() => [this.indicatorsStore.currentIndicator()])
 
   isShowModal = false
-  private _bottomSheetRef: MatBottomSheetRef
+  private _bottomSheetRef?: ZardSheetRef<IndicatorDetailComponent>
 
   _currentDate = new Date()
   dateControl = new FormControl<Date>(this._currentDate)
@@ -114,7 +113,7 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
     private breakpointObserver: BreakpointObserver,
     @Inject(LOCALE_ID)
     private locale: string,
-    private _bottomSheet: MatBottomSheet,
+    private _bottomSheet: ZardSheetService,
     private _viewContainerRef: ViewContainerRef
   ) {
     super({})
@@ -138,11 +137,11 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
           this.indicatorsStore.currentIndicator.set(this.indicatorsStore.firstIndicator().id)
         }
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       this.dsCoreService.setTimeGranularity(this.timeGranularity())
-    }, { allowSignalWrites: true })
+    })
   }
 
   readonly openModal = this.effect((origin$: Observable<string>) => {
@@ -152,12 +151,16 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
           tap((isMobile) => {
             if (isMobile && id) {
               this._bottomSheetRef = this._bottomSheet.open(IndicatorDetailComponent, {
-                panelClass: ['pac-indicator-market__detail-container'],
-                viewContainerRef: this._viewContainerRef,
-                data: { id }
+                zSide: 'bottom',
+                zHeight: 'calc(100vh - 50px)',
+                zHideFooter: true,
+                zClosable: false,
+                zCustomClasses: 'pac-indicator-market__detail-container',
+                zViewContainerRef: this._viewContainerRef,
+                zData: { id }
               })
             } else {
-              this._bottomSheetRef?.dismiss()
+              this._bottomSheetRef?.close()
             }
           })
         )
@@ -181,20 +184,6 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
     return d <= new Date()
   }
 
-  chosenYearHandler(event: Date | null, datepicker: MatDatepicker<any>) {
-    if (this.timeGranularity() === TimeGranularity.Year) {
-      this.dateControl.setValue(event)
-      datepicker.close()
-    }
-  }
-
-  chosenMonthHandler(event, datepicker: MatDatepicker<any>) {
-    if (this.timeGranularity() === TimeGranularity.Month || this.timeGranularity() === TimeGranularity.Quarter) {
-      this.dateControl.setValue(event)
-      datepicker.close()
-    }
-  }
-
   click(item: IndicatorState) {
     this.indicatorsStore.currentIndicator.set(item.id)
     this.openModal(item.id)
@@ -202,6 +191,11 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
       queryParams: { id: item.id },
       queryParamsHandling: 'merge'
     })
+  }
+
+  onItemKeydown(event: Event, item: IndicatorState) {
+    event.preventDefault()
+    this.click(item)
   }
 
   onTimeGranularity(event: TimeGranularity) {

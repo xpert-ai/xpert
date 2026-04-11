@@ -1,6 +1,6 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
+<div class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group">
   <div class="w-full flex justify-start items-center mb-2 p-2 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-xl font-semibold pointer-events-none">
       {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
       {{ 'PAC.KEY_WORDS.Project' | translate: { Default: 'Project' } }}
@@ -9,21 +9,21 @@
 
   <div class="flex-1">
     <form class="flex flex-col justify-start items-stretch" [formGroup]="form">
-      <mat-form-field appearance="fill" floatLabel="always" color="accent">
-        <mat-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</mat-label>
-        <input matInput formControlName="name" required
+      <z-form-field appearance="fill" floatLabel="always" color="accent">
+        <z-form-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</z-form-label>
+        <input z-input formControlName="name" required
           placeholder="{{ 'PAC.Project.WhatIsTheName' | translate: { Default: 'What is the name of your project' } }}?"
         />
-      </mat-form-field>
+      </z-form-field>
 
-      <mat-form-field appearance="fill" floatLabel="always" color="accent">
-        <mat-label>
+      <z-form-field appearance="fill" floatLabel="always" color="accent">
+        <z-form-label>
           {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
-        </mat-label>
-        <textarea matInput formControlName="description"
+        </z-form-label>
+        <textarea z-input formControlName="description"
           placeholder="{{ 'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the project' } }}"
         ></textarea>
-      </mat-form-field>
+      </z-form-field>
 
       <button></button>
     </form>
@@ -31,16 +31,11 @@
 
   <div class="w-full flex justify-end">
     <div ngmButtonGroup>
-      <button mat-button [disabled]="creating()" (click)="close()">
+      <button z-button zType="ghost" [disabled]="creating()" (click)="close()">
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
 
-      <button
-        mat-raised-button
-        color="accent"
-        [disabled]="form.invalid || creating()"
-        (click)="apply()"
-      >
+      <button z-button zType="default" [disabled]="form.invalid || creating()" (click)="apply()">
         {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
       </button>
     </div>
@@ -54,17 +49,16 @@
       [formControl]="searchControl" (click)="$event.stopPropagation()" />
   </div>
   <div class="flex-1 overflow-auto">
-    <mat-selection-list displayDensity="cosy" [formControl]="models"
-      [compareWith]="compareWith">
+    <ul class="ngm-cdk-listbox" cdkListbox [formControl]="models"
+      [cdkListboxMultiple]="true" [cdkListboxCompareWith]="compareWith">
       @for (model of models$ | async; track model.id;) {
-        <mat-list-option class="rounded-md overflow-hidden"
-          [value]="model">
-          <span matListItemTitle class="truncate" [ngmHighlight]="highlight" [content]="model.name">{{ model.name }}</span>
+        <li class="ngm-cdk-option rounded-md overflow-hidden" [cdkOption]="model">
+          <span class="truncate block" [ngmHighlight]="highlight" [content]="model.name">{{ model.name }}</span>
           @if (model.description) {
-            <span matListItemLine class="line-clamp-2 text-sm text-text-secondary" [ngmHighlight]="highlight" [content]="model.description">{{ model.description }}</span>
+            <span class="line-clamp-2 text-sm text-text-secondary block" [ngmHighlight]="highlight" [content]="model.description">{{ model.description }}</span>
           }
-        </mat-list-option>
+        </li>
       }
-    </mat-selection-list>
+    </ul>
   </div>
 </div>

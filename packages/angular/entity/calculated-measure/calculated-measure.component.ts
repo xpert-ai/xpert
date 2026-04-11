@@ -15,19 +15,12 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatExpansionModule } from '@angular/material/expansion'
-import { MatIconModule } from '@angular/material/icon'
-import { MatListModule } from '@angular/material/list'
-import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTabsModule } from '@angular/material/tabs'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
-import { MDXReference, NgmMDXEditorComponent } from '@metad/ocap-angular/mdx'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+
+import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { NgmBaseEditorDirective } from '@xpert-ai/ocap-angular/formula'
+import { MDXReference, NgmMDXEditorComponent } from '@xpert-ai/ocap-angular/mdx'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import {
   C_MEASURES,
   DataSettings,
@@ -38,7 +31,7 @@ import {
   getEntityParameters,
   isIndicatorMeasureProperty,
   isPropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { negate, sortBy } from 'lodash-es'
 import { MarkdownModule } from 'ngx-markdown'
@@ -47,7 +40,7 @@ import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.compone
 import { EntityCapacity } from '../entity-schema/types'
 import { NgmEntityPropertyComponent } from '../property/property.component'
 import { Dialog } from '@angular/cdk/dialog'
-
+import { ZardAccordionImports, ZardButtonComponent, ZardDialogService, ZardDrawerImports, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -55,13 +48,12 @@ import { Dialog } from '@angular/cdk/dialog'
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatSidenavModule,
-    MatTabsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatListModule,
-    MatTooltipModule,
-    MatExpansionModule,
+    ...ZardDrawerImports,
+    ...ZardTabsImports,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
+    ...ZardAccordionImports,
     TranslateModule,
     MarkdownModule,
 
@@ -92,7 +84,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   EntityCapacity = EntityCapacity
   FUNCTIONS = []
 
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog, { optional: true })
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
@@ -115,7 +107,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   })
 
   // Children
-  readonly editor = viewChild('editor', {read: NgmBaseEditorDirective})
+  readonly editor = viewChild('editor', { read: NgmBaseEditorDirective })
 
   // Models
   readonly drawerOpened = model(false)
@@ -136,14 +128,16 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   private _onChange: any
 
   // Signals
-  readonly editorOptions = signal({wordWrap: false})
+  readonly editorOptions = signal({ wordWrap: false })
 
   readonly calculations$ = toObservable(this.entityType).pipe(
     map(getEntityCalculations),
-    map((values) => [
-      ...sortBy(values.filter(negate(isIndicatorMeasureProperty)), 'calculationType'),
-      ...values.filter(isIndicatorMeasureProperty)
-    ].filter((v) => v.visible && v.__id__ !== this.key())),
+    map((values) =>
+      [
+        ...sortBy(values.filter(negate(isIndicatorMeasureProperty)), 'calculationType'),
+        ...values.filter(isIndicatorMeasureProperty)
+      ].filter((v) => v.visible && v.__id__ !== this.key())
+    ),
     combineLatestWith(this.calculatedMemberSearch.valueChanges.pipe(startWith(''))),
     map(([values, search]) =>
       values.filter(
@@ -172,8 +166,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
         if (this.opened()) {
           this.drawerOpened.set(this.opened())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -200,18 +193,16 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
 
   async openCreateParameter(parameter?: ParameterProperty) {
     const result = await firstValueFrom(
-      this.#dialog
-        .open(NgmParameterCreateComponent, {
-          viewContainerRef: this._viewContainerRef,
-          data: {
-            dataSettings: this.dataSettings(),
-            entityType: this.entityType(),
-            // coreService: this.coreService,
-            dimension: {}, // TODO
-            name: parameter?.name
-          }
-        })
-        .closed
+      this.#dialog.open(NgmParameterCreateComponent, {
+        viewContainerRef: this._viewContainerRef,
+        data: {
+          dataSettings: this.dataSettings(),
+          entityType: this.entityType(),
+          // coreService: this.coreService,
+          dimension: {}, // TODO
+          name: parameter?.name
+        }
+      }).closed
     )
 
     if (result) {
@@ -221,7 +212,12 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   }
 
   dropPredicate(item: CdkDrag<any>) {
-    return ['ngm-calculated-measure__entity-schema', 'ngm-calculated-calculations', 'ngm-calculated-parameters', 'ngm-calculated-functions'].includes(item.dropContainer.id)
+    return [
+      'ngm-calculated-measure__entity-schema',
+      'ngm-calculated-calculations',
+      'ngm-calculated-parameters',
+      'ngm-calculated-functions'
+    ].includes(item.dropContainer.id)
   }
 
   drop(event: CdkDragDrop<Array<{ name: string }>>) {

@@ -1,4 +1,4 @@
-import { ChatGatewayEvent, IUser } from '@metad/contracts'
+import { ChatGatewayEvent, IUser } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class CancelChatCommand implements ICommand {

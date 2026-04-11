@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNTask,
@@ -15,6 +14,7 @@ import { NgxFloatUiModule, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertExecutionService } from '../../../services/execution.service'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-task',
@@ -22,7 +22,14 @@ import { XpertExecutionService } from '../../../services/execution.service'
   styleUrls: ['./task.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgxFloatUiModule, NgmSpinComponent, NgxJsonViewerModule]
+  imports: [
+    FFlowModule,
+    ...ZardTooltipImports,
+    TranslateModule,
+    NgxFloatUiModule,
+    NgmSpinComponent,
+    NgxJsonViewerModule
+  ]
 })
 export class XpertWorkflowNodeTaskComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

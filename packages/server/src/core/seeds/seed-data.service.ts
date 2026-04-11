@@ -10,8 +10,8 @@ import {
 } from 'typeorm';
 import chalk from 'chalk';
 import moment from 'moment';
-import { IPluginConfig, SEEDER_DB_CONNECTION } from '@metad/server-common';
-import { environment as env, getConfig, ConfigService } from '@metad/server-config';
+import { IPluginConfig, SEEDER_DB_CONNECTION } from '@xpert-ai/server-common';
+import { environment as env, getConfig, ConfigService } from '@xpert-ai/server-config';
 import {
 	IEmployee,
 	IOrganization,
@@ -19,7 +19,7 @@ import {
 	ITenant,
 	IUser,
 	DEFAULT_TENANT
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { createRoles } from '../../role/role.seed';
 import {	
 	createDefaultAdminUsers,
@@ -36,7 +36,6 @@ import {
 	createDefaultOrganizations,
 	DEFAULT_ORGANIZATIONS,
 	getTenantDefaultOrganization,
-	OrganizationDemoCommand
 } from '../../organization';
 import {
 	createDefaultUsersOrganizations,
@@ -109,7 +108,7 @@ export class SeedDataService {
 	}
 
 	/**
-	 * This config is applied only for `yarn seed:*` type calls because
+	 * This config is applied only for `pnpm seed:*` type calls because
 	 * that is when connection is created by this service itself.
 	 */
 	overrideDbConfig = {

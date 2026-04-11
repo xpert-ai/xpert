@@ -1,4 +1,4 @@
-import { TimeGranularity } from "@metad/ocap-core";
+import { TimeGranularity } from "@xpert-ai/ocap-core";
 
 export const TIME_GRANULARITY_SEQUENCES = {
   0: [TimeGranularity.Year, TimeGranularity.Month],

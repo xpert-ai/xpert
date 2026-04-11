@@ -1,30 +1,27 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { ListHeightStaggerAnimation } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { ListHeightStaggerAnimation } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { IChatMessage } from '@cloud/app/@core'
 import { ChatAttachmentsComponent } from '../../attachments/attachments.component'
-
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     ChatAttachmentsComponent
-  ],
+],
   selector: 'chat-preview-human-message',
   templateUrl: './message.component.html',
   styleUrl: 'message.component.scss',
@@ -32,12 +29,11 @@ import { ChatAttachmentsComponent } from '../../attachments/attachments.componen
   animations: [ListHeightStaggerAnimation]
 })
 export class ChatHumanMessageComponent {
-
   // Inputs
   readonly message = input<IChatMessage>()
 
   // States
-  readonly attachments = computed(() => this.message()?.attachments?.map((storageFile) => ({storageFile})))
+  readonly attachments = computed(() => this.message()?.attachments?.map((storageFile) => ({ storageFile })))
 
   constructor() {
     effect(() => {

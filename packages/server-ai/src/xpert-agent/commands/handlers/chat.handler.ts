@@ -9,8 +9,8 @@ import {
     TXpertChatState,
     TSensitiveOperation,
     XpertAgentExecutionStatusEnum
-} from '@metad/contracts'
-import { getErrorMessage, omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'

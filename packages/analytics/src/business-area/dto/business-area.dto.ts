@@ -1,4 +1,4 @@
-import { BusinessAreaRole, BusinessType } from '@metad/contracts'
+import { BusinessAreaRole, BusinessType } from '@xpert-ai/contracts'
 import { BusinessArea } from '../business-area.entity'
 
 export class BusinessAreaDTO {

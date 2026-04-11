@@ -4,9 +4,9 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormControl, FormsModule } from '@angular/forms'
 import { ProjectAPIService } from '@cloud/app/@core'
-import { IProject } from '@metad/cloud/state'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { IProject } from '@xpert-ai/cloud/state'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { AbstractInterruptComponent } from '../../agent'
@@ -74,8 +74,7 @@ export class ProjectInterruptSwitchComponent extends AbstractInterruptComponent<
         if (this.name()) {
           this.types.set(['New'])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -1,9 +1,10 @@
 import { ChangeDetectorRef, DestroyRef, Directive, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core'
-import { PeriodFunctions, SmartIndicatorDataService } from '@metad/ocap-core'
+import { PeriodFunctions, SmartIndicatorDataService } from '@xpert-ai/ocap-core'
 import { IndicatorState } from '../types'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 @Directive({
+  standalone: false,
   selector: '[pacIndicator]',
   exportAs: 'pacIndicator',
   providers: [SmartIndicatorDataService]

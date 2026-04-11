@@ -1,11 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { Router } from '@angular/router'
-import { FeatureService, getErrorMessage, injectToastr, IOrganization, routeAnimations } from '../../../@core'
-import { TranslationBaseComponent } from '../../../@shared/language'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router'
+import { FeatureService, RequestScopeLevel, Store, getErrorMessage, injectToastr, routeAnimations } from '../../../@core'
 import { SharedModule } from '../../../@shared/shared.module'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 
 @Component({
   standalone: true,
@@ -17,43 +16,52 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [routeAnimations]
 })
-export class PACFeaturesComponent extends TranslationBaseComponent implements OnInit {
-  private router = inject(Router)
+export class PACFeaturesComponent {
+  private readonly route = inject(ActivatedRoute)
+  private readonly router = inject(Router)
+  readonly #store = inject(Store)
   readonly #featureService = inject(FeatureService)
   readonly #toastr = injectToastr()
 
-  tabs: any[]
-  organization: IOrganization
-
   readonly loading = signal(false)
-
-  private langSub = this.translateService.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => {
-    this.loadTabs()
+  readonly activeScope = toSignal(this.#store.selectActiveScope(), {
+    initialValue: this.#store.activeScope
   })
+  readonly activeChildPath = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => this.getActiveChildPath()),
+      distinctUntilChanged()
+    ),
+    {
+      initialValue: null
+    }
+  )
+  readonly targetChildPath = computed(() =>
+    this.activeScope().level === RequestScopeLevel.TENANT ? 'tenant' : 'organization'
+  )
 
-  ngOnInit(): void {
-    this.loadTabs()
-  }
+  constructor() {
+    effect(() => {
+      const activeChildPath = this.activeChildPath()
+      const targetChildPath = this.targetChildPath()
 
-  loadTabs() {
-    this.tabs = [
-      {
-        title: this.getTranslation('MENU.TENANT'),
-        route: this.getRoute('tenant')
-      },
-      {
-        title: this.getTranslation('MENU.ORGANIZATION'),
-        route: this.getRoute('organization')
+      if (activeChildPath === targetChildPath) {
+        return
       }
-    ]
+
+      queueMicrotask(() => {
+        void this.router.navigate([targetChildPath], {
+          relativeTo: this.route,
+          replaceUrl: true
+        })
+      })
+    })
   }
 
-  getRoute(tab: string): string {
-    return `/settings/features/${tab}`
-  }
-
-  navigate(url) {
-    this.router.navigate([url])
+  private getActiveChildPath() {
+    return this.route.snapshot.firstChild?.routeConfig?.path ?? null
   }
 
   upgrade() {

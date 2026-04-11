@@ -1,3 +1,4 @@
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
   @apply relative flex flex-col justify-start items-stretch h-full w-full p-4;
 }

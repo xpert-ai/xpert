@@ -1,7 +1,7 @@
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
-import { IKnowledgeDocumentChunk, OrganizationBaseCrudService } from '@metad/cloud/state'
+import { IKnowledgeDocumentChunk, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_KNOWLEDGE_DOCUMENT } from '../constants/app.constants'
 import {
@@ -12,7 +12,6 @@ import {
   TRagWebOptions,
   TRagWebResult
 } from '../types'
-
 
 @Injectable({ providedIn: 'root' })
 export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowledgeDocument> {

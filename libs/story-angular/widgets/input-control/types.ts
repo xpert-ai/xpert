@@ -1,6 +1,5 @@
-import { ThemePalette } from '@angular/material/core'
-import { ControlOptions } from '@metad/ocap-angular/controls'
-import { ParameterOptions } from '@metad/ocap-angular/parameter'
+import { ControlOptions } from '@xpert-ai/ocap-angular/controls'
+import { ParameterOptions } from '@xpert-ai/ocap-angular/parameter'
 import {
   AggregationRole,
   Dimension,
@@ -15,11 +14,12 @@ import {
   PresentationEnum,
   Semantics,
   TimeGranularity
-} from '@metad/ocap-core'
-import { FilterControlType } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { FilterControlType } from '@xpert-ai/story/core'
+import { NgmFieldColor } from "@xpert-ai/ocap-angular/core";
 
 export interface MeasureControlOptions {
-  chipColor?: ThemePalette
+  chipColor?: NgmFieldColor
 }
 
 /**

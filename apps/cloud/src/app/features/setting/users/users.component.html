@@ -2,64 +2,57 @@
   <div class="w-full flex justify-between items-end">
     <div class="flex flex-col">
       <div class="pac-page-title">{{ 'PAC.MENU.MANAGE_USERS' | translate: {Default: 'Manage Users'} }}</div>
-      <div class="pac-page-subtitle">{{ 'PAC.MENU.ManageUsersAndInvites' | translate: {Default: 'Manage Users & Invites'} }}</div>
     </div>
 
     <div class="flex items-center gap-1">
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-large mr-2"
-        (click)="batImport()"
-      ><i class="ri-contacts-book-upload-line font-normal mr-1"></i>{{ 'PAC.USERS_PAGE.BatchImport' | translate: {Default: "Batch Import"} }}</button>
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-large mr-2"
-        (click)="invite()"
-      ><i class="ri-user-shared-line font-normal mr-1"></i>{{ 'PAC.ACTIONS.INVITE' | translate: {Default: "Invite"} }}</button>
+      @if (canBatchImport()) {
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-secondary btn-large mr-2"
+          (click)="batImport()"
+        ><i class="ri-contacts-book-upload-line font-normal mr-1"></i>{{ 'PAC.USERS_PAGE.BatchImport' | translate: {Default: "Batch Import"} }}</button>
+      }
+      @if (canInviteUsers()) {
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-secondary btn-large mr-2"
+          (click)="invite()"
+        ><i class="ri-user-shared-line font-normal mr-1"></i>{{ 'PAC.ACTIONS.INVITE' | translate: {Default: "Invite"} }}</button>
+      }
+      @if (canCreateUsers()) {
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
         (click)="addUser()"
       ><i class="ri-add-line mr-1"></i>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }}</button>
+      }
     </div>
   </div>
 
-  <nav mat-tab-nav-bar class="pac-tab-nav-bar self-stretch max-w-full overflow-hidden" color="accent" mat-align-tabs="start" mat-stretch-tabs="false" disableRipple displayDensity="cosy"
+<nav z-tab-nav-bar class="pac-tab-nav-bar self-stretch max-w-full overflow-hidden" color="accent" alignTabs="start" stretchTabs="false" disableRipple zSize="default"
     [tabPanel]="tabPanel"
   >
-    <span mat-tab-link [routerLink]="['.']"
+      <span z-tab-link [routerLink]="['.']"
       routerLinkActive #rla="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" displayDensity="cosy" class="mr-1">account_circle</mat-icon>
+      <z-icon zSize="default" class="mr-1" zType="account_circle"></z-icon>
       {{ 'PAC.MENU.USERS' | translate: {Default: "Users"} }}
     </span>
-    @if (invitesAllowed()) {
-      <span mat-tab-link [routerLink]="['invites']"
-        routerLinkActive #rla2="routerLinkActive"
+
+    @if (showInviteTab()) {
+      <span z-tab-link [routerLink]="['invites']"
+        routerLinkActive #inviteRla="routerLinkActive"
         [routerLinkActiveOptions]="{exact: true}"
-        [active]="rla2.isActive"
+        [active]="inviteRla.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined" displayDensity="cosy" class="mr-1">person_add</mat-icon>
-        {{ 'PAC.ACTIONS.ManageInvites' | translate: {Default: "Manage Invites"} }}
+        <z-icon zSize="default" class="mr-1" zType="person_add"></z-icon>
+        {{ 'PAC.ACTIONS.INVITE' | translate: {Default: "Invite"} }}
       </span>
     }
-
-  @for (link of openedLinks(); track link.id) {
-    <span mat-tab-link [routerLink]="[link.id]"
-        [active]="link.id === currentLink()?.id">
-        <mat-icon class="mr-1" fontSet="material-icons-outlined" displayDensity="cosy">face</mat-icon>
-        {{ userLabel(link) }}
-        <button mat-icon-button class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(link)">
-            <mat-icon>cancel</mat-icon>
-        </button>
-    </span>
-  }
   </nav>
 </div>
 
-<mat-divider></mat-divider>
-
-<mat-tab-nav-panel #tabPanel class="pac-page-body"
+<z-tab-nav-panel #tabPanel class="pac-page-body"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>

@@ -1,4 +1,4 @@
-import { IWFNMiddleware, TAgentMiddlewareMeta } from '@metad/contracts'
+import { IWFNMiddleware, TAgentMiddlewareMeta, TXpertFeatures } from '@xpert-ai/contracts'
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { RunnableToolLike } from '@langchain/core/runnables';
 import { AgentMiddleware } from './types'
@@ -11,6 +11,7 @@ export interface IAgentMiddlewareContext {
   projectId?: string
   conversationId?: string
   xpertId?: string
+  xpertFeatures?: TXpertFeatures | null
   agentKey?: string
   node: IWFNMiddleware
   tools: Map<string, StructuredToolInterface | RunnableToolLike>

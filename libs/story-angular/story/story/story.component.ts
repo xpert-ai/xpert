@@ -24,14 +24,13 @@ import {
   viewChildren
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { HammerModule } from '@angular/platform-browser'
 import { ActivatedRoute, Params, Router } from '@angular/router'
-import { TrialWatermarkComponent } from '@metad/components/trial-watermark'
-import { NgmTransformScaleDirective, NxCoreModule, camelCaseObject } from '@metad/core'
-import { NgmCommonModule, NgmConfirmDeleteComponent, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
-import { NgmSmartFilterBarService, OcapCoreModule, isNotEmpty } from '@metad/ocap-angular/core'
-import { isNil, omitBlank } from '@metad/ocap-core'
+import { TrialWatermarkComponent } from '@xpert-ai/components/trial-watermark'
+import { NgmTransformScaleDirective, NxCoreModule, camelCaseObject } from '@xpert-ai/core'
+import { NgmCommonModule, NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSmartFilterBarService, OcapCoreModule, isNotEmpty } from '@xpert-ai/ocap-angular/core'
+import { isNil, omitBlank } from '@xpert-ai/ocap-core'
 import {
   MoveDirection,
   NxStoryService,
@@ -41,10 +40,11 @@ import {
   StoryPoint,
   WidgetComponentType,
   componentStyling
-} from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
-import { ISmartFilterBarOptions } from '@metad/story/widgets/filter-bar'
+} from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
+import { ISmartFilterBarOptions } from '@xpert-ai/story/widgets/filter-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardDialogService, ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { isEqual, startsWith } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
@@ -90,7 +90,8 @@ import { NxStoryPointComponent } from '../story-point/story-point.component'
 
     // Local modules
     NgmTransformScaleDirective,
-    NxStoryPointComponent
+    NxStoryPointComponent,
+    ZardDividerComponent
   ]
 })
 export class NxStoryComponent implements AfterViewInit {
@@ -99,7 +100,8 @@ export class NxStoryComponent implements AfterViewInit {
 
   readonly #logger = inject(NGXLogger)
   private _renderer = inject(Renderer2)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
   readonly focusPage = injectQueryParams('focusPage')
 
@@ -324,8 +326,7 @@ export class NxStoryComponent implements AfterViewInit {
           queryParamsHandling: 'merge' // remove to replace all query params by provided
         })
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   private _storySub = this.story$
@@ -402,8 +403,7 @@ export class NxStoryComponent implements AfterViewInit {
     effect(
       () => {
         this.storyService.setEditable(this.editable())
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -411,7 +411,7 @@ export class NxStoryComponent implements AfterViewInit {
       if (token) {
         this.storyService.patchState({ token })
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   // ngOnChanges({ filterBarOpened }: SimpleChanges): void {
@@ -546,13 +546,7 @@ export class NxStoryComponent implements AfterViewInit {
         Default: 'It is not deleted from the server until it is actually saved'
       })
     )
-    const confirm = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, {
-          data: { value: event.name, information }
-        })
-        .afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: event.name, information }))
 
     if (confirm) {
       this.storyService.deleteStoryPoint(event.key)

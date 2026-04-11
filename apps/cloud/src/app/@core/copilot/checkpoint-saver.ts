@@ -6,6 +6,9 @@ import { BaseCheckpointSaver, Checkpoint, CheckpointMetadata, CheckpointTuple } 
 import { firstValueFrom } from 'rxjs'
 import { API_COPILOT_CHECKPOINT } from '../constants/app.constants'
 
+/**
+ * @deprecated use chatkit instead
+ */
 @Injectable({
   providedIn: 'root'
 })

@@ -1,11 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/angular'
-
 import { applicationConfig, argsToTemplate, componentWrapperDecorator, moduleMetadata } from '@storybook/angular'
-
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { provideOcapMock, provideTranslate } from '@metad/ocap-angular/mock'
-import { FilterSelectionType, TimeGranularity } from '@metad/ocap-core'
+import { provideOcapMock, provideTranslate } from '@xpert-ai/ocap-angular/mock'
+import { FilterSelectionType, TimeGranularity } from '@xpert-ai/ocap-core'
 import { action } from '@storybook/addon-actions'
 import { NgmMemberDatepickerComponent } from './datepicker.component'
 import { NgmMemberDatepickerModule } from './datepicker.module'

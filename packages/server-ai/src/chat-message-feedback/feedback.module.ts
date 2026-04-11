@@ -1,4 +1,4 @@
-import { SharedModule } from '@metad/server-core'
+import { SharedModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'

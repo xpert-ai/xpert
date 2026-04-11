@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core'
-import { Store } from '@metad/cloud/state'
-import { nonNullable } from '@metad/core'
+import { Store } from '@xpert-ai/cloud/state'
+import { nonNullable } from '@xpert-ai/core'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { distinctUntilChanged, filter } from 'rxjs/operators'
 import { Socket, io } from 'socket.io-client'
@@ -8,7 +8,6 @@ import { environment } from '../../../environments/environment'
 import { AuthStrategy } from '../auth'
 import { ChatGatewayEvent, ChatGatewayMessage } from '../types'
 import { getWebSocketUrl } from '../utils'
-
 
 @Injectable({ providedIn: 'root' })
 export class ChatWebsocketServer {
@@ -107,7 +106,8 @@ export class ChatWebsocketServer {
   }
 
   message(data: Omit<ChatGatewayMessage, 'organizationId'>) {
-    const event = { ...data, organizationId: this.#store.selectedOrganization.id }
+    const organizationId = this.#store.organizationId
+    const event = organizationId ? { ...data, organizationId } : { ...data }
     // If the retry message is not cleared within a certain period of time by return message,
     // it means an error has occurred for example the token expires.
     // The message will be resent.

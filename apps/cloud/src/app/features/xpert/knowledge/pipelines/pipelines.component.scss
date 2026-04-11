@@ -1,4 +1,11 @@
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
   border-top-left-radius: var(--ngm-primary-container-rounded);
-  @apply relative flex flex-col bg-gradient-to-br from-neutral-50 to-neutral-100 h-full;
+  @apply relative flex h-full flex-col;
+
+  background-image: linear-gradient(
+    to bottom right,
+    var(--color-background-default-subtle),
+    var(--color-components-panel-bg)
+  );
 }

@@ -1,0 +1,23 @@
+{
+  "name": "@xpert-ai/ocap-duckdb",
+  "version": "3.8.4",
+  "keywords": [
+    "XpertAI",
+    "ocap",
+    "duckdb"
+  ],
+  "author": "Tiven Wang <i.tiven.wang@gmail.com>",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/xpert-ai/xpert",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xpert-ai/xpert.git"
+  },
+  "scripts": {
+    "build:release": "node bundle.mjs release",
+    "docs": "pnpm typedoc --out ./.docs"
+  },
+  "peerDependencies": {
+    "@duckdb/duckdb-wasm": "^1.25.0"
+  }
+}

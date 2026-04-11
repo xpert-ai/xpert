@@ -1,4 +1,4 @@
-import { QueryStatusEnum } from '@metad/contracts'
+import { QueryStatusEnum } from '@xpert-ai/contracts'
 import { InjectQueue } from '@nestjs/bull'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Queue } from 'bull'

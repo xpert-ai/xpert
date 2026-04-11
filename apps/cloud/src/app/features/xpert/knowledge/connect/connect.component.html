@@ -3,25 +3,36 @@
     <div class="flex w-full max-w-[640px] grow flex-col items-center gap-4 pb-8 pt-6">
       <div class="relative flex flex-col items-center gap-[2px] self-stretch py-2">
         <div class="system-xl-semibold grow self-stretch text-text-primary">
-          {{ 'PAC.Knowledgebase.ConnectingToExternalKB' | translate: {Default: 'Connecting to external knowledgebase'} }}
+          {{
+            'PAC.Knowledgebase.ConnectingToExternalKB' | translate: { Default: 'Connecting to external knowledgebase' }
+          }}
         </div>
         <p class="system-sm-regular text-text-tertiary font-body">
           <span>
-            {{ 'PAC.Knowledgebase.ConnectToExternalKB_1' | translate: {Default: 'Connect to external knowledgebase via API and knowledgebase ID. Currently,'} }}
+            {{
+              'PAC.Knowledgebase.ConnectToExternalKB_1'
+                | translate: { Default: 'Connect to external knowledgebase via API and knowledgebase ID. Currently,' }
+            }}
           </span>
           <span class="system-sm-medium text-text-secondary">
-            {{ 'PAC.Knowledgebase.ConnectToExternalKB_2' | translate: {Default: 'only supports search function.'} }}
+            {{ 'PAC.Knowledgebase.ConnectToExternalKB_2' | translate: { Default: 'only supports search function.' } }}
           </span>
           <span>
-            {{ 'PAC.Knowledgebase.ConnectToExternalKB_3' | translate: {Default: 'We strongly recommend that you use this feature before'} }}
+            {{
+              'PAC.Knowledgebase.ConnectToExternalKB_3'
+                | translate: { Default: 'We strongly recommend that you use this feature before' }
+            }}
           </span>
           <a
             class="system-sm-regular self-stretch text-text-accent hover:underline"
             target="_blank"
             rel="noopener noreferrer"
             [href]="helpUrl()"
-            >
-            {{ 'PAC.Knowledgebase.ConnectToExternalKB_4' | translate: {Default: 'Read the help documentation carefully.'} }}
+          >
+            {{
+              'PAC.Knowledgebase.ConnectToExternalKB_4'
+                | translate: { Default: 'Read the help documentation carefully.' }
+            }}
           </a>
         </p>
         <button
@@ -37,13 +48,18 @@
           <div class="flex flex-col gap-1 self-stretch">
             <div class="flex flex-col justify-center self-stretch">
               <label class="system-sm-semibold text-text-secondary">
-                {{ 'PAC.Knowledgebase.ExternalKnowledgebaseName' | translate: {Default: 'External knowledgebase name'} }}
+                {{
+                  'PAC.Knowledgebase.ExternalKnowledgebaseName' | translate: { Default: 'External knowledgebase name' }
+                }}
               </label>
             </div>
             <div class="relative w-full">
               <input
                 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
-                [placeholder]="'PAC.Knowledgebase.EnterExternalKnowledgebaseName' | translate: {Default: 'Please enter external knowledgebase name'}"
+                [placeholder]="
+                  'PAC.Knowledgebase.EnterExternalKnowledgebaseName'
+                    | translate: { Default: 'Please enter external knowledgebase name' }
+                "
                 [(ngModel)]="name"
               />
             </div>
@@ -51,12 +67,15 @@
           <div class="flex flex-col gap-1 self-stretch">
             <div class="flex flex-col justify-center self-stretch">
               <label class="system-sm-semibold text-text-secondary">
-                {{ 'PAC.Knowledgebase.KnowledgebaseDescription' | translate: {Default: 'Knowledgebase description'} }}
+                {{ 'PAC.Knowledgebase.KnowledgebaseDescription' | translate: { Default: 'Knowledgebase description' } }}
               </label>
             </div>
             <div class="flex flex-col gap-1 self-stretch">
               <textarea
-                [placeholder]="'PAC.Knowledgebase.DescribeKBContentOptional' | translate: {Default: 'Describe the knowledge base content (optional)'}"
+                [placeholder]="
+                  'PAC.Knowledgebase.DescribeKBContentOptional'
+                    | translate: { Default: 'Describe the knowledge base content (optional)' }
+                "
                 class="flex h-20 items-start self-stretch rounded-lg bg-components-input-bg-normal p-3 py-2 text-components-input-text-placeholder system-sm-regular"
                 [(ngModel)]="description"
               ></textarea>
@@ -69,14 +88,24 @@
         <div class="flex flex-col gap-1 self-stretch">
           <div class="flex flex-col self-stretch">
             <label class="system-sm-semibold text-text-secondary">
-              {{ 'PAC.Knowledgebase.ExtKnowledgebaseIntegration' | translate: {Default: 'External knowledgebase integration'} }}
+              {{
+                'PAC.Knowledgebase.ExtKnowledgebaseIntegration'
+                  | translate: { Default: 'External knowledgebase integration' }
+              }}
             </label>
           </div>
 
-          <xp-integration-select [placeholder]="'PAC.Knowledgebase.ExtKnowledgebaseIntegrationPlaceholder' | translate: {Default: 'There is no external knowledge base integration yet, click here to select or create one'} "
+          <xp-integration-select
+            [placeholder]="
+              'PAC.Knowledgebase.ExtKnowledgebaseIntegrationPlaceholder'
+                | translate
+                  : {
+                      Default: 'There is no external knowledge base integration yet, click here to select or create one'
+                    }
+            "
             [features]="[eIntegrationFeatureEnum.KNOWLEDGE]"
             [(ngModel)]="integrationId"
-            >
+          >
           </xp-integration-select>
           <!-- <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium justify-start gap-0.5"
             [cdkMenuTriggerFor]="integrationMenu"
@@ -122,13 +151,15 @@
         <div class="flex flex-col gap-1 self-stretch">
           <div class="flex flex-col self-stretch">
             <label class="system-sm-semibold text-text-secondary">
-              {{ 'PAC.Knowledgebase.ExtKBId' | translate: {Default: 'External knowledgebase ID'} }}
+              {{ 'PAC.Knowledgebase.ExtKBId' | translate: { Default: 'External knowledgebase ID' } }}
             </label>
           </div>
           <div class="relative w-full">
             <input
               class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
-              [placeholder]="'PAC.Knowledgebase.EnterExtKBId' | translate: {Default: 'Please enter external knowledgebase ID'}"
+              [placeholder]="
+                'PAC.Knowledgebase.EnterExtKBId' | translate: { Default: 'Please enter external knowledgebase ID' }
+              "
               [(ngModel)]="extKnowledgebaseId"
             />
           </div>
@@ -137,7 +168,7 @@
       <div class="flex flex-col gap-2 self-stretch">
         <div class="flex h-7 flex-col gap-2 self-stretch pt-1">
           <label class="system-sm-semibold text-text-secondary">
-          {{ 'PAC.Knowledgebase.RecallSettings' | translate: {Default: 'Recall settings'} }}
+            {{ 'PAC.Knowledgebase.RecallSettings' | translate: { Default: 'Recall settings' } }}
           </label>
         </div>
         <div class="flex gap-4 self-stretch flex-col sm:flex-row">
@@ -174,9 +205,9 @@
             <div class="grow">
               <div class="flex items-center justify-between">
                 <div class="flex h-6 items-center">
-                  <ngm-slide-toggle [(ngModel)]="enabledScore" class="mr-1" />
+                  <z-switch [(ngModel)]="enabledScore" class="mr-1" />
                   <span class="system-sm-semibold mr-1 text-text-secondary">
-                    {{ 'PAC.Knowledgebase.ScoreThreshold' | translate: {Default: 'Score Threshold'} }}
+                    {{ 'PAC.Knowledgebase.ScoreThreshold' | translate: { Default: 'Score Threshold' } }}
                   </span>
                   <!-- <div class="w-4 h-4 shrink-0 flex justify-center items-center text-text-tertiary hover:text-text-primary">
                     <i class="ri-question-line"></i>
@@ -211,14 +242,17 @@
       <div class="flex items-center justify-end gap-2 self-stretch py-2">
         <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="goBack()">
           <div class="system-sm-medium text-components-button-secondary-text">
-            {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </div>
         </button>
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-primary btn-medium"
           [disabled]="loading() || !name() || !integrationId() || !extKnowledgebaseId()"
-          (click)="create()">
+          (click)="create()"
+        >
           <div class="system-sm-medium text-components-button-primary-text">
-            {{ 'PAC.Knowledgebase.Connect' | translate: {Default: 'Connect'} }}
+            {{ 'PAC.Knowledgebase.Connect' | translate: { Default: 'Connect' } }}
           </div>
           <i class="ri-corner-up-right-line"></i>
         </button>
@@ -230,7 +264,7 @@
     }
   </div>
   <div class="flex w-[360px] flex-col items-start pb-2 pr-8 pt-[108px]">
-    <div class="flex w-full min-w-[240px] flex-col items-start gap-3 self-stretch rounded-xl bg-gray-100 p-6">
+    <div class="flex w-full min-w-[240px] flex-col items-start gap-3 self-stretch rounded-xl bg-components-input-bg-normal p-6">
       <div
         class="flex h-10 w-10 grow items-center justify-center gap-2 self-stretch rounded-lg border-[0.5px] border-components-card-border bg-components-card-bg p-1"
       >
@@ -238,24 +272,44 @@
       </div>
       <p class="flex flex-col items-start gap-2 self-stretch">
         <span class="system-xl-semibold self-stretch text-text-secondary">
-          {{ 'PAC.Knowledgebase.HowConnectExtKB' | translate: {Default: 'How to connect to an external knowledge base'} }}
+          {{
+            'PAC.Knowledgebase.HowConnectExtKB' | translate: { Default: 'How to connect to an external knowledge base' }
+          }}
         </span>
         <span class="system-sm-regular text-text-tertiary">
-          {{ 'PAC.Knowledgebase.HowConnectExtKB_1' | translate: {Default: 'To connect to an external knowledge base, you need to first create an external API. Please read and refer to'} }}
+          {{
+            'PAC.Knowledgebase.HowConnectExtKB_1'
+              | translate
+                : {
+                    Default:
+                      'To connect to an external knowledge base, you need to first create an external API. Please read and refer to'
+                  }
+          }}
           <a
             class="system-sm-regular ml-1 text-text-accent hover:underline"
             target="_blank"
             rel="noopener noreferrer"
             [href]="helpUrl()"
-          >{{ 'PAC.Knowledgebase.HowConnectExtKB_2' | translate: {Default: 'Learn how to create an external API.' } }}</a>
-          {{ 'PAC.Knowledgebase.HowConnectExtKB_3' | translate: {Default: 'then find the corresponding knowledge base ID and fill it in the form on the left. If all information is correct, clicking the Connect button will automatically redirect you to the search test within the knowledge base.' } }}
+            >{{
+              'PAC.Knowledgebase.HowConnectExtKB_2' | translate: { Default: 'Learn how to create an external API.' }
+            }}</a
+          >
+          {{
+            'PAC.Knowledgebase.HowConnectExtKB_3'
+              | translate
+                : {
+                    Default:
+                      'then find the corresponding knowledge base ID and fill it in the form on the left. If all information is correct, clicking the Connect button will automatically redirect you to the search test within the knowledge base.'
+                  }
+          }}
         </span>
         <a
           class="system-sm-regular self-stretch text-text-accent hover:underline"
           target="_blank"
           rel="noopener noreferrer"
           [href]="learnMoreUrl()"
-        >{{ 'PAC.KEY_WORDS.LearnMore' | translate: {Default: 'Learn more'} }}</a>
+          >{{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}</a
+        >
       </p>
     </div>
   </div>

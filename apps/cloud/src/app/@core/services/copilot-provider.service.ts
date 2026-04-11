@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { AiModelTypeEnum, OrganizationBaseCrudService } from '@metad/cloud/state'
+import { AiModelTypeEnum, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_COPILOT_PROVIDER } from '../constants/app.constants'
 import { ICopilotProvider, ICopilotProviderModel, ParameterRule, ProviderModel } from '../types'

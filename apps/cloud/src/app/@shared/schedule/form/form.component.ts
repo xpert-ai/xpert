@@ -3,13 +3,12 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDateFnsModule, provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
-import { MatDatepickerModule } from '@angular/material/datepicker'
 import { TaskFrequency, TScheduleOptions } from '@cloud/app/@core'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { format, parse } from 'date-fns'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
+import { ZardDatePickerComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-schedule-form',
@@ -21,25 +20,11 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     ReactiveFormsModule,
     CdkListboxModule,
     CdkMenuModule,
-    MatDatepickerModule,
-    MatDateFnsModule
+    ZardDatePickerComponent
   ],
   templateUrl: './form.component.html',
   styleUrl: './form.component.scss',
-  hostDirectives: [NgxControlValueAccessor],
-  providers: [
-    provideDateFnsAdapter({
-      parse: {
-        dateInput: 'MM-dd'
-      },
-      display: {
-        dateInput: 'MM-dd',
-        monthYearLabel: 'LLL',
-        dateA11yLabel: 'MMMM d',
-        monthYearA11yLabel: 'MMMM'
-      }
-    })
-  ]
+  hostDirectives: [NgxControlValueAccessor]
 })
 export class ScheduleFormComponent {
   eTaskFrequency = TaskFrequency
@@ -61,11 +46,20 @@ export class ScheduleFormComponent {
 
   readonly date = linkedModel({
     initialValue: null,
-    compute: () => parse(this.options().date, 'yyyy-MM-dd', new Date()),
+    compute: () => {
+      const options = this.options() ?? ({} as TScheduleOptions)
+      const date = options.date
+      return date ? parse(date, 'yyyy-MM-dd', new Date()) : null
+    },
     update: (value) => {
+      const fallbackOptions: TScheduleOptions = {
+        frequency: this.frequency() ?? TaskFrequency.Once,
+        time: this.time() ?? '00:00'
+      }
+
       this.options.update((opt) => ({
-        ...opt,
-        date: format(value, 'yyyy-MM-dd')
+        ...(opt ?? fallbackOptions),
+        date: value ? format(value, 'yyyy-MM-dd') : undefined
       }))
     }
   })

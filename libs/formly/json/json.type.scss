@@ -1,7 +1,8 @@
+@reference "../../../tailwind-workspace-reference.css";
 :host {
     @apply flex flex-col;
 }
 
-.mat-mdc-input-element {
+[z-input] {
     min-height: 25px;
 }

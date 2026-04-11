@@ -3,7 +3,7 @@ import {
 	DEFAULT_GRAPHQL_API_PATH,
 	DEFAULT_API_HOST,
 	DEFAULT_API_BASE_URL
-} from '@metad/server-common';
+} from '@xpert-ai/server-common';
 import chalk from 'chalk';
 import { ConnectionOptions } from 'typeorm';
 import * as path from 'path';
@@ -21,7 +21,7 @@ console.log('Plugin Config -> process.cwd: ' + process.cwd());
 // TODO: maybe better to use process.cwd() instead of __dirname?
 
 if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
-	serverRoot = '/srv/pangolin/';
+	serverRoot = '/srv/xpert/';
 	assetPath = serverRoot + 'assets';
 	assetPublicPath = serverRoot + 'public';
 	dataPath = '/var/lib/xpert/data/'

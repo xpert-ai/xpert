@@ -1,38 +1,39 @@
 <div>
   <div class="flex justify-between items-center">
     <div class="my-2 font-semibold uppercase text-text-secondary">
-      {{ 'PAC.Xpert.Toolset' | translate: {Default: 'Toolset'} }}
+      {{ 'PAC.Xpert.Toolset' | translate: { Default: 'Toolset' } }}
     </div>
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
-      (click)="createMCPTool()">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small" (click)="createMCPTool()">
       <i class="ri-add-line"></i>
-      {{ 'PAC.Xpert.AddMCPServer' | translate: {Default: 'Add MCP Server'} }}
+      {{ 'PAC.Xpert.AddMCPServer' | translate: { Default: 'Add MCP Server' } }}
     </button>
   </div>
 
-  <div class="group/toolset relative rounded-[9px] bg-zinc-100 p-0.5">
-    <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed
-      border-divider-deep px-1 text-sm text-text-placeholder"
+  <div class="group/toolset relative rounded-[9px] bg-components-list-option-active-bg p-0.5">
+    <div
+      class="bg-background-default-subtle hover:bg-hover-bg relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed border-divider-deep px-1 text-sm text-text-placeholder"
       [cdkMenuTriggerFor]="toolsetMenu"
-      [matTooltip]="toolsetDetail()?.description"
-      matTooltipPosition="left"
+      [zTooltip]="toolsetDetail()?.description"
+      zPosition="left"
     >
       @if (toolsetDetail(); as toolset) {
-        <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95"  />
+        <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95" />
         <div class="flex items-center uppercase">
-          <span>{{toolset.name}}</span>
+          <span>{{ toolset.name }}</span>
         </div>
       } @else {
-        <div class="bg-neutral-100 text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
+        <div class="bg-components-input-bg-normal text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
           <i class="ri-add-line"></i>
         </div>
         <div class="flex items-center uppercase">
-          <span>{{ 'PAC.Xpert.SelectToolset' | translate: {Default: 'Select Toolset'} }}</span>
+          <span>{{ 'PAC.Xpert.SelectToolset' | translate: { Default: 'Select Toolset' } }}</span>
         </div>
       }
     </div>
 
-    <i class="ri-arrow-down-s-line absolute right-2 top-1/2 -translate-y-1/2 opacity-50 group-hover/toolset:opacity-100"></i>
+    <i
+      class="ri-arrow-down-s-line absolute right-2 top-1/2 -translate-y-1/2 opacity-50 group-hover/toolset:opacity-100"
+    ></i>
   </div>
 </div>
 
@@ -40,39 +41,43 @@
   <div class="flex items-center justify-between">
     <div class="flex h-6 items-center">
       <div class="font-semibold uppercase text-text-secondary">
-        {{ 'PAC.Xpert.Tool' | translate: {Default: 'Tool'} }}
+        {{ 'PAC.Xpert.Tool' | translate: { Default: 'Tool' } }}
       </div>
     </div>
     <div class="flex"></div>
   </div>
 
-  <div class="group/tool relative rounded-[9px] bg-zinc-100 p-0.5">
-    <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-dashed
-      border-divider-deep px-2 text-sm text-text-placeholder"
+  <div class="group/tool relative rounded-[9px] bg-components-list-option-active-bg p-0.5">
+    <div
+      class="bg-background-default-subtle hover:bg-hover-bg relative flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-dashed border-divider-deep px-2 text-sm text-text-placeholder"
       #toolMenuTrigger
       [cdkMenuTriggerFor]="toolsMenu"
       [ariaDisabled]="!toolsetDetail()"
-      [matTooltip]="tool()?.description"
-      matTooltipPosition="left"
+      [zTooltip]="tool()?.description"
+      zPosition="left"
     >
       @if (tool(); as tool) {
         <div class="flex items-center whitespace-nowrap" [title]="tool.description || tool.name">
-          {{tool.label | i18n}}
+          {{ tool.label | i18n }}
         </div>
-        <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
-          {{tool.name}}
+        <div
+          class="border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-xs font-mono truncate text-text-secondary bg-background-default-subtle"
+        >
+          {{ tool.name }}
         </div>
       } @else {
-        <div class="bg-neutral-100 text-lg flex h-5 w-5 items-center justify-center rounded-[5px]">
+        <div class="bg-components-input-bg-normal text-lg flex h-5 w-5 items-center justify-center rounded-[5px]">
           <i class="ri-add-line"></i>
         </div>
         <div class="flex items-center uppercase">
-          <span>{{ 'PAC.Xpert.SelectTool' | translate: {Default: 'Select Tool'} }}</span>
+          <span>{{ 'PAC.Xpert.SelectTool' | translate: { Default: 'Select Tool' } }}</span>
         </div>
       }
     </div>
 
-    <i class="ri-arrow-down-s-line absolute right-2 top-1/2 -translate-y-1/2 opacity-50 group-hover/tool:opacity-100"></i>
+    <i
+      class="ri-arrow-down-s-line absolute right-2 top-1/2 -translate-y-1/2 opacity-50 group-hover/tool:opacity-100"
+    ></i>
 
     <!-- @if (tool(); as tool) {
       <button type="button" class="btn btn-secondary btn-small absolute right-2 top-1/2 -translate-y-1/2"
@@ -88,7 +93,7 @@
   <div class="my-2 system-sm-semibold-uppercase text-text-secondary">
     {{ 'PAC.Xpert.ParameterVariable' | translate: {Default: 'Parameter Variable'} }}
   </div>
-  <div class="relative rounded-[9px] bg-zinc-100 p-1">
+  <div class="relative rounded-[9px] bg-components-list-option-active-bg p-1">
     <xpert-state-variable-select class="rounded-lg border border-dashed border-divider-deep"
       [varOptions]="varOptions()"
       [(ngModel)]="parameterVariable" 
@@ -98,27 +103,31 @@
 
 <div class="h-[0.5px] bg-divider-subtle"></div>
 <div class="mt-2 font-semibold uppercase text-text-secondary">
-  {{ 'PAC.Xpert.Parameters' | translate: {Default: 'Parameters'} }}
+  {{ 'PAC.Xpert.Parameters' | translate: { Default: 'Parameters' } }}
 </div>
 
 <xp-tool-parameters-form [tool]="tool()" [variables]="variables()" [(ngModel)]="parameters" />
 
-<div class="flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
+<div class="flex flex-col gap-2 p-3 bg-background-default-subtle rounded-xl">
   <div class="flex items-center space-x-1 shrink-0">
     <div class="flex items-center justify-center w-6 h-6">
       <i class="ri-equalizer-3-line text-orange-600"></i>
     </div>
-    <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.ParameterSettings' | translate: {Default: 'Parameter Settings'} }}</div>
+    <div class="text-sm font-semibold text-text-primary">
+      {{ 'PAC.Xpert.ParameterSettings' | translate: { Default: 'Parameter Settings' } }}
+    </div>
   </div>
 
   <div class="flex justify-end items-center gap-1 w-full">
     <i class="ri-volume-mute-fill text-base text-sky-700"></i>
-    <div class="text-sm">{{'PAC.Xpert.OmitBlankValues' | translate: {Default: 'Omit Blank Values'} }}</div>
-    <mat-slide-toggle class="flex" [(ngModel)]="omitBlankValues"
+    <div class="text-sm">{{ 'PAC.Xpert.OmitBlankValues' | translate: { Default: 'Omit Blank Values' } }}</div>
+    <z-switch
+      class="flex"
+      [(ngModel)]="omitBlankValues"
       labelPosition="before"
-      ngm-density="xs"
-      [matTooltip]="'PAC.Xpert.OmitBlankValuesTip' | translate: {Default: 'Omit blank values in parameters'}"
-      matTooltipPosition="left"
+      [zTooltip]="'PAC.Xpert.OmitBlankValuesTip' | translate: { Default: 'Omit blank values in parameters' }"
+      zPosition="left"
+      zSize="sm"
     />
   </div>
 </div>
@@ -129,9 +138,11 @@
     <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
       <i class="ri-arrow-right-s-line" [class.rotate-90]="expandOutputVariables()"></i>
     </div>
-    <div class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+    <div
+      class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
       (click)="toggleOutput()"
-    >{{ 'PAC.Workflow.OutputVariables' | translate: {Default: 'Output Variables'} }}
+    >
+      {{ 'PAC.Workflow.OutputVariables' | translate: { Default: 'Output Variables' } }}
     </div>
   </div>
   @if (expandOutputVariables()) {
@@ -141,7 +152,7 @@
         <div class="system-xs-regular ml-2 capitalize text-text-tertiary">string</div>
       </div>
       <div class="system-xs-regular mt-0.5 text-text-tertiary">
-        {{ 'PAC.Xpert.Text' | translate: {Default: 'Text'} }}
+        {{ 'PAC.Xpert.Text' | translate: { Default: 'Text' } }}
       </div>
     </div>
     <div class="px-4">
@@ -150,7 +161,7 @@
         <div class="system-xs-regular ml-2 capitalize text-text-tertiary">file[]</div>
       </div>
       <div class="system-xs-regular mt-0.5 text-text-tertiary">
-        {{ 'PAC.Xpert.Files' | translate: {Default: 'Files'} }}
+        {{ 'PAC.Xpert.Files' | translate: { Default: 'Files' } }}
       </div>
     </div>
     <div class="px-4">
@@ -159,7 +170,7 @@
         <div class="system-xs-regular ml-2 capitalize text-text-tertiary">json</div>
       </div>
       <div class="system-xs-regular mt-0.5 text-text-tertiary">
-        {{ 'PAC.Xpert.JSON' | translate: {Default: 'JSON'} }}
+        {{ 'PAC.Xpert.JSON' | translate: { Default: 'JSON' } }}
       </div>
     </div>
   }
@@ -167,7 +178,7 @@
 
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
 
-<xpert-workflow-error-handling class=""
+<xpert-workflow-error-handling
   [defaultValueSchema]="[
     {
       type: eXpertParameterTypeEnum.STRING,
@@ -178,13 +189,11 @@
 />
 
 <ng-template #toolsetMenu>
-  <xpert-studio-toolset-menu cdkMenu class="cdk-menu__medium overflow-auto"
-    [onSelect]="onSelectToolset.bind(this)"
-  />
+  <xpert-studio-toolset-menu cdkMenu class="cdk-menu__medium overflow-auto" [onSelect]="onSelectToolset.bind(this)" />
 </ng-template>
 
 <ng-template #toolsMenu>
-  <div cdkMenu class="cdk-menu__medium" [style.width.px]="toolMenuTrigger.offsetWidth" >
+  <div cdkMenu class="cdk-menu__medium" [style.width.px]="toolMenuTrigger.offsetWidth">
     @for (tool of tools(); track tool.value) {
       <div cdkMenuItem class="flex flex-col items-start gap-1" (click)="onSelectTool(tool.value)">
         <div class="flex justify-between items-center gap-2 w-full">

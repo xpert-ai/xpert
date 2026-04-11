@@ -1,4 +1,4 @@
-import { IApiKey } from '@metad/contracts'
+import { ApiKeyBindingType, IApiKey } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsString, IsOptional } from 'class-validator';
 import { differenceInMinutes } from 'date-fns'
@@ -20,9 +20,15 @@ export class ApiKey extends TenantOrganizationBaseEntity implements IApiKey {
 	name?: string;
 
 	@ApiProperty({ type: () => String })
-	@Column({ nullable: true })
-	type?: string
+	/**
+	 * Stable binding kind for resolving the technical principal behind this key.
+	 */
+	@Column({ type: 'varchar', nullable: true })
+	type?: ApiKeyBindingType
 
+	/**
+	 * Stable binding target used together with `type` to resolve the technical principal.
+	 */
 	@ApiProperty({ type: () => String })
 	@Column({ nullable: true })
 	entityId?: string
@@ -51,6 +57,10 @@ export class ApiKey extends TenantOrganizationBaseEntity implements IApiKey {
 	})
 	lastUsedAt?: Date
 
+	/**
+	 * Explicit technical principal bound to this key.
+	 * If set, auth uses this user directly instead of resolving via `type/entityId`.
+	 */
 	@Column({ nullable: true })
 	userId?: string
 

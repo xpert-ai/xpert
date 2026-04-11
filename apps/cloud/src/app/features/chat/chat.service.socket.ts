@@ -2,7 +2,7 @@ import { Location } from '@angular/common'
 import { DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { CopilotBaseMessage, CopilotChatMessage, CopilotMessageGroup } from '../../@core/types'
-import { nonNullable } from '@metad/ocap-core'
+import { nonNullable } from '@xpert-ai/ocap-core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import {
@@ -36,7 +36,6 @@ import { COMMON_COPILOT_ROLE } from './types'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { ChatWebsocketServer } from '../../@core/services/chat.service.socket'
-
 
 @Injectable()
 export class ChatWebsocketService {
@@ -299,8 +298,7 @@ export class ChatWebsocketService {
         } else {
           this.messages.set([])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -308,8 +306,7 @@ export class ChatWebsocketService {
         if (this.paramId()) {
           this.conversationId.set(this.paramId())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     this.#destroyRef.onDestroy(() => {

@@ -1,17 +1,17 @@
 import { Component, inject, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
-import { nonBlank } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { nonBlank } from '@xpert-ai/ocap-core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { get } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, distinctUntilChanged, filter, switchMap, tap } from 'rxjs'
 import {
+import { ZardDialogService } from '@xpert-ai/headless-ui'
   getErrorMessage,
   IDocumentChunk,
   KnowledgeDocumentService,
@@ -19,7 +19,7 @@ import {
   ToastrService
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
@@ -27,7 +27,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
   selector: 'pac-settings-knowledgebase-document-chunk',
   templateUrl: './chunk.component.html',
   styleUrls: ['./chunk.component.scss'],
-  imports: [FormsModule, TranslateModule, MaterialModule, WaIntersectionObserver, NgmCommonModule]
+  imports: [FormsModule, TranslateModule, SharedUiModule, WaIntersectionObserver, NgmCommonModule]
 })
 export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
@@ -35,7 +35,7 @@ export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
   readonly #store = inject(Store)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly paramId = injectParams('id')
 

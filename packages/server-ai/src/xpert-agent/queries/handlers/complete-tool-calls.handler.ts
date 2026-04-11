@@ -10,7 +10,7 @@ import {
 	TToolCall,
 	TToolCallType,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { _BaseToolset, BuiltinToolset, findChannelByTool, identifyAgent } from '../../../shared'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'

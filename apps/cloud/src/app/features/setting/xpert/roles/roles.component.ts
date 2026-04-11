@@ -1,16 +1,15 @@
 import { Component, TemplateRef, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmConfirmDeleteComponent, TableColumn } from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { NgmCommonModule, NgmConfirmDeleteService, TableColumn } from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, catchError, map, switchMap, tap } from 'rxjs'
 import { XpertAPIService, IXpertRole, OrderTypeEnum, ToastrService, getErrorMessage, omitSystemProperty } from '../../../../@core'
 import { AvatarComponent } from 'apps/cloud/src/app/@shared/files'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 
 type CopilotRoleRowType = Partial<IXpertRole> & { __edit__?: boolean }
 
@@ -22,7 +21,7 @@ type CopilotRoleRowType = Partial<IXpertRole> & { __edit__?: boolean }
   imports: [
     RouterModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     FormsModule,
     ReactiveFormsModule,
     NgmCommonModule,
@@ -36,7 +35,7 @@ export class XpertRolesComponent extends TranslationBaseComponent {
   readonly _toastrService = inject(ToastrService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly dialog = inject(MatDialog)
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
 
   readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
 
@@ -127,16 +126,13 @@ export class XpertRolesComponent extends TranslationBaseComponent {
 
   deleteRole(item: CopilotRoleRowType) {
     if (item.id) {
-      this.dialog
-        .open(NgmConfirmDeleteComponent, {
-          data: {
-            value: item.title,
-            information: this.getTranslation('PAC.Copilot.Roles.SureDeleteRole', {
-              Default: 'Are you sure you want to delete this role?'
-            })
-          }
+      this.#confirmDelete
+        .confirm({
+          value: item.title,
+          information: this.getTranslation('PAC.Copilot.Roles.SureDeleteRole', {
+            Default: 'Are you sure you want to delete this role?'
+          })
         })
-        .afterClosed()
         .pipe(
           switchMap((result) => {
             if (result) {

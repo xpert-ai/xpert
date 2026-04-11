@@ -1,16 +1,25 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { afterNextRender, booleanAttribute, ChangeDetectorRef, Component, computed, effect, inject, input, model } from '@angular/core'
+import {
+  afterNextRender,
+  booleanAttribute,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  model
+} from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { debouncedSignal, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { debouncedSignal, myRxResource, NgmI18nPipe, nonBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { distinctUntilChanged, map } from 'rxjs'
+import { distinctUntilChanged, map, of } from 'rxjs'
 import {
   AiModelTypeEnum,
   CopilotServerService,
@@ -25,6 +34,8 @@ import {
   ProviderModel
 } from '../../../@core'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
 
 @Component({
   standalone: true,
@@ -35,10 +46,11 @@ import { ModelParameterInputComponent } from '../model-parameter-input/input.com
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     NgmHighlightDirective,
-    ModelParameterInputComponent
+    ModelParameterInputComponent,
+    ZardAlertComponent
   ],
   selector: 'copilot-model-select',
   templateUrl: 'select.component.html',
@@ -46,7 +58,7 @@ import { ModelParameterInputComponent } from '../model-parameter-input/input.com
   hostDirectives: [NgxControlValueAccessor],
   host: {
     '[class.readonly]': 'readonly()',
-    '[class.status-choose]': 'statusChoose()',
+    '[class.status-choose]': 'statusChoose()'
   }
 })
 export class CopilotModelSelectComponent implements ControlValueAccessor {
@@ -66,7 +78,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly features = input<ModelFeature[]>()
   readonly inheritModel = input<ICopilotModel>()
   readonly copilotModel = input<ICopilotModel>()
-  
+
   readonly copilot = input<ICopilot>()
 
   readonly readonly = input<boolean, boolean | string>(false, {
@@ -90,7 +102,8 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     const copilot = this.copilot()
     return this.copilotServer.getCopilotModels(this.modelType()).pipe(
       map((copilots) => {
-        return copilots?.filter((_) => copilot ? _.id === copilot.id : true )
+        return copilots
+          ?.filter((_) => (copilot ? _.id === copilot.id : true))
           .sort((a, b) => {
             const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
             return roleOrder[a.role] - roleOrder[b.role]
@@ -104,18 +117,22 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
   readonly searchedModels = computed(() => {
     const searchText = this.#searchTerm()
-    const copilots = this.features()?.length ? this.copilotWithModels()?.map((_) => {
-      return {
-        ..._,
-        providerWithModels: {
-          ..._.providerWithModels,
-          models: _.providerWithModels.models.filter((m) =>
-            this.features().every((feature) => m.features?.includes(feature))
-          )
-        }
-      }
-    }).filter((_) => _.providerWithModels.models.length) : this.copilotWithModels()
-    
+    const copilots = this.features()?.length
+      ? this.copilotWithModels()
+          ?.map((_) => {
+            return {
+              ..._,
+              providerWithModels: {
+                ..._.providerWithModels,
+                models: _.providerWithModels.models.filter((m) =>
+                  this.features().every((feature) => m.features?.includes(feature))
+                )
+              }
+            }
+          })
+          .filter((_) => _.providerWithModels.models.length)
+      : this.copilotWithModels()
+
     return searchText
       ? copilots
           ?.map((_) => {
@@ -129,8 +146,10 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
                 }
               }
             }
-            if (this.i18n.transform(_.providerWithModels.label)?.toLowerCase().includes(searchText) ||
-               _.name?.toLowerCase().includes(searchText)) {
+            if (
+              this.i18n.transform(_.providerWithModels.label)?.toLowerCase().includes(searchText) ||
+              _.name?.toLowerCase().includes(searchText)
+            ) {
               return _
             }
             return null
@@ -144,26 +163,33 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     return this.copilotWithModels()?.find((_) => _.id === this.copilotId())
   })
 
-  readonly provider = computed(
-    () => this.copilots()?.find((_) => _.id === this.copilotId())?.modelProvider?.providerName
-  )
   readonly providerId = computed(() => this.copilots()?.find((_) => _.id === this.copilotId())?.modelProvider?.id)
 
   readonly model = computed(() => this._copilotModel()?.model)
 
   readonly selectedAiModel = computed(() =>
-    this.selectedCopilotWithModels()?.providerWithModels?.models?.find((_) => _.model === this.model() &&
-      (this.modelType() ? _.model_type === this.modelType() : true))
+    this.selectedCopilotWithModels()?.providerWithModels?.models?.find(
+      (_) => _.model === this.model() && (this.modelType() ? _.model_type === this.modelType() : true)
+    )
   )
 
-  readonly modelParameterRules = derivedAsync(() => {
-    const provider = this.provider()
-    const model = this.model()
-    if (provider && model) {
-      return this.copilotProviderService.getModelParameterRules(this.providerId(), this.modelType(), this.model())
-    }
-    return null
+  readonly #modelParameterRules = myRxResource({
+    request: () => ({
+      providerId: this.providerId(),
+      modelType: this.modelType(),
+      model: this.model()
+    }),
+    loader: ({ request }) =>
+      request.providerId && request.modelType && request.model
+        ? this.copilotProviderService.getModelParameterRules(request.providerId, request.modelType, request.model)
+        : of([])
   })
+  readonly modelParameterRulesError = computed(() =>
+    this.#modelParameterRules.status() === 'error' ? this.#modelParameterRules.error() : null
+  )
+  readonly modelParameterRules = computed(() =>
+    this.modelParameterRulesError() ? [] : (this.#modelParameterRules.value() ?? [])
+  )
 
   readonly isInherit = computed(() => !this.__copilotModel())
   readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
@@ -182,32 +208,41 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   })
 
   constructor() {
-    effect(() => {
-      const value = this.cva.value$()
-      const rules = this.modelParameterRules()
-      if (value && rules?.length && this.shouldInitDefaultOptions(value.options)) {
-        const contextSize = this.parseContextSize(value.options?.[ModelPropertyKey.CONTEXT_SIZE])
-        this.cva.value$.update((current) => {
-          if (!current) {
-            return current
-          }
-          return {
-            ...current,
-            options: rules.reduce((acc, curr) => {
-              acc[curr.name] = curr.default
-              return acc
-            }, {
-              ...(typeof contextSize === 'number' ? {[ModelPropertyKey.CONTEXT_SIZE]: contextSize} : {})
-            } as Record<string, any>)
-          }
-        })
+    effect(
+      () => {
+        const value = this.cva.value$()
+        const rules = this.modelParameterRules()
+        if (value && rules?.length && this.shouldInitDefaultOptions(value.options)) {
+          const contextSize = this.parseContextSize(value.options?.[ModelPropertyKey.CONTEXT_SIZE])
+          this.cva.value$.update((current) => {
+            if (!current) {
+              return current
+            }
+            return {
+              ...current,
+              options: rules.reduce(
+                (acc, curr) => {
+                  acc[curr.name] = curr.default
+                  return acc
+                },
+                {
+                  ...(typeof contextSize === 'number' ? { [ModelPropertyKey.CONTEXT_SIZE]: contextSize } : {})
+                } as Record<string, any>
+              )
+            }
+          })
+        }
       }
-    }, { allowSignalWrites: true })
+    )
 
     afterNextRender(() => {
       setTimeout(() => {
         this.#cdr.detectChanges()
-      }, 600);
+      }, 600)
+    })
+
+    effect(() => {
+      console.log(this.modelParameterRules())
     })
   }
 
@@ -231,20 +266,28 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   }
 
   initModel(copilotId: string, model?: ProviderModel | null) {
-    this.updateValue(this.withModelContextSize({
-      copilotId,
-      model: model?.model ?? this.model(),
-      modelType: this.modelType()
-    }, model))
+    this.updateValue(
+      this.withModelContextSize(
+        {
+          copilotId,
+          model: model?.model ?? this.model(),
+          modelType: this.modelType()
+        },
+        model
+      )
+    )
   }
 
   setModel(copilot: ICopilot, model: ProviderModel) {
-    const nValue = this.withModelContextSize({
-      ...(this.cva.value$() ?? {}),
-      model: model.model,
-      copilotId: copilot.id,
-      modelType: this.modelType()
-    }, model)
+    const nValue = this.withModelContextSize(
+      {
+        ...(this.cva.value$() ?? {}),
+        model: model.model,
+        copilotId: copilot.id,
+        modelType: this.modelType()
+      },
+      model
+    )
     this.updateValue(nValue)
   }
 
@@ -256,16 +299,14 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     if (!this.cva.value$()) {
       this.initModel(this.copilotId(), this.selectedAiModel())
     }
-    
-    this.updateValue(
-      {
-        ...this.cva.value$(),
-        options: {
-          ...(this.cva.value$().options ?? {}),
-          [name]: value
-        }
+
+    this.updateValue({
+      ...this.cva.value$(),
+      options: {
+        ...(this.cva.value$().options ?? {}),
+        [name]: value
       }
-    )
+    })
   }
 
   delete() {

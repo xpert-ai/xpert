@@ -2,23 +2,17 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatListModule } from '@angular/material/list'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatTabsModule } from '@angular/material/tabs'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgFilterPipeModule } from '@metad/core'
-import { ButtonGroupDirective, DensityDirective, NgmDSCacheService } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { AgentStatus, AgentStatusEnum } from '@metad/ocap-core'
+
+import { NgFilterPipeModule } from '@xpert-ai/core'
+import { ButtonGroupDirective, DensityDirective, NgmDSCacheService } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { AgentStatus, AgentStatusEnum } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, of } from 'rxjs'
 import { AbstractAgent, LocalAgent, ServerSocketAgent, Store, ToastrService } from '../../@core'
 import { CdkMenuModule } from '@angular/cdk/menu'
-
+import { ZardButtonComponent, ZardIconComponent, ZardSliderComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-tune',
@@ -32,13 +26,11 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatIconModule,
-    MatTooltipModule,
-    MatButtonModule,
-    MatTabsModule,
-    MatListModule,
-    MatSliderModule,
-    MatProgressBarModule,
+    ZardIconComponent,
+    ...ZardTooltipImports,
+    ZardButtonComponent,
+    ...ZardTabsImports,
+    ZardSliderComponent,
     ButtonGroupDirective,
     DensityDirective,
     NgFilterPipeModule
@@ -52,7 +44,7 @@ export class TuneComponent {
   readonly localAgent? = inject(LocalAgent, { optional: true })
   readonly wasmAgentService = inject(WasmAgentService)
   readonly serverAgent? = inject(ServerSocketAgent, { optional: true })
-  readonly cacheService = inject(NgmDSCacheService, {optional: true})
+  readonly cacheService = inject(NgmDSCacheService, { optional: true })
   readonly store = inject(Store)
 
   get cacheLevel() {

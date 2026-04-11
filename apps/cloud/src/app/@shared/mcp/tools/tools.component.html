@@ -1,45 +1,55 @@
-<table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
-  <thead class="text-gray-500 uppercase">
-    <tr class="border-gray-200">
+<table class="w-full leading-[18px] text-sm text-text-secondary font-normal">
+  <thead class="text-text-tertiary uppercase">
+    <tr class="border-divider-deep">
       <th class="p-0"></th>
-      <th class="">{{'PAC.KEY_WORDS.Enabled' | translate: {Default: 'Enabled'} }}</th>
-      <th class="">{{'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</th>
-      <th class=" w-[236px]">{{'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
-      <th class=" w-[54px]">{{'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
+      <th class="">{{ 'PAC.KEY_WORDS.Enabled' | translate: { Default: 'Enabled' } }}</th>
+      <th class="">{{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</th>
+      <th class="w-[236px]">{{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</th>
+      <th class="w-[54px]">{{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}</th>
     </tr>
   </thead>
   <tbody cdkDropList (cdkDropListDropped)="drop($event)">
     @for (tool of tools(); track i; let i = $index) {
-      <tr class="tool-row border-gray-200" [class.disabled]="(tool.disabled ?? disableToolDefault())"
-        cdkDrag cdkDragLockAxis="y">
+      <tr
+        class="tool-row border-divider-deep"
+        [class.disabled]="tool.disabled ?? disableToolDefault()"
+        cdkDrag
+        cdkDragLockAxis="y"
+      >
         <td class="p-2">
           <i class="ri-draggable cursor-pointer" cdkDragHandle></i>
         </td>
         <td class="p-2 pl-3 font-medium">
-          <mat-slide-toggle ngm-density="xs" 
+          <z-switch
             [ngModel]="!(tool.disabled ?? disableToolDefault())"
             (ngModelChange)="updateTool(i, 'disabled', !$event)"
+            zSize="sm"
           />
         </td>
         <td class="p-2 pl-3 font-medium">
           <xpert-tool-name-input disabled [ngModel]="tool.name" (ngModelChange)="updateTool(i, 'name', $event)" />
         </td>
         <td class="p-2 pl-3 font-medium">
-          <input class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
+          <input
+            class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
             [ngModel]="tool.description"
             (ngModelChange)="updateTool(i, 'description', $event)"
-          >
+          />
         </td>
         <td class="pl-3 font-medium">
           <div class="flex items-center gap-2">
-            <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small space-x-1 shrink-0"
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-secondary btn-small space-x-1 shrink-0"
               (click)="openToolTest(tool)"
             >
-              <div class="text-sm font-medium">{{ 'PAC.Xpert.Test' | translate: {Default: 'Test'} }}</div>
+              <div class="text-sm font-medium">{{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }}</div>
             </button>
-            <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small danger space-x-1 shrink-0"
-              [matTooltip]="'PAC.Xpert.Remove' | translate: {Default: 'Remove'}"
-              matTooltipPosition="after"
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-secondary btn-small danger space-x-1 shrink-0"
+              [zTooltip]="'PAC.Xpert.Remove' | translate: { Default: 'Remove' }"
+              zPosition="right"
               (click)="remove(tool)"
             >
               <i class="ri-delete-bin-line"></i>

@@ -1,4 +1,6 @@
-<label *ngIf="appearance?.displayDensity === 'cosy' || appearance?.displayDensity === 'compact'">{{label()}}</label>
+@if (appearance?.displayDensity === 'cosy' || appearance?.displayDensity === 'compact') {
+  <label>{{label()}}</label>
+}
 <ngm-tree-select class="flex-1 max-w-full"
   [appearance]="appearance?.appearance"
   [floatLabel]="appearance?.floatLabel"
@@ -21,38 +23,48 @@
   [ngModel]="memberKeys()"
   (ngModelChange)="onModelChange($event)"
   (focus)="onFocus($event)"
->
-  <div matSuffix style="display: flex; align-items: center;">
+  >
+  <div zFormSuffix style="display: flex; align-items: center;">
     @if (loading$ | async) {
-      <mat-spinner [color]="appearance?.color" strokeWidth="1" diameter="20"></mat-spinner>
+      <z-loader diameter="20" />
     }
     @if (hierarchies()?.length > 1) {
-      <button mat-icon-button class="ngm-actionable-opacity"
-        [matMenuTriggerFor]="hierarchiesMenu"
-        #mt="matMenuTrigger"
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="ngm-actionable-opacity"
+        z-menu
+        [zMenuTriggerFor]="hierarchiesMenu"
+        #mt="zMenuTrigger"
         [class.active]="mt.menuOpen"
-        (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
+        (click)="$event.stopPropagation();$event.preventDefault();"
+        >
+        <z-icon zType="account_tree"></z-icon>
       </button>
     }
 
-    <button mat-icon-button type="button" [disabled]="disabled" class="ngm-smart-filter__help ngm-actionable-opacity"
-      (click)="$event.stopPropagation();$event.preventDefault();openValueHelp($event)"
-    >
-      <mat-icon>help_outline</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" [disabled]="disabled" class="ngm-smart-filter__help ngm-actionable-opacity" (click)="$event.stopPropagation();$event.preventDefault();openValueHelp($event)">
+      <z-icon zType="help_outline"></z-icon>
     </button>
   </div>
 </ngm-tree-select>
 
-<mat-radio-group [(ngModel)]="hierarchy">
-  <mat-menu #hierarchiesMenu="matMenu" class="ngm-radio-menu">
-    @for (property of hierarchies(); track property.name) {
-      <button mat-menu-item disableRipple
-        (click)="$event.stopPropagation();">
-        <mat-radio-button class="flex-1" [value]="property.name">
-          <ngm-property class="flex-1" hiddenIcon [property]="property" [displayBehaviour]="DisplayBehaviour.auto" />
-        </mat-radio-button>
-      </button>
-    }
-  </mat-menu>
-</mat-radio-group>
+<z-radio-group [(ngModel)]="hierarchy">
+  <ng-template #hierarchiesMenu>
+    <div z-menu-content class="ngm-radio-menu">
+      @for (property of hierarchies(); track property.name) {
+        <button
+          type="button"
+          z-menu-item
+          class="w-full"
+          (click)="$event.stopPropagation();">
+          <z-radio class="flex-1" [value]="property.name">
+            <ngm-property class="flex-1" hiddenIcon [property]="property" [displayBehaviour]="DisplayBehaviour.auto" />
+          </z-radio>
+        </button>
+      }
+    </div>
+  </ng-template>
+</z-radio-group>

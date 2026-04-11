@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   getErrorMessage,
   injectHelpWebsite,
@@ -14,17 +13,19 @@ import {
   XpertAgentService,
   XpertToolsetService
 } from '@cloud/app/@core'
+import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { injectPluginAPI } from '@metad/cloud/state'
-import { OverlayAnimations } from '@metad/core'
-import { injectConfirmDelete, NgmHighlightDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { debouncedSignal, linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { injectPluginAPI } from '@xpert-ai/cloud/state'
+import { OverlayAnimations } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmHighlightDirective, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { debouncedSignal, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TInstalledPlugin } from './types'
 
 @Component({
@@ -34,7 +35,7 @@ import { TInstalledPlugin } from './types'
     TranslateModule,
     FormsModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSelectComponent,
     NgmHighlightDirective,
     IconComponent,
@@ -47,6 +48,7 @@ import { TInstalledPlugin } from './types'
   animations: [routeAnimations, ...OverlayAnimations]
 })
 export class PluginsComponent {
+  readonly isDevEnvironment = !environment.production
   readonly router = inject(Router)
   readonly #dialog = inject(Dialog)
   readonly _category = injectQueryParams<'plugins' | 'marketplace'>('category')
@@ -59,6 +61,7 @@ export class PluginsComponent {
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #toolsetService = inject(XpertToolsetService)
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
+  readonly localInstallDialog = viewChild('localInstallDialog', { read: TemplateRef })
 
   readonly category = linkedModel({
     initialValue: this._category() ?? 'plugins',
@@ -76,6 +79,12 @@ export class PluginsComponent {
     loader: () => this.pluginAPI.getPlugins()
   })
 
+  readonly pluginsLoading = computed(() => this.#plugins.status() === 'loading')
+  readonly pluginsError = computed(() => {
+    const error = this.#plugins.error()
+    return error ? getErrorMessage(error) : null
+  })
+
   readonly plugins = linkedModel({
     initialValue: [] as Array<TInstalledPlugin>,
     compute: () =>
@@ -89,10 +98,15 @@ export class PluginsComponent {
   })
   readonly removing = signal('')
   readonly updating = signal('')
+  readonly refreshing = signal('')
   readonly npmPackageName = model('')
   readonly npmPackageVersion = model('')
   readonly npmInstalling = signal(false)
   readonly npmInstallError = signal<string | null>(null)
+  readonly localPluginName = model('')
+  readonly localWorkspacePath = model('')
+  readonly localInstalling = signal(false)
+  readonly localInstallError = signal<string | null>(null)
 
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
@@ -127,7 +141,7 @@ export class PluginsComponent {
   readonly #categories = computed(() => {
     const categories = new Set<string>()
     this.plugins().forEach((plugin) => {
-      if (plugin.meta.category) {
+      if (plugin.loadStatus !== 'failed' && plugin.meta.category) {
         categories.add(plugin.meta.category)
       }
     })
@@ -144,7 +158,7 @@ export class PluginsComponent {
   readonly #keywords = computed(() => {
     const keywords = new Set<string>()
     this.plugins().forEach((plugin) => {
-      if (plugin.meta.keywords) {
+      if (plugin.loadStatus !== 'failed' && plugin.meta.keywords) {
         plugin.meta.keywords.forEach((keyword) => keywords.add(keyword))
       }
     })
@@ -201,7 +215,7 @@ export class PluginsComponent {
     })
   }
 
-  uninstall(plugin: { name: string; meta: { displayName?: string } }) {
+  uninstall(plugin: Pick<TInstalledPlugin, 'name' | 'meta' | 'organizationId'>) {
     this.confirmDelete(
       {
         title: this.i18nService.instant('PAC.Plugin.Uninstall_Title', { Default: 'Uninstall Plugin' }),
@@ -211,7 +225,7 @@ export class PluginsComponent {
       },
       () => {
         this.removing.set(plugin.name)
-        return this.pluginAPI.uninstall([plugin.name])
+        return this.pluginAPI.uninstall([plugin.name], plugin.organizationId)
       }
     ).subscribe({
       next: () => {
@@ -250,6 +264,24 @@ export class PluginsComponent {
     })
   }
 
+  refresh(plugin: TInstalledPlugin) {
+    this.refreshing.set(plugin.name)
+    this.pluginAPI.refresh(plugin.name).subscribe({
+      next: () => {
+        this.refreshing.set('')
+        this.#plugins.reload()
+        this.refreshStrategyCaches()
+        this.#toastr.success('PAC.Plugin.RefreshPluginSuccess', {
+          Default: `${plugin.meta?.displayName || plugin.name} reloaded from local workspace`
+        })
+      },
+      error: (err) => {
+        this.refreshing.set('')
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
   installNpm() {
     const template = this.npmInstallDialog()
     if (!template) {
@@ -268,6 +300,24 @@ export class PluginsComponent {
     })
   }
 
+  installLocal() {
+    const template = this.localInstallDialog()
+    if (!template) {
+      return
+    }
+
+    this.localInstallError.set(null)
+    this.localInstalling.set(false)
+
+    const dialogRef = this.#dialog.open(template, {
+      backdropClass: 'backdrop-blur-sm-black',
+      minWidth: '480px'
+    })
+    dialogRef.closed.subscribe(() => {
+      this.localInstalling.set(false)
+    })
+  }
+
   confirmInstallNpm(dialogRef: DialogRef) {
     const packageName = this.npmPackageName()?.trim()
     if (!packageName) {
@@ -277,24 +327,57 @@ export class PluginsComponent {
     this.npmInstallError.set(null)
     const version = this.npmPackageVersion()?.trim()
     this.pluginAPI
-      .create({
+      .install({
         pluginName: packageName,
-        packageName,
         version: version || undefined,
         source: 'npm'
       })
+
       .subscribe({
         next: () => {
           this.npmInstalling.set(false)
-          dialogRef.close()
-          this.#plugins.reload()
-          this.refreshStrategyCaches()
+          this.handleInstallSuccess(dialogRef)
         },
         error: (err) => {
           this.npmInstallError.set(getErrorMessage(err))
           this.npmInstalling.set(false)
         }
       })
+  }
+
+  confirmInstallLocal(dialogRef: DialogRef) {
+    const pluginName = this.localPluginName()?.trim()
+    const workspacePath = this.localWorkspacePath()?.trim()
+    if (!pluginName || !workspacePath) {
+      return
+    }
+
+    this.localInstalling.set(true)
+    this.localInstallError.set(null)
+    this.pluginAPI
+      .install({
+        pluginName,
+        source: 'code',
+        sourceConfig: {
+          workspacePath
+        }
+      })
+      .subscribe({
+        next: () => {
+          this.localInstalling.set(false)
+          this.handleInstallSuccess(dialogRef)
+        },
+        error: (err) => {
+          this.localInstallError.set(getErrorMessage(err))
+          this.localInstalling.set(false)
+        }
+      })
+  }
+
+  private handleInstallSuccess(dialogRef: DialogRef) {
+    dialogRef.close()
+    this.#plugins.reload()
+    this.refreshStrategyCaches()
   }
 
   /**

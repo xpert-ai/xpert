@@ -10,18 +10,12 @@
       (click)="fileUpload.value=null;"> -->
   
     <div ngmButtonGroup class="flex-wrap">
-      <!-- <button mat-raised-button displayDensity="cosy" color="primary"
-        [disabled]="register_form.formGroup.invalid || register_form.formGroup.pristine || !dirty()"
-        (click)="onSubmit()">
+      <!-- <button z-button zType="default" displayDensity="cosy" [disabled]="register_form.formGroup.invalid || register_form.formGroup.pristine || !dirty()" (click)="onSubmit()">
         {{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}
       </button> -->
 
-      <button mat-icon-button displayDensity="cosy"
-        [cdkMenuTriggerFor]="menu"
-        #mt="cdkMenuTriggerFor"
-        [class.active]="mt.isOpen()"
-      >
-        <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
+        <z-icon zType="more_horiz"></z-icon>
       </button>
     </div>
   </div>
@@ -41,8 +35,8 @@
   }
 
   <div class="w-full flex flex-col items-center">
-    <button mat-flat-button (click)="togglePreview()">
-      <mat-icon fontSet="material-icons-round">{{ preview() ? 'expand_less' : 'expand_more' }}</mat-icon>
+    <button z-button zType="secondary" (click)="togglePreview()">
+      <z-icon [zType]="preview() ? 'expand_less' : 'expand_more'"></z-icon>
       <span>
         {{ 'PAC.INDICATOR.DataPreview' | translate: {Default: 'Data Preview'} }}
       </span>
@@ -60,8 +54,7 @@
           [chartOptions]="chartOptions()"
           [chartSettings]="chartSettings()"
           [options]="{
-            realtimeLinked: true,
-          }"
+            realtimeLinked: true }"
           (explain)="setExplains($event)"
           >
           <div class="flex-1 flex items-center md:gap-2">

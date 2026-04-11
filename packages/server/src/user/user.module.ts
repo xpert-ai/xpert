@@ -11,16 +11,19 @@ import { FactoryResetModule } from './factory-reset/factory-reset.module';
 import { EventHandlers } from './events/handlers';
 import { EmailVerification } from './email-verification/email-verification.entity';
 import { RoleModule } from '../role';
+import { UserOrganizationModule } from '../user-organization/user-organization.module';
+import { FeatureOrganization } from '../feature/feature-organization.entity';
 
 @Module({
 	imports: [
 		RouterModule.register([
 			{ path: '/user', module: UserModule }
 		]),
-		TypeOrmModule.forFeature([ User, EmailVerification ]),
+		TypeOrmModule.forFeature([ User, EmailVerification, FeatureOrganization ]),
 		forwardRef(() => TenantModule),
 		CqrsModule,
 		RoleModule,
+		forwardRef(() => UserOrganizationModule),
 		FactoryResetModule,
 	],
 	controllers: [UserController],

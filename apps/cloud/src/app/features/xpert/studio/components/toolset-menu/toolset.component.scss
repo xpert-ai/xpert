@@ -1,3 +1,4 @@
+@reference "../../../../../../styles/tailwind-reference.css";
 :host {
   @apply flex flex-col justify-start items-start min-w-[320px];
 }
@@ -10,5 +11,5 @@
 }
 
 .toolset-tip-card {
-  @apply rounded-2xl shadow-md border-[0.5px] border-solid border-gray-200 dark:border-neutral-500;
+  @apply rounded-2xl shadow-md border-[0.5px] border-solid border-divider-deep dark:border-neutral-500;
 }

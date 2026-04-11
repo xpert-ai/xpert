@@ -1,14 +1,15 @@
-import { Injectable } from '@angular/core'
+import { Inject, Injectable } from '@angular/core'
 import { Router } from '@angular/router'
 import { Ability, AbilityBuilder } from '@casl/ability'
-import { IUser } from '@metad/contracts'
-import { UsersService } from '@metad/cloud/state'
+import { IUser } from '@xpert-ai/contracts'
+import { UsersService } from '@xpert-ai/cloud/state'
 import * as Sentry from "@sentry/angular";
 import { NgxPermissionsService } from 'ngx-permissions'
 import { firstValueFrom } from 'rxjs'
 import { AuthStrategy } from '../../@core/auth/auth-strategy.service'
 import { Store } from '../../@core/services/store.service'
 import { AbilityActions, RolesEnum } from '../types'
+import { ScopeService } from './scope.service'
 import { TenantService } from './tenant.service'
 
 @Injectable({ providedIn: 'root' })
@@ -21,23 +22,16 @@ export class AppInitService {
     private readonly authStrategy: AuthStrategy,
     private readonly router: Router,
     private readonly store: Store,
+    private readonly scopeService: ScopeService,
     private readonly ngxPermissionsService: NgxPermissionsService,
-    private readonly ability: Ability,
+    @Inject(Ability) private readonly ability: Ability,
   ) {}
 
   async init() {
     try {
       const id = this.store.userId
       if (id) {
-
-        this.user = await this.usersService.getMe([
-          'employee',
-          'role',
-          'role.rolePermissions',
-          'tenant',
-          'tenant.featureOrganizations',
-          'tenant.featureOrganizations.feature'
-        ])
+        this.user = await this.usersService.getMe()
 
         //When a new user registers & logs in for the first time, he/she does not have tenantId.
         //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.
@@ -48,12 +42,25 @@ export class AppInitService {
 
         this.store.user = this.user
 
+        const memberships = (this.user.organizations ?? []).filter(
+          (membership) =>
+            membership.isActive !== false &&
+            !!membership.organization?.id &&
+            membership.organization.isActive !== false
+        )
+        const organizations = memberships.map(({ organization }) => organization)
+        const preferredOrganizationId =
+          memberships.find((membership) => membership.isDefault)?.organizationId ?? null
+
+        this.scopeService.initializeEntryScope(organizations, preferredOrganizationId)
+
         //tenant enabled/disabled features for relatives organizations
         const { tenant } = this.user
-        this.store.featureTenant = tenant.featureOrganizations.filter((item) => !item.organizationId)
+        this.store.featureTenant = (tenant.featureOrganizations ?? []).filter((item) => !item.organizationId)
+        void this.hydrateUserFeatures()
 
         //only enabled permissions assign to logged in user
-        this.store.userRolePermissions = this.user.role.rolePermissions.filter((permission) => permission.enabled)
+        this.store.userRolePermissions = (this.user.role.rolePermissions ?? []).filter((permission) => permission.enabled)
 
         if (this.user.preferredLanguage && !this.store.preferredLanguage) {
           this.store.preferredLanguage = this.user.preferredLanguage
@@ -86,6 +93,22 @@ export class AppInitService {
     }
   }
 
+  private async hydrateUserFeatures() {
+    try {
+      const features = await this.usersService.getMeFeatures()
+      this.user = this.usersService.mergeMeFeatures(this.store.user, features)
+    } catch (error) {
+      console.log(error)
+      this.user = this.usersService.mergeMeFeatures(this.store.user, {
+        tenantFeatureOrganizations: [],
+        organizationFeatures: []
+      })
+    }
+
+    this.store.user = this.user
+    this.store.featureTenant = (this.user.tenant?.featureOrganizations ?? []).filter((item) => !item.organizationId)
+  }
+
   private updateAbility(user: IUser) {
     const { can, rules } = new AbilityBuilder(Ability)
 
@@ -98,7 +121,8 @@ export class AppInitService {
 
       if (
         user.role.name === RolesEnum.ADMIN ||
-        user.role.name === RolesEnum.DATA_ENTRY ||
+        user.role.name === RolesEnum.AI_BUILDER ||
+        user.role.name === RolesEnum.ANALYTICS_BUILDER ||
         user.role.name === RolesEnum.TRIAL
       ) {
         can(AbilityActions.Manage, 'Story')

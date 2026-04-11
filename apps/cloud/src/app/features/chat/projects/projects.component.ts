@@ -1,14 +1,14 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import { getErrorMessage, injectProjectService, injectToastr, IXpertProject, OrderTypeEnum } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { linkedModel, TranslatePipe, uploadYamlFile } from '@metad/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { linkedModel, TranslatePipe, uploadYamlFile } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { EMPTY, map, startWith, switchMap } from 'rxjs'
 
@@ -16,7 +16,7 @@ import { EMPTY, map, startWith, switchMap } from 'rxjs'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterModule, CdkMenuModule, TranslatePipe, NgmSpinComponent, EmojiAvatarComponent],
+  imports: [RouterModule, CdkMenuModule, TranslatePipe, NgmSpinComponent, EmojiAvatarComponent],
   selector: 'pac-chat-projects',
   templateUrl: './projects.component.html',
   styleUrl: 'projects.component.scss',
@@ -54,7 +54,7 @@ export class ChatProjectsComponent {
     this.projectSercice.create({ name: 'New Project' }).subscribe({
       next: (project) => {
         this.loading.set(false)
-        this.#router.navigate(['/chat/p', project.id])
+        this.#router.navigate(['/project', project.id])
       },
       error: (err) => {
         this.loading.set(false)
@@ -95,7 +95,7 @@ export class ChatProjectsComponent {
   duplicateProject(project: IXpertProject) {
     this.projectSercice.duplicate(project.id).subscribe({
       next: (newProject) => {
-        this.#router.navigate(['/chat/p', newProject.id])
+        this.#router.navigate(['/project', newProject.id])
       },
       error: (err) => {
         this.#toastr.error(getErrorMessage(err))
@@ -137,7 +137,7 @@ export class ChatProjectsComponent {
     }).closed.subscribe({
       next: (result) => {
         if (result) {
-          this.#router.navigate(['/chat/p', result.id])
+          this.#router.navigate(['/project', result.id])
         }
       }
     })

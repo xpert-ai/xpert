@@ -9,8 +9,7 @@ import {
   getEntityProperty,
   getEntityProperty2,
   wrapBrackets
-} from '@metad/ocap-core'
-
+} from '@xpert-ai/ocap-core'
 
 /**
  * @deprecated use tryFixDimension

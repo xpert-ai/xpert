@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http'
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
-import { linkedModel } from '@metad/core'
+import { linkedModel } from '@xpert-ai/core'
 import { omit, uniq } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -215,8 +215,7 @@ export abstract class ChatService {
         if (this.conversation()?.xpert && !this.xpert()) {
           this.xpert.set(this.conversation().xpert)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -228,8 +227,7 @@ export abstract class ChatService {
             this.conversation.set(conversation)
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -239,8 +237,7 @@ export abstract class ChatService {
         if (feedbacks !== undefined) {
           this.feedbacks.set(feedbacks ?? null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -249,8 +246,7 @@ export abstract class ChatService {
           this.suggestionQuestions.set([])
           this.contextUsageByAgentKey.set({})
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // effect(() => {
@@ -345,7 +341,7 @@ export abstract class ChatService {
     })
   }
 
-  retryMessage(messageId?: string) {
+  retryMessage(messageId?: string, checkpointId?: string) {
     const conversationId = this.conversation()?.id
     const messages = this.messages()
     const aiMessageId = messageId ?? findLastAiMessageId(messages)
@@ -365,6 +361,7 @@ export abstract class ChatService {
     const request: TChatRequest = {
       action: 'retry',
       conversationId,
+      ...(checkpointId ? { checkpointId } : {}),
       source: {
         aiMessageId
       }
@@ -395,10 +392,11 @@ export abstract class ChatService {
       reject: boolean
       retry: boolean
       messageId?: string
+      checkpointId?: string
     }>
   ) {
     if (options.retry) {
-      this.retryMessage(options.messageId)
+      this.retryMessage(options.messageId, options.checkpointId)
       return
     }
 

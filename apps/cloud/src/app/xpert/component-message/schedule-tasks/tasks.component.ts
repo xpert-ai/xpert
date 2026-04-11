@@ -1,24 +1,22 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, isNil } from 'lodash-es'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs'
 import { injectToastr, XpertTaskService } from '../../../@core'
 import { getErrorMessage, IXpertTask, ScheduleTaskStatus } from '../../../@core/types'
 import { XpertTaskDialogComponent } from '../../../@shared/chat'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -26,9 +24,9 @@ import { XpertTaskDialogComponent } from '../../../@shared/chat'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent
-  ],
+],
   selector: 'chat-component-schedule-tasks',
   templateUrl: './tasks.component.html',
   styleUrl: 'tasks.component.scss',
@@ -47,9 +45,9 @@ export class ChatComponentScheduleTasksComponent {
   // States
   readonly taskDetails = signal<IXpertTask[]>(null)
   readonly syncedTasks = computed(() => {
-    return this.taskDetails() ? this.tasks().map(
-      (_) => this.taskDetails().find((item) => item.id === _.id) ?? { ..._, deletedAt: new Date() }
-    ) : this.tasks()
+    return this.taskDetails()
+      ? this.tasks().map((_) => this.taskDetails().find((item) => item.id === _.id) ?? { ..._, deletedAt: new Date() })
+      : this.tasks()
   })
 
   readonly loading = signal(false)

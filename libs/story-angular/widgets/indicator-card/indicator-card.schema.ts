@@ -1,15 +1,14 @@
 import { Injectable } from '@angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import {
   DataSettingsSchema,
   DataSettingsSchemaService,
   FORMLY_ROW,
   FORMLY_W_1_2,
   FORMLY_W_FULL,
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 import { YoyType } from './types'
-
 
 @Injectable()
 export class IndicatorCardSchemaService extends DataSettingsSchemaService {

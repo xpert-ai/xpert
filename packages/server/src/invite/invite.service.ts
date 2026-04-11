@@ -1,11 +1,9 @@
-import { ConfigService, environment } from '@metad/server-config';
+import { ConfigService, environment } from '@xpert-ai/server-config';
 import {
 	ICreateEmailInvitesInput,
 	ICreateEmailInvitesOutput,
 	InviteStatusEnum,
-	IOrganizationProject,
 	IOrganizationContact,
-	IOrganizationDepartment,
 	IUser,
 	ICreateOrganizationContactInviteInput,
 	RolesEnum,
@@ -17,11 +15,11 @@ import {
 	InvitationExpirationEnum,
 	InvitationTypeEnum,
 	IInvite,
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayload, sign, verify } from 'jsonwebtoken';
-import { Brackets, FindOptionsWhere, IsNull, MoreThanOrEqual, Repository, SelectQueryBuilder, WhereExpressionBuilder } from 'typeorm';
+import { Brackets, FindOptionsWhere, In, IsNull, MoreThanOrEqual, Repository } from 'typeorm';
 import { TenantAwareCrudService } from './../core/crud';
 import { Invite } from './invite.entity';
 import { EmailService } from '../email/email.service';
@@ -33,6 +31,10 @@ import {
 	OrganizationContact,
 	Role,
 } from './../core/entities/internal';
+
+function normalizeEmail(email?: string | null) {
+	return email?.trim().toLowerCase() || null;
+}
 
 @Injectable()
 export class InviteService extends TenantAwareCrudService<Invite> {
@@ -66,12 +68,13 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 		languageCode: LanguagesEnum
 	): Promise<ICreateEmailInvitesOutput> {
 		const invites: Invite[] = [];
+		const normalizedEmailIds = (emailInvites.emailIds ?? [])
+			.map((email) => normalizeEmail(email))
+			.filter((email): email is string => Boolean(email));
 		const {
 			emailIds,
 			roleId,
-			projectIds,
 			organizationContactIds,
-			departmentIds,
 			organizationId,
 			invitedById,
 			startedWorkOn,
@@ -79,6 +82,10 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 			invitationExpirationPeriod
 		} = emailInvites;
 		const originUrl = this.configSerice.get('clientBaseUrl') as string;
+
+		if (!normalizedEmailIds.length) {
+			return { items: [], total: 0, ignored: emailIds.length };
+		}
 
 		const organizationContacts: IOrganizationContact[] = await this.organizationContactRepository.findByIds(
 			organizationContactIds || []
@@ -111,17 +118,33 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 			}
 		}
 
-		const existingInvites = (
+		const existingInviteEmails = (
 			await this.repository
 				.createQueryBuilder('invite')
-				.select('invite.email')
-				.where('invite.email IN (:...emails)', { emails: emailIds })
-				.getMany()
+				.select('invite.email', 'email')
+				.where('invite.tenantId = :tenantId', { tenantId })
+				.andWhere('invite.email IN (:...emails)', { emails: normalizedEmailIds })
+				.andWhere('invite.status = :status', { status: InviteStatusEnum.INVITED })
+				.andWhere(
+					new Brackets((qb) => {
+						qb.where('invite.expireDate IS NULL').orWhere('invite.expireDate >= :now', {
+							now: new Date()
+						});
+					})
+				)
+				.getRawMany<{ email: string }>()
 		).map((invite) => invite.email);
 
-		const invitesToCreate = emailIds.filter(
-			(email) => existingInvites.indexOf(email) < 0
-		);
+		const tenantUsers = await this.userService.findAll({
+			where: {
+				tenantId,
+				email: In(normalizedEmailIds)
+			}
+		})
+		const existingTenantUserEmails = (tenantUsers.items ?? []).map((item) => item.email)
+
+		const blockedEmails = new Set([...existingInviteEmails, ...existingTenantUserEmails])
+		const invitesToCreate = normalizedEmailIds.filter((email) => !blockedEmails.has(email));
 
 		for (let i = 0; i < invitesToCreate.length; i++) {
 			const email = invitesToCreate[i];
@@ -168,7 +191,7 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 			}
 		});
 
-		return { items, total: items.length, ignored: existingInvites.length };
+		return { items, total: items.length, ignored: emailIds.length - invitesToCreate.length };
 	}
 
 	async resendEmail(data, invitedById, languageCode, expireDate){
@@ -176,9 +199,7 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 			id,
 			email,
 			roleName,
-			organization,
-			departmentNames,
-			clientNames
+			organization
 		} = data
 
 		const status = InviteStatusEnum.INVITED;
@@ -189,9 +210,10 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 			relations: ['role']
 		});
 
-		const token = this.createToken(email);
+		const normalizedEmail = normalizeEmail(email);
+		const token = this.createToken(normalizedEmail);
 
-		const registerUrl = `${originUrl}/auth/accept-invite?email=${email}&token=${token}`;
+		const registerUrl = `${originUrl}/auth/accept-invite?email=${normalizedEmail}&token=${token}`;
 
 		
 		try{
@@ -199,12 +221,13 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 			   status,
 			   expireDate,
 			   invitedById,
-			   token
+			   token,
+			   email: normalizedEmail
 			})
 			
 			if (data.inviteType === InvitationTypeEnum.USER) {
 				this.emailService.inviteUser({
-					email,
+					email: normalizedEmail,
 					role: roleName,
 					organization: organization,
 					registerUrl,
@@ -266,16 +289,12 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 			roleId,
 			organizationContactId,
 			organizationId,
-			invitedById,
-			originalUrl,
-			languageCode
+			invitedById
 		} = inviteInput;
 
 		const organizationContact: IOrganizationContact = await this.organizationContactRepository.findOneBy({id: organizationContactId});
 
 		const organization: Organization = await this.organizationRepository.findOneBy({id: organizationId});
-
-		const inviterUser: IUser = await this.userService.findOneByIdString(invitedById);
 
 		const inviteExpiryPeriod =
 			organization && organization.inviteExpiryPeriod
@@ -283,10 +302,11 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 				: DEFAULT_INVITE_EXPIRY_PERIOD;
 
 		const expireDate = addDays(new Date(), inviteExpiryPeriod);
+		const normalizedEmail = normalizeEmail(emailId);
 
 		const invite = new Invite();
-		invite.token = this.createToken(emailId);
-		invite.email = emailId;
+		invite.token = this.createToken(normalizedEmail);
+		invite.email = normalizedEmail;
 		invite.roleId = roleId;
 		invite.organizationId = organizationId;
 		invite.invitedById = invitedById;
@@ -308,48 +328,38 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 		return createdInvite;
 	}
 
-	async validateByToken(where: FindOptionsWhere<Invite>): Promise<IInvite> {
+	async validateByToken(where: Pick<FindOptionsWhere<Invite>, 'email' | 'token'>, relations: string[] = []): Promise<IInvite> {
 		try {
-			const { email, token } = where;
+			const email = normalizeEmail(where.email as string);
+			const { token } = where;
 			const payload: string | JwtPayload = verify(token as string, environment.JWT_SECRET);
 
 			if (typeof payload === 'object' && 'email' in payload) {
 				if (payload.email === email) {
-					const query = this.repository.createQueryBuilder(Invite.name);
-					query.setFindOptions({
-						select: {
-							id: true,
-							email: true,
-							// fullName: true,
-							organization: {
-								name: true
-							}
-						},
-						relations: {
-							organization: true
-						}
-					});
-					query.where((qb: SelectQueryBuilder<Invite>) => {
-						qb.andWhere({
-							email,
-							token,
-							status: InviteStatusEnum.INVITED,
-							...(payload['code']
-								? {
-										code: payload['code']
-								  }
-								: {})
-						});
-						qb.andWhere([
+					const baseWhere = {
+						email,
+						token,
+						status: InviteStatusEnum.INVITED,
+						...(payload['code']
+							? {
+									code: payload['code']
+							  }
+							: {})
+					}
+
+					return await this.repository.findOneOrFail({
+						where: [
 							{
+								...baseWhere,
 								expireDate: MoreThanOrEqual(new Date())
 							},
 							{
+								...baseWhere,
 								expireDate: IsNull()
 							}
-						]);
+						],
+						relations
 					});
-					return await query.getOneOrFail();
 				}
 			}
 			throw new BadRequestException();
@@ -359,7 +369,7 @@ export class InviteService extends TenantAwareCrudService<Invite> {
 	}
 
 	createToken(email): string {
-		const token: string = sign({ email }, environment.JWT_SECRET, {});
+		const token: string = sign({ email: normalizeEmail(email) }, environment.JWT_SECRET, {});
 		return token;
 	}
 }

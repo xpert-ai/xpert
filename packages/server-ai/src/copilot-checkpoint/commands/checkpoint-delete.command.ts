@@ -1,4 +1,4 @@
-import { ICopilotCheckpoint } from '@metad/contracts'
+import { ICopilotCheckpoint } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { FindOptionsWhere } from 'typeorm'
 

@@ -1,5 +1,6 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
-  --mat-sidenav-content-background-color: var(--ngm-project-color-surface);
+  --z-drawer-content-bg: var(--ngm-project-color-surface);
   @apply relative flex flex-col h-full overflow-auto max-h-[90vh];
 }
 
@@ -8,7 +9,7 @@
 }
 
 .pac-indicator__period-tag {
-  @apply text-neutral-700 hover:bg-neutral-100 focus:bg-neutral-200 dark:hover:bg-white/10 dark:focus:bg-white/20 dark:text-neutral-200;
+  @apply text-neutral-700 hover:bg-hover-bg focus:bg-neutral-200 dark:hover:bg-white/10 dark:focus:bg-components-input-bg-active/20 dark:text-neutral-200;
   &.selected {
     @apply font-extrabold bg-neutral-200 text-neutral-800 dark:bg-white/20 dark:text-neutral-100;
   }

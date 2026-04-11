@@ -6,7 +6,6 @@ import { CubeComponent } from './role/cube/cube.component'
 import { RoleOverviewComponent } from './role/overview/overview.component'
 import { RoleComponent } from './role/role.component'
 
-
 const routes: Routes = [
   {
     path: '',

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core'
 import { FormControl } from '@angular/forms'
-import { IUser, RoleTypeEnum } from '@metad/contracts'
+import { IUser, RoleTypeEnum } from '@xpert-ai/contracts'
 import { BehaviorSubject } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith } from 'rxjs/operators'
 import { AccessControlStateService } from '../access-control.service'
@@ -9,6 +9,7 @@ import { UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
+  standalone: false,
   selector: 'pac-model-access-overview',
   templateUrl: 'overview.component.html',
   styleUrls: ['overview.component.scss']
@@ -91,6 +92,21 @@ export class AccessOverviewComponent {
 
   onRolesChange(event, user: IUser) {
     this.accessControlState.changeUserRoles({ user, roles: event })
+  }
+
+  hasRole(roles: string[], role: string) {
+    return roles?.includes(role)
+  }
+
+  toggleRole(checked: boolean, role: string, user: IUser, roles: string[]) {
+    const nextRoles = new Set(roles ?? [])
+    if (checked) {
+      nextRoles.add(role)
+    } else {
+      nextRoles.delete(role)
+    }
+
+    this.onRolesChange([...nextRoles], user)
   }
 
   removeUser(id: string) {

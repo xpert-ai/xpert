@@ -12,6 +12,7 @@
         "main": "packages/core/src/index.ts",
         "tsConfig": "packages/core/tsconfig.lib.json",
         "project": "packages/core/package.json",
+        "buildLibsFromSource": false,
         "assets": [
           {
 						"glob": "**/*.json",
@@ -25,7 +26,10 @@
           }
         ],
         "compiler": "swc",
-        "format": ["cjs", "esm"]
+        "format": ["cjs", "esm"],
+        "external": [
+          "@xpert-ai/store"
+        ]
       }
     },
     "publish": {

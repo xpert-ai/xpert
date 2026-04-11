@@ -1,10 +1,10 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@metad/core'
+import { routeAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -26,7 +26,6 @@ import { XpertStudioConfigureMCPComponent } from '../configure/configure.compone
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -34,7 +33,7 @@ import { XpertStudioConfigureMCPComponent } from '../configure/configure.compone
     CdkListboxModule,
     MCPServerFormComponent,
     XpertStudioConfigureMCPComponent
-  ],
+],
   selector: 'xpert-tool-mcp-create',
   templateUrl: './create.component.html',
   styleUrl: 'create.component.scss',

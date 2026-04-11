@@ -1,36 +1,34 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { injectProjectService, injectToastr, TFileDirectory } from '@cloud/app/@core'
 import { ChatFileListComponent } from '@cloud/app/@shared/chat/'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { NgmDndDirective } from '@metad/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmDndDirective } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { ChatProjectComponent } from '../project.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     ReactiveFormsModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     NgmDndDirective,
     ChatFileListComponent
-  ],
+],
   selector: 'chat-project-files',
   templateUrl: './files.component.html',
   styleUrl: 'files.component.scss',

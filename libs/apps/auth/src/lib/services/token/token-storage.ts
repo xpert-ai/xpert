@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-
 import { PacAuthToken } from './token';
 import { PacAuthTokenParceler } from './token-parceler';
 

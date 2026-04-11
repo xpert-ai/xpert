@@ -1,4 +1,4 @@
-import { IIntegration, TRagWebOptions } from '@metad/contracts'
+import { IIntegration, TRagWebOptions } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class RagWebLoadCommand implements ICommand {

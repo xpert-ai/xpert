@@ -22,13 +22,9 @@ describe('debounceUntilChanged', () => {
         g: { key: 4 },
         h: { key: 4 }
       });
-      const expected = '    -b---d---f---h-|';
+      const expected = '    -b---d---f---h---|';
 
       const result = source.pipe(debounceUntilChanged(20, 'key'));
-
-      result.subscribe((value) => {
-        console.log(value)
-      })
 
       expectObservable(result).toBe(expected, {
         b: { key: 1 },
@@ -65,11 +61,13 @@ describe('debounceUntilChanged', () => {
         b: { key: 1 },
         c: { key: 1 }
       });
-      const expected = '     -------|';
+      const expected = '     -a-----|';
 
       const result = source.pipe(debounceUntilChanged(20, 'key',));
 
-      expectObservable(result).toBe(expected);
+      expectObservable(result).toBe(expected, {
+        a: { key: 1 }
+      });
     });
   });
 });

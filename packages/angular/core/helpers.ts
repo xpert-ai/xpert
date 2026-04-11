@@ -320,7 +320,6 @@ export function click(
 
 export const mkenum = <T extends { [index: string]: U }, U extends string>(x: T) => x;
 
-
 // Search options
 export function includeIgnoreCase(text, target) {
   const keywords: Array<string> = target.split(/\s+/g)
@@ -363,7 +362,6 @@ export function toParams(query) {
 	return params;
 }
 
-
 function isJsObject(object: any) {
 	return (
 		object !== null && object !== undefined && typeof object === 'object'
@@ -385,7 +383,6 @@ function toSubParams(params: HttpParams, key: string, object: any) {
 
 	return params;
 }
-
 
 export function mergeOptions(obj1: unknown, ...objs: unknown[]) {
   return merge(obj1, ...objs.map(item => omitBlank(item)))

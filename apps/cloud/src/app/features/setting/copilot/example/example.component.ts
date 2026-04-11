@@ -2,8 +2,8 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, effect, inject, signal } from '@angular/core'
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
@@ -11,14 +11,15 @@ import { EMPTY, pipe, switchMap } from 'rxjs'
 import { AiBusinessRole, AiProvider, CopilotExampleService, ToastrService, getErrorMessage } from '../../../../@core'
 import { CopilotExamplesComponent } from '../examples/examples.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-example',
   templateUrl: './example.component.html',
   styleUrls: ['./example.component.scss'],
-  imports: [TranslateModule, MaterialModule, TextFieldModule, FormsModule, ReactiveFormsModule, NgmCommonModule]
+  imports: [TranslateModule, SharedUiModule, TextFieldModule, FormsModule, ReactiveFormsModule, NgmCommonModule, ZardLoaderComponent]
 })
 export class CopilotExampleComponent extends TranslationBaseComponent {
 
@@ -66,7 +67,7 @@ export class CopilotExampleComponent extends TranslationBaseComponent {
       }
       this.formGroup.markAsPristine()
       this.loading.set(false)
-    }, { allowSignalWrites: true })
+    })
   }
 
   close(refresh = false) {

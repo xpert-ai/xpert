@@ -1,17 +1,14 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
-import { NgmColorsComponent } from '@metad/components/form-field'
-import { DensityDirective } from '@metad/ocap-angular/core'
+
+import { NgmColorsComponent } from '@xpert-ai/components/form-field'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmFormlyChartPropertyComponent } from './chart-property.component'
 import { NgmChartPropertyComponent } from '../../chart-property/chart-property.component'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [NgmFormlyChartPropertyComponent],
@@ -19,11 +16,9 @@ import { NgmChartPropertyComponent } from '../../chart-property/chart-property.c
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-    MatRadioModule,
-    MatCheckboxModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardCheckboxComponent,
     TranslateModule,
 
     DensityDirective,

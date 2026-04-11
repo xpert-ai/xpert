@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Pangolin. All Rights Reserved.
+ * Copyright Xpert. All Rights Reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  */
 import { Component, Inject, OnInit } from '@angular/core';
@@ -9,8 +9,8 @@ import { PAC_AUTH_OPTIONS } from '../auth.options';
 import { getDeepFromObject } from '../helpers';
 import { PacAuthResult, PacAuthService } from '../services';
 
-
 @Component({
+  standalone: false,
   selector: 'pac-logout',
   templateUrl: './logout.component.html',
 })

@@ -3,7 +3,7 @@ import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
-import { IconType, IKnowledgeDocument, KBDocumentCategoryEnum } from '@metad/contracts'
+import { IconType, IKnowledgeDocument, KBDocumentCategoryEnum } from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import {
   ChunkMetadata,
@@ -24,6 +24,12 @@ import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
 import { Default, icon, TDefaultTransformerConfig, TDefaultTransformerMetadata } from './types'
+
+type TResolvedDocumentFile = {
+  absolutePath: string
+  runtimeFilePath: string
+  runtimeFileUrl: string
+}
 
 @Injectable()
 @DocumentTransformerStrategy(Default)
@@ -97,35 +103,11 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     const results = []
     for await (const file of files) {
       const assets: TDocumentAsset[] = []
-      let fileAbsPath = ''
-      if (!file.filePath && isRemoteFile(file.fileUrl)) {
-        const tempDir = config.tempDir || '/tmp/'
-        const filePath = path.join(tempDir, file.filePath)
-        // Ensure the temp directory exists
-        await fsPromises.mkdir(path.dirname(filePath), { recursive: true })
+      const resolvedFile = await this.resolveDocumentFile(file, xpFileSystem)
+      const fileAbsPath = resolvedFile.absolutePath
+      const runtimeFilePath = resolvedFile.runtimeFilePath
+      const runtimeFileUrl = resolvedFile.runtimeFileUrl
 
-        // If file already exists, remove it
-        try {
-          const stat = await fsPromises.stat(filePath)
-          if (stat.isFile()) {
-            await fsPromises.unlink(filePath)
-          } else {
-            // If it's a directory, remove or throw
-            throw new Error(`Destination path exists and is a directory: ${filePath}`)
-          }
-        } catch (err: any) {
-          if (err.code !== 'ENOENT') {
-            throw err
-          }
-          // ENOENT means "not exist", safe to continue
-        }
-
-        // Download the remote file to a local temporary directory
-        fileAbsPath = await downloadRemoteFile(file.fileUrl, filePath)
-      } else {
-        fileAbsPath = xpFileSystem.fullPath(file.filePath)
-        file.fileUrl ??= xpFileSystem.fullUrl(file.filePath)
-      }
       let data: DocumentInterface[]
       const extension = file.name?.split('.').pop()
       switch (extension?.toLowerCase()) {
@@ -163,11 +145,11 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         default:
           switch (file.category) {
             case KBDocumentCategoryEnum.Image: {
-              data = await this.processImage(file.name, file.fileUrl)
+              data = await this.processImage(file.name, runtimeFileUrl)
               assets.push({
                 type: 'image',
-                url: file.fileUrl,
-                filePath: file.filePath
+                url: runtimeFileUrl,
+                filePath: runtimeFilePath
               })
               break;
             }
@@ -202,6 +184,101 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     }
 
     return results
+  }
+
+  private async resolveDocumentFile(
+    file: Partial<IKnowledgeDocument>,
+    xpFileSystem: XpFileSystem
+  ): Promise<TResolvedDocumentFile> {
+    const providedFilePath = this.normalizeFilePath(file.filePath)
+    if (providedFilePath) {
+      const absolutePath = xpFileSystem.fullPath(providedFilePath)
+      if (await this.exists(absolutePath)) {
+        return {
+          absolutePath,
+          runtimeFilePath: providedFilePath,
+          runtimeFileUrl: file.fileUrl ?? xpFileSystem.fullUrl(providedFilePath)
+        }
+      }
+
+      this.#logger.debug(
+        `File path '${providedFilePath}' for document '${file.name ?? file.id ?? 'unknown'}' is not available in the knowledge workspace. Falling back to fileUrl download.`
+      )
+    }
+
+    if (file.fileUrl && isRemoteFile(file.fileUrl)) {
+      const runtimeFilePath = path.join('tmp', this.buildTempFileName(file))
+      const absolutePath = xpFileSystem.fullPath(runtimeFilePath)
+
+      await fsPromises.mkdir(path.dirname(absolutePath), { recursive: true })
+      await this.removeFileIfExists(absolutePath)
+      await downloadRemoteFile(file.fileUrl, absolutePath)
+
+      return {
+        absolutePath,
+        runtimeFilePath,
+        runtimeFileUrl: file.fileUrl
+      }
+    }
+
+    throw new Error(
+      `Unable to resolve a readable file for document '${file.name ?? file.id ?? 'unknown'}'.`
+    )
+  }
+
+  private buildTempFileName(file: Partial<IKnowledgeDocument>) {
+    const extension = this.getFileExtension(file)
+    return `${randomUUID()}${extension ? `.${extension}` : ''}`
+  }
+
+  private getFileExtension(file: Partial<IKnowledgeDocument>) {
+    const candidates = [file.name, file.filePath, file.fileUrl]
+    for (const candidate of candidates) {
+      if (typeof candidate !== 'string' || !candidate.trim()) {
+        continue
+      }
+
+      const sanitized = candidate.split('?')[0].split('#')[0]
+      const baseName = path.basename(sanitized)
+      const extension = baseName.split('.').pop()?.trim().toLowerCase()
+      if (extension && extension !== baseName.toLowerCase()) {
+        return extension
+      }
+    }
+
+    return ''
+  }
+
+  private normalizeFilePath(filePath?: string | null) {
+    if (typeof filePath !== 'string') {
+      return null
+    }
+
+    const normalized = filePath.trim()
+    return normalized.length ? normalized : null
+  }
+
+  private async exists(filePath: string) {
+    try {
+      await fsPromises.access(filePath)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  private async removeFileIfExists(filePath: string) {
+    try {
+      const stat = await fsPromises.stat(filePath)
+      if (!stat.isFile()) {
+        throw new Error(`Destination path exists and is not a file: ${filePath}`)
+      }
+      await fsPromises.unlink(filePath)
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') {
+        throw err
+      }
+    }
   }
 
   async processMarkdown(url: string): Promise<Document<Record<string, any>>[]> {

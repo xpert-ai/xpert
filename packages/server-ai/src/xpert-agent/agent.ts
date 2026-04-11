@@ -19,7 +19,7 @@ import {
 	TMessageContentReasoning,
 	TXpertAgentConfig,
 	TXpertTeamNode
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
@@ -536,4 +536,4 @@ export type TAgentSubgraphResult = {
 	mute?: TXpertAgentConfig['mute']
 }
 
-export { TAgentSubgraphParams } from '../shared'
+export { TAgentSubgraphParams, TXpertAgentRuntimeOptions } from '../shared'

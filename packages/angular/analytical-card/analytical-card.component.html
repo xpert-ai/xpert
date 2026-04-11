@@ -1,67 +1,72 @@
 @if (showHeader()) {
   <div class="ngm-card-header flex justify-between items-center z-10">
     <div class="ngm-card-header__title">{{ title }}</div>
-    
-    <div class="flex-1 flex justify-end items-center">
 
+    <div class="flex-1 flex justify-end items-center">
       <ng-content></ng-content>
     @if (chartSettings()?.chartTypes?.length) {
-      <mat-button-toggle-group displayDensity="compact" ngmAppearance="color" color="primary"
+      <z-toggle-group displayDensity="compact" ngmAppearance="color" color="primary"
         [(ngModel)]="chartType"  
       >
         @if (_dataSettings()?.chartAnnotation?.chartType) {
-          <mat-button-toggle [value]="_dataSettings().chartAnnotation.chartType">
+          <z-toggle-group-item [value]="_dataSettings().chartAnnotation.chartType">
             {{ _dataSettings().chartAnnotation.chartType.name || _dataSettings().chartAnnotation.chartType.type }}
-          </mat-button-toggle>
+          </z-toggle-group-item>
         }
         @for (chartType of chartSettings().chartTypes; track $index) {
-          <mat-button-toggle [value]="chartType">
+          <z-toggle-group-item [value]="chartType">
             {{ chartType?.name || chartType?.type }}
-          </mat-button-toggle>
+          </z-toggle-group-item>
         }
-      </mat-button-toggle-group>
+      </z-toggle-group>
     }
     </div>
 
     <div class="actions flex justify-around items-center">
-
       <ng-content select="[ngmAction]"></ng-content>
 
       <!-- data download -->
-    @if (!options()?.hideDataDownload) {
-      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
-          bg-transparent hover:bg-hover-bg"
-        [matTooltip]=" 'Ngm.AnalyticalCard.DataDownload' | translate: {Default: 'Data Download'} "
-        matTooltipPosition="above"
-        (click)="downloadData()">
-        <i class="ri-download-2-line"></i>
-      </button>
-    }
+      @if (!options()?.hideDataDownload) {
+        <button
+          class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+          [zTooltip]="'Ngm.AnalyticalCard.DataDownload' | translate: { Default: 'Data Download' }"
+          zPosition="top"
+          (click)="downloadData()"
+        >
+          <i class="ri-download-2-line"></i>
+        </button>
+      }
       <!-- screenshot -->
-    @if (!options()?.hideScreenshot) {
-      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
-          bg-transparent hover:bg-hover-bg"
-        [matTooltip]=" 'Ngm.AnalyticalCard.Screenshot' | translate: {Default: 'Screenshot'} "
-        matTooltipPosition="above"
-        (click)="screenshot()">
-        <i class="ri-screenshot-2-line"></i>
-      </button>
-    }
+      @if (!options()?.hideScreenshot) {
+        <button
+          class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+          [zTooltip]="'Ngm.AnalyticalCard.Screenshot' | translate: { Default: 'Screenshot' }"
+          zPosition="top"
+          (click)="screenshot()"
+        >
+          <i class="ri-screenshot-2-line"></i>
+        </button>
+      }
 
-    @if (options()?.showSlicers) {
-      <button ngmAction class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
-        [cdkMenuTriggerFor]="filtersMenu"
-        [cdkMenuTriggerData]="{trigger: mt}"
-        #mt="cdkMenuTriggerFor"
-        [class.active]="mt.isOpen()"
-        [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
-        matTooltipPosition="above">
-        <i class="ri-filter-line"></i>
-        @if (slicers?.length) {
-          <span class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"></span>
-        }
-      </button>
-    }
+      @if (options()?.showSlicers) {
+        <button
+          ngmAction
+          class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+          [cdkMenuTriggerFor]="filtersMenu"
+          [cdkMenuTriggerData]="{ trigger: mt }"
+          #mt="cdkMenuTriggerFor"
+          [class.active]="mt.isOpen()"
+          [zTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
+          zPosition="top"
+        >
+          <i class="ri-filter-line"></i>
+          @if (slicers?.length) {
+            <span
+              class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"
+            ></span>
+          }
+        </button>
+      }
 
       <!-- Refresh & Loading icon -->
       @if (isLoading$ | async) {
@@ -69,11 +74,12 @@
           <i class="ri-loader-2-line animate-spin"></i>
         </div>
       } @else {
-        <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
-          bg-transparent hover:bg-hover-bg"
-          [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
-          matTooltipPosition="above"
-          (click)="refresh(true)">
+        <button
+          class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+          [zTooltip]="'Ngm.AnalyticalCard.Refresh' | translate: { Default: 'Refresh' }"
+          zPosition="top"
+          (click)="refresh(true)"
+        >
           <i class="ri-refresh-line"></i>
         </button>
       }
@@ -82,7 +88,9 @@
 }
 
 @if (breadcrumbs$ | async; as breadcrumbs) {
-  <ngm-breadcrumb-bar class="shrink-0" [displayDensity]="appearance?.displayDensity ?? DisplayDensity.compact"
+  <ngm-breadcrumb-bar
+    class="shrink-0"
+    [displayDensity]="appearance?.displayDensity ?? DisplayDensity.compact"
     [steps]="breadcrumbs"
     (selectedChange)="reselectDrill($event)"
     (close)="clearDrill()"
@@ -103,51 +111,54 @@
     <div class="ngm-card-error">
       <span class="title-icon text-2xl font-notoColorEmoji">🛒</span>
       <span>
-        {{ 'Ngm.AnalyticalCard.DataEmpty' | translate: {Default: "Data Empty"} }}
+        {{ 'Ngm.AnalyticalCard.DataEmpty' | translate: { Default: 'Data Empty' } }}
       </span>
     </div>
   }
 
   @if (!((error$ | async) || (empty$ | async))) {
-    <div echarts class="echarts-chart"
+    <div
+      echarts
+      class="echarts-chart"
       [options]="options$ | async"
       [theme]="chartSettings()?.theme ?? 'default'"
       (chartInit)="onChartInit($event)"
       (optionsError)="onOptionsError($event)"
-    >
-    </div>
+    ></div>
   }
 </div>
 
-<div style="visibility: hidden; position: absolute;"
+<div
+  style="visibility: hidden; position: absolute"
   #cmt="cdkMenuTriggerFor"
   [style.left]="contextMenuPosition.x"
   [style.top]="contextMenuPosition.y"
-  [cdkMenuTriggerFor]="contextMenu">
-</div>
+  [cdkMenuTriggerFor]="contextMenu"
+></div>
 
 <!-- [hasBackdrop]="false" -->
 <ng-template #contextMenu let-slicers="slicers">
   <div cdkMenu class="cdk-menu__large">
     <button cdkMenuItem (click)="onLinkAnalysis(slicers)">
-      <mat-icon displayDensity="cosy">add_link</mat-icon>
-      {{ 'Ngm.AnalyticalCard.LinkAnalysis' | translate: {Default: "Link Analysis"} }}
+      <z-icon zSize="default" zType="add_link"></z-icon>
+      {{ 'Ngm.AnalyticalCard.LinkAnalysis' | translate: { Default: 'Link Analysis' } }}
     </button>
 
     @if (canDrillLevels$ | async) {
       <div class="border-b border-solid border-divider-regular my-1"></div>
       <div class="p-2">
-        {{ 'Ngm.AnalyticalCard.DrillLevel' | translate: {Default: "Drill Level"} }}
+        {{ 'Ngm.AnalyticalCard.DrillLevel' | translate: { Default: 'Drill Level' } }}
       </div>
 
       @for (drill of drillLevels$ | async; track drill) {
-        <button cdkMenuItem
+        <button
+          cdkMenuItem
           [cdkMenuTriggerFor]="drillLevelsMenu"
-          [cdkMenuTriggerData]="{slicer: drill.slicer, levels: drill.levels}"
+          [cdkMenuTriggerData]="{ slicer: drill.slicer, levels: drill.levels }"
         >
-          <mat-icon displayDensity="cosy">format_list_numbered</mat-icon>
+          <z-icon zSize="default" zType="format_list_numbered"></z-icon>
           <div class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
-            {{drill.property.caption || drill.property.name}}:{{drill.slicerCaption}}
+            {{ drill.property.caption || drill.property.name }}:{{ drill.slicerCaption }}
           </div>
         </button>
       }
@@ -156,15 +167,12 @@
     @if (canDrillDimensions$ | async) {
       <div class="border-b border-solid border-divider-regular my-1"></div>
       <div class="p-2">
-        {{ 'Ngm.AnalyticalCard.DrillDimension' | translate: {Default: "Drill Dimension"} }}
+        {{ 'Ngm.AnalyticalCard.DrillDimension' | translate: { Default: 'Drill Dimension' } }}
       </div>
 
       @for (item of dillSlicers$ | async; track item) {
-        <button cdkMenuItem
-          [cdkMenuTriggerFor]="drillDimensionsMenu"
-          [cdkMenuTriggerData]="{slicer: item.value}"
-        >
-          <mat-icon displayDensity="cosy">tag</mat-icon>{{ item.label }}
+        <button cdkMenuItem [cdkMenuTriggerFor]="drillDimensionsMenu" [cdkMenuTriggerData]="{ slicer: item.value }">
+          <z-icon zSize="default" zType="tag"></z-icon>{{ item.label }}
         </button>
       }
     }
@@ -172,8 +180,8 @@
     @if (dilldown$ | async; as slicer) {
       <div class="border-b border-solid border-divider-regular my-1"></div>
       <button cdkMenuItem (click)="drillDown(slicer)">
-        <mat-icon displayDensity="cosy">arrow_drop_down</mat-icon>
-        {{ 'Ngm.AnalyticalCard.DrillDown' | translate: {Default: "Drill Down"} }}
+        <z-icon zSize="default" zType="chevron-down"></z-icon>
+        {{ 'Ngm.AnalyticalCard.DrillDown' | translate: { Default: 'Drill Down' } }}
       </button>
     }
   </div>
@@ -182,9 +190,12 @@
 <ng-template #drillLevelsMenu let-levels="levels" let-slicer="slicer">
   <div cdkMenu class="cdk-menu__medium">
     @for (item of levels; track item) {
-      <button cdkMenuItem [class.text-text-secondary]="item.disabled"
+      <button
+        cdkMenuItem
+        [class.text-text-secondary]="item.disabled"
         [disabled]="item.disabled"
-        (click)="drillLevel({property: item.property, slicer})">
+        (click)="drillLevel({ property: item.property, slicer })"
+      >
         <ngm-entity-property class="w-full" [property]="item.property"></ngm-entity-property>
       </button>
     }
@@ -194,20 +205,25 @@
 <ng-template #drillDimensionsMenu let-slicer="slicer">
   <div cdkMenu class="cdk-menu__medium">
     @for (item of drillDimensions$ | async; track item) {
-      <button cdkMenuItem [class.text-text-secondary]="item.disabled"
+      <button
+        cdkMenuItem
+        [class.text-text-secondary]="item.disabled"
         [disabled]="item.disabled"
-        (click)="drill({parent: slicer.dimension, dimension: item.dimension, slicer})">
+        (click)="drill({ parent: slicer.dimension, dimension: item.dimension, slicer })"
+      >
         <ngm-entity-property class="w-full" [property]="item.property"></ngm-entity-property>
       </button>
     }
   </div>
 </ng-template>
 
-
 <ng-template #filtersMenu let-trigger="trigger">
   <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">
-    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
-    <ngm-slicers class="overflow-hidden" inline editable
+    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: { Default: 'Slicers' } }}</div>
+    <ngm-slicers
+      class="overflow-hidden"
+      inline
+      editable
       [slicers]="slicers"
       [dataSettings]="_dataSettings()"
       [limit]="5"
@@ -216,8 +232,11 @@
       (click)="$event.stopPropagation()"
     />
 
-    <button type="button" class="btn-close btn btn-secondary absolute right-2 top-2 flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-      (click)="trigger.close()">
+    <button
+      type="button"
+      class="btn-close btn btn-secondary absolute right-2 top-2 flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+      (click)="trigger.close()"
+    >
       <i class="ri-close-line"></i>
     </button>
   </div>

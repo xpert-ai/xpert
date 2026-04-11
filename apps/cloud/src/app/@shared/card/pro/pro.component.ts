@@ -1,12 +1,12 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, input, output } from '@angular/core'
 import { I18nObject, injectHelpWebsite } from '../../../@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmI18nPipe],
+  imports: [TranslateModule, NgmI18nPipe],
   selector: 'card-pro',
   templateUrl: 'pro.component.html',
   styleUrls: ['pro.component.scss']

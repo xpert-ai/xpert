@@ -15,12 +15,11 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { nonNullable, stringifyMessageContent } from '@metad/copilot'
-import { ListHeightStaggerAnimation } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { omit } from '@metad/ocap-core'
+import { nonNullable, stringifyMessageContent } from '@xpert-ai/copilot'
+import { ListHeightStaggerAnimation } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { omit } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
@@ -45,6 +44,7 @@ import { ChatThoughtComponent } from '../thought/thought.component'
 import { TCopilotChatMessage } from '../types'
 import { ChatMessageContentComponent } from './content/content.component'
 import { ChatMessageAvatarComponent } from './avatar/avatar.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -58,7 +58,7 @@ import { ChatMessageAvatarComponent } from './avatar/avatar.component'
     TranslateModule,
     CdkMenuModule,
     MarkdownModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     EmojiAvatarComponent,
     ChatMessageExecutionComponent,
@@ -206,6 +206,7 @@ export class ChatAiMessageComponent {
   }
 
   updateCollapse(id: string, status: boolean) {
+    this.collapseMessages.update((state) => ({ ...state, [id]: status }))
     this.collapseMessages.update((state) => ({ ...state, [id]: status }))
   }
 

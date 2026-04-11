@@ -1,13 +1,13 @@
 import { Location } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { TranslateService } from '@ngx-translate/core'
 import { map, startWith } from 'rxjs/operators'
 import { PacAuthService } from './services/auth.service'
 
-
 @Component({
+  standalone: false,
   selector: 'pac-auth',
   styleUrls: ['./auth.component.scss'],
   templateUrl: './auth.component.html',

@@ -1,16 +1,17 @@
 import { Component, ElementRef, HostBinding, OnInit, Renderer2, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute } from '@angular/router'
-import { NxCoreService } from '@metad/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { NxStoryService, Story } from '@metad/story/core'
-import { provideStory } from '@metad/story'
+import { NxCoreService } from '@xpert-ai/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { NxStoryService, Story } from '@xpert-ai/story/core'
+import { provideStory } from '@xpert-ai/story'
 import { map } from 'rxjs/operators'
 import { AgentType, registerWasmAgentModel } from '../../@core'
 import { effectStoryTheme, registerStoryThemes } from '../../@theme'
 import { AppService } from '../../app.service'
 
 @Component({
+  standalone: false,
   selector: 'pac-story-viewer',
   templateUrl: 'story.component.html',
   styleUrls: ['story.component.scss'],
@@ -69,7 +70,7 @@ export class StoryViewerComponent implements OnInit {
 
     effect(() => {
       this.storyService.setAuthenticated(this.appService.isAuthenticated())
-    }, { allowSignalWrites: true })
+    })
   }
 
   ngOnInit() {

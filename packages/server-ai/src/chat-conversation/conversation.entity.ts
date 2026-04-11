@@ -9,8 +9,8 @@ import {
 	TChatConversationStatus,
 	TChatFrom,
 	TSensitiveOperation
-} from '@metad/contracts'
-import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
@@ -33,7 +33,7 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status?: TChatConversationStatus
 
 	@ApiPropertyOptional({ type: () => Object })
@@ -57,7 +57,7 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	from: TChatFrom
 
 	@ApiProperty({ type: () => String })

@@ -2,10 +2,10 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialogModule } from '@angular/material/dialog'
+
 import { NxScaleChromaticComponent } from './scale-chromatic/scale-chromatic.component'
 import { NxScaleChromaticDirective } from './scale-chromatic/scale-chromatic.directive'
+import { ZardButtonComponent, ZardDialogModule } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [
@@ -17,8 +17,8 @@ import { NxScaleChromaticDirective } from './scale-chromatic/scale-chromatic.dir
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatDialogModule,
-    MatButtonModule
+    ZardDialogModule,
+    ZardButtonComponent
   ],
   exports: [
     NxScaleChromaticDirective,

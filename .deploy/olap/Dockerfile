@@ -91,7 +91,7 @@ COPY packages/olap/src ./src
 RUN mvn clean install
 
 # ==================================================== Stage ==========================================================#
-FROM eclipse-temurin:11-jre AS webapp
+FROM eclipse-temurin:11-jre AS production
 
 WORKDIR /app
 
@@ -100,3 +100,5 @@ COPY --from=build /app/target/olap-1.1.0.jar /app/app.jar
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+
+FROM production AS candidate

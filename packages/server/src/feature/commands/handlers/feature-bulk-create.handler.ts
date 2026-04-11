@@ -1,4 +1,4 @@
-import { IFeature, IFeatureCreateInput, ITenant } from '@metad/contracts'
+import { IFeature, IFeatureCreateInput, ITenant } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'

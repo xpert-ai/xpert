@@ -1,4 +1,4 @@
-import { IPGVectorConfig } from '@metad/server-common';
+import { IPGVectorConfig } from '@xpert-ai/server-common';
 import { registerAs } from '@nestjs/config';
 
 /**

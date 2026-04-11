@@ -1,4 +1,4 @@
-import { PeriodFunctions } from "@metad/ocap-core"
+import { PeriodFunctions } from "@xpert-ai/ocap-core"
 
 export enum ValueType {
   PROPORTION = 'proportion',

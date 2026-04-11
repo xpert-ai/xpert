@@ -1,3 +1,4 @@
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   display: flex;
   flex-direction: column;
@@ -8,17 +9,30 @@
   max-height: 100%;
 }
 
-.mat-chip {
+z-chip-row {
   max-width: 100%;
-  .ngm-display-behaviour {
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
 }
 
-.mat-option {
+z-chip-row .ngm-display-behaviour {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.z-chip-input {
+  flex: 1 0 50px;
+}
+
+.ngm-tree-select__option {
   overflow: visible;
   max-width: unset;
+  cursor: pointer;
+  display: block;
+  border-radius: 0.5rem;
+  padding: 0.125rem 0.25rem;
+}
+
+.ngm-tree-select__option.selected {
+  background: color-mix(in srgb, currentColor 8%, transparent);
 }
 
 .ngm-tree-select__search {
@@ -39,17 +53,5 @@
     padding: 10px;
     padding-left: 32px;
     border-radius: 10px;
-  }
-}
-
-/* Deep styles */
-:host::ng-deep {
-  .mat-mdc-standard-chip {
-    .mdc-evolution-chip__cell--primary, .mat-mdc-chip-action-label {
-      @apply overflow-hidden;
-    }
-  }
-  .mat-mdc-form-field-icon-prefix, .mat-mdc-form-field-icon-suffix {
-    @apply self-end;
   }
 }

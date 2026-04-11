@@ -6,7 +6,7 @@ import {
 	getToolCallFromConfig,
 	IXpertProjectTask,
 	TAgentRunnableConfigurable,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../../../services'
 import { ProjectToolEnum } from '../project'

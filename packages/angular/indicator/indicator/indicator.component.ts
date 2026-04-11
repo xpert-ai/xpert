@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { NgmIsNilPipe, NgmLanguageEnum } from '@metad/ocap-angular/core'
-import { DataSettings, Indicator, IndicatorTagEnum, QueryReturn, TimeGranularity } from '@metad/ocap-core'
+import { NgmIsNilPipe, NgmLanguageEnum } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, Indicator, IndicatorTagEnum, QueryReturn, TimeGranularity } from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, startWith } from 'rxjs'
@@ -113,8 +113,7 @@ export class NgmIndicatorComponent {
           indicatorId: this.indicatorCode(),
           lookBack: this.lookBack()
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

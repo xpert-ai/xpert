@@ -1,4 +1,4 @@
-import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@metad/server-core'
+import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -23,6 +23,7 @@ import { KnowledgebaseTaskService } from './task/task.service'
 import { KnowledgebaseTask } from './task/task.entity'
 import { Validators, Strategies } from './plugins'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
+import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowledgebase-view-host.definition'
 
 @Module({
 	imports: [
@@ -49,6 +50,7 @@ import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 		TextSplitterRegistry,
 		DocumentTransformerRegistry,
 		ImageUnderstandingRegistry,
+		KnowledgebaseViewHostDefinition,
 		...QueryHandlers,
 		...CommandHandlers,
 		...Strategies,

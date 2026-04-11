@@ -2,15 +2,21 @@ import { Inject, Injectable, Optional, inject } from '@angular/core'
 import type { CallbackManagerForRetrieverRun } from '@langchain/core/callbacks/manager'
 import { Document } from '@langchain/core/documents'
 import { type BaseRetrieverInput } from '@langchain/core/retrievers'
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { BaseDimensionMemberRetriever, MEMBER_RETRIEVER_TOKEN } from '@metad/core'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { BaseDimensionMemberRetriever, MEMBER_RETRIEVER_TOKEN } from '@xpert-ai/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, firstValueFrom, of, timeout } from 'rxjs'
 import { SERVER_REQUEST_TIMEOUT } from '../config'
 
+/**
+ * @deprecated use chatkit instead
+ */
 @Injectable()
 export class CustomRetrieverInput implements BaseRetrieverInput {}
 
+/**
+ * @deprecated use chatkit instead
+ */
 @Injectable()
 export class DimensionMemberRetriever extends BaseDimensionMemberRetriever {
   readonly #logger = inject(NGXLogger)
@@ -46,6 +52,9 @@ export class DimensionMemberRetriever extends BaseDimensionMemberRetriever {
   }
 }
 
+/**
+ * @deprecated use chatkit instead
+ */
 export function provideDimensionMemberRetriever() {
   return {
     provide: MEMBER_RETRIEVER_TOKEN,

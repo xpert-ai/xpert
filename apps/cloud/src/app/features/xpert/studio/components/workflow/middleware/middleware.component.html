@@ -2,20 +2,32 @@
 
 <div class="relative flex items-center pt-3">
   @if (providerMeta(); as meta) {
-    <xp-icon [icon]="meta.icon" size="18" class="w-6 h-6 shrink-0 flex items-center mr-1" 
-      [matTooltip]="key()"
-      matTooltipPosition="above" />
-    <div [title]="meta.label | i18n" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
-      <div>{{meta.label | i18n}}</div>
+    <xp-icon
+      [icon]="meta.icon"
+      size="18"
+      class="w-6 h-6 shrink-0 flex items-center mr-1"
+      [zTooltip]="key()"
+      zPosition="top"
+    />
+    <div
+      [title]="meta.label | i18n"
+      class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center"
+    >
+      <div>{{ meta.label | i18n }}</div>
     </div>
   } @else if (notFound()) {
     <div class="grow mr-1 font-semibold text-sm text-text-primary truncate flex items-center">
       <i class="ri-error-warning-line text-text-warning"></i>
-      <div>{{ 'PAC.Xpert.MiddlewareNotFound' | translate: {provider: provider(), Default: 'Middleware "'+ provider() +'" Not Found'} }}</div>
+      <div>
+        {{
+          'PAC.Xpert.MiddlewareNotFound'
+            | translate: { provider: provider(), Default: 'Middleware "' + provider() + '" Not Found' }
+        }}
+      </div>
     </div>
   }
 </div>
-  
+
 <div class="flex flex-wrap items-center gap-2 py-2 text-left">
   @if (description(); as desc) {
     <div class="font-body text-xs text-text-secondary line-clamp-2" [title]="desc | i18n">
@@ -27,23 +39,23 @@
   </div>
 </div>
 
-
 <div class="relative w-full flex flex-col justify-start items-stretch gap-1">
   @if (error()) {
-    <div class="text-xs text-text-destructive">
-      <i class="ri-error-warning-line mr-1 text-sm"></i>{{ error() }}
-    </div>
+    <div class="text-xs text-text-destructive"><i class="ri-error-warning-line mr-1 text-sm"></i>{{ error() }}</div>
   } @else {
     @for (item of tools(); track item.name) {
-      <div class="relative flex flex-col p-1 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
-        [matTooltip]="item.description"
-        matTooltipPosition="after"
+      <div
+        class="relative flex flex-col p-1 rounded-lg text-sm bg-components-input-bg-normal dark:bg-zinc-800"
+        [zTooltip]="item.description"
+        zPosition="right"
       >
         <div class="flex items-center gap-1 px-1 text-left">
           <i class="ri-hammer-line text-text-tertiary"></i>
-          <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
-            [title]="item.description || item.name">
-            {{item.name}}
+          <div
+            class="border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-xs font-mono truncate text-text-secondary bg-background-default-subtle"
+            [title]="item.description || item.name"
+          >
+            {{ item.name }}
           </div>
         </div>
 
@@ -55,27 +67,28 @@
                   <ngm-spin class="shrink-0 scale-90 origin-center" small />
                 }
                 @case ('fail') {
-                  <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-                    [matTooltip]="execution.error"
-                    matTooltipPosition="above"
+                  <div
+                    class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                    [zTooltip]="execution.error"
+                    zPosition="top"
                   ></div>
                 }
                 @case ('success') {
-                  <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                  <div
+                    class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
                     [floatUi]="popperContent"
                     [appendTo]="'body'"
                     [showTrigger]="eNgxFloatUiTriggers.hover"
                     hideOnClickOutside
                     [hideOnScroll]="true"
                     [hideTimeout]="200"
-                  >
-                  </div>
+                  ></div>
                 }
               }
               <float-ui-content #popperContent>
                 <div class="text-sm text-left w-96 max-h-80 p-2 overflow-auto">
-                  <div class="mb-2 font-semibold">{{ 'PAC.KEY_WORDS.Input' | translate: {Default: 'Input'} }}:</div>
-                  <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap"/>
+                  <div class="mb-2 font-semibold">{{ 'PAC.KEY_WORDS.Input' | translate: { Default: 'Input' } }}:</div>
+                  <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap" />
                 </div>
               </float-ui-content>
             </div>

@@ -1,9 +1,9 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, input, numberAttribute } from '@angular/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-progress-spinner',
   templateUrl: './spinner.component.html',

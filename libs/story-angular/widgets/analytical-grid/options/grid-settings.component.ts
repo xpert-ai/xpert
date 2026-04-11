@@ -1,8 +1,8 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { cloneDeep } from '@metad/ocap-core'
+import { cloneDeep } from '@xpert-ai/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { map } from 'rxjs/operators'
@@ -10,7 +10,7 @@ import { getGridOptionsSchema } from '../analytical-grid.schema'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
   selector: 'ngm-grid-settings',
   templateUrl: 'grid-settings.component.html',
   styles: [],

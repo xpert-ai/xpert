@@ -6,7 +6,7 @@ import {
 	DEFAULT_API_BASE_URL,
 	DEFAULT_GRAPHQL_API_PATH,
 	IPluginConfig
-} from '@metad/server-common';
+} from '@xpert-ai/server-common';
 import chalk from 'chalk';
 import path from 'path';
 import { dbConnectionConfig } from './database';
@@ -25,7 +25,7 @@ console.log(chalk.blueBright('Plugin Config -> process.cwd: ' + process.cwd()));
 
 // for Docker
 if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
-	serverRoot = '/srv/pangolin/';
+	serverRoot = '/srv/xpert/';
 	assetPath = serverRoot + 'assets';
 	assetPublicPath = serverRoot + 'public';
 	dataPath = '/var/lib/xpert/data/'

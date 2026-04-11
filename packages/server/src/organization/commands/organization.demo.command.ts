@@ -1,4 +1,4 @@
-import { OrgGenerateDemoOptions } from '@metad/contracts';
+import { OrgGenerateDemoOptions } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class OrganizationDemoCommand implements ICommand {

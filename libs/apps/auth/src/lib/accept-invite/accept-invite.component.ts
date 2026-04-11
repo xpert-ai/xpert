@@ -1,12 +1,30 @@
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { TranslateModule } from '@ngx-translate/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
-import { InviteService, ToastrService } from '@metad/cloud/state'
-import { IInvite, IUserRegistrationInput } from '@metad/contracts'
-import { TranslateService } from '@ngx-translate/core'
+import { InviteService, ToastrService } from '@xpert-ai/cloud/state'
+import { IInvite, IUserRegistrationInput } from '@xpert-ai/contracts'
 import { tap } from 'rxjs/operators'
+import { AcceptInviteFormComponent } from './accept-invite-form/accept-invite-form.component'
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...ZardFormImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ZardCheckboxComponent,
+    ZardLoaderComponent,
+    AcceptInviteFormComponent
+  ],
   selector: 'pac-auth-accept-invite',
   styleUrls: ['./accept-invite.component.scss'],
   templateUrl: 'accept-invite.component.html'
@@ -22,7 +40,6 @@ export class AcceptInvitePageComponent implements OnInit {
     private readonly router: Router,
     private readonly route: ActivatedRoute,
     private inviteService: InviteService,
-    private translate: TranslateService,
     private toastrService: ToastrService,
     private _cdr: ChangeDetectorRef
   ) {}

@@ -1,0 +1,19 @@
+@reference "../../../styles/tailwind-reference.css";
+:host {
+  width: 100%;
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  max-width: 100%;
+  overflow: auto;
+  border-top-left-radius: var(--ngm-primary-container-rounded);
+}
+
+.pac-nav__router {
+  display: flex;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.link.active {
+  @apply bg-components-panel-bg dark:bg-components-list-option-active-bg;
+}

@@ -16,20 +16,27 @@ import {
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatTabsModule } from '@angular/material/tabs'
-import { MatRadioModule } from '@angular/material/radio'
-import { nonBlank } from '@metad/core'
-import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
-import { NgmMemberTreeComponent } from '@metad/ocap-angular/controls'
-import { DisplayDensity, NgmDSCoreService, NgmThemeService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { EntityCapacity, NgmEntityPropertyComponent, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { NgmChartPropertyComponent, NgmChartSettingsComponent, NgmSchemaChartTypeComponent } from '@metad/story/widgets/analytical-card'
-import { NgmGridSettingsComponent } from '@metad/story/widgets/analytical-grid'
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardTabsImports,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+import { nonBlank } from '@xpert-ai/core'
+import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
+import { AnalyticalGridModule } from '@xpert-ai/ocap-angular/analytical-grid'
+import { NgmMemberTreeComponent } from '@xpert-ai/ocap-angular/controls'
+import { DisplayDensity, NgmDSCoreService, NgmThemeService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { EntityCapacity, NgmEntityPropertyComponent, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import {
+  NgmChartPropertyComponent,
+  NgmChartSettingsComponent,
+  NgmSchemaChartTypeComponent
+} from '@xpert-ai/story/widgets/analytical-card'
+import { NgmGridSettingsComponent } from '@xpert-ai/story/widgets/analytical-grid'
 import {
   AggregationRole,
   CHARTS,
@@ -58,17 +65,15 @@ import {
   omit,
   pick,
   uniqBy
-} from '@metad/ocap-core'
-import { NxStoryService, WidgetComponentType } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { NxStoryService, WidgetComponentType } from '@xpert-ai/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { combineLatestWith, filter, map, startWith, switchMap } from 'rxjs/operators'
-import { MatIconModule } from '@angular/material/icon'
-import { NgmSearchComponent, ResizerModule } from '@metad/ocap-angular/common'
+import { NgmSearchComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
 import { firstValueFrom } from 'rxjs'
-import { ExplainComponent } from '@metad/story/story'
+import { ExplainComponent } from '@xpert-ai/story/story'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-
 
 @Component({
   standalone: true,
@@ -78,13 +83,13 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
     ReactiveFormsModule,
     TranslateModule,
     CdkListboxModule,
-    MatButtonModule,
-    MatButtonToggleModule,
-    MatDividerModule,
-    MatTooltipModule,
-    MatIconModule,
-    MatTabsModule,
-    MatRadioModule,
+    ZardButtonComponent,
+    ZardDividerComponent,
+    ...ZardTooltipImports,
+    ZardIconComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
+    ...ZardTabsImports,
     DragDropModule,
     OcapCoreModule,
     NgmMemberTreeComponent,
@@ -100,7 +105,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
   ],
   selector: 'ngm-story-explorer',
   templateUrl: 'explorer.component.html',
-  styleUrls: ['explorer.component.scss'],
+  styleUrls: ['explorer.component.scss']
 })
 export class StoryExplorerComponent {
   EntityCapacity = EntityCapacity
@@ -115,7 +120,7 @@ export class StoryExplorerComponent {
   private readonly translateService = inject(TranslateService)
   readonly #storyService? = inject(NxStoryService, { optional: true })
   readonly themeService = inject(NgmThemeService)
-  readonly #data = inject<{data: any}>(DIALOG_DATA, { optional: true })
+  readonly #data = inject<{ data: any }>(DIALOG_DATA, { optional: true })
   readonly #dialogRef = inject(DialogRef, { optional: true })
   readonly #dialog = inject(Dialog)
 
@@ -136,7 +141,7 @@ export class StoryExplorerComponent {
         }
         try {
           component.label = getChartType(chartAnnotation.chartType)?.label as ChartTypeEnum
-        } catch(err) {
+        } catch (err) {
           console.error(err)
         }
         this.component.set(component)
@@ -159,7 +164,9 @@ export class StoryExplorerComponent {
         this.rows.set(analytics.rows)
         this.columns.set(analytics.columns)
         this._dimensions.set(
-          [...analytics.rows, ...analytics.columns].filter((d) => d.dimension !== C_MEASURES).map((d) => pick(d, 'dimension', 'hierarchy'))
+          [...analytics.rows, ...analytics.columns]
+            .filter((d) => d.dimension !== C_MEASURES)
+            .map((d) => pick(d, 'dimension', 'hierarchy'))
         )
         this.gridSettings = {
           options: value.options
@@ -169,23 +176,31 @@ export class StoryExplorerComponent {
       }
 
       const dimensions = [...this._dimensions()]
-      const slicers: ISlicer[] = [...(value.slicers ?? []), ...(value.dataSettings?.selectionVariant?.selectOptions ?? [])]
+      const slicers: ISlicer[] = [
+        ...(value.slicers ?? []),
+        ...(value.dataSettings?.selectionVariant?.selectOptions ?? [])
+      ]
       if (slicers.length) {
         // Set slicers from selectionVariant
         this.slicers.set(
-          slicers.reduce((acc, curr) => {
-            if (!curr.dimension) {
+          slicers.reduce(
+            (acc, curr) => {
+              if (!curr.dimension) {
+                return acc
+              }
+              acc[curr.dimension.parameter || curr.dimension.dimension] = curr
               return acc
-            }
-            acc[curr.dimension.parameter || curr.dimension.dimension] = curr
-            return acc
-          }, {} as Record<string, ISlicer>)
+            },
+            {} as Record<string, ISlicer>
+          )
         )
         // Udpate dimensions
-        dimensions.push(...slicers
-          .filter((slicer) => !!slicer.dimension && !slicer.dimension.parameter)
-          .map((slicer) => pick(slicer.dimension, 'dimension', 'hierarchy') as Dimension)
-          .filter((d) => d.dimension))
+        dimensions.push(
+          ...slicers
+            .filter((slicer) => !!slicer.dimension && !slicer.dimension.parameter)
+            .map((slicer) => pick(slicer.dimension, 'dimension', 'hierarchy') as Dimension)
+            .filter((d) => d.dimension)
+        )
       }
       this._dimensions.set(uniqBy(dimensions, 'dimension'))
     }
@@ -240,9 +255,10 @@ export class StoryExplorerComponent {
     return pick(this.data?.dataSettings, 'dataSource', 'entitySet') as DataSettings
   })
   readonly dataSettingsChart = computed(() => {
-    const dimensions = this.rows()?.map((row) => ({
-          ...row
-        })) ?? []
+    const dimensions =
+      this.rows()?.map((row) => ({
+        ...row
+      })) ?? []
     const measures = []
     this.columns()?.forEach((column) => {
       if (isMeasure(column)) {
@@ -288,22 +304,28 @@ export class StoryExplorerComponent {
   })
   readonly chartTitle = computed(() => {
     let title = ''
-    title += this.columns().map((column) => {
-      const property = getEntityProperty(this.entityType(), column)
-      return property?.caption
-    }).filter(nonBlank).join(` ${this.i18n()?.And ?? 'and'} `)
-    
-    const by = this.rows()?.map((row) => {
-      const property = getEntityLevel(this.entityType(), row)
-      return property?.caption
-    }).filter(nonBlank).join(` ${this.i18n()?.And ?? 'and'} `)
+    title += this.columns()
+      .map((column) => {
+        const property = getEntityProperty(this.entityType(), column)
+        return property?.caption
+      })
+      .filter(nonBlank)
+      .join(` ${this.i18n()?.And ?? 'and'} `)
+
+    const by = this.rows()
+      ?.map((row) => {
+        const property = getEntityLevel(this.entityType(), row)
+        return property?.caption
+      })
+      .filter(nonBlank)
+      .join(` ${this.i18n()?.And ?? 'and'} `)
 
     if (by) {
       title += ` ${this.i18n()?.By ?? 'by'} (${by})`
     }
     return title
   })
-  
+
   readonly dataSettingsGrid = computed(() => {
     const analytics = {
       ...(this.data?.analytics ?? {}),
@@ -327,9 +349,9 @@ export class StoryExplorerComponent {
   readonly columns = signal<(Dimension | Measure)[]>([])
   readonly slicers = signal<{ [name: string]: ISlicer }>({})
   readonly component = signal<{
-    label: string;
-    component: WidgetComponentType;
-    dataSettings: Partial<DataSettings>;
+    label: string
+    component: WidgetComponentType
+    dataSettings: Partial<DataSettings>
   }>({
     label: ChartTypeEnum.Bar,
     component: WidgetComponentType.AnalyticalCard,
@@ -385,26 +407,21 @@ export class StoryExplorerComponent {
   set gridSettings(value) {
     this._gridSettings.set(value)
   }
-  private _gridSettings = signal<{ options?: any }>({options: {
-    showToolbar: true,
-    paging: true,
-    pageSize: 20,
-    sticky: true,
-    sortable: true
-  }})
+  private _gridSettings = signal<{ options?: any }>({
+    options: {
+      showToolbar: true,
+      paging: true,
+      pageSize: 20,
+      sticky: true,
+      sortable: true
+    }
+  })
 
   readonly dimensionCapacities = computed(() => {
     if (this.component().component === WidgetComponentType.AnalyticalCard) {
-      return [
-        PropertyCapacity.Dimension,
-        PropertyCapacity.Order,
-        PropertyCapacity.DimensionChart
-      ]
+      return [PropertyCapacity.Dimension, PropertyCapacity.Order, PropertyCapacity.DimensionChart]
     } else {
-      return [
-        PropertyCapacity.Dimension,
-        PropertyCapacity.Order,
-      ]
+      return [PropertyCapacity.Dimension, PropertyCapacity.Order]
     }
   })
   readonly measureCapacities = computed(() => {
@@ -440,25 +457,26 @@ export class StoryExplorerComponent {
     effect(
       () => {
         if (this.entityType()) {
-          this.dimensions.set(this._dimensions().map((d) => {
-            const property = getEntityProperty(this.entityType(), d)
-            return {
-              dimension: {
-                dimension: d.dimension,
-                hierarchy: d.hierarchy,
-                displayBehaviour: DisplayBehaviour.descriptionOnly
-              },
-              caption: property.caption,
-              hierarchies: property.hierarchies.map((hierarchy) => ({
-                dimension: d.dimension,
-                hierarchy: hierarchy.name,
-                caption: hierarchy.caption
-              }))
-            }
-          }))
+          this.dimensions.set(
+            this._dimensions().map((d) => {
+              const property = getEntityProperty(this.entityType(), d)
+              return {
+                dimension: {
+                  dimension: d.dimension,
+                  hierarchy: d.hierarchy,
+                  displayBehaviour: DisplayBehaviour.descriptionOnly
+                },
+                caption: property.caption,
+                hierarchies: property.hierarchies.map((hierarchy) => ({
+                  dimension: d.dimension,
+                  hierarchy: hierarchy.name,
+                  caption: hierarchy.caption
+                }))
+              }
+            })
+          )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     if (this.#data?.data) {
@@ -546,11 +564,7 @@ export class StoryExplorerComponent {
           caption: event.item.data.caption
         })
       } else if (event.item.data.dimension) {
-        items.splice(
-          event.currentIndex,
-          0,
-          event.item.data.dimension
-        )
+        items.splice(event.currentIndex, 0, event.item.data.dimension)
       }
     }
     this.columns.set(items)
@@ -578,11 +592,7 @@ export class StoryExplorerComponent {
     })
   }
 
-  createWidget(widget: {
-    label: string;
-    component: WidgetComponentType,
-    dataSettings: Partial<DataSettings>
-  }) {
+  createWidget(widget: { label: string; component: WidgetComponentType; dataSettings: Partial<DataSettings> }) {
     this.component.set(widget)
     if (this.component().component === WidgetComponentType.AnalyticalCard) {
       this.view = 'chart'
@@ -595,7 +605,7 @@ export class StoryExplorerComponent {
 
   openDimensions() {
     this._dimensionsCache.set(this._dimensions().map((d) => d.dimension))
-    this.dialogRef = this.#dialog.open(this.addDimensionsTempl,)
+    this.dialogRef = this.#dialog.open(this.addDimensionsTempl)
   }
 
   addDimensions() {
@@ -640,21 +650,25 @@ export class StoryExplorerComponent {
   }
 
   async openExplain() {
-    await firstValueFrom(this.#dialog.open(ExplainComponent, {
-      data: [...(this.explains() ?? []), {slicers: this.slicers()}]}
-    ).closed)
+    await firstValueFrom(
+      this.#dialog.open(ExplainComponent, {
+        data: [...(this.explains() ?? []), { slicers: this.slicers() }]
+      }).closed
+    )
   }
 
   close() {
-    const result = this.component().component === WidgetComponentType.AnalyticalCard ?
-      {
-        dataSettings: this.dataSettingsChart(),
-        chartSettings: this.chartSettings?.chartSettings,
-        chartOptions: this.chartSettings?.chartOptions,
-      } : {
-        dataSettings:this.dataSettingsGrid(),
-        options: this.gridSettings?.options,
-      }
+    const result =
+      this.component().component === WidgetComponentType.AnalyticalCard
+        ? {
+            dataSettings: this.dataSettingsChart(),
+            chartSettings: this.chartSettings?.chartSettings,
+            chartOptions: this.chartSettings?.chartOptions
+          }
+        : {
+            dataSettings: this.dataSettingsGrid(),
+            options: this.gridSettings?.options
+          }
     this.closed.emit(result)
     this.#dialogRef?.close(result)
   }

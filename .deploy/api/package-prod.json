@@ -9,12 +9,16 @@
   },
   "private": true,
   "dependencies": {
+    "@xpert-ai/contracts": "workspace:*",
     "@langchain/community": "0.3.53",
     "@langchain/core": "0.3.72",
     "@langchain/langgraph": "0.4.7",
     "@langchain/ollama": "0.2.3",
     "@langchain/openai": "0.6.9",
     "@swc/helpers": "0.5.3",
+    "@xpert-ai/store": "workspace:*",
+    "@xpert-ai/plugin-sdk": "workspace:*",
+    "glob": "^11.0.3",
     "lodash-es": "^4.17.21",
     "idb-keyval": "^6.2.1",
     "keyv": "^5.5.0",
@@ -26,16 +30,19 @@
     "xml2js": "^0.6.2",
     "yaml": "^2.6.1"
   },
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "workspaces": [
     "packages/*",
     "packages/plugins/*"
   ],
-  "resolutions": {
-    "@langchain/core": "0.3.72",
-    "langchain": "0.3.31",
-    "zod": "3.25.67",
-    "web-streams-polyfill": "^4.2.0"
-  }
+  "pnpm": {
+    "overrides": {
+      "@langchain/core": "0.3.72",
+      "langchain": "0.3.31",
+      "@modelcontextprotocol/sdk": "1.12.1",
+      "zod": "3.25.67",
+      "web-streams-polyfill": "^4.2.0"
+    }
+  },
+  "packageManager": "pnpm@10.24.0"
 }

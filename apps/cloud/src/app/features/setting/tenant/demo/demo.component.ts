@@ -2,9 +2,10 @@ import { Component } from '@angular/core'
 import { catchError, concatMap, EMPTY, Observable, tap } from 'rxjs'
 import { TenantService, Store, ToastrService } from '../../../../@core'
 import { TranslationBaseComponent } from '../../../../@shared/language'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 
 @Component({
+  standalone: false,
   selector: 'pac-tenant-demo',
   templateUrl: 'demo.component.html',
   styles: [':host {display: block; padding-top: 1rem;}']

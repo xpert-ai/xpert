@@ -1,7 +1,8 @@
-import { UserModule } from '@metad/server-core'
+import { UserModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AIModule } from './ai'
+import { AssistantBindingModule } from './assistant-binding'
 import { ChatModule } from './chat'
 import { ChatConversationModule } from './chat-conversation'
 import { ChatMessageModule } from './chat-message'
@@ -34,12 +35,17 @@ import { RagVStoreModule } from './rag-vstore'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
 import { HandoffQueueModule } from './handoff/message-queue.module'
+import { SkillRepositoryIndexModule, SkillRepositoryModule } from './skill-repository'
+import { SkillPackageModule } from './skill-package'
 import { FileUploadTargetsModule } from './shared'
+import { InitializationModule } from './initialization/initialization.module'
+import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 
 @Module({
     imports: [
         forwardRef(() => CqrsModule),
         forwardRef(() => UserModule),
+        AssistantBindingModule,
         ChatModule,
         ChatConversationModule,
         ChatMessageModule,
@@ -67,6 +73,10 @@ import { FileUploadTargetsModule } from './shared'
         XpertTemplateModule,
         XpertTaskModule,
         XpertTableModule,
+        SkillRepositoryModule,
+		SkillRepositoryIndexModule,
+		SkillPackageModule,
+        InitializationModule,
         KnowledgebaseModule,
         KnowledgeDocumentModule,
         RagVStoreModule,
@@ -74,6 +84,6 @@ import { FileUploadTargetsModule } from './shared'
         SandboxModule
     ],
     controllers: [],
-    providers: [...EventHandlers, ...CommandHandlers]
+    providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]
 })
 export class ServerAIModule {}

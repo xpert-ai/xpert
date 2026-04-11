@@ -3,21 +3,13 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatSelectModule } from '@angular/material/select'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
-import { NgmEntityModule } from '@metad/ocap-angular/entity'
-import { NgmParameterModule } from '@metad/ocap-angular/parameter'
+
+import { ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardDividerComponent, ZardIconComponent, ZardInputDirective, ZardMenuImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmControlsModule } from '@xpert-ai/ocap-angular/controls'
+import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityModule } from '@xpert-ai/ocap-angular/entity'
+import { NgmParameterModule } from '@xpert-ai/ocap-angular/parameter'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmAdvancedSlicerComponent } from './advanced-slicer/advanced-slicer.component'
 import { SlicerBarComponent } from './slicer-bar/slicer-bar.component'
@@ -31,16 +23,14 @@ import { SlicersComponent } from './slicers/slicers.component'
     ReactiveFormsModule,
     DragDropModule,
     CdkMenuModule,
-    MatDialogModule,
-    MatIconModule,
-    MatButtonModule,
-    MatInputModule,
-    MatChipsModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
-    MatDividerModule,
-    MatMenuModule,
-    MatSelectModule,
+    ZardDialogModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ...ZardChipsImports,
+    ...ZardTooltipImports,
+    ZardDividerComponent,
+    ...ZardMenuImports,
     TranslateModule,
 
     // OCAP Modules
@@ -51,7 +41,8 @@ import { SlicersComponent } from './slicers/slicers.component'
     NgmParameterModule,
     NgmEntityModule,
 
-    NgmAdvancedSlicerComponent
+    NgmAdvancedSlicerComponent,
+    ZardSwitchComponent
   ],
   exports: [SlicerComponent, SlicersComponent, SlicerBarComponent]
 })

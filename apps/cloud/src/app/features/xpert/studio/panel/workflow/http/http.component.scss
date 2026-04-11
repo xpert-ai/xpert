@@ -1,7 +1,8 @@
+@reference "../../../../../../../styles/tailwind-reference.css";
 :host {
   @apply flex flex-col justify-start items-stretch gap-2;
 }
 
-.mat-mdc-slider {
+z-slider {
   width: 160px;
 }

@@ -1,9 +1,9 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpClient } from '@angular/common/http'
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { injectOrganizationId } from '@metad/cloud/state'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { injectOrganizationId } from '@xpert-ai/cloud/state'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatMessageStepCategory } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
@@ -11,7 +11,7 @@ import { of } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, EmojiAvatarComponent],
+  imports: [FormsModule, TranslateModule, EmojiAvatarComponent],
   selector: 'chat-message-step-icon',
   templateUrl: 'icon.component.html',
   styleUrls: ['icon.component.scss']

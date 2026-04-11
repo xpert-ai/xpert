@@ -1,13 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/angular'
-
 import { applicationConfig, argsToTemplate, componentWrapperDecorator, moduleMetadata } from '@storybook/angular'
-
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { CUBE_SALES_ORDER_NAME, MODEL_KEY, provideOcapMock, provideTranslate } from '@metad/ocap-angular/mock'
+import { CUBE_SALES_ORDER_NAME, MODEL_KEY, provideOcapMock, provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { action } from '@storybook/addon-actions'
 import { NgmParameterCreateComponent } from './parameter-create.component'
-import { ENTITY_TYPE_SALESORDER } from '@metad/ocap-sql'
+import { ENTITY_TYPE_SALESORDER } from '@xpert-ai/ocap-sql'
 
 export const actionsData = {
   onPinTask: action('onPinTask'),

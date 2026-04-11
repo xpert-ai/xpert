@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { ChecklistItem } from '@metad/cloud/state'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { ChecklistItem } from '@xpert-ai/cloud/state'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
   selector: 'xp-checklist',
   templateUrl: 'checklist.component.html',
   styleUrls: ['checklist.component.scss'],
-  imports: [CommonModule, TranslateModule, NgmI18nPipe],
+  imports: [TranslateModule, NgmI18nPipe],
   host: {
     class: 'xp-checklist'
   }

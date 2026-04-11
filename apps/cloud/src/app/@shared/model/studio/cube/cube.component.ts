@@ -1,15 +1,14 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { suuid } from '@cloud/app/@core'
 import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
-import { attrModel } from '@metad/ocap-angular/core'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
+import { attrModel } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   CalculatedMember,
   CalculationProperty,
@@ -21,7 +20,7 @@ import {
   PropertyDimension,
   PropertyMeasure,
   Syntax
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { filter, switchMap } from 'rxjs'
@@ -34,9 +33,9 @@ import { CubeStudioDimensionSettingsComponent } from './dimension/dimension.comp
 import { CubeStudioMeasureSettingsComponent } from './measure/measure.component'
 import { CubeStudioCubeSettingsComponent } from './settings/settings.component'
 import { CubeStudioDimensionUsageComponent } from './usage/usage.component'
-import { MatDialog } from '@angular/material/dialog'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
-import { OverlayAnimation1 } from '@metad/core'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
+import { OverlayAnimation1 } from '@xpert-ai/core'
+import { ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -45,24 +44,23 @@ import { OverlayAnimation1 } from '@metad/core'
   templateUrl: 'cube.component.html',
   styleUrls: ['cube.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     DragDropModule,
     FFlowModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     CubeStudioCubeSettingsComponent,
     CubeStudioDimensionUsageComponent,
     CubeStudioDimensionSettingsComponent,
     CubeStudioMeasureSettingsComponent,
     CubeStudioCalculatedSettingsComponent,
     CubeStudioContextMenuComponent
-  ],
+],
   host: {
     class: 'xp-cube-studio-cube'
   },
-  animations: [ OverlayAnimation1 ]
+  animations: [OverlayAnimation1]
 })
 export class CubeStudioCubeComponent {
   eEFConnectionType = EFConnectionType
@@ -74,7 +72,7 @@ export class CubeStudioCubeComponent {
   /**
    * @deprecated use `#dialog`
    */
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
   readonly #vcr = inject(ViewContainerRef)
 
   // Inputs
@@ -355,5 +353,4 @@ export class CubeStudioCubeComponent {
       return parameters
     })
   }
-
 }

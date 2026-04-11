@@ -1,11 +1,11 @@
 {
-  "name": "@metad/ocap-olap",
+  "name": "@xpert-ai/ocap-olap",
   "version": "1.1.0",
   "license": "AGPL-3.0",
   "scripts": {
-    "build": "rimraf target && mvn install && yarn run docker-build",
+    "build": "rimraf target && mvn install && pnpm run docker-build",
     "mvn": "mvn install",
-    "docker-build": "docker build --tag pangolin/olap .",
+    "docker-build": "docker build --tag xpert/olap .",
     "start": "sh ./run.sh",
     "debug": "sh ./debug.sh"
   },

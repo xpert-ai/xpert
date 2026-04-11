@@ -1,17 +1,15 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use '../theming' as ocap;
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@reference "../../../tailwind-workspace-reference.css";
+@import 'tailwindcss';
 
 // Define a theme.
-$primary: mat.define-palette(mat.$blue-grey-palette, 600);
-$accent: mat.define-palette(mat.$amber-palette, A700, A400, A200);
+$primary: themeCompat.m2-define-palette(themeCompat.$m2-blue-grey-palette, 600);
+$accent: themeCompat.m2-define-palette(themeCompat.$m2-amber-palette, A700, A400, A200);
 
-$mat-theme: mat.define-light-theme(
+$light-theme: themeCompat.m2-define-light-theme(
   (
     color: (
       primary: $primary,
@@ -21,7 +19,7 @@ $mat-theme: mat.define-light-theme(
   )
 );
 
-$dark-theme: mat.define-dark-theme(
+$dark-theme: themeCompat.m2-define-dark-theme(
   (
     color: (
       primary: $primary,
@@ -30,27 +28,27 @@ $dark-theme: mat.define-dark-theme(
   )
 );
 
-@include mat.core();
+@include themeCompat.core();
 
-@include mat.all-component-themes($mat-theme);
-@include ocap.core-theme($mat-theme);
-@include ocap.analytical-grid-theme($mat-theme);
-@include ocap.breadcrumb-theme($mat-theme);
-@include ocap.controls-theme($mat-theme);
-@include ocap.entity-theme($mat-theme);
-@include ocap.common-color($mat-theme);
-@include ocap.common-density($mat-theme);
+@include themeCompat.all-component-themes($light-theme);
+@include ocap.core-theme($light-theme);
+@include ocap.analytical-grid-theme($light-theme);
+@include ocap.breadcrumb-theme($light-theme);
+@include ocap.controls-theme($light-theme);
+@include ocap.entity-theme($light-theme);
+@include ocap.common-color($light-theme);
+@include ocap.common-density($light-theme);
 
-$config: mat.get-color-config($mat-theme);
+$config: themeCompat.m2-get-color-config($light-theme);
 $foreground: map.get($config, foreground);
 html {
   font-size: 14px;
-  --ngm-color-primary: #{mat.get-color-from-palette($primary)};
-  --ngm-color-on-primary-container: #{darken(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container: #{lighten(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container-variant: #{color.change(mat.get-color-from-palette($primary), $alpha: 0.1)};
-  --ngm-color-secondary: #{mat.get-color-from-palette($accent)};
-  --ngm-color-secondary-container: #{lighten(mat.get-color-from-palette($accent), 30%)};
+  --ngm-color-primary: #{themeCompat.m2-get-color-from-palette($primary)};
+  --ngm-color-on-primary-container: #{darken(themeCompat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container: #{lighten(themeCompat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container-variant: #{color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1)};
+  --ngm-color-secondary: #{themeCompat.m2-get-color-from-palette($accent)};
+  --ngm-color-secondary-container: #{lighten(themeCompat.m2-get-color-from-palette($accent), 30%)};
   --ngm-color-outline: #{map.get($foreground, divider)};
 
   --ngm-app-background-color: white;
@@ -68,12 +66,12 @@ html {
 }
 
 html.dark {
-  --ngm-color-primary: #{mat.get-color-from-palette($primary)};
-  --ngm-color-on-primary-container: #{darken(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container: #{lighten(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container-variant: #{color.change(mat.get-color-from-palette($primary), $alpha: 0.1)};
-  --ngm-color-secondary: #{mat.get-color-from-palette($accent)};
-  --ngm-color-secondary-container: #{lighten(mat.get-color-from-palette($accent), 30%)};
+  --ngm-color-primary: #{themeCompat.m2-get-color-from-palette($primary)};
+  --ngm-color-on-primary-container: #{darken(themeCompat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container: #{lighten(themeCompat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container-variant: #{color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1)};
+  --ngm-color-secondary: #{themeCompat.m2-get-color-from-palette($accent)};
+  --ngm-color-secondary-container: #{lighten(themeCompat.m2-get-color-from-palette($accent), 30%)};
   --ngm-color-outline: #{map.get($foreground, divider)};
 
   --ngm-app-background-color: #1e1f20;
@@ -89,7 +87,7 @@ html.dark {
   --ngm-color-outline-variant: theme('colors.neutral.800');
   --ngm-copilot-bg-color: var(--ngm-color-surface-container);
 
-  @include mat.all-component-themes($dark-theme);
+  @include themeCompat.all-component-themes($dark-theme);
   @include ocap.core-theme($dark-theme);
   @include ocap.analytical-grid-theme($dark-theme);
   @include ocap.breadcrumb-theme($dark-theme);

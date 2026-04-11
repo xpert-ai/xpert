@@ -1,4 +1,4 @@
-import { Employee } from '@metad/server-core'
+import { Employee } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import {
 	SemanticModel,
@@ -12,7 +12,7 @@ import { ENTITY_SALES, SEMANTIC_MODEL_NAME } from '../semantic-model'
 export const STORY_NAME = 'Demo - 门店销售监控大屏'
 export const STORY_OPTIONS = {
 	options: {
-		themeName: 'thin',
+		themeName: 'dark',
 		preferences: {
 			story: {
 				watermarkOptions: { color: '' },
@@ -34,7 +34,7 @@ export const STORY_OPTIONS = {
 			control: { color: '' },
 		},
 		advancedStyle:
-			'nx-breadcrumb-bar .mat-tab-nav-bar.breadcrumb {\r\n    border-bottom: unset;\r\n}',
+			'nx-breadcrumb-bar .z-tab-nav-bar.breadcrumb {\r\n    border-bottom: unset;\r\n}',
 	},
 	filterBar: {
 		dataSettings: {

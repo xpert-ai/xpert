@@ -7,7 +7,7 @@
 
   <div class="flex-1 min-w-full flex flex-col">
     <label class="ngm-input-label shrink-0">{{'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</label>
-    <textarea class="ngm-input-element" matInput formControlName="description"
+    <textarea class="ngm-input-element" z-input formControlName="description"
       cdkTextareaAutosize
       cdkAutosizeMinRows="1"
       cdkAutosizeMaxRows="5">
@@ -27,7 +27,7 @@
   @if(webhookUrl()) {
     <div>
       <p>{{ 'PAC.Integration.WebhookUrl' | translate: {Default: 'Webhook url'} }}:</p>
-      <pre class="px-2 py-1 rounded-md text-sm whitespace-break-spaces bg-gray-50 dark:bg-white/10">{{webhookUrl()}}</pre>
+      <pre class="px-2 py-1 rounded-md text-sm whitespace-break-spaces bg-background-default-subtle dark:bg-white/10">{{webhookUrl()}}</pre>
     </div>
   }
 

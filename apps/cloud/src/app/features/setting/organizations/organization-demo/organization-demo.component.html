@@ -1,17 +1,17 @@
 <div class="flex flex-col mb-8">
   <label for="demo-network-source">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.SelectDataNetwork' | translate: {Default: 'Select Data Network'} }}</label>
-  <mat-radio-group id="demo-network-source" [formControl]="source">
-    <mat-radio-button [value]="OrganizationDemoNetworkEnum.github">GitHub</mat-radio-button>
-    <mat-radio-button [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun oss</mat-radio-button>
-    <mat-radio-button [value]="null">Others</mat-radio-button>
-  </mat-radio-group>
+  <z-radio-group id="demo-network-source" [formControl]="source">
+    <z-radio [value]="OrganizationDemoNetworkEnum.github">GitHub</z-radio>
+    <z-radio [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun oss</z-radio>
+    <z-radio [value]="null">Others</z-radio>
+  </z-radio-group>
 
   @if (source.value === null) {
     <div class="flex items-center gap-2">
-      <mat-form-field appearance="fill" class="w-full">
-        <mat-label>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: {Default: 'File Url'} }}</mat-label>
-        <input matInput [formControl]="fileUrl" />
-      </mat-form-field>
+      <z-form-field appearance="fill" class="w-full">
+        <z-form-label>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: {Default: 'File Url'} }}</z-form-label>
+        <input z-input [formControl]="fileUrl" />
+      </z-form-field>
     </div>
   }
 
@@ -21,10 +21,10 @@
 </div>
 
 <div class="flex items-center gap-2">
-  <button mat-raised-button color="primary" [disabled]="loading() || !source.value && !fileUrl.value" (click)="generate()">
+  <button z-button zType="default" [disabled]="loading() || !source.value && !fileUrl.value" (click)="generate()">
     <div class="flex justify-center items-center">
       @if (loading()) {
-        <mat-spinner color="accent" diameter="18"></mat-spinner>
+        <z-loader diameter="18" />
       }
       
       @if (organization$()?.createdDemo || generated()) {
@@ -35,7 +35,7 @@
     </div>
   </button>
   @if (loading()) {
-    <button mat-flat-button (click)="cancel()">
+    <button z-button zType="secondary" (click)="cancel()">
       {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
     </button>
   }

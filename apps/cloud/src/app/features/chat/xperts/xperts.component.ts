@@ -2,7 +2,7 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ConnectedPosition, Overlay, OverlayPositionBuilder } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -17,10 +17,9 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { Store } from '@metad/cloud/state'
-import { OverlayAnimations } from '@metad/core'
+import { Store } from '@xpert-ai/cloud/state'
+import { OverlayAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService } from 'ngx-permissions'
 import { map } from 'rxjs'
@@ -28,21 +27,21 @@ import { AIPermissionsEnum, IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertCardComponent } from '../../../@shared/xpert'
 import { ChatHomeService } from '../home.service'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkListboxModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     XpertCardComponent
-  ],
+],
   selector: 'pac-chat-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',
@@ -140,12 +139,14 @@ export class ChatXpertsComponent {
       }
     })
 
-    effect(() => {
-      if (!this.hoverTooltip()) {
-        this.overlayRef()?.detach()
-        this.element.set(null)
+    effect(
+      () => {
+        if (!this.hoverTooltip()) {
+          this.overlayRef()?.detach()
+          this.element.set(null)
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   showMore() {

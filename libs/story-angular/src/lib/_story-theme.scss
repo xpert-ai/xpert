@@ -1,15 +1,16 @@
-@use '@angular/material' as mat;
+@use "sass:map";
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin ngm-story__filter-bar($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
-  $foreground: map-get($config, foreground);
-  $drawer-side-border: solid 1px mat.get-color-from-palette($foreground, divider);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $foreground: map.get($config, foreground);
+  $drawer-side-border: solid 1px themeCompat.m2-get-color-from-palette($foreground, divider);
 
   /**
     * for story filter bar
     */
   .ngm-story__filter-bar {
-    &.mat-drawer-side {
+    &[data-mode='side'] {
       border-right: unset;
     }
     .ngm-story__filter-bar-header {
@@ -38,22 +39,22 @@
 }
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
-  $background: map-get($config, background);
-  $foreground: map-get($config, foreground);
-  $primary: map-get($config, primary);
-  $accent: map-get($config, accent);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $background: map.get($config, background);
+  $foreground: map.get($config, foreground);
+  $primary: map.get($config, primary);
+  $accent: map.get($config, accent);
 
-  $grid-divider: 1px dashed map-get($foreground, divider);
+  $grid-divider: 1px dashed map.get($foreground, divider);
 }
 
 @mixin density($config-or-theme) {
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

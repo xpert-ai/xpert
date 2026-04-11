@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-
 import { PinWidgetComponent } from './pin-widget.component'
 
 describe('PinWidgetComponent', () => {

@@ -5,19 +5,19 @@
       <ngm-slicer-label class="inline-block text-sm px-1 truncate py-[0.5px] rounded-lg border-[0.5px] border-solid border-divider-deep"
         [slicer]="_slicer()" [entityType]="entityType()" />
       <!-- <span class="flex-1 whitespace-nowrap text-ellipsis overflow-hidden">{{displayMembers()}}</span> -->
-      <mat-icon class="members-clear shrink-0 cursor-pointer rounded-full hover:bg-gray-500/10 dark:hover:bg-white/20"
+      <z-icon class="members-clear shrink-0 cursor-pointer rounded-full hover:bg-gray-500/10 dark:hover:bg-white/20"
         displayDensity="compact"
         ngmAppearance="danger"
-        (click)="clearSelectedMembers()">close</mat-icon>
+      (click)="clearSelectedMembers()" zType="close"></z-icon>
     </div>
   }
 </div>
 
 <div class="flex-1 relative flex flex-col justify-start items-center p-1 overflow-visible">
   @if (error()) {
-    <mat-error class="whitespace-normal overflow-auto">
+    <z-form-message zType="error" class="whitespace-normal overflow-auto">
       {{error()}}
-    </mat-error>
+    </z-form-message>
   } @else {
     @switch (propertyType()) {
       @case (INPUT_CONTROL_TYPE.Datepicker) {
@@ -36,7 +36,7 @@
           [(date)]="dates"
           [ngModel]="_slicer()"
           (ngModelChange)="onSlicerChange($event)"
-        />
+          />
       }
       @case (INPUT_CONTROL_TYPE.Select) {
         <ngm-member-list class="w-full flex-1"
@@ -46,7 +46,7 @@
           [options]="__options$ | async"
           [ngModel]="_slicer()"
           (ngModelChange)="onSlicerChange($event)"
-        />
+          />
       }
       @case (INPUT_CONTROL_TYPE.TreeSelect) {
         <ngm-member-tree class="w-full flex-1"
@@ -56,7 +56,7 @@
           [options]="__options$ | async"
           [ngModel]="_slicer()"
           (ngModelChange)="onSlicerChange($event)"
-        />
+          />
       }
       @case (INPUT_CONTROL_TYPE.DropDownList) {
         <ngm-smart-filter class="w-full justify-self-start" [label]="''"
@@ -66,25 +66,28 @@
           [options]="__options$ | async"
           [ngModel]="_slicer()"
           (ngModelChange)="onSlicerChange($event)"
-        />
+          />
       }
       @case (INPUT_CONTROL_TYPE.MeasureControl) {
         @if (measureControlProperty(); as property) {
-          <mat-chip-listbox aria-label="Measure selection" class="w-full flex-1"
+          <z-chip-listbox aria-label="Measure selection" class="w-full flex-1"
             aria-orientation="vertical"
             [aria-orientation]="options?.ariaOrientation"
+            [displayDensity]="styling?.appearance?.displayDensity || null"
             [hideSingleSelectionIndicator]="options?.hideSingleSelectionIndicator"
             [(ngModel)]="measure"
             >
-            <mat-chip-option *ngFor="let measure of availableMeasures(); trackBy: trackByName" selectable [color]="options?.chipColor"
-              [highlighted]="options?.highlighted"
-              [value]="measure.name"
-              >
-              <ngm-display-behaviour [option]="{key: measure.name, caption: measure.caption}"
-                [displayBehaviour]="property.displayBehaviour">
-              </ngm-display-behaviour>
-            </mat-chip-option>
-          </mat-chip-listbox>
+            @for (measure of availableMeasures(); track trackByName($index, measure)) {
+              <z-chip-option selectable [color]="options?.chipColor"
+                [highlighted]="options?.highlighted"
+                [value]="measure.name"
+                >
+                <ngm-display-behaviour [option]="{key: measure.name, caption: measure.caption}"
+                  [displayBehaviour]="property.displayBehaviour">
+                </ngm-display-behaviour>
+              </z-chip-option>
+            }
+          </z-chip-listbox>
         }
       }
       @case (INPUT_CONTROL_TYPE.Parameter) {
@@ -95,7 +98,7 @@
           [displayBehaviour]="dimension()?.displayBehaviour"
           [parameter]="parameter()"
           (parameterChange)="updateParameterValue($event)"
-        >
+          >
         </ngm-parameter>
       }
       @case (INPUT_CONTROL_TYPE.Variable) {
@@ -105,7 +108,7 @@
             [variable]="variableProperty()"
             [ngModel]="_slicer()"
             (ngModelChange)="onVariableChange($event)"
-          />
+            />
         } @else {
           <ngm-member-list class="w-full flex-1"
             [appearance]="styling?.appearance"
@@ -114,7 +117,7 @@
             [options]="__options$ | async"
             [ngModel]="_slicer()"
             (ngModelChange)="onVariableChange($event)"
-          />
+            />
         }
       }
       @default {
@@ -125,42 +128,48 @@
   }
 </div>
 
-<div *ngIf="editable && asPlaceholder()" class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
-  <pac-input-control-placeholder class="absolute left-0 top-0 max-w-full max-h-full cursor-pointer" (click)="openDesigner()"/>
-  <span class="ngm-story-widget__placeholder-title">
-    {{ 'Story.Widgets.InputControl.Title' | translate: {Default: 'Input Control'} }}
-  </span>
-</div>
+@if (editable && asPlaceholder()) {
+  <div class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
+    <pac-input-control-placeholder class="absolute left-0 top-0 max-w-full max-h-full cursor-pointer" (click)="openDesigner()"/>
+    <span class="ngm-story-widget__placeholder-title">
+      {{ 'Story.Widgets.InputControl.Title' | translate: {Default: 'Input Control'} }}
+    </span>
+  </div>
+}
 
-<mat-menu #widgetInputControl="matMenu" class="ngm-density__compact">
-  <button mat-menu-item [matMenuTriggerFor]="entityMenu">
-    {{ 'Story.Widgets.InputControl.ENTITY' | translate: {Default: 'Entity'} }}
-  </button>
-  <mat-divider></mat-divider>
-  <!-- <ng-container *ngIf="entitySet$ | async">
-    <button mat-menu-item [matMenuTriggerFor]="Dimensions">
-      {{ 'Story.Widgets.InputControl.DIMENSIONS' | translate: {Default: 'Dimensions'} }}
+<ng-template #widgetInputControl>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item z-menu [zMenuTriggerFor]="entityMenu">
+      {{ 'Story.Widgets.InputControl.ENTITY' | translate: {Default: 'Entity'} }}
     </button>
-  </ng-container> -->
-</mat-menu>
+    <z-divider></z-divider>
+    <!-- Entity-driven dimension shortcut remains disabled here. -->
+  </div>
+</ng-template>
 
-<mat-menu #entityMenu="matMenu" class="ngm-density__compact">
-  <!-- <button mat-menu-item *ngFor="let entity of entities$ | async"
-    (click)="setEntitySet(entity.value);$event.stopPropagation()">
-    <ngm-display-behaviour [option]="entity"></ngm-display-behaviour>
-  </button> -->
-</mat-menu>
+<ng-template #entityMenu>
+  <div z-menu-content class="ngm-density__compact">
+    <!-- Entity quick-pick menu remains disabled here. -->
+  </div>
+</ng-template>
 
+<ng-template #Dimensions>
+  <div z-menu-content class="ngm-density__compact">
+    @for (dimension of dimensions$ | async; track dimension) {
+      <button type="button" z-menu-item
+        (click)="setProperty(dimension.name)">
+        <ngm-entity-property [property]="dimension"></ngm-entity-property>
+      </button>
+    }
+  </div>
+</ng-template>
 
-<mat-menu #Dimensions="matMenu" class="ngm-density__compact">
-  <button mat-menu-item *ngFor="let dimension of dimensions$ | async"
-    (click)="setProperty(dimension.name)">
-    <ngm-entity-property [property]="dimension"></ngm-entity-property>
-  </button>
-</mat-menu>
-
-<mat-menu #Measures="matMenu" class="ngm-density__compact">
-  <button mat-menu-item *ngFor="let measure of measures$ | async">
-    <ngm-entity-property [property]="measure"></ngm-entity-property>
-  </button>
-</mat-menu>
+<ng-template #Measures>
+  <div z-menu-content class="ngm-density__compact">
+    @for (measure of measures$ | async; track measure) {
+      <button type="button" z-menu-item>
+        <ngm-entity-property [property]="measure"></ngm-entity-property>
+      </button>
+    }
+  </div>
+</ng-template>

@@ -1,4 +1,4 @@
-import { IChatMessage, TChatMessageStep } from '@metad/contracts'
+import { IChatMessage, TChatMessageStep } from '@xpert-ai/contracts'
 
 export * from './chat-message.module'
 export * from './commands/index'

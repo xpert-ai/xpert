@@ -1,13 +1,15 @@
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   position: relative;
   display: flex;
   flex-direction: column;
 }
 
-.mat-tree-node {
+[data-slot='tree-node'] {
   min-height: 30px;
 
-  .mat-mdc-icon-button.mat-mdc-button-base {
+  [z-button][data-icon-only],
+  z-button[data-icon-only] {
     --mdc-icon-button-state-layer-size: 30px;
     padding: 0;
   }
@@ -26,7 +28,7 @@
   }
 }
 
-.cdk-tree-node:hover {
+[data-slot='tree-node']:hover {
   .ngm-search {
     @apply w-auto;
   }

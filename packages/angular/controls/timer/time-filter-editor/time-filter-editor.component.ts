@@ -1,16 +1,12 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatExpansionModule } from '@angular/material/expansion'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatSelectModule } from '@angular/material/select'
-import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+
+import { ZardAccordionImports, ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   calcOffsetRange,
   DataSettings,
@@ -20,7 +16,7 @@ import {
   Property,
   TimeRange,
   TimeRangesSlicer
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith } from 'rxjs'
 
@@ -29,22 +25,7 @@ import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslateModule,
-    ReactiveFormsModule,
-    DragDropModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatExpansionModule,
-    MatIconModule,
-    MatDividerModule,
-    MatInputModule,
-    MatButtonModule,
-
-    OcapCoreModule
-  ],
+  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, ZardDialogModule, ...ZardFormImports, ...ZardAccordionImports, ZardIconComponent, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule, NgmSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-time-filter-editor',
   templateUrl: './time-filter-editor.component.html',
@@ -58,9 +39,9 @@ export class NgmTimeFilterEditorComponent implements OnInit {
     entityType: EntityType
     slicer: TimeRangesSlicer
     forControl: boolean
-  }>(MAT_DIALOG_DATA, {optional: true})
+  }>(DIALOG_DATA, {optional: true})
 
-  private _dialogRef? = inject(MatDialogRef<NgmTimeFilterEditorComponent>, {optional: true})
+  private _dialogRef? = inject(DialogRef, {optional: true})
 
   @Input() get entityType() {
     return this.entityType$.value
@@ -94,6 +75,15 @@ export class NgmTimeFilterEditorComponent implements OnInit {
 
   public hierarchies$ = this.property$.pipe(
     map((property) => property?.hierarchies)
+  )
+  public readonly hierarchyOptions$ = this.hierarchies$.pipe(
+    map(
+      (hierarchies) =>
+        (hierarchies ?? []).map((hierarchy) => ({
+          value: hierarchy.name,
+          label: hierarchy.caption
+        })) as ISelectOption[]
+    )
   )
 
   forControl = false

@@ -1,26 +1,17 @@
+@reference "../../../../../tailwind-workspace-reference.css";
 :host {
   @apply relative flex flex-col items-stretch min-w-[100px];// w-full;
 
   &.ngm-select-error {
-    .mat-mdc-select.ngm-select-element {
-      border-color: var(--mdc-theme-error);
+    .ngm-select-element [role='combobox'] {
+      border-color: var(--destructive);
     }
     .ngm-input-element {
-      border-color: var(--mdc-theme-error);
+      border-color: var(--destructive);
     }
   }
 }
 
-.mat-mdc-form-field-error {
+.ngm-select__message {
   display: inline-flex;
-  color: var(--mat-form-field-error-text-color);
-}
-
-:host::ng-deep {
-  .mat-mdc-select-value {
-    padding-right: 5px;
-  }
-  .mat-mdc-select-placeholder {
-    @apply italic opacity-50;
-  }
 }

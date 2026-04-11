@@ -2,8 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
+    "rootDir": "../../",
     "declaration": true,
-    "types": []
+    "types": [],
+    "paths": {
+      "@xpert-ai/ocap-core": ["dist/packages/core/index.d.ts"],
+      "@xpert-ai/store": ["dist/packages/store/index.d.ts"]
+    }
   },
   "include": ["**/*.ts"],
   "exclude": ["jest.config.ts", "**/*.spec.ts", "**/*.test.ts"]

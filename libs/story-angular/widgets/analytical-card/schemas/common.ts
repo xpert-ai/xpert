@@ -1,4 +1,4 @@
-import { AccordionWrappers, FORMLY_ROW, FORMLY_W_FULL } from '@metad/story/designer'
+import { AccordionWrappers, FORMLY_ROW, FORMLY_W_FULL } from '@xpert-ai/story/designer'
 import { LineStyle } from './axis'
 
 export function ItemStyle(className: string, I18N) {

@@ -1,20 +1,25 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { TChatApp } from '@metad/contracts'
-import { SlideUpAnimation } from '@metad/core'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+
+import { TChatApp } from '@xpert-ai/contracts'
+import { SlideUpAnimation } from '@xpert-ai/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'
-
+import { ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MatTooltipModule, MatButtonModule, MatSlideToggleModule, ButtonGroupDirective],
+  imports: [
+    FormsModule,
+    TranslateModule,
+    ...ZardTooltipImports,
+    ZardButtonComponent,
+    ButtonGroupDirective,
+    ZardSwitchComponent
+],
   selector: 'xpert-develop-app',
   templateUrl: './app.component.html',
   styleUrl: 'app.component.scss',

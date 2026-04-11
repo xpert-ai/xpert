@@ -1,5 +1,8 @@
 import { Directive } from '@angular/core'
 
+/**
+ * @deprecated use tailwind utilities instead.
+ */
 @Directive({
   standalone: true,
   selector: '[ngmButtonGroup]',

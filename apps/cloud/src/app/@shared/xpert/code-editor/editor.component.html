@@ -1,5 +1,5 @@
-<div class="container grow flex flex-col rounded-xl bg-gray-50">
-  <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-gray-50 rounded-t-xl">
+<div class="container grow flex flex-col rounded-xl bg-background-default-subtle">
+  <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-background-default-subtle rounded-t-xl">
     <div class="rounded-md p-1 leading-none uppercase font-medium cursor-pointer flex items-center text-text-secondary hover:bg-hover-bg hover:text-text-primary"
       [cdkMenuTriggerFor]="langMenu"
     >
@@ -15,7 +15,7 @@
     </div>
 
     <div class="flex items-center">
-      <div class="h-[18px] leading-[18px] px-1 rounded-md bg-gray-100 text-xs text-gray-500">{{codeLength()}}</div>
+      <div class="h-[18px] leading-[18px] px-1 rounded-md bg-components-input-bg-normal text-xs text-text-tertiary">{{codeLength()}}</div>
 
       <!-- <div class="flex space-x-1 items-center px-2 py-0.5 rounded-lg text-sm cursor-pointer group hover:bg-state-base-hover"
         (click)="generate()">
@@ -76,7 +76,7 @@
     } @else if (language() === 'python') {
       <div class="px-2 text-text-secondary">def main( <span class="font-semibold text-text-primary">{{argsNameType()}}</span> ) -> dict:</div>
     }
-    <div class="edit-container pt-2 rounded-t-xl text-sm text-gray-700"
+    <div class="edit-container pt-2 rounded-t-xl text-sm text-text-secondary"
       [style.height.px]="height"
       >
       <ngx-monaco-editor class="!h-full w-full max-h-full"
@@ -93,7 +93,7 @@
 
     <div class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"
       (mousedown)="onMouseDown($event)">
-      <div class="w-5 h-[3px] rounded-sm bg-gray-300"></div>
+      <div class="w-5 h-[3px] rounded-sm bg-components-card-bg"></div>
     </div>
   </div>
 </div>

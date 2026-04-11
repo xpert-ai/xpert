@@ -1,4 +1,4 @@
-import { ApiToolBundle, ToolProviderCredentials } from '@metad/contracts'
+import { ApiToolBundle, ToolProviderCredentials } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 
 export class ParserOpenAPISchemaCommand extends Command<{

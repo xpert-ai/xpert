@@ -4,56 +4,74 @@
   </div>
 
   <div class="flex">
-    <button mat-flat-button color="primary"
-      (click)="openMaterials()">
-      <mat-icon fontSet="material-icons-outlined">attach_file</mat-icon>
+    <button z-button zType="default" (click)="openMaterials()">
+      <z-icon zType="attach_file"></z-icon>
       <span>{{'PAC.Project.UploadFiles' | translate: {Default: 'Upload Files'} }}</span>
     </button>
   </div>
-  <table mat-table
-       [dataSource]="files()" multiTemplateDataRows>
-    @for (column of columnsToDisplay; track column.name) {
-      <ng-container matColumnDef="{{column.name}}">
-        <th mat-header-cell *matHeaderCellDef> {{'PAC.Project.FileColumn.' + column.name | translate: {Default: column.label} }} </th>
-        <td mat-cell *matCellDef="let element"> {{element[column.name]}} </td>
-      </ng-container>
-    }
-    <ng-container matColumnDef="expand">
-      <th mat-header-cell *matHeaderCellDef aria-label="row actions">&nbsp;</th>
-      <td mat-cell *matCellDef="let element">
-        <button mat-icon-button aria-label="expand row" (click)="(expandedElement = expandedElement === element ? null : element); $event.stopPropagation()">
-          @if (expandedElement === element) {
-            <mat-icon>keyboard_arrow_up</mat-icon>
-          } @else {
-            <mat-icon>keyboard_arrow_down</mat-icon>
+  <table z-table class="mt-4 min-w-full">
+    <thead z-table-header>
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        @for (column of columnsToDisplay; track column.name) {
+          <th z-table-head>{{'PAC.Project.FileColumn.' + column.name | translate: {Default: column.label} }}</th>
+        }
+        <th z-table-head aria-label="row actions">&nbsp;</th>
+      </tr>
+    </thead>
+
+    <tbody z-table-body>
+      @for (element of files(); track element.id || element.url || $index) {
+        <tr
+          z-table-row
+          class="example-element-row cursor-pointer"
+          [class.example-expanded-row]="expandedElement === element"
+          (click)="expandedElement = expandedElement === element ? null : element"
+        >
+          @for (column of columnsToDisplay; track column.name) {
+            <td z-table-cell>{{element[column.name]}}</td>
           }
-        </button>
-      </td>
-    </ng-container>
+          <td z-table-cell class="w-16">
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              aria-label="expand row"
+              (click)="expandedElement = expandedElement === element ? null : element; $event.stopPropagation()"
+            >
+              @if (expandedElement === element) {
+                <z-icon zType="keyboard_arrow_up"></z-icon>
+              } @else {
+                <z-icon zType="keyboard_arrow_down"></z-icon>
+              }
+            </button>
+          </td>
+        </tr>
 
-    <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-    <ng-container matColumnDef="expandedDetail">
-      <td mat-cell *matCellDef="let element" [attr.colspan]="columnsToDisplayWithExpand.length">
-        <div class="example-element-detail"
-            [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'">
-          <div class="w-full min-h-[5rem] flex-1 flex flex-col justify-start items-stretch relative">
-            <div class="absolute top-0 left-0 w-full p-2 text-ellipsis bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
-                <span>url: {{element.url}}</span>
+        <tr z-table-row class="example-detail-row">
+          <td z-table-cell [attr.colspan]="columnsToDisplayWithExpand.length" class="p-0">
+            <div
+              class="example-element-detail"
+              [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'"
+            >
+              <div class="w-full min-h-[5rem] flex-1 flex flex-col justify-start items-stretch relative">
+                <div class="absolute top-0 left-0 w-full p-2 text-ellipsis bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
+                  <span>url: {{element.url}}</span>
+                </div>
+                @if (isImage(element)) {
+                  <img class="flex-1" [src]="element.url"/>
+                }
+              </div>
             </div>
-            @if (isImage(element)) {
-              <img class="flex-1" [src]="element.url"/>
-            }
-          </div>
-        </div>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="columnsToDisplayWithExpand"></tr>
-    <tr mat-row *matRowDef="let element; columns: columnsToDisplayWithExpand;"
-        class="example-element-row"
-        [class.example-expanded-row]="expandedElement === element"
-        (click)="expandedElement = expandedElement === element ? null : element">
-    </tr>
-    <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
+          </td>
+        </tr>
+      } @empty {
+        <tr z-table-row>
+          <td z-table-cell [attr.colspan]="columnsToDisplayWithExpand.length" class="py-8 text-center text-muted-foreground">
+            {{ 'PAC.KEY_WORDS.NoData' | translate: {Default: 'No data'} }}
+          </td>
+        </tr>
+      }
+    </tbody>
   </table>
 </div>

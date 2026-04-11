@@ -1,6 +1,8 @@
-@use '@angular/material/core/tokens/token-utils';
-@use '@angular/material/core/style/sass-utils';
 
+
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
+@reference "../../../../../../tailwind-workspace-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, indicator-content);
 $prefix-color: (ngm, color);
@@ -35,21 +37,6 @@ $prefix-color: (ngm, color);
   :host {
     background-color: var(#{token-utils.get-token-variable(background-color)});
     border-top-left-radius: var(#{token-utils.get-token-variable(container-rounded)});
-  }
-}
-
-.mat-mdc-card {
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-
-  .mat-mdc-card-header {
-    padding: 10px 10px 0 10px;
-  }
-
-  .mat-mdc-card-content {
-    padding: 10px;
   }
 }
 

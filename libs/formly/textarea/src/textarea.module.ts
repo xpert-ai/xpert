@@ -1,8 +1,9 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { FormlyModule } from '@ngx-formly/core'
 import { FormlyFieldTextAreaComponent } from './textarea.type'
 
@@ -12,7 +13,9 @@ import { FormlyFieldTextAreaComponent } from './textarea.type'
     CommonModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatInputModule,
+    TextFieldModule,
+    ZardInputDirective,
+    ...ZardFormImports,
 
     FormlyModule.forChild({
       types: [

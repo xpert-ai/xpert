@@ -1,34 +1,32 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { DateRelativePipe, getErrorMessage, injectToastr } from '@cloud/app/@core'
-import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
-import { IfAnimation } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@xpert-ai/cloud/state'
+import { IfAnimation } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { XpIndicatorFormComponent } from '../indicator-form/indicator-form.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xp-list-indicators',
   templateUrl: 'list-indicators.component.html',
   styleUrls: ['list-indicators.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     WaIntersectionObserver,
     NgmSpinComponent,
     DateRelativePipe,
     XpIndicatorFormComponent
-  ],
+],
   animations: [IfAnimation]
 })
 export class XpListIndicatorsComponent {

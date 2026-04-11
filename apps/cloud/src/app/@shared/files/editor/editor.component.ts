@@ -1,12 +1,13 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
+import { injectEditorTheme } from '../../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MonacoEditorModule],
+  imports: [FormsModule, TranslateModule, MonacoEditorModule],
   selector: 'pac-file-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss']
@@ -26,8 +27,9 @@ export class FileEditorComponent {
   })
 
   // States
+  readonly editorTheme = injectEditorTheme()
+
   readonly defaultOptions = {
-    theme: 'vs',
     automaticLayout: true,
     language: 'markdown',
     glyphMargin: 0,
@@ -39,6 +41,7 @@ export class FileEditorComponent {
   readonly editorOptions = computed(() => {
     return {
       ...this.defaultOptions,
+      theme: this.editorTheme(),
       lineNumbers: this.lineNumbers() ? 'on' : 'off',
       wordWrap: this.wordWrap(),
       language: this.fileName() ? this.mapFileLanguage(this.fileName()) : 'markdown',

@@ -1,9 +1,29 @@
+jest.mock('../../xpert.service', () => ({
+    XpertService: class {}
+}))
+jest.mock('../../../assistant-binding/assistant-binding.service', () => ({
+    AssistantBindingService: class {}
+}))
+jest.mock('@xpert-ai/contracts', () => {
+    const actual = jest.requireActual('@xpert-ai/contracts')
+    return {
+        ...actual,
+        createMessageAppendContextTracker: () => ({
+            resolve: () => ({
+                messageContext: undefined
+            }),
+            reset: () => undefined
+        }),
+        stringifyMessageContent: (value: unknown) => (typeof value === 'string' ? value : String(value ?? ''))
+    }
+})
+
 import { of, lastValueFrom, toArray } from 'rxjs'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
-import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint'
-import { CreateMemoryStoreCommand } from '../../../shared'
+import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
+import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
@@ -12,12 +32,14 @@ import { XpertChatHandler } from './chat.handler'
 
 describe('XpertChatHandler', () => {
     let xpertService: { findOne: jest.Mock }
+    let assistantBindingService: { getUserPreferenceByAssistantId: jest.Mock }
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let handler: XpertChatHandler
 
     const xpert = {
         id: 'xpert-1',
+        workspaceId: 'workspace-1',
         agent: {
             key: 'agent-1'
         },
@@ -30,6 +52,27 @@ describe('XpertChatHandler', () => {
         xpertService = {
             findOne: jest.fn().mockResolvedValue(xpert)
         }
+        assistantBindingService = {
+            getUserPreferenceByAssistantId: jest.fn().mockResolvedValue({
+                soul: '# Rules',
+                profile: '# Profile',
+                toolPreferences: {
+                    version: 1,
+                    toolsets: {
+                        'toolset-1': {
+                            toolsetName: 'Toolset 1',
+                            disabledTools: ['search']
+                        }
+                    },
+                    skills: {
+                        'workspace-1': {
+                            workspaceId: 'workspace-1',
+                            disabledSkillIds: ['skill-2']
+                        }
+                    }
+                }
+            })
+        }
         commandBus = {
             execute: jest.fn()
         }
@@ -37,7 +80,12 @@ describe('XpertChatHandler', () => {
             execute: jest.fn()
         }
 
-        handler = new XpertChatHandler(xpertService as any, commandBus as any, queryBus as any)
+        handler = new XpertChatHandler(
+            xpertService as any,
+            assistantBindingService as any,
+            commandBus as any,
+            queryBus as any
+        )
     })
 
     it('creates a new conversation, human message, ai placeholder and execution for send', async () => {
@@ -167,6 +215,130 @@ describe('XpertChatHandler', () => {
             (command) => command instanceof XpertAgentChatCommand
         ) as XpertAgentChatCommand
         expect(agentCommand.options.resume).toBeUndefined()
+        expect(agentCommand.state.sys).toEqual(
+            expect.objectContaining({
+                soul: '# Rules',
+                profile: '# Profile'
+            })
+        )
+        expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
+        expect(agentCommand.state.disabledSkillIds).toEqual(['skill-2'])
+        expect(agentCommand.options.toolPreferences).toEqual({
+            version: 1,
+            toolsets: {
+                'toolset-1': {
+                    toolsetName: 'Toolset 1',
+                    disabledTools: ['search']
+                }
+            },
+            skills: {
+                'workspace-1': {
+                    workspaceId: 'workspace-1',
+                    disabledSkillIds: ['skill-2']
+                }
+            }
+        })
+    })
+
+    it('passes a null tool preference snapshot when the user preference has no tool preferences', async () => {
+        assistantBindingService.getUserPreferenceByAssistantId.mockResolvedValueOnce({
+            soul: '# Rules',
+            profile: '# Profile',
+            toolPreferences: null
+        })
+
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.role === 'human') {
+                    return {
+                        id: 'human-1',
+                        ...command.entity
+                    }
+                }
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-1',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello world'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.options.toolPreferences).toBeNull()
+        expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
+        expect(agentCommand.state.disabledSkillIds).toEqual([])
     })
 
     it('reuses the interrupted ai message and execution for resume', async () => {
@@ -410,6 +582,119 @@ describe('XpertChatHandler', () => {
         ) as XpertAgentChatCommand
         expect(agentCommand.options.resume).toBeUndefined()
         expect(agentCommand.options.checkpointId).toBe('checkpoint-input-1')
+    })
+
+    it('uses the explicit retry checkpoint without walking checkpoint ancestry', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [
+                        {
+                            id: 'human-1',
+                            role: 'human',
+                            content: 'Original prompt'
+                        },
+                        {
+                            id: 'ai-1',
+                            role: 'ai',
+                            parentId: 'human-1',
+                            content: 'Original answer',
+                            executionId: 'execution-old',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    ],
+                    status: 'busy',
+                    options: {
+                        parameters: {
+                            input: 'Original prompt'
+                        }
+                    }
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-new',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-2',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-new',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: 'execution-old',
+                    threadId: 'thread-1',
+                    checkpointNs: '',
+                    checkpointId: 'checkpoint-loop-2',
+                    inputs: {
+                        input: 'Original prompt'
+                    }
+                }
+            }
+            if (query instanceof CopilotCheckpointGetTupleQuery) {
+                throw new Error('Retry ancestry lookup should be skipped when checkpointId is provided')
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'retry',
+                    conversationId: 'conversation-1',
+                    source: {
+                        aiMessageId: 'ai-1'
+                    },
+                    checkpointId: 'checkpoint-history-1'
+                },
+                {
+                    xpertId: 'xpert-1',
+                    messageId: 'ai-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.options.checkpointId).toBe('checkpoint-history-1')
+        expect(queryBus.execute.mock.calls.some(([query]) => query instanceof CopilotCheckpointGetTupleQuery)).toBe(
+            false
+        )
     })
 
     it('uses the requested ai message instead of the latest ai message when retrying', async () => {

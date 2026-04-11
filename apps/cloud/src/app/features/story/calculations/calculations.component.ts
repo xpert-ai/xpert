@@ -5,26 +5,14 @@ import { CommonModule } from '@angular/common'
 import { Component, ViewContainerRef, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { MatListModule } from '@angular/material/list'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
+
+import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardDividerComponent, ZardIconComponent, ZardMenuImports, ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CommandDialogComponent } from '@metad/copilot-angular'
-import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { ISelectOption, filterSearch } from '@metad/ocap-angular/core'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
-import {
-  CalculationProperty,
-  DisplayBehaviour,
-  ParameterProperty,
-  getEntityCalculations
-} from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import { ISelectOption, filterSearch } from '@xpert-ai/ocap-angular/core'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
+import { CalculationProperty, DisplayBehaviour, ParameterProperty, getEntityCalculations } from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareReplay, switchMap, tap } from 'rxjs'
 
@@ -35,14 +23,13 @@ import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareRepla
     FormsModule,
     DragDropModule,
     RouterModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatIconModule,
-    MatListModule,
-    MatDividerModule,
-    MatMenuModule,
-    MatProgressBarModule,
-    MatTooltipModule,
+    ZardDialogModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardDividerComponent,
+    ZardProgressBarComponent,
+    ...ZardMenuImports,
+    ...ZardTooltipImports,
     TranslateModule,
     ScrollingModule,
     NgmCommonModule
@@ -60,6 +47,7 @@ export class StoryCalculationsComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly #dialog = inject(Dialog)
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
   // readonly dsCoreService = inject(NgmDSCacheService)
 
   readonly activeLink = signal<{ dataSource: string; modelId: string; entity: string }>(null)
@@ -122,7 +110,7 @@ export class StoryCalculationsComponent {
     switchMap(() =>
       this.storyService.modelCubes$.pipe(
         map((models) => {
-          const items = []
+          const items: ISelectOption<{ dataSource: string; modelId: string }>[] = []
           models.forEach((model, index) => {
             items.push(
               ...model.cubes.map((cube) => ({
@@ -148,27 +136,14 @@ export class StoryCalculationsComponent {
       )
     ),
     combineLatestWith(toObservable(this.entitySearch)),
-    map(([cubes, text]) => filterSearch(cubes, text))
+    map(([cubes, text]) => filterSearch(cubes, text) as ISelectOption<{ dataSource: string; modelId: string }>[])
   )
 
   readonly property = signal<CalculationProperty>(null)
 
-  // /**
-  // |--------------------------------------------------------------------------
-  // | Copilot
-  // |--------------------------------------------------------------------------
-  // */
-  // readonly calculatioCommand = injectCalculationGraphCommand(
-  //   this.dataSettings,
-  //   (dataSettings: DataSettings, key: string) => {
-  //     this.activeEntity(dataSettings.dataSource, dataSettings.entitySet)
-  //     this.router.navigate([encodeURIComponent(dataSettings.entitySet), key], { relativeTo: this.route })
-  //   }
-  // )
-
   constructor(
     private storyService: NxStoryService,
-    private readonly _dialog: MatDialog,
+    private readonly _dialog: ZardDialogService,
     private readonly _viewContainerRef: ViewContainerRef
   ) {
     effect(
@@ -177,8 +152,7 @@ export class StoryCalculationsComponent {
         if (!this.activeLink() && entities?.length > 0) {
           this.activeEntity(entities[0].value.dataSource, entities[0].key)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -219,8 +193,7 @@ export class StoryCalculationsComponent {
           name: name
         }
       })
-      .closed
-      .subscribe((result) => {
+      .closed.subscribe((result) => {
         if (result) {
           // 参数创建成功
           console.log(result)
@@ -240,18 +213,6 @@ export class StoryCalculationsComponent {
     this.router.navigate(['create'], { relativeTo: this.route })
   }
 
-  aiCreateCalculation() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['calculation']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
-  }
-
   openEditCalculation(calculationProperty: CalculationProperty) {
     const cubeName = this.dataSettings().entitySet
     this.router.navigate([encodeURIComponent(cubeName), calculationProperty.__id__], {
@@ -261,14 +222,11 @@ export class StoryCalculationsComponent {
   }
 
   removeCalculation(calculationProperty: CalculationProperty) {
-    this._dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: calculationProperty.caption || calculationProperty.name,
-          information: ''
-        }
+    this.#confirmDelete
+      .confirm({
+        value: calculationProperty.caption || calculationProperty.name,
+        information: ''
       })
-      .afterClosed()
       .subscribe((confirm) => {
         if (confirm) {
           this.storyService.removeCalculation({

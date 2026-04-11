@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Input } from '@angular/core'
 import { IUser } from '../../../@core'
 import { UserPipe } from "../../pipes"
@@ -8,7 +8,7 @@ import { UserPipe } from "../../pipes"
     selector: 'pac-user-profile-card',
     templateUrl: 'profile.component.html',
     styleUrls: ['profile.component.scss'],
-    imports: [CommonModule, UserPipe]
+    imports: [UserPipe]
 })
 export class UserProfileComponent {
   @Input() user?: IUser

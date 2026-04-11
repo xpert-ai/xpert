@@ -1,4 +1,4 @@
-import { IXpertToolset, TToolCredentials } from "@metad/contracts";
+import { IXpertToolset, TToolCredentials } from "@xpert-ai/contracts";
 import { BuiltinToolset } from "../builtin-toolset";
 
 export class BingToolset extends BuiltinToolset {

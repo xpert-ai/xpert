@@ -14,6 +14,79 @@
 
 - 多个插件使用英文逗号分隔
 
+## 独立仓库本地联调
+
+如果插件代码位于 Xpert 主仓库之外，可以直接调用宿主已有的 `POST /api/plugin` 安装接口，不需要发布 npm 包，也不需要把代码拷回主仓库。
+
+启动 API 前，显式设置允许的本地工作区根目录：
+
+```bash
+export PLUGIN_WORKSPACE_ROOTS="/abs/path/to/xpert:/abs/path/to/xpert-plugins"
+```
+
+推荐流程：
+
+1. 在独立插件仓库执行 `pnpm install`
+2. 先用 `plugin-dev-harness` 做一次生命周期预检
+3. 构建插件，或启动对应的 watch 任务
+4. 启动 Xpert API
+5. 调用安装接口挂载本地插件
+6. 代码变更后重新构建，再重复安装请求完成 reload
+
+本地源码安装请求示例：
+
+```bash
+curl -X POST http://localhost:3333/api/plugin \
+  -H 'Content-Type: application/json' \
+  -H 'Organization-Id: <your-org-id>' \
+  --data '{
+    "pluginName": "@xpert-ai/plugin-lark",
+    "source": "code",
+    "sourceConfig": {
+      "workspacePath": "/abs/path/to/xpert-plugins/xpertai/integrations/lark"
+    }
+  }'
+```
+
+也可以使用仓库内置脚本发起同一请求：
+
+```bash
+pnpm plugin:install:local \
+  --workspace-path /abs/path/to/xpert-plugins/xpertai/integrations/lark \
+  --org-id <your-org-id> \
+  --token <your-token>
+```
+
+如果你希望把“重建插件 + 重新安装”串成一步，可以使用：
+
+```bash
+pnpm plugin:reinstall:local \
+  --workspace-path /abs/path/to/xpert-plugins/xpertai/integrations/lark \
+  --org-id <your-org-id> \
+  --token <your-token>
+```
+
+字段说明：
+
+- `source: "code"` 表示从本地源码工作区安装
+- `sourceConfig` 用于存放不同来源的安装元数据
+- 对于本地源码安装，`sourceConfig.workspacePath` 必须是绝对路径，且位于 `PLUGIN_WORKSPACE_ROOTS` 允许范围内
+- 本地源码安装会先把工作区复制到宿主插件目录，再执行加载
+
+注意事项：
+
+- Xpert 不再支持本地源码安装使用 `symlink` 模式
+- 原因是 symlink 加载后会解析到独立仓库真实路径，继续使用独立仓库自己的依赖树，容易与宿主形成两份运行时单例，例如两份 `@nestjs/core`
+- 代码变更后的推荐动作仍然是“重新构建插件，再重新发一次安装请求”
+- 宿主会继续校验 `package.json.name`、SDK 兼容性，以及 `dist/` 或 `src/index.ts` 入口是否存在
+- `plugin-dev-harness` 只负责插件自身生命周期验证，不替代 Xpert 平台内的真实安装测试
+
+## SDK 版本约束
+
+- `@xpert-ai/plugin-sdk` 只能声明在 `peerDependencies`，不要放到 `dependencies`
+- 使用明确的单 major 兼容范围，例如 `^3.8.0`
+- 宿主会在激活插件前校验 SDK 兼容性，并拒绝自带 SDK 副本的插件包
+
 ## 插件配置支持
 
 如果插件需要用户可管理配置：
@@ -28,6 +101,38 @@
 - 前端会通过 `JSONSchemaFormComponent` 自动渲染表单
 - 宿主会把配置保存到 `PluginInstance.config`
 - 配置会在持久化前按整段对象加密存储
+
+## 插件管理能力字段
+
+插件列表接口会返回 `IPluginDescriptor`，其中下面几个字段用于控制前端是否展示“配置 / 卸载 / 更新”按钮，以及是否显示“可更新”状态：
+
+| 字段 | 含义 | 判定逻辑 |
+| --- | --- | --- |
+| `canConfigure` | 当前用户是否可以配置该插件 | 只有“当前组织作用域下安装的插件”且插件暴露了 `configSchema` 时才为 `true`。`global` 插件不会因为在当前组织中可见就自动可配置；加载失败的插件固定为 `false`。 |
+| `canUninstall` | 当前用户是否可以卸载该插件 | `system` 级插件始终为 `false`。组织级插件在“插件所属组织 = 当前组织”时为 `true`。`global` 插件只有 `SUPER_ADMIN` 可以卸载。 |
+| `canUpdate` | 当前用户是否可以更新该插件 | 需要同时满足：1. 插件源支持从 npm registry 更新；2. 插件源不是 `code`；3. 插件作用域允许当前用户更新。组织级插件要求“插件所属组织 = 当前组织”；`global` 插件要求当前作用域就是 `global`，且当前用户是 `SUPER_ADMIN`。加载失败的插件固定为 `false`。 |
+| `hasUpdate` | 当前插件是否存在可升级版本 | 只有在 `canUpdate = true` 时才会继续检查。宿主会解析 registry 最新版本，并在 `latestVersion > currentVersion` 时返回 `true`，否则为 `false`。 |
+
+### 作用域说明
+
+- `organization` 插件：安装在某个组织下，只能由该组织上下文进行配置、更新、卸载。
+- `global` 插件：对所有组织可见，但不是所有操作都开放。
+- `system` 插件：平台内建 / 系统治理级插件，不允许通过组织插件 API 进行卸载。
+
+### 当前行为约定
+
+- `canConfigure` 关注的是“当前组织是否拥有该插件实例并且插件提供配置 schema”，不是“当前用户是否能看见该插件”。
+- `canUninstall` 比 `canUpdate` 更宽一点：`SUPER_ADMIN` 即使当前人在普通组织上下文，也可以对 `global` 插件执行卸载。
+- `canUpdate` 对 `global` 插件更严格：只有在 `global` 作用域下的 `SUPER_ADMIN` 才允许更新。
+- `hasUpdate` 只是“有无新版本”的最终展示位，不代表前端应该绕过 `canUpdate` 单独显示更新按钮。
+
+### 前端使用建议
+
+- “配置”按钮只看 `canConfigure`
+- “卸载”按钮只看 `canUninstall`
+- “更新”按钮只看 `canUpdate`
+- “可升级”标记需要同时结合 `canUpdate` 和 `hasUpdate`
+- 对加载失败插件，不要推导这些能力字段，直接以后端返回值为准
 
 ## 相关文档
 

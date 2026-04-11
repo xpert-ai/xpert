@@ -1,18 +1,18 @@
 <div class="flex justify-between items-center mb-2">
   <div class="flex items-center gap-2 text-text-primary">
     <span class="text-sm">
-      {{title()}}
+      {{ title() }}
     </span>
 
-    <i class="ri-question-line text-text-quaternary hover:text-text-tertiary"
-      [matTooltip]="tooltip()"
-      matTooltipPosition="above"></i>
+    <i
+      class="ri-question-line text-text-quaternary hover:text-text-tertiary"
+      [zTooltip]="tooltip()"
+      zPosition="top"
+    ></i>
   </div>
 
   <div class="flex gap-2 items-center">
-    <button type="button" class="action-btn action-btn-m"
-      (click)="add()"
-    >
+    <button type="button" class="action-btn action-btn-m" (click)="add()">
       <i class="ri-add-line"></i>
     </button>
   </div>
@@ -21,7 +21,8 @@
 <div class="space-y-2">
   @for (memory of memories(); track memory.id; let i = $index) {
     <div class="flex p-0.5 rounded-lg" [class.bg-red-100]="hoveredDelIndex() === i">
-      <xpert-memory-assigner class="w-full flex-1 flex flex-col items-start gap-2 overflow-hidden"
+      <xpert-memory-assigner
+        class="w-full flex-1 flex flex-col items-start gap-2 overflow-hidden"
         [variables]="variables()"
         [type]="type()"
         [parameters]="parameters()"
@@ -30,10 +31,13 @@
       />
 
       <div class="flex flex-col p-1">
-        <button type="button" class="action-btn action-btn-l w-7 h-7 danger flex-shrink-0 group flex justify-center items-center rounded-lg overflow-hidden"
+        <button
+          type="button"
+          class="action-btn action-btn-l w-7 h-7 danger flex-shrink-0 group flex justify-center items-center rounded-lg overflow-hidden"
           (mouseenter)="hoveredDelIndex.set(i)"
           (mouseleave)="hoveredDelIndex.set(null)"
-          (click)="deleteMemory(i)">
+          (click)="deleteMemory(i)"
+        >
           <i class="ri-delete-bin-line"></i>
         </button>
       </div>

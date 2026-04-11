@@ -2,23 +2,23 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmVariableComponent } from '@metad/ocap-angular/controls'
-import { ButtonGroupDirective, isNotNil, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DataSettings, Semantics, VariableEntryType, VariableProperty } from '@metad/ocap-core'
+
+import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmVariableComponent } from '@xpert-ai/ocap-angular/controls'
+import { ButtonGroupDirective, isNotNil, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, Semantics, VariableEntryType, VariableProperty } from '@xpert-ai/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectApiBaseUrl, injectToastr, TSelectOption } from '../../../@core'
 import { NgmSelectComponent } from '../../common'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkListboxModule,
@@ -26,14 +26,14 @@ import { NgmSelectComponent } from '../../common'
     TextFieldModule,
     TranslateModule,
     ContentLoaderModule,
-    MatButtonModule,
+    ZardButtonComponent,
     ButtonGroupDirective,
     NgmInputComponent,
     NgmSpinComponent,
     NgmVariableComponent,
     NgmSelectComponent,
     NgmCheckboxComponent
-  ],
+],
   selector: 'model-cube-variable-form',
   templateUrl: 'variable.component.html',
   styleUrls: ['variable.component.scss']

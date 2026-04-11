@@ -1,12 +1,13 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { MessagesAnnotation } from '@langchain/langgraph'
 import {
+	CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE,
 	ChatMessageEventTypeEnum,
 	IXpertAgent,
 	IXpertAgentExecution,
 	TThreadContextUsageEvent,
 	TTokenUsage
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { AfterModelHandler } from '@xpert-ai/plugin-sdk'
 import { AIMessage, BaseMessage, isAIMessage } from '@langchain/core/messages'
 
@@ -75,7 +76,7 @@ export function createThreadContextUsageEvent(params: {
 	const totalTokens = toFiniteNumber(tokenUsage.totalTokens || tokenUsage.promptTokens + tokenUsage.completionTokens)
 
 	return {
-		type: 'thread_context_usage',
+		type: CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE,
 		threadId: params.threadId,
 		runId: params.runId ?? null,
 		agentKey: params.agentKey,

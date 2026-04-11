@@ -1,4 +1,4 @@
-import { IPagination } from '@metad/contracts'
+import { IPagination } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -8,8 +8,8 @@ import {
 	TransformInterceptor,
 	transformWhere,
 	UUIDValidationPipe
-} from '@metad/server-core'
-import { Controller, Get, HttpStatus, Param, Post, Query, UseInterceptors } from '@nestjs/common'
+} from '@xpert-ai/server-core'
+import { Body, Controller, Get, HttpStatus, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Like } from 'typeorm'
@@ -17,7 +17,6 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
 import { CancelConversationCommand } from './commands'
-import { VolumeClient } from '../shared'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()
@@ -68,6 +67,12 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		status: HttpStatus.NOT_FOUND,
 		description: 'Record not found'
 	})
+	@Get('by-thread')
+	async findOneByThreadId(@Query('threadId') threadId: string): Promise<ChatConversationPublicDTO> {
+		const conversation = await this.service.findOneByThreadId(threadId)
+		return new ChatConversationPublicDTO(conversation)
+	}
+
 	@Get(':id')
 	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
@@ -117,13 +122,19 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		@Query('deepth') deepth: number,
 		@Query('path') path: string
 	) {
-		const conversation = await this.service.findOne(id)
-		const client = new VolumeClient({
-			tenantId: conversation.tenantId,
-			catalog: 'users',
-			userId: conversation.createdById,
-		})
+		return await this.service.getWorkspaceFiles(id, path, deepth)
+	}
 
-		return await client.list({ path: path || conversation.threadId, deepth })
+	@Get(':id/file')
+	async getFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
+		return await this.service.readWorkspaceFile(id, path)
+	}
+
+	@Put(':id/file')
+	async saveFile(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Body() body: { path: string; content: string }
+	) {
+		return await this.service.saveWorkspaceFile(id, body?.path, body?.content ?? '')
 	}
 }

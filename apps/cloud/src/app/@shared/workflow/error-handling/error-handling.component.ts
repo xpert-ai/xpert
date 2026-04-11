@@ -1,15 +1,14 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import { NgmI18nPipe, TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TErrorHandling, TXpertAgentOptions, TXpertParameter } from '../../../@core/types'
 import { XpertParametersFormComponent } from '../../xpert'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-error-handling',
   templateUrl: './error-handling.component.html',
@@ -17,14 +16,13 @@ import { XpertParametersFormComponent } from '../../xpert'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     XpertParametersFormComponent
-  ],
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertWorkflowErrorHandlingComponent {

@@ -2,8 +2,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { EntityCapacity, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { EntityCapacity, NgmEntitySchemaComponent } from '@xpert-ai/ocap-angular/entity'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 
 @Component({

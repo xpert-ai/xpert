@@ -2,8 +2,33 @@ import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
-import { IUser } from '@metad/contracts'
+import { IRolePermission, IUser } from '@xpert-ai/contracts'
 import { AuthService } from '../auth.service'
+
+type JwtPayload = {
+  id: string
+  thirdPartyId?: string
+  employeeId?: string
+  permissions?: string[]
+}
+
+function attachTokenPermissions(user: IUser, permissions?: string[]) {
+  if (!user?.role || !permissions?.length) {
+    return
+  }
+
+  const roleId = user.roleId ?? user.role.id
+  user.role = {
+    ...user.role,
+    rolePermissions: permissions.map<IRolePermission>((permission) => ({
+      roleId,
+      role: user.role,
+      tenantId: user.tenantId,
+      permission,
+      enabled: true
+    }))
+  }
+}
 
 @Injectable()
 export class WsJwtStrategy extends PassportStrategy(Strategy, 'ws-jwt') {
@@ -20,7 +45,7 @@ export class WsJwtStrategy extends PassportStrategy(Strategy, 'ws-jwt') {
     })
   }
 
-  async validate(payload, done: any) {
+  async validate(payload: JwtPayload, done: any) {
     try {
       // We use this to also attach the user object to the request context.
       const user: IUser = await this.authService.getAuthenticatedUser(
@@ -32,6 +57,7 @@ export class WsJwtStrategy extends PassportStrategy(Strategy, 'ws-jwt') {
         return done(new UnauthorizedException('unauthorized'), false)
       } else {
         user.employeeId = payload.employeeId
+        attachTokenPermissions(user, payload.permissions)
 
         // You could add a function to the authService to verify the claims of the token:
         // i.e. does the user still have the roles that are claimed by the token

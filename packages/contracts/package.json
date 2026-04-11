@@ -1,6 +1,6 @@
 {
-  "name": "@metad/contracts",
-  "version": "3.8.4",
+  "name": "@xpert-ai/contracts",
+  "version": "3.9.0-beta.1",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -10,12 +10,11 @@
     "url": "https://github.com/xpert-ai/xpert/issues"
   },
   "scripts": {
-    "docs": "yarn typedoc --out ./.docs"
+    "docs": "pnpm typedoc --out ./.docs"
   },
   "module": "./index.esm.js",
   "main": "./index.cjs.js",
   "dependencies": {
-    "@a2ui/lit": "^0.8.1",
-    "@xpert-ai/chatkit-types": "^0.0.12"
+    "@xpert-ai/chatkit-types": "^0.0.17"
   }
 }

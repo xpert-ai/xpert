@@ -1,8 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectToastr,
@@ -16,7 +14,7 @@ import { CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-workflow-answer',
   templateUrl: './answer.component.html',
@@ -25,11 +23,11 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    MatTooltipModule,
-    MatSlideToggleModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmDensityDirective,
-    CopilotPromptEditorComponent
+    CopilotPromptEditorComponent,
+    ZardSwitchComponent
   ],
   host: {
     tabindex: '-1'

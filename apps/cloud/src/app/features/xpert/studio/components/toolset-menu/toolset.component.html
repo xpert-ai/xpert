@@ -1,16 +1,17 @@
-<div class="w-full flex flex-col items-start sticky top-0 z-10 border-b-[0.5px] mb-2 border-black/[0.08] bg-components-card-bg">
+<div
+  class="w-full flex flex-col items-start sticky top-0 z-10 border-b-[0.5px] mb-2 border-black/[0.08] bg-components-card-bg"
+>
   <ngm-search [formControl]="searchControl" class="w-full rounded-xl" />
-  
-  <ul class="w-full flex items-center px-3 py-2 space-x-1 bg-gray-25"
-    cdkListbox
-    [(ngModel)]="type"
-  >
+
+  <ul class="w-full flex items-center px-3 py-2 space-x-1 bg-gray-25" cdkListbox [(ngModel)]="type">
     @for (type of TYPES; track type.value) {
-      <div #option="cdkOption" class="flex items-center px-2 h-6 rounded-md hover:bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 "
-        [ngClass]="{'bg-gray-200': option.isSelected()}"
+      <div
+        #option="cdkOption"
+        class="flex items-center px-2 h-6 rounded-md hover:bg-hover-bg cursor-pointer text-sm font-medium text-text-secondary"
+        [ngClass]="{ 'bg-components-list-option-active-bg': option.isSelected() }"
         [cdkOption]="type.value"
-        >
-        {{ ('PAC.Xpert.ToolsetType_' + type.label) | translate: {Default: type.label} }}
+      >
+        {{ 'PAC.Xpert.ToolsetType_' + type.label | translate: { Default: type.label } }}
       </div>
     }
   </ul>
@@ -19,54 +20,58 @@
 @if (type()[0]) {
   @switch (type()[0]) {
     @case (eXpertToolsetCategoryEnum.MCP) {
-      <div class="w-full space-y-0.5 rounded-[9px] bg-zinc-100 p-0.5 mb-2">
-        <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed
-          border-divider-deep px-1 text-sm text-text-placeholder"
-          [matTooltip]="''"
-          matTooltipPosition="left"
+      <div class="w-full space-y-0.5 rounded-[9px] bg-components-list-option-active-bg p-0.5 mb-2">
+        <div
+          class="bg-background-default-subtle hover:bg-hover-bg relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed border-divider-deep px-1 text-sm text-text-placeholder"
+          [zTooltip]="''"
+          zPosition="left"
           (click)="createMCPToolset()"
         >
-          <div class="bg-neutral-100 text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
+          <div class="bg-components-input-bg-normal text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
             <i class="ri-add-line"></i>
           </div>
           <div class="flex items-center uppercase">
-            <span>{{ 'PAC.Xpert.NewMCPToolset' | translate: {Default: 'New MCP Toolset'} }}</span>
+            <span>{{ 'PAC.Xpert.NewMCPToolset' | translate: { Default: 'New MCP Toolset' } }}</span>
           </div>
         </div>
       </div>
     }
   }
   @for (toolset of toolsets(); track toolset.id) {
-    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center px-1.5 py-2 rounded-lg overflow-hidden"
+    <div
+      cdkMenuItem
+      class="shrink-0 w-full flex justify-start items-center px-1.5 py-2 rounded-lg overflow-hidden"
       (click)="createToolset(toolset)"
       (mouseover)="openToolsetTip(toolset, overlayTrigger)"
       (mouseout)="toolDetailOpen.set(false)"
       cdkOverlayOrigin
       #overlayTrigger="cdkOverlayOrigin"
-      >
-      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95"  />
+    >
+      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95" />
       <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.name">
-        {{toolset.name}}
+        {{ toolset.name }}
       </div>
     </div>
   } @empty {
     <div class="p-2">
-      {{ 'PAC.Xpert.NoToolset' | translate: {Default: 'No toolset'} }}
+      {{ 'PAC.Xpert.NoToolset' | translate: { Default: 'No toolset' } }}
     </div>
   }
 } @else {
   @for (toolset of toolProviders(); track toolset.id) {
-    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center px-1.5 py-2 rounded-lg overflow-hidden"
+    <div
+      cdkMenuItem
+      class="shrink-0 w-full flex justify-start items-center px-1.5 py-2 rounded-lg overflow-hidden"
       [cdkMenuItemDisabled]="toolset.not_implemented"
       (click)="createBuiltinToolset(toolset)"
       (mouseover)="openBuiltinToolsetTip(toolset, overlayTrigger)"
       (mouseout)="toolDetailOpen.set(false)"
       cdkOverlayOrigin
       #overlayTrigger="cdkOverlayOrigin"
-      >
-      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95"  />
+    >
+      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95" />
       <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.label | i18n">
-        {{toolset.label | i18n}}
+        {{ toolset.label | i18n }}
       </div>
     </div>
   }
@@ -84,12 +89,12 @@
       originY: 'top',
       overlayX: 'start',
       overlayY: 'top'
-    },
+    }
   ]"
   [cdkConnectedOverlayPush]="true"
 >
   @if (toolset()) {
-    <xpert-toolset-card [toolset]="toolset()" class="toolset-tip-card w-96 bg-components-card-bg " />
+    <xpert-toolset-card [toolset]="toolset()" class="toolset-tip-card w-96 bg-components-card-bg" />
   } @else if (builtinToolset()) {
     <xpert-tool-provider-card [provider]="builtinToolset()" class="toolset-tip-card w-96 bg-components-card-bg" />
   }

@@ -1,5 +1,4 @@
 export * from './core.module'
-export * from './date-fns/date-fns-date-adapter'
 export * from './directives/highlight.directive'
 export * from './directives/semantic-color.directive'
 export * from './i18n/resources'

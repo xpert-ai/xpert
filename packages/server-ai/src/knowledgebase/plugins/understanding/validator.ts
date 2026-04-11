@@ -1,5 +1,5 @@
-import { ChecklistItem, IWFNUnderstanding, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { ChecklistItem, IWFNUnderstanding, TXpertTeamNode, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { OnEvent } from '@nestjs/event-emitter'

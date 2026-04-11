@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use './member-table/member-table-theme' as member-table;
 @use './member-tree/member-tree-theme' as member-tree;
 @use './member-list/member-list-theme' as member-list;
@@ -7,7 +7,7 @@
 
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
@@ -27,17 +27,17 @@
   @include smart-filter.density($config-or-theme);
 
   .ngm-density__cosy.ngm-smart-select, .ngm-density__cosy .ngm-smart-select {
-    @include mat.form-field-density(-3);
+    @include themeCompat.form-field-density(-3);
   }
   .ngm-density__compact.ngm-smart-select, .ngm-density__compact .ngm-smart-select{
-    @include mat.form-field-density(-5);
+    @include themeCompat.form-field-density(-5);
   }
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

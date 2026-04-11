@@ -1,10 +1,10 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
   convertToUrlPath,
@@ -15,7 +15,7 @@ import {
   XpertAPIService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { nonBlank } from '@metad/copilot'
+import { nonBlank } from '@xpert-ai/copilot'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { debounceTime, filter, switchMap } from 'rxjs/operators'
 import { BehaviorSubject } from 'rxjs'
@@ -24,16 +24,15 @@ import { CopilotModelSelectComponent } from '../../copilot'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
-    MatInputModule,
+    ZardInputDirective,
     CdkMenuModule,
     CdkListboxModule,
     TextFieldModule,
     EmojiAvatarComponent,
     CopilotModelSelectComponent
-  ],
+],
   selector: 'xpert-basic-form',
   templateUrl: 'basic-form.component.html',
   styleUrl: 'basic-form.component.scss',
@@ -124,6 +123,6 @@ export class XpertBasicFormComponent {
 
       // If validation passes, trigger name availability check
       this.name$.next(name)
-    }, { allowSignalWrites: true })
+    })
   }
 }

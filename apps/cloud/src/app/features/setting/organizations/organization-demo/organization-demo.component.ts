@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, signal } from '@angular/core'
 import { FormControl, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -11,7 +11,8 @@ import {
 import { Subscription } from 'rxjs'
 import { EditOrganizationComponent } from '../edit-organization/edit-organization.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 
 @Component({
@@ -19,7 +20,7 @@ import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
   selector: 'pac-organization-demo',
   templateUrl: './organization-demo.component.html',
   styleUrls: ['./organization-demo.component.scss'],
-  imports: [CommonModule, SharedModule, MaterialModule, TranslateModule]
+  imports: [SharedModule, SharedUiModule, TranslateModule, ZardLoaderComponent]
 })
 export class OrganizationDemoComponent extends TranslationBaseComponent {
   OrganizationDemoNetworkEnum = OrganizationDemoNetworkEnum

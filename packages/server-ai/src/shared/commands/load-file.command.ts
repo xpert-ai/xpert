@@ -1,5 +1,5 @@
 import { Document } from '@langchain/core/documents'
-import { _TFile } from '@metad/contracts';
+import { _TFile } from '@xpert-ai/contracts';
 import { Command } from '@nestjs/cqrs';
 
 /**

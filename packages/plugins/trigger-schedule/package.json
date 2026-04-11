@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-trigger-schedule",
-  "version": "0.0.1",
+  "version": "0.0.2-beta.0",
   "xpert": {
     "plugin": {
       "level": "system"
@@ -14,7 +14,7 @@
     "@nestjs/config": ">=3",
     "@nestjs/core": ">=10",
     "@nestjs/schedule": ">=6",
-    "@xpert-ai/plugin-sdk": ">=0.0.1",
+    "@xpert-ai/plugin-sdk": "workspace:*",
     "zod": ">=3.22.4"
   }
 }

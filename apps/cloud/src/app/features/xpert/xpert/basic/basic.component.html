@@ -10,13 +10,13 @@
 <form class="mx-4 lg:mx-auto flex flex-col justify-start px-6 lg:w-[600px] overflow-auto" 
   [formGroup]="form">
   <div class="pt-2">
-    <div class="py-2 font-medium leading-[20px] text-gray-900">{{ 'PAC.Xpert.Icon' | translate: {Default: 'Icon'} }} &amp; {{ 'PAC.Xpert.Name' | translate: {Default: 'Name'} }}</div>
+    <div class="py-2 font-medium leading-[20px] text-text-primary">{{ 'PAC.Xpert.Icon' | translate: {Default: 'Icon'} }} &amp; {{ 'PAC.Xpert.Name' | translate: {Default: 'Name'} }}</div>
     <div class="flex items-center justify-between space-x-2">
   
       <emoji-avatar editable formControlName="avatar" class="rounded-lg overflow-hidden shadow-sm" />
   
-      <input matInput
-        class="grow h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs"
+      <input z-input
+        class="grow h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-components-input-text-placeholder hover:bg-hover-bg hover:border hover:border-divider-deep focus:bg-components-input-bg-active focus:border focus:border-components-input-border-active focus:shadow-xs"
         [value]="name"
         disabled
       >
@@ -24,21 +24,21 @@
   </div>
   
   <div class="pt-2">
-    <div class="py-2 font-medium leading-[20px] text-gray-900">{{ 'PAC.Xpert.Title' | translate: {Default: 'Title'} }}</div>
-    <input matInput [placeholder]="'PAC.Xpert.EnterTitle' | translate: {Default: 'Enter title'}" class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs"
+    <div class="py-2 font-medium leading-[20px] text-text-primary">{{ 'PAC.Xpert.Title' | translate: {Default: 'Title'} }}</div>
+    <input z-input [placeholder]="'PAC.Xpert.EnterTitle' | translate: {Default: 'Enter title'}" class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-components-input-text-placeholder hover:bg-hover-bg hover:border hover:border-divider-deep focus:bg-components-input-bg-active focus:border focus:border-components-input-border-active focus:shadow-xs"
       formControlName="title">
   </div>
   
   <div class="pt-2">
-    <div class="py-2 font-medium leading-[20px] text-gray-900">{{ 'PAC.Xpert.Description' | translate: {Default: 'Description'} }}</div>
-    <textarea matInput class="w-full px-3 py-2 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs h-[80px] resize-none"
+    <div class="py-2 font-medium leading-[20px] text-text-primary">{{ 'PAC.Xpert.Description' | translate: {Default: 'Description'} }}</div>
+    <textarea z-input class="w-full px-3 py-2 text-sm font-normal bg-components-input-bg-normal rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-components-input-text-placeholder hover:bg-hover-bg hover:border hover:border-divider-deep focus:bg-components-input-bg-active focus:border focus:border-components-input-border-active focus:shadow-xs h-[80px] resize-none"
       [placeholder]="'PAC.Xpert.EnterXpertDesc' | translate: {Default: 'Enter xpert description'}"
       formControlName="description"
     ></textarea>
   </div>
   
   <div class="pt-2">
-    <div class="py-2 font-medium leading-[20px] text-gray-900">{{'PAC.Xpert.Tags' | translate: {Default: 'Tags'} }}</div>
+    <div class="py-2 font-medium leading-[20px] text-text-primary">{{'PAC.Xpert.Tags' | translate: {Default: 'Tags'} }}</div>
     <tag-select [category]="eTagCategoryEnum.XPERT" formControlName="tags"></tag-select>
   </div>
   
@@ -47,7 +47,7 @@
     formControlName="copilotModel"
   />
 
-  <!-- <div class="flex flex-col mt-4 rounded-xl pt-2 pb-3 px-3 bg-gray-50 dark:bg-neutral-800"
+  <!-- <div class="flex flex-col mt-4 rounded-xl pt-2 pb-3 px-3 bg-background-default-subtle dark:bg-neutral-800"
     formArrayName="starters">
     <label class="ngm-input-label shrink-0">{{'PAC.Copilot.Roles.Starters' | translate: {Default: 'Starters'} }}</label>
     <ngm-input class="w-full" large

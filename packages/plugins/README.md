@@ -6,14 +6,10 @@ How to generate a new plugin library, replacing `my-plugin` with your plugin nam
 npx nx g @nx/js:lib packages/plugins/my-plugin --importPath=@xpert-ai/plugin-my-plugin --unitTestRunner=jest --publishable --bundler=rollup --linter=eslint
 ```
 
-## Build wiring
+- Add the corresponding build command `pnpm nx build my-plugin` to `build:plugins` in *package.json*.
+- Add the corresponding build command `pnpm nx build my-plugin` to `build:plugins` in *./.deploy/api/package.json*.
 
-- Add `yarn nx build my-plugin` to `build:plugins` in the root `package.json`.
-- Add the same build command to the deployment package manifest if that environment builds plugins separately.
-
-## External dependencies
-
-Add external dependencies in the plugin's `project.json`:
+- Add external dependencies in plugin's *project.json*:
 
 ```json
 "external": [
@@ -23,6 +19,10 @@ Add external dependencies in the plugin's `project.json`:
 ```
 
 Add more entries for any runtime dependencies that must stay external.
+
+- Keep `@xpert-ai/plugin-sdk` in `peerDependencies`, never `dependencies`.
+- Use an explicit single-major range for `@xpert-ai/plugin-sdk`, for example `^3.8.0`.
+- If local development needs an installed SDK copy, mirror the same range in `devDependencies`.
 
 ## Local runtime entry
 

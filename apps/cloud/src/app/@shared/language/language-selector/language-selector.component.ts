@@ -1,25 +1,23 @@
 import { Component, OnInit, Input, Output, EventEmitter, forwardRef, ChangeDetectorRef, signal, computed, inject, DestroyRef } from '@angular/core';
-import { ILanguage } from '@metad/contracts';
+import { ILanguage } from '@xpert-ai/contracts';
 import { TranslateModule } from '@ngx-translate/core';
 import { LanguagesService, Store } from '../../../@core';
 import { filter, tap } from 'rxjs/operators';
 import { FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { MatFormFieldAppearance } from '@angular/material/form-field';
+
 import { TranslationBaseComponent } from '../translation-base.component';
-import { NgmSelectComponent, NgmSpinComponent } from '@metad/ocap-angular/common';
+import { NgmSelectComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
 
 @Component({
 	standalone: true,
 	imports: [
-		CommonModule,
-		FormsModule,
-		TranslateModule,
-
-		NgmSelectComponent,
-		NgmSpinComponent
-	],
+    FormsModule,
+    TranslateModule,
+    NgmSelectComponent,
+    NgmSpinComponent
+],
 	selector: 'pac-language-selector',
 	templateUrl: './language-selector.component.html',
 	styleUrls: ['./language-selector.component.scss'],
@@ -40,7 +38,7 @@ export class LanguageSelectorComponent extends TranslationBaseComponent implemen
 
 	languagesOptions = computed(() => this.languages().map((language: ILanguage) => ({key: language.code, caption: language.name})))
 
-	@Input() appearance: MatFormFieldAppearance
+	@Input() appearance: NgmFieldAppearance
 
 	/*
 	* Getter & Setter for dynamic placeholder

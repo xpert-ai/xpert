@@ -1,5 +1,5 @@
-import { IPagination } from '@metad/contracts'
-import { CrudController, RequestContext } from '@metad/server-core'
+import { IPagination } from '@xpert-ai/contracts'
+import { CrudController, RequestContext } from '@xpert-ai/server-core'
 import { Controller, Get, HttpStatus, Query } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'

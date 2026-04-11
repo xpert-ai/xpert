@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_WORKSPACE } from '../constants/app.constants'
@@ -25,6 +25,16 @@ export class XpertWorkspaceService extends OrganizationBaseCrudService<IXpertWor
         )
       )
     )
+  }
+
+  getMyDefault() {
+    return this.selectOrganizationId().pipe(
+      switchMap(() => this.httpClient.get<IXpertWorkspace | null>(this.apiBaseUrl + `/my/default`))
+    )
+  }
+
+  setMyDefault(id: string) {
+    return this.httpClient.post<IXpertWorkspace>(this.apiBaseUrl + `/${id}/default`, {})
   }
 
   getMembers(id: string) {

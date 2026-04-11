@@ -4,6 +4,7 @@ import { NgmChromaticType } from '../types'
 
 @Component({
   selector: 'ngm-scale-chromatic',
+  standalone: false,
   templateUrl: './scale-chromatic.component.html',
   styleUrls: ['./scale-chromatic.component.scss'],
 })

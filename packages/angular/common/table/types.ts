@@ -1,5 +1,5 @@
 import { Signal, TemplateRef } from "@angular/core"
-import { Property } from "@metad/ocap-core"
+import { Property } from "@xpert-ai/ocap-core"
 
 export interface TableColumn extends Property {
     width?: string

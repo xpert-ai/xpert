@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IUser, IUserFindInput, IUserPasswordInput, IUserUpdateInput } from '@metad/contracts'
+import { IUser, IUserFindInput, IUserMeFeatures, IUserPasswordInput, IUserUpdateInput } from '@xpert-ai/contracts'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from './constants'
 
@@ -12,14 +12,40 @@ export class UsersService {
 
   API_URL = `${API_PREFIX}/user`
 
-  getMe(relations?: string[]): Promise<IUser> {
-    const data = JSON.stringify({ relations })
+  getMe(): Promise<IUser> {
+    return firstValueFrom(this.http.get<IUser>(`${this.API_URL}/me`))
+  }
 
-    return firstValueFrom(
-      this.http.get<IUser>(`${this.API_URL}/me`, {
-        params: { data }
-      })
+  getMeFeatures(): Promise<IUserMeFeatures> {
+    return firstValueFrom(this.http.get<IUserMeFeatures>(`${this.API_URL}/me/features`))
+  }
+
+  mergeMeFeatures(user: IUser, features: IUserMeFeatures): IUser {
+    const organizationFeatures = new Map(
+      (features.organizationFeatures ?? []).map(({ organizationId, featureOrganizations }) => [
+        organizationId,
+        featureOrganizations
+      ])
     )
+
+    return {
+      ...user,
+      tenant: user.tenant
+        ? {
+            ...user.tenant,
+            featureOrganizations: features.tenantFeatureOrganizations ?? []
+          }
+        : user.tenant,
+      organizations: (user.organizations ?? []).map((membership) => ({
+        ...membership,
+        organization: membership.organization
+          ? {
+              ...membership.organization,
+              featureOrganizations: organizationFeatures.get(membership.organizationId) ?? []
+            }
+          : membership.organization
+      }))
+    }
   }
 
   getUserByEmail(emailId: string): Promise<IUser> {
@@ -42,9 +68,17 @@ export class UsersService {
       }).pipe(map(({items}) => items))
   }
 
-  search(search: string) {
+  search(search: string, options?: { organizationId?: string; membership?: string }) {
+    const params: Record<string, string> = { search }
+    if (options?.organizationId) {
+      params.organizationId = options.organizationId
+    }
+    if (options?.membership) {
+      params.membership = options.membership
+    }
+
     return this.http.get<{ items: IUser[]; total: number }>(`${this.API_URL}/search`, {
-        params: { search }
+        params
       }).pipe(
         map(({items}) => items)
       )

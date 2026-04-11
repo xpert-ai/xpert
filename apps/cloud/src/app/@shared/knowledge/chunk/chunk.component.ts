@@ -2,15 +2,22 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { DocumentMetadata, IKnowledgeDocumentChunk } from '../../../@core'
 import { KnowledgeDocIdComponent } from '../knowledge-doc-id/doc.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, MarkdownModule, KnowledgeDocIdComponent],
+  imports: [
+    CommonModule,
+    CdkMenuModule,
+    FormsModule,
+    TranslateModule,
+    ...ZardTooltipImports,
+    MarkdownModule,
+    KnowledgeDocIdComponent
+  ],
   selector: 'xp-knowledge-chunk',
   templateUrl: 'chunk.component.html',
   styleUrls: ['chunk.component.scss']
@@ -36,9 +43,11 @@ export class KnowledgeChunkComponent {
   readonly document = computed(() => this.chunk()?.document)
 
   constructor() {
-    effect(() => {
-      this._preview.set(this.preview())
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        this._preview.set(this.preview())
+      }
+    )
   }
 
   togglePreview() {

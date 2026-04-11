@@ -1,5 +1,5 @@
-import { ConfigService } from '@metad/server-config'
-import { IconDefinition } from '@metad/contracts'
+import { ConfigService } from '@xpert-ai/server-config'
+import { IconDefinition } from '@xpert-ai/contracts'
 import { HttpException, HttpStatus, Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { AgentMiddlewareRegistry, RequestContext, ToolsetRegistry } from '@xpert-ai/plugin-sdk'

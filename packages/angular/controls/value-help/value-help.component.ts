@@ -12,18 +12,27 @@ import {
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatListModule } from '@angular/material/list'
-import { MatSelectModule } from '@angular/material/select'
+
+import {
+  Z_MODAL_DATA,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardDividerComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmCommonModule, NgmResizableDirective } from '@metad/ocap-angular/common'
-import { DisplayDensity, NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmCommonModule, NgmResizableDirective } from '@xpert-ai/ocap-angular/common'
+import {
+  DisplayDensity,
+  NgmAppearance,
+  NgmDSCoreService,
+  OcapCoreModule,
+  NgmFieldAppearance
+} from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -36,14 +45,13 @@ import {
   PropertyHierarchy,
   TreeSelectionMode,
   getEntityProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { merge } from 'lodash-es'
 import { filter, map, switchMap } from 'rxjs'
 import { NgmMemberListComponent } from '../member-list/member-list.component'
 import { NgmMemberTreeComponent } from '../member-tree/member-tree.component'
 import { ControlOptions, TreeControlOptions } from '../types'
-
 
 @Component({
   standalone: true,
@@ -60,14 +68,12 @@ import { ControlOptions, TreeControlOptions } from '../types'
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatDialogModule,
-    MatIconModule,
-    MatSlideToggleModule,
-    MatDividerModule,
-    MatListModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatButtonModule,
+    ZardDialogModule,
+    ZardIconComponent,
+    ZardDividerComponent,
+    ...ZardFormImports,
+    ...ZardSelectImports,
+    ZardButtonComponent,
     NgmCommonModule,
     OcapCoreModule,
     NgmMemberListComponent,
@@ -80,17 +86,123 @@ export class NgmValueHelpComponent implements OnInit {
   FilterSelectionType = FilterSelectionType
   TreeSelectionMode = TreeSelectionMode
   PresentationEnum = PresentationEnum
-  eFilterOperator = FilterOperator
-  eDisplayBehaviour = DisplayBehaviour
+  readonly autoDisplayBehaviour = '__auto__'
+  readonly displayBehaviourOptions = [
+    { value: DisplayBehaviour.descriptionOnly, label: 'Description' },
+    { value: DisplayBehaviour.descriptionAndId, label: 'Description ID' },
+    { value: DisplayBehaviour.idAndDescription, label: 'ID Description' },
+    { value: DisplayBehaviour.idOnly, label: 'ID' },
+    { value: this.autoDisplayBehaviour, label: 'Auto' }
+  ]
+  readonly selectionTypeOptions = [
+    {
+      value: FilterSelectionType.Single,
+      i18nKey: 'Ngm.Common.SelectionType_Single',
+      defaultLabel: 'Single'
+    },
+    {
+      value: FilterSelectionType.Multiple,
+      i18nKey: 'Ngm.Common.SelectionType_Multiple',
+      defaultLabel: 'Multiple'
+    },
+    {
+      value: FilterSelectionType.SingleRange,
+      i18nKey: 'Ngm.Common.SelectionType_SingleRange',
+      defaultLabel: 'Single Range'
+    }
+  ]
+  readonly presentationOptions = [
+    {
+      value: PresentationEnum.Flat,
+      i18nKey: 'Ngm.Common.Presentation_Flat',
+      defaultLabel: 'Flat'
+    },
+    {
+      value: PresentationEnum.Hierarchy,
+      i18nKey: 'Ngm.Common.Presentation_Hierarchy',
+      defaultLabel: 'Hierarchy'
+    }
+  ]
+  readonly treeSelectionModeOptions = [
+    {
+      value: TreeSelectionMode.Individual,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_Individual',
+      defaultLabel: 'Individual'
+    },
+    {
+      value: TreeSelectionMode.SelfDescendants,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_SelfDescendants',
+      defaultLabel: 'Self & Descendants'
+    },
+    {
+      value: TreeSelectionMode.DescendantsOnly,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_DescendantsOnly',
+      defaultLabel: 'Descendants Only'
+    },
+    {
+      value: TreeSelectionMode.SelfChildren,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_SelfChildren',
+      defaultLabel: 'Self & Children'
+    },
+    {
+      value: TreeSelectionMode.ChildrenOnly,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_ChildrenOnly',
+      defaultLabel: 'Children Only'
+    }
+  ]
+  readonly memberPropertyOptions = [
+    {
+      value: 'UniqueName',
+      i18nKey: 'Ngm.Controls.ValueHelp.UniqueName',
+      defaultLabel: 'Unique Name'
+    },
+    {
+      value: 'Caption',
+      i18nKey: 'Ngm.Controls.ValueHelp.Caption',
+      defaultLabel: 'Caption'
+    }
+  ]
+  readonly memberOperatorOptions = [
+    {
+      value: FilterOperator.Contains,
+      i18nKey: 'Ngm.Controls.ValueHelp.Contains',
+      defaultLabel: 'Contains'
+    },
+    {
+      value: FilterOperator.StartsWith,
+      i18nKey: 'Ngm.Controls.ValueHelp.StartsWith',
+      defaultLabel: 'Starts With'
+    },
+    {
+      value: FilterOperator.EndsWith,
+      i18nKey: 'Ngm.Controls.ValueHelp.EndsWith',
+      defaultLabel: 'Ends With'
+    },
+    {
+      value: FilterOperator.NotContains,
+      i18nKey: 'Ngm.Controls.ValueHelp.NotContains',
+      defaultLabel: 'Not Contains'
+    },
+    {
+      value: FilterOperator.NotStartsWith,
+      i18nKey: 'Ngm.Controls.ValueHelp.NotStartsWith',
+      defaultLabel: 'Not Starts With'
+    },
+    {
+      value: FilterOperator.NotEndsWith,
+      i18nKey: 'Ngm.Controls.ValueHelp.NotEndsWith',
+      defaultLabel: 'Not Ends With'
+    }
+  ]
 
   private dsCoreService? = inject(NgmDSCoreService, { optional: true })
   readonly #data = inject<{
-      dsCoreService: NgmDSCoreService
-      dataSettings: DataSettings
-      dimension: Dimension
-      options: ControlOptions
-      slicer: ISlicer
-    }>(DIALOG_DATA, { optional: true })
+    dsCoreService: NgmDSCoreService
+    dataSettings: DataSettings
+    dimension: Dimension
+    options: ControlOptions
+    slicer: ISlicer
+  }>(DIALOG_DATA, { optional: true })
   readonly #dialogRef = inject(DialogRef, { optional: true })
 
   @Input() get dataSettings(): DataSettings {
@@ -114,7 +226,7 @@ export class NgmValueHelpComponent implements OnInit {
   } as ControlOptions
   @Input() appearance: NgmAppearance = {
     displayDensity: DisplayDensity.cosy,
-    appearance: 'standard' as MatFormFieldAppearance
+    appearance: 'standard' as NgmFieldAppearance
   }
 
   slicer: ISlicer = {}
@@ -215,6 +327,12 @@ export class NgmValueHelpComponent implements OnInit {
     }
     return []
   })
+  readonly hierarchyOptions = computed(() =>
+    (this.hierarchies() ?? []).map((hierarchy) => ({
+      value: hierarchy.name,
+      label: hierarchy.caption
+    }))
+  )
 
   get selectedMembers() {
     return this.slicer?.members
@@ -232,9 +350,9 @@ export class NgmValueHelpComponent implements OnInit {
   })
 
   constructor(
-    @Optional() public dialogRef?: MatDialogRef<NgmValueHelpComponent>,
+    @Optional() public dialogRef?: ZardDialogRef<NgmValueHelpComponent>,
     @Optional()
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public _data?: {
       dsCoreService: NgmDSCoreService
       dataSettings: DataSettings
@@ -293,7 +411,7 @@ export class NgmValueHelpComponent implements OnInit {
 
   addMember() {
     const members = this.slicer.members ? [...this.slicer.members] : []
-    const member: IMember = {key: null, operator: this.memberForm.value.operator,}
+    const member: IMember = { key: null, operator: this.memberForm.value.operator }
     if (this.memberForm.value.type === 'Caption') {
       member.caption = this.memberForm.value.value
     } else if (this.memberForm.value.type === 'UniqueName') {
@@ -304,14 +422,14 @@ export class NgmValueHelpComponent implements OnInit {
       ...this.slicer,
       members
     }
-    this.memberForm.reset({type: 'Caption', operator: FilterOperator.Contains, value: ''})
+    this.memberForm.reset({ type: 'Caption', operator: FilterOperator.Contains, value: '' })
   }
 
   close() {
     const result = {
       ...this.slicer,
       dimension: {
-        ...this.dimension,
+        ...this.dimension
         // Default to descriptionOnly
         // displayBehaviour: this.dimension.displayBehaviour ?? DisplayBehaviour.descriptionOnly
       }
@@ -324,5 +442,4 @@ export class NgmValueHelpComponent implements OnInit {
       this.#dialogRef.close(result)
     }
   }
-
 }

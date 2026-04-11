@@ -1,6 +1,6 @@
-import { TypeAheadType } from '@metad/core'
-import { DisplayDensity, ISelectOption, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@metad/ocap-angular/core'
-import { DataSource, FilterSelectionType, isNil } from '@metad/ocap-core'
+import { TypeAheadType } from '@xpert-ai/core'
+import { DisplayDensity, ISelectOption, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@xpert-ai/ocap-angular/core'
+import { DataSource, FilterSelectionType, isNil } from '@xpert-ai/ocap-core'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { Observable, combineLatest, throwError } from 'rxjs'
 import { catchError, map, switchMap, tap } from 'rxjs/operators'
@@ -73,7 +73,6 @@ export function AccordionWrappers(
   ]
 }
 
-
 /**
  * @deprecated use `makeDataSettingsContent` instead
  */
@@ -86,8 +85,7 @@ export function DataSettingsSchema(
   return {
     wrappers: ['accordion'],
     props: {
-      elevationZ: true,
-    },
+      elevationZ: true },
     fieldGroup: [
       {
         key: 'dataSettings',
@@ -108,8 +106,7 @@ export function DataSettingsSchema(
                   label: BUILDER?.SemanticModel ?? 'Semantic Model',
                   required: true,
                   options: dataSources$,
-                  panelWidth: '300px',
-                }
+                  panelWidth: '300px' }
               },
               {
                 key: 'entitySet',
@@ -119,8 +116,7 @@ export function DataSettingsSchema(
                   label: BUILDER?.Entity ?? 'Entity',
                   searchable: true,
                   required: true,
-                  panelWidth: '300px',
-                },
+                  panelWidth: '300px' },
                 expressions: {
                   hide: `!model || !model.dataSource`
                 },
@@ -150,9 +146,7 @@ export function DataSettingsSchema(
                             ? 'star_outline'
                             : cube.cubeType === 'VIRTUAL CUBE'
                             ? 'dataset_linked'
-                            : null,
-                          fontSet: 'material-icons-outlined'
-                        }))
+                            : null }))
                       }),
                       catchError((err) => {
                         field.className = field.className.split('formly-loader').join('')

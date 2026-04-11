@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { BusinessAreaRole, IBusinessArea, IBusinessAreaUser, IUser } from '@metad/contracts'
+import { BusinessAreaRole, IBusinessArea, IBusinessAreaUser, IUser } from '@xpert-ai/contracts'
 import {
 	TenantOrganizationBaseEntity,
 	User,
 	UserOrganization,
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { IsNotEmpty, IsString } from 'class-validator'
 import {
 	Column,
@@ -73,7 +73,7 @@ export class BusinessAreaUser
 	businessAreaId: string
 
 	@IsNotEmpty()
-	@Column()
+	@Column({ type: 'int', default: BusinessAreaRole.Viewer })
 	role: BusinessAreaRole
 
 	@Column({type: 'json', array: true, nullable: true })

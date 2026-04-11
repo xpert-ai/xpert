@@ -1,28 +1,29 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
   $accent: map.get($config, accent);
 
   .pac-model-query-lab {
-    .mat-mdc-tab-group {
+    .z-tab-group {
       height: 100%;
-      .mat-tab-body-wrapper {
+      .z-tab-group__content {
         height: 100%;
       }
     }
   }
 
-  .mat-tooltip.pac-model-query__statement-tip {
+  .mdc-tooltip.pac-model-query__statement-tip,
+  .pac-model-query__statement-tip {
     background-color: white;
     color: black;
     white-space: pre-wrap;
-    @include mat.elevation(8);
+    @include themeCompat.elevation(8);
   }
 
 }

@@ -1,4 +1,4 @@
-import { Public, TransformInterceptor } from '@metad/server-core'
+import { Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { Controller, Get, HttpException, HttpStatus, Param, Query, Res, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

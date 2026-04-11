@@ -1,31 +1,31 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 ">
+<div class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 ">
   <div class="w-full flex justify-start items-center mb-4 group cursor-pointer" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-xl font-semibold pointer-events-none">
       {{ 'PAC.INDICATOR.Indicators' | translate: { Default: 'Indicators' } }}
     </span>
   </div>
 
-  <mat-nav-list class="ngm-nav-list my-2 flex-1 space-y-1 overflow-auto">
+  <ul class="ngm-nav-list my-2 flex-1 space-y-1 overflow-auto">
     @for (indicator of indicators; track indicator; let i = $index) {
-      <mat-list-item class="flex group/item"
+      <li class="flex group/item"
         [class.active]="activedIndex() === i"
         (click)="activeLink(i, indicator)">
         <div class="flex justify-between items-center">
           <span class="flex-1"> {{ indicator.name }} </span>
-          <mat-icon class="cursor-pointer rounded-full invisible hover:bg-white/20 group-hover/item:visible"
+          <z-icon class="cursor-pointer rounded-full invisible hover:bg-components-card-bg/20 group-hover/item:visible"
             ngmAppearance="danger"
-            (click)="removeIndicator(i)">close</mat-icon>
+            (click)="removeIndicator(i)" zType="close"></z-icon>
         </div>
-      </mat-list-item>
+      </li>
     }
-  </mat-nav-list>
+  </ul>
 
   <div class="flex justify-start">
     <div ngmButtonGroup>
-      <button mat-raised-button color="accent" cdkFocusInitial (click)="bulkCreate()">
+      <button z-button zType="default" cdkFocusInitial (click)="bulkCreate()">
         @if (uploading) {
-          <mat-spinner color="accent" diameter="20" strokeWidth="2" class="m-2"></mat-spinner>
+          <z-loader diameter="20" class="m-2" />
         } @else {
           <span>
             {{ 'PAC.INDICATOR.Import' | translate: { Default: 'Import' } }}

@@ -3,36 +3,82 @@
 <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left absolute"></div>
 
 <div class="node-output-bottom flex items-center gap-2 h-3 absolute -bottom-[8px] left-1/2 -ml-10">
-  <div fNodeOutput [fOutputId]="node().key + '/agent'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
-    [fCanBeConnectedInputs]="canBeConnectedInputs()">
-    <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectAgents' | translate: {Default: 'Connect Agents'}" matTooltipPosition="above">
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/agent'"
+    fOutputConnectableSide="bottom"
+    [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()"
+  >
+    <div
+      class="inner-dot cursor-crosshair"
+      [zTooltip]="'PAC.Xpert.ConnectAgents' | translate: { Default: 'Connect Agents' }"
+      zPosition="top"
+    >
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
-  <div fNodeOutput [fOutputId]="node().key + '/xpert'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
-    [fCanBeConnectedInputs]="canBeConnectedInputs()">
-    <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectXperts' | translate: {Default: 'Connect Xperts'}" matTooltipPosition="above">
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/xpert'"
+    fOutputConnectableSide="bottom"
+    [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()"
+  >
+    <div
+      class="inner-dot cursor-crosshair"
+      [zTooltip]="'PAC.Xpert.ConnectXperts' | translate: { Default: 'Connect Xperts' }"
+      zPosition="top"
+    >
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
   <div class="relative">
-    <div fNodeOutput [fOutputId]="node().key + '/workflow'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
-      [fCanBeConnectedInputs]="canBeConnectedInputs()">
-      <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectKnowledgebases' | translate: {Default: 'Connect Knowledgebases'}" matTooltipPosition="above">
+    <div
+      fNodeOutput
+      [fOutputId]="node().key + '/workflow'"
+      fOutputConnectableSide="bottom"
+      [fOutputMultiple]="true"
+      [fCanBeConnectedInputs]="canBeConnectedInputs()"
+    >
+      <div
+        class="inner-dot cursor-crosshair"
+        [zTooltip]="'PAC.Xpert.ConnectKnowledgebases' | translate: { Default: 'Connect Knowledgebases' }"
+        zPosition="top"
+      >
         <ngm-plus-svg class="w-2 h-2 text-white" />
       </div>
     </div>
-    <div class="absolute left-0 top-0" fNodeOutput [fOutputId]="node().key + '/toolset'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
-      [fCanBeConnectedInputs]="canBeConnectedInputs()">
-      <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectToolsets' | translate: {Default: 'Connect Toolsets'}" matTooltipPosition="above">
+    <div
+      class="absolute left-0 top-0"
+      fNodeOutput
+      [fOutputId]="node().key + '/toolset'"
+      fOutputConnectableSide="bottom"
+      [fOutputMultiple]="true"
+      [fCanBeConnectedInputs]="canBeConnectedInputs()"
+    >
+      <div
+        class="inner-dot cursor-crosshair"
+        [zTooltip]="'PAC.Xpert.ConnectToolsets' | translate: { Default: 'Connect Toolsets' }"
+        zPosition="top"
+      >
         <ngm-plus-svg class="w-2 h-2 text-white" />
       </div>
     </div>
   </div>
-  
-  <div fNodeOutput [fOutputId]="node().key + '/knowledge'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
-    [fCanBeConnectedInputs]="canBeConnectedInputs()">
-    <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectKnowledgebases' | translate: {Default: 'Connect Knowledgebases'}" matTooltipPosition="above">
+
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/knowledge'"
+    fOutputConnectableSide="bottom"
+    [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()"
+  >
+    <div
+      class="inner-dot cursor-crosshair"
+      [zTooltip]="'PAC.Xpert.ConnectKnowledgebases' | translate: { Default: 'Connect Knowledgebases' }"
+      zPosition="top"
+    >
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
@@ -42,58 +88,92 @@
   <div class="relative max-w-full flex justify-start items-center px-3 pt-3 pb-2 overflow-hidden">
     <emoji-avatar [avatar]="xpertAgent().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
     @if (isRoot()) {
-      <div class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
-        [matTooltip]="'PAC.Xpert.MainAgentTip' | translate: {Default: 'Main agent, responsible for receiving messages'}"
-        matTooltipPosition="above"
+      <div
+        class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-components-input-bg-normal shadow-md"
+        [zTooltip]="'PAC.Xpert.MainAgentTip' | translate: { Default: 'Main agent, responsible for receiving messages' }"
+        zPosition="top"
       >
         <i class="ri-vip-crown-2-fill text-sm text-amber-500"></i>
       </div>
     }
     @if (isStart()) {
-      <div class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
-        [matTooltip]="'PAC.Xpert.StartNodeTip' | translate: {Default: 'Start node, agent pre-processing logic entry'}"
-        matTooltipPosition="above"
+      <div
+        class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-components-input-bg-normal shadow-md"
+        [zTooltip]="'PAC.Xpert.StartNodeTip' | translate: { Default: 'Start node, agent pre-processing logic entry' }"
+        zPosition="top"
       >
         <i class="ri-run-line text-primary-500"></i>
       </div>
     }
-    @if(isSensitive()) {
-      <i class="ri-shield-keyhole-line mr-1 text-lg text-text-warning"
-        [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"
-        matTooltipPosition="above">
+    @if (isSensitive()) {
+      <i
+        class="ri-shield-keyhole-line mr-1 text-lg text-text-warning"
+        [zTooltip]="
+          'PAC.Xpert.SensitiveAgentTip'
+            | translate: { Default: 'Sensitive agents require user confirmation before execution' }
+        "
+        zPosition="top"
+      >
       </i>
     }
-    @if(isEnd()) {
-      <i class="ri-stop-circle-line mr-1 text-lg text-text-secondary"
-        [matTooltip]="'PAC.Xpert.EndAgentTip' | translate: {Default: 'The terminal agent, the run of chat ends after agent completed'}"
-        matTooltipPosition="above">
+    @if (isEnd()) {
+      <i
+        class="ri-stop-circle-line mr-1 text-lg text-text-secondary"
+        [zTooltip]="
+          'PAC.Xpert.EndAgentTip'
+            | translate: { Default: 'The terminal agent, the run of chat ends after agent completed' }
+        "
+        zPosition="top"
+      >
       </i>
     }
     @if (isDisableOutput()) {
-      <i class="ri-volume-mute-fill mr-1 text-lg text-sky-500"
-        [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"
-        matTooltipPosition="above">
+      <i
+        class="ri-volume-mute-fill mr-1 text-lg text-sky-500"
+        [zTooltip]="
+          'PAC.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
+        "
+        zPosition="top"
+      >
       </i>
     }
     <div class="flex flex-col overflow-hidden text-base-content">
-      <span class="text-base font-semibold uppercase truncate">{{agentLabel()}}</span>
+      <span class="text-base font-semibold uppercase truncate">{{ agentLabel() }}</span>
     </div>
-  </div>
-  
-  <div class="relative px-3 pb-2 w-full flex">
-    <p class="px-2 text-sm text-token-text-secondary text-left whitespace-pre-line line-clamp-3" [title]="xpertAgent().description">{{xpertAgent().description}}</p>
   </div>
 
   <div class="relative px-3 pb-2 w-full flex">
-    <copilot-model-select class="w-full" readonly hiddenLabel
+    <p
+      class="px-2 text-sm text-token-text-secondary text-left whitespace-pre-line line-clamp-3"
+      [title]="xpertAgent().description"
+    >
+      {{ xpertAgent().description }}
+    </p>
+  </div>
+
+  <div class="relative px-3 pb-2 w-full flex">
+    <copilot-model-select
+      class="w-full"
+      readonly
+      hiddenLabel
       [inheritModel]="xpertCopilotModel()"
       [modelType]="eModelType.LLM"
       [copilotModel]="copilotModel()"
     />
 
-    <div class="edge absolute -right-[4px] top-[7px]" fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true"
-      [fCanBeConnectedInputs]="canBeConnectedWorkflow()">
-      <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectWorkflow' | translate: {Default: 'Connect Workflow'}" matTooltipPosition="above">
+    <div
+      class="edge absolute -right-[4px] top-[7px]"
+      fNodeOutput
+      [fOutputId]="node().key + '/edge'"
+      fOutputConnectableSide="right"
+      [fOutputMultiple]="true"
+      [fCanBeConnectedInputs]="canBeConnectedWorkflow()"
+    >
+      <div
+        class="inner-dot cursor-crosshair"
+        [zTooltip]="'PAC.Xpert.ConnectWorkflow' | translate: { Default: 'Connect Workflow' }"
+        zPosition="top"
+      >
         <ngm-plus-svg class="text-white" />
       </div>
     </div>
@@ -101,12 +181,17 @@
 
   @if (retry()?.enabled && retry().stopAfterAttempt) {
     <div class="w-full px-3">
-      <div class="flex items-center justify-between px-[5px] py-1 bg-gray-100 border-[0.5px] border-transparent rounded-md uppercase font-medium text-sm text-text-warning">
+      <div
+        class="flex items-center justify-between px-[5px] py-1 bg-components-input-bg-normal border-[0.5px] border-transparent rounded-md uppercase font-medium text-sm text-text-warning"
+      >
         <div class="flex items-center">
-          {{'PAC.Xpert.RetryTimes' | translate: {
-              Default: 'Retry '+(retry().stopAfterAttempt - 1)+' times on failure',
-              times: retry().stopAfterAttempt - 1
-            }
+          {{
+            'PAC.Xpert.RetryTimes'
+              | translate
+                : {
+                    Default: 'Retry ' + (retry().stopAfterAttempt - 1) + ' times on failure',
+                    times: retry().stopAfterAttempt - 1
+                  }
           }}
         </div>
       </div>
@@ -115,8 +200,11 @@
 
   @if (fallback()?.enabled) {
     <div class="w-full px-3 flex flex-col items-start">
-      <div class="px-1 text-sm">{{'PAC.Xpert.FallbackModel' | translate: {Default: 'Fallback Model'} }}:</div>
-      <copilot-model-select readonly hiddenLabel class="w-full"
+      <div class="px-1 text-sm">{{ 'PAC.Xpert.FallbackModel' | translate: { Default: 'Fallback Model' } }}:</div>
+      <copilot-model-select
+        readonly
+        hiddenLabel
+        class="w-full"
         [modelType]="eModelType.LLM"
         [copilotModel]="fallbackModel()"
       />

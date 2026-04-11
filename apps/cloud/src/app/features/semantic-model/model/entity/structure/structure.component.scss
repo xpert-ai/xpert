@@ -1,3 +1,4 @@
+@reference "../../../../../../styles/tailwind-reference.css";
 :host {
   flex: 1;
   max-height: 100%;
@@ -12,7 +13,7 @@
 }
 
 .pac-cube-structure-drop {
-  @apply rounded-xl m-1 border border-dashed border-slate-200 p-4 dark:border-neutral-800;
+  @apply rounded-xl m-1 border border-dashed border-divider-deep p-4 dark:border-neutral-800;
 }
 
 .pac-cube__join-table-container {
@@ -103,7 +104,8 @@
 }
 
 .join-fields-form {
-  .fit-form-field.mat-button {
+  .fit-form-field[z-button],
+  z-button.fit-form-field {
     min-width: unset;
   }
 }
@@ -114,13 +116,10 @@
 }
 
 :host::ng-deep {
-  .mat-mdc-checkbox {
-    .mat-internal-form-field {
-      width: 100%;
-    }
-
-    .mdc-form-field > label {
+  z-checkbox {
+    .z-checkbox__label {
       flex: 1;
+      overflow: hidden;
     }
   }
 }

@@ -1,17 +1,17 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, inject, signal } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
-import { CopilotChatConversation } from '@metad/copilot'
-import { NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
-import { cloneDeep, isEqual } from '@metad/ocap-core'
-import { ComponentStore } from '@metad/store'
+import { CopilotChatConversation } from '@xpert-ai/copilot'
+import { NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { cloneDeep, isEqual } from '@xpert-ai/ocap-core'
+import { ComponentStore } from '@xpert-ai/store'
 import { ModelQuery, ModelQueryService, convertModelQueryResult, injectTranslate, uuid } from 'apps/cloud/src/app/@core'
 import { firstValueFrom } from 'rxjs'
 import { ModelQueryState, QueryResult } from '../types'
 import { initModelQueryState } from './types'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 export interface QueryLabState {
   modelId: string
   queries: {
@@ -24,7 +24,7 @@ export class QueryLabService extends ComponentStore<QueryLabState> {
   private readonly modelQueryService = inject(ModelQueryService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
-  public readonly dialog = inject(MatDialog)
+  public readonly dialog = inject(ZardDialogService)
   readonly translate = injectI18nService()
 
   public results: {

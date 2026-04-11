@@ -1,4 +1,4 @@
-import { ICopilot } from '@metad/contracts'
+import { ICopilot } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class CopilotCheckLimitCommand implements ICommand {

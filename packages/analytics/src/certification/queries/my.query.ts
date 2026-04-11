@@ -1,4 +1,4 @@
-import { ICertification } from '@metad/contracts'
+import { ICertification } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 import { FindManyOptions } from 'typeorm'
 

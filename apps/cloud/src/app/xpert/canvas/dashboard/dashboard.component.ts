@@ -1,38 +1,33 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertHomeService } from '@cloud/app/xpert/'
-import {
-  ChatDashboardMessageType,
-  TMessageComponent,
-  TMessageContentComponent
-} from '@cloud/app/@core'
+import { ChatDashboardMessageType, TMessageComponent, TMessageContentComponent } from '@cloud/app/@core'
 import { uniq } from 'lodash-es'
 import { ModelCubeComponent, ModelMembersComponent, ModelVirtualCubeComponent } from '@cloud/app/@shared/model'
 import { XpIndicatorFormComponent, XpListIndicatorsComponent } from '@cloud/app/@shared/indicator'
 import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashboard.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ChatMessageDashboardComponent,
     ModelCubeComponent,
     ModelMembersComponent,
     ModelVirtualCubeComponent,
     XpListIndicatorsComponent,
     XpIndicatorFormComponent
-  ],
+],
   selector: 'chat-canvas-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrl: 'dashboard.component.scss',
@@ -79,9 +74,7 @@ export class ChatCanvasDashboardComponent {
       if (Array.isArray(contents)) {
         acc.push(
           ...(contents.filter(
-            (content) =>
-              content.type === 'component' &&
-              (<TMessageComponent>content.data)?.category === 'Dashboard'
+            (content) => content.type === 'component' && (<TMessageComponent>content.data)?.category === 'Dashboard'
           ) as TMessageContentComponent[])
         )
       }
@@ -92,19 +85,18 @@ export class ChatCanvasDashboardComponent {
   })
 
   readonly contents = computed(() => {
-    return this._contents().filter((_) => this.componentId() ? _.id === this.componentId() : true)
+    return this._contents().filter((_) => (this.componentId() ? _.id === this.componentId() : true))
   })
 
   readonly types = computed(() => {
     return uniq(this._contents()?.map((content) => content.data.type) || [])
   })
 
-
   toggleExpand() {
     this.expand.update((state) => !state)
   }
 
   close() {
-    this.homeService.canvasOpened.set({opened: false, type: 'Dashboard'})
+    this.homeService.canvasOpened.set({ opened: false, type: 'Dashboard' })
   }
 }

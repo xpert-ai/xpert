@@ -1,9 +1,9 @@
 import { computed, Directive, effect, inject, signal } from '@angular/core'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
-import { extractSemanticModelDraft, SemanticModelServerService, TSemanticModelDraft } from '@metad/cloud/state'
-import { getSemanticModelKey } from '@metad/story/core'
-import { linkedModel, myRxResource, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { isEntitySet, Schema } from '@metad/ocap-core'
+import { extractSemanticModelDraft, SemanticModelServerService, TSemanticModelDraft } from '@xpert-ai/cloud/state'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
+import { linkedModel, myRxResource, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { isEntitySet, Schema } from '@xpert-ai/ocap-core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map } from 'rxjs/operators'
 import { of } from 'rxjs'
@@ -89,7 +89,7 @@ export class ModelDraftBaseComponent {
       if (this.semanticModel()) {
         this.studioService.initModel(this.semanticModel())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   save() {

@@ -1,30 +1,36 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MaskPipe } from '@metad/core'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { MaskPipe } from '@xpert-ai/core'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ApiKeyService, DateFormatPipe, DateRelativePipe, getErrorMessage, IApiKey, injectToastr } from 'apps/cloud/src/app/@core'
+import {
+  ApiKeyBindingType,
+  ApiKeyService,
+  DateFormatPipe,
+  DateRelativePipe,
+  getErrorMessage,
+  IApiKey,
+  injectToastr
+} from 'apps/cloud/src/app/@core'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     MaskPipe,
     DateFormatPipe,
     DateRelativePipe
-  ],
+],
   selector: 'xpert-develop-api-key',
   templateUrl: './api-key.component.html',
   styleUrl: 'api-key.component.scss',
@@ -33,7 +39,7 @@ import { map, switchMap } from 'rxjs/operators'
 export class XpertDevelopApiKeyComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly #dialog = inject(Dialog)
-  readonly #data = inject<{ type: 'xpert' | 'knowledgebase'; id: string }>(DIALOG_DATA)
+  readonly #data = inject<{ type: ApiKeyBindingType; id: string }>(DIALOG_DATA)
   readonly apiKeyService = inject(ApiKeyService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
@@ -67,8 +73,8 @@ export class XpertDevelopApiKeyComponent {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
-          title: this.#translate.instant('PAC.Xpert.DeleteApiKey', {Default: 'Delete this api key?'}),
-          information: this.#translate.instant('PAC.Xpert.ActionUndone', {Default: 'This action cannot be undone.'})
+          title: this.#translate.instant('PAC.Xpert.DeleteApiKey', { Default: 'Delete this api key?' }),
+          information: this.#translate.instant('PAC.Xpert.ActionUndone', { Default: 'This action cannot be undone.' })
         }
       })
       .closed.pipe(

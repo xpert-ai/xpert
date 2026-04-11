@@ -1,5 +1,5 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { IStory, StoryStatusEnum } from '@metad/contracts'
+import { IStory, StoryStatusEnum } from '@xpert-ai/contracts'
 import { StoryPointService } from '../../../story-point'
 import { StoryWidgetService } from '../../../story-widget'
 import { StoryService } from '../../story.service'

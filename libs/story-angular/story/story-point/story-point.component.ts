@@ -1,5 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { OverlayModule } from '@angular/cdk/overlay'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   ChangeDetectorRef,
   Component,
@@ -21,12 +22,11 @@ import {
   signal
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Params, Router } from '@angular/router'
-import { NxCoreModule, nonNullable, uploadYamlFile } from '@metad/core'
-import { NgmCommonModule, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
-import { NgmSmartFilterBarService, effectAction } from '@metad/ocap-angular/core'
-import { assignDeepOmitBlank, omit, omitBlank } from '@metad/ocap-core'
+import { NxCoreModule, nonNullable, uploadYamlFile } from '@xpert-ai/core'
+import { NgmCommonModule, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSmartFilterBarService, effectAction } from '@xpert-ai/ocap-angular/core'
+import { assignDeepOmitBlank, omit, omitBlank } from '@xpert-ai/ocap-core'
 import {
   ComponentSettingsType,
   MoveDirection,
@@ -37,20 +37,19 @@ import {
   StoryWidget,
   WidgetComponentType,
   componentStyling
-} from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
-import { FlexItemType, FlexLayout, ResponsiveService } from '@metad/story/responsive'
+} from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
+import { FlexItemType, FlexLayout, NxStoryResponsiveModule, ResponsiveService } from '@xpert-ai/story/responsive'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   CompactType,
   DisplayGrid,
   GridType,
-  GridsterComponent,
-  GridsterComponentInterface,
+  Gridster,
   GridsterConfig,
-  GridsterItem,
-  GridsterModule
+  GridsterItem as GridsterItemComponent,
+  GridsterItemConfig
 } from 'angular-gridster2'
 import { cloneDeep, isObject, merge, pick } from 'lodash-es'
 import { BehaviorSubject, EMPTY, Observable, combineLatest, firstValueFrom } from 'rxjs'
@@ -65,7 +64,6 @@ import {
   tap,
   withLatestFrom
 } from 'rxjs/operators'
-import { NxStoryResponsiveModule } from '../../responsive/responsive.module'
 import { NxStorySharedModule } from '../shared.module'
 import { StorySharesComponent } from '../shares/shares.component'
 import { NxStoryPointService } from '../story-point.service'
@@ -91,7 +89,8 @@ import { WIDGET_DEFAULT_SIZE, WIDGET_DEFAULT_SIZES } from '../types'
     NgmCommonModule,
     NxStoryWidgetComponent,
     NxStoryResponsiveModule,
-    GridsterModule
+    Gridster,
+    GridsterItemComponent
   ]
 })
 export class NxStoryPointComponent {
@@ -101,7 +100,7 @@ export class NxStoryPointComponent {
   readonly storyService = inject(NxStoryService)
   readonly storyPointService = inject(NxStoryPointService)
   private _renderer = inject(Renderer2)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
   private smartFilterBar = inject(NgmSmartFilterBarService)
   public settingsService? = inject(NxSettingsPanelService, { optional: true })
@@ -134,7 +133,7 @@ export class NxStoryPointComponent {
 
   @Output() resizeEvent = new EventEmitter()
 
-  @ViewChild(GridsterComponent) gridster: GridsterComponent
+  @ViewChild(Gridster) gridster: Gridster
   @ViewChild('defaultTemplate') defaultTemplate: TemplateRef<Element>
 
   get gridColWidth() {
@@ -330,7 +329,7 @@ export class NxStoryPointComponent {
   private _scrollTop = 0
   private _scrollLeft = 0
 
-  static overlapEvent(source: GridsterItem, target: GridsterItem, grid?: GridsterComponentInterface) {
+  static overlapEvent(source: GridsterItemConfig, target: GridsterItemConfig, grid?: Gridster) {
     console.log('overlap', source, target, grid)
   }
 
@@ -410,14 +409,14 @@ export class NxStoryPointComponent {
       if (this.key()) {
         this.storyPointService.init(this.key())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
-  onGridsterItemChange({ item }: { item: GridsterItem }, widget: StoryWidget) {
+  onGridsterItemChange({ item }: { item: GridsterItemConfig }, widget: StoryWidget) {
     this.storyPointService.updateWidgetLayer({ key: widget.key, position: { ...widget.position, ...item } })
   }
 
-  emptyCellClick(event: MouseEvent, item: GridsterItem) {
+  emptyCellClick(event: MouseEvent, item: GridsterItemConfig) {
     const dataSettings = this.storyService.getDefaultDataSource()
     if (event.type === 'drop') {
       const creatingWidget = JSON.parse((<DragEvent>event).dataTransfer.getData('json'))
@@ -795,7 +794,7 @@ export class NxStoryPointComponent {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKeydown(event: KeyboardEvent) {
+  onEscapeKeydown(_event: Event) {
     if (this.focus) {
       this.unFocus()
     }

@@ -2,6 +2,7 @@ import { Component, Input, OnInit } from '@angular/core'
 import { IgxGridComponent } from 'igniteui-angular'
 
 @Component({
+  standalone: false,
   selector: 'smart-grid-search-bar',
   templateUrl: './search-bar.component.html',
   styleUrls: ['./search-bar.component.scss'],

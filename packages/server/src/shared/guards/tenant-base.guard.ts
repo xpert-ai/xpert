@@ -1,5 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { RequestMethodEnum } from '@metad/contracts';
+import { RequestMethodEnum } from '@xpert-ai/contracts';
 import { isJSON } from 'class-validator';
 import { Reflector } from '@nestjs/core';
 import { RequestContext } from './../../core/context';

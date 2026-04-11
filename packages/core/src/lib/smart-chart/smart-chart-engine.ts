@@ -1,4 +1,4 @@
-import { ComponentStore } from '@metad/store'
+import { ComponentStore } from '@xpert-ai/store'
 import { Observable } from 'rxjs'
 import { ChartAnnotation } from '../annotations'
 import { EntityType, QueryReturn } from '../models'

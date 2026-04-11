@@ -1,5 +1,5 @@
 import { type MessageContent, type MessageContentComplex } from '@langchain/core/messages'
-import { TMessageContentText } from '@metad/contracts'
+import { TMessageContentText } from '@xpert-ai/contracts'
 
 type TTextMessageContentPart = MessageContentComplex & {
 	type: 'text' | 'text_delta'

@@ -1,5 +1,5 @@
-import { IIntegration } from '@metad/contracts'
-import { IntegrationService, RequestContext } from '@metad/server-core'
+import { IIntegration } from '@xpert-ai/contracts'
+import { IntegrationService, RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { FileSystemPermission, XpFileSystem } from '@xpert-ai/plugin-sdk'

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { DomSanitizer } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
-import { AbstractStoryWidget } from '@metad/core'
+import { AbstractStoryWidget } from '@xpert-ai/core'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 
 export interface ImageWidgetOptions {

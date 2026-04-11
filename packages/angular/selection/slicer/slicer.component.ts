@@ -10,7 +10,7 @@ import {
   nonNullable,
   slicerAsString,
   timeRangesSlicerAsString
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { combineLatest, combineLatestWith, filter, map } from 'rxjs'
 import { BaseSlicersComponent } from '../base-slicers'
@@ -18,7 +18,8 @@ import { BaseSlicersComponent } from '../base-slicers'
 @Component({
   selector: 'ngm-slicer',
   templateUrl: 'slicer.component.html',
-  styleUrls: ['slicer.component.scss']
+  styleUrls: ['slicer.component.scss'],
+  standalone: false
 })
 export class SlicerComponent extends BaseSlicersComponent {
   private translate = inject(TranslateService)

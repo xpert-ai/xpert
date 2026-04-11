@@ -1,4 +1,4 @@
-import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@metad/server-core'
+import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
@@ -23,6 +23,8 @@ import { ChatConversationModule } from '../chat-conversation'
 import { ChatMessageModule } from '../chat-message'
 import { ChatMessageFeedbackModule } from '../chat-message-feedback'
 import { RedisSseStreamService } from './stream/redis-sse.service'
+import { EnvironmentModule } from '../environment'
+import { AssistantBindingModule } from '../assistant-binding'
 
 @Module({
 	imports: [
@@ -43,6 +45,8 @@ import { RedisSseStreamService } from './stream/redis-sse.service'
 		forwardRef(() => KnowledgeDocumentModule),
 		forwardRef(() => StorageFileModule),
 		forwardRef(() => XpertModule),
+		forwardRef(() => AssistantBindingModule),
+		forwardRef(() => EnvironmentModule),
 		forwardRef(() => ChatConversationModule),
 		forwardRef(() => ChatMessageModule),
 		forwardRef(() => ChatMessageFeedbackModule)

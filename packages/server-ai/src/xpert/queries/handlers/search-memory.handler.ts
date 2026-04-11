@@ -1,6 +1,6 @@
 import { BaseStore } from '@langchain/langgraph'
-import { IUser, IXpertAgent } from '@metad/contracts'
-import { RequestContext, UserService } from '@metad/server-core'
+import { IUser, IXpertAgent } from '@xpert-ai/contracts'
+import { RequestContext, UserService } from '@xpert-ai/server-core'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { compact, uniq } from 'lodash'
 import { In } from 'typeorm'

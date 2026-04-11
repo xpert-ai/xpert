@@ -20,10 +20,10 @@ import {
     XpertAgentExecutionStatusEnum,
     figureOutXpert,
     IXpert
-} from '@metad/contracts'
-import { AgentRecursionLimit, isNil } from '@metad/copilot'
-import { RequestContext } from '@metad/server-core'
-import { getErrorMessage, omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { AgentRecursionLimit, isNil } from '@xpert-ai/copilot'
+import { RequestContext } from '@xpert-ai/server-core'
+import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
@@ -36,7 +36,7 @@ import { createMapStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
-import { EnvironmentService } from '../../../environment'
+import { EnvironmentService, mergeRuntimeContextWithEnv } from '../../../environment'
 import { getWorkspace, VolumeClient, ExecutionCancelService } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
@@ -197,6 +197,21 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
 
         const languageCode = options.language || user.preferredLanguage || 'en-US'
+        const runtimeContext = mergeRuntimeContextWithEnv(options.context, options.environment)
+        const volumeClient = new VolumeClient({
+            tenantId,
+            catalog: 'users',
+            userId,
+            projectId: options.projectId
+        })
+        const runtimeSystemState = buildRuntimeSystemState(state?.[STATE_VARIABLE_SYS], {
+            language: languageCode,
+            userEmail: user.email,
+            timezone: user.timeZone || options.timeZone,
+            volume: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),
+            workspacePath,
+            workspaceUrl
+        })
         let graphInput = null
         const interruptCommand = toInterruptCommand(options.resume)
         if (options.resume) {
@@ -214,9 +229,18 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 await this.updateToolCalls(graph, config, commandPayload)
             }
             if (shouldRejectResumeWithGraph(options.resume)) {
+                await graph.updateState(
+                    { configurable: config },
+                    {
+                        [STATE_VARIABLE_SYS]: runtimeSystemState
+                    }
+                )
                 await this.reject(graph, config, commandPayload)
             } else {
-                graphInput = new Command(pick(commandPayload, 'resume', 'update'))
+                graphInput = new Command({
+                    ...pick(commandPayload, 'resume'),
+                    update: mergeCommandUpdateWithSystemState(commandPayload.update, runtimeSystemState)
+                })
             }
         } else if (state[STATE_VARIABLE_HUMAN]) {
             // English note: Validate human-provided parameter values before building graph input.
@@ -225,14 +249,12 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             if (options.checkpointId) {
                 // Replay from the saved checkpoint state instead of submitting a fresh input.
                 // This matches LangGraph time-travel semantics and avoids injecting a new HumanMessage on retry.
-                graphInput = null
-            } else {
-                const volumeClient = new VolumeClient({
-                    tenantId,
-                    catalog: 'users',
-                    userId,
-                    projectId: options.projectId
+                graphInput = new Command({
+                    update: {
+                        [STATE_VARIABLE_SYS]: runtimeSystemState
+                    }
                 })
+            } else {
                 graphInput = {
                     ...(state ?? {}),
                     ...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
@@ -240,18 +262,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                      * @deprecated use `human.input` instead
                      */
                     input: state[STATE_VARIABLE_HUMAN].input,
-                    [STATE_VARIABLE_SYS]: {
-                        language: languageCode,
-                        user_email: user.email,
-                        timezone: user.timeZone || options.timeZone,
-                        date: format(new Date(), 'yyyy-MM-dd'),
-                        datetime: new Date().toLocaleString(),
-                        [STATE_SYS_VOLUME]: volumeClient.getVolumePath(
-                            getWorkspace(options.projectId, options.conversationId)
-                        ),
-                        [STATE_SYS_WORKSPACE_PATH]: workspacePath,
-                        [STATE_SYS_WORKSPACE_URL]: workspaceUrl
-                    },
+                    [STATE_VARIABLE_SYS]: runtimeSystemState,
                     [STATE_VARIABLE_HUMAN]: {
                         ...state[STATE_VARIABLE_HUMAN]
                     },
@@ -275,6 +286,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
                     sandbox: sandboxContext,
                     copilotModel,
+                    ...(runtimeContext ? { context: runtimeContext } : {}),
                     /**
                      * @deprecated use customEvents instead
                      */
@@ -489,4 +501,48 @@ function toInterruptCommand(resume?: TResumeCommand | null): TInterruptCommand |
 
 function shouldRejectResumeWithGraph(resume?: TResumeCommand | null): boolean {
     return resume?.decision.type === 'reject' && resume.decision.payload === undefined
+}
+
+function buildRuntimeSystemState(
+    existingSystemState: unknown,
+    options: {
+        language: string
+        userEmail?: string
+        timezone?: string
+        volume?: string
+        workspacePath?: string
+        workspaceUrl?: string
+    }
+) {
+    const currentSystemState = isRecord(existingSystemState) ? existingSystemState : {}
+    const now = new Date()
+
+    return {
+        ...currentSystemState,
+        language: options.language,
+        user_email: options.userEmail,
+        timezone: options.timezone,
+        date: format(now, 'yyyy-MM-dd'),
+        datetime: now.toLocaleString(),
+        [STATE_SYS_VOLUME]: options.volume,
+        [STATE_SYS_WORKSPACE_PATH]: options.workspacePath,
+        [STATE_SYS_WORKSPACE_URL]: options.workspaceUrl
+    }
+}
+
+function mergeCommandUpdateWithSystemState(update: unknown, systemState: Record<string, any>) {
+    const currentUpdate = isRecord(update) ? update : {}
+    const currentSystemState = isRecord(currentUpdate[STATE_VARIABLE_SYS]) ? currentUpdate[STATE_VARIABLE_SYS] : {}
+
+    return {
+        ...currentUpdate,
+        [STATE_VARIABLE_SYS]: {
+            ...currentSystemState,
+            ...systemState
+        }
+    }
+}
+
+function isRecord(value: unknown): value is Record<string, any> {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
 }

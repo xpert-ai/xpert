@@ -1,11 +1,13 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply contents;
 }
 
 :host::ng-deep {
   .monaco-editor {
-    .margin, .monaco-editor-background {
-      background-color: var(--ngm-monaco-editor-bg, --sidebar-surface-primary);
+    .margin,
+    .monaco-editor-background {
+      background-color: var(--ngm-monaco-editor-bg, var(--sidebar-surface-primary));
     }
   }
 }

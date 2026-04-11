@@ -1,5 +1,5 @@
-import { ITag, IXpertTool, IXpertToolset, TAvatar, TToolCredentials, TXpertToolsetOptions, XpertToolsetCategoryEnum } from '@metad/contracts'
-import { Tag } from '@metad/server-core'
+import { ITag, IXpertTool, IXpertToolset, TAvatar, TToolCredentials, TXpertToolsetOptions, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { Tag } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Exclude } from 'class-transformer'
@@ -21,7 +21,7 @@ export class XpertToolset extends WorkspaceBaseEntity implements IXpertToolset {
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
-	@Column({ nullable: true, length: 10 })
+	@Column({ type: 'varchar', nullable: true, length: 10 })
 	category?: 'command' | XpertToolsetCategoryEnum
 
 	@ApiPropertyOptional({ type: () => String })

@@ -1,75 +1,91 @@
-<mat-tree
-  [dataSource]="dataSource"
-  [treeControl]="treeControl"
-  class="ngm-tree_selection"
-  id="pac-entity-dimension"
->
-  <mat-tree-node
-    *matTreeNodeDef="let node"
-    matTreeNodeToggle
-    matTreeNodePaddingIndent="20"
-    matTreeNodePadding
+<z-tree [dataSource]="dataSource" [treeControl]="treeControl" class="ngm-tree_selection" id="pac-entity-dimension">
+  <div
+    *zTreeNodeDef="let node"
+    zTreeNodeToggle
+    zTreeNodePaddingIndent="20"
+    zTreeNodePadding
     class="ngm-list-item group/item relative"
     [ngClass]="isSelected(node) ? 'selected' : ''"
     (click)="onSelect(node)"
     cdkDrag
     [cdkDragData]="node"
   >
-    <button mat-icon-button displayDensity="cosy" disabled></button>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" disabled></button>
 
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
-      @if (node.role==='dimension') {
-        <button mat-icon-button displayDensity="cosy" color="warn"
-          (click)="onDelete($event, node)">
-          <mat-icon>delete</mat-icon>
+    <div
+      class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg"
+    >
+      @if (node.role === 'dimension') {
+        <button class="text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="cosy"
+
+          (click)="onDelete($event, node)"
+        >
+          <z-icon zType="delete"></z-icon>
         </button>
       }
     </div>
-  </mat-tree-node>
+  </div>
 
-  <mat-tree-node
-    *matTreeNodeDef="let node; when: hasChild"
-    matTreeNodePaddingIndent="20"
-    matTreeNodePadding
+  <div
+    *zTreeNodeDef="let node; when: hasChild"
+    zTreeNodePaddingIndent="20"
+    zTreeNodePadding
     class="ngm-list-item group/item relative"
     [ngClass]="isSelected(node) ? 'selected' : ''"
     (click)="onSelect(node)"
     cdkDrag
     [cdkDragData]="node"
   >
-    <button mat-icon-button matTreeNodeToggle displayDensity="cosy">
-      <mat-icon class="mat-icon-rtl-mirror" fontSet="material-icons-round">
-        {{ treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right' }}
-      </mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" zTreeNodeToggle displayDensity="cosy">
+      <z-icon
+        class="z-icon-rtl-mirror"
+        [zType]="treeControl.isExpanded(node) ? 'chevron-down' : 'chevron-right'"
+      ></z-icon>
     </button>
-    
+
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
-      @if (node.role==='dimension') {
-        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-          [matTooltip]="'PAC.MODEL.ConfigureAssociation' | translate: {Default: 'Configure association'}"
-          matTooltipPosition="above"
-          (click)="$event.stopPropagation();onSelect(node)">
+    <div
+      class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg"
+    >
+      @if (node.role === 'dimension') {
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [zTooltip]="'PAC.MODEL.ConfigureAssociation' | translate: { Default: 'Configure association' }"
+          zPosition="top"
+          (click)="$event.stopPropagation(); onSelect(node)"
+        >
           <i class="ri-equalizer-2-line"></i>
         </button>
 
-        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-          [matTooltip]="'PAC.MODEL.EditSharedDimension' | translate: {Default: 'Edit shared dimension'}"
-          matTooltipPosition="above"
-          (click)="toDimension.emit()">
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [zTooltip]="'PAC.MODEL.EditSharedDimension' | translate: { Default: 'Edit shared dimension' }"
+          zPosition="top"
+          (click)="toDimension.emit()"
+        >
           <i class="ri-edit-line"></i>
         </button>
 
-        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center danger text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-          [matTooltip]="'PAC.MODEL.UnlinkSharedDimension' | translate: {Default: 'Unlink shared dimension'}"
-          matTooltipPosition="above"
-          (click)="onDelete($event, node)">
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full flex justify-center items-center danger text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [zTooltip]="'PAC.MODEL.UnlinkSharedDimension' | translate: { Default: 'Unlink shared dimension' }"
+          zPosition="top"
+          (click)="onDelete($event, node)"
+        >
           <i class="ri-link-unlink-m"></i>
         </button>
       }
     </div>
-  </mat-tree-node>
-</mat-tree>
+  </div>
+</z-tree>

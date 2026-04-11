@@ -1,0 +1,76 @@
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <div class="pointer-events-none">
+    <h4 class="text-text-primary">
+      {{ 'PAC.Scope.SelectOrganization' | translate: { Default: 'Select an organization' } }}
+    </h4>
+    <div class="mt-1 text-sm text-text-secondary">
+      {{
+        'PAC.Users.InviteOrganizationHint'
+          | translate: { Default: 'Choose the organization that the invite should belong to before continuing.' }
+      }}
+    </div>
+  </div>
+</header>
+
+<div xpDialogContent class="flex w-full max-w-2xl flex-col gap-3">
+  <ngm-search class="w-full overflow-hidden rounded-lg" [(ngModel)]="searchTerm" />
+
+  <div class="max-h-96 overflow-y-auto rounded-xl border border-divider-deep bg-components-card-bg">
+    @if (organizations().length) {
+      @for (organization of organizations(); track trackById($index, organization)) {
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          class="flex w-full items-center justify-start gap-3 rounded-none border-b border-divider-regular px-3 py-3 text-left last:border-b-0"
+          [class.bg-hover-bg]="selectedOrganizationId() === organization.id"
+          (click)="selectOrganization(organization)"
+          displayDensity="cosy"
+        >
+          <pac-org-avatar
+            [organization]="organization"
+            class="block h-10 w-10 shrink-0 overflow-hidden rounded-xl"
+          />
+
+          <span class="min-w-0 flex-1">
+            <span
+              class="block truncate text-sm font-medium text-text-primary"
+              [ngmHighlight]="searchTerm()"
+              [content]="organization.name"
+            >
+              {{ organization.name }}
+            </span>
+
+            @if (organization.officialName || organization.profile_link) {
+              <span class="mt-1 block truncate text-xs text-text-secondary">
+                {{ organization.officialName || organization.profile_link }}
+              </span>
+            }
+          </span>
+
+          @if (selectedOrganizationId() === organization.id) {
+            <z-icon zType="check" class="shrink-0 text-text-accent"></z-icon>
+          }
+        </button>
+      }
+    } @else {
+      <div class="px-4 py-10 text-center text-sm text-text-secondary">
+        {{
+          'PAC.Organization.EmptySearch'
+            | translate: { Default: 'No organizations match the current search.' }
+        }}
+      </div>
+    }
+  </div>
+</div>
+
+<div xpDialogActions align="end">
+  <div ngmButtonGroup>
+    <button z-button zType="ghost" cdkFocusInitial (click)="cancel()">
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
+    </button>
+    <button z-button zType="default" [disabled]="!selectedOrganization()" (click)="apply()">
+      {{ 'COMPONENTS.COMMON.CONTINUE' | translate: { Default: 'Continue' } }}
+    </button>
+  </div>
+</div>

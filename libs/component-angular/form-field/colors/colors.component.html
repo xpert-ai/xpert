@@ -4,52 +4,50 @@
 
     <span class="flex-1"></span>
 
-    <button *ngIf="value" mat-icon-button displayDensity="compact" [disabled]="!value" (click)="swapColors($event)">
-      <mat-icon class="m-0" style="margin: 0;">swap_horiz</mat-icon>
-    </button>
+    @if (value) {
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" [disabled]="!value" (click)="swapColors($event)">
+        <z-icon class="m-0" style="margin: 0;" zType="swap_horiz"></z-icon>
+      </button>
+    }
 
     <div class="flex justify-center items-center overflow-hidden" [@listEnterAnimation]="value">
-      <div *ngFor="let color of value" class="w-4 h-4"
+      @for (color of value; track color) {
+        <div class="w-4 h-4"
           [style.background-color]="color"
-      ></div>
+        ></div>
+      }
     </div>
   </div>
 
   <div class="relative flex items-center mx-1">
-    <input
-      matInput
+    <z-combobox-deprecated
+      zTriggerMode="input"
       class="ngm-input-element ngm-w-full"
-      type="text"
+      [value]="value"
+      [groups]="colorGroups()"
       [placeholder]="placeholder"
       [disabled]="disabled"
-      [matAutocomplete]="auto"
-      #acTrigger="matAutocompleteTrigger"
-      [ngModel]="value"
-      (ngModelChange)="onChange($event)"
-      (blur)="onBlur($event, acTrigger);"
-    />
+      [allowCustomValue]="true"
+      [zSearchTerm]="searchTerm()"
+      [zDisplayWith]="displayColors"
+      (zSearchTermChange)="onSearchTermChange($event)"
+      (zValueChange)="onComboboxValueChange($event)"
+      (zBlur)="onTouched()"
+    >
+      <ng-template zComboboxDeprecatedOption let-option>
+        <div class="flex justify-start items-center">
+          @for (color of option.data?.colors; track color) {
+            <div class="w-4 h-4" [style.background-color]="color"></div>
+          }
+        </div>
+      </ng-template>
+    </z-combobox-deprecated>
 
-    <button *ngIf="value" class="ngm-colors__clear right-0" mat-icon-button displayDensity="compact" (click)="clear()">
-      <mat-icon>close</mat-icon>
-    </button>
+    @if (value) {
+      <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-colors__clear right-0" displayDensity="compact" (click)="clear()">
+        <z-icon zType="close"></z-icon>
+      </button>
+    }
   </div>
 
 </div>
-
-<mat-autocomplete
-  autoActiveFirstOption
-  #auto="matAutocomplete"
-  class="ngm-select-panel ngm-density__compact"
-  (optionSelected)="onOptionSelected($event)"
->
-  <mat-option [value]="null">--</mat-option>
-  <mat-optgroup *ngFor="let group of options" [label]="group.label">
-    <mat-option *ngFor="let color of group.colors" [value]="color.colors">
-      <div class="flex justify-start items-center">
-        <div *ngFor="let color of color.colors" class="w-4 h-4"
-            [style.background-color]="color"
-        ></div>
-      </div>
-    </mat-option>
-  </mat-optgroup>
-</mat-autocomplete>

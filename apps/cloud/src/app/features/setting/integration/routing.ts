@@ -31,6 +31,19 @@ export default [
     },
   },
   {
+    path: ':id/view/:viewKey',
+    component: IntegrationComponent,
+    canActivate: [NgxPermissionsGuard],
+    canDeactivate: [ DirtyCheckGuard ],
+    data: {
+      title: 'Settings / Integration View',
+      permissions: {
+        only: [PermissionsEnum.INTEGRATION_EDIT],
+        redirectTo: '/settings/integration'
+      }
+    },
+  },
+  {
     path: ':id',
     component: IntegrationComponent,
     canActivate: [NgxPermissionsGuard],

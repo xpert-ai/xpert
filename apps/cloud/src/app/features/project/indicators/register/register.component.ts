@@ -1,41 +1,16 @@
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  ElementRef,
-  HostListener,
-  inject,
-  OnDestroy,
-  signal,
-  viewChild
-} from '@angular/core'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
+
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, OnDestroy, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { convertIndicatorResult, Indicator, IndicatorsService, Store } from '@metad/cloud/state'
-import { createSubStore, dirtyCheckWith, IsDirty, nonBlank, saveAsYaml } from '@metad/core'
-import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { CdkConfirmDeleteComponent, NgmCommonModule } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective, PERIODS } from '@metad/ocap-angular/core'
-import {
-  C_MEASURES,
-  ChartDimensionRoleType,
-  ChartOrient,
-  ChartSettings,
-  DataSettings,
-  FilterOperator,
-  getIndicatorEntityCalendar,
-  IFilter,
-  isEqual,
-  negate,
-  TimeRangeType,
-  Indicator as OCAPIndicator,
-  ChartTypeEnum,
-  calcOffsetRange, 
-} from '@metad/ocap-core'
+import { convertIndicatorResult, Indicator, IndicatorsService, Store } from '@xpert-ai/cloud/state'
+import { createSubStore, dirtyCheckWith, IsDirty, nonBlank, saveAsYaml } from '@xpert-ai/core'
+import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
+import { CdkConfirmDeleteComponent, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective, PERIODS } from '@xpert-ai/ocap-angular/core'
+import { C_MEASURES, ChartDimensionRoleType, ChartOrient, ChartSettings, DataSettings, FilterOperator, getIndicatorEntityCalendar, IFilter, isEqual, negate, TimeRangeType, Indicator as OCAPIndicator, ChartTypeEnum, calcOffsetRange, } from '@xpert-ai/ocap-core'
 import { withProps } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { cloneDeep } from 'lodash-es'
@@ -50,11 +25,8 @@ import { ProjectIndicatorsComponent } from '../indicators.component'
 import { IndicatorRegisterFormComponent } from '../register-form/register-form.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog } from '@angular/cdk/dialog'
-import { ExplainComponent } from '@metad/story/story'
+import { ExplainComponent } from '@xpert-ai/story/story'
 import { exportIndicator } from '@cloud/app/@shared/indicator'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-
 
 // AOA : array of array
 type AOA = any[][]
@@ -68,8 +40,8 @@ type AOA = any[][]
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatIconModule,
-    MatButtonModule,
+    ZardIconComponent,
+    ZardButtonComponent,
 
     ButtonGroupDirective,
     DensityDirective,
@@ -92,7 +64,7 @@ export class IndicatorRegisterComponent implements OnDestroy, IsDirty {
   private toastrService = inject(ToastrService)
   private _route = inject(ActivatedRoute)
   private _router = inject(Router)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   private _logger? = inject(NGXLogger, { optional: true })
@@ -311,8 +283,7 @@ export class IndicatorRegisterComponent implements OnDestroy, IsDirty {
         if (this.indicator()?.id) {
           this.projectService.markDirty(this.indicator()?.id, this.dirty())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

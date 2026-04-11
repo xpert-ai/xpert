@@ -1,13 +1,13 @@
 import { ElementRef, Renderer2, Signal, effect, inject, isSignal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { NxCoreService } from '@metad/core'
-import { isEqual } from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+import { NxCoreService } from '@xpert-ai/core'
+import { isEqual } from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { registerTheme } from 'echarts/core'
 import { firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { AppService } from '../../app.service'
-import { ThemesEnum } from '@metad/ocap-angular/core'
+import { resolveTheme } from '@xpert-ai/ocap-angular/core'
 
 export function registerStoryThemes(storyService: NxStoryService) {
   return storyService.echartsTheme$
@@ -15,7 +15,7 @@ export function registerStoryThemes(storyService: NxStoryService) {
     .subscribe(async (echartsTheme) => {
       const story = await firstValueFrom(storyService.story$)
       const key = story.key || story.id
-      Object.values(ThemesEnum).forEach((theme) => {
+      ;['light', 'dark'].forEach((theme) => {
         if (echartsTheme?.[theme]) {
           registerTheme(`${theme}-${key}`, echartsTheme[theme])
         }
@@ -41,22 +41,9 @@ export function effectStoryTheme(elementRef: Signal<ElementRef<unknown>> | Eleme
       return
     }
 
-    Object.values(ThemesEnum).forEach((theme) => {
-      renderer.removeClass(nativeElement, 'ngm-theme-' + theme)
-      renderer.removeClass(nativeElement, theme)
-    })
-
-    let current = storyService.themeName()
-
-    if (current && current !== ThemesEnum.default && current !== ThemesEnum.system) {
-      renderer.addClass(nativeElement, 'ngm-theme-' + current)
-      renderer.addClass(nativeElement, current)
-    }
-
-    if (current === ThemesEnum.system || current === ThemesEnum.default || !current) {
-      const { primary } = appService.theme$()
-      current = primary as ThemesEnum
-    }
+    const storyTheme = storyService.themeName()
+    const current = storyTheme ? resolveTheme(storyTheme) : appService.theme$().primary
+    renderer.setAttribute(nativeElement, 'data-theme', current)
     if (echartsTheme?.[current]) {
       coreService.changeTheme(`${current}-${key}`)
     } else {

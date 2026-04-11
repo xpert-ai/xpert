@@ -8,10 +8,11 @@
   "targets": {
     "build": {
       "executor": "@nx/angular:package",
-      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "outputs": [
+        "{workspaceRoot}/dist/{projectRoot}"
+      ],
       "options": {
-        "project": "packages/angular/ng-package.json",
-        "tailwindConfig": "packages/angular/tailwind.config.js"
+        "project": "packages/angular/ng-package.json"
       },
       "configurations": {
         "production": {
@@ -24,17 +25,23 @@
       "defaultConfiguration": "production",
       "dependsOn": [
         {
-          "projects": ["ngx-echarts"],
+          "projects": [
+            "ngx-echarts"
+          ],
           "target": "build",
           "params": "ignore"
         },
         {
-          "projects": ["duckdb"],
+          "projects": [
+            "duckdb"
+          ],
           "target": "build",
           "params": "ignore"
         },
         {
-          "projects": ["echarts"],
+          "projects": [
+            "echarts"
+          ],
           "target": "build",
           "params": "ignore"
         }
@@ -42,66 +49,23 @@
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "outputs": [
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
       "options": {
         "jestConfig": "packages/angular/jest.config.ts"
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["packages/angular/**/*.ts", "packages/angular/**/*.html"]
-      }
-    },
-    "storybook": {
-      "executor": "@storybook/angular:start-storybook",
-      "options": {
-        "port": 6006,
-        "configDir": "packages/angular/.storybook",
-        "browserTarget": "ocap-angular:build-storybook",
-        "compodoc": true,
-        "compodocArgs": ["-e", "json", "-d", "packages/angular/.storybook"]
-      },
-      "configurations": {
-        "ci": {
-          "quiet": true
-        }
-      }
-    },
-    "build-storybook": {
-      "executor": "@storybook/angular:build-storybook",
-      "outputs": ["{options.outputDir}"],
-      "options": {
-        "outputDir": "dist/storybook/angular",
-        "configDir": "packages/angular/.storybook",
-        "browserTarget": "ocap-angular:build-storybook",
-        "compodoc": true,
-        "compodocArgs": ["-e", "json", "-d", "packages/angular/.storybook"],
-        "styles": [
-          "packages/angular/.storybook/peview.scss",
-          "packages/angular/_index.scss"
-        ],
-        "stylePreprocessorOptions": {
-          "includePaths": ["node_modules/"]
-        }
-      },
-      "configurations": {
-        "ci": {
-          "quiet": true
-        }
-      }
-    },
-    "static-storybook": {
-      "executor": "@nx/web:file-server",
-      "options": {
-        "buildTarget": "ocap-angular:build-storybook",
-        "staticFilePath": "dist/storybook/angular"
-      },
-      "configurations": {
-        "ci": {
-          "buildTarget": "ocap-angular:build-storybook:ci"
-        }
+        "lintFilePatterns": [
+          "packages/angular/**/*.ts",
+          "packages/angular/**/*.html"
+        ]
       }
     }
   }

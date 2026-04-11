@@ -1,3 +1,4 @@
+@reference "../../../styles/tailwind-reference.css";
 :host {
-  @apply max-w-full flex-1 w-full flex flex-row items-start bg-neutral-100;
+  @apply max-w-full flex-1 w-full flex flex-row items-start;
 }

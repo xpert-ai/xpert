@@ -1,13 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, input, output, signal } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TMessageComponent, TMessageComponentStep } from '@cloud/app/@core'
-import { RelativeTimesPipe } from '@metad/ocap-angular/core'
+import { RelativeTimesPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { Copy2Component } from '../../common'
 import { ChatMessageStepIconComponent } from '../message-step-icon/icon.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'chat-tool-call-chunk',
@@ -16,7 +15,7 @@ import { ChatMessageStepIconComponent } from '../message-step-icon/icon.componen
   imports: [
     CommonModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgxJsonViewerModule,
     RelativeTimesPipe,
     Copy2Component,

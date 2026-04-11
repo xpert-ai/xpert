@@ -1,220 +1,273 @@
-<div class="ngm-theme-dark dark w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-    <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-      <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
-      <span class="text-lg pointer-events-none">
-        {{ 'PAC.MODEL.UPLOAD.Title' | translate: {Default: 'Upload Data Files'} }}
+<div
+  class="w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group"
+  >
+  <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
+    <span class="text-lg pointer-events-none">
+      {{ 'PAC.MODEL.UPLOAD.Title' | translate: { Default: 'Upload Data Files' } }}
+    </span>
+  </div>
+
+  <z-stepper linear #stepper="zStepper" orientation="vertical" class="ngm-stepper flex-1 overflow-auto">
+    <z-step [label]="'PAC.MODEL.UPLOAD.Files' | translate: { Default: 'Files' }">
+      @for (file of fileList; track file; let i = $index) {
+        <div class="flex justify-end items-center overflow-hidden">
+          <span class="text-ellipsis">
+            {{ file.file.name }}
+          </span>
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            ngmAppearance="danger"
+            displayDensity="cosy"
+            (click)="removeFile(i)"
+            >
+            <z-icon zType="close"></z-icon>
+          </button>
+        </div>
+      }
+    </z-step>
+
+    <z-step [label]="'PAC.MODEL.UPLOAD.Preview' | translate: { Default: 'Preview' }">
+      @if (error) {
+        <div class="ngm-card-error" style="position: relative">
+          <span class="title-icon font-notoColorEmoji">🐞</span>
+          <span>
+            {{ error }}
+          </span>
+        </div>
+      }
+
+      <ul cdkTrapFocus cdkTrapFocusAutoCapture class="ngm-nav-list">
+        @for (sheet of sheets$ | async; track sheet.name) {
+          <li class="mt-1" [class.active]="activeLink === sheet.name" (click)="activeSheet(sheet)">
+            <ngm-input
+              [label]="'PAC.KEY_WORDS.TableName' | translate: { Default: 'Table Name' }"
+              [(ngModel)]="sheet.name"
+              class="w-full"
+              [placeholder]="'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: { Default: 'Input Table Name' }"
+              (keydown)="activeSheet(sheet); onKeyup($event)"
+              />
+          </li>
+        }
+      </ul>
+
+      <span class="mt-4 flex items-center">
+        *{{ 'PAC.MODEL.UPLOAD.Preview50' | translate: { Default: 'Preview Top 50 Records' } }}
       </span>
+    </z-step>
+
+    <z-step [label]="'PAC.MODEL.UPLOAD.Import' | translate: { Default: 'Import' }">
+      <label class="text-base my-4 flex">{{
+        'PAC.MODEL.UPLOAD.ImportMethod' | translate: { Default: 'Import Method' }
+      }}</label>
+      <z-radio-group [(ngModel)]="mergeType" class="flex flex-col gap-4">
+        <z-radio value="DELETE">
+          {{ 'PAC.MODEL.UPLOAD.Cover' | translate: { Default: 'Cover' } }}
+        </z-radio>
+        <z-radio value="APPEND">
+          {{ 'PAC.MODEL.UPLOAD.Append' | translate: { Default: 'Append' } }}
+        </z-radio>
+        <z-radio value="MERGE">
+          {{ 'PAC.MODEL.UPLOAD.Merge' | translate: { Default: 'Merge' } }}
+        </z-radio>
+      </z-radio-group>
+    </z-step>
+  </z-stepper>
+
+  <div class="flex justify-between items-center">
+    <div>
+      <button z-button zType="ghost" xpDialogClose cdkFocusInitial>
+        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
     </div>
 
-    <mat-stepper linear #stepper orientation="vertical" class="ngm-stepper flex-1 overflow-auto">
-        <mat-step [label]="'PAC.MODEL.UPLOAD.Files' | translate: {Default: 'Files'}">
-            <div *ngFor="let file of fileList; index as i" class="flex justify-end items-center overflow-hidden">
-                <span class="text-ellipsis">
-                    {{ file.file.name }}
-                </span>
-                <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(i)">
-                  <mat-icon>close</mat-icon> 
-                </button>
-            </div>
-        </mat-step>
+    <div ngmButtonGroup>
+      @if (stepper.selectedIndex > 0) {
+        <button z-button zType="default" [zDisabled]="uploading()" (click)="stepper.previous()">
+          {{ 'PAC.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+        </button>
+      }
 
-        <mat-step [label]="'PAC.MODEL.UPLOAD.Preview' | translate: {Default: 'Preview'}">
-            <div *ngIf="error" class="ngm-card-error" style="position: relative;">
-                <span class="title-icon font-notoColorEmoji">🐞</span>
-                <span>
-                  {{ error }}
-                </span>
-            </div>
-        
-            <mat-nav-list cdkTrapFocus cdkTrapFocusAutoCapture>
-                <mat-list-item *ngFor="let sheet of sheets$ | async" class="mt-1"
-                    [class.active]="activeLink === sheet.name"
-                    (click)="activeSheet(sheet)">
-                    <ngm-input [label]="'PAC.KEY_WORDS.TableName' | translate: {Default: 'Table Name'}" [(ngModel)]="sheet.name" class="w-full"
-                        [placeholder]=" 'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: {Default: 'Input Table Name'} "
-                        (keydown)="activeSheet(sheet);onKeyup($event)"/>
-                </mat-list-item>
-            </mat-nav-list>
+      @if (stepper.selectedIndex < 2) {
+        <button
+          z-button
+          zType="default"
 
-            <span class="mt-4 flex items-center">
-                *{{ 'PAC.MODEL.UPLOAD.Preview50' | translate: {Default: 'Preview Top 50 Records'} }}
-            </span>
-        </mat-step>
+          [zDisabled]="stepper.selectedStep?.stepControl?.invalid || !fileList.length"
+          (click)="stepper.next()"
+          >
+          {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+        </button>
+      }
 
-        <mat-step [label]="'PAC.MODEL.UPLOAD.Import' | translate: {Default: 'Import'}">
-            <label class="text-base my-4 flex">{{ 'PAC.MODEL.UPLOAD.ImportMethod' | translate: {Default: 'Import Method'} }}</label>
-            <mat-radio-group [(ngModel)]="mergeType" class="flex flex-col gap-4">
-                <mat-radio-button value="DELETE">
-                    {{ 'PAC.MODEL.UPLOAD.Cover' | translate: {Default: 'Cover'} }}
-                </mat-radio-button>
-                <mat-radio-button value="APPEND">
-                    {{ 'PAC.MODEL.UPLOAD.Append' | translate: {Default: 'Append'} }}
-                </mat-radio-button>
-                <mat-radio-button value="MERGE">
-                    {{ 'PAC.MODEL.UPLOAD.Merge' | translate: {Default: 'Merge'} }}
-                </mat-radio-button>
-            </mat-radio-group>
-        </mat-step>
-    </mat-stepper>
-
-    <div class="flex justify-between items-center">
-        <div>
-            <button mat-button mat-dialog-close cdkFocusInitial>
-                {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: "Cancel"} }}
-            </button>
-        </div>
-    
-        <div ngmButtonGroup>
-          @if (stepper.selectedIndex > 0) {
-            <button mat-raised-button
-                [disabled]="uploading()"
-                (click)="stepper.previous()"
-            >
-                {{ 'PAC.ACTIONS.PREVIOUS' | translate: {Default: "Previous"} }}
-            </button>
-          }
-
-          @if (stepper.selectedIndex < 2) {
-            <button mat-raised-button color="accent"
-                [disabled]="stepper.selected?.stepControl?.invalid || !fileList.length"
-                (click)="stepper.next()"
-            >
-                {{ 'PAC.ACTIONS.NEXT' | translate: {Default: "Next"} }}
-            </button>
-          }
-    
-          @if (stepper.selectedIndex===2) {
-            @if (done) {
-                <button mat-raised-button color="accent" [disabled]="uploading()" mat-dialog-close>
-                    {{ 'PAC.MODEL.UPLOAD.Done' | translate: {Default: 'Done'} }}
-                </button>
-            } @else {
-                <button mat-raised-button color="accent" (click)="upload()">
-                    {{ 'PAC.MODEL.UPLOAD.Import' | translate: {Default: 'Import'} }}
-                </button>
-            }
-          }
-        </div>
-    
+      @if (stepper.selectedIndex === 2) {
+        @if (done) {
+          <button z-button zType="default" [zDisabled]="uploading()" xpDialogClose>
+            {{ 'PAC.MODEL.UPLOAD.Done' | translate: { Default: 'Done' } }}
+          </button>
+        } @else {
+          <button z-button zType="default" (click)="upload()">
+            {{ 'PAC.MODEL.UPLOAD.Import' | translate: { Default: 'Import' } }}
+          </button>
+        }
+      }
     </div>
+  </div>
 </div>
 
 <div class="relative flex-1 flex flex-col justify-start items-stretch overflow-auto">
   @switch (stepper.selectedIndex) {
-    @case(0) {
-      <pac-upload class="flex-1"
+    @case (0) {
+      <pac-upload
+        class="flex-1"
         [files]="fileList"
         (filesChange)="onFileListChange($event)"
         (removeFileChange)="removeFiles($event)"
-      />
+        />
     }
-    @case(1) {
+    @case (1) {
       @if (isLoading()) {
-        <mat-progress-spinner strokeWidth="2" color="accent" diameter="50" [value]="progress" class="ngm-card__loading" style="margin: auto;"></mat-progress-spinner>
+        <z-progress-circle
+          strokeWidth="2"
+          zType="accent"
+          diameter="50"
+          [value]="progress"
+          class="ngm-card__loading"
+          style="margin: auto"
+          />
       }
       @for (sheet of activedSheets; track $index) {
         <div class="flex w-full h-full overflow-auto">
-            <div class="w-full overflow-auto">
-                <table mat-table [dataSource]="sheet.preview" class="mat-elevation-z w-full">
-                    <ng-container *ngFor="let header of sheet.columns; let i = index" [matColumnDef]="header.name">
-                        <th mat-header-cell *matHeaderCellDef [cdkContextMenuTriggerFor]="context_menu">
-                            <div class="p-2 flex flex-col justify-start items-start">
-                                <div class="flex justify-start items-center gap-2">
-                                    <mat-checkbox [(ngModel)]="header.isKey"
-                                        [matTooltip]="'PAC.KEY_WORDS.PrimaryKey' | translate: {Default: 'Primary Key'}"
-                                        matTooltipPosition="above"
-                                    />
-                                    <select [(ngModel)]="header.type" class="ngm-select">
-                                        <option value="String">String</option>
-                                        <option value="Number">Integer</option>
-                                        <option value="Numeric">Numeric</option>
-                                        <option value="Date">Date</option>
-                                        <option value="Time">Time</option>
-                                        <option value="Datetime">Datetime</option>
-                                    </select>
-                                    <input matInput [(ngModel)]="header.length" class="pac-upload-preview__length w-20 text-sm p-1"
-                                        type="number"
-                                        [placeholder]="'PAC.KEY_WORDS.Length' | translate: {Default: 'Length'}" />
-                                </div>
+          <div class="w-full overflow-auto">
+            <table z-table class="w-full">
+              <thead z-table-header>
+                <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+                  @for (header of sheet.columns; track header; let i = $index) {
+                    <th z-table-head class="sticky top-0 z-10 bg-background" [cdkContextMenuTriggerFor]="context_menu">
+                      <div class="p-2 flex flex-col justify-start items-start">
+                        <div class="flex justify-start items-center gap-2">
+                          <z-checkbox
+                            [(ngModel)]="header.isKey"
+                            [zTooltip]="'PAC.KEY_WORDS.PrimaryKey' | translate: { Default: 'Primary Key' }"
+                            zPosition="top"
+                          />
+                          <select [(ngModel)]="header.type" class="ngm-select">
+                            <option value="String">String</option>
+                            <option value="Number">Integer</option>
+                            <option value="Numeric">Numeric</option>
+                            <option value="Date">Date</option>
+                            <option value="Time">Time</option>
+                            <option value="Datetime">Datetime</option>
+                          </select>
+                          <input
+                            z-input
+                            [(ngModel)]="header.length"
+                            class="pac-upload-preview__length w-20 text-sm p-1"
+                            type="number"
+                            [placeholder]="'PAC.KEY_WORDS.Length' | translate: { Default: 'Length' }"
+                          />
+                        </div>
+                        <input
+                          z-input
+                          [(ngModel)]="header.fieldName"
+                          class="w-full py-2 bg-background-default-subtle border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-md system-sm-regular h-9"
+                        />
+                      </div>
+                      <ng-template #context_menu>
+                        <div cdkMenu class="cdk-menu__medium">
+                          @if (i > 0) {
+                            <button cdkMenuItem (click)="moveLeft(sheet, i)">
+                              <z-icon zType="keyboard_arrow_left"></z-icon>
+                              <span>{{ 'PAC.MODEL.MoveLeft' | translate: { Default: 'Move Left' } }}</span>
+                            </button>
+                          }
+                          @if (i < sheet.columns.length - 1) {
+                            <button cdkMenuItem (click)="moveRight(sheet, i)">
+                              <z-icon zType="keyboard_arrow_right"></z-icon>
+                              <span>{{ 'PAC.MODEL.MoveRight' | translate: { Default: 'Move Right' } }}</span>
+                            </button>
+                          }
+                        </div>
+                      </ng-template>
+                    </th>
+                  }
+                </tr>
+              </thead>
 
-                                <input matInput [(ngModel)]="header.fieldName" class="w-full py-2 bg-gray-50 border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-md system-sm-regular h-9"/>
-                            </div>
-                        </th>
-                        <td mat-cell *matCellDef="let element"> {{element[header.name]}} </td>
-
-                        <ng-template #context_menu>
-                            <div cdkMenu class="cdk-menu__medium">
-                              @if (i > 0) {
-                                <button cdkMenuItem (click)="moveLeft(sheet, i)">
-                                  <mat-icon>keyboard_arrow_left</mat-icon>
-                                  <span>{{ 'PAC.MODEL.MoveLeft' | translate: {Default: 'Move Left'} }}</span>
-                                </button>
-                              }
-                              @if (i < sheet.columns.length - 1) {
-                                <button cdkMenuItem (click)="moveRight(sheet, i)">
-                                    <mat-icon>keyboard_arrow_right</mat-icon>
-                                    <span>{{ 'PAC.MODEL.MoveRight' | translate: {Default: 'Move Right'} }}</span>
-                                </button>
-                              }
-                            </div>
-                        </ng-template>
-                    </ng-container>
-            
-                    <tr mat-header-row *matHeaderRowDef="sheet.displayedColumns; sticky: true" class="bg-gray-100"></tr>
-                    <tr mat-row *matRowDef="let row; columns: sheet.displayedColumns;"></tr>
-                </table>
-            </div>
+              <tbody z-table-body>
+                @for (element of sheet.preview; track $index) {
+                  <tr z-table-row>
+                    @for (header of sheet.columns; track header.name) {
+                      <td z-table-cell>{{ element[header.name] }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       }
     }
-    @case(2) {
-        <mat-list role="list">
-            <mat-list-item role="listitem" *ngFor="let sheet of sheets" class="hover:bg-slate-500/10 text-ellipsis overflow-hidden">
-                <div class="flex items-center justify-start">
-                  @switch (sheet.status) {
-                    @case('uploading') {
-                        <span class="mr-2">
-                            {{timer$ | async}}
-                        </span>
-                    }
-                    @case('done') {
-                        <span class="mr-2">✅</span>
-                    }
-                    @case('error') {
-                        <span class="mr-2">❌</span>
-                    }
-                    @default {
-                        <button mat-icon-button ngmAppearance="danger" displayDensity="compact"
-                            (click)="remove(sheet)">
-                            <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
-                        </button>
-                    }
-                  }
-    
-                    <span class="pac-upload-table__upload-name whitespace-nowrap">{{sheet.name}}:</span>
-                    
-                  @if (sheet.status === 'error') {
-                    <span class="whitespace-nowrap overflow-hidden text-ellipsis opacity-60"
-                        [matTooltip]="sheet.info"
-                    >{{sheet.info}}</span>
-                  } @else if (sheet.status==='done') {
-                    <span class="opacity-60">
-                        {{ 'PAC.MODEL.UPLOAD.Uploaded' | translate: {Default: 'Uploaded'} }}
-                        {{sheet.data.length}}
-                        {{ 'PAC.MODEL.UPLOAD.Records' | translate: {Default: 'Records'} }}
-                    </span>
-                  }
-                </div>
-            </mat-list-item>
-        </mat-list>
+    @case (2) {
+      <ul role="list" class="ngm-list">
+        @for (sheet of sheets; track sheet.name) {
+          <li role="listitem" class="hover:bg-background-default-subtle/10 text-ellipsis overflow-hidden">
+            <div class="flex items-center justify-start px-3 py-2">
+              @switch (sheet.status) {
+                @case ('uploading') {
+                  <span class="mr-2">
+                    {{ timer$ | async }}
+                  </span>
+                }
+                @case ('done') {
+                  <span class="mr-2">✅</span>
+                }
+                @case ('error') {
+                  <span class="mr-2">❌</span>
+                }
+                @default {
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    ngmAppearance="danger"
+                    displayDensity="compact"
+                    (click)="remove(sheet)"
+                    >
+                    <z-icon zType="delete"></z-icon>
+                  </button>
+                }
+              }
+
+              <span class="pac-upload-table__upload-name whitespace-nowrap">{{ sheet.name }}:</span>
+
+              @if (sheet.status === 'error') {
+                <span class="whitespace-nowrap overflow-hidden text-ellipsis opacity-60" [zTooltip]="sheet.info">{{
+                  sheet.info
+                }}</span>
+              } @else if (sheet.status === 'done') {
+                <span class="opacity-60">
+                  {{ 'PAC.MODEL.UPLOAD.Uploaded' | translate: { Default: 'Uploaded' } }}
+                  {{ sheet.data.length }}
+                  {{ 'PAC.MODEL.UPLOAD.Records' | translate: { Default: 'Records' } }}
+                </span>
+              }
+            </div>
+          </li>
+        }
+      </ul>
     }
   }
-    
+
   @if (error) {
     <div class="absolute w-full h-full top-0 left-0 flex justify-center items-center p-16 bg-white/50 backdrop-blur-sm">
-        <span>
-            {{ error }}
-        </span>
+      <span>
+        {{ error }}
+      </span>
     </div>
   }
 </div>

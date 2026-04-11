@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { map } from 'rxjs/operators'
 import { CertificationService } from '../../@core'
-import { MaterialModule } from '../material.module'
+import { SharedUiModule } from '../ui.module'
 
 @Component({
   standalone: true,
@@ -14,7 +14,7 @@ import { MaterialModule } from '../material.module'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     NgmSelectComponent,
     ButtonGroupDirective,

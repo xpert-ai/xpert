@@ -1,6 +1,6 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { DocumentMetadata, IKnowledgebase, IKnowledgeDocumentChunk, KnowledgebaseTypeEnum, TWFCase } from '@metad/contracts'
-import { getPythonErrorMessage, isEmpty } from '@metad/server-common'
+import { DocumentMetadata, IKnowledgebase, IKnowledgeDocumentChunk, KnowledgebaseTypeEnum, TWFCase } from '@xpert-ai/contracts'
+import { getPythonErrorMessage, isEmpty } from '@xpert-ai/server-common'
 import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { ChunkMetadata, RequestContext } from '@xpert-ai/plugin-sdk'

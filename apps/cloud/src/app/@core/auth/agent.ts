@@ -1,8 +1,8 @@
-import { MatBottomSheet } from '@angular/material/bottom-sheet'
 import { signal } from '@angular/core'
-import { DataSourceService } from '@metad/cloud/state'
+import { DataSourceService } from '@xpert-ai/cloud/state'
 import { firstValueFrom, of, ReplaySubject, Subject } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
+import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { AuthInfoType, BottomSheetBasicAuthComponent } from '../auth'
 import { AgentEvent, IDataSource, IDataSourceAuthentication } from '../types'
 
@@ -15,7 +15,7 @@ export abstract class AbstractAgent {
   }
   private _retryAuth: Record<string, boolean> = {}
 
-  constructor(protected dataSourceService: DataSourceService, protected _bottomSheet: MatBottomSheet) {}
+  constructor(protected dataSourceService: DataSourceService, protected _bottomSheet: ZardSheetService) {}
 
   /**
    * 获取认证信息
@@ -69,9 +69,12 @@ export abstract class AbstractAgent {
     return firstValueFrom(
       this._bottomSheet
         .open(BottomSheetBasicAuthComponent, {
-          data: { name: dataSource.name, ping: this.getPingCallback(event, dataSource) }
+          zData: { name: dataSource.name, ping: this.getPingCallback(event, dataSource) },
+          zSide: 'bottom',
+          zHideFooter: true,
+          zClosable: false
         })
-        .afterDismissed()
+        .afterClosed()
     )
   }
 
@@ -88,9 +91,12 @@ export abstract class AbstractAgent {
 
       this._bottomSheet
         .open(BottomSheetBasicAuthComponent, {
-          data: { name: dataSource.name, ping: this.getPingCallback(request, dataSource) }
+          zData: { name: dataSource.name, ping: this.getPingCallback(request, dataSource) },
+          zSide: 'bottom',
+          zHideFooter: true,
+          zClosable: false
         })
-        .afterDismissed()
+        .afterClosed()
         .pipe(
           switchMap((auth) =>
             auth?.remeberMe ? this.dataSourceService.createAuthentication(dataSource.id, auth) : of(auth)

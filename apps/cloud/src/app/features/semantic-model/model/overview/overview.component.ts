@@ -4,10 +4,11 @@ import { map } from 'rxjs/operators'
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { CommonModule } from '@angular/common'
-import { MatButtonModule } from '@angular/material/button'
-import { NgmTableComponent } from '@metad/ocap-angular/common'
+
+import { NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { UserPipe } from '@cloud/app/@shared/pipes'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -15,7 +16,7 @@ import { UserPipe } from '@cloud/app/@shared/pipes'
     CommonModule,
     RouterModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     NgmTableComponent,
     UserPipe
   ],

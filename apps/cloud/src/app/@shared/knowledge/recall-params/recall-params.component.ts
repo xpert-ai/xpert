@@ -1,20 +1,24 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { TKBRecallParams } from '@metad/contracts'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { TKBRecallParams } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-
+import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 /**
  *
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, MatSliderModule, NgmDensityDirective],
+  imports: [
+    CdkMenuModule,
+    FormsModule,
+    TranslateModule,
+    ...ZardTooltipImports,
+    ZardSliderComponent
+],
   selector: 'knowledge-recall-params',
   templateUrl: 'recall-params.component.html',
   styleUrls: ['recall-params.component.scss'],
@@ -38,5 +42,9 @@ export class KnowledgeRecallParamsComponent {
       ...(state ?? {}),
       ...value
     }))
+  }
+
+  sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
   }
 }

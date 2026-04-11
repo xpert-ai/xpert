@@ -35,9 +35,7 @@
           tabindex="-1"
           [(ngModel)]="maxNum"
         />
-        <mat-slider class="grow" min="1" max="10" step="1" showTickMarks discrete [displayWith]="formatLabel">
-          <input matSliderThumb [(ngModel)]="maxNum">
-        </mat-slider>
+        <z-slider class="grow" min="1" max="10" step="1" [showTickMarks]="true" [showValueLabel]="true" [formatValue]="formatLabel" [(ngModel)]="maxNum"></z-slider>
       </div>
     </div>
   </div>

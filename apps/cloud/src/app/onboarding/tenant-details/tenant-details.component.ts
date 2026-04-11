@@ -1,25 +1,28 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
 import { Component, ViewChild, computed, effect, inject, model, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatListModule } from '@angular/material/list'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatRadioModule } from '@angular/material/radio'
-import { MatStepper, MatStepperModule } from '@angular/material/stepper'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardInputDirective,
+  ZardProgressBarComponent,
+  ZardStepperComponent,
+  ZardStepperImports
+} from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
-import { matchWithValidator } from '@metad/cloud/auth'
-import { DataSourceService, DataSourceTypesService, IFeatureOrganizationUpdateInput, injectOrganization, ITenant, Store } from '@metad/cloud/state'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { omit } from '@metad/ocap-core'
+import { matchWithValidator } from '@xpert-ai/cloud/auth'
+import { DataSourceService, DataSourceTypesService, IFeatureOrganizationUpdateInput, injectOrganization, ITenant, Store } from '@xpert-ai/cloud/state'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { omit } from '@xpert-ai/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, combineLatest, firstValueFrom, map, startWith } from 'rxjs'
+import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, startWith, switchMap } from 'rxjs'
 import {
+  AiProviderRole,
   AuthStrategy,
   BonusTypeEnum,
+  CopilotServerService,
   CurrenciesEnum,
   DEFAULT_TENANT,
   DefaultValueDateTypeEnum,
@@ -29,6 +32,7 @@ import {
   OrganizationDemoNetworkEnum,
   OrganizationsService,
   ServerAgent,
+  ICopilot,
   TenantService,
   ToastrService,
   convertConfigurationSchema,
@@ -36,6 +40,7 @@ import {
   injectHelpWebsite,
   injectLanguage
 } from '../../@core'
+import { CopilotConfigFormComponent } from '@cloud/app/@shared/copilot'
 import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
 
 @Component({
@@ -43,27 +48,12 @@ import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
   selector: 'ngm-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    CdkListboxModule,
-    MatStepperModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatListModule,
-    MatRadioModule,
-    MatProgressBarModule,
-    FormlyModule,
-    FeatureCategoryComponent,
-
-    NgmCommonModule,
-  ],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, ...ZardStepperImports, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule, CopilotConfigFormComponent, ZardButtonComponent],
   providers: [FeatureService]
 })
 export class TenantDetailsComponent {
   OrganizationDemoNetworkEnum = OrganizationDemoNetworkEnum
+  AiProviderRole = AiProviderRole
 
   readonly #store = inject(Store)
   private readonly tenantService = inject(TenantService)
@@ -71,6 +61,7 @@ export class TenantDetailsComponent {
   private readonly dataSourceService = inject(DataSourceService)
   private readonly organizationsService = inject(OrganizationsService)
   readonly #featureAPI = inject(FeatureService)
+  readonly #copilotServer = inject(CopilotServerService)
   private readonly serverAgent? = inject(ServerAgent, { optional: true })
   private readonly authStrategy = inject(AuthStrategy)
   private readonly _formBuilder = inject(FormBuilder)
@@ -81,7 +72,7 @@ export class TenantDetailsComponent {
   readonly helpWebsite = injectHelpWebsite()
   readonly selectedOrganization = injectOrganization()
 
-  @ViewChild('stepper') stepper: MatStepper
+  @ViewChild('stepper') stepper: ZardStepperComponent
 
   readonly password = this._formBuilder.control('', [Validators.required, Validators.minLength(8)])
   userFormGroup: FormGroup = this._formBuilder.group({
@@ -95,7 +86,18 @@ export class TenantDetailsComponent {
 
   // Features
   readonly features = model<{feature: IFeatureOrganizationUpdateInput; category: 'ai' | 'bi'}[]>([])
+  readonly hasAiFeature = computed(() => this.features().some(({category, feature}) => category === 'ai' && feature.isEnabled))
   readonly hasSemanticModel = computed(() => this.features().some(({category, feature}) => category === 'bi' && feature.isEnabled))
+  readonly orgCopilots = toSignal(
+    combineLatest([this.#copilotServer.refresh$, toObservable(this.selectedOrganization)]).pipe(
+      filter(([, organization]) => !!organization?.id),
+      switchMap(() => this.#copilotServer.getAllInOrg()),
+      map(({ items }) => items)
+    ),
+    { initialValue: [] as ICopilot[] }
+  )
+  readonly primaryCopilot = computed(() => this.orgCopilots()?.find((item) => item.role === AiProviderRole.Primary) ?? null)
+  readonly showAiModelForm = computed(() => !!this.primaryCopilot()?.enabled)
 
   demoFormGroup: FormGroup = this._formBuilder.group({
     source: [OrganizationDemoNetworkEnum.github, Validators.required]
@@ -109,21 +111,35 @@ export class TenantDetailsComponent {
     return this.dataSourceTypeFormGroup.get('type').value?.[0]
   }
 
-  // defaultOrganization = signal<IOrganization>(null)
-
   loading = signal(false)
   tenantCompleted = signal(false)
   demoError = signal<string>(null)
   demoCompleted = signal(false)
   connectionCompleted = signal(false)
+  primaryCopilotCreatedInOnboarding = signal(false)
+  dataSourceTypesLoading = signal(false)
+  dataSourceTypesError = signal<string>(null)
 
   searchControl = new FormControl()
   private readonly dataSourceTypes$ = new BehaviorSubject<IDataSourceType[]>([])
+  private dataSourceTypesLoadedForOrgId: string | null = null
+  private dataSourceTypesLoadingForOrgId: string | null = null
   public readonly filteredDataSourceTypes = toSignal(
     combineLatest([this.dataSourceTypes$, this.searchControl.valueChanges.pipe(startWith(''))]).pipe(
-      map(([types, search]) =>
-        search ? types.filter((type) => type.name.toLowerCase().includes(search.toLowerCase())) : types
-      )
+      map(([types, search]) => {
+        const filteredTypes = search
+          ? types.filter((type) => type.name.toLowerCase().includes(search.toLowerCase()))
+          : [...types]
+        const selectedTypes = this.dataSourceTypeFormGroup.get('type').value ?? []
+
+        selectedTypes.forEach((selected) => {
+          if (!filteredTypes.some((type) => this.compareTypeFn(type, selected))) {
+            filteredTypes.push(selected)
+          }
+        })
+
+        return filteredTypes
+      })
     )
   )
 
@@ -138,7 +154,11 @@ export class TenantDetailsComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.selectedOrganization())
+      const organizationId = this.selectedOrganization()?.id
+      if (organizationId) {
+        this.#copilotServer.refresh()
+        void this.loadDataSourceTypes(organizationId)
+      }
     })
   }
 
@@ -211,8 +231,39 @@ export class TenantDetailsComponent {
       })
     )
 
-    this.#store.selectedOrganization = organization
-    this.dataSourceTypes$.next(await firstValueFrom(this.typesService.getAll()))
+    this.#store.setOrganizationScope(organization)
+    await this.loadDataSourceTypes(organization.id)
+    this.#copilotServer.refresh()
+  }
+
+  private async loadDataSourceTypes(organizationId = this.selectedOrganization()?.id) {
+    if (
+      !organizationId ||
+      this.dataSourceTypesLoadedForOrgId === organizationId ||
+      this.dataSourceTypesLoadingForOrgId === organizationId
+    ) {
+      return
+    }
+
+    this.dataSourceTypesLoadingForOrgId = organizationId
+    this.dataSourceTypesLoading.set(true)
+    this.dataSourceTypesError.set(null)
+
+    try {
+      this.dataSourceTypes$.next(await firstValueFrom(this.typesService.getAll()))
+      this.dataSourceTypesLoadedForOrgId = organizationId
+    } catch (error) {
+      this.dataSourceTypes$.next([])
+      this.dataSourceTypesLoadedForOrgId = null
+      const errorText = getErrorMessage(error)
+      this.dataSourceTypesError.set(errorText)
+      this.toastrService.error(errorText)
+    } finally {
+      if (this.dataSourceTypesLoadingForOrgId === organizationId) {
+        this.dataSourceTypesLoadingForOrgId = null
+      }
+      this.dataSourceTypesLoading.set(false)
+    }
   }
 
   enableFeatures() {
@@ -311,5 +362,59 @@ export class TenantDetailsComponent {
       this.loading.set(false)
       this.toastrService.error(message)
     }
+  }
+
+  async startAiModelSetup() {
+    const primaryCopilot = this.primaryCopilot()
+
+    if (primaryCopilot?.enabled) {
+      return
+    }
+
+    this.loading.set(true)
+    try {
+      if (!primaryCopilot) {
+        this.primaryCopilotCreatedInOnboarding.set(true)
+      }
+
+      await firstValueFrom(this.#copilotServer.enableCopilot(AiProviderRole.Primary))
+      this.#copilotServer.refresh()
+    } catch (error) {
+      this.primaryCopilotCreatedInOnboarding.set(false)
+      this.toastrService.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
+  }
+
+  async skipAiModelSetup() {
+    const primaryCopilot = this.primaryCopilot()
+    const shouldDeletePrimary =
+      this.primaryCopilotCreatedInOnboarding() &&
+      !!primaryCopilot &&
+      !primaryCopilot.modelProvider &&
+      !primaryCopilot.copilotModel
+
+    if (!shouldDeletePrimary) {
+      this.stepper.next()
+      return
+    }
+
+    this.loading.set(true)
+    try {
+      await firstValueFrom(this.#copilotServer.delete(primaryCopilot.id))
+      this.primaryCopilotCreatedInOnboarding.set(false)
+      this.#copilotServer.refresh()
+      this.stepper.next()
+    } catch (error) {
+      this.toastrService.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
+  }
+
+  onAiModelSaved() {
+    this.primaryCopilotCreatedInOnboarding.set(false)
+    this.stepper.next()
   }
 }

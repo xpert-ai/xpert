@@ -1,4 +1,3 @@
-import type { DSCoreService } from '@metad/ocap-core'
 import type { BasePermission } from './general'
 
 export type AnalyticsPermissionOperation = 'dscore' | 'query' | 'model' | 'indicator' | 'create_indicator'
@@ -44,9 +43,9 @@ export interface AnalyticsIndicatorValidationInput {
 /**
  * Analytics service exposed to plugins under permission control.
  */
-export interface AnalyticsPermissionService {
+export interface AnalyticsPermissionService<TDSCoreService = unknown> {
   resolveChatBIModels(modelIds: string[]): Promise<AnalyticsResolvedChatBIModel[]>
-  getDSCoreService(input?: AnalyticsDSCoreInput): Promise<DSCoreService>
+  getDSCoreService(input?: AnalyticsDSCoreInput): Promise<TDSCoreService>
   visitChatBIModel(modelId: string, cubeName: string): Promise<void>
   ensureCreateIndicatorAccess(): Promise<void>
   validateIndicatorStatement(input: AnalyticsIndicatorValidationInput): Promise<void>

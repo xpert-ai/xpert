@@ -1,5 +1,5 @@
-import { OrderTypeEnum } from '@metad/contracts'
-import { Agent, DataSourceFactory, DSCoreService } from '@metad/ocap-core'
+import { OrderTypeEnum } from '@xpert-ai/contracts'
+import { Agent, DataSourceFactory, DSCoreService } from '@xpert-ai/ocap-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import {
 	AnalyticsDSCoreInput,
@@ -34,7 +34,7 @@ function formatStatementPreview(statement: string, maxLines = 20): string {
 }
 
 @Injectable()
-export class PluginAnalyticsPermissionService implements AnalyticsPermissionService {
+export class PluginAnalyticsPermissionService implements AnalyticsPermissionService<DSCoreService> {
 	private readonly logger = new Logger(PluginAnalyticsPermissionService.name)
 
 	constructor(

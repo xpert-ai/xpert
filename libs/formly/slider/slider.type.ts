@@ -1,11 +1,12 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, Type } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSliderInputComponent } from '@metad/ocap-angular/common'
-import { FieldTypeConfig, FormlyFieldConfig } from '@ngx-formly/core'
-import { FieldType, FormlyFieldProps } from '@ngx-formly/material/form-field'
+import { NgmSliderInputComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmFieldColor } from '@xpert-ai/ocap-angular/core'
+import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core'
 
 interface SliderProps extends FormlyFieldProps {
+  color?: NgmFieldColor
   displayWith?: (value: number) => string
   invert?: boolean
   tickInterval?: number
@@ -26,10 +27,9 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
   type: 'slider' | Type<FormlyFieldSliderComponent>
 }
 
-
 @Component({
   standalone: true,
-  selector: 'pac-formly-mat-slider',
+  selector: 'pac-formly-slider',
   template: `
 <ngm-slider-input class="w-full"
   [tabIndex]="props.tabindex"
@@ -39,7 +39,8 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
   [max]="props.max"
   [min]="props.min"
   [step]="props.step"
-  [discrete]="props.discrete"
+  [discrete]="props.discrete ?? props.thumbLabel"
+  [showTickMarks]="props.showTickMarks"
   [autoScale]="props.autoScale"
   [unit]="props.unit"
   [(ngModel)]="model"
@@ -49,13 +50,11 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./slider.type.scss'],
-  imports: [CommonModule, FormsModule, NgmSliderInputComponent]
+  imports: [FormsModule, NgmSliderInputComponent]
 })
 export class FormlyFieldSliderComponent extends FieldType<FieldTypeConfig<SliderProps>> {
   override defaultOptions = {
     props: {
-      hideFieldUnderline: true,
-      floatLabel: 'always' as const,
       thumbLabel: false,
     }
   }

@@ -1,5 +1,5 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
-import { uuid } from '@metad/ds-core'
+import { uuid } from '@xpert-ai/ds-core'
 import { Meta, moduleMetadata, Story } from '@storybook/angular'
 import { NxFlexLayoutComponent } from './flex-layout/flex-layout.component'
 import { NxStoryResponsiveModule } from './responsive.module'

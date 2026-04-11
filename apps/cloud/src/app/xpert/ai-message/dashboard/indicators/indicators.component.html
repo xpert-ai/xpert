@@ -1,28 +1,33 @@
 @for (indicator of showIndicators(); track indicator.indicatorCode; let last = $last) {
-  <ngm-indicator class="indicator group min-h-[75px] border-t border-solid dark:border-neutral-800 border-transparent bg-components-card-bg p-4 cursor-pointer hover:bg-components-panel-bg first:rounded-t-xl"
+  <ngm-indicator
+    class="indicator group min-h-[75px] border-t border-solid dark:border-neutral-800 border-transparent bg-components-card-bg p-4 cursor-pointer hover:bg-components-panel-bg first:rounded-t-xl"
     [class.active]="indicatorExplorer() === indicator.indicatorCode"
     [class.last]="last"
     [class.has-more]="hasMore()"
     [dataSettings]="indicator"
     [indicatorCode]="indicator.indicatorCode"
-    [lookBack]="12" 
+    [lookBack]="12"
     [timeGranularity]="eTimeGranularity.Month"
     [tagType]="indicatorTagType()"
     (click)="toggleIndicator(indicator.indicatorCode)"
     (toggleTag)="toggleIndicatorTagType()"
   >
     @if (indicator.id) {
-      <div action class="w-7 h-7 justify-center items-center mr-1 rounded-lg hover:bg-hover-bg hidden group-hover:flex"
-        (click)="editIndicator(indicator.id);$event.stopPropagation()">
+      <div
+        action
+        class="w-7 h-7 justify-center items-center mr-1 rounded-lg hover:bg-hover-bg hidden group-hover:flex"
+        (click)="editIndicator(indicator.id); $event.stopPropagation()"
+      >
         <i class="ri-edit-line"></i>
       </div>
     }
   </ngm-indicator>
   @if (indicatorExplorer() === indicator.indicatorCode) {
-    <ngm-indicator-explorer class="ngm-indicator-explorer last:rounded-b-xl"
+    <ngm-indicator-explorer
+      class="ngm-indicator-explorer last:rounded-b-xl"
       [dataSettings]="indicator"
-      [indicatorCode]="indicator.indicatorCode" 
-      [lookBack]="12" 
+      [indicatorCode]="indicator.indicatorCode"
+      [lookBack]="12"
       periodName="6M"
       [primaryTheme]="'dark'"
     />
@@ -32,14 +37,22 @@
 @if (indicators()?.length > pageSize()) {
   <div class="flex justify-center gap-1">
     @if (hasMore()) {
-      <button type="button" class="btn pressable justify-center" [matTooltip]="'PAC.Chat.ShowMoreIndicators' | translate: {Default: 'Show more indicators'}"
-        (click)="showMore()">
+      <button
+        type="button"
+        class="btn pressable justify-center"
+        [zTooltip]="'PAC.Chat.ShowMoreIndicators' | translate: { Default: 'Show more indicators' }"
+        (click)="showMore()"
+      >
         <i class="ri-arrow-down-wide-line"></i>
       </button>
     }
     @if (showIndicators()?.length > pageSize()) {
-      <button type="button" class="btn pressable justify-center" [matTooltip]="'PAC.Chat.ShowLessIndicators' | translate: {Default: 'Show less indicators'}"
-        (click)="showLess()">
+      <button
+        type="button"
+        class="btn pressable justify-center"
+        [zTooltip]="'PAC.Chat.ShowLessIndicators' | translate: { Default: 'Show less indicators' }"
+        (click)="showLess()"
+      >
         <i class="ri-arrow-up-wide-line"></i>
       </button>
     }

@@ -1,4 +1,4 @@
-import { IntegrationUpsertCommand } from '@metad/server-core'
+import { IntegrationUpsertCommand } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Xpert } from '../../xpert.entity'

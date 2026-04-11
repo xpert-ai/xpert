@@ -17,19 +17,18 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
-import { injectWorkspace, Store } from '@metad/cloud/state'
-import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
-import { debouncedSignal } from '@metad/ocap-angular/core'
+import { injectWorkspace, Store } from '@xpert-ai/cloud/state'
+import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
 import { concat } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { injectParams } from 'ngxtension/inject-params'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { debounceTime, map, startWith, tap } from 'rxjs/operators'
 import {
   getErrorMessage,
@@ -50,7 +49,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -66,7 +65,7 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     CdkMenuModule,
     OverlayModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     NgmCommonModule,
     TagFilterComponent,
@@ -89,7 +88,7 @@ export class XpertWorkspaceHomeComponent {
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
   readonly #dialog = inject(Dialog)
-  // readonly #dialog = inject(MatDialog)
+  // readonly #dialog = inject(ZardDialogService)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly workspaceService = inject(XpertWorkspaceService)
@@ -108,6 +107,7 @@ export class XpertWorkspaceHomeComponent {
   readonly lang = this.appService.lang
 
   readonly loading = signal(true)
+  readonly loadingDefaultWorkspace = signal(true)
   readonly workspaces = toSignal(
     this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(
       map(({ items }) => items),
@@ -118,8 +118,12 @@ export class XpertWorkspaceHomeComponent {
   readonly workspace = computed(() => this.workspaces()?.find((_) => _.id === this.selectedWorkspace()?.id), {
     equal: (a, b) => a?.id === b?.id
   })
+  readonly defaultWorkspace = signal<IXpertWorkspace | null>(null)
+  readonly defaultWorkspaceId = computed(() => this.defaultWorkspace()?.id ?? null)
+  readonly settingDefaultWorkspaceId = signal<string | null>(null)
 
   readonly refresh$ = new BehaviorSubject<void>(null)
+  #defaultWorkspaceQueryVersion = 0
 
   // Xpert or tool type filter
   readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase'>>(null)
@@ -180,11 +184,12 @@ export class XpertWorkspaceHomeComponent {
   constructor() {
     effect(
       () => {
-        if (this.selectedWorkspace()) {
-          if (this.router.url === '/xpert/w/' || this.router.url === '/xpert/w') {
-            this.router.navigate(['/xpert/w/', this.selectedWorkspace().id])
-          }
+        const workspaces = this.workspaces()
+        if (workspaces === null) {
+          return
         }
+
+        void this.loadDefaultWorkspace()
       },
       { allowSignalWrites: true }
     )
@@ -193,6 +198,45 @@ export class XpertWorkspaceHomeComponent {
       if (this.tags()?.[0]) {
         this.searchControl.setValue(this.tags()[0].name)
       }
+    })
+
+    effect(() => {
+      const workspaces = this.workspaces()
+      const selectedWorkspace = this.selectedWorkspace()
+      const routeWorkspaceId = this.paramId()
+
+      if (!workspaces?.length) {
+        return
+      }
+
+      const routedWorkspace = routeWorkspaceId
+        ? workspaces.find((workspace) => workspace.id === routeWorkspaceId) ?? null
+        : null
+      const matchedSelectedWorkspace = selectedWorkspace
+        ? workspaces.find((workspace) => workspace.id === selectedWorkspace.id) ?? null
+        : null
+
+      if (routedWorkspace) {
+        if (matchedSelectedWorkspace?.id !== routedWorkspace.id) {
+          this.store.setWorkspace(routedWorkspace)
+        }
+        return
+      }
+
+      if (matchedSelectedWorkspace) {
+        if (routeWorkspaceId !== matchedSelectedWorkspace.id) {
+          void this.syncWorkspaceRoute(matchedSelectedWorkspace)
+        }
+        return
+      }
+
+      const fallbackWorkspace = workspaces[0]
+      if (!fallbackWorkspace) {
+        return
+      }
+
+      this.store.setWorkspace(fallbackWorkspace)
+      void this.syncWorkspaceRoute(fallbackWorkspace)
     })
   }
 
@@ -229,6 +273,56 @@ export class XpertWorkspaceHomeComponent {
     this.refresh$.next()
   }
 
+  async loadDefaultWorkspace() {
+    const version = ++this.#defaultWorkspaceQueryVersion
+    this.loadingDefaultWorkspace.set(true)
+
+    try {
+      const workspace = await firstValueFrom(this.workspaceService.getMyDefault())
+      if (version !== this.#defaultWorkspaceQueryVersion) {
+        return
+      }
+
+      this.defaultWorkspace.set(workspace)
+    } catch {
+      if (version !== this.#defaultWorkspaceQueryVersion) {
+        return
+      }
+
+      this.defaultWorkspace.set(null)
+    } finally {
+      if (version === this.#defaultWorkspaceQueryVersion) {
+        this.loadingDefaultWorkspace.set(false)
+      }
+    }
+  }
+
+  async setDefaultWorkspace(event: Event, workspace: IXpertWorkspace) {
+    event.stopPropagation()
+
+    if (!workspace?.id || this.defaultWorkspaceId() === workspace.id || this.settingDefaultWorkspaceId() === workspace.id) {
+      return
+    }
+
+    this.settingDefaultWorkspaceId.set(workspace.id)
+
+    try {
+      const defaultWorkspace = await firstValueFrom(this.workspaceService.setMyDefault(workspace.id))
+      this.defaultWorkspace.set(defaultWorkspace)
+      this.#toastr.success(
+        this.#translate.instant('PAC.Xpert.DefaultWorkspaceUpdated', {
+          Default: 'Default workspace updated'
+        })
+      )
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      if (this.settingDefaultWorkspaceId() === workspace.id) {
+        this.settingDefaultWorkspaceId.set(null)
+      }
+    }
+  }
+
   openSettings() {
     this.#dialog
       .open(XpertWorkspaceSettingsComponent, {
@@ -258,5 +352,24 @@ export class XpertWorkspaceHomeComponent {
           //
         }
       })
+  }
+
+  private async syncWorkspaceRoute(workspace: IXpertWorkspace) {
+    const urlTree = this.router.parseUrl(this.router.url)
+    const primarySegments = urlTree.root.children['primary']?.segments.map((segment) => segment.path) ?? []
+
+    if (primarySegments[0] !== 'xpert' || primarySegments[1] !== 'w') {
+      return
+    }
+
+    const nextSegments =
+      primarySegments.length >= 3
+        ? ['xpert', 'w', workspace.id, ...primarySegments.slice(3)]
+        : ['xpert', 'w', workspace.id]
+
+    await this.router.navigate(nextSegments, {
+      queryParams: urlTree.queryParams,
+      fragment: urlTree.fragment ?? undefined
+    })
   }
 }

@@ -1,8 +1,8 @@
 import { Component, OnDestroy, computed, effect, inject } from '@angular/core'
-import { BusinessAreasService } from '@metad/cloud/state'
-import { BusinessType } from '@metad/contracts'
+import { BusinessAreasService } from '@xpert-ai/cloud/state'
+import { BusinessType } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { computedAsync } from 'ngxtension/computed-async'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, EMPTY, catchError, switchMap } from 'rxjs'
@@ -15,7 +15,7 @@ import { BusinessAreaComponent } from '../business-area.component'
   selector: 'pac-edit-business-area',
   templateUrl: './business-area.component.html',
   styleUrls: ['./business-area.component.scss'],
-  imports: [MaterialModule, TranslateModule, BusinessAreaInfoFormComponent, BusinessAreaUsersComponent]
+  imports: [SharedUiModule, TranslateModule, BusinessAreaInfoFormComponent, BusinessAreaUsersComponent]
 })
 export class EditBusinessAreaComponent implements OnDestroy {
   BUSINESS_AREA_TYPE = BusinessType
@@ -42,8 +42,7 @@ export class EditBusinessAreaComponent implements OnDestroy {
         if (this.businessArea()) {
           this.businessAreaComponent.setCurrentLink(this.businessArea())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

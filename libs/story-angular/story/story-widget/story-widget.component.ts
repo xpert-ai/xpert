@@ -30,8 +30,6 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute, Params, Router } from '@angular/router'
 import {
   Intent,
@@ -43,10 +41,9 @@ import {
   WidgetMenu,
   WidgetMenuType,
   WidgetService
-} from '@metad/core'
-import { CommandDialogComponent } from '@metad/copilot-angular'
-import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+} from '@xpert-ai/core'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import {
   assignDeepOmitBlank,
   DataFieldWithIntentBasedNavigation,
@@ -54,7 +51,7 @@ import {
   mergeOptions,
   omit,
   OrderDirection
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   componentStyling,
   LinkedInteractionApplyTo,
@@ -67,11 +64,12 @@ import {
   StoryWidgetComponentProvider,
   uuid,
   WidgetComponentType
-} from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { select } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardDialogService, ZardDividerComponent, ZardToastService } from '@xpert-ai/headless-ui'
 import { cloneDeep, isEmpty, isEqual, pick } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, from, Observable, of } from 'rxjs'
@@ -113,6 +111,7 @@ import { NxStoryWidgetService } from './story-widget.service'
     ContentLoaderModule,
     NxCoreModule,
     NgmCommonModule,
+    ZardDividerComponent,
   ]
 })
 export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
@@ -124,6 +123,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
   readonly #logger? = inject(NGXLogger, { optional: true })
   private readonly _renderer = inject(Renderer2)
   private readonly _elementRef = inject(ElementRef)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   private readonly pointComponent? = inject(NxStoryPointComponent, { optional: true })
   private readonly router = inject(Router)
   private readonly route = inject(ActivatedRoute)
@@ -361,7 +361,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     public readonly widgetService: WidgetService,
     private readonly translateService: TranslateService,
     private readonly _cdr: ChangeDetectorRef,
-    private readonly _dialog: MatDialog,
+    private readonly _dialog: ZardDialogService,
     private readonly _injector: Injector,
     private _viewContainerRef: ViewContainerRef,
 
@@ -370,20 +370,20 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     @Optional()
     @Inject(STORY_WIDGET_COMPONENT)
     private readonly _widgetComponents?: Array<StoryWidgetComponentProvider>,
-    @Optional() private readonly _snackBar?: MatSnackBar
+    @Optional() private readonly toast?: ZardToastService
   ) {
     effect(() => {
       if (this.key()) {
         this.stateService.init(this.key())
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.componentInstance$.value) {
         this.componentInstance$.value.editable = this.editable()
         this.componentInstance$.next(this.componentInstance$.value)
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   ngAfterViewInit() {
@@ -537,13 +537,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
         Default: 'It is not deleted from the server until it is actually saved'
       })
     )
-    const confirm = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, {
-          data: { value: this.widget().name, information }
-        })
-        .afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: this.widget().name, information }))
 
     if (confirm) {
       if (this.laneKey) {
@@ -589,7 +583,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
   }
 
   onCommentchange(event) {
-    this._snackBar.open(event.editor.getContent(), 'dismiss', { duration: 1000 })
+    this.toast?.info(event.editor.getContent(), { duration: 1000 })
   }
 
   onCreateComment({ text, dataRelated }) {
@@ -745,7 +739,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     try {
       await this.storyService.copyWidgetToNewPage(type, this.widget().key)
     } catch (err) {
-      this._snackBar.open(`Error: ${(<Error>err).message}`, `Dismiss`, { duration: 2000 })
+      this.toast?.error(`Error: ${(<Error>err).message}`, { duration: 2000 })
     }
   }
 
@@ -765,7 +759,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     try {
       await this.storyService.moveWidgetToNewPage(this.storyPointService.storyPoint.key, this.widget().key, type)
     } catch (err) {
-      this._snackBar.open(`Error: ${(<Error>err).message}`, `Dismiss`, { duration: 2000 })
+      this.toast?.error(`Error: ${(<Error>err).message}`, { duration: 2000 })
     }
   }
 
@@ -893,20 +887,6 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     })
   }
 
-  generateWithAI() {
-    this.selectedChange.emit(true)
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['widget']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
-  }
-
   @HostListener('click', ['$event'])
   onSelected(event) {
     // selected 时不一定就是在编辑当前组件
@@ -916,7 +896,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKeydown(event: KeyboardEvent) {
+  onEscapeKeydown(_event: Event) {
     if (this.fullscreen) {
       this.fullscreen = false
     }

@@ -1,0 +1,23 @@
+{
+  "name": "@xpert-ai/core",
+  "version": "2.1.0",
+  "peerDependencies": {
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": false,
+  "module": "fesm2022/metad-core.mjs",
+  "typings": "types/metad-core.d.ts",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./types/metad-core.d.ts",
+      "default": "./fesm2022/metad-core.mjs"
+    }
+  }
+}

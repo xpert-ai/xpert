@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
@@ -15,7 +15,7 @@ import { JSONSchemaFormComponent } from '../json-schema-form/form.component'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, JSONSchemaFormComponent, ParameterComponent],
+  imports: [FormsModule, TranslateModule, FormlyModule, JSONSchemaFormComponent, ParameterComponent],
   selector: 'parameter-form',
   templateUrl: 'form.component.html',
   styleUrls: ['form.component.scss'],
@@ -61,8 +61,7 @@ export class ParameterFormComponent {
         //   this.form.patchValue(this.value$)
         //   assign(this.optionsModel, this.value$())
         // }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

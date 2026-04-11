@@ -18,9 +18,9 @@ import {
 	TSemanticModelDraft,
 	TSemanticModelOptions,
 	Visibility
-} from '@metad/contracts'
-import { Schema } from '@metad/ocap-core'
-import { Tag, TenantOrganizationBaseEntity, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { Schema } from '@xpert-ai/ocap-core'
+import { Tag, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId, VersionColumn } from 'typeorm'
@@ -93,7 +93,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	options?: TSemanticModelOptions<Schema>
 
 	@ApiProperty({ type: () => String, enum: SemanticModelStatusEnum })
-	@Column({ nullable: true, default: SemanticModelStatusEnum.Progressing })
+	@Column({ type: 'varchar', nullable: true, default: SemanticModelStatusEnum.Progressing })
 	status?: SemanticModelStatusEnum
 
 	@ApiProperty({ type: () => User })
@@ -177,7 +177,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	preferences?: ISemanticModelPreferences
 
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	visibility?: Visibility
 
 	/**

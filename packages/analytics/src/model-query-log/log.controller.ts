@@ -1,4 +1,4 @@
-import { CrudController } from '@metad/server-core'
+import { CrudController } from '@xpert-ai/server-core'
 import { Controller } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

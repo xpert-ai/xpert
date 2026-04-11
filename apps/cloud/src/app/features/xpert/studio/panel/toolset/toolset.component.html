@@ -1,46 +1,56 @@
-<div class="sticky top-0 w-full flex justify-start items-center px-3 pt-3 pb-2 z-10
-  bg-components-panel-bg">
+<div class="sticky top-0 w-full flex justify-start items-center px-3 pt-3 pb-2 z-10 bg-components-panel-bg">
   <emoji-avatar [avatar]="toolset()?.avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
   <div class="flex flex-col">
-    <span class="text-base">{{toolset()?.name}}</span>
+    <span class="text-base">{{ toolset()?.name }}</span>
   </div>
 
   <div class="flex-1"></div>
 
   <div class="flex justify-between items-center gap-1">
-
-    @if(!isTemplate()) {
-      <button type="button" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
-        [matTooltip]="'PAC.Xpert.EditToolset' | translate: {Default: 'Edit toolset configuration'}"
-        matTooltipPosition="above"
-        (click)="edit()">
+    @if (!isTemplate()) {
+      <button
+        type="button"
+        class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
+        [zTooltip]="'PAC.Xpert.EditToolset' | translate: { Default: 'Edit toolset configuration' }"
+        zPosition="top"
+        (click)="edit()"
+      >
         <i class="ri-settings-4-line"></i>
       </button>
 
-      <button type="button" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
-        [matTooltip]="'PAC.Xpert.RefreshToolset' | translate: {Default: 'Refresh, sync toolset configuration'}"
-        matTooltipPosition="above"
-        (click)="refresh()">
+      <button
+        type="button"
+        class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
+        [zTooltip]="'PAC.Xpert.RefreshToolset' | translate: { Default: 'Refresh, sync toolset configuration' }"
+        zPosition="top"
+        (click)="refresh()"
+      >
         <i class="ri-refresh-line"></i>
       </button>
     }
 
-    <button type="button" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
-      [matTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
-      matTooltipPosition="above"
-      (click)="moveToNode()">
+    <button
+      type="button"
+      class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
+      [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+      zPosition="top"
+      (click)="moveToNode()"
+    >
       <i class="ri-crosshair-line"></i>
     </button>
 
-    <a [href]="helpUrl()" target="_blank" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
-      [matTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
-      matTooltipPosition="above"
+    <a
+      [href]="helpUrl()"
+      target="_blank"
+      class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
+      [zTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
+      zPosition="top"
     >
       <i class="ri-book-open-line"></i>
     </a>
 
-    <div class="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer
-      text-text-tertiary hover:text-text-destructive hover:bg-hover-bg"
+    <div
+      class="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer text-text-tertiary hover:text-text-destructive hover:bg-hover-bg"
       (click)="closePanel()"
     >
       <ngm-close-svg class="w-5 h-5" />
@@ -49,7 +59,7 @@
 </div>
 
 <div class="max-w-full shrink-0 px-4 my-4 text-text-tertiary text-sm line-clamp-3">
-  {{toolset()?.description}}
+  {{ toolset()?.description }}
 </div>
 
 <!-- @if (needSandbox()) {
@@ -62,25 +72,29 @@
 @if (isTemplate()) {
   <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
     <button class="btn btn-large btn-primary self-center" (click)="configureToolBuiltin()">
-      {{ 'PAC.Xpert.Reconfigure' | translate: {Default: 'Reconfigure'} }}
+      {{ 'PAC.Xpert.Reconfigure' | translate: { Default: 'Reconfigure' } }}
     </button>
 
-    <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-gray-500 uppercase">
-      <div class="mr-3">{{'PAC.Xpert.OrReselect' | translate: { Default: 'Or reselect'} }}</div>
+    <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-text-tertiary uppercase">
+      <div class="mr-3">{{ 'PAC.Xpert.OrReselect' | translate: { Default: 'Or reselect' } }}</div>
       <div class="grow w-0 h-px bg-divider-regular"></div>
     </div>
 
     <ul class="p-2 flex flex-col gap-1">
       @for (toolset of toolsets(); track toolset.id) {
-        <li class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-gray-100">
+        <li
+          class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-divider-regular"
+        >
           <div class="relative flex items-center w-full">
             <emoji-avatar small [avatar]="toolset.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
-            <span class="truncate">{{toolset.name}}</span>
+            <span class="truncate">{{ toolset.name }}</span>
 
-            <button type="button" class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
+            <button
+              type="button"
+              class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
               (click)="useToolset(toolset)"
             >
-              {{ 'PAC.Xpert.Use' | translate: {Default: 'Use'} }}
+              {{ 'PAC.Xpert.Use' | translate: { Default: 'Use' } }}
             </button>
           </div>
         </li>
@@ -89,85 +103,118 @@
   </div>
 }
 
-
 <div class="w-full flex flex-col gap-2 p-2">
   @for (item of tools(); track item.tool.id) {
     <div class="w-full flex flex-col">
       <div class="my-2 h-[1px] bg-divider-subtle"></div>
       <div class="w-full flex justify-start items-center">
-        <button class="w-7 h-7 shrink-0 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
+        <button
+          class="w-7 h-7 shrink-0 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
           (click)="toggleExpand(item.tool.name)"
         >
-          <i class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
-            [ngClass]="{'rotate-90': !expandTools()[item.tool.name]}"></i>
+          <i
+            class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
+            [ngClass]="{ 'rotate-90': !expandTools()[item.tool.name] }"
+          ></i>
         </button>
 
         <span class="px-2 truncate" [title]="item.tool.description || item.tool.name">
-          {{item.label | i18n}}
+          {{ item.label | i18n }}
         </span>
-        <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
-          {{item.tool.name}}
+        <div
+          class="border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-xs font-mono truncate text-text-secondary bg-background-default-subtle"
+        >
+          {{ item.tool.name }}
         </div>
       </div>
 
-    @if (expandTools()[item.tool.name]) {
-      <div class="px-2 my-2 text-sm text-text-secondary line-clamp-3">{{item.tool.description | i18n}}</div>
+      @if (expandTools()[item.tool.name]) {
+        <div class="px-2 my-2 text-sm text-text-secondary line-clamp-3">{{ item.tool.description | i18n }}</div>
 
-      <div class="px-2 font-semibold">{{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Tool Description'} }}</div>
-      <div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0 font-mono">
-        <textarea class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none
-        placeholder:text-gray-400 caret-[#295EFF]" 
-          placeholder="{{'PAC.Xpert.AddDescription' | translate: {Default: 'Add description'} }}..."
-          [ngModel]="getToolDescription(item.tool.name, item.tool)"
-          (ngModelChange)="updateToolDescription(item.tool.name, $event)"
-        ></textarea>
-      </div>
+        <div class="px-2 font-semibold">
+          {{ 'PAC.Xpert.ToolDescription' | translate: { Default: 'Tool Description' } }}
+        </div>
+        <div
+          class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono"
+        >
+          <textarea
+            class="w-full text-sm text-text-primary leading-[18px] bg-transparent appearance-none outline-none placeholder:text-components-input-text-placeholder caret-[#295EFF]"
+            placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
+            [ngModel]="getToolDescription(item.tool.name, item.tool)"
+            (ngModelChange)="updateToolDescription(item.tool.name, $event)"
+          ></textarea>
+        </div>
 
-      <div class="w-full flex justify-end px-2 mb-4">
-        <mat-slide-toggle [ngModel]="getSensitive(item.tool.name)" (ngModelChange)="updateSensitive(item.tool.name, $event)"
-          labelPosition="before"
-          ngm-density="xs"
-          [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
-          matTooltipPosition="left"
-        >{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</mat-slide-toggle>
-      </div>
+        <div class="w-full flex justify-end px-2 mb-4">
+          <z-switch
+            [ngModel]="getSensitive(item.tool.name)"
+            (ngModelChange)="updateSensitive(item.tool.name, $event)"
+            labelPosition="before"
+            [zTooltip]="
+              'PAC.Xpert.SensitiveToolsTip'
+                | translate: { Default: 'Sensitive tools require user confirmation before execution' }
+            "
+            zPosition="left"
+            zSize="sm"
+            >{{ 'PAC.Xpert.Sensitive' | translate: { Default: 'Sensitive' } }}</z-switch
+          >
+        </div>
 
-      <div class="w-full flex justify-end px-2 mb-4">
-        <mat-slide-toggle [ngModel]="isEnd(item.tool.name)" (ngModelChange)="updateEnd(item.tool.name, $event)"
-          labelPosition="before"
-          ngm-density="xs"
-          [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'End point tool, the conversation ends when tool completed'}"
-          matTooltipPosition="left"
-        >{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</mat-slide-toggle>
-      </div>
+        <div class="w-full flex justify-end px-2 mb-4">
+          <z-switch
+            [ngModel]="isEnd(item.tool.name)"
+            (ngModelChange)="updateEnd(item.tool.name, $event)"
+            labelPosition="before"
+            [zTooltip]="
+              'PAC.Xpert.EndTool' | translate: { Default: 'End point tool, the conversation ends when tool completed' }
+            "
+            zPosition="left"
+            zSize="sm"
+            >{{ 'PAC.Xpert.End' | translate: { Default: 'End' } }}</z-switch
+          >
+        </div>
 
-      <div class="w-full flex justify-end px-2 mb-4">
-        <mat-slide-toggle [ngModel]="toolMemory(item.tool.name)" (ngModelChange)="toggleToolMemory(item.tool.name, $event)"
-          labelPosition="before"
-          ngm-density="xs"
-          [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
-          matTooltipPosition="left"
-        >{{'PAC.Xpert.ToolMemory' | translate: {Default: 'Tool Memory'} }}</mat-slide-toggle>
-      </div>
+        <div class="w-full flex justify-end px-2 mb-4">
+          <z-switch
+            [ngModel]="toolMemory(item.tool.name)"
+            (ngModelChange)="toggleToolMemory(item.tool.name, $event)"
+            labelPosition="before"
+            [zTooltip]="
+              'PAC.Xpert.ToolMemoryTip'
+                | translate: { Default: 'Tool memory, storing tool results in agent state variables' }
+            "
+            zPosition="left"
+            zSize="sm"
+            >{{ 'PAC.Xpert.ToolMemory' | translate: { Default: 'Tool Memory' } }}</z-switch
+          >
+        </div>
 
-      @if (toolMemory(item.tool.name)) {
-        <xpert-variables-assigner class="p-2"
-          [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
-          [tooltip]="'PAC.Xpert.WriteToolResultToMemoryTooltip' | translate: {Default: 'Write tool output to global memory of the digital expert'}"
-          type="tool"
-          [variables]="variables()"
-          [memories]="toolMemory(item.tool.name)"
-          (memoriesChange)="updateToolMemory(item.tool.name, $event)"
+        @if (toolMemory(item.tool.name)) {
+          <xpert-variables-assigner
+            class="p-2"
+            [title]="'PAC.Xpert.WritetoMemory' | translate: { Default: 'Write to memory' }"
+            [tooltip]="
+              'PAC.Xpert.WriteToolResultToMemoryTooltip'
+                | translate: { Default: 'Write tool output to global memory of the digital expert' }
+            "
+            type="tool"
+            [variables]="variables()"
+            [memories]="toolMemory(item.tool.name)"
+            (memoriesChange)="updateToolMemory(item.tool.name, $event)"
+          />
+        }
+
+        <xpert-tool-test
+          [tool]="item.tool"
+          class="w-full px-2 mt-4"
+          [enabled]="item.tool.enabled"
+          (saveParameters)="saveDefaultParameters($event)"
         />
       }
-
-      <xpert-tool-test [tool]="item.tool" class="w-full px-2 mt-4" [enabled]="item.tool.enabled" 
-        (saveParameters)="saveDefaultParameters($event)" />
-    }
     </div>
   }
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full"/>
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
 }

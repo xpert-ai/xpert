@@ -1,66 +1,68 @@
-<mat-sidenav-container #sidenavContainer class="pac-features__sidenav-container flex-1 h-full"
-  [ngClass]="{'pac-fullscreen': fullscreenIndex$() > 1}"
-  autosize
+<z-layout class="flex-1 h-full"
+  zDirection="horizontal"
 >
-  <mat-sidenav #sidenav class="pac-features__sidenav flex flex-col"
-    [mode]="sidenavMode()"
-    [(opened)]="sidenavOpened"
-    >
-    <div class="flex items-center"
-      [ngClass]="isCollapsed ? 'flex-col' : 'flex-row'">
-      <button class="outline-none hover:text-yellow-600"
-        (click)="toggleSidenav(sidenavContainer)">
-        <pac-sidenav-navigator [mode]="sidenavMode()" class="w-14 h-14 flex justify-center items-center"/>
-      </button>
-      <pac-organization-selector class="overflow-hidden flex-1 flex justify-center items-center hover:text-yellow-600 transition-colors"
-        [isCollapsed]="isCollapsed"
-      />
-    </div>
-
-    <pac-menu class="flex-1 p-2 flex overflow-hidden hover:overflow-y-auto"
-      [isCollapsed]="isCollapsed"
-      [isMobile]="isMobile()"
-      [menus]="menus()"
-    >
-      <div class="w-full flex flex-col" [class.items-end]="!isCollapsed">
-        <pac-notification class="flex justify-center"/>
-        <pac-tune class="flex justify-center"/>
+  <z-sidebar class="pac-features__sidenav flex flex-col"
+    [zWidth]="250"
+    [zCollapsible]="true"
+    [zCollapsed]="sidebarCollapsed()"
+    [zCollapsedWidth]="50"
+    (zCollapsedChange)="onCollapsedChange($event)"
+    class="p-0!"
+  >
+    <nav class="h-full flex flex-col overflow-auto">
+      <div class="flex items-center p-3" [class.justify-center]="sidebarCollapsed()" [class.justify-between]="!sidebarCollapsed()">
+        @if (!sidebarCollapsed()) {
+          <div class="pac-home-title w-36 h-12 inline-block" routerLink="/home">
+          </div>
+        }
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          class="m-1.5 h-auto w-auto rounded-lg p-1.5 cursor-pointer"
+          (click)="toggleSidebar()"
+        >
+          <z-icon zType="panel-left" zSize="lg" />
+        </button>
       </div>
-    </pac-menu>
-  </mat-sidenav>
+      <div class="flex items-center">
+        <pac-organization-selector class="overflow-hidden flex-1 flex justify-center items-center hover:text-yellow-600 transition-colors"
+          [isCollapsed]="sidebarCollapsed()"
+        />
+      </div>
 
-  <mat-sidenav-content class="pac_sidenav-content max-h-full" cdkDropListGroup>
-    <mat-toolbar class="pac__shell-bar flex justify-between items-center md:gap-2">
+      <pac-menu class="flex-1 flex overflow-hidden hover:overflow-y-auto"
+        [class.p-0]="sidebarCollapsed()"
+        [class.p-2]="!sidebarCollapsed()"
+        [isCollapsed]="sidebarCollapsed()"
+        [isMobile]="isMobile()"
+        [menus]="menus()"
+      >
+        <div class="w-full flex flex-col" [class.items-end]="!sidebarCollapsed()">
+          <pac-notification class="flex justify-center"/>
+          <!-- <pac-tune class="flex justify-center"/> -->
+        </div>
+      </pac-menu>
+
+      <div class="mt-auto flex" [class.justify-center]="sidebarCollapsed()">
+        @if (isAuthenticated$ | async; as user) {
+          <pac-header-user
+            class="block pb-1"
+            [class.w-full]="!sidebarCollapsed()"
+            [class.px-1.5]="!sidebarCollapsed()"
+            [user]="user"
+            [compact]="sidebarCollapsed()"
+            [fullWidth]="!sidebarCollapsed()"
+          />
+        }
+      </div>
+    </nav>
+  </z-sidebar>
+
+  <z-content class="max-h-full min-w-0 flex-1 overflow-auto" cdkDropListGroup>
+    <!-- <header class="pac__shell-bar flex justify-between items-center md:gap-2">
       <div class="flex justify-start items-center gap-2">
-        @if (!(sidenav.opened && sidenavMode()==='side')) {
-          <button class="w-12 outline-none hover:text-yellow-600 transition-colors"
-            (click)="sidenav.toggle();sidenavMode.set('over')">
-            <span class="flex justify-center items-center">
-              <svg height="26" width="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-                <path d="M3,7 h20" style="transition: all 200ms ease 0s;"></path>
-                <path d="M3,13 h20" style="transition: all 200ms ease 0s;"></path>
-                <path d="M3,19 h20" style="transition: all 200ms ease 0s;"></path>
-                <path d="M4,10 L1,13 L4,16" style="opacity: 0; transform: translate(2px, 0px);"></path>
-                <path d="M22,10 L25,13 L22,16" style="opacity: 0; transform: translate(-2px, 0px);"></path>
-              </svg>
-            </span>
-          </button>
-        }
-
-        @if (!isMobile()) {
-          <button
-            type="button"
-            class="pac-home-title w-36 h-12 inline-block -ml-2 bg-transparent border-0 p-0 outline-none"
-            aria-label="Xpert AI"
-            (click)="onBrandClick()"
-          ></button>
-
-          <button (click)="back()" type="button" class="p-1 w-8 h-8 flex justify-center items-center rounded-lg text-xl
-             text-text-tertiary hover:text-text-secondary hover:bg-white hover:shadow-lg active:shadow-sm">
-            <i class="ri-arrow-left-s-line"></i>
-          </button>
-        }
-
         @if (navigation$ | async; as navigation) {
           <div class="flex items-center text-sm overflow-hidden">
             @if (appService.inProject()) {
@@ -68,12 +70,12 @@
             }
 
             @if (appService.inWorkspace()) {
-              <pac-workspace-selector class="rounded-xl hover:bg-gray-50" />
+              <pac-workspace-selector class="rounded-xl hover:bg-hover-bg" />
             }
             <span class="font-bold flex items-center cursor-pointer
             text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-200"
               (click)="navigate(navigation.catalog)">
-              <mat-icon fontSet="material-icons-outlined" displayDensity="compact" class="mx-1">{{navigation.icon}}</mat-icon>
+              <z-icon zSize="sm" class="mx-1" [zType]="navigation.icon"></z-icon>
               @if (!isMobile()) {
                 <span>{{ navigation.catalogName }}</span>
               }
@@ -89,115 +91,19 @@
       <div class="flex flex-1">
       </div>
 
-      <!-- <header-notify></header-notify> -->
-
-      <div class="pac-toolbar-search relative w-32 hidden sm:flex md:w-80 items-center max-w-xs text-base">
-        <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-2 h-4 w-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
-        <input #searchInput class="flex-1 max-w-full p-1.5 pl-8 rounded-xl outline-none placeholder:opacity-30 focus:placeholder:opacity-50 transition-all
-          bg-black/5 hover:bg-black/10 focus:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 dark:focus:bg-white/10"
-          type="text"
-          [placeholder]=" ('PAC.ACTIONS.Search' | translate: {Default: 'Search'})+'...'"
-          [matAutocomplete]="auto"
-          matInput
-          [(ngModel)]="assetsSearch"
-        >
-      </div>
-
-      <mat-autocomplete #auto="matAutocomplete" class="pac-toolbar-search__autocomplete"
-        (opened)="assetsInit=true"
-      >
-        @if (assetsInit) {
-          <pac-assets [search]="assetsSearch" />
-        }
-        <mat-option class="h-0" style="height: 0; min-height: 0;"></mat-option>
-      </mat-autocomplete>
-
-      @if(copilotEnabled$()) {
-        <button type="button" class="pac-copilot-trigger font-notoColorEmoji shrink-0 flex justify-center items-center w-10 h-10 rounded-lg
-          text-text-tertiary hover:text-text-secondary hover:bg-white hover:shadow-lg active:shadow-sm"
-          [class.active]="copilotDrawer.opened()"
-          (click)="copilotDrawer.toggle()"
-        >
-          <div class="text-lg">🤖</div>
-        </button>
-      }
-      
       @if (isAuthenticated$ | async; as user) {
         <pac-header-user [user]="user" />
       }
-    </mat-toolbar>
+    </header> -->
 
-    <ngm-drawer-container class="relative flex-1 z-10" [mode]="isMobile() ? 'over' : 'side'"
-      [(opened)]="copilotDrawerOpened"
+    <div
+      class="min-h-full h-full flex-1 relative flex flex-col"
+      [@.disabled]="disableContentRouteAnimations()"
+      [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
     >
-      <ngm-drawer-content class="flex-1 relative flex" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
-        @if(copilotEnabled$()) {
-          <ngm-drawer-trigger class="absolute -right-2 top-1/2 -translate-y-1/2 z-40"
-            [(opened)]="copilotDrawerOpened" side="right"
-            [matTooltip]="'PAC.Copilot.AICopilot' | translate: {Default: 'AI Copilot'}"
-            matTooltipPosition="before"
-          />
-        }
+      <div class="min-h-0 flex-1 relative flex">
         <router-outlet #o="outlet"></router-outlet>
-      </ngm-drawer-content>
-
-      <ngm-drawer #copilotDrawer class="relative z-50 w-96 h-full max-w-full max-h-full border-l border-solid border-transparent border-l-neutral-100 dark:border-l-neutral-800"
-        ngmResizer [resizerWidth]="380"
-        [(opened)]="copilotDrawerOpened"
-      >
-        @if(copilotEnabled$()) {
-          <ngm-copilot-chat #copilotChat class="pac-cdk-drop__list pac-cdk-drop__area w-full h-full"
-            [aiAvatarTemplate]="aiAvatar"
-            [user]="user$()"
-            [copilotEngine]="copilotEngine"
-            [welcomeTitle]="'PAC.Copilot.WelcomeTitle' | translate: {Default: 'Xpert Copilot'}"
-            [welcomeSubTitle]="'PAC.Copilot.WelcomeSubTitle' | translate: {Default: 'Your digital business expert copilot'}"
-            [(opened)]="copilotDrawerOpened"
-            cdkDropList
-            (cdkDropListDropped)="copilotChat.dropCopilot($event)"
-            (enableCopilot)="toEnableCopilot()"
-          ></ngm-copilot-chat>
-
-          <ng-template #aiAvatar let-avatar="avatar" let-className="className">
-            <emoji-avatar [avatar]="avatar" class="rounded-xl overflow-hidden shadow-sm border-0 border-solid border-transparent"
-              [ngClass]="className"/>
-          </ng-template>
-        }
-        
-        <div ngmResizerBar resizerBarPosition="left"
-          cdkDrag
-          cdkDragLockAxis="x"
-        ></div>
-      </ngm-drawer>
-    </ngm-drawer-container>
-
-  </mat-sidenav-content>
-</mat-sidenav-container>
-
-@if (loading()) {
-  <mat-progress-bar class="pac-router__progress-bar absolute top-0 left-0 w-full z-10"
-    color="accent" mode="indeterminate" >
-  </mat-progress-bar>
-}
-<!-- 
-<mat-menu #creatMenu="matMenu" class="ngm-density__compact mat-color-accent"
-  xPosition="before">
-  <button mat-menu-item (click)="createQuery()">
-    <mat-icon fontSet="material-icons-outlined">reviews</mat-icon>
-    {{ 'PAC.KEY_WORDS.Query' | translate: {Default: 'Query'} }}
-  </button>
-  <button mat-menu-item (click)="createStory()">
-    <mat-icon fontSet="material-icons-outlined">auto_stories</mat-icon>
-    {{ 'PAC.KEY_WORDS.Story' | translate: {Default: 'Story'} }}
-  </button>
-  <button mat-menu-item (click)="createIndicator()">
-    <mat-icon fontSet="material-icons-outlined">score</mat-icon>
-    {{ 'PAC.KEY_WORDS.Indicator' | translate: {Default: 'Indicator'} }}
-  </button>
-  <button mat-menu-item (click)="createModel()">
-    <mat-icon fontSet="material-icons-outlined">dataset</mat-icon>
-    {{ 'PAC.KEY_WORDS.Model' | translate: {Default: 'Model'} }}
-  </button>
-</mat-menu> -->
+      </div>
+    </div>
+  </z-content>
+</z-layout>

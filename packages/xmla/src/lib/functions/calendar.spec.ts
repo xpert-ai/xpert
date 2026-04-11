@@ -1,4 +1,4 @@
-import { AggregationRole, CalculationType, getEntityHierarchy } from '@metad/ocap-core'
+import { AggregationRole, CalculationType, getEntityHierarchy } from '@xpert-ai/ocap-core'
 import { ENTITY_TYPE_SALESORDER } from '../../test/mock-data'
 import { YOY } from './calendar'
 

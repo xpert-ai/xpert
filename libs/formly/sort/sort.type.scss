@@ -1,8 +1,9 @@
+@reference "../../../tailwind-workspace-reference.css";
 :host {
   display: block;
   width: 100%;
   overflow: hidden;
 }
-.mat-mdc-input-element {
+[z-input] {
   @apply outline-none text-right max-w-[50%];
 }

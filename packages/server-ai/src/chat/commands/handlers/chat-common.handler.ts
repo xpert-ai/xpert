@@ -53,9 +53,9 @@ import {
     TXpertAgentConfig,
     XpertAgentExecutionStatusEnum,
     stringifyMessageContent
-} from '@metad/contracts'
-import { getErrorMessage, pick } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage, pick } from '@xpert-ai/server-common'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'

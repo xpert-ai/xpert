@@ -1,11 +1,15 @@
-<div *ngIf="cell" class="contextmenu" [ngStyle]="{'left.px': x, 'top.px': y}">
+@if (cell) {
+  <div class="contextmenu" [ngStyle]="{'left.px': x, 'top.px': y}">
     <span class=item (click)="copySelectedCellData($event)">
-        <igx-icon class="icon" fontSet="material">content_copy </igx-icon>Copy Cell Data
+      <z-icon class="icon mr-1" zSize="sm" zType="content_copy"></z-icon>Copy Cell Data
     </span>
     <span class=item (click)="copyRowData($event)">
-        <igx-icon class="icon" fontSet="material">content_copy </igx-icon>Copy Row Data
+      <z-icon class="icon mr-1" zSize="sm" zType="content_copy"></z-icon>Copy Row Data
     </span>
-    <span *ngIf="hasMultiCellSelection()" class=item (click)="copySelectedCells($event)">
-        <igx-icon class="icon" fontSet="material">content_copy </igx-icon>Copy Cells Data
-    </span>
-</div>
+    @if (hasMultiCellSelection()) {
+      <span class=item (click)="copySelectedCells($event)">
+        <z-icon class="icon mr-1" zSize="sm" zType="content_copy"></z-icon>Copy Cells Data
+      </span>
+    }
+  </div>
+}

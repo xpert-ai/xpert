@@ -1,7 +1,13 @@
 <div fNodeInput [fInputId]="node().key" fInputConnectableSide="top" class="top absolute"></div>
 
 <div class="block relative w-full">
-  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true" class="right group">
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/edge'"
+    fOutputConnectableSide="right"
+    [fOutputMultiple]="true"
+    class="right group"
+  >
     <div class="inner-dot cursor-crosshair">
       <i class="ri-add-line w-2 h-2 flex justify-center items-center text-white"></i>
     </div>
@@ -10,42 +16,46 @@
 
 <div class="space-y-1">
   <div class="font-mono text-sm truncate flex justify-between items-center">
-    <span class="font-semibold">{{toolName()}}</span>
+    <span class="font-semibold">{{ toolName() }}</span>
 
     @if (isEnd()) {
-      <i class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
-        [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'Terminal tool, the run of chat ends when tool completed'}"
-        matTooltipPosition="above"></i>
+      <i
+        class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
+        [zTooltip]="
+          'PAC.Xpert.EndTool' | translate: { Default: 'Terminal tool, the run of chat ends when tool completed' }
+        "
+        zPosition="top"
+      ></i>
     }
   </div>
 
   <div class="flex flex-wrap items-center gap-1">
     @for (execution of executions(); track execution) {
-        @switch (execution.status) {
-          @case ('running') {
-            <ngm-spin class="shrink-0 scale-90 origin-center" small />
-          }
-          @case ('fail') {
-            <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-              [matTooltip]="execution.error"
-              matTooltipPosition="above"
-            ></div>
-          }
-          @case ('success') {
-            <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-              [matTooltip]="execution.message"
-              matTooltipPosition="above"
-            >
-            </div>
-          }
+      @switch (execution.status) {
+        @case ('running') {
+          <ngm-spin class="shrink-0 scale-90 origin-center" small />
+        }
+        @case ('fail') {
+          <div
+            class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+            [zTooltip]="execution.error"
+            zPosition="top"
+          ></div>
+        }
+        @case ('success') {
+          <div
+            class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+            [zTooltip]="execution.message"
+            zPosition="top"
+          ></div>
         }
       }
+    }
   </div>
 
   <div class="text-sm font-mono text-left line-clamp-3">
-    {{toolDescription()}}
+    {{ toolDescription() }}
   </div>
-
 </div>
 
 <!-- @if (errorHandling()?.type) {

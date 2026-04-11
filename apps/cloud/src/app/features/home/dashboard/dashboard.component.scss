@@ -1,9 +1,10 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply flex flex-col flex-1 max-w-full px-1 md:px-4;
 }
 
 .pac-home__navigation {
-  .mat-tab-link {
+  .z-tab-link {
     height: 38px;
     min-width: 100px;
   }

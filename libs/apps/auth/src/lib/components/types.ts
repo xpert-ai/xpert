@@ -1,7 +1,6 @@
 export interface PacMenuItem {
 	title: string
 	icon?: string
-	matIcon?: string
 	link?: string
 	pathMatch?: string
 	home?: boolean

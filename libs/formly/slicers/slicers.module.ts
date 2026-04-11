@@ -2,11 +2,11 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
+
 import { FormlyModule } from '@ngx-formly/core'
 import { PACFormlySlicersComponent } from './slicers.type'
-import { NgmSelectionModule } from '@metad/ocap-angular/selection'
+import { NgmSelectionModule } from '@xpert-ai/ocap-angular/selection'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [PACFormlySlicersComponent],
@@ -14,8 +14,8 @@ import { NgmSelectionModule } from '@metad/ocap-angular/selection'
     CommonModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatIconModule,
-    MatButtonModule,
+    ZardIconComponent,
+    ZardButtonComponent,
     NgmSelectionModule,
     FormlyModule.forChild({
       types: [
@@ -28,4 +28,4 @@ import { NgmSelectionModule } from '@metad/ocap-angular/selection'
   ],
   exports: [PACFormlySlicersComponent]
 })
-export class PACFormlyMatSlicersModule {}
+export class PACFormlySlicersModule {}

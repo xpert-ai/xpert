@@ -2,12 +2,11 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
+
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@metad/core'
-import { injectConfirmDelete, injectConfirmUnique } from '@metad/ocap-angular/common'
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+import { DynamicGridDirective } from '@xpert-ai/core'
+import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import {
@@ -24,6 +23,7 @@ import {
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { UserProfileInlineComponent } from '../../../@shared/user'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -34,8 +34,8 @@ import { UserProfileInlineComponent } from '../../../@shared/user'
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    MatButtonModule,
-    MatIconModule,
+    ZardButtonComponent,
+    ZardIconComponent,
     AppearanceDirective,
     DynamicGridDirective,
     EmojiAvatarComponent,

@@ -2,7 +2,7 @@
 // import { pick } from 'lodash'
 // import { BehaviorSubject, Observable, Subject } from 'rxjs'
 // import { webSocket, WebSocketSubject } from 'rxjs/webSocket'
-// import { AgentEvent } from '@metad/contracts'
+// import { AgentEvent } from '@xpert-ai/contracts'
 // import { DataSourceOptions } from '../data-source'
 // import { uuid, UUID } from '../types'
 // import { Agent, AgentType } from './types'

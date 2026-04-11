@@ -1,16 +1,16 @@
 import { Component, TemplateRef, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { saveAsYaml, uploadYamlFile } from '@metad/core'
+import { saveAsYaml, uploadYamlFile } from '@xpert-ai/core'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   NgmCommonModule,
-  NgmConfirmDeleteComponent,
+  NgmConfirmDeleteService,
   NgmConfirmOptionsComponent,
   TableColumn
-} from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -25,9 +25,10 @@ import {
   ToastrService,
   getErrorMessage
 } from '../../../../@core'
-import { FORMLY_W_1_2 } from '@metad/story/designer'
+import { FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 
 /**
@@ -38,7 +39,7 @@ import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
   selector: 'pac-settings-copilot-examples',
   templateUrl: './examples.component.html',
   styleUrls: ['./examples.component.scss'],
-  imports: [RouterModule, TranslateModule, MaterialModule, FormsModule, ReactiveFormsModule, NgmCommonModule]
+  imports: [RouterModule, TranslateModule, SharedUiModule, FormsModule, ReactiveFormsModule, NgmCommonModule, ZardLoaderComponent]
 })
 export class CopilotExamplesComponent extends TranslationBaseComponent {
   DisplayBehaviour = DisplayBehaviour
@@ -48,7 +49,8 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
   readonly _toastrService = inject(ToastrService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
-  readonly dialog = inject(MatDialog)
+  readonly dialog = inject(ZardDialogService)
+  readonly confirmDelete = inject(NgmConfirmDeleteService)
   readonly appService = inject(AppService)
 
   readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
@@ -172,8 +174,7 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
         if (this.items()) {
           this.loading.set(false)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -190,14 +191,11 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
   }
 
   deleteExample(id: string, input: string) {
-    this.dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: id,
-          information: `${this.getTranslation('PAC.Copilot.Examples.Input', {Default: 'Input'})}: ${input}`
-        }
+    this.confirmDelete
+      .confirm({
+        value: id,
+        information: `${this.getTranslation('PAC.Copilot.Examples.Input', {Default: 'Input'})}: ${input}`
       })
-      .afterClosed()
       .pipe(
         switchMap((confirm) => {
           if (confirm) {

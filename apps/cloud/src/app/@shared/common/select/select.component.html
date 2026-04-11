@@ -1,7 +1,7 @@
 <div tabindex="0"
   #menuTrigger
   #trigger="cdkMenuTriggerFor"
-  class="select-trigger group grow flex items-center rounded-lg cursor-pointer hover:bg-gray-200"
+  class="select-trigger group grow flex items-center rounded-lg cursor-pointer hover:bg-button-ghost-hover"
   [cdkMenuTriggerFor]="_disabled() ? null : menu"
   [cdkMenuTriggerData]="{ trigger: trigger }"
 >
@@ -34,7 +34,7 @@
 <ng-template #menu let-trigger="trigger">
   <div
     cdkMenu
-    class="relative bg-white rounded-lg border-[0.5px] border-gray-200 shadow-md p-2"
+    class="relative bg-components-card-bg rounded-lg border-[0.5px] border-divider-deep shadow-md p-2"
     [style.width.px]="menuTrigger.offsetWidth"
   >
     @if (searchable()) {
@@ -55,8 +55,8 @@
       [cdkListboxValue]="values()"
       (cdkListboxValueChange)="selectValues($event)">
       @for (option of filteredOptions(); track option.key) {
-        <li #opElem="cdkOption" class="relative pl-2 pr-6 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer"
-          [class.bg-gray-100]="opElem.isSelected()"
+        <li #opElem="cdkOption" class="relative pl-2 pr-6 py-1.5 rounded-lg hover:bg-hover-bg cursor-pointer"
+          [class.bg-components-input-bg-normal]="opElem.isSelected()"
           [cdkOption]="option.value"
           (click)="selectOption(trigger, option.value)"
         >
@@ -64,10 +64,10 @@
             <ng-container *ngTemplateOutlet="optionTemplate(); context: { $implicit: option, search: search() }"></ng-container>
           } @else {
             <div class="relative">
-              <div class="text-gray-700 text-sm leading-5"
+              <div class="text-text-secondary text-sm leading-5"
                 [ngmHighlight]="search()" [content]="option.label | i18n"
               >{{ option.label | i18n }}</div>
-              <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n"
+              <div class="text-text-tertiary text-xs leading-3 line-clamp-3" [title]="option.description | i18n"
                 [ngmHighlight]="search()" [content]="option.description | i18n"
               >{{ option.description | i18n }}</div>
             </div>

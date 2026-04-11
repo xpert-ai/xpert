@@ -1,5 +1,4 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CdkTreeModule, FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectorRef,
@@ -15,16 +14,13 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatDialog, MatDialogRef } from '@angular/material/dialog'
-import { MatTreeFlatDataSource } from '@angular/material/tree'
 import { Router, RouterModule } from '@angular/router'
-import { FavoritesService, StoriesService, convertStory } from '@metad/cloud/state'
-import { NgmCopilotContextService, NgmCopilotContextToken } from '@metad/copilot-angular'
-import { NgmCommonModule, NgmConfirmDeleteComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { DisplayBehaviour, FlatTreeNode, TreeNodeInterface, hierarchize } from '@metad/ocap-core'
-import { Story } from '@metad/story/core'
+import { FavoritesService, StoriesService, convertStory } from '@xpert-ai/cloud/state'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { DisplayBehaviour, FlatTreeNode, TreeNodeInterface, hierarchize } from '@xpert-ai/ocap-core'
+import { Story } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniq } from 'lodash-es'
 import {
@@ -56,15 +52,23 @@ import {
 } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { AppService } from '../../../app.service'
-import { injectIndicatorArchitectCommand, injectIndicatorCommand, provideCopilotCubes } from '../copilot/'
 import { ReleaseStoryDialog } from '../release-story.component'
 import { SelectModelDialog } from '../select-model.component'
 import { collectionId, treeDataSourceFactory } from '../types'
 import { ProjectService } from '../project.service'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
+import { XpTreeSelectComponent } from '../../../@shared/form-fields'
+import {
+  ZardDialogRef,
+  ZardDialogService,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeImports
+} from '@xpert-ai/headless-ui'
+import { ProjectSelectorComponent } from '../../../@theme/header'
 
 @Component({
   standalone: true,
@@ -74,15 +78,16 @@ import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
     ReactiveFormsModule,
     DragDropModule,
     CdkMenuModule,
-    CdkTreeModule,
     RouterModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     DensityDirective,
     ButtonGroupDirective,
     NgmCommonModule,
     AppearanceDirective,
-    NgmTreeSelectComponent
+    XpTreeSelectComponent,
+    ProjectSelectorComponent,
+    ...ZardTreeImports
   ],
   selector: 'pac-project',
   templateUrl: 'project.component.html',
@@ -90,10 +95,6 @@ import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
   animations: [routeAnimations],
   providers: [
     ProjectService,
-    {
-      provide: NgmCopilotContextToken,
-      useClass: NgmCopilotContextService
-    }
   ]
 })
 export class ProjectComponent extends TranslationBaseComponent {
@@ -108,7 +109,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   readonly appService = inject(AppService)
   readonly destroyRef = inject(DestroyRef)
   readonly fetchModelDetails = injectFetchModelDetails()
-  readonly copilotContext = provideCopilotCubes()
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
 
   @ViewChild('collectionCreation') collectionCreation: TemplateRef<ElementRef>
   @ViewChild('moveTo') moveTo: TemplateRef<ElementRef>
@@ -119,10 +120,10 @@ export class ProjectComponent extends TranslationBaseComponent {
     parentId: new FormControl(null, [])
   })
 
-  private dialogRef: MatDialogRef<ElementRef<any>, any>
+  private dialogRef: ZardDialogRef<ElementRef<any>, any>
 
-  dataSource: MatTreeFlatDataSource<TreeNodeInterface<any>, FlatTreeNode<any>>
-  treeControl: FlatTreeControl<FlatTreeNode<any>>
+  dataSource: ZardTreeFlatDataSource<TreeNodeInterface<any>, FlatTreeNode<any>>
+  treeControl: ZardFlatTreeControl<FlatTreeNode<any>>
 
   /**
    * @deprecated use projectService
@@ -264,20 +265,13 @@ export class ProjectComponent extends TranslationBaseComponent {
       this.projectService.setProject(project)
       // this._cdr.detectChanges()
     })
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  private indicatorCommand = injectIndicatorCommand()
-  private indicatorArchitectCommand = injectIndicatorArchitectCommand()
 
   constructor(
     private store: Store,
     private storiesService: StoriesService,
     private favoritesService: FavoritesService,
     private projectAPI: ProjectAPIService,
-    private _dialog: MatDialog,
+    private _dialog: ZardDialogService,
     private _toastrService: ToastrService,
     private _cdr: ChangeDetectorRef,
     private _router: Router
@@ -320,7 +314,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   }
 
   async deleteCollection(id: string) {
-    const confirm = await firstValueFrom(this._dialog.open(NgmConfirmDeleteComponent, { data: {} }).afterClosed())
+    const confirm = await firstValueFrom(this.#confirmDelete.confirm())
     if (confirm) {
       await firstValueFrom(this.collectionService.delete(id))
       this.refresh$.next()
@@ -332,6 +326,8 @@ export class ProjectComponent extends TranslationBaseComponent {
     const story = await firstValueFrom(
       this._dialog
         .open(StoryCreationComponent, {
+          width: '52rem',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             story: {
               collectionId: _collectionId
@@ -383,6 +379,8 @@ export class ProjectComponent extends TranslationBaseComponent {
     const _story = await firstValueFrom(
       this._dialog
         .open(StoryCreationComponent, {
+          width: '52rem',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             story: story,
             collections,
@@ -397,7 +395,7 @@ export class ProjectComponent extends TranslationBaseComponent {
         this.storiesService.copy(story.id, _story).pipe(
           tap((newStory) => {
             this.refresh$.next()
-            this._router.navigate(['/project', newStory.id])
+            this._router.navigate(['/data', 'project', newStory.id])
             this._toastrService.success('PAC.Project.CopyStory', { Default: 'Copy story' })
           })
         )
@@ -454,9 +452,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   }
 
   async deleteStory(story: Story) {
-    const confirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: story.name } }).afterClosed()
-    )
+    const confirm = await firstValueFrom(this.#confirmDelete.confirm({ value: story.name }))
     if (!confirm) {
       return
     }
@@ -466,7 +462,7 @@ export class ProjectComponent extends TranslationBaseComponent {
       this._toastrService.success('PAC.NOTES.STORY.STORY_DELETED', { name: story.name })
       this.refresh$.next()
 
-      this._router.navigate(['/project'])
+      this._router.navigate(['/data', 'project'])
     } catch (err) {
       this._toastrService.error('PAC.NOTES.STORY.STORY_DELETED', '', { name: story.name })
     }
@@ -503,9 +499,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   async removeModel(model: ISemanticModel) {
     const project = this.project
     if (project?.id) {
-      const confirm = await firstValueFrom(
-        this._dialog.open(NgmConfirmDeleteComponent, { data: { value: model.name } }).afterClosed()
-      )
+      const confirm = await firstValueFrom(this.#confirmDelete.confirm({ value: model.name }))
       if (confirm) {
         await firstValueFrom(this.projectAPI.deleteModel(project.id, model.id))
         this.project.models = this.project.models.filter((item) => item.id !== model.id)

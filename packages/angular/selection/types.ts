@@ -1,6 +1,5 @@
 import { InjectionToken } from '@angular/core'
 
-
 /** Default `ngm-selection` options that can be overridden. */
 export interface NxSelectionDefaultOptions {
   /** Whether the first option should be highlighted when an autocomplete panel is opened. */

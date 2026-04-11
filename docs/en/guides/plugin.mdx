@@ -14,6 +14,79 @@ For deployment-time plugin injection, set the `PLUGINS` environment variable.
 
 - use a comma-separated list for multiple plugins
 
+## Local development from a separate plugin repo
+
+If plugin code lives outside the Xpert monorepo, install it through the existing `POST /api/plugin` endpoint. This avoids npm publishing and keeps the plugin in its own repository.
+
+Before starting the API, explicitly allow the workspace roots that may be mounted:
+
+```bash
+export PLUGIN_WORKSPACE_ROOTS="/abs/path/to/xpert:/abs/path/to/xpert-plugins"
+```
+
+Recommended workflow:
+
+1. run `pnpm install` in the external plugin repository
+2. validate the plugin lifecycle with `plugin-dev-harness`
+3. build the plugin, or start its build watch task
+4. start the Xpert API
+5. call the install endpoint for the local plugin
+6. rebuild and repeat the install request whenever code changes need to be reloaded
+
+Example local install request:
+
+```bash
+curl -X POST http://localhost:3333/api/plugin \
+  -H 'Content-Type: application/json' \
+  -H 'Organization-Id: <your-org-id>' \
+  --data '{
+    "pluginName": "@xpert-ai/plugin-lark",
+    "source": "code",
+    "sourceConfig": {
+      "workspacePath": "/abs/path/to/xpert-plugins/xpertai/integrations/lark"
+    }
+  }'
+```
+
+You can also send the same request with the built-in helper script:
+
+```bash
+pnpm plugin:install:local \
+  --workspace-path /abs/path/to/xpert-plugins/xpertai/integrations/lark \
+  --org-id <your-org-id> \
+  --token <your-token>
+```
+
+If you want "rebuild plugin + reinstall" in one step, use:
+
+```bash
+pnpm plugin:reinstall:local \
+  --workspace-path /abs/path/to/xpert-plugins/xpertai/integrations/lark \
+  --org-id <your-org-id> \
+  --token <your-token>
+```
+
+Field notes:
+
+- `source: "code"` installs from a local source workspace
+- `sourceConfig` stores source-specific install metadata
+- for local code installs, `sourceConfig.workspacePath` must be an absolute path inside `PLUGIN_WORKSPACE_ROOTS`
+- local code installs are always copied into the host plugin directory before loading
+
+Notes:
+
+- Xpert does not support `symlink` mode for local code installs
+- the loader resolves symlinked packages to the external workspace realpath, which keeps the external dependency tree active and can duplicate host runtime singletons such as `@nestjs/core`
+- rebuild the plugin and send a fresh install request whenever code changes need to be reloaded
+- the host continues to validate `package.json.name`, SDK compatibility, and the presence of either `dist/` or `src/index.ts`
+- `plugin-dev-harness` validates plugin lifecycle in isolation; it does not replace end-to-end installation inside Xpert
+
+## SDK versioning
+
+- declare `@xpert-ai/plugin-sdk` in `peerDependencies`, not `dependencies`
+- use an explicit single-major range such as `^3.8.0`
+- the host validates SDK compatibility before activating a plugin and rejects packages that bundle their own SDK copy
+
 ## Plugin configuration support
 
 If a plugin needs user-managed configuration:

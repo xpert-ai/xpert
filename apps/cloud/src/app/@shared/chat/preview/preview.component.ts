@@ -16,7 +16,6 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   appendMessageContent,
@@ -55,14 +54,15 @@ import { XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, Observable, of, timer, switchMap, tap, Subscription } from 'rxjs'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
-import { injectConfirmDelete } from '@metad/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { ChatAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatHumanMessageComponent } from './human-message/message.component'
 import { XpertAgentOperationComponent } from '../../agent'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { filterLatestMessages } from '../filter-latest-messages'
 import { buildResumeDecision, extractInterruptPatch } from '../interrupt-request'
 import { isThreadContextUsageEvent } from '../context/thread-context-usage'
@@ -79,7 +79,7 @@ function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | n
     CdkMenuModule,
     TranslateModule,
     TextFieldModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MarkdownModule,
     EmojiAvatarComponent,
     XpertParametersCardComponent,
@@ -271,13 +271,12 @@ export class ChatConversationPreviewComponent {
             }, {})
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
-    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
-    effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert), { allowSignalWrites: true })
-    effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
+    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()))
+    effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert))
+    effect(() => this.input.set(this.#audioRecorder.text()))
 
     this.#destroyRef.onDestroy(() => {
       this.#destroyed = true
@@ -296,10 +295,11 @@ export class ChatConversationPreviewComponent {
     })
   }
 
-  retryMessage(messageId?: string) {
+  retryMessage(messageId?: string, checkpointId?: string) {
     this.chat({
       retry: true,
-      messageId
+      messageId,
+      checkpointId
     })
   }
 
@@ -314,6 +314,7 @@ export class ChatConversationPreviewComponent {
      */
     reject?: boolean
     retry?: boolean
+    checkpointId?: string
   }) {
     if (this.loading()) return
 
@@ -371,6 +372,7 @@ export class ChatConversationPreviewComponent {
         action: 'retry',
         conversationId: this.conversation()?.id,
         environmentId: this.environmentId(),
+        ...(options.checkpointId ? { checkpointId: options.checkpointId } : {}),
         source: {
           aiMessageId: lastAiMessageId
         }

@@ -15,14 +15,21 @@ export interface IRoleCreateInput extends IBasePerTenantEntityModel {
 export enum RolesEnum {
 	SUPER_ADMIN = 'SUPER_ADMIN',
 	ADMIN = 'ADMIN',
-	DATA_ENTRY = 'DATA_ENTRY',
-	EMPLOYEE = 'EMPLOYEE',
-	CANDIDATE = 'CANDIDATE',
-	MANAGER = 'MANAGER',
+	AI_BUILDER = 'AI_BUILDER',
+	ANALYTICS_BUILDER = 'ANALYTICS_BUILDER',
 	VIEWER = 'VIEWER',
-	// 有所免费用户
+	// Trial account
 	TRIAL = 'TRIAL'
 }
+
+export const DEFAULT_SYSTEM_ROLES: RolesEnum[] = [
+	RolesEnum.SUPER_ADMIN,
+	RolesEnum.ADMIN,
+	RolesEnum.TRIAL,
+	RolesEnum.AI_BUILDER,
+	RolesEnum.ANALYTICS_BUILDER,
+	RolesEnum.VIEWER
+]
 
 export interface IRoleMigrateInput extends IBasePerTenantEntityModel {
 	name: string;

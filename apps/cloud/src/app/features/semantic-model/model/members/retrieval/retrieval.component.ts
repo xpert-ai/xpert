@@ -3,17 +3,16 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectToastr, SemanticModelMemberService } from '@cloud/app/@core'
 import { getErrorMessage, ISemanticModelEntity } from '@cloud/app/@core/types'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { Cube, EntityType, getEntityDimensions, Property } from '@metad/ocap-core'
+import { Cube, EntityType, getEntityDimensions, Property } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Document } from '@langchain/core/documents'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, DragDropModule, MatTooltipModule, NgmSelectComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, DragDropModule, ...ZardTooltipImports, NgmSelectComponent],
   selector: 'pac-model-members-retrieval',
   templateUrl: 'retrieval.component.html',
   styleUrl: 'retrieval.component.scss'
@@ -77,14 +76,19 @@ export class ModelMembersRetrievalTestingComponent {
   readonly hierarchy = model<string>(null)
   readonly level = model<string>(null)
   readonly queryText = model<string>('')
-  readonly members = signal<[Document<{
-    dimension: string
-    hierarchy: string
-    id: string
-    key: string
-    level: string
-    member: string
-  }>, number][]>([])
+  readonly members = signal<
+    [
+      Document<{
+        dimension: string
+        hierarchy: string
+        id: string
+        key: string
+        level: string
+        member: string
+      }>,
+      number
+    ][]
+  >([])
 
   readonly retrieving = signal(false)
 
@@ -113,7 +117,7 @@ export class ModelMembersRetrievalTestingComponent {
         },
         error: (error) => {
           this.retrieving.set(false)
-          this.#toastr.error(getErrorMessage(error),)
+          this.#toastr.error(getErrorMessage(error))
         }
       })
   }

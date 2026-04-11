@@ -1,3 +1,4 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply w-full h-full relative flex flex-col overflow-auto;
 }

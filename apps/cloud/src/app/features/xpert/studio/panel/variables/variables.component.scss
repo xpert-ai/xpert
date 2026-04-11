@@ -1,5 +1,7 @@
+@reference "../../../../../../styles/tailwind-reference.css";
 :host {
-  @apply relative flex flex-col w-[420px] bg-gray-50 rounded-l-2xl h-full border border-components-panel-border shadow-sm;
+  @apply relative flex flex-col w-[420px] rounded-l-2xl h-full border border-components-panel-border shadow-sm;
+  background-color: var(--color-background-default-subtle);
 }
 
 .variable-list-item.danger {

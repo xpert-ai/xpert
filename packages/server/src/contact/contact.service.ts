@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantAwareCrudService } from './../core/crud';
 import { Contact } from './contact.entity';
-import { IContactCreateInput } from '@metad/contracts';
+import { IContactCreateInput } from '@xpert-ai/contracts';
 
 @Injectable()
 export class ContactService extends TenantAwareCrudService<Contact> {

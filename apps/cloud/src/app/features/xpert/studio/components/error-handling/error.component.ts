@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -10,6 +9,7 @@ import {
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-node-error-handling',
@@ -17,7 +17,7 @@ import {
   styleUrls: ['./error.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent]
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent]
 })
 export class XpertNodeErrorHandlingComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

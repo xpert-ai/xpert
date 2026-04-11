@@ -1,0 +1,45 @@
+<section class="xp-ui-shell shrink-0 overflow-hidden p-4">
+  <header
+    class="flex items-center gap-2 rounded-2xl border-b border-divider-regular bg-background-default-subtle px-4 py-3 text-text-primary"
+  >
+    <span class="rounded-full border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-success">
+      {{ 'Pro.RepositoryReady' | translate: {Default: 'Ready'} }}
+    </span>
+    <span class="font-mono text-text-secondary">{{repository().name}}</span>
+    <span class="rounded-xl border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-primary">{{repository().lastSyncAt | date:'medium'}}</span>
+    <span class="flex-1"></span>
+    <button
+      type="button"
+      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-destructive"
+      (click)="close()"
+    >
+      <i class="ri-close-line"></i>
+    </button>
+  </header>
+
+  <div class="space-y-4 px-5">
+    <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+      <z-segmented [(ngModel)]="mode">
+        <z-segmented-item value="incremental" [label]="'Pro.IndexModeIncremental' | translate: {Default: 'Incremental'}" />
+        <z-segmented-item value="full" [label]="'Pro.IndexModeFull' | translate: {Default: 'Full'}" />
+      </z-segmented>
+      <button
+        type="button"
+        class="ml-auto inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-4 py-1 text-sm font-semibold text-text-primary transition hover:bg-hover-bg"
+        (click)="reloadIndexes()"
+      >
+        @if (loading()) {
+          <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-divider-regular border-t-text-primary"></span>
+        }
+        {{ 'Pro.RefreshIndex' | translate: {Default: 'Refresh index'} }}
+      </button>
+    </div>
+  </div>
+</section>
+
+<xp-skill-indexes
+  class="flex-1 overflow-auto px-4 pb-4"
+  [indexes]="indexes()"
+  [selectedRepository]="repository()"
+  [showInstallAction]="false"
+/>

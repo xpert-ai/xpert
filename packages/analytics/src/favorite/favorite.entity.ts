@@ -5,7 +5,7 @@ import {
     ISemanticModel,
     IStory,
     IIndicator
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { IsString, IsEnum, IsOptional } from 'class-validator'
 import {
     Column,
@@ -25,7 +25,7 @@ export class Favorite extends ProjectBaseEntity implements IFavorite {
     @ApiProperty({ type: () => String, enum: BusinessType })
 	@IsEnum(BusinessType)
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type?: BusinessType
 
     /**

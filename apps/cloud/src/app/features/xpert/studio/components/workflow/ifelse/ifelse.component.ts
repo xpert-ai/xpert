@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNIfElse,
@@ -12,6 +11,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowCaseComponent } from 'apps/cloud/src/app/@shared/workflow'
 import { XpertStudioApiService } from '../../../domain'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-node-workflow-ifelse',
@@ -19,7 +19,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./ifelse.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent, XpertWorkflowCaseComponent],
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent, XpertWorkflowCaseComponent],
   host: {
     tabindex: '-1'
   }

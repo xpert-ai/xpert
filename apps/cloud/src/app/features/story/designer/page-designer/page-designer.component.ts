@@ -1,28 +1,25 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE } from '@metad/story/designer'
+import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE } from '@xpert-ai/story/designer'
 import { debounceTime, filter, isObservable, of } from 'rxjs'
 import { DesignerWidgetComponent } from '../widget/widget.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     InlineSearchComponent,
-
     AppearanceDirective,
-
     DesignerWidgetComponent
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-page-designer',
   templateUrl: './page-designer.component.html',

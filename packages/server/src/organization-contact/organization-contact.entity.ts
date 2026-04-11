@@ -23,7 +23,7 @@ import {
 	ITag,
 	IContact,
 	OrganizationContactBudgetTypeEnum,
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import {
 	Contact,
 	Tag,

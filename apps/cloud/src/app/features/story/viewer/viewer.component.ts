@@ -1,6 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, DOCUMENT } from '@angular/common'
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,17 +20,15 @@ import {
   viewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
-import { AbilityModule } from '@casl/angular'
-import { FavoritesService, StoriesService } from '@metad/cloud/state'
-import { NxCoreService } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { OcapCoreModule, effectAction } from '@metad/ocap-angular/core'
-import { AgentType } from '@metad/ocap-core'
-import { provideStory, StoryExplorerComponent } from '@metad/story'
-import { NxStoryService, Story } from '@metad/story/core'
-import { NxStoryComponent, NxStoryModule, StorySharesComponent } from '@metad/story/story'
+import { FavoritesService, StoriesService } from '@xpert-ai/cloud/state'
+import { NxCoreService } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { OcapCoreModule, effectAction } from '@xpert-ai/ocap-angular/core'
+import { AgentType } from '@xpert-ai/ocap-core'
+import { provideStory, StoryExplorerComponent } from '@xpert-ai/story'
+import { NxStoryService, Story } from '@xpert-ai/story/core'
+import { NxStoryComponent, NxStoryModule, StorySharesComponent } from '@xpert-ai/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, Observable, firstValueFrom, interval } from 'rxjs'
 import { map, startWith, switchMap, tap } from 'rxjs/operators'
@@ -47,17 +46,16 @@ import {
 import { effectStoryTheme, registerStoryThemes } from '../../../@theme'
 import { AppService } from '../../../app.service'
 import { StoryScales, downloadStory } from '../types'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-    MaterialModule,
+    SharedUiModule,
     DragDropModule,
     CdkMenuModule,
-    AbilityModule,
     TranslateModule,
     OcapCoreModule,
     NxStoryModule,
@@ -77,7 +75,7 @@ export class StoryViewerComponent extends TranslationBaseComponent implements On
   StoryStatusEnum = StoryStatusEnum
   StoryScales = StoryScales
 
-  private readonly _dialog: MatDialog = inject(MatDialog)
+  private readonly _dialog: ZardDialogService = inject(ZardDialogService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
   readonly storyComponent = viewChild('storyComponent', { read: NxStoryComponent })
@@ -168,7 +166,7 @@ export class StoryViewerComponent extends TranslationBaseComponent implements On
   ) {
     super()
 
-    effect(() => this.storyService.setAuthenticated(this.appService.isAuthenticated()), { allowSignalWrites: true })
+    effect(() => this.storyService.setAuthenticated(this.appService.isAuthenticated()))
   }
 
   ngOnInit() {
@@ -336,17 +334,17 @@ export class StoryViewerComponent extends TranslationBaseComponent implements On
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKeydown(event: KeyboardEvent) {
+  onEscapeKeydown(event: Event) {
     this.toggleFullscreen(false)
   }
 
   @HostListener('document:keydown.alt', ['$event'])
-  onSpaceKeydown(event: KeyboardEvent) {
+  onSpaceKeydown(event: Event) {
     this.storyService.patchState({ isPanMode: true })
   }
 
   @HostListener('document:keyup.alt', ['$event'])
-  onSpaceKeyUp(event: KeyboardEvent) {
+  onSpaceKeyUp(event: Event) {
     this.storyService.patchState({ isPanMode: false })
   }
 

@@ -1,14 +1,14 @@
 import { ChangeDetectorRef, computed, effect, inject, Injectable, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { IPoint, IRect } from '@foblex/2d'
-import { nonNullable, debounceUntilChanged } from '@metad/core'
+import { nonNullable, debounceUntilChanged } from '@xpert-ai/core'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { FCanvasChangeEvent } from '@foblex/flow'
-import { nonBlank } from '@metad/copilot'
+import { nonBlank } from '@xpert-ai/copilot'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { Router } from '@angular/router'
-import { attrModel, effectAction, linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, effectAction, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { calculateHash } from '@cloud/app/@shared/utils'
 import { EnvironmentService, KnowledgebaseService, ToastrService, XpertAPIService, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { isEqual, isNil, negate, omit, omitBy, pick } from 'lodash-es'
@@ -42,7 +42,7 @@ import {
   TXpertTeamDraft,
   TXpertTeamNode,
 } from '../../../../@core/types'
-import { CreateConnectionHandler, CreateConnectionRequest, RemoveConnectionHandler, RemoveConnectionRequest, ToConnectionViewModelHandler } from './connection'
+import { CreateConnectionHandler, CreateConnectionRequest, RemoveConnectionHandler, RemoveConnectionRequest } from './connection'
 import { LayoutHandler, LayoutRequest } from './layout'
 import {
   CreateNodeHandler,
@@ -53,19 +53,17 @@ import {
   RemoveNodeRequest,
   ReplaceNodeHandler,
   ReplaceNodeRequest,
-  ToNodeViewModelHandler,
   UpdateAgentHandler,
   UpdateAgentRequest,
   UpdateNodeHandler,
   UpdateNodeRequest
 } from './node'
-import { PACCopilotService } from '../../../services'
 import { EReloadReason, IStudioStore, TStateHistory } from './types'
 import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHandler, UpdateXpertHandler, UpdateXpertRequest } from './xpert'
 import { genAgentKey, genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 import { XpertService } from '../../xpert/xpert.service'
-
+import { buildEditableXpertDraft } from '../../draft/index'
 
 const SaveDraftDebounceTime = 1 // s
 
@@ -74,7 +72,6 @@ export class XpertStudioApiService {
   readonly xpertAPI = inject(XpertAPIService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly toolsetService = inject(XpertToolsetService)
-  readonly copilotService = inject(PACCopilotService)
   readonly environmentService = inject(EnvironmentService)
   readonly #toastr = inject(ToastrService)
   readonly getXpertTeam = injectGetXpertTeam()
@@ -123,7 +120,6 @@ export class XpertStudioApiService {
     return this.#reload.asObservable().pipe(filter((value) => value !== EReloadReason.MOVED))
   }
   readonly paramId$ = toObservable(this.xpertService.paramId)
-
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
   readonly savedEvent$ = new BehaviorSubject<boolean>(true)
@@ -293,34 +289,19 @@ export class XpertStudioApiService {
           this.environmentId.set(
             this.environments().find((_) => _.isDefault)?.id ?? this.environments()[0]?.id)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
   
   getInitialDraft() {
-    const xpert = this.team()
-    return {
-      team: {
-        ...omit(xpert, 'agents'),
-        id: xpert.id
-      },
-      ...(xpert.graph ?? {
-        nodes: new ToNodeViewModelHandler(xpert).handle().nodes,
-        connections: new ToConnectionViewModelHandler(xpert).handle()
-      }),
-    } as TXpertTeamDraft
+    return buildEditableXpertDraft(this.team())
   }
 
   public initRole(xpert: IXpert) {
     this.team.set(xpert)
 
     this.store.update(() => ({
-      draft: xpert.draft ? {
-        team: xpert.draft.team ?? omit(xpert, 'agents'),
-        nodes: xpert.draft.nodes ?? xpert.graph?.nodes ?? new ToNodeViewModelHandler(xpert).handle().nodes,
-        connections: xpert.draft.connections ?? xpert.graph?.connections ?? new ToConnectionViewModelHandler(xpert).handle()
-      } : this.getInitialDraft()
+      draft: buildEditableXpertDraft(xpert)
     }))
 
     this.#reload.next(EReloadReason.INIT)

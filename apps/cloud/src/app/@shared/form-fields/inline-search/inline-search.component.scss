@@ -1,14 +1,15 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   position: relative;
   display: flex;
 
   &.ngm-density__compact {
-    .mat-mdc-input-element {
+    [z-input] {
       @apply p-1 pl-8 text-base;
     }
   }
 }
 
-.mat-mdc-input-element {
+[z-input] {
   @apply block w-full p-2 pl-8 outline-none;
 }

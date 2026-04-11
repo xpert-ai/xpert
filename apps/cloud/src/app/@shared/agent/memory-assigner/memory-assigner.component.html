@@ -15,7 +15,7 @@
   />
 
   @if (inputType() === 'constant') {
-    <input class="grow rounded-lg text-sm bg-gray-100 px-2 py-1 focus:bg-white opacity-70 hover:opacity-100 focus:opacity-100"
+    <input class="grow rounded-lg text-sm bg-components-input-bg-normal px-2 py-1 focus:bg-components-input-bg-active opacity-70 hover:opacity-100 focus:opacity-100"
       [(ngModel)]="value"
     >
   } @else if (inputType() === 'message') {
@@ -45,7 +45,7 @@
   <div class="flex justify-end items-center gap-2">
   </div>
   @for (message of messages(); track j; let j = $index) {
-    <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch border border-solid border-gray-100"
+    <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch border border-solid border-divider-regular"
       [varOptions]="varOptions()"
       [(variables)]="variables"
       [role]="message.role"

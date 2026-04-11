@@ -1,5 +1,5 @@
-<div class="relative w-[min(760px,92vw)] max-h-[70vh] rounded-2xl bg-white overflow-auto">
-  <div class="flex items-start justify-between px-6 pt-4 pb-3 sticky top-0 bg-white z-10">
+<div class="relative w-[min(760px,92vw)] max-h-[70vh] rounded-2xl bg-components-card-bg overflow-auto">
+  <div class="flex items-start justify-between px-6 pt-4 pb-3 sticky top-0 bg-components-card-bg z-10">
     <div>
       <div class="text-2xl font-semibold text-text-primary">
         {{ 'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure Plugin' } }}
@@ -18,7 +18,7 @@
   </div>
 
   @if (needsConfiguration()) {
-    <div class="mx-6 mb-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-text-warning">
+    <div class="mx-6 mb-4 rounded-xl border border-text-warning bg-background-default-subtle px-4 py-3 text-sm text-text-warning">
       <div class="flex items-start gap-2">
         <i class="ri-alert-line mt-0.5"></i>
         <div class="min-w-0">
@@ -48,7 +48,10 @@
     }
 
     @if (loading() || saving()) {
-      <ngm-spin class="absolute inset-0 rounded-xl backdrop-blur-sm bg-white/40" />
+      <ngm-spin
+        class="absolute inset-0 rounded-xl backdrop-blur-sm"
+        style="background-color: color-mix(in oklab, var(--background) 40%, transparent)"
+      />
     }
   </div>
 
@@ -56,7 +59,7 @@
     <div class="p-3 text-sm text-text-destructive">{{ error() }}</div>
   }
 
-  <div class="flex items-center justify-end gap-2 px-6 py-4 sticky bottom-0 bg-white z-10">
+  <div class="flex items-center justify-end gap-2 px-6 py-4 sticky bottom-0 bg-components-card-bg z-10">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="close()">
       {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
     </button>

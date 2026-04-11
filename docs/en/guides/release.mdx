@@ -1,19 +1,117 @@
-# Release npm Packages
+# Release Packages and Docker Images
 
-## Bump package version
+## Docker image publishing
+
+The repository publishes Docker images to:
+
+- `ghcr.io/<owner>/xpert-api`
+- `ghcr.io/<owner>/xpert-webapp`
+- `ghcr.io/<owner>/xpert-olap`
+
+`<owner>` comes from `github.repository_owner`. For the upstream repository, that value is `xpert-ai`.
+
+### Push `develop`
+
+Push to `develop` to publish candidate images for `api` and `webapp`:
 
 ```bash
-npx nx release patch
+git checkout develop
+git push origin develop
 ```
 
-## Build package
+Published tags:
+
+- `develop-candidate`
+- `sha-<full_commit_sha>`
+
+The `olap` workflow is separate. It only publishes on `develop` when OLAP files changed under `.deploy/olap/**` or `packages/olap/**`, or when the pushed commit messages contain `[build olap]`.
+
+Example force-build commit:
 
 ```bash
-npx nx build plugin-sdk
+git commit -m "ci: refresh olap image [build olap]"
+git push origin develop
 ```
 
-## Publish package
+### Push `main`
+
+Push to `main` to publish production images for `api` and `webapp`:
 
 ```bash
-npx nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>
+git checkout main
+git push origin main
+```
+
+Published tags:
+
+- `main`
+- `latest`
+- `sha-<full_commit_sha>`
+
+`olap` follows the same tags when it is built by its dedicated workflow.
+
+### Create and push a git tag
+
+Push a git tag such as `v3.6.0` to publish production images with the tag name only:
+
+```bash
+git tag v3.6.0
+git push origin v3.6.0
+```
+
+Published tag:
+
+- `v3.6.0`
+
+The dedicated `olap` workflow compares the current tag to the previous tag. It only publishes when OLAP files changed in that range, or when a commit in that range contains `[build olap]`.
+
+### Pull from GHCR
+
+Pull the image tag that matches the branch or release you want to deploy:
+
+```bash
+docker pull ghcr.io/xpert-ai/xpert-api:develop-candidate
+docker pull ghcr.io/xpert-ai/xpert-webapp:main
+docker pull ghcr.io/xpert-ai/xpert-webapp:latest
+docker pull ghcr.io/xpert-ai/xpert-api:v3.6.0
+docker pull ghcr.io/xpert-ai/xpert-olap:develop-candidate
+```
+
+
+## Release npm Packages
+
+This repository now uses Changesets for npm releases.
+
+Current automation scope:
+
+- CI only publishes `@xpert-ai/ocap-core`
+- stable releases use the `latest` dist-tag
+- prerelease versions such as `3.9.0-beta.0` automatically use the prerelease identifier as the npm dist-tag, for example `beta`
+
+## Create a changeset
+
+```bash
+pnpm changeset
+```
+
+Use `@xpert-ai/ocap-core` as the package while CI is still limited to the core release flow.
+
+## Push the changeset to `main`
+
+When a changeset reaches `main`, GitHub Actions opens or updates a release PR named `chore: version packages`.
+
+## Merge the release PR
+
+After the release PR is merged:
+
+- `pnpm changeset:version` updates the package version and changelog
+- the workflow builds `dist/packages/core`
+- npm publishing runs from the built output through trusted publishing
+
+## Local verification commands
+
+```bash
+pnpm release:verify
+pnpm changeset:version
+pnpm release:publish
 ```

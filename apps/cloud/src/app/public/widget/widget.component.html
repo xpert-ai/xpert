@@ -1,13 +1,19 @@
-<ngm-story-widget *ngIf="_widget()" class="pac-story-widget-viewer w-full h-full"
+@if (_widget()) {
+  <ngm-story-widget class="pac-story-widget-viewer w-full h-full"
     [key]="_widget().key"
     [editable]="false"
     [standalone]="true"
-></ngm-story-widget>
+  ></ngm-story-widget>
+}
 
-<div *ngIf="error$ | async as error">
+@if (error$ | async; as error) {
+  <div>
     {{error | json}}
-</div>
+  </div>
+}
 
-<a *ngIf="widget()" class="absolute right-1 bottom-0 z-10" href="/">
+@if (widget()) {
+  <a class="absolute right-1 bottom-0 z-10" href="/">
     {{'@'}}{{ widget().createdBy | createdBy }}
-</a>
+  </a>
+}

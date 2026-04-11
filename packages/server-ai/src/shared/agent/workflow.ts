@@ -3,7 +3,7 @@ import { StructuredToolInterface, DynamicStructuredTool } from '@langchain/core/
 import { END, Send } from '@langchain/langgraph'
 import { ToolInputSchemaBase } from '@langchain/core/dist/tools/types'
 import { InteropZodType } from '@langchain/core/utils/types'
-import { TVariableAssigner, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { TVariableAssigner, TXpertGraph, TXpertTeamNode } from '@xpert-ai/contracts'
 import { TStateChannel } from './state'
 
 /**

@@ -1,4 +1,4 @@
-import { TCopilotModel, ILLMUsage, IXpert, IXpertAgent } from '@metad/contracts'
+import { TCopilotModel, ILLMUsage, IXpert, IXpertAgent } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 /**

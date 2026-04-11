@@ -1,17 +1,12 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, DestroyRef, OnInit, computed, effect, inject, input, output, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatRadioModule } from '@angular/material/radio'
-import { MatSelectModule } from '@angular/material/select'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
+
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   CalculatedProperty,
   CalculationProperty,
@@ -22,7 +17,7 @@ import {
   isEntityType,
   nonNullable,
   suuid,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { EMPTY, filter, switchMap } from 'rxjs'
@@ -42,25 +37,7 @@ export interface CalculationEditorData {
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    DragDropModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatIconModule,
-    MatButtonModule,
-    MatRadioModule,
-    MatInputModule,
-
-    NgmCommonModule,
-    NgmCalculatedMeasureComponent,
-    NgmCalculationVarianceComponent,
-    NgmConditionalAggregationComponent,
-    NgmRestrictedMeasureComponent,
-    NgmMeasureControlComponent
-  ],
+  imports: [ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, ZardInputDirective, NgmCommonModule, NgmCalculatedMeasureComponent, NgmCalculationVarianceComponent, NgmConditionalAggregationComponent, NgmRestrictedMeasureComponent, NgmMeasureControlComponent],
   selector: 'ngm-calculation-editor',
   templateUrl: './calculation-editor.component.html',
   styleUrls: ['./calculation-editor.component.scss']
@@ -84,11 +61,11 @@ export class NgmCalculationEditorComponent implements OnInit {
   /**
    * @deprecated use #dialogRef
    */
-  readonly _dialogRef? = inject(MatDialogRef<NgmCalculationEditorComponent>, { optional: true })
+  readonly _dialogRef? = inject(ZardDialogRef<NgmCalculationEditorComponent>, { optional: true })
   /**
    * @deprecated use #data
    */
-  readonly _data? = inject<CalculationEditorData>(MAT_DIALOG_DATA, { optional: true })
+  readonly _data? = inject<CalculationEditorData>(Z_MODAL_DATA, { optional: true })
   readonly #dialogRef = inject(DialogRef, { optional: true })
   readonly #data = inject(DIALOG_DATA, { optional: true })
   get dialogRef() {
@@ -103,7 +80,7 @@ export class NgmCalculationEditorComponent implements OnInit {
   | Inputs & Outputs
   |--------------------------------------------------------------------------
   */
-  readonly appearance = input<MatFormFieldAppearance>('fill')
+  readonly appearance = input<NgmFieldAppearance>('fill')
   readonly dataSettings = input<DataSettings>()
   readonly value = input<CalculationProperty>()
 
@@ -173,8 +150,7 @@ export class NgmCalculationEditorComponent implements OnInit {
         if (this.dataSettings()) {
           this._dataSettings.set(this.dataSettings())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

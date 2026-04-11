@@ -1,5 +1,4 @@
 import { provideHttpClient } from '@angular/common/http'
-import { MatIconModule } from '@angular/material/icon'
 import { BrowserAnimationsModule, provideAnimations } from '@angular/platform-browser/animations'
 import {
   DisplayDensity,
@@ -9,15 +8,16 @@ import {
   OCAP_MODEL_TOKEN,
   OcapCoreModule,
   provideOcapCore
-} from '@metad/ocap-angular/core'
-import { provideTranslate } from '@metad/ocap-angular/mock'
-import { AgentType, DataSource, DisplayBehaviour, FilterSelectionType, Type } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/core'
+import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
+import { AgentType, DataSource, DisplayBehaviour, FilterSelectionType, Type } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Meta, applicationConfig, argsToTemplate, moduleMetadata } from '@storybook/angular'
 import { MockAgent } from '../../mock/agent-mock.service'
 import { NgmControlsModule } from '../controls.module'
 import { NgmSmartFilterComponent } from './smart-filter.component'
 import { FormsModule } from '@angular/forms'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Controls/SmartFilter',
@@ -28,7 +28,7 @@ export default {
       providers: [provideAnimations(), provideHttpClient(), provideTranslate()]
     }),
     moduleMetadata({
-      imports: [BrowserAnimationsModule, FormsModule, MatIconModule, NgmControlsModule, OcapCoreModule, TranslateModule],
+      imports: [BrowserAnimationsModule, FormsModule, ZardIconComponent, NgmControlsModule, OcapCoreModule, TranslateModule],
       providers: [
         provideOcapCore(),
         NgmDSCoreService,
@@ -42,7 +42,7 @@ export default {
           useValue: {
             type: 'SQL',
             factory: async (): Promise<Type<DataSource>> => {
-              const { SQLDataSource } = await import('@metad/ocap-sql')
+              const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
               return SQLDataSource
             }
           },
@@ -245,7 +245,7 @@ export const Prefix = {
     template: `
 <ngm-smart-filter [dataSettings]="dataSettings" [dimension]="dimension" [options]="options">
     <div ngmPrefix>
-      <mat-icon>search</mat-icon>
+      <z-icon zType="search"></z-icon>
     </div>
 </ngm-smart-filter>
     `
@@ -268,7 +268,7 @@ export const Suffix = {
     template: `
 <ngm-smart-filter [dataSettings]="dataSettings" [dimension]="dimension" [options]="options">
     <div ngmSuffix>
-      <mat-icon>search</mat-icon>
+      <z-icon zType="search"></z-icon>
     </div>
 </ngm-smart-filter>
     `

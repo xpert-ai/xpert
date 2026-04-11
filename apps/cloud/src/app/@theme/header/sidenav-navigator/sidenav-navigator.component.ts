@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input } from '@angular/core'
-import { MatDrawerMode } from '@angular/material/sidenav'
+import type { ZardDrawerMode } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -9,5 +9,5 @@ import { MatDrawerMode } from '@angular/material/sidenav'
   templateUrl: 'sidenav-navigator.component.svg'
 })
 export class SidenavNavigatorComponent {
-  @Input() mode: MatDrawerMode
+  @Input() mode: ZardDrawerMode
 }

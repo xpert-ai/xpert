@@ -1,4 +1,4 @@
-// import { DataPointAnnotation } from '@metad/ocap-core';
+// import { DataPointAnnotation } from '@xpert-ai/ocap-core';
 
 // export class NxDataPoint {
 

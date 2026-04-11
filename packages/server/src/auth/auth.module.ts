@@ -1,4 +1,4 @@
-import { SocialAuthModule } from '@metad/server-auth'
+import { SocialAuthModule } from '@xpert-ai/server-auth'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -8,6 +8,7 @@ import { PasswordResetModule } from '../password-reset/password-reset.module'
 import { RoleModule } from '../role/role.module'
 import { TenantModule } from '../tenant/tenant.module'
 import { UserModule } from '../user'
+import { OrganizationModule } from '../organization'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { UserService } from '../user/user.service'
 import { Organization, UserOrganization } from './../core/entities/internal'
@@ -28,13 +29,14 @@ const providers = [AuthService, UserService, UserOrganizationService, EmailServi
 			}
 		]),
 		SocialAuthModule.registerAsync({
-			imports: [AuthModule, CqrsModule, TenantModule, UserModule, PasswordResetModule, RoleModule],
+			imports: [AuthModule, CqrsModule, TenantModule, UserModule, PasswordResetModule, RoleModule, OrganizationModule],
 			useClass: AuthService
 		}),
 		TypeOrmModule.forFeature([UserOrganization, Organization]),
 		EmailModule,
 		TenantModule,
 		RoleModule,
+		OrganizationModule,
 		UserModule,
 		PasswordResetModule,
 		CqrsModule,

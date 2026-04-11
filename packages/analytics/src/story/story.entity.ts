@@ -12,8 +12,8 @@ import {
 	IVisit,
 	StoryStatusEnum,
 	Visibility
-} from '@metad/contracts'
-import { Tag } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { Tag } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
@@ -46,7 +46,7 @@ export class Story extends ProjectBaseEntity implements IStory {
 	description?: string
 
 	@ApiProperty({ type: () => String, enum: StoryStatusEnum })
-	@Column({ nullable: true, default: StoryStatusEnum.DRAFT })
+	@Column({ type: 'varchar', nullable: true, default: StoryStatusEnum.DRAFT })
 	status?: StoryStatusEnum
 
 	/**
@@ -123,7 +123,7 @@ export class Story extends ProjectBaseEntity implements IStory {
 	tags?: ITag[]
 
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	visibility?: Visibility
 
 	@IsOptional()

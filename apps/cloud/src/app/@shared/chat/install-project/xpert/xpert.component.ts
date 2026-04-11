@@ -1,9 +1,8 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   AiModelTypeEnum,
   getErrorMessage,
@@ -15,26 +14,26 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertBasicDialogComponent } from '@cloud/app/@shared/xpert'
-import { NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { EMPTY, pipe } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     NgmSearchComponent,
     EmojiAvatarComponent
-  ],
+],
   selector: 'project-install-xpert',
   templateUrl: 'xpert.component.html',
   styleUrl: 'xpert.component.scss',
@@ -115,7 +114,7 @@ export class ProjectInstallXpertComponent {
 
   importXpert() {
     this.error.set('')
-    if (this.bindedXpert())  {
+    if (this.bindedXpert()) {
       this.createdXpert.set(this.bindedXpert())
       return
     }

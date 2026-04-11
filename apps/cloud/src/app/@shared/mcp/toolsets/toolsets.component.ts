@@ -1,14 +1,14 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CapitalizePipe, DynamicGridDirective } from '@metad/core'
-import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { CapitalizePipe, DynamicGridDirective } from '@xpert-ai/core'
+import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
 import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -36,7 +36,6 @@ import { XpertMCPManageComponent } from '../manage/manage.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -44,12 +43,11 @@ import { XpertMCPManageComponent } from '../manage/manage.component'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-
     DynamicGridDirective,
     NgmCommonModule,
     CardCreateComponent,
-    ToolsetCardComponent,
-  ],
+    ToolsetCardComponent
+],
   selector: 'mcp-toolsets',
   templateUrl: './toolsets.component.html',
   styleUrl: 'toolsets.component.scss',

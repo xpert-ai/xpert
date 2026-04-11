@@ -1,6 +1,8 @@
-@use '@angular/material/core/tokens/token-utils';
-@use '@angular/material/core/style/sass-utils';
 
+
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
+@reference "../../../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $global-prefix: ngm;
 $prefix: (ngm, story-viewer);
@@ -32,8 +34,8 @@ $prefix: (ngm, story-viewer);
   background-color: var(--ngm-color-surface-container);
   
   .pac-story-viewer__drawer {
-    --mat-sidenav-container-background-color: transparent;
-    --mat-sidenav-container-divider-color: transparent;
+    --z-drawer-bg: transparent;
+    --z-drawer-border-color: transparent;
   }
   &.pac-story-viewer.fullscreen {
     position: fixed;

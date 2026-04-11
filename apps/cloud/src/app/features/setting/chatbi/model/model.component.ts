@@ -1,14 +1,14 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatInputModule } from '@angular/material/input'
+
+import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { IsDirty } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { IsDirty } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { HttpErrorResponse } from '@angular/common/http'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -24,14 +24,13 @@ import { ChatBIModelsComponent } from '../models/models.component'
   templateUrl: './model.component.html',
   styleUrls: ['./model.component.scss'],
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
     NgmCommonModule,
-    MatButtonModule,
-    MatInputModule
-  ],
+    ZardButtonComponent,
+    ZardInputDirective
+],
   animations: [routeAnimations]
 })
 export class ChatBIModelComponent implements IsDirty {
@@ -127,7 +126,7 @@ export class ChatBIModelComponent implements IsDirty {
   // Get the route to add entity for the selected model
   readonly addEntityRoute = computed(() => {
     const modelId = this.modelId()
-    return modelId ? ['/models', modelId] : null
+    return modelId ? ['/data', 'models', modelId] : null
   })
 
   readonly loading = signal(true)
@@ -143,8 +142,7 @@ export class ChatBIModelComponent implements IsDirty {
             })
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -156,8 +154,7 @@ export class ChatBIModelComponent implements IsDirty {
         }
         this.formGroup.markAsPristine()
         this.loading.set(false)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -200,7 +197,7 @@ export class ChatBIModelComponent implements IsDirty {
   openSemanticModelPage(event: Event) {
     event.preventDefault()
     event.stopPropagation()
-    const url = this.router.serializeUrl(this.router.createUrlTree(['/models']))
+    const url = this.router.serializeUrl(this.router.createUrlTree(['/data', 'models']))
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 

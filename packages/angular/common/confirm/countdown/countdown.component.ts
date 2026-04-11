@@ -1,7 +1,7 @@
 import { Component, HostBinding, inject } from '@angular/core'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { CountdownConfig, CountdownEvent, CountdownTimer } from '../../countdown'
 
+import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 /**
  * @deprecated Use `injectConfirm`
  */
@@ -16,13 +16,14 @@ import { CountdownConfig, CountdownEvent, CountdownTimer } from '../../countdown
       }
     `
   ],
-  providers: [CountdownTimer]
+  providers: [CountdownTimer],
+  standalone: false
 })
 export class NgmCountdownConfirmationComponent {
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
 
-  protected dialogRef: MatDialogRef<NgmCountdownConfirmationComponent> = inject(MatDialogRef)
-  private data = inject(MAT_DIALOG_DATA)
+  protected dialogRef: ZardDialogRef<NgmCountdownConfirmationComponent> = inject(ZardDialogRef)
+  private data = inject(Z_MODAL_DATA)
 
   recordType: string
   isEnabled: boolean

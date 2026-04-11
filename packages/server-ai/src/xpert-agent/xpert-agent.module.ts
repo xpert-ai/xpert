@@ -1,4 +1,4 @@
-import { RedisModule, TenantModule } from '@metad/server-core'
+import { RedisModule, TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -17,6 +17,7 @@ import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
 import { Strategies, Validators as PluginValidators } from './plugins'
 import { ExecutionCancelModule } from '../shared'
+import { SkillPackageModule } from '../skill-package'
 
 @Module({
     imports: [
@@ -31,7 +32,8 @@ import { ExecutionCancelModule } from '../shared'
         XpertAgentExecutionModule,
         forwardRef(() => XpertModule),
         forwardRef(() => EnvironmentModule),
-        ExecutionCancelModule
+        ExecutionCancelModule,
+        SkillPackageModule
     ],
     controllers: [XpertAgentController],
     providers: [

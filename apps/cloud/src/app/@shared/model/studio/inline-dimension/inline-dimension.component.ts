@@ -1,14 +1,13 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
-import { linkedModel } from '@metad/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CubeStudioComponent } from '../studio.component'
 import { CubeStudioHierarchyComponent } from '../hierarchy/hierarchy.component'
 import { TCubeNode, THierarchyNode } from '../types'
-
 
 @Component({
   standalone: true,
@@ -16,7 +15,7 @@ import { TCubeNode, THierarchyNode } from '../types'
   selector: 'xp-cube-studio-inline-dimension',
   templateUrl: 'inline-dimension.component.html',
   styleUrls: ['inline-dimension.component.scss'],
-  imports: [CommonModule, FormsModule, CdkMenuModule, FFlowModule, TranslateModule, CubeStudioHierarchyComponent],
+  imports: [FormsModule, CdkMenuModule, FFlowModule, TranslateModule, CubeStudioHierarchyComponent],
   host: {
     class: 'xp-cube-studio-inline-dimension'
   }

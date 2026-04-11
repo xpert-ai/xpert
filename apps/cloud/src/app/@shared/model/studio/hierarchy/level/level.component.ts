@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,10 +13,10 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { FormGroup, FormsModule } from '@angular/forms'
 import { injectHelpWebsite } from '@cloud/app/@core'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/formly'
-import { DensityDirective, ISelectOption } from '@metad/ocap-angular/core'
-import { DimensionType, DisplayBehaviour, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@metad/ocap-core'
-import { AccordionWrappers } from '@metad/story/designer'
+import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@xpert-ai/formly'
+import { DensityDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { DimensionType, DisplayBehaviour, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@xpert-ai/ocap-core'
+import { AccordionWrappers } from '@xpert-ai/story/designer'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Observable } from 'rxjs'
@@ -39,7 +39,7 @@ import { CubeStudioHierarchyComponent } from '../hierarchy.component'
   selector: 'xp-cube-studio-dimension-level',
   templateUrl: 'level.component.html',
   styleUrls: ['level.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, DensityDirective],
+  imports: [FormsModule, TranslateModule, FormlyModule, DensityDirective],
   host: {
     class: 'xp-cube-studio-dimension-level'
   }
@@ -146,7 +146,7 @@ export class CubeStudioDimensionLevelComponent {
   )
 
   @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
+  handleEscapeKey(event: Event) {
     const element = this.elementRef.nativeElement as HTMLElement
     if (document.activeElement && element.contains(document.activeElement)) {
       this.close.emit()

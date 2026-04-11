@@ -1,12 +1,11 @@
-import { CommonModule } from '@angular/common'
-import { Component, effect, inject, model, OnDestroy, signal } from '@angular/core'
+import { Component, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { ActivatedRoute, Router } from '@angular/router'
 import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
-import { Store, UsersService } from '@metad/cloud/state'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { Store, UsersService } from '@xpert-ai/cloud/state'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { of } from 'rxjs'
@@ -14,7 +13,7 @@ import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/op
 import { getErrorMessage, injectToastr, RolesEnum, routeAnimations } from '../../../../@core'
 import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
-import { PACUsersComponent } from '../users.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -23,25 +22,24 @@ import { PACUsersComponent } from '../users.component'
   styleUrls: ['./edit-user.component.scss'],
   animations: [routeAnimations],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     NgmSpinComponent,
     UserBasicComponent,
     UserChangePasswordFormComponent,
     PACUserOrganizationsComponent
   ]
 })
-export class PACEditUserComponent implements OnDestroy {
+export class PACEditUserComponent {
   RolesEnum = RolesEnum
+  readonly userLabel = userLabel
 
   readonly store = inject(Store)
   private userService = inject(UsersService)
   private route = inject(ActivatedRoute)
   private router = inject(Router)
   private toastr = injectToastr()
-  private usersComponent = inject(PACUsersComponent)
   readonly #translate = inject(TranslateService)
   readonly confirmDelete = injectConfirmDelete()
 
@@ -60,13 +58,8 @@ export class PACEditUserComponent implements OnDestroy {
 
   readonly newPassword = model<{ password: string; confirmPassword: string }>()
 
-  constructor() {
-    effect(
-      () => {
-        this.usersComponent.setCurrentLink(this.user())
-      },
-      { allowSignalWrites: true }
-    )
+  backToList() {
+    this.router.navigate(['/settings/users'])
   }
 
   navigate(url) {
@@ -115,9 +108,5 @@ export class PACEditUserComponent implements OnDestroy {
         this.toastr.error(getErrorMessage(err))
       }
     }
-  }
-
-  ngOnDestroy(): void {
-    this.usersComponent.setCurrentLink(null)
   }
 }

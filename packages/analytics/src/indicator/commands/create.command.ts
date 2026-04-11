@@ -1,4 +1,4 @@
-import { DeepPartial } from '@metad/server-common'
+import { DeepPartial } from '@xpert-ai/server-common'
 import { ICommand } from '@nestjs/cqrs'
 import { Indicator } from '../indicator.entity'
 

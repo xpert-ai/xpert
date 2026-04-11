@@ -1,4 +1,4 @@
-import { TGatewayQueryEvent } from '@metad/contracts';
+import { TGatewayQueryEvent } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs'
 
 export class SemanticModelQueryCommand implements ICommand {

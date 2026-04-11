@@ -1,24 +1,31 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { getAgentMiddlewareNodes, injectXpertAgentAPI, IWFNMiddleware } from '@cloud/app/@core'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioPanelAgentComponent } from '../agent.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-middleware-section',
   templateUrl: './middleware.component.html',
   styleUrls: ['./middleware.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, MatTooltipModule, DragDropModule, IconComponent, NgmI18nPipe]
+  imports: [
+    FormsModule,
+    TranslateModule,
+    CdkMenuModule,
+    ...ZardTooltipImports,
+    DragDropModule,
+    IconComponent,
+    NgmI18nPipe
+]
 })
 export class XpertStudioPanelMiddlewareSectionComponent {
   readonly elementRef = inject(ElementRef)

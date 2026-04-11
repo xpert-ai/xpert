@@ -1,38 +1,6 @@
-@use '@angular/material/core/tokens/token-utils';
-@use '@angular/material/core/style/sass-utils';
-
-// The prefix used to generate the fully qualified name for tokens in this file.
-$prefix: (ngm, color);
-
-@function get-unthemable-tokens() {
-  @return (
-  );
-}
-
-@function get-color-tokens() {
-  @return (
-    surface-container-low: null,
-    surface-container: null,
-    surface-container-high: null,
-    surface: null,
-  );
-}
-
-@function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
-}
-
-@include token-utils.use-tokens($prefix, get-token-slots()) {
-  .ngm-chart-property__card {
-    background-color: var(#{token-utils.get-token-variable(surface)});
-  }
-}
-
+@reference "../../../../../tailwind-workspace-reference.css";
 :host {
-  --mat-expansion-header-text-size: 12px;
+  --ngm-chart-property-card-bg-color: var(--ngm-color-surface, #fff);
   @apply flex-1 flex;
 
   .ngm-property-select {
@@ -51,6 +19,7 @@ $prefix: (ngm, color);
 }
 
 .ngm-chart-property__card {
+  background-color: var(--ngm-chart-property-card-bg-color);
   @apply p-2 flex flex-col rounded-lg;
 }
 .ngm-chart-property__card-title {
@@ -58,14 +27,9 @@ $prefix: (ngm, color);
 }
 
 ::ng-deep {
-  .ngm-chart-property__palette-trigger.mat-mdc-menu-trigger {
+  .ngm-chart-property__palette-trigger[z-button],
+  z-button.ngm-chart-property__palette-trigger {
     @apply my-2;
-    .mdc-button__label {
-      @apply w-full;
-    }
+    @apply w-full;
   }
-}
-
-.mat-button-toggle-group {
-  @apply max-w-full flex-wrap;
 }

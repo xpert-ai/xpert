@@ -1,4 +1,4 @@
-import { IInviteAcceptInput, LanguagesEnum } from '@metad/contracts';
+import { IInviteAcceptInput, LanguagesEnum } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class InviteAcceptUserCommand implements ICommand {

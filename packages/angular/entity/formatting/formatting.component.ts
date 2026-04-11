@@ -1,33 +1,27 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, OnInit, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmCommonModule, NgmSelectModule } from '@metad/ocap-angular/common'
-import { DensityDirective } from '@metad/ocap-angular/core'
+
+import { NgmCommonModule, NgmSelectModule } from '@xpert-ai/ocap-angular/common'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmEntityPropertyComponent } from '../property/property.component'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
-    MatDialogModule,
-    MatSlideToggleModule,
-
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardTooltipImports,
+    ZardDialogModule,
     NgmCommonModule,
     NgmSelectModule,
     DensityDirective,
-    NgmEntityPropertyComponent
-  ],
+    NgmEntityPropertyComponent,
+    ZardSwitchComponent
+],
   selector: 'ngm-formatting',
   templateUrl: './formatting.component.html',
   styleUrls: ['./formatting.component.scss'],
@@ -36,15 +30,15 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
   }
 })
 export class NgmFormattingComponent implements OnInit {
-  public data = inject(MAT_DIALOG_DATA)
-  public dialogRef? = inject(MatDialogRef<NgmFormattingComponent>)
+  public data = inject(Z_MODAL_DATA)
+  public dialogRef? = inject(ZardDialogRef<NgmFormattingComponent>)
 
   formGroup = new FormGroup({
     shortNumber: new FormControl<boolean>(false),
     decimal: new FormControl<number>(null),
     unit: new FormControl<string>(null),
     useUnderlyingUnit: new FormControl<boolean>(false),
-    digitsInfo: new FormControl<string>(null),
+    digitsInfo: new FormControl<string>(null)
   })
 
   ngOnInit(): void {

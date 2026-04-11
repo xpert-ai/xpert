@@ -1,4 +1,4 @@
-import { IApprovalPolicyCreateInput } from "@metad/contracts";
+import { IApprovalPolicyCreateInput } from "@xpert-ai/contracts";
 import { ApprovalPolicyDTO } from "./approval-policy.dto";
 
 /**

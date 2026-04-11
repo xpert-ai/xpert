@@ -1,15 +1,15 @@
-import { IVisit, VisitEntityEnum, VisitTypeEnum } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IVisit, VisitEntityEnum, VisitTypeEnum } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, ManyToOne } from 'typeorm'
 import { Indicator, SemanticModel, Story } from '../core/entities/internal'
 
 @Entity('visit')
 export class Visit extends TenantOrganizationBaseEntity implements IVisit {
 
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type: VisitTypeEnum
 
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	entity: VisitEntityEnum
 
 	@Column({ nullable: true })

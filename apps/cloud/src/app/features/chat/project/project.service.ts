@@ -1,16 +1,14 @@
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { injectProjectService } from '@cloud/app/@core'
 import { IStorageFile, IXpertProject } from '@cloud/app/@core/types'
-import { linkedModel } from '@metad/core'
+import { linkedModel } from '@xpert-ai/core'
+import { attrModel } from '@xpert-ai/ocap-angular/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
-import { ChatHomeService } from '../home.service'
-import { attrModel } from '@metad/ocap-angular/core'
 
 @Injectable()
 export class ProjectService {
-  readonly homeService = inject(ChatHomeService)
   readonly projectsService = injectProjectService()
 
   readonly paramRole = injectParams('name')

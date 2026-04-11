@@ -1,4 +1,4 @@
-import { ChecklistItem, IWFNCode, TXpertTeamNode, workflowNodeIdentifier, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { ChecklistItem, IWFNCode, TXpertTeamNode, workflowNodeIdentifier, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/types'

@@ -1,4 +1,4 @@
-import { AnalyticsPermissionsEnum, IDSSchema, IDSTable, IDataSource, IPagination, IUser } from '@metad/contracts'
+import { AnalyticsPermissionsEnum, IDSSchema, IDSTable, IDataSource, IPagination, IUser } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	CurrentUser,
@@ -9,7 +9,7 @@ import {
 	Permissions,
 	UseValidationPipe,
 	UUIDValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	Body,
 	ClassSerializerInterceptor,

@@ -4,7 +4,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { CopilotUser } from '../../copilot-user.entity'
 import { CopilotUserUsageQuery } from '../copilot-user-usage.query'
-import { USAGE_HOUR_FORMAT } from '@metad/contracts'
+import { USAGE_HOUR_FORMAT } from '@xpert-ai/contracts'
 import { formatInUTC0 } from '../../../shared/utils'
 
 @QueryHandler(CopilotUserUsageQuery)

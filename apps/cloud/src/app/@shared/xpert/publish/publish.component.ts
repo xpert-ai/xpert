@@ -2,12 +2,12 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { EMPTY, of, switchMap } from 'rxjs'
@@ -15,16 +15,15 @@ import {
   getErrorMessage,
   IIntegration,
   injectToastr,
-  INTEGRATION_PROVIDERS,
-  IntegrationEnum,
   IntegrationService,
   IXpert,
   TIntegrationProvider,
   XpertAPIService
 } from '../../../@core'
-import { EmojiAvatarComponent } from '../../avatar'
+import { EmojiAvatarComponent, IconComponent } from '../../avatar'
 import { IntegrationFormComponent } from '../../integration'
 import { environment } from '@cloud/environments/environment'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use triggers in workflow instead
@@ -35,23 +34,22 @@ import { environment } from '@cloud/environments/environment'
   templateUrl: './publish.component.html',
   styleUrls: ['publish.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
     TextFieldModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
+    IconComponent,
     IntegrationFormComponent,
     NgmI18nPipe
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertPublishComponent {
-  eIntegrationEnum = IntegrationEnum
   readonly #dialogRef = inject(DialogRef)
   readonly #dialog = inject(Dialog)
   readonly #data = inject<{ xpert: IXpert }>(DIALOG_DATA)
@@ -62,9 +60,11 @@ export class XpertPublishComponent {
 
   readonly xpertId = signal(this.#data.xpert.id)
 
+  readonly #providers = toSignal(this.integrationService.getProviders(), { initialValue: [] })
+
   readonly loading = signal(false)
 
-  readonly providers = signal(Object.keys(INTEGRATION_PROVIDERS).map((name) => INTEGRATION_PROVIDERS[name]).filter((p) => p.webhook))
+  readonly providers = signal<TIntegrationProvider[]>([])
 
   readonly xpert = derivedAsync(() => {
     return this.xpertId() ? this.xpertService.getById(this.xpertId(), { relations: ['integrations'] }) : of(null)
@@ -80,6 +80,12 @@ export class XpertPublishComponent {
         if (this.xpert()) {
           this.integrations.set(this.xpert().integrations)
         }
+      }
+    )
+
+    effect(
+      () => {
+        this.providers.set(this.#providers().filter((provider) => provider.webhook))
       },
       { allowSignalWrites: true }
     )
@@ -89,8 +95,7 @@ export class XpertPublishComponent {
         if (this.selectedIntegrations()) {
           this.integration.set(this.selectedIntegrations()[0])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

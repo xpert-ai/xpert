@@ -1,36 +1,33 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, effect, inject, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { RouterModule } from '@angular/router'
-import { StoriesService } from '@metad/cloud/state'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+import { StoriesService } from '@xpert-ai/cloud/state'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserverDirective } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs'
 import { IStory, listAnimation } from '../../@core'
 import { StoryCardComponent } from '../../@shared/story'
+import { ZardButtonComponent, ZardToggleGroupComponent, ZardToggleGroupItemComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
     RouterModule,
     WaIntersectionObserverDirective,
-    MatButtonToggleModule,
-    MatButtonModule,
-
+    ZardButtonComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     TranslateModule,
     NgmCommonModule,
-
     StoryCardComponent
-  ],
+],
   selector: 'pac-public-trending',
   templateUrl: 'trending.component.html',
   styleUrls: ['trending.component.scss'],

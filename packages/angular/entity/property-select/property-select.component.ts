@@ -1,6 +1,29 @@
-import { AfterViewInit, booleanAttribute, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, EventEmitter, forwardRef, HostBinding, inject, input, Output, signal, ViewChild, ViewContainerRef } from '@angular/core'
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
+import {
+  AfterViewInit,
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  EventEmitter,
+  forwardRef,
+  HostBinding,
+  inject,
+  input,
+  Output,
+  signal,
+  ViewContainerRef
+} from '@angular/core'
+import { CdkListboxModule } from '@angular/cdk/listbox'
+import {
+  ControlValueAccessor,
+  FormControl,
+  NG_VALUE_ACCESSOR,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule
+} from '@angular/forms'
 import {
   AggregationRole,
   CalculationProperty,
@@ -41,37 +64,35 @@ import {
   isPropertyHierarchy,
   isPropertyLevel,
   isDimension,
-  ISlicer,
-} from '@metad/ocap-core'
+  ISlicer
+} from '@xpert-ai/ocap-core'
 import { cloneDeep, includes, isEmpty, isEqual, isNil, isString, negate, pick, uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
-import { distinctUntilChanged, filter, map, shareReplay, startWith, combineLatestWith, debounceTime, switchMap } from 'rxjs/operators'
-import { MatSelect, MatSelectModule } from '@angular/material/select'
-import { getEntityMeasures, PropertyAttributes } from '@metad/ocap-core'
-import { DisplayDensity, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import {
+  distinctUntilChanged,
+  filter,
+  map,
+  shareReplay,
+  startWith,
+  combineLatestWith,
+  debounceTime,
+  switchMap
+} from 'rxjs/operators'
+import { getEntityMeasures, PropertyAttributes } from '@xpert-ai/ocap-core'
+import { DisplayDensity, mergeSelectedValues, NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { ControlOptions, NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatListModule } from '@angular/material/list'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatBadgeModule } from '@angular/material/badge'
+import { ZardBadgeComponent, ZardButtonComponent, ZardCheckboxComponent, ZardComboboxDeprecatedComponent, ZardComboboxDeprecatedGroup, ZardComboboxDeprecatedOption, ZardDialogService, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import { Dialog } from '@angular/cdk/dialog'
 import { PropertyCapacity } from '../types'
 import { NgmEntityPropertyComponent, propertyIcon } from '../property/property.component'
 import { NgmFormattingComponent } from '../formatting/formatting.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-
+import { ZardMenuImports, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -83,44 +104,46 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmPropertySelectComponent),
-    },
+      useExisting: forwardRef(() => NgmPropertySelectComponent)
+    }
   ],
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatIconModule,
-    MatButtonModule,
-    MatMenuModule,
-    MatRadioModule,
-    MatDividerModule,
-    MatListModule,
-    MatCheckboxModule,
-    MatBadgeModule,
-    MatProgressSpinnerModule,
+    ...ZardFormImports,
+    ZardBadgeComponent,
+    ZardInputDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ...ZardMenuImports,
+    CdkListboxModule,
+    ZardCheckboxComponent,
+    ZardLoaderComponent,
     TranslateModule,
     NgmCommonModule,
     NgmEntityPropertyComponent
   ]
 })
 export class NgmPropertySelectComponent implements ControlValueAccessor, AfterViewInit {
+  private readonly createCalculationAction = '__create_calculation__'
+  private readonly createMeasureControlAction = '__create_measure_control__'
+  readonly standaloneNgModelOptions = { standalone: true }
   AggregationRole = AggregationRole
   DISPLAY_BEHAVIOUR = DisplayBehaviour
   DisplayDensity = DisplayDensity
   CalculationType = CalculationType
   isVisible = isVisible
   LevelType = RuntimeLevelType
+  eOrderDirection = OrderDirection
 
   @HostBinding('class.ngm-property-select') isPropertySelect = true
 
-  readonly _dialog? = inject(MatDialog, {optional: true})
-  readonly #dialog = inject(Dialog, {optional: true})
-  readonly _viewContainerRef = inject(ViewContainerRef, {skipSelf: true})
+  readonly _dialog? = inject(ZardDialogService, { optional: true })
+  readonly #dialog = inject(Dialog, { optional: true })
+  readonly _viewContainerRef = inject(ViewContainerRef, { skipSelf: true })
   readonly _destroyRef = inject(DestroyRef)
   readonly #translate = inject(TranslateService)
   readonly coreService = inject(NgmOcapCoreService)
@@ -128,20 +151,20 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly DISPLAY_BEHAVIOUR_LIST = [
     {
       value: null,
-      label: 'Auto',
+      label: 'Auto'
     },
     {
-      value: 'descriptionAndId',
-      label: 'Description and ID',
+      value: DisplayBehaviour.descriptionAndId,
+      label: 'Description and ID'
     },
     {
-      value: 'descriptionOnly',
-      label: 'Description Only',
+      value: DisplayBehaviour.descriptionOnly,
+      label: 'Description Only'
     },
     {
-      value: 'idOnly',
-      label: 'ID Only',
-    },
+      value: DisplayBehaviour.idOnly,
+      label: 'ID Only'
+    }
   ]
 
   /**
@@ -168,7 +191,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly dataSettings$ = toObservable(this.dataSettings)
 
   readonly entityType = input<EntityType>()
-  
+
   readonly restrictedDimensions = input<string[]>()
   readonly restrictedDimensions$ = toObservable(this.restrictedDimensions)
 
@@ -183,9 +206,6 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
 
   @Output() valueChange = new EventEmitter()
   @Output() calculationChange = new EventEmitter()
-
-  @ViewChild('propertySelect', { read: MatSelect })
-  private _propertySelect: MatSelect
 
   readonly keyControl = new FormControl()
   readonly formGroup = new FormGroup({
@@ -205,7 +225,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     zeroSuppression: new FormControl<boolean>(true),
     formatting: new FormControl(),
     parameter: new FormControl(),
-    order: new FormControl<OrderDirection>(null),
+    order: new FormControl<OrderDirection>(null)
   })
   // 初始值
   private readonly _formValue = this.formGroup.value
@@ -216,38 +236,45 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly _disabled = signal(false)
   #value: Dimension | Measure = null
 
-  readonly #dataSettings = computed(() => ({
-    dataSource: this.dataSettings()?.dataSource,
-    entitySet: this.dataSettings()?.entitySet,
-  }), { equal: isEqual })
+  readonly #dataSettings = computed(
+    () => ({
+      dataSource: this.dataSettings()?.dataSource,
+      entitySet: this.dataSettings()?.entitySet
+    }),
+    { equal: isEqual }
+  )
 
   readonly entityTypeLoading = signal(false)
   readonly entityTypeError = signal<string>('')
-  readonly #entityType = toSignal(this.dataSettings$.pipe(
-    map((dataSettings) => ({
-      dataSource: dataSettings?.dataSource,
-      entitySet: dataSettings?.entitySet,
-    })),
-    distinctUntilChanged(isEqual),
-    switchMap((dataSettings) => {
-      if (dataSettings.dataSource && dataSettings.entitySet && this.dsCoreService()) {
-        this.entityTypeError.set('')
-        this.entityTypeLoading.set(true)
-        return this.dsCoreService().getDataSource(dataSettings.dataSource).pipe(
-          switchMap((dataSource) => dataSource.selectEntitySet(dataSettings.entitySet)),
-          map((entitySet) => {
-            this.entityTypeLoading.set(false)
-            if (!isEntitySet(entitySet)) {
-              this.entityTypeError.set(entitySet.message)
-              return null
-            }
-            return entitySet.entityType
-          })
-        )
-      }
-      return of(null)
-    }),
-  ))
+  readonly #entityType = toSignal(
+    this.dataSettings$.pipe(
+      map((dataSettings) => ({
+        dataSource: dataSettings?.dataSource,
+        entitySet: dataSettings?.entitySet
+      })),
+      distinctUntilChanged(isEqual),
+      switchMap((dataSettings) => {
+        if (dataSettings.dataSource && dataSettings.entitySet && this.dsCoreService()) {
+          this.entityTypeError.set('')
+          this.entityTypeLoading.set(true)
+          return this.dsCoreService()
+            .getDataSource(dataSettings.dataSource)
+            .pipe(
+              switchMap((dataSource) => dataSource.selectEntitySet(dataSettings.entitySet)),
+              map((entitySet) => {
+                this.entityTypeLoading.set(false)
+                if (!isEntitySet(entitySet)) {
+                  this.entityTypeError.set(entitySet.message)
+                  return null
+                }
+                return entitySet.entityType
+              })
+            )
+        }
+        return of(null)
+      })
+    )
+  )
 
   readonly _entityType = computed(() => this.entityType() ?? this.#entityType())
   readonly entityType$ = toObservable(this._entityType)
@@ -260,11 +287,11 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     map((entityType: EntityType) => {
       const properties: Array<PropertyAttributes> = Object.values(entityType.properties)
       if (this.capacities()?.includes(PropertyCapacity.MeasureGroup)) {
-        const caption = this.getTranslation('Ngm.Property.MeasureGroup', {Default: 'Measure Group'})
+        const caption = this.getTranslation('Ngm.Property.MeasureGroup', { Default: 'Measure Group' })
         properties.push({
           name: C_MEASURES,
           caption,
-          role: AggregationRole.dimension,
+          role: AggregationRole.dimension
         })
       }
 
@@ -277,21 +304,22 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
 
   readonly entityProperties = toSignal(this.entityProperties$)
 
-  readonly parameters$ = this.entityType$.pipe(
-    map(entityType => Object.values(entityType?.parameters || {}))
-  )
+  readonly parameters$ = this.entityType$.pipe(map((entityType) => Object.values(entityType?.parameters || {})))
   // Select options: dimension, hierarchy or levels
   readonly dimensions$: Observable<Array<Property>> = combineLatest([
     this.entityProperties$,
-    this.restrictedDimensions$.pipe(distinctUntilChanged()),
+    this.restrictedDimensions$.pipe(distinctUntilChanged())
   ]).pipe(
     map(([properties, restrictedDimensions]) => {
       const options = []
-      properties.filter(item =>
-        item.role === AggregationRole.dimension && 
-          (isEmpty(restrictedDimensions) ? true : includes(restrictedDimensions, item.name))
-          && isVisible(item)
-        ).forEach((dimension: PropertyDimension) => {
+      properties
+        .filter(
+          (item) =>
+            item.role === AggregationRole.dimension &&
+            (isEmpty(restrictedDimensions) ? true : includes(restrictedDimensions, item.name)) &&
+            isVisible(item)
+        )
+        .forEach((dimension: PropertyDimension) => {
           options.push(dimension)
           dimension.hierarchies?.forEach((hierarchy) => {
             if (hierarchy.name !== dimension.name) {
@@ -304,7 +332,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
               })
             } else {
               levels.forEach((level) => {
-                options.push({...level, visible: false})
+                options.push({ ...level, visible: false })
               })
             }
           })
@@ -329,7 +357,9 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     this.hierarchies$,
     this.hierarchyControl.valueChanges.pipe(startWith(null))
   ]).pipe(
-    map(([properties, hierarchy]) => properties?.find((prop) => hierarchy ? prop.name === hierarchy : prop.name === prop.dimension)),
+    map(([properties, hierarchy]) =>
+      properties?.find((prop) => (hierarchy ? prop.name === hierarchy : prop.name === prop.dimension))
+    ),
     shareReplay(1)
   )
 
@@ -338,45 +368,54 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     shareReplay(1)
   )
 
-  readonly level$ = combineLatest([
-      this.levels$,
-      this.formGroup.get('level').valueChanges
-    ]).pipe(
-      map(([properties, level]) => properties?.find((prop) => prop.name === level))
-    )
-  readonly properties$ = this.level$.pipe(map(level => {
-    // MDX intrinsic attributes, moved to entityType dimension?
-    const options = [{
-      name: IntrinsicMemberProperties.DESCRIPTION,
-      caption: 'DESCRIPTION'
-    } as LevelMemberProperty]
-    options.push(
-      ...(
-        level?.properties ?? []
-      )
-    )
-    return options
-  }))
-  
-  readonly labels$ = this.properties$.pipe(map(properties => {
-    return properties?.length ? properties : null
-  }))
-  
+  readonly level$ = combineLatest([this.levels$, this.formGroup.get('level').valueChanges]).pipe(
+    map(([properties, level]) => properties?.find((prop) => prop.name === level))
+  )
+  readonly properties$ = this.level$.pipe(
+    map((level) => {
+      // MDX intrinsic attributes, moved to entityType dimension?
+      const options = [
+        {
+          name: IntrinsicMemberProperties.DESCRIPTION,
+          caption: 'DESCRIPTION'
+        } as LevelMemberProperty
+      ]
+      options.push(...(level?.properties ?? []))
+      return options
+    })
+  )
+
+  readonly labels$ = this.properties$.pipe(
+    map((properties) => {
+      return properties?.length ? properties : null
+    })
+  )
+
   readonly measures$ = this.entityType$.pipe(
-    filter(negate(isNil)), map(getEntityMeasures),
+    filter(negate(isNil)),
+    map(getEntityMeasures),
     map((measures) => measures.filter((property) => isNil(property.visible) || property.visible)),
     combineLatestWith(this.searchControl.valueChanges.pipe(startWith(''))),
-    map(([measures, text]) => filterProperty(measures, text)),
+    map(([measures, text]) => filterProperty(measures, text))
   )
   readonly notCalculations$ = this.measures$.pipe(map((measures) => measures.filter(negate(isCalculationProperty))))
   /**
    * Calculation measures exclude indicator measure
    */
   readonly measures = toSignal(this.measures$, { initialValue: [] })
-  readonly calculations = computed(() => this.measures().filter((property => isCalculationProperty(property) && negate(isIndicatorMeasureProperty)(property))))
+  readonly calculations = computed(() =>
+    this.measures().filter(
+      (property) => isCalculationProperty(property) && negate(isIndicatorMeasureProperty)(property)
+    )
+  )
   readonly measureControls = computed(() => this.calculations().filter(isMeasureControlProperty))
-  readonly isMeasure$ = this.property$.pipe(map((property) => property?.role === AggregationRole.measure || property?.name === C_MEASURES))
-  readonly isMeasure = computed(() => this.property()?.role === AggregationRole.measure || this.property()?.name === C_MEASURES)
+  readonly notCalculations = toSignal(this.notCalculations$, { initialValue: [] })
+  readonly isMeasure$ = this.property$.pipe(
+    map((property) => property?.role === AggregationRole.measure || property?.name === C_MEASURES)
+  )
+  readonly isMeasure = computed(
+    () => this.property()?.role === AggregationRole.measure || this.property()?.name === C_MEASURES
+  )
   /**
    * Calculation property exclude indicator measure property
    */
@@ -390,15 +429,93 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly isParameter = computed(() => isParameterProperty(this.property()))
   readonly isVariable = computed(() => isVariableProperty(this.property()))
   readonly isDimension = computed(() => this.property()?.role === AggregationRole.dimension)
-  readonly showDisplayAs = computed(() => this.isDimension() || this.isVariable() || this.isParameter() && (<ParameterProperty>this.property()).paramType === ParameterControlEnum.Dimensions)
+  readonly showDisplayAs = computed(
+    () =>
+      this.isDimension() ||
+      this.isVariable() ||
+      (this.isParameter() && (<ParameterProperty>this.property()).paramType === ParameterControlEnum.Dimensions)
+  )
 
-  readonly indicators$ = this.measures$.pipe(map(calculations => calculations?.filter(isIndicatorMeasureProperty) || []))
+  readonly indicators$ = this.measures$.pipe(
+    map((calculations) => calculations?.filter(isIndicatorMeasureProperty) || [])
+  )
+  readonly indicators = toSignal(this.indicators$, { initialValue: [] })
+  readonly parameters = toSignal(this.parameters$, { initialValue: [] })
+  readonly dimensions = toSignal(this.dimensions$, { initialValue: [] })
+  readonly propertyGroups = computed<ZardComboboxDeprecatedGroup[]>(() => {
+    const groups: ZardComboboxDeprecatedGroup[] = []
+
+    if (this.showDimension()) {
+      groups.push({
+        label: this.getTranslation('Ngm.Property.DIMENSIONS', { Default: 'Dimensions' }),
+        options:
+          this.dimensions()
+            ?.filter((property) => property?.visible !== false)
+            ?.map((property) => this.mapPropertyOption(property)) ?? []
+      })
+    }
+
+    if (this.showMeasure()) {
+      const options = this.calculations().map((property) => this.mapPropertyOption(property))
+      if (this.editable()) {
+        options.push({
+          value: this.createCalculationAction,
+          label: this.getTranslation('Ngm.Property.CREATE_CALCULATION', { Default: 'Create Calculation' })
+        })
+      }
+      groups.push({
+        label: this.getTranslation('Ngm.Property.CALCULATIONS', { Default: 'Calculations' }),
+        options
+      })
+    }
+
+    if (this.showMeasureControl()) {
+      const options = this.measureControls().map((property) => this.mapPropertyOption(property))
+      if (this.editable()) {
+        options.push({
+          value: this.createMeasureControlAction,
+          label: this.getTranslation('Ngm.Property.CREATE_MEASURE_CONTROL', { Default: 'Create Measure Control' })
+        })
+      }
+      groups.push({
+        label: this.getTranslation('Ngm.Property.MEASURE_CONTROLS', { Default: 'Measure Controls' }),
+        options
+      })
+    }
+
+    if (this.showMeasure()) {
+      groups.push({
+        label: this.getTranslation('Ngm.Property.MEASURES', { Default: 'Measures' }),
+        options: this.notCalculations().map((property) => this.mapPropertyOption(property))
+      })
+    }
+
+    if (this.showParameter()) {
+      groups.push({
+        label: this.getTranslation('Ngm.Property.PARAMETERS', { Default: 'Parameters' }),
+        options: this.parameters().map((property) => this.mapPropertyOption(property))
+      })
+    }
+
+    if (this.showMeasure()) {
+      groups.push({
+        label: this.getTranslation('Ngm.Property.INDICATORS', { Default: 'Indicators' }),
+        options: this.indicators().map((property) => this.mapPropertyOption(property))
+      })
+    }
+
+    return groups.filter((group) => group.options?.length)
+  })
 
   private readonly _members = toSignal(this.formGroup.get('members').valueChanges.pipe(startWith([])))
-  public readonly membersSignal = computed(() => this.isMeasure() ? getEntityMeasures(this.entityType()).map((property) => ({
-    ...property,
-    selected: this._members()?.some((member) => member === property.name)
-  })) : null )
+  public readonly membersSignal = computed(() =>
+    this.isMeasure()
+      ? getEntityMeasures(this.entityType()).map((property) => ({
+          ...property,
+          selected: this._members()?.some((member) => member === property.name)
+        }))
+      : null
+  )
 
   // readonly members$: Observable<Array<Property>> = this.measures$.pipe(
   //   switchMap((properties) => {
@@ -428,23 +545,26 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   //   shareReplay(1)
   // )
 
-  readonly label$ = combineLatest([this.entityType$, this.formGroup.valueChanges])
-    .pipe(
-      map(([entityType, dimension]) => {
-        if (isMeasure(dimension)) {
-          return {
-            icon: 'straighten',
-            label: !dimension.measure ? 'Measure Group' : 'Measure'
-          }
+  readonly label$ = combineLatest([this.entityType$, this.formGroup.valueChanges]).pipe(
+    map(([entityType, dimension]) => {
+      if (isMeasure(dimension)) {
+        return {
+          icon: 'straighten',
+          label: !dimension.measure ? 'Measure Group' : 'Measure'
         }
+      }
 
-        const {icon, label} = propertyIcon(getEntityProperty2(entityType, dimension))
-        return (icon || label) ? {icon, label} : dimension.measure ? propertyIcon(getEntityProperty(entityType, dimension.measure)) : {
-          icon,
-          label
-        }
-      })
-    )
+      const { icon, label } = propertyIcon(getEntityProperty2(entityType, dimension))
+      return icon || label
+        ? { icon, label }
+        : dimension.measure
+          ? propertyIcon(getEntityProperty(entityType, dimension.measure))
+          : {
+              icon,
+              label
+            }
+    })
+  )
 
   private readonly selectTrigger$ = combineLatest([
     this.property$.pipe(startWith(null)),
@@ -453,14 +573,13 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     this.formGroup.get('members').valueChanges.pipe(startWith([])),
     this.formGroup.get('exclude').valueChanges.pipe(startWith(null)),
     this.formGroup.get('parameter').valueChanges.pipe(startWith(null)),
-    this.formGroup.get('caption').valueChanges.pipe(startWith(null)),
-
+    this.formGroup.get('caption').valueChanges.pipe(startWith(null))
   ]).pipe(
     map(([dimension, hierarchy, level, members, exclude, parameter, caption]) => {
-      let property = level ?? hierarchy ?? dimension ?? {} as Property
-      property = {...property}
+      let property = level ?? hierarchy ?? dimension ?? ({} as Property)
+      property = { ...property }
       const dimLabel = hierarchy?.caption || dimension?.caption || dimension?.name
-      property.caption = (dimLabel ?? '') + (level?.caption ? '/' + level.caption : (level?.name ? '/'+ level.name : ''))
+      property.caption = (dimLabel ?? '') + (level?.caption ? '/' + level.caption : level?.name ? '/' + level.name : '')
 
       if (caption) {
         property.caption = caption
@@ -471,9 +590,9 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
       }
 
       if (members?.length) {
-        property.caption = `${property.caption}:${exclude?' - ':''}${isString(members[0]) ? members[0] : members[0].caption || members[0].key}`
+        property.caption = `${property.caption}:${exclude ? ' - ' : ''}${isString(members[0]) ? members[0] : members[0].caption || members[0].key}`
         if (members.length > 1) {
-          property.caption += `(+${members.length - 1})`  
+          property.caption += `(+${members.length - 1})`
         }
       }
       return property
@@ -487,7 +606,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set caption(value) {
     this.formGroup.patchValue({
-      caption: value,
+      caption: value
     })
   }
   get dimensionControl() {
@@ -503,7 +622,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set hierarchy(value) {
     this.formGroup.patchValue({
-      hierarchy: value,
+      hierarchy: value
     })
   }
 
@@ -512,7 +631,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set level(value) {
     this.formGroup.patchValue({
-      level: value,
+      level: value
     })
   }
 
@@ -530,7 +649,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set members(value) {
     this.formGroup.patchValue({
-      members: value,
+      members: value
     })
   }
 
@@ -539,7 +658,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set properties(value) {
     this.formGroup.patchValue({
-      properties: value,
+      properties: value
     })
   }
 
@@ -557,7 +676,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set displayHierarchy(value) {
     this.formGroup.patchValue({
-      displayHierarchy: value,
+      displayHierarchy: value
     })
   }
 
@@ -566,7 +685,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set displayBehaviour(value) {
     this.formGroup.patchValue({
-      displayBehaviour: value,
+      displayBehaviour: value
     })
   }
 
@@ -575,7 +694,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set unbookedData(value) {
     this.formGroup.patchValue({
-      unbookedData: value,
+      unbookedData: value
     })
   }
 
@@ -584,7 +703,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
   set zeroSuppression(value) {
     this.formGroup.patchValue({
-      zeroSuppression: value,
+      zeroSuppression: value
     })
   }
 
@@ -614,6 +733,18 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly showOrder = computed(() => this.capacities()?.includes(PropertyCapacity.Order))
 
   readonly showMore = signal(false)
+  readonly propertiesOptions = computed(() =>
+    mergeSelectedValues(
+      (this.entityProperties() ?? [])
+        .filter(isVisible)
+        .map((property) => ({
+          ...property,
+          value: property.name,
+          caption: property.caption ?? property.name
+        })),
+      this.properties ?? []
+    )
+  )
 
   private onChange: any
   private onTouched: any
@@ -624,44 +755,57 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     return this.dimensionError() || this.entityTypeError()
   })
 
-  readonly #dimensionEffect = effect(() => {
-    const dimension = this.dimension()
-    const properties = this.entityProperties()
-    if (dimension && properties) {
-      const property = properties.find((prop) => prop.name === dimension)
-      if (property) {
-        this.property$.next(property)
-        this.dimensionError.set('')
-      } else {
-        const entityType = this._entityType()
-        this.dimensionError.set(this.getTranslation('Ngm.Property.DimensionNotFound', {
-          dimension,
-          cube: entityType?.name || 'unknown',
-          Default: `Dimension '${dimension}' not found in cube '${entityType?.name}'`
-        }))
+  readonly #dimensionEffect = effect(
+    () => {
+      const dimension = this.dimension()
+      const properties = this.entityProperties()
+      if (dimension && properties) {
+        const property = properties.find((prop) => prop.name === dimension)
+        if (property) {
+          this.property$.next(property)
+          this.dimensionError.set('')
+        } else {
+          const entityType = this._entityType()
+          this.dimensionError.set(
+            this.getTranslation('Ngm.Property.DimensionNotFound', {
+              dimension,
+              cube: entityType?.name || 'unknown',
+              Default: `Dimension '${dimension}' not found in cube '${entityType?.name}'`
+            })
+          )
+        }
       }
     }
-  }, { allowSignalWrites: true })
-    
+  )
+
   /**
    * When dimension changed
    */
-  private keySub = combineLatest([
-    this.entityType$,
-    this.keyControl.valueChanges.pipe(distinctUntilChanged())
-    ]).pipe(takeUntilDestroyed()).subscribe(([entityType, dimension]) => {
+  private keySub = combineLatest([this.entityType$, this.keyControl.valueChanges.pipe(distinctUntilChanged())])
+    .pipe(takeUntilDestroyed())
+    .subscribe(([entityType, dimension]) => {
+      if (dimension === this.createCalculationAction) {
+        this.keyControl.setValue(this.level || this.hierarchy || this.dimension(), { emitEvent: false })
+        this.onCreateCalculation()
+        return
+      }
+      if (dimension === this.createMeasureControlAction) {
+        this.keyControl.setValue(this.level || this.hierarchy || this.dimension(), { emitEvent: false })
+        this.onCreateCalculation(undefined, CalculationType.MeasureControl)
+        return
+      }
       const property = getEntityProperty2<PropertyDimension | PropertyMeasure>(entityType, dimension)
       if (isPropertyMeasure(property)) {
         this.formGroup.setValue({
           ...this._formValue,
-          dimension,
+          dimension
         } as any)
       } else {
         let hierarchy = null
         let level = null
-        if(isPropertyDimension(property)) {
+        if (isPropertyDimension(property)) {
           const hierarchyName = property.defaultHierarchy || dimension
-          let hierarchyProperty = getEntityHierarchy(entityType, { dimension, hierarchy: hierarchyName})
+          let hierarchyProperty = getEntityHierarchy(entityType, { dimension, hierarchy: hierarchyName })
           if (!hierarchyProperty) {
             hierarchyProperty = property.hierarchies[0]
           }
@@ -686,19 +830,22 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
         } as any)
       }
     })
-  private hierarchySub = this.hierarchyControl.valueChanges.pipe(distinctUntilChanged(), takeUntilDestroyed(this._destroyRef))
+  private hierarchySub = this.hierarchyControl.valueChanges
+    .pipe(distinctUntilChanged(), takeUntilDestroyed(this._destroyRef))
     .subscribe(() => {
       this.formGroup.patchValue({
-        level: null,
+        level: null
       })
     })
 
   constructor() {
-    effect(() => {
-      if (!isNil(this.disabled())) {
-        this._disabled.set(this.disabled())
+    effect(
+      () => {
+        if (!isNil(this.disabled())) {
+          this._disabled.set(this.disabled())
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   writeValue(obj: any): void {
@@ -707,9 +854,9 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     if (obj && !isEqual(this.#value, this.formGroup.value)) {
       this.patchValue(this.#value)
       if (isMeasure(obj)) {
-        this.keyControl.setValue(obj.measure, {emitEvent: false})
+        this.keyControl.setValue(obj.measure, { emitEvent: false })
       } else if (isDimension(obj)) {
-        this.keyControl.setValue(obj.level || obj.hierarchy || obj.dimension, {emitEvent: false})
+        this.keyControl.setValue(obj.level || obj.hierarchy || obj.dimension, { emitEvent: false })
       }
     }
   }
@@ -731,51 +878,53 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     this.patchValue(this.#value)
 
     // subscribe formGroup to export value
-    this.formGroup.valueChanges.pipe(
-      debounceTime(100),
-      // Update value when property is initialized
-      filter(() => !!this.property$.value),
-      distinctUntilChanged(isEqual),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe((value) => {
-      if (this.property$.value?.role === AggregationRole.measure) {
-        value = {
-          ...value,
-          dimension: C_MEASURES,
-          measure: value.dimension
-        } as Dimension
-      } else {
-        value = {
-          ...value,
-          hierarchy: value.hierarchy ?? value.dimension
+    this.formGroup.valueChanges
+      .pipe(
+        debounceTime(100),
+        // Update value when property is initialized
+        filter(() => !!this.property$.value),
+        distinctUntilChanged(isEqual),
+        takeUntilDestroyed(this._destroyRef)
+      )
+      .subscribe((value) => {
+        if (this.property$.value?.role === AggregationRole.measure) {
+          value = {
+            ...value,
+            dimension: C_MEASURES,
+            measure: value.dimension
+          } as Dimension
+        } else {
+          value = {
+            ...value,
+            hierarchy: value.hierarchy ?? value.dimension
+          }
         }
-      }
 
-      this.valueChange.emit(value)
-      this.onChange?.(value)
-    })
+        this.valueChange.emit(value)
+        this.onChange?.(value)
+      })
   }
 
   patchValue(value: string | Measure | Dimension) {
     if (isString(value)) {
       this.formGroup.patchValue({
-        dimension: value,
+        dimension: value
       })
-    } else if(isMeasure(value)) {
+    } else if (isMeasure(value)) {
       if (value.measure) {
         // 借用 dimension 属性表达 measure property
         // Firstly, trigger dimension value init
         this.formGroup.patchValue({
-          dimension: value.measure,
+          dimension: value.measure
         })
         // Then, patch measure properties
         this.formGroup.patchValue({
           ...value,
           dimension: value.measure
         })
-      }else if (value.dimension === C_MEASURES) {
+      } else if (value.dimension === C_MEASURES) {
         this.formGroup.patchValue({
-          ...value,
+          ...value
         })
       }
     } else {
@@ -804,6 +953,13 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     })
   }
 
+  private mapPropertyOption(property: Property): ZardComboboxDeprecatedOption {
+    return {
+      value: property.name,
+      label: property.caption || property.name
+    }
+  }
+
   toggleMember(name: string, checked: boolean) {
     if (checked) {
       this.members = uniq([...(this.members || []), name])
@@ -815,36 +971,38 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   selectMembers(event: Event) {
     event.stopPropagation()
 
-    this.#dialog.open<ISlicer>(NgmValueHelpComponent, {
-      viewContainerRef: this._viewContainerRef,
-      disableClose: true,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-card',
-      data: {
-        dsCoreService: this.dsCoreService(),
-        dataSettings: this.dataSettings(),
-        dimension: cloneDeep(omit(this.formGroup.value, 'level')),
-        slicer: {
-          exclude: this.exclude,
-          members: this.formGroup.value.members
-        },
-        options: {
-          selectionType: FilterSelectionType.Multiple,
-          searchable: true,
-          initialLevel: 1,
-        } as ControlOptions
-      }
-    }).closed.subscribe((result) => {
-      if (result) {
-        this.members = result.members
-        this.exclude = result.exclude
-      }
-    })
+    this.#dialog
+      .open<ISlicer>(NgmValueHelpComponent, {
+        viewContainerRef: this._viewContainerRef,
+        disableClose: true,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-card',
+        data: {
+          dsCoreService: this.dsCoreService(),
+          dataSettings: this.dataSettings(),
+          dimension: cloneDeep(omit(this.formGroup.value, 'level')),
+          slicer: {
+            exclude: this.exclude,
+            members: this.formGroup.value.members
+          },
+          options: {
+            selectionType: FilterSelectionType.Multiple,
+            searchable: true,
+            initialLevel: 1
+          } as ControlOptions
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          this.members = result.members
+          this.exclude = result.exclude
+        }
+      })
   }
 
-  async onCreateCalculation(event: Event, calculationType?: CalculationType) {
-    event.preventDefault()
-    event.stopPropagation()
+  async onCreateCalculation(event?: Event, calculationType?: CalculationType) {
+    event?.preventDefault()
+    event?.stopPropagation()
 
     const data = {
       dataSettings: this.dataSettings(),
@@ -874,7 +1032,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
       dataSettings: this.dataSettings(),
       entityType: this.entityType(),
       value: calculationProperty,
-      syntax: Syntax.MDX,
+      syntax: Syntax.MDX
     }
     this.coreService.openCalculation(data).subscribe((property) => {
       if (property) {
@@ -885,10 +1043,13 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
 
   async openFormatting(event) {
-    const result = await firstValueFrom(this._dialog.open(NgmFormattingComponent, {
-        data: this.formGroup.get('formatting').value
-      })
-      .afterClosed())
+    const result = await firstValueFrom(
+      this._dialog
+        .open(NgmFormattingComponent, {
+          data: this.formGroup.get('formatting').value
+        })
+        .afterClosed()
+    )
 
     if (result) {
       this.formGroup.get('formatting').setValue(result)
@@ -902,7 +1063,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   async createCalcInputControl(event) {
     event.preventDefault()
     event.stopPropagation()
-    
+
     // // 暂时使用 name 标识 Dimension 需要创建相应的 Input Control， 后续可改为直接进行创建更详细的 Calculation Input Control
     // const result = await firstValueFrom(this._dialog.open(ConfirmUniqueComponent).afterClosed())
     // if (result) {
@@ -911,8 +1072,8 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
 
   async openCreateParameter() {
-    const result = await firstValueFrom(this.#dialog
-      .open(NgmParameterCreateComponent, {
+    const result = await firstValueFrom(
+      this.#dialog.open(NgmParameterCreateComponent, {
         viewContainerRef: this._viewContainerRef,
         data: {
           dsCoreService: this.dsCoreService(),
@@ -921,8 +1082,8 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
           // coreService: this.coreService(),
           dimension: pick(this.formGroup.value, 'dimension', 'hierarchy')
         }
-      })
-      .closed)
+      }).closed
+    )
 
     if (result) {
       console.log(result)
@@ -930,8 +1091,8 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
 
   async openEditParameter(name?: string) {
-    const result = await firstValueFrom(this.#dialog
-      .open(NgmParameterCreateComponent, {
+    const result = await firstValueFrom(
+      this.#dialog.open(NgmParameterCreateComponent, {
         viewContainerRef: this._viewContainerRef,
         data: {
           dsCoreService: this.dsCoreService(),
@@ -940,8 +1101,8 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
           // coreService: this.coreService(),
           name: name ?? this.formGroup.value.dimension
         }
-      })
-      .closed)
+      }).closed
+    )
 
     if (result) {
       console.log(result)
@@ -949,13 +1110,13 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
 
   focus(options?: FocusOptions): void {
-    this._propertySelect?.focus()
+    // z-combobox-deprecated currently doesn't expose a public focus method.
   }
 
   /**
    * Prevent space keydown event to trigger select panel open when searching
-   * 
-   * @param event 
+   *
+   * @param event
    */
   onSearchKeydown(event: KeyboardEvent) {
     if (event.code === 'Space') {
@@ -972,9 +1133,7 @@ export function filterProperty(properties: Property[], text: string) {
   text = text?.trim().toLowerCase()
   if (text) {
     return properties?.filter(
-      (property) =>
-        property.caption?.toLowerCase().includes(text) ||
-        property.name.toLowerCase().includes(text)
+      (property) => property.caption?.toLowerCase().includes(text) || property.name.toLowerCase().includes(text)
     )
   }
   return properties

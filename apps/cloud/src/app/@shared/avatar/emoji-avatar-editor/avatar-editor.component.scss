@@ -1,6 +1,4 @@
-.active[role='tabpanel'] {
-  display: block !important;
-}
+@reference "../../../../styles/tailwind-reference.css";
 
 .emoji-style-preview.active {
   @apply ring-gray-300;

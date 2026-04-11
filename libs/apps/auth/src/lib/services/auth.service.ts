@@ -4,16 +4,13 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  */
 import { Inject, Injectable } from '@angular/core';
-
 import { Observable, of as observableOf } from 'rxjs';
 import { switchMap, map } from 'rxjs/operators';
 import { PAC_AUTH_STRATEGIES } from '../auth.options';
-
 import { PacAuthStrategy } from '../strategies/auth-strategy';
 import { PacAuthResult } from './auth-result';
 import { PacAuthToken } from './token/token';
 import { PacTokenService } from './token/token.service';
-
 
 /**
  * Common authentication service.

@@ -3,13 +3,13 @@
     <emoji-avatar [avatar]="toolset().avatar" large class="rounded-xl shadow-sm overflow-hidden" />
   </div>
   <div class="grow w-0 py-[1px]">
-    <div class="flex items-center text-base leading-5 font-semibold text-gray-800">
+    <div class="flex items-center text-base leading-5 font-semibold text-text-primary">
       <div class="truncate" [title]="toolset().name"
         [ngmHighlight]="highlight()"
         [content]="toolset().name"
       >{{toolset().name}}</div>
     </div>
-    <div class="flex items-center text-xs leading-[18px] text-gray-500 font-medium">
+    <div class="flex items-center text-xs leading-[18px] text-text-tertiary font-medium">
       <div class="truncate">{{'PAC.KEY_WORDS.By' | translate: {Default: 'By'} }}&nbsp;{{toolset().createdBy | user}}</div>
     </div>
   </div>
@@ -17,7 +17,7 @@
 
 @if (!inline()) {
   <div
-    class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-gray-500 line-clamp-3 whitespace-pre-wrap group-hover:line-clamp-2 group-hover:max-h-[36px]"
+    class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-text-tertiary line-clamp-3 whitespace-pre-wrap group-hover:line-clamp-2 group-hover:max-h-[36px]"
     [title]="toolset().description | i18n"
     [ngmHighlight]="highlight()"
     [content]="toolset().description | i18n"
@@ -26,7 +26,7 @@
   </div>
   <div class="flex items-center shrink-0 mt-1 pt-1 pl-[14px] pr-[6px] pb-[6px] h-[26px]">
   @if (tags()?.length) {
-    <div class="relative w-full flex items-center gap-1 rounded-md text-gray-500" [title]="tagsTitle()">
+    <div class="relative w-full flex items-center gap-1 rounded-md text-text-tertiary" [title]="tagsTitle()">
       <svg
         width="14"
         height="14"
@@ -61,12 +61,12 @@
 
 <div class="absolute right-0 top-0 flex pl-[13px] ">
   <svg width="13" height="20" viewBox="0 0 13 20" fill="none"
-    xmlns="http://www.w3.org/2000/svg" class="text-gray-50"
+    xmlns="http://www.w3.org/2000/svg" class="text-components-input-bg-normal"
   >
     <path id="Shape" d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
       fill="currentColor"></path>
   </svg>
-  <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-gray-50 pr-2 leading-6 text-text-tertiary"
+  <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-background-default-subtle pr-2 leading-6 text-text-tertiary"
   >{{eXpertToolsetCategoryEnum.MCP == toolset().category ? 'MCP/' + toolset().type : (toolset().category || 'Tool')}}</div>
 </div>
 

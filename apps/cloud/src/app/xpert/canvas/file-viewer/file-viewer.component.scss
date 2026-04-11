@@ -1,7 +1,8 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply flex flex-col overflow-hidden;
 }
 
 .button-toggle.active {
-  @apply bg-white text-text-primary shadow-sm;
+  @apply bg-components-card-bg text-text-primary shadow-sm;
 }

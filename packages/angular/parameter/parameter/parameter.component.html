@@ -1,16 +1,16 @@
 @switch (paramType) {
   @case(eCubeParameterEnum.Input) {
     @if (options()?.slider) {
-      <mat-slider class="w-full"
+      <z-slider class="w-full"
         [step]="options()?.sliderStep || 1"
         [min]="options()?.sliderMin || 0"
         [max]="options()?.sliderMax || 100"
-        [discrete]="options()?.showThumbLabel"
+        [showValueLabel]="options()?.showThumbLabel"
         [showTickMarks]="options()?.showTickMarks"
-        [color]="options()?.sliderColor"
-        >
-        <input matSliderThumb [ngModel]="parameterValue()" (dragEnd)="onSlicerEnd($event)">
-      </mat-slider>
+        [ngModel]="parameterValue()"
+        (changeEnd)="onSlicerEnd($event)"
+      >
+      </z-slider>
     } @else {
       <ngm-input class="block w-full px-2" [ngModel]="parameterValue()" [type]="parameter().dataType ?? 'string'"
         (blur)="onBlur($event)"
@@ -32,36 +32,18 @@
     </ul>
   }
   @case(eCubeParameterEnum.Dimension) {
-    <!-- For now, use the simplified version: display dimension members in a flat format -->
-    @if (multiple) {
-      <mat-selection-list class="flex-1"
-        [multiple]="true"
-        [displayDensity]="appearance()?.displayDensity"
-        [compareWith]="compareWith"
-        [ngModel]="parameterValue()"
-        (ngModelChange)="updateParameterValue($event)"
-      >
-        @for (availableMember of availableMembers$ | async; track availableMember.key) {
-          <mat-list-option [value]="availableMember">
-            <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
-          </mat-list-option>
-        }
-      </mat-selection-list>
-    }@else {
-      <mat-selection-list class="flex-1"
-        [multiple]="false"
-        [displayDensity]="appearance()?.displayDensity"
-        [compareWith]="compareWith"
-        [ngModel]="parameterValue()"
-        (ngModelChange)="updateParameterValue($event)"
-      >
-        @for (availableMember of availableMembers$ | async; track availableMember.key) {
-          <mat-list-option [value]="availableMember">
-            <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
-          </mat-list-option>
-        }
-      </mat-selection-list>
-    }
+    <ul class="flex-1 ngm-cdk-listbox" cdkListbox
+      [cdkListboxMultiple]="multiple"
+      [cdkListboxCompareWith]="compareWith"
+      [cdkListboxValue]="selectedDimensionMembers()"
+      (cdkListboxValueChange)="updateParameterValue($event.value)"
+    >
+      @for (availableMember of listboxAvailableMembers(); track availableMember.key) {
+        <li class="ngm-cdk-option rounded-lg" [cdkOption]="availableMember">
+          <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
+        </li>
+      }
+    </ul>
   }
 }
 

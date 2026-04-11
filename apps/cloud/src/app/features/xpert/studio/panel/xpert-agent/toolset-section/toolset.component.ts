@@ -1,19 +1,18 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { TXpertTeamNode } from '@metad/contracts'
+import { TXpertTeamNode } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from '../../../../../../@shared/avatar/'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioPanelAgentComponent } from '../agent.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-toolset-section',
   templateUrl: './toolset.component.html',
   styleUrls: ['./toolset.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, EmojiAvatarComponent]
+  imports: [TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent]
 })
 export class XpertStudioPanelToolsetSectionComponent {
   readonly elementRef = inject(ElementRef)

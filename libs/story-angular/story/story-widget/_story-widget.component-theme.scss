@@ -1,9 +1,9 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 
 @mixin ngm-story-widget($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -28,8 +28,8 @@
     /* 是 card 组件 */
     .ngm-story-widget__content {
       &.ngm-story-widget__card, &.ngm-story-widget__table {
-        // background: mat.get-color-from-palette($background, card);
-        // color: mat.get-color-from-palette($foreground, text);
+        // background: themeCompat.m2-get-color-from-palette($background, card);
+        // color: themeCompat.m2-get-color-from-palette($foreground, text);
         overflow: hidden;
         border-radius: 5px;
         // box-shadow: rgb(99 99 99 / 20%) 0px 2px 8px 0px;
@@ -48,7 +48,7 @@
     &.ngm-story-widget__fullscreen {
       height: 100%;
       .ngm-story-widget__content {
-        background: mat.get-color-from-palette($background, card);
+        background: themeCompat.m2-get-color-from-palette($background, card);
       }
     }
 

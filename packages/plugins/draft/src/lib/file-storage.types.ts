@@ -1,4 +1,4 @@
-import { JsonSchemaObjectType } from '@metad/contracts'
+import { JsonSchemaObjectType } from '@xpert-ai/contracts'
 import { z } from 'zod'
 
 export const DRAFT_FILE_STORAGE_PLUGIN_NAME = '@xpert-ai/plugin-draft'

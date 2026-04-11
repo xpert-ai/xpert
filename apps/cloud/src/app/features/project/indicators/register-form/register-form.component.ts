@@ -10,16 +10,13 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
-import { BusinessAreasService, NgmSemanticModel } from '@metad/cloud/state'
-import { CommandDialogComponent } from '@metad/copilot-angular'
-import { nonBlank, nonNullable } from '@metad/core'
-import { NgmHierarchySelectComponent, NgmMatSelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
-import { DensityDirective, ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
-import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
+import { BusinessAreasService, NgmSemanticModel } from '@xpert-ai/cloud/state'
+import { nonBlank, nonNullable } from '@xpert-ai/core'
+import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent } from '@xpert-ai/ocap-angular/common'
+import { DensityDirective, ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculatedMeasureComponent } from '@xpert-ai/ocap-angular/entity'
+import { NgmSelectionModule, SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import {
   ISlicer,
   Indicator,
@@ -29,9 +26,10 @@ import {
   getEntityMeasures,
   isEntityType,
   isSemanticCalendar
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
+import { format, parseISO } from 'date-fns'
 import { isEqual } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import {
@@ -49,17 +47,20 @@ import {
   tap
 } from 'rxjs'
 import { ProjectService } from '../../project.service'
-import { injectIndicatorFormulaCommand } from '../../copilot'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatRadioModule } from '@angular/material/radio'
-import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatInputModule } from '@angular/material/input'
-import { MatSelectModule } from '@angular/material/select'
-import { MatCheckboxModule } from '@angular/material/checkbox'
+
+import {
+  ZardButtonComponent,
+  ZardDatePickerComponent,
+  ZardDialogService,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shared/indicator/'
+import { XpTreeSelectComponent } from '../../../../@shared/form-fields'
 
 /**
  * @deprecated use {@link XpIndicatorRegisterFormComponent} instead
@@ -74,18 +75,16 @@ import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shar
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltipModule,
-    MatRadioModule,
-    MatFormFieldModule,
-    MatDatepickerModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCheckboxModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
+    ...ZardFormImports,
+    ZardDatePickerComponent,
+    ZardInputDirective,
+    ZardCheckboxComponent,
     DensityDirective,
-    NgmMatSelectComponent,
-    NgmTreeSelectComponent,
+    NgmAdvancedSelectComponent,
+    XpTreeSelectComponent,
     TagEditorComponent,
     NgmHierarchySelectComponent,
     NgmCalculatedMeasureComponent,
@@ -105,7 +104,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   SlicersCapacity = SlicersCapacity
   eTagCategoryEnum = TagCategoryEnum
   AGGREGATORS = INDICATOR_AGGREGATORS
-  appearance: MatFormFieldAppearance = 'fill'
+  appearance: NgmFieldAppearance = 'fill'
 
   readonly projectService = inject(ProjectService)
   readonly dsCoreService = inject(NgmDSCoreService)
@@ -114,7 +113,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   /**
    * @default use Dialog in cdk
    */
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
 
   @Input() certifications: ISelectOption[]
   readonly models = input<ISemanticModel[]>()
@@ -149,6 +148,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
 
     tags: new FormControl<ITag[]>([])
   })
+  readonly validityControl = new FormControl<Date | null>(null)
 
   get id() {
     return this.formGroup.get('id').value
@@ -233,7 +233,9 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   public readonly measures$ = this.entityType$.pipe(
     map(getEntityMeasures),
     // filter myself
-    map((measures) => measures.filter((item) => item.name !== this.indicator().code && item.name !== this.indicator().name)),
+    map((measures) =>
+      measures.filter((item) => item.name !== this.indicator().code && item.name !== this.indicator().name)
+    ),
     map((items) => items.map((item) => ({ key: item.name, caption: item.caption })))
   )
   public readonly dimensions$ = this.entityType$.pipe(
@@ -269,13 +271,6 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
 
   /**
   |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  #formulaCommand = injectIndicatorFormulaCommand()
-
-  /**
-  |--------------------------------------------------------------------------
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
@@ -284,12 +279,34 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
     .subscribe((value) => this._onChange?.(value))
 
   constructor() {
+    this.formGroup
+      .get('validity')
+      .valueChanges.pipe(startWith(this.formGroup.get('validity').value), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((value) => {
+        if (!value) {
+          this.validityControl.setValue(null, { emitEvent: false })
+          return
+        }
+
+        const date = parseISO(value)
+        this.validityControl.setValue(Number.isNaN(date.getTime()) ? null : date, { emitEvent: false })
+      })
+
+    this.validityControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.formGroup.get('validity').setValue(value ? format(value, 'yyyy-MM-dd') : null)
+    })
+
     effect(
       () => {
         const indicator = this.indicator()
         const semanticModel = this.semanticModel()
         if (semanticModel && indicator) {
-          const _indicator = {...indicator, visible: false, name: indicator.name?.trim() || '', code: indicator.code?.trim() || ''}
+          const _indicator = {
+            ...indicator,
+            visible: false,
+            name: indicator.name?.trim() || '',
+            code: indicator.code?.trim() || ''
+          }
           const indicators = [...semanticModel.indicators]
           const index = indicators.findIndex((item) => item.id === _indicator.id)
           if (index >= 0) {
@@ -309,9 +326,8 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
           )
           this.dataSourceName$.next(dataSource.key)
         }
-      },
-      { allowSignalWrites: true }
-    )      
+      }
+    )
   }
 
   writeValue(obj: any): void {
@@ -335,15 +351,4 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
     this.showFormula.update((state) => !state)
   }
 
-  aiFormula() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['iformula']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
-  }
 }

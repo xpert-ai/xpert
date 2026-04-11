@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IStory, IStoryPoint, IStoryWidget, Visibility } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IStory, IStoryPoint, IStoryWidget, Visibility } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { Story } from '../story/story.entity'
@@ -60,6 +60,6 @@ export class StoryWidget extends TenantOrganizationBaseEntity implements IStoryW
 	options?: any
 
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	visibility?: Visibility
 }

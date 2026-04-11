@@ -1,18 +1,18 @@
 import { Component, Signal, ViewChild, ViewContainerRef, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   AbstractStoryWidget,
   StoryWidgetState,
   StoryWidgetStyling,
   WidgetMenuType,
   nonBlank
-} from '@metad/core'
-import { NgmMemberTreeComponent } from '@metad/ocap-angular/controls'
-import { NgmDSCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+} from '@xpert-ai/core'
+import { NgmMemberTreeComponent } from '@xpert-ai/ocap-angular/controls'
+import { NgmDSCoreService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import {
   AggregationRole,
   DataSettings,
@@ -35,8 +35,8 @@ import {
   isEntityType,
   isMeasureControlProperty,
   isParameterProperty
-} from '@metad/ocap-core'
-import { FilterControlType, NxStoryService } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { FilterControlType, NxStoryService } from '@xpert-ai/story/core'
 import { NGXLogger } from 'ngx-logger'
 import { combineLatest, firstValueFrom, timer } from 'rxjs'
 import {
@@ -67,6 +67,7 @@ enum InputControlMenus {
 }
 
 @Component({
+  standalone: false,
   selector: 'pac-input-control',
   templateUrl: './input-control.component.html',
   styleUrls: ['./input-control.component.scss'],
@@ -83,7 +84,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
 
   private readonly dsCoreService = inject(NgmDSCoreService)
   private readonly storyService = inject(NxStoryService)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
   private readonly filterBarService = inject(NgmSmartFilterBarService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
@@ -288,8 +289,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
         if (this.measureControlProperty()?.value && !this.measureControl()) {
           this.measureControl.set(this.measureControlProperty()?.value as string)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -297,8 +297,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
         if (this.measureControl()) {
           this.onMeasureSelectChange(this.measureControl())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -320,8 +319,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
         } else {
           this.error.set(null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -360,8 +358,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
             type: WidgetMenuType.Action
           }
         ])
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -373,8 +370,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
             members: defaultMembers ? structuredClone(defaultMembers) : []
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

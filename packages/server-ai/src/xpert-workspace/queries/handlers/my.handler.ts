@@ -1,4 +1,4 @@
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -34,16 +34,20 @@ export class MyXpertWorkspaceHandler implements IQueryHandler<MyXpertWorkspaceQu
 
 		const qb = _baseQb.leftJoinAndSelect('workspace.members', 'user')
 			.where('workspace.tenantId = :tenantId')
-			.andWhere('workspace.organizationId = :organizationId')
 			.andWhere(new Brackets((qb) => {
 				qb.where('workspace.ownerId = :userId')
 				qb.orWhere('user.id = :userId')
 			}))
 			.setParameters({
 				tenantId,
-				organizationId,
 				userId
 			})
+
+		if (organizationId) {
+			qb.andWhere('workspace.organizationId = :organizationId', { organizationId })
+		} else {
+			qb.andWhere('workspace.organizationId IS NULL')
+		}
 
 		const [items, total] = await qb.getManyAndCount()
 		return {

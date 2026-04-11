@@ -1,25 +1,24 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
-import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { NgmInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { assign, omit } from 'lodash-es'
-import { map, startWith } from 'rxjs'
-import { injectApiBaseUrl, injectToastr, IntegrationService, toFormlySchema } from '../../../@core'
-import { getErrorMessage, IIntegration, INTEGRATION_PROVIDERS } from '../../../@core/types'
+import { startWith } from 'rxjs'
+import { injectToastr, IntegrationService, toFormlySchema } from '../../../@core'
+import { getErrorMessage, IIntegration } from '../../../@core/types'
 import { EmojiAvatarComponent } from '../../avatar'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkListboxModule,
@@ -27,11 +26,11 @@ import { EmojiAvatarComponent } from '../../avatar'
     TranslateModule,
     ContentLoaderModule,
     FormlyModule,
-    MatInputModule,
+    ZardInputDirective,
     EmojiAvatarComponent,
     NgmInputComponent,
     NgmSpinComponent
-  ],
+],
   selector: 'pac-integration-form',
   templateUrl: 'integration.component.html',
   styleUrls: ['integration.component.scss']
@@ -39,10 +38,10 @@ import { EmojiAvatarComponent } from '../../avatar'
 export class IntegrationFormComponent {
   readonly integrationService = inject(IntegrationService)
   readonly #toastr = injectToastr()
-  readonly apiBaseUrl = injectApiBaseUrl()
   readonly i18n = new NgmI18nPipe()
 
   readonly integration = model<IIntegration>()
+  readonly #providers = toSignal(this.integrationService.getProviders(), { initialValue: [] })
 
   readonly formGroup = new FormGroup({
     id: new FormControl(null),
@@ -61,18 +60,10 @@ export class IntegrationFormComponent {
   optionsModel = {}
   formOptions = {}
 
-  readonly providers = signal(
-    Object.keys(INTEGRATION_PROVIDERS).map((name) => ({
-      key: name,
-      caption: this.i18n.transform(INTEGRATION_PROVIDERS[name].label)
-    }))
-  )
   readonly provider = this.formGroup.get('provider')
-  readonly integrationProvider = toSignal(
-    this.provider.valueChanges.pipe(
-      startWith(this.provider.value),
-      map((provider) => INTEGRATION_PROVIDERS[provider])
-    )
+  readonly providerName = toSignal(this.provider.valueChanges.pipe(startWith(this.provider.value)))
+  readonly integrationProvider = computed(() =>
+    this.#providers().find((item) => item.name === this.providerName())
   )
 
   readonly schema = computed(() => {
@@ -88,9 +79,15 @@ export class IntegrationFormComponent {
       : null
   })
 
-  readonly webhookUrl = computed(() =>
-    this.integration() ? this.integrationProvider()?.webhookUrl(this.integration(), this.apiBaseUrl) : null
-  )
+  readonly webhookUrl = computed(() => {
+    const options = this.formGroup.get('options')?.value
+    if (!options || typeof options !== 'object' || Array.isArray(options) || !('webhookUrl' in options)) {
+      return null
+    }
+
+    const candidate = Reflect.get(options, 'webhookUrl')
+    return typeof candidate === 'string' && candidate.length > 0 ? candidate : null
+  })
 
   readonly loading = signal(false)
 
@@ -106,17 +103,8 @@ export class IntegrationFormComponent {
             this.formGroup.markAsDirty()
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
-  }
-
-  compareId(a: IIntegration, b: IIntegration): boolean {
-    return a?.id === b?.id
-  }
-
-  getProvider(integration?: IIntegration) {
-    return INTEGRATION_PROVIDERS[integration.name]
   }
 
   onModelChange(model) {

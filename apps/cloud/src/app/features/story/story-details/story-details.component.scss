@@ -1,3 +1,4 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   display: flex;
   flex-direction: row;
@@ -6,5 +7,5 @@
 }
 
 .pac-story-details__thumbnail-remove {
-  @apply absolute bg-gray-500/80 text-white;
+  @apply absolute bg-background-default-subtle/80 text-white;
 }

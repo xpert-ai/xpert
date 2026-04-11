@@ -14,7 +14,7 @@ import {
   RolesEnum
 } from '../../../../@core/types'
 import { TranslateService } from '@ngx-translate/core'
-import { AuthService, InviteService } from '@metad/cloud/state'
+import { AuthService, InviteService } from '@xpert-ai/cloud/state'
 import { firstValueFrom } from 'rxjs'
 import { filter, tap } from 'rxjs/operators'
 import { EmailValidator } from '../../../../@core/validators'
@@ -23,6 +23,7 @@ import { TranslationBaseComponent } from '../../../language/translation-base.com
 import { Store } from './../../../../@core/services'
 
 @Component({
+  standalone: false,
   selector: 'pac-email-invite-form',
   templateUrl: 'email-invite-form.component.html',
   styleUrls: ['email-invite-form.component.scss']
@@ -95,6 +96,17 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
   }
 
   ngOnInit(): void {
+    const organization = this.store.selectedOrganization
+
+    if (organization) {
+      this.organization = organization
+      this.renderInvitationExpiryOptions()
+
+      if (organization.invitesAllowed) {
+        this.setInvitationPeriodFormValue(organization)
+      }
+    }
+
     this.store.user$
       .pipe(
         filter((user: IUser) => !!user),
@@ -120,10 +132,7 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
    */
   async excludeRoles() {
     const hasSuperAdminRole = await firstValueFrom(this.authService.hasRole([RolesEnum.SUPER_ADMIN]))
-    this.excludes = [RolesEnum.EMPLOYEE]
-    if (!hasSuperAdminRole) {
-      this.excludes.push(RolesEnum.SUPER_ADMIN)
-    }
+    this.excludes = hasSuperAdminRole ? [] : [RolesEnum.SUPER_ADMIN]
   }
 
   /**
@@ -198,23 +207,23 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
     this.form.get('organizationContacts').updateValueAndValidity()
   }
 
-  getRoleFromForm = () => {
-    if (this.isEmployeeInvitation()) {
-      return RolesEnum.EMPLOYEE
-    }
-    if (this.isCandidateInvitation()) {
-      return RolesEnum.CANDIDATE
-    }
-    return this.form.get('role').value.name || RolesEnum.VIEWER
-  }
-
   async saveInvites(): Promise<ICreateEmailInvitesOutput> {
     if (this.form.invalid) {
       return Promise.reject()
     }
 
+    const organization = this.organization ?? this.store.selectedOrganization
+
+    if (!organization?.id) {
+      throw new Error(
+        this.getTranslation('PAC.Scope.SelectOrganization', {
+          Default: 'Select an organization before sending invites'
+        })
+      )
+    }
+
     const { tenantId, id: invitedById } = this.store.user
-    const { id: organizationId } = this.organization
+    const { id: organizationId } = organization
 
     const {
       role,

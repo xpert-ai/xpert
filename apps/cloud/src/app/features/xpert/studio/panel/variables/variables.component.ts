@@ -1,14 +1,12 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TStateVariable, VariableOperationEnum } from '../../../../../@core/types'
-import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { isNil } from '@metad/ocap-core'
+import { CdkConfirmDeleteComponent } from '@xpert-ai/ocap-angular/common'
+import { isNil } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
@@ -16,7 +14,7 @@ import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertVariableFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-variables',
   templateUrl: './variables.component.html',
@@ -24,21 +22,20 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     DragDropModule,
     CdkMenuModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     A11yModule,
-    XpertVariableFormComponent
-  ]
+    XpertVariableFormComponent,
+    ZardSwitchComponent
+]
 })
 export class XpertStudioPanelVariablesComponent {
   eVariableOperationEnum = VariableOperationEnum
-  
+
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly apiService = inject(XpertStudioApiService)

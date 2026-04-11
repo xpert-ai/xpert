@@ -2,16 +2,16 @@ import { CommonModule } from '@angular/common'
 import { Component, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { IndicatorsService, SemanticModelServerService, Store, StoriesService } from '@metad/cloud/state'
-import { getErrorMessage } from '@metad/core'
-import { NgmConfirmOptionsComponent } from '@metad/ocap-angular/common'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { TimeGranularity } from '@metad/ocap-core'
-import { NxStoryModule } from '@metad/story/story'
+import { IndicatorsService, SemanticModelServerService, Store, StoriesService } from '@xpert-ai/cloud/state'
+import { getErrorMessage } from '@xpert-ai/core'
+import { NgmConfirmOptionsComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { TimeGranularity } from '@xpert-ai/ocap-core'
+import { NxStoryModule } from '@xpert-ai/story/story'
 import { TranslateModule } from '@ngx-translate/core'
-import { GridType, GridsterComponent, GridsterConfig, GridsterItem, GridsterModule } from 'angular-gridster2'
+import { GridType, Gridster, GridsterConfig, GridsterItem as GridsterItemComponent, GridsterItemConfig } from 'angular-gridster2'
 import { cloneDeep, compact, isEqual, pick } from 'lodash-es'
+import { ZardDialogService, ZardDatePickerComponent } from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   combineLatest,
@@ -37,7 +37,7 @@ import { RecentsComponent } from '../recents/recents.component'
 import { StoryWidgetFeedComponent } from '../story-widget/story-widget.component'
 import { UserVisitComponent } from '../user-visit/user-visit.component'
 import { SharedModule } from '../../../@shared/shared.module'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { createTimer } from '../../../@shared/timer'
 
@@ -64,10 +64,12 @@ const QuickGuidesInit = {
   imports: [
     CommonModule,
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
-    GridsterModule,
+    Gridster,
+    GridsterItemComponent,
     NxStoryModule,
+    ZardDatePickerComponent,
 
     StoryWidgetFeedComponent,
     UserVisitComponent,
@@ -89,9 +91,9 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
   private organizationsService = inject(OrganizationsService)
   private dsCoreService = inject(NgmDSCoreService)
   private toastrService = inject(ToastrService)
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
 
-  @ViewChild(GridsterComponent) gridster: GridsterComponent
+  @ViewChild(Gridster) gridster: Gridster
 
   searchControl = new FormControl<string>('')
   searching$ = new BehaviorSubject<boolean>(false)
@@ -247,8 +249,7 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
           quickGuides.sample.complete = createdDemo
           return quickGuides
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -423,7 +424,7 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
     this.toggleEdit()
   }
 
-  onGridsterItemChange({ item }: { item: GridsterItem }, feed: any) {
+  onGridsterItemChange({ item }: { item: GridsterItemConfig }, feed: any) {
     // this.feeds = this.feeds
   }
 }

@@ -8,7 +8,7 @@ import {
   TWorkflowVarGroup,
   TXpertParameter,
   TXpertTeamNode
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { PromiseOrValue } from '../../types'
 
 export type TWorkflowNodeParams<TConfig = any> = {

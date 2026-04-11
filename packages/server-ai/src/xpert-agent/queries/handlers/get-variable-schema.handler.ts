@@ -1,4 +1,4 @@
-import { IXpertAgent, TWorkflowVarGroup, TXpertGraph } from '@metad/contracts'
+import { IXpertAgent, TWorkflowVarGroup, TXpertGraph } from '@xpert-ai/contracts'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { XpertService } from '../../../xpert/xpert.service'

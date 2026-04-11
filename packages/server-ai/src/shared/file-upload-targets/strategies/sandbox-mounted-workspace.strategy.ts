@@ -1,4 +1,4 @@
-import { IFileAssetDestination, IUploadFileSandboxTarget } from '@metad/contracts'
+import { IFileAssetDestination, IUploadFileSandboxTarget } from '@xpert-ai/contracts'
 import {
 	FileUploadTargetStrategy,
 	IFileUploadTargetStrategy,
@@ -8,7 +8,7 @@ import {
 import { Injectable } from '@nestjs/common'
 import fsPromises from 'fs/promises'
 import path from 'path'
-import { urlJoin } from '@metad/server-common'
+import { urlJoin } from '@xpert-ai/server-common'
 import { normalizeFileName, normalizeRelativePath } from '../utils'
 
 @Injectable()

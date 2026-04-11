@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { C_MEASURES, QueryOptions, QueryReturn, SmartBusinessService } from '@metad/ocap-core'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { C_MEASURES, QueryOptions, QueryReturn, SmartBusinessService } from '@xpert-ai/ocap-core'
 import { BehaviorSubject, Observable, combineLatest, map, switchMap } from 'rxjs'
 
 @Injectable()

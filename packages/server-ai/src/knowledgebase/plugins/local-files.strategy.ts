@@ -7,8 +7,8 @@ import {
 	IStorageFile,
 	STATE_VARIABLE_HUMAN,
 	TChatRequestHuman
-} from '@metad/contracts'
-import { GetStorageFileQuery } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { GetStorageFileQuery } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { DocumentSourceStrategy, IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'
@@ -98,12 +98,11 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 			)
 			// const fileProvider = new FileStorage().getProvider()
 			return storageFiles.map((file) => {
-				// const fullPath = fileProvider.path(file.file)
 				return new Document({
 					pageContent: '',
 					metadata: {
 						source: 'file-system',
-						// filePath: fullPath,
+						filePath: file.file,
 						fileUrl: file.fileUrl,
 						size: file.size,
 						originalName: file.originalName,

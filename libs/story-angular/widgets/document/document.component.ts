@@ -3,9 +3,9 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop'
 import { Component, ViewChild, computed, effect, forwardRef, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { AbstractStoryWidget, IStoryWidget, WidgetMenu, WidgetMenuType, replaceParameters } from '@metad/core'
-import { EntitySchemaType } from '@metad/ocap-angular/entity'
-import { PropertyMeasure, QueryReturn, formatting, getEntityProperty, indicatorFormatter } from '@metad/ocap-core'
+import { AbstractStoryWidget, IStoryWidget, WidgetMenu, WidgetMenuType, replaceParameters } from '@xpert-ai/core'
+import { EntitySchemaType } from '@xpert-ai/ocap-angular/entity'
+import { PropertyMeasure, QueryReturn, formatting, getEntityProperty, indicatorFormatter } from '@xpert-ai/ocap-core'
 import { EditorComponent } from '@tinymce/tinymce-angular'
 import { Observable, firstValueFrom, map, startWith, tap } from 'rxjs'
 import { DocumentDataService } from './document-data.service'
@@ -24,6 +24,7 @@ const DOCUMENT_COMPONENT_VALUE_ACCESSOR = {
  * * 支持从 EntitySet 上计算出 `@parameter` 的值
  */
 @Component({
+  standalone: false,
   selector: 'pac-story-widget-document',
   templateUrl: './document.component.html',
   styleUrls: ['./document.component.scss'],

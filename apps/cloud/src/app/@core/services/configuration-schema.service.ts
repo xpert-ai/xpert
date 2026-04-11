@@ -1,5 +1,5 @@
-import { I18nObject } from '@metad/contracts'
-import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import { I18nObject } from '@xpert-ai/contracts'
+import { NgmI18nPipe, TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { includes, upperFirst } from 'lodash-es'
 
 export function convertConfigurationSchema(schema: any, i18n?: any) {

@@ -4,7 +4,7 @@
   </h4>
 </header>
 
-<div class="mat-typography relative p-4">
+<div class="relative p-4">
   <formly-form [form]="form" [fields]="fields" [model]="model"
     (modelChange)="onFormChange(model)"/>
   @if (model.preferences?.exposeXmla) {
@@ -19,15 +19,15 @@
 </div>
 
 <div class="flex justify-between items-center p-4">
-  <button mat-button (click)="close()">
+  <button z-button zType="ghost" (click)="close()">
     {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: "Cancel"} }}
   </button>
 
   <div ngmButtonGroup>
-    <button mat-stroked-button (click)="reset()">
+    <button z-button zType="outline" (click)="reset()">
       {{ 'PAC.KEY_WORDS.Reset' | translate: {Default: "Reset"} }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial (click)="saveModel()">
+    <button z-button zType="default" cdkFocusInitial (click)="saveModel()">
       {{ 'PAC.KEY_WORDS.Apply' | translate: {Default: "Apply"} }}
     </button>
   </div>

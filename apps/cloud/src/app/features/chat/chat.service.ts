@@ -2,7 +2,7 @@ import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
-import { nonNullable } from '@metad/ocap-core'
+import { nonNullable } from '@xpert-ai/ocap-core'
 import { injectParams } from 'ngxtension/inject-params'
 import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
 import { IXpert } from '../../@core'
@@ -76,8 +76,7 @@ export class ChatPlatformService extends ChatService {
         } else {
           this.conversationId.set(null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

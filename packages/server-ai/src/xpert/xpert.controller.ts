@@ -1,10 +1,10 @@
 import {
+    AIPermissionsEnum,
     IChatConversation,
     IIntegration,
     IXpert,
     LanguagesEnum,
     LongTermMemoryTypeEnum,
-    RolesEnum,
     TChatApi,
     TChatApp,
     TChatOptions,
@@ -12,25 +12,23 @@ import {
     TMemoryUserProfile,
     TChatRequest,
     TXpertTeamDraft,
-    UserType,
     xpertLabel
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
     CrudController,
     OptionParams,
     PaginationParams,
     ParseJsonPipe,
+    PermissionGuard,
+    Permissions,
     RequestContext,
-    RoleGuard,
-    Roles,
     TransformInterceptor,
-    UserPublicDTO,
     UseValidationPipe,
     UUIDValidationPipe,
-    UserCreateCommand,
     Public,
-    TimeZone
-} from '@metad/server-core'
+    TimeZone,
+    UserService
+} from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -55,13 +53,13 @@ import {
     BadRequestException
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { UploadedFile } from '@metad/contracts'
-import { FileStorage, UploadedFileStorage } from '@metad/server-core'
+import { UploadedFile } from '@xpert-ai/contracts'
+import { FileStorage, UploadedFileStorage } from '@xpert-ai/server-core'
 import path from 'path'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
-import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@metad/server-common'
+import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'
@@ -127,6 +125,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly service: XpertService,
         private readonly storeService: CopilotStoreService,
         private readonly environmentService: EnvironmentService,
+        private readonly userService: UserService,
         private readonly i18n: I18nService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
@@ -134,8 +133,8 @@ export class XpertController extends CrudController<Xpert> {
         super(service)
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get()
     async getAll(
         @Query('data', ParseJsonPipe) params: Partial<PaginationParams<Xpert>>,
@@ -187,8 +186,8 @@ export class XpertController extends CrudController<Xpert> {
         }
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('select-options')
     async getSelectOptions() {
         const { items } = await this.getAll({ where: { latest: true } }, true)
@@ -376,26 +375,61 @@ export class XpertController extends CrudController<Xpert> {
         return this.commandBus.execute(new XpertDeleteCommand(id))
     }
 
-    @Get(':id/managers')
-    async getManagers(@Param('id') id: string) {
-        const xpert = await this.service.findOne(id, { relations: ['managers'] })
-        return xpert.managers.map((u) => new UserPublicDTO(u))
+    @UseGuards(XpertGuard)
+    @Get(':id/user-groups')
+    async getUserGroups(@Param('id') id: string, @Query('organizationId') organizationId?: string) {
+        return this.service.getUserGroups(id, organizationId)
     }
 
-    @Put(':id/managers')
-    async updateManagers(@Param('id') id: string, @Body() ids: string[]) {
-        return this.service.updateManagers(id, ids)
-    }
-
-    @Delete(':id/managers/:userId')
-    async removeManager(@Param('id') id: string, @Param('userId') userId: string) {
-        await this.service.removeManager(id, userId)
+    @UseGuards(XpertGuard)
+    @Put(':id/user-groups')
+    async updateUserGroups(
+        @Param('id') id: string,
+        @Body() ids: string[],
+        @Query('organizationId') organizationId?: string
+    ) {
+        return this.service.updateUserGroups(id, ids, organizationId)
     }
 
     @Get(':id/memory')
     async getAllMemory(@Param('id') id: string, @Query('types') types: string) {
         const _types = types?.split(':').filter((_) => !!_)
         return this.service.findAllMemory(id, _types)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/memory/files')
+    async getMemoryFiles(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('deepth') deepth: number,
+        @Query('path') path: string,
+        @Query('workspaceId') _workspaceId?: string
+    ) {
+        return await this.service.getMemoryFiles(id, path, deepth)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/memory/file')
+    async getMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('path') path: string,
+        @Query('workspaceId') _workspaceId?: string
+    ) {
+        return await this.service.getMemoryFile(id, path)
+    }
+
+    @UseGuards(XpertGuard)
+    @Put(':id/memory/file')
+    async saveMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body()
+        body: {
+            path: string
+            content: string
+            workspaceId?: string | null
+        }
+    ) {
+        return await this.service.saveMemoryFile(id, body?.path, body?.content ?? '')
     }
 
     @Post(':id/memory/bulk')
@@ -693,15 +727,7 @@ export class XpertController extends CrudController<Xpert> {
         const xpert = await this.service.findOne(id)
         await this.service.update(id, { api: { ...(xpert.api ?? {}), ...api } })
         if (!api.disabled && !xpert.userId) {
-            const user = await this.commandBus.execute(
-                new UserCreateCommand({
-                    username: xpert.slug,
-                    type: UserType.COMMUNICATION,
-                    preferredLanguage: LanguagesEnum.English,
-                    hash: uuidv4()
-                })
-            )
-            await this.service.update(id, { user })
+            await this.ensureXpertPrincipalUser(xpert)
         }
     }
 
@@ -710,16 +736,30 @@ export class XpertController extends CrudController<Xpert> {
         const xpert = await this.service.findOne(id)
         await this.service.update(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
-            const user = await this.commandBus.execute(
-                new UserCreateCommand({
-                    username: xpert.slug,
-                    type: UserType.COMMUNICATION,
-                    preferredLanguage: LanguagesEnum.English,
-                    hash: uuidv4()
-                })
-            )
-            await this.service.update(id, { user })
+            await this.ensureXpertPrincipalUser(xpert)
         }
+    }
+
+    private async ensureXpertPrincipalUser(xpert: Pick<Xpert, 'id' | 'tenantId' | 'userId' | 'slug'>) {
+        if (xpert.userId) {
+            try {
+                return await this.userService.findOneByIdWithinTenant(xpert.userId, xpert.tenantId, {
+                    relations: ['role', 'role.rolePermissions', 'employee']
+                })
+            } catch {
+                //
+            }
+        }
+
+        const user = await this.userService.ensureCommunicationUser({
+            tenantId: xpert.tenantId,
+            thirdPartyId: `xpert:${xpert.id}`,
+            username: xpert.slug || xpert.id
+        })
+
+        await this.service.update(xpert.id, { user })
+
+        return user
     }
 
     @Post(':id/duplicate')
@@ -928,36 +968,36 @@ export class XpertController extends CrudController<Xpert> {
 
     // Statistics
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xperts')
     async getStatisticsXperts(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertsQuery(start, end))
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-conversations')
     async getStatisticsXpertConversations(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertConversationsQuery(start, end))
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-messages')
     async getStatisticsXpertMessages(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertMessagesQuery(start, end))
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-tokens')
     async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end))
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-integrations')
     async getStatisticsXpertIntegrations(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertIntegrationsQuery(start, end))
@@ -987,8 +1027,15 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Get(':id/statistics/daily-messages')
-    async getDailyMessages(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-        return await this.queryBus.execute(new StatisticsDailyMessagesQuery(start, end, id))
+    async getDailyMessages(
+        @Param('id') id: string,
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('currentUserOnly') currentUserOnly?: string
+    ) {
+        return await this.queryBus.execute(
+            new StatisticsDailyMessagesQuery(start, end, id, currentUserOnly === 'true' || currentUserOnly === '1')
+        )
     }
 
     @UseGuards(XpertGuard)

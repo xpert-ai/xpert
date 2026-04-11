@@ -32,6 +32,7 @@ const ro = new ResizeObserver((entries) => {
   selector: 'ngm-splitter',
   templateUrl: './splitter.component.html',
   styleUrls: ['./splitter.component.scss'],
+  standalone: false,
   host: {
     class: 'ngm-splitter',
   }
@@ -239,6 +240,7 @@ export class SplitterComponent {
  */
  @Component({
   selector: 'ngm-splitter-bar',
+  standalone: false,
   template: `<div class="ngm-splitter-bar"
   [class.ngm-splitter-bar--vertical]='type === 0'
   [style.cursor]='cursor'

@@ -1,12 +1,17 @@
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatIconModule } from '@angular/material/icon'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+
 import { Meta, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { ButtonGroupDirective } from './button-group.directive'
+import {
+  ZardButtonComponent,
+  ZardChipComponent,
+  ZardChipSetComponent,
+  ZardIconComponent,
+  ZardSwitchComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
+} from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Core/ButtonGroupDirective',
@@ -16,11 +21,13 @@ export default {
         FormsModule,
 
         OcapCoreModule,
-        MatIconModule,
-        MatButtonModule,
-        MatButtonToggleModule,
-        MatChipsModule,
-        MatSlideToggleModule,
+        ZardIconComponent,
+        ZardButtonComponent,
+        ZardChipComponent,
+        ZardChipSetComponent,
+        ZardToggleGroupComponent,
+        ZardToggleGroupItemComponent,
+        ZardSwitchComponent,
         ButtonGroupDirective,
       ],
       providers: []
@@ -31,170 +38,170 @@ export default {
 export const Primary = {
   render: (args: ButtonGroupDirective) => ({
     template: `
-    <mat-slide-toggle>Slide me!</mat-slide-toggle>
+    <z-switch>Slide me!</z-switch>
   
   <div >
   <div >
-    <mat-icon>share</mat-icon>
-    <mat-icon displayDensity="cosy">share</mat-icon>
-    <mat-icon displayDensity="compact">share</mat-icon>
+    <z-icon zType="share"></z-icon>
+    <z-icon zSize="default" zType="share"></z-icon>
+    <z-icon zSize="sm" zType="share"></z-icon>
   </div>
   
   <div>
-    <button mat-icon-button ngmAppearance="danger">
-      <mat-icon>share</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger">
+      <z-icon zType="share"></z-icon>
     </button>
-    <button mat-icon-button ngmAppearance="acrylic">
-      <mat-icon>share</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="acrylic">
+      <z-icon zType="share"></z-icon>
     </button>
-    <button mat-icon-button displayDensity="cosy">
-      <mat-icon>share</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy">
+      <z-icon zType="share"></z-icon>
     </button>
-    <button mat-icon-button displayDensity="compact">
-      <mat-icon>share</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact">
+      <z-icon zType="share"></z-icon>
     </button>
   </div>
   
   <div>
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="color" color="primary">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="color" color="primary">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="color" color="accent">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="color" color="accent">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" displayDensity="compact"
+    <z-toggle-group name="fontStyle" aria-label="Font Style" displayDensity="compact"
       ngmAppearance="color" color="accent"
       [value]="'italic'">
-      <mat-button-toggle disableRipple value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle disableRipple value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle disableRipple value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" multiple="true" displayDensity="compact"
+    <z-toggle-group name="fontStyle" aria-label="Font Style" multiple="true" displayDensity="compact"
       ngmAppearance="color" color="accent">
-      <mat-button-toggle disableRipple value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle disableRipple value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle disableRipple value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" vertical ngmAppearance="color" color="primary">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" vertical ngmAppearance="color" color="primary">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" vertical multiple="true" displayDensity="compact"
+    <z-toggle-group name="fontStyle" aria-label="Font Style" vertical multiple="true" displayDensity="compact"
       ngmAppearance="color" color="accent">
-      <mat-button-toggle disableRipple value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle disableRipple value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle disableRipple value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="outline" color="primary">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="outline" color="primary">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="outline" color="primary" displayDensity="compact">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="outline" color="primary" displayDensity="compact">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   </div>
   
   <div>
-    <mat-chip-list aria-label="Fish selection" >
-      <mat-chip>One fish</mat-chip>
-      <mat-chip>Two fish</mat-chip>
-      <mat-chip color="primary" selected>Primary fish</mat-chip>
-      <mat-chip color="accent" selected>Accent fish</mat-chip>
-      <mat-chip color="warn" selected>warn fish</mat-chip>
-    </mat-chip-list>
+    <z-chip-set aria-label="Fish selection">
+      <z-chip>One fish</z-chip>
+      <z-chip>Two fish</z-chip>
+      <z-chip color="primary" selected>Primary fish</z-chip>
+      <z-chip color="accent" selected>Accent fish</z-chip>
+      <z-chip color="warn" selected>warn fish</z-chip>
+    </z-chip-set>
   
-    <mat-chip-list aria-label="Fish selection" ngmAppearance="outline">
-      <mat-chip>One fish</mat-chip>
-      <mat-chip>Two fish</mat-chip>
-      <mat-chip color="primary" selected>Primary fish</mat-chip>
-      <mat-chip color="accent" selected>Accent fish</mat-chip>
-      <mat-chip color="warn" selected>warn fish</mat-chip>
-    </mat-chip-list>
+    <z-chip-set aria-label="Fish selection" class="[&_z-chip]:border [&_z-chip]:border-border [&_z-chip]:bg-transparent">
+      <z-chip>One fish</z-chip>
+      <z-chip>Two fish</z-chip>
+      <z-chip color="primary" selected>Primary fish</z-chip>
+      <z-chip color="accent" selected>Accent fish</z-chip>
+      <z-chip color="warn" selected>warn fish</z-chip>
+    </z-chip-set>
   
-    <mat-chip-list aria-label="Fish selection" ngmAppearance="dashed">
-      <mat-chip>One fish</mat-chip>
-      <mat-chip>Two fish</mat-chip>
-      <mat-chip color="primary" selected>Primary fish</mat-chip>
-      <mat-chip color="accent" selected>Accent fish</mat-chip>
-      <mat-chip color="warn" selected>warn fish</mat-chip>
-    </mat-chip-list>
+    <z-chip-set aria-label="Fish selection" class="[&_z-chip]:border [&_z-chip]:border-dashed [&_z-chip]:border-border [&_z-chip]:bg-transparent">
+      <z-chip>One fish</z-chip>
+      <z-chip>Two fish</z-chip>
+      <z-chip color="primary" selected>Primary fish</z-chip>
+      <z-chip color="accent" selected>Accent fish</z-chip>
+      <z-chip color="warn" selected>warn fish</z-chip>
+    </z-chip-set>
   
-    <mat-chip-list aria-label="Fish selection" ngmAppearance="outline" displayDensity="compact">
-      <mat-chip>One fish</mat-chip>
-      <mat-chip>Two fish</mat-chip>
-      <mat-chip color="primary" selected>Primary fish</mat-chip>
-      <mat-chip color="accent" selected>Accent fish</mat-chip>
-      <mat-chip color="warn" selected>warn fish</mat-chip>
-    </mat-chip-list>
+    <z-chip-set aria-label="Fish selection" displayDensity="compact" class="[&_z-chip]:border [&_z-chip]:border-border [&_z-chip]:bg-transparent">
+      <z-chip>One fish</z-chip>
+      <z-chip>Two fish</z-chip>
+      <z-chip color="primary" selected>Primary fish</z-chip>
+      <z-chip color="accent" selected>Accent fish</z-chip>
+      <z-chip color="warn" selected>warn fish</z-chip>
+    </z-chip-set>
   </div>
   
   <div fxLayout="row wrap" fxLayoutAlign="space-between center" >
     <div ngmButtonGroup>
-      <button mat-button>Click me!</button>
-      <button mat-raised-button color="primary">Click me!</button>
+      <button z-button zType="ghost">Click me!</button>
+      <button z-button zType="default">Click me!</button>
     </div>
   
     <div ngmButtonGroup>
-      <button mat-flat-button>Click me!</button>
-      <button mat-raised-button color="primary">Click me!</button>
-      <button mat-raised-button color="accent">Click me!</button>
+      <button z-button zType="secondary">Click me!</button>
+      <button z-button zType="default">Click me!</button>
+      <button z-button zType="default">Click me!</button>
     </div>
   
     <div ngmButtonGroup displayDensity="cosy">
-      <button mat-flat-button displayDensity="cosy">Click me!</button>
-      <button mat-raised-button color="primary" displayDensity="cosy">Click me!</button>
-      <button mat-raised-button color="accent" displayDensity="cosy">Click me!</button>
+      <button z-button zType="secondary" displayDensity="cosy">Click me!</button>
+      <button z-button zType="default" displayDensity="cosy">Click me!</button>
+      <button z-button zType="default" displayDensity="cosy">Click me!</button>
     </div>
   
     <div ngmButtonGroup displayDensity="compact">
-      <button mat-flat-button displayDensity="compact">Click me!</button>
-      <button mat-raised-button color="primary" displayDensity="compact">Click me!</button>
-      <button mat-raised-button color="accent" displayDensity="compact">Click me!</button>
+      <button z-button zType="secondary" displayDensity="compact">Click me!</button>
+      <button z-button zType="default" displayDensity="compact">Click me!</button>
+      <button z-button zType="default" displayDensity="compact">Click me!</button>
     </div>
   </div>
   
   <div fxLayout="row wrap" fxLayoutAlign="space-between center" >
-    <button mat-button color="accent" [loading]="true">Accent</button>
+    <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" [zLoading]="true">Accent</button>
   
-    <button mat-flat-button [loading]="true">Confortable</button>
-    <button mat-flat-button displayDensity="cosy" [loading]="true">Cosy</button>
-    <button mat-flat-button displayDensity="compact" [loading]="true">Compact</button>
+    <button z-button zType="secondary" [zLoading]="true">Confortable</button>
+    <button z-button zType="secondary" displayDensity="cosy" [zLoading]="true">Cosy</button>
+    <button z-button zType="secondary" displayDensity="compact" [zLoading]="true">Compact</button>
   
-    <button mat-raised-button color="primary" [loading]="true">Primary</button>
-    <button mat-raised-button color="accent" [loading]="true">Accent</button>
+    <button z-button zType="default" [zLoading]="true">Primary</button>
+    <button z-button zType="default" [zLoading]="true">Accent</button>
   
-    <button mat-stroked-button color="accent" [loading]="true">Accent</button>
+    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" [zLoading]="true">Accent</button>
   
-    <button mat-icon-button [loading]="true" color="primary">
-      <mat-icon>more_vert</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" [zLoading]="true">
+      <z-icon zType="more_vert"></z-icon>
     </button>
-    <button mat-fab [loading]="true" color="primary">
-      <mat-icon>delete</mat-icon>
+    <button z-button zType="default" zSize="icon-lg" zShape="circle" [zLoading]="true">
+      <z-icon zType="delete"></z-icon>
     </button>
-    <button mat-mini-fab [loading]="true" color="primary">
-      <mat-icon>menu</mat-icon>
+    <button z-button zType="default" zSize="icon-sm" zShape="circle" [zLoading]="true">
+      <z-icon zType="menu"></z-icon>
     </button>
   </div>
   
   <div fxLayout="row wrap" fxLayoutAlign="space-between center" >
     <div ngmButtonGroup>
-      <button mat-button>Click me!</button>
-      <button mat-raised-button color="accent" [loading]="true">Click me!</button>
+      <button z-button zType="ghost">Click me!</button>
+      <button z-button zType="default" [zLoading]="true">Click me!</button>
     </div>
   </div>
   </div>

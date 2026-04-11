@@ -1,5 +1,5 @@
-import { ChecklistItem, IModelRole, RuleValidator } from "@metad/contracts";
-import { Schema, serializeUniqueName } from "@metad/ocap-core";
+import { ChecklistItem, IModelRole, RuleValidator } from "@xpert-ai/contracts";
+import { Schema, serializeUniqueName } from "@xpert-ai/ocap-core";
 
 export class RoleValidator implements RuleValidator {
   async validate(role: IModelRole, params: {schema: Schema}): Promise<ChecklistItem[]> {

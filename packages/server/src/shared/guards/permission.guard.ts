@@ -1,5 +1,5 @@
-import { PermissionsEnum } from '@metad/contracts';
-import { isEmpty, PERMISSIONS_METADATA, removeDuplicates } from '@metad/server-common';
+import { PermissionsEnum } from '@xpert-ai/contracts';
+import { isEmpty, PERMISSIONS_METADATA, removeDuplicates } from '@xpert-ai/server-common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { CanActivate, ExecutionContext, Inject, Injectable, Logger, Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';

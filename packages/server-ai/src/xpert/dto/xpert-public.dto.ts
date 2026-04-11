@@ -1,5 +1,5 @@
-import { IOrganization, IXpert, IXpertAgent, TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@metad/contracts'
-import { OrganizationPublicDTO } from '@metad/server-core'
+import { IOrganization, IXpert, IXpertAgent, TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@xpert-ai/contracts'
+import { OrganizationPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { Knowledgebase, XpertToolset } from '../../core/entities/internal'
 import { KnowledgebasePublicDTO } from '../../knowledgebase/dto'
@@ -30,6 +30,10 @@ export class XpertPublicDTO extends XpertIdentiDto {
 		params.value ? params.value.map((item) => new KnowledgebasePublicDTO(item)) : null
 	)
 	declare knowledgebases?: Knowledgebase[]
+
+	@Expose()
+	@Transform((params: TransformFnParams) => (params.value ? new KnowledgebasePublicDTO(params.value) : null))
+	declare knowledgebase?: Knowledgebase
 
 	@Transform((params: TransformFnParams) =>
 		params.value ? params.value.map((item) => new ToolsetPublicDTO(item)) : null

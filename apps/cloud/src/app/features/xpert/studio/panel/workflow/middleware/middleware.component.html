@@ -24,7 +24,8 @@
       [variables]="variables()"
       [context]="{
         draft: draft(),
-        entity: entity()
+        entity: entity(),
+        xpertId: xpertId()
       }"
     />
   } @else {
@@ -83,7 +84,7 @@
               {{ item.name }}
             </span>
             <div
-              class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
+              class="border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-xs font-mono truncate text-text-secondary bg-background-default-subtle"
             >
               {{ item.name }}
             </div>
@@ -108,10 +109,10 @@
               {{ 'PAC.Xpert.ToolDescription' | translate: { Default: 'Tool Description' } }}
             </div>
             <div
-              class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0 font-mono"
+              class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono"
             >
               <textarea
-                class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none placeholder:text-gray-400 caret-[#295EFF]"
+                class="w-full text-sm text-text-primary leading-[18px] bg-transparent appearance-none outline-none placeholder:text-components-input-text-placeholder caret-[#295EFF]"
                 placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
                 [ngModel]="getToolDescription(item.name, item.description)"
                 (ngModelChange)="updateToolDescription(item.name, $event)"

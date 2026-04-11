@@ -1,5 +1,5 @@
-import { ChatMessageFeedbackRatingEnum, IChatConversation, IChatMessage, IChatMessageFeedback } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ChatMessageFeedbackRatingEnum, IChatConversation, IChatMessage, IChatMessageFeedback } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
@@ -10,7 +10,7 @@ export class ChatMessageFeedback extends TenantOrganizationBaseEntity implements
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	rating: ChatMessageFeedbackRatingEnum
 
 	@ApiProperty({ type: () => String })

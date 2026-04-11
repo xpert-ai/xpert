@@ -1,15 +1,16 @@
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, Validators } from '@angular/forms'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
+import { ZardToastService } from '@xpert-ai/headless-ui'
 import { delay, map, tap } from 'rxjs'
 import { PAC_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 import { PacAuthResult, PacAuthService, PasswordStrengthEnum, matchValidator, passwordStrength } from '../services'
 
 @Component({
+  standalone: false,
   selector: 'pac-reset-password',
   templateUrl: 'reset-password.component.html',
   styleUrls: ['reset-password.component.scss']
@@ -18,7 +19,7 @@ export class ResetPasswordComponent {
   readonly #authService = inject(PacAuthService)
   protected options = inject(PAC_AUTH_OPTIONS)
   readonly translateService = inject(TranslateService)
-  readonly _snackBar = inject(MatSnackBar)
+  readonly toast = inject(ZardToastService)
   readonly router = inject(Router)
   readonly _cdr = inject(ChangeDetectorRef)
 
@@ -96,7 +97,7 @@ export class ResetPasswordComponent {
               .subscribe((value) => {
                 RESET_SUCCESS = value
               })
-            this._snackBar.open(RESET_SUCCESS, '', { duration: 2000 })
+            this.toast.success(RESET_SUCCESS, { duration: 2000 })
           } else {
             throw new Error(result.getErrors()[0])
           }
@@ -115,7 +116,7 @@ export class ResetPasswordComponent {
           this.translateService.get('Auth.ResetPasswordFail', { Default: 'Reset Password Fail' }).subscribe((value) => {
             RESET_FAIL = value
           })
-          this._snackBar.open(RESET_FAIL, '', { duration: 2000 })
+          this.toast.error(RESET_FAIL, { duration: 2000 })
         }
       })
   }

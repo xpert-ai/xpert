@@ -1,6 +1,6 @@
 <div class="w-[500px] max-w-full flex flex-col justify-center items-center gap-4 mb-20">
   <img src="/assets/logo.png" class="w-20 h-20 rounded-full">
-  <div class="text-3xl drop-shadow-md text-bluegray-500 dark:text-white">
+  <div class="text-3xl drop-shadow-md text-primary-500 dark:text-text-primary">
     {{ 'PAC.Onboarding.WelcomeTo' | translate: {Default: 'Welcome to'} }}
     <span class="italic">X</span>pert AI
     {{ 'PAC.Onboarding.Platform' | translate: {Default: 'Platform'} }}
@@ -16,7 +16,7 @@
 
 <div class="absolute bottom-4 p-4 ">
   {{ 'PAC.Onboarding.FeelStuck' | translate: {Default: 'If you feel stuck'} }}
-  , <a [href]="helpWebsite() + '/docs/getting-started/onboarding/'" class="text-bluegray-500 italic">
+  , <a [href]="helpWebsite() + '/docs/getting-started/onboarding/'" class="text-primary-500 italic">
       {{ 'PAC.Onboarding.OurGuide' | translate: {Default: 'our getting started guide'} }}
       </a> {{ 'PAC.Onboarding.ClickAway' | translate: {Default: 'is just a click away'} }}.
 </div>

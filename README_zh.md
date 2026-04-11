@@ -62,6 +62,18 @@ cp .env.example .env
 docker compose -f docker-compose.cn.yml up -d
 ```
 
+如果你希望在新建组织时自动导入默认 xperts 或初始化分析语义模型模式，可以在 `docker/.env` 里额外配置：
+
+```bash
+# 可选：为每个新组织的默认 workspace 导入模板 xpert
+ORG_DEFAULT_XPERT_TEMPLATE_KEYS=af7133cb-32b3-47ff-90c1-b144c4d4887e,af7133cb-32b3-47ff-90c1-b144c4d48872
+
+# 可选：组织初始化时只创建语义模型基础数据，或导入完整 demo
+ORG_ANALYTICS_BOOTSTRAP_MODE=semantic-only
+```
+
+上面的推荐模板分别对应 `ChatBI with Sales Analysis Expert` 和 `Text2SQL-ChatDB`，比较适合带分析场景的组织默认配置。
+
 运行后，您可以在浏览器中访问 Xpert 仪表盘，地址为 [http://localhost/onboarding](http://localhost/onboarding)，并开始初始化过程。
 
 请查看我们的 [Wiki - 开发](https://github.com/xpert-ai/xpert/wiki/Development) 以快速入门。

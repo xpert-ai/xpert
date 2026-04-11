@@ -6,7 +6,7 @@
       (click)="tabIndex.set(i)"
     >
       @if (tab.templateOptions?.['icon']) {
-        <mat-icon fontSet="material-icons-outlined" class="scale-75 origin-center text-zinc-500">{{tab.templateOptions?.['icon']}}</mat-icon>
+        <z-icon class="scale-75 origin-center text-zinc-500" [zType]="tab.templateOptions?.['icon']"></z-icon>
       }
       <span class="ml-1">{{tab.templateOptions?.label}}</span>
     </li>

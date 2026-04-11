@@ -1,8 +1,8 @@
-import { BusinessAreaRole, StoryStatusEnum, Visibility } from '@metad/contracts'
+import { BusinessAreaRole, StoryStatusEnum, Visibility } from '@xpert-ai/contracts'
 import {
 	RequestContext,
 	TenantOrganizationAwareCrudService,
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

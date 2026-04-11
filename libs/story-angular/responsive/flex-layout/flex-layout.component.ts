@@ -9,12 +9,13 @@ import {
   Optional,
   SkipSelf
 } from '@angular/core'
-import { ID } from '@metad/story/core'
+import { ID } from '@xpert-ai/story/core'
 import { v4 as uuid } from 'uuid'
 import { ResponsiveService } from '../responsive.service'
 import { FlexItemType, FlexLayout } from '../types'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-flex-layout',
   templateUrl: 'flex-layout.component.html',

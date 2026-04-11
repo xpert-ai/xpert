@@ -1,8 +1,8 @@
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { DisplayDensity } from '@metad/ocap-angular/core'
-import { provideOcapMock, provideTranslate } from '@metad/ocap-angular/mock'
-import { FilterSelectionType, ParameterControlEnum } from '@metad/ocap-core'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { provideOcapMock, provideTranslate } from '@xpert-ai/ocap-angular/mock'
+import { FilterSelectionType, ParameterControlEnum } from '@xpert-ai/ocap-core'
 import { Meta, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { NgmParameterComponent } from './parameter.component'
 

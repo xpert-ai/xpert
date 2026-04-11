@@ -2,9 +2,9 @@
   @for (item of selectedKnowledgebases(); track item.id; let i = $index) {
     @if (item.kb) {
       <div class="group/kb-item flex h-8 cursor-pointer items-center justify-between rounded-lg px-2
-        bg-slate-50">
+        bg-background-default-subtle">
         <div class="flex w-0 grow items-center space-x-1.5 text-left">
-          <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-slate-200 bg-slate-50 text-text-tertiary
+          <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-divider-deep bg-background-default-subtle text-text-tertiary
             group-hover/kb-item:text-primary-500">
             <i class="ri-book-shelf-fill text-lg"></i>
           </div>
@@ -22,7 +22,7 @@
       </div>
     }
   } @empty {
-    <div class="cursor-default select-none rounded-lg bg-neutral-50 px-3 h-8 flex justify-center items-center text-sm text-text-tertiary">
+    <div class="cursor-default select-none rounded-lg bg-background-default-subtle px-3 h-8 flex justify-center items-center text-sm text-text-tertiary">
       {{ 'PAC.Xpert.ClickAddToAddKB' | translate: {Default: 'Click the "+" button to add knowledge'} }}
     </div>
   }

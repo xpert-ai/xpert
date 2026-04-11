@@ -1,0 +1,458 @@
+<section class="relative isolate overflow-hidden">
+  <div class="relative z-[1] space-y-6">
+  @if (mode() === 'mine') {
+    <div class="rounded-[28px] border border-divider-regular bg-components-card-bg px-6 py-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs font-semibold text-text-secondary">
+            {{ 'PAC.Explore.MySkills' | translate: { Default: 'My Skills' } }}
+          </div>
+          <h2 class="mt-3 text-2xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.MySkillsTitle' | translate: { Default: 'Skills Installed in the Default Workspace' } }}
+          </h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.MySkillsHint'
+                | translate
+                  : {
+                      Default:
+                        'This section shows the skills already installed in the current default workspace. You can review details or open the workspace to manage them.'
+                    }
+            }}
+          </p>
+        </div>
+
+        <button type="button" class="btn btn-secondary btn-medium" (click)="openWorkspaceSkills()">
+          {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open Workspace Skills' } }}
+        </button>
+      </div>
+    </div>
+
+    @if (loadingInstalledSkills()) {
+      <div class="flex min-h-[320px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
+        <div class="text-sm text-text-tertiary">
+          {{ 'PAC.Explore.LoadingMySkills' | translate: { Default: 'Loading my skills...' } }}
+        </div>
+      </div>
+    } @else if (!mineSkills().length) {
+      <div class="flex min-h-[320px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-6 text-center">
+        <div class="max-w-lg">
+          <div class="text-4xl text-text-tertiary">
+            <i class="ri-box-3-line"></i>
+          </div>
+          <h3 class="mt-4 text-xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.NoMySkills' | translate: { Default: 'No Skills in the Default Workspace Yet' } }}
+          </h3>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.NoMySkillsHint'
+                | translate
+                  : {
+                      Default:
+                        'Install skills from the market first, or open the default workspace to upload and manage skill packages manually.'
+                    }
+            }}
+          </p>
+          <div class="mt-6 flex justify-center">
+            <button type="button" class="btn btn-secondary btn-medium" (click)="openWorkspaceSkills()">
+              {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open Workspace Skills' } }}
+            </button>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        @for (skill of mineSkills(); track skill.id || skill.name || skill.packagePath) {
+          <article
+            class="group flex h-full cursor-pointer flex-col rounded-[24px] border border-divider-regular bg-components-card-bg px-5 py-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+            role="button"
+            tabindex="0"
+            (click)="openInstalledSkill(skill)"
+            (keydown)="onInstalledSkillKeydown($event, skill)"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <h3 class="line-clamp-2 text-lg font-semibold text-text-primary">
+                  {{ displayInstalledSkillName(skill) }}
+                </h3>
+                @if (isLocalSkill(skill) && skill.publishAt) {
+                  <div class="mt-2 inline-flex items-center gap-2 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+                    <i class="ri-broadcast-line"></i>
+                    {{ 'PAC.Explore.SharedToMarket' | translate: { Default: 'Shared to Organization Market' } }}
+                  </div>
+                }
+                <p class="mt-2 line-clamp-4 min-h-[96px] text-sm leading-6 text-text-tertiary">
+                  {{ installedSkillSummary(skill) }}
+                </p>
+              </div>
+
+              <span class="inline-flex shrink-0 items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+                {{ installedSkillRepositoryLabel(skill) }}
+              </span>
+            </div>
+
+            @if (installedSkillTags(skill).length) {
+              <div class="mt-4 flex flex-wrap gap-2">
+                @for (tag of installedSkillTags(skill); track tag) {
+                  <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+                    #{{ tag }}
+                  </span>
+                }
+              </div>
+            }
+
+            <div class="mt-4 grid gap-3 rounded-2xl bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-text-tertiary">
+                  {{ 'PAC.Explore.Creator' | translate: { Default: 'Creator' } }}
+                </span>
+                <span class="truncate text-right text-text-primary">
+                  {{ installedSkillPublisherLabel(skill) }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-text-tertiary">
+                  {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+                </span>
+                <span class="truncate text-right text-text-primary">
+                  {{ installedSkillProviderLabel(skill) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="mt-auto flex items-center justify-between gap-3 pt-5">
+              <div class="text-xs text-text-quaternary">
+                @if (isLocalSkill(skill) && skill.publishAt) {
+                  {{ 'PAC.Explore.SharedAt' | translate: { Default: 'Shared at' } }}
+                  {{ skill.publishAt | date: 'yyyy-MM-dd' }}
+                } @else {
+                  {{ skill.updatedAt || skill.createdAt | date: 'yyyy-MM-dd' }}
+                }
+              </div>
+              <div class="flex items-center gap-2">
+                @if (isLocalSkill(skill)) {
+                  <button type="button" class="btn btn-primary btn-small shrink-0" (click)="openShareDialog(skill, $event)">
+                    {{
+                      skill.publishAt
+                        ? ('PAC.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
+                        : ('PAC.Explore.ShareSkill' | translate: { Default: 'Share' })
+                    }}
+                  </button>
+                }
+                <button type="button" class="btn btn-secondary btn-small shrink-0" (click)="openWorkspaceSkills($event)">
+                  {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open Workspace Skills' } }}
+                </button>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  } @else if (loadingRepositories()) {
+    <div class="flex min-h-[180px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
+      <div class="text-sm text-text-tertiary">
+        {{ 'PAC.Explore.LoadingRepositories' | translate: { Default: 'Loading skill repositories...' } }}
+      </div>
+    </div>
+  } @else if (!repositories().length) {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-6 text-center">
+      <div class="max-w-lg">
+        <div class="text-4xl text-text-tertiary">
+          <i class="ri-folder-open-line"></i>
+        </div>
+        <h3 class="mt-4 text-xl font-semibold text-text-primary">
+          {{ 'PAC.Explore.NoSkillRepositories' | translate: { Default: 'No Skill Repositories Available for This Organization' } }}
+        </h3>
+        <p class="mt-2 text-sm leading-6 text-text-tertiary">
+          {{
+            'PAC.Explore.NoSkillRepositoriesHint'
+              | translate
+                : {
+                    Default:
+                      'Connect a skill repository in the organization first. Once connected, featured picks and the full catalog will appear here.'
+                  }
+          }}
+        </p>
+        <div class="mt-6 flex justify-center">
+          <a class="btn btn-primary btn-medium" routerLink="/setting/skill-repository">
+            {{ 'PAC.Explore.OpenSkillRepositorySettings' | translate: { Default: 'Open Skill Repository Settings' } }}
+          </a>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="px-5 py-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs font-semibold text-text-secondary">
+            {{ 'PAC.Explore.OfficialFeatured' | translate: { Default: 'Featured' } }}
+          </div>
+          <h2 class="mt-3 text-2xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.FeaturedSkillsTitle' | translate: { Default: 'Featured Skills' } }}
+          </h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.FeaturedSkillsHint'
+                | translate
+                  : {
+                      Default:
+                        'Delivered through the xpert-template market configuration, prioritizing skill templates suitable for internal enterprise discovery, collaboration, and reuse.'
+                    }
+            }}
+          </p>
+        </div>
+
+        @if (workspace()) {
+          <div class="inline-flex items-center gap-2 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary">
+            <i class="ri-briefcase-3-line"></i>
+            {{
+              'PAC.Explore.DefaultWorkspaceHint'
+                | translate
+                  : {
+                      name: workspace()?.name,
+                      Default: 'Installed by default to ' + workspace()?.name
+                    }
+            }}
+          </div>
+        }
+      </div>
+
+      @if (loadingMarket()) {
+        <div class="mt-5 flex min-h-[220px] items-center justify-center rounded-[24px] border border-divider-regular bg-background-default-subtle">
+          <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Explore.LoadingFeaturedSkills' | translate: { Default: 'Loading featured skills...' } }}
+          </div>
+        </div>
+      } @else if (!featuredSkills().length) {
+        <div class="mt-5 flex min-h-[220px] items-center justify-center rounded-[24px] border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+          <div class="max-w-xl">
+          <div class="text-3xl text-text-tertiary">
+            <i class="ri-award-line"></i>
+          </div>
+          <div class="mt-3 text-lg font-semibold text-text-primary">
+              {{ 'PAC.Explore.NoFeaturedSkills' | translate: { Default: 'No Featured Skills Available Yet' } }}
+          </div>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
+              {{
+                'PAC.Explore.NoFeaturedSkillsHint'
+                  | translate
+                    : {
+                        Default:
+                          'You can keep configuring featured skills through skills-market.yaml. If the config does not match the current repository indexes yet, this section will stay empty automatically.'
+                      }
+              }}
+            </p>
+          </div>
+        </div>
+      } @else {
+        <div class="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+          @for (featured of featuredSkills(); track featured.skill.id) {
+            <xp-explore-skill-card
+              variant="featured"
+              [item]="featured.skill"
+              [featured]="featured"
+              (view)="openSkillDetail(featured.skill, featured)"
+              (install)="install(featured.skill)"
+            />
+          }
+        </div>
+      }
+    </div>
+
+    <div class="px-5 py-5">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <h2 class="text-2xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.AllSkillsTitle' | translate: { Default: 'All Skills' } }}
+          </h2>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.AllSkillsHint'
+                | translate
+                  : {
+                      Default:
+                        'Browse all available skills by repository, search the real data in the current tab, and keep loading more as you scroll.'
+                    }
+            }}
+          </p>
+        </div>
+
+        <div class="inline-flex items-center gap-2 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-tertiary">
+          <i class="ri-database-2-line"></i>
+          {{ repositoryCount() }} {{ 'PAC.Explore.RepositoriesCount' | translate: { Default: 'repositories' } }}
+        </div>
+      </div>
+
+      <div class="mt-5 space-y-4">
+        <div class="flex flex-wrap gap-3">
+          <button
+            type="button"
+            class="rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+            [class]="
+              selectedRepositoryId() === '__all__'
+                ? 'border-transparent bg-background-default-subtle text-text-primary shadow-sm'
+                : 'border-divider-regular text-text-tertiary hover:text-text-primary'
+            "
+            (click)="selectRepository('__all__')"
+          >
+            {{ 'PAC.Explore.AllRepositories' | translate: { Default: 'All Repositories' } }}
+          </button>
+
+          @for (repository of repositories(); track repository.id) {
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+              [class]="
+                selectedRepositoryId() === repository.id
+                  ? 'border-transparent bg-background-default-subtle text-text-primary shadow-sm'
+                  : 'border-divider-regular text-text-tertiary hover:text-text-primary'
+              "
+              (click)="selectRepository(repository.id)"
+            >
+              {{ repository.name }}
+            </button>
+          }
+        </div>
+        <!-- 
+        <div class="grid gap-3 lg:grid-cols-3">
+          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+            <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
+              {{ roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: 'Role' }) }}
+            </div>
+            <z-select
+              class="w-full"
+              [zValue]="selectedRole()"
+              [zPlaceholder]="roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: 'Role' })"
+              (zSelectionChange)="selectRole($event)"
+            >
+              @for (option of roleOptions(); track option.value) {
+                <z-select-item [zValue]="option.value">
+                  <div class="flex flex-col text-left">
+                    <span>{{ option.label }}</span>
+                    @if (option.description) {
+                      <span class="text-xs text-text-tertiary">{{ option.description }}</span>
+                    }
+                  </div>
+                </z-select-item>
+              }
+            </z-select>
+          </div>
+
+          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+            <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
+              {{ appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: 'App Type' }) }}
+            </div>
+            <z-select
+              class="w-full"
+              [zValue]="selectedAppType()"
+              [zPlaceholder]="appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: 'App Type' })"
+              (zSelectionChange)="selectAppType($event)"
+            >
+              @for (option of appTypeOptions(); track option.value) {
+                <z-select-item [zValue]="option.value">
+                  <div class="flex flex-col text-left">
+                    <span>{{ option.label }}</span>
+                    @if (option.description) {
+                      <span class="text-xs text-text-tertiary">{{ option.description }}</span>
+                    }
+                  </div>
+                </z-select-item>
+              }
+            </z-select>
+          </div>
+
+          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+            <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
+              {{ hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: 'Trending' }) }}
+            </div>
+            <z-select
+              class="w-full"
+              [zValue]="selectedHot()"
+              [zPlaceholder]="hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: 'Trending' })"
+              (zSelectionChange)="selectHot($event)"
+            >
+              @for (option of hotOptions(); track option.value) {
+                <z-select-item [zValue]="option.value">
+                  <div class="flex flex-col text-left">
+                    <span>{{ option.label }}</span>
+                    @if (option.description) {
+                      <span class="text-xs text-text-tertiary">{{ option.description }}</span>
+                    }
+                  </div>
+                </z-select-item>
+              }
+            </z-select>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-tertiary">
+          {{
+            'PAC.Explore.FilterShellHint'
+              | translate
+                : {
+                    Default:
+                      'In the current version, repository filtering and the top search affect the list for real; the role, app type, and trending dropdowns are shown as configurable filter shells for now.'
+                  }
+          }}
+        </div>  -->
+      </div>
+
+      <div class="mt-6 w-full relative overflow-auto" waIntersectionObserver waIntersectionThreshold="0.35">
+        @if (loadingSkills() && !skills().length) {
+          <div class="flex min-h-[320px] items-center justify-center rounded-[24px] border border-divider-regular bg-background-default-subtle">
+            <div class="text-sm text-text-tertiary">
+              {{ 'PAC.Explore.LoadingSkills' | translate: { Default: 'Loading skill indexes...' } }}
+            </div>
+          </div>
+        } @else if (!skills().length) {
+          <div class="flex min-h-[320px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+            <div class="max-w-lg">
+              <div class="text-4xl text-text-tertiary">
+                <i class="ri-search-eye-line"></i>
+              </div>
+              <h3 class="mt-4 text-xl font-semibold text-text-primary">
+                {{ 'PAC.Explore.NoSkills' | translate: { Default: 'No Matching Skill Templates Found' } }}
+              </h3>
+              <p class="mt-2 text-sm leading-6 text-text-tertiary">
+                {{
+                  'PAC.Explore.NoSkillsHint'
+                    | translate
+                      : {
+                          Default: 'Try adjusting the keywords, or switch to another repository to keep browsing.'
+                        }
+                }}
+              </p>
+            </div>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @for (item of skills(); track item.id) {
+              <xp-explore-skill-card
+                [item]="item"
+                (view)="openSkillDetail(item)"
+                (install)="install(item)"
+              />
+            }
+          </div>
+
+          @if (hasMore()) {
+            <button
+              type="button"
+              class="mt-5 flex w-full items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4 text-sm text-text-secondary transition-colors hover:text-text-primary"
+              [disabled]="loadingMore()"
+              (waIntersectionObservee)="onIntersection()"
+              (click)="onIntersection()"
+            >
+              @if (loadingMore()) {
+                <span>{{ 'PAC.Explore.LoadingMoreSkills' | translate: { Default: 'Loading more skills...' } }}</span>
+              } @else {
+                <span>{{ 'PAC.Explore.LoadMoreSkills' | translate: { Default: 'Scroll down or click to load more' } }}</span>
+              }
+            </button>
+          }
+        }
+      </div>
+    </div>
+  }
+  </div>
+</section>

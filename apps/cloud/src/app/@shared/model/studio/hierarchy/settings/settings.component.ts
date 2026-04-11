@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,16 +10,16 @@ import {
   output,
 } from '@angular/core'
 import { AbstractControl, FormGroup, FormsModule } from '@angular/forms'
-import { PropertyDimension, PropertyHierarchy, serializeUniqueName } from '@metad/ocap-core'
+import { PropertyDimension, PropertyHierarchy, serializeUniqueName } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/formly'
+import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@xpert-ai/formly'
 import { injectHelpWebsite } from '@cloud/app/@core'
-import { DensityDirective } from '@metad/ocap-angular/core'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { map, shareReplay, switchMap } from 'rxjs/operators'
-import { AccordionWrappers } from '@metad/story/designer'
+import { AccordionWrappers } from '@xpert-ai/story/designer'
 import { CubeStudioComponent } from '../../studio.component'
 import { take, pipe, combineLatest } from 'rxjs'
 import { ModelStudioService } from '../../../model.service'
@@ -31,7 +31,7 @@ import { HiddenLLM } from '../../../schema'
   selector: 'xp-cube-studio-dimension-settings',
   templateUrl: 'settings.component.html',
   styleUrls: ['settings.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, DensityDirective],
+  imports: [FormsModule, TranslateModule, FormlyModule, DensityDirective],
   host: {
     class: 'xp-cube-studio-dimension-settings'
   }
@@ -115,7 +115,7 @@ export class CubeStudioDimensionSettingsComponent {
     )
 
   @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
+  handleEscapeKey(event: Event) {
     const element = this.elementRef.nativeElement as HTMLElement
     if (document.activeElement && element.contains(document.activeElement)) {
       this.close.emit()

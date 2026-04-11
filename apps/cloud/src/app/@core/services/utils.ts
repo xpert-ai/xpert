@@ -1,8 +1,8 @@
-import { IndicatorStatusEnum, NgmSemanticModel } from '@metad/cloud/state'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { AgentType, DataSourceOptions, isNil, omit, PropertyMeasure, Syntax } from '@metad/ocap-core'
-import { getSemanticModelKey } from '@metad/story/core'
+import { IndicatorStatusEnum, NgmSemanticModel } from '@xpert-ai/cloud/state'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { AgentType, DataSourceOptions, isNil, omit, PropertyMeasure, Syntax } from '@xpert-ai/ocap-core'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
 
 /**
  * Register semantic model into data soruce.

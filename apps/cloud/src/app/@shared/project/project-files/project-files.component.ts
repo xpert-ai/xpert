@@ -1,15 +1,15 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog'
-import { NgmConfirmDeleteComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { NgmConfirmDeleteService, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subscription, firstValueFrom, of, startWith, switchMap, tap } from 'rxjs'
 import { IStorageFile, ProjectAPIService, StorageFileService, ToastrService, listAnimation } from '../../../@core'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
+import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-project-files',
@@ -17,21 +17,20 @@ import { MaterialModule } from '../../material.module'
   styleUrls: ['project-files.component.scss'],
   providers: [],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ButtonGroupDirective,
     AppearanceDirective,
     DensityDirective,
     NgmSearchComponent
-  ],
+],
   animations: [listAnimation]
 })
 export class ProjectFilesDialogComponent {
-  private readonly _dialog = inject(MatDialog)
-  private readonly _data = inject<{ projectId: string }>(MAT_DIALOG_DATA)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
+  private readonly _data = inject<{ projectId: string }>(Z_MODAL_DATA)
   private readonly _toastrService = inject(ToastrService)
   private readonly projectService = inject(ProjectAPIService)
   private readonly storageFileService = inject(StorageFileService)
@@ -96,9 +95,7 @@ export class ProjectFilesDialogComponent {
 
   async deleteFile(event, file: IStorageFile) {
     event.stopPropagation()
-    const confirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: file.originalName } }).afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: file.originalName }))
 
     if (!confirm) return
 

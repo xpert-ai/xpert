@@ -3,7 +3,7 @@ import {
 	IFeatureOrganization,
 	IPagination,
 	PermissionsEnum,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { BadRequestException, Body, Controller, Get, HttpStatus, Post, Query, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'

@@ -2,13 +2,13 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
-import { IsDirty } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { IsDirty } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -31,26 +31,23 @@ import { injectGetXpertTeam } from '../../utils'
 import { XpertComponent } from '../xpert.component'
 import { XpertService } from '../xpert.service'
 
-
 @Component({
   selector: 'xpert-basic',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-    MatInputModule,
-
+    ZardInputDirective,
     NgmDensityDirective,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     TagSelectComponent,
     NgmSpinComponent
-  ],
+],
   templateUrl: './basic.component.html',
   styleUrl: './basic.component.scss',
   animations: [IfAnimation]
@@ -141,8 +138,7 @@ export class XpertBasicComponent implements IsDirty {
           this.form.patchValue(this.team())
           this.form.markAsPristine()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

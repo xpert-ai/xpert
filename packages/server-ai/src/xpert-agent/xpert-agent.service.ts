@@ -1,11 +1,12 @@
 import {
+    IXpert,
     IWFNMiddleware,
     STATE_VARIABLE_HUMAN,
     TChatOptions,
     TXpertAgentChatRequest,
     WorkflowNodeTypeEnum
-} from '@metad/contracts'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -102,12 +103,27 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         }
     }
 
-    async getMiddlewareTools(provider: string, options: any) {
+    private async getDraftXpertFeatures(xpertId?: string) {
+        if (!xpertId) {
+            return null
+        }
+
+        const xpert = await this.queryBus.execute<FindXpertQuery, Pick<IXpert, 'features'> | null>(
+            new FindXpertQuery({ id: xpertId }, { isDraft: true })
+        )
+
+        return xpert?.features ?? null
+    }
+
+    async getMiddlewareTools(provider: string, body: { xpertId?: string; options?: any }) {
         const strategy = this.agentMiddlewareRegistry.get(provider)
-        const middleware = await strategy.createMiddleware(options, {
+        const xpertFeatures = await this.getDraftXpertFeatures(body?.xpertId)
+        const middleware = await strategy.createMiddleware(body?.options, {
             tenantId: RequestContext.currentTenantId(),
             userId: RequestContext.currentUserId(),
-            node: this.createMiddlewareNode(provider, options),
+            xpertId: body?.xpertId,
+            xpertFeatures,
+            node: this.createMiddlewareNode(provider, body?.options),
             tools: new Map()
         })
         return {
@@ -124,12 +140,15 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
     async testMiddlewareTool(
         provider: string,
         toolName: string,
-        body: { options?: any; parameters?: Record<string, any> }
+        body: { xpertId?: string; options?: any; parameters?: Record<string, any> }
     ) {
         const strategy = this.agentMiddlewareRegistry.get(provider)
+        const xpertFeatures = await this.getDraftXpertFeatures(body?.xpertId)
         const middleware = await strategy.createMiddleware(body?.options, {
             tenantId: RequestContext.currentTenantId(),
             userId: RequestContext.currentUserId(),
+            xpertId: body?.xpertId,
+            xpertFeatures,
             node: this.createMiddlewareNode(provider, body?.options),
             tools: new Map()
         })

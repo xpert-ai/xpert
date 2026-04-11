@@ -2,21 +2,20 @@ import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertEnvironmentManageComponent, XpertEnvVariableFormComponent } from '@cloud/app/@shared/environment'
-import { AsteriskPipe } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { isNil } from '@metad/ocap-core'
+import { AsteriskPipe } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { isNil } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EnvironmentService, injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { IEnvironment, TEnvironmentVariable, VariableOperationEnum } from '../../../../../@core/types'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-environment',
   templateUrl: './environment.component.html',
@@ -24,18 +23,17 @@ import { XpertStudioPanelComponent } from '../panel.component'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     DragDropModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     A11yModule,
     NgmSpinComponent,
     AsteriskPipe,
     XpertEnvVariableFormComponent
-  ]
+]
 })
 export class XpertStudioPanelEnvironmentComponent {
   eVariableOperationEnum = VariableOperationEnum

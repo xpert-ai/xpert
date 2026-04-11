@@ -1,0 +1,4 @@
+@reference "../../../tailwind-workspace-reference.css";
+.cdk-row .pac-formly-table__drag-handle.cdk-cell {
+  @apply px-2;
+}

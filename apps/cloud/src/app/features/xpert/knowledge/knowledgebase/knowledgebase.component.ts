@@ -5,9 +5,9 @@ import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectExportXpertDsl, XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
-import { OverlayAnimation1 } from '@metad/core'
-import { injectConfirmDelete, NgmCopyComponent, NgmSlideToggleComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { OverlayAnimation1 } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmCopyComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { AppService } from '@cloud/app/app.service'
@@ -15,6 +15,7 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { injectParams } from 'ngxtension/inject-params'
 import { catchError, EMPTY } from 'rxjs'
 import {
+  ApiKeyBindingType,
   getErrorMessage,
   injectApiBaseUrl,
   injectHelpWebsite,
@@ -25,6 +26,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -37,11 +39,11 @@ import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    NgmSlideToggleComponent,
     NgmCopyComponent,
     EmojiAvatarComponent,
     NgmSpinComponent,
-    XpertInlineProfileComponent
+    XpertInlineProfileComponent,
+    ZardSwitchComponent
   ],
   animations: [routeAnimations, OverlayAnimation1]
 })
@@ -150,25 +152,29 @@ export class KnowledgebaseComponent {
 
   deleteKnowledgebase() {
     const knowledgebase = this.knowledgebase()
-    this.confirmDelete({
+    this.confirmDelete(
+      {
         value: knowledgebase.name,
-        information: knowledgebase.xperts.length ? 
-          this.i18nService.instant('PAC.Knowledgebase.DeleteWithExpertsWarning', { Default: `This knowledge base has been referenced by digital experts. Deleting it will cause access exception.` })
+        information: knowledgebase.xperts.length
+          ? this.i18nService.instant('PAC.Knowledgebase.DeleteWithExpertsWarning', {
+              Default: `This knowledge base has been referenced by digital experts. Deleting it will cause access exception.`
+            })
           : knowledgebase.description
-      }, () => {
+      },
+      () => {
         this.#loading.set(true)
         return this.knowledgebaseAPI.delete(knowledgebase.id)
-      })
-      .subscribe({
-        next: () => {
-          this.#loading.set(false)
-          this.#router.navigate(['/xpert/w'])
-        },
-        error: (err) => {
-          this.#loading.set(false)
-          this._toastrService.danger(err)
-        }
-      })
+      }
+    ).subscribe({
+      next: () => {
+        this.#loading.set(false)
+        this.#router.navigate(['/xpert/w'])
+      },
+      error: (err) => {
+        this.#loading.set(false)
+        this._toastrService.danger(err)
+      }
+    })
   }
 
   downloadPipeline(id: string) {
@@ -176,7 +182,7 @@ export class KnowledgebaseComponent {
     this.exportXpertDsl(id, {
       isDraft: false,
       includeMemory: false,
-      slug: this.knowledgebase().name,
+      slug: this.knowledgebase().name
     }).subscribe({
       next: () => {
         this.#loading.set(false)
@@ -201,7 +207,7 @@ export class KnowledgebaseComponent {
       .open(XpertDevelopApiKeyComponent, {
         data: {
           id: this.knowledgebase().id,
-          type: 'knowledgebase'
+          type: ApiKeyBindingType.KNOWLEDGEBASE
         }
       })
       .closed.subscribe({

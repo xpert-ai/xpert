@@ -1,5 +1,5 @@
-import { IIndicator, ISemanticModel, IStory, IUser, VisitEntityEnum, VisitTypeEnum } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IIndicator, ISemanticModel, IStory, IUser, VisitEntityEnum, VisitTypeEnum } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { IndicatorPublicDTO } from '../../indicator/dto'

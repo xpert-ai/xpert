@@ -4,16 +4,11 @@ import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { afterNextRender, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Dialog } from '@angular/cdk/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import {
-  injectConfirmDelete,
-  injectConfirmUnique,
-  NgmCommonModule,
-} from '@metad/ocap-angular/common'
-import { debouncedSignal, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { debouncedSignal, linkedModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns/formatRelative'
 import { get } from 'lodash-es'
@@ -52,7 +47,7 @@ import {
 } from '../../../../../@core'
 import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const REFRESH_DEBOUNCE_TIME = 5000
 
@@ -66,7 +61,7 @@ const REFRESH_DEBOUNCE_TIME = 5000
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     KnowledgeDocIdComponent,
     NgmI18nPipe
@@ -138,7 +133,9 @@ export class KnowledgeDocumentsComponent {
   readonly selectionModel = new SelectionModel<string>(true, [])
   readonly search = model<string>()
   readonly searchTerm = debouncedSignal(this.search, 300)
-  readonly notFolderItems = computed(() => this.#data().filter((item) => item.sourceType !== KDocumentSourceType.FOLDER))
+  readonly notFolderItems = computed(() =>
+    this.#data().filter((item) => item.sourceType !== KDocumentSourceType.FOLDER)
+  )
   readonly filteredData = computed(() => {
     const filterValue = this.searchTerm()?.toLowerCase() ?? ''
     return this.#data().filter((item) => item.name?.toLowerCase().includes(filterValue))
@@ -169,16 +166,11 @@ export class KnowledgeDocumentsComponent {
         if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
           this.#router.navigate(['../test'], { relativeTo: this.#route })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     afterNextRender(() => {
-      merge(
-        this.knowledgebase$,
-        this.parentId$,
-        this.refresh$
-      )
+      merge(this.knowledgebase$, this.parentId$, this.refresh$)
         .pipe(
           startWith({}),
           debounceTime(100),
@@ -194,7 +186,21 @@ export class KnowledgeDocumentsComponent {
             }
             return this.knowledgeDocumentAPI
               .getAll({
-                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'type', 'category', 'createdAt', 'updatedAt', 'processMsg', 'progress', 'sourceConfig', 'folder'],
+                select: [
+                  'id',
+                  'name',
+                  'status',
+                  'disabled',
+                  'sourceType',
+                  'type',
+                  'category',
+                  'createdAt',
+                  'updatedAt',
+                  'processMsg',
+                  'progress',
+                  'sourceConfig',
+                  'folder'
+                ],
                 where,
                 relations: ['storageFile'],
                 order: {
@@ -237,8 +243,8 @@ export class KnowledgeDocumentsComponent {
 
     effect(() => {
       if (
-        this.#data()?.some(
-          (item) => [
+        this.#data()?.some((item) =>
+          [
             KBDocumentStatusEnum.WAITING,
             KBDocumentStatusEnum.RUNNING,
             KBDocumentStatusEnum.TRANSFORMED,
@@ -479,7 +485,9 @@ export class KnowledgeDocumentsComponent {
 
   reprocess(docs: string[]) {
     const calls: Observable<any>[] = []
-    const documents = docs.map((id) => this.#data().find((doc) => doc.id === id)).filter((doc) => !!doc) as IKnowledgeDocument[]
+    const documents = docs
+      .map((id) => this.#data().find((doc) => doc.id === id))
+      .filter((doc) => !!doc) as IKnowledgeDocument[]
     const standDocs = documents.filter((doc) => !doc.sourceConfig)
     if (standDocs.length) {
       calls.push(this.knowledgeDocumentAPI.startParsing(standDocs.map((doc) => doc.id)))
@@ -487,12 +495,11 @@ export class KnowledgeDocumentsComponent {
     const pipelineDocs = documents.filter((doc) => !!doc.sourceConfig)
     if (pipelineDocs.length) {
       calls.push(
-        this.kbAPI
-              .createTask(this.knowledgebase().id, {
-                taskType: 'document_reprocess',
-                status: 'running', // Start processing immediately
-                documents: pipelineDocs.map((doc) => ({ id: doc.id } as IKnowledgeDocument))
-              })
+        this.kbAPI.createTask(this.knowledgebase().id, {
+          taskType: 'document_reprocess',
+          status: 'running', // Start processing immediately
+          documents: pipelineDocs.map((doc) => ({ id: doc.id }) as IKnowledgeDocument)
+        })
       )
     }
     if (calls.length > 0) {
@@ -519,7 +526,10 @@ export class KnowledgeDocumentsComponent {
   }
 
   openChunkSettings(document: IKnowledgeDocument) {
-    this.#router.navigate(['./', document.id, 'settings'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
+    this.#router.navigate(['./', document.id, 'settings'], {
+      relativeTo: this.#route,
+      queryParams: { parentId: this.parentId() }
+    })
   }
 
   // Metadata operations
@@ -554,19 +564,25 @@ export class KnowledgeDocumentsComponent {
 
   saveMetadataSchema(ref: CdkMenuTrigger) {
     this.isLoading.set(true)
-    this.knowledgebaseComponent.knowledgebaseAPI.update(this.knowledgebase().id, {
-      metadataSchema: this.metadataSchema()
-    }).subscribe({
-      next: () => {
-        this.isLoading.set(false)
-        this._toastrService.success(this.#translate.instant('PAC.Knowledgebase.MetadataSchemaSaved', { Default: 'Metadata schema saved successfully' }))
-        ref.close()
-        this.knowledgebaseComponent.refresh()
-      },
-      error: (err) => {
-        this.isLoading.set(false)
-        this._toastrService.error(getErrorMessage(err))
-      }
-    })
+    this.knowledgebaseComponent.knowledgebaseAPI
+      .update(this.knowledgebase().id, {
+        metadataSchema: this.metadataSchema()
+      })
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false)
+          this._toastrService.success(
+            this.#translate.instant('PAC.Knowledgebase.MetadataSchemaSaved', {
+              Default: 'Metadata schema saved successfully'
+            })
+          )
+          ref.close()
+          this.knowledgebaseComponent.refresh()
+        },
+        error: (err) => {
+          this.isLoading.set(false)
+          this._toastrService.error(getErrorMessage(err))
+        }
+      })
   }
 }

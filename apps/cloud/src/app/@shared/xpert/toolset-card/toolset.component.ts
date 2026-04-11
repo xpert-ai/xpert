@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, input } from '@angular/core'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite, IXpertToolset, XpertToolsetCategoryEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
@@ -11,14 +11,13 @@ import { TagComponent } from '../../tag'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     NgmHighlightDirective,
     EmojiAvatarComponent,
     NgmI18nPipe,
     TagComponent,
     UserPipe
-  ],
+],
   selector: 'xpert-toolset-card',
   templateUrl: 'toolset.component.html',
   styleUrls: ['toolset.component.scss']

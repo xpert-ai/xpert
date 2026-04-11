@@ -1,12 +1,10 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { linkedModel } from '@metad/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { BehaviorSubject } from 'rxjs'
@@ -23,6 +21,7 @@ import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { KnowledgeDocumentCreateSettingsComponent } from '../settings/settings.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -30,15 +29,13 @@ import { KnowledgeDocumentCreateSettingsComponent } from '../settings/settings.c
   templateUrl: './step.component.html',
   styleUrls: ['./step.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
-    MatTooltipModule,
-    MatProgressBarModule,
+    ...ZardTooltipImports,
     KnowledgeDocumentCreateSettingsComponent
-  ]
+]
 })
 export class KnowledgeDocumentCreateStep2Component {
   eKDocumentSourceType = KDocumentSourceType
@@ -94,7 +91,7 @@ export class KnowledgeDocumentCreateStep2Component {
           options: this.createComponent.webOptions(),
           metadata: {
             // title: this.createComponent.webOptions().url,
-            url: this.createComponent.webOptions().url,
+            url: this.createComponent.webOptions().url
           },
           pages: this.webDocs().map((doc) => ({
             ...doc,

@@ -1,8 +1,8 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
@@ -33,7 +33,7 @@
       height: 35px;
       padding: 0 8px;
 
-      .mat-spinner {
+      z-loader {
         height: 35px;
         width: 35px;
         line-height: 35px;
@@ -46,7 +46,7 @@
       height: 30px;
       padding: 0 5px;
 
-      .mat-spinner {
+      z-loader {
         height: 30px;
         width: 30px;
         line-height: 30px;
@@ -57,9 +57,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

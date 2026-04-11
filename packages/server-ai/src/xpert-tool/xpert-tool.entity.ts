@@ -1,5 +1,5 @@
-import { I18nObject, IBuiltinTool, IXpertTool, IXpertToolset, TAvatar, TXpertToolEntity } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { I18nObject, IBuiltinTool, IXpertTool, IXpertToolset, TAvatar, TXpertToolEntity } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString, IsBoolean } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'

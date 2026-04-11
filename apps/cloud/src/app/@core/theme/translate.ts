@@ -4,12 +4,11 @@ import en from '@angular/common/locales/en'
 import localeZhExtra from '@angular/common/locales/extra/zh-Hans'
 import zh from '@angular/common/locales/zh'
 import localeZh from '@angular/common/locales/zh-Hans'
-import { ZhHans as AuthZhHans, ZhHant as AuthZhHant } from '@metad/cloud/auth'
-import { ZhHans as IAppZhHans, ZhHant as IAppZhHant } from '@metad/cloud/indicator-market/i18n'
-import { ZhHans as CopilotZhHans, ZhHant as CopilotZhHant } from '@metad/copilot-angular/i18n'
-import { ZhHans, ZhHant } from '@metad/ocap-angular/i18n'
-import { registerLocaleData as nxRegisterLocaleData, zhHans as CoreZhHans, zhHant as CoreZhHant  } from '@metad/ocap-angular/core'
-import { ZhHans as StoryZhHans, ZhHant as StoryZhHant } from '@metad/story/i18n'
+import { ZhHans as AuthZhHans, ZhHant as AuthZhHant } from '@xpert-ai/cloud/auth'
+import { ZhHans as IAppZhHans, ZhHant as IAppZhHant } from '@xpert-ai/cloud/indicator-market/i18n'
+import { ZhHans, ZhHant } from '@xpert-ai/ocap-angular/i18n'
+import { registerLocaleData as nxRegisterLocaleData, zhHans as CoreZhHans, zhHant as CoreZhHant  } from '@xpert-ai/ocap-angular/core'
+import { ZhHans as StoryZhHans, ZhHant as StoryZhHant } from '@xpert-ai/story/i18n'
 import { TranslateHttpLoader } from '@ngx-translate/http-loader'
 import { enUS, zhCN, zhHK } from 'date-fns/locale'
 import { Observable, map } from 'rxjs'
@@ -34,7 +33,6 @@ class CustomTranslateHttpLoader extends TranslateHttpLoader {
           ...StoryZhHans,
           ...AuthZhHans,
           ...IAppZhHans,
-          ...CopilotZhHans
         }
         break
       case LanguagesEnum.TraditionalChinese:
@@ -44,7 +42,6 @@ class CustomTranslateHttpLoader extends TranslateHttpLoader {
           ...StoryZhHant,
           ...AuthZhHant,
           ...IAppZhHant,
-          ...CopilotZhHant
         }
         break
       default:

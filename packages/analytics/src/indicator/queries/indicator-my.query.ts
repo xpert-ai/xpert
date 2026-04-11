@@ -1,4 +1,4 @@
-import { IIndicator } from '@metad/contracts'
+import { IIndicator } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 import { FindManyOptions } from 'typeorm'
 

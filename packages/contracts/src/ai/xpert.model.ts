@@ -3,6 +3,7 @@ import { RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { ITag } from '../tag-entity.model'
 import { IUser, LanguagesEnum } from '../user.model'
+import { IUserGroup } from '../user-group.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
 import { ChecklistItem, I18nObject, IPoint, ISize, TAvatar } from '../types'
@@ -23,7 +24,7 @@ export enum XpertTypeEnum {
   Agent = 'agent',
 
   /**
-   * Copilot in UI
+   * @deprecated use Chatkit with agent instead.
    */
   Copilot = 'copilot',
 
@@ -78,6 +79,8 @@ export type TXpertFeatures = {
    */
   sandbox?: TXpertSandboxFeature
 }
+
+export type TXpertFeatureKey = keyof TXpertFeatures
 
 export type TXpert = {
   /**
@@ -190,9 +193,9 @@ export type TXpert = {
   toolsets?: IXpertToolset[]
 
   /**
-   * The corresponding person in charge, whose has the authority to execute this digital expert
+   * User groups that are allowed to use this published digital expert.
    */
-  managers?: IUser[]
+  userGroups?: IUserGroup[]
   /**
    * Integrations for this xpert
    */
@@ -214,6 +217,11 @@ export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
 }
 
 export type TXpertOptions = {
+  bootstrap?: {
+    source: 'template'
+    templateKey: string
+    workspaceKind: 'org-default'
+  }
   knowledge?: Record<
     string,
     {
@@ -573,6 +581,10 @@ export type TChatOptions = {
    * Specify additional tools
    */
   tools?: (StructuredToolInterface | RunnableToolLike)[]
+  /**
+   * Per-request runtime context forwarded to agent middleware/tools.
+   */
+  context?: Record<string, unknown>
 }
 
 /**

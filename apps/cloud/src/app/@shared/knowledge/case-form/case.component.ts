@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -13,7 +13,6 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   KBMetadataFieldDef,
@@ -26,6 +25,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { NgmSelectPanelComponent } from '../../common'
 import { XpertKnowledgeConditionFormComponent } from '../condition-form/condition.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-knowledge-case-form',
@@ -34,14 +34,13 @@ import { XpertKnowledgeConditionFormComponent } from '../condition-form/conditio
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSelectPanelComponent,
     XpertKnowledgeConditionFormComponent
-  ],
+]
 })
 export class XpertKnowledgeCaseFormComponent {
   eWorkflowLogicalOperator = WorkflowLogicalOperator
@@ -77,11 +76,14 @@ export class XpertKnowledgeCaseFormComponent {
     this.case.update((state) => {
       return {
         ...state,
-        conditions: [...state.conditions, {
-          id: uuid(),
-          variableSelector: value,
-          comparisonOperator: null
-        }]
+        conditions: [
+          ...state.conditions,
+          {
+            id: uuid(),
+            variableSelector: value,
+            comparisonOperator: null
+          }
+        ]
       }
     })
   }

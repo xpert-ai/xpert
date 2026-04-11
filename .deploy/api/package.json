@@ -28,7 +28,7 @@
     "start": "nx serve",
     "build": "nx build",
     "test": "nx test",
-    "build:plugins": "yarn nx build agent-middlewares && yarn nx build integration-github && yarn nx build retriever-common && yarn nx build textsplitter-common && yarn nx build transformer-common && yarn nx build trigger-schedule && yarn nx build vlm-default && yarn nx build draft"
+    "build:plugins": "pnpm nx build agent-middlewares && pnpm nx build integration-slack && pnpm nx build retriever-common && pnpm nx build textsplitter-common && pnpm nx build transformer-common && pnpm nx build trigger-schedule && pnpm nx build vlm-default && pnpm nx build draft"
   },
   "dependencies": {
     "@langchain/community": "0.3.53",
@@ -79,10 +79,14 @@
     "packages/*",
     "packages/plugins/*"
   ],
-  "resolutions": {
-    "@langchain/core": "0.3.72",
-    "langchain": "0.3.31",
-    "zod": "3.25.67",
-    "web-streams-polyfill": "^4.2.0"
-  }
+  "pnpm": {
+    "overrides": {
+      "@langchain/core": "0.3.72",
+      "langchain": "0.3.31",
+      "@modelcontextprotocol/sdk": "1.12.1",
+      "zod": "3.25.67",
+      "web-streams-polyfill": "^4.2.0"
+    }
+  },
+  "packageManager": "pnpm@10.24.0"
 }

@@ -1,10 +1,7 @@
-import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CommonModule } from '@angular/common'
 import {
   Component,
-  ElementRef,
   Input,
-  ViewChild,
   computed,
   effect,
   forwardRef,
@@ -12,22 +9,29 @@ import {
   input,
   signal
 } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatChipInputEvent } from '@angular/material/chips'
-import { ThemePalette } from '@angular/material/core'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { isString } from '@metad/ocap-core'
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
+import {
+  ZardTagSelectComponent,
+  type ZardTagSelectOption
+} from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { startWith } from 'rxjs'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
+import { NgmFieldColor } from '@xpert-ai/ocap-angular/core'
+
+function isTag(value: unknown): value is ITag {
+  return !!value && typeof value === 'object' && ('id' in value || 'name' in value || 'category' in value)
+}
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MaterialModule, TranslateModule, NgmHighlightDirective],
+  imports: [
+    CommonModule,
+    SharedUiModule,
+    TranslateModule,
+    ZardTagSelectComponent
+  ],
   selector: 'pac-tag-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
@@ -47,54 +51,37 @@ export class TagEditorComponent implements ControlValueAccessor {
   private tagService = inject(TagService)
   private store = inject(Store)
 
-  @Input() color: ThemePalette
-  // @Input() category: string
+  disabled = false
+  @Input() color: NgmFieldColor
   readonly category = input<TagCategoryEnum>(null)
+  readonly tags = signal<ITag[]>([])
 
-  @ViewChild('tagInput') tagInput: ElementRef<HTMLInputElement>
+  private onChange: (value: ITag[]) => void = () => {}
+  private onTouched: () => void = () => {}
 
-  tagCtrl = new FormControl('')
-
-  private onChange: (value: any) => void
-  private onTouched: () => void
-
-  addOnBlur = false
-  readonly separatorKeysCodes = [ENTER, COMMA] as const
-  tags = signal<ITag[]>(null)
-
-  get highlight() {
-    return this.tagCtrl.value
-  }
-
-  readonly _tags = derivedAsync(() => this.tagService.getAllByCategory(this.category()), { initialValue: []})
-
-  readonly search = toSignal(this.tagCtrl.valueChanges.pipe(startWith(null)))
-
-  readonly filterdTags = computed(() => {
-    const tags = this._tags()
-    const search = this.search()
-    if (isString(search)) {
-      const _tag = search?.trim().toLowerCase()
-      return search
-        ? tags.filter(
-            (item) => item.name.toLowerCase().includes(_tag) || item.description?.toLowerCase().includes(_tag)
-          )
-        : tags.slice()
-    }
-    return tags
-  })
+  readonly _tags = derivedAsync(() => this.tagService.getAllByCategory(this.category()), { initialValue: [] })
+  readonly selectOptions = computed<ZardTagSelectOption<ITag>[]>(() =>
+    this._tags().map((tag) => ({
+      label: tag.name,
+      value: tag,
+      keywords: tag.description ? [tag.description] : [],
+      data: tag
+    }))
+  )
 
   constructor() {
     effect(
       () => {
-        this.tags.update((values) => values.map((value) => this._tags().find((item) => item.id === value.id) ?? value))
-      },
-      { allowSignalWrites: true }
+        const allTags = this._tags()
+        this.tags.update((values) =>
+          (values ?? []).map((value) => allTags.find((item) => item.id === value.id) ?? value)
+        )
+      }
     )
   }
 
   writeValue(obj: any): void {
-    this.tags.set(obj)
+    this.tags.set(Array.isArray(obj) ? obj : [])
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -103,43 +90,43 @@ export class TagEditorComponent implements ControlValueAccessor {
     this.onTouched = fn
   }
   setDisabledState?(isDisabled: boolean): void {
-    isDisabled ? this.tagCtrl.disable({ emitEvent: false }) : this.tagCtrl.enable({ emitEvent: false })
+    this.disabled = isDisabled
   }
 
-  add(event: MatChipInputEvent): void {
-    const value = (event.value || '').trim()
-
-    // Add our tag
-    if (value) {
-      this.tags.set([
-        ...(this.tags() ?? []),
-        {
-          name: value,
-          color: 'blue',
-          category: this.category(),
-          organizationId: this.store.selectedOrganization.id
-        }
-      ])
-      this.onChange(this.tags())
-    }
-
-    // Clear the input value
-    event.chipInput!.clear()
+  onBlur() {
+    this.onTouched()
   }
 
-  remove(tag: ITag): void {
-    const index = this.tags()?.indexOf(tag)
-
-    if (index >= 0) {
-      this.tags().splice(index, 1)
-      this.onChange(this.tags())
-    }
-  }
-
-  selected(event: MatAutocompleteSelectedEvent): void {
-    this.tags.set([...(this.tags() ?? []), event.option.value])
-    this.tagInput.nativeElement.value = ''
-    this.tagCtrl.setValue(null)
+  onValueChange(value: unknown[]) {
+    this.tags.set(Array.isArray(value) ? value.filter(isTag) : [])
     this.onChange(this.tags())
   }
+
+  readonly compareTags = (a: unknown, b: unknown) => {
+    if (!isTag(a) || !isTag(b)) {
+      return false
+    }
+
+    if (a.id && b.id) {
+      return a.id === b.id
+    }
+
+    return (a.name ?? '').trim().toLowerCase() === (b.name ?? '').trim().toLowerCase()
+  }
+
+  readonly createTagFromInput = (value: string): ITag | null => {
+    const name = value.trim()
+    if (!name) {
+      return null
+    }
+
+    return {
+      name,
+      color: 'blue',
+      category: this.category(),
+      organizationId: this.store.organizationId
+    }
+  }
+
+  readonly displayTag = (value: unknown) => (isTag(value) ? value.name ?? '' : '')
 }

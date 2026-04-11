@@ -1,7 +1,7 @@
 import { CommandBus, IEventHandler } from '@nestjs/cqrs'
 import { EventsHandler } from '@nestjs/cqrs/dist/decorators/events-handler.decorator'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Employee, TrialUserCreatedEvent } from '@metad/server-core'
+import { Employee, TrialUserCreatedEvent } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import { DataSourceTypeService } from '../../../data-source-type/index'
 import {

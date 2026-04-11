@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common'
 import { HttpClientModule } from '@angular/common/http'
 import { AfterViewInit, Component, NgModule, OnInit } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+import { NgmFormlyModule } from '@xpert-ai/formly'
+
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { FormlyModule } from '@ngx-formly/core'
-import { FormlyMaterialModule } from '@ngx-formly/material'
-import { uuid } from '@metad/ds-core'
+import { uuid } from '@xpert-ai/ds-core'
 import { Meta, moduleMetadata, Story } from '@storybook/angular'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { BehaviorSubject, Observable, of } from 'rxjs'
@@ -14,6 +14,7 @@ import { NxDesignerModule } from './designer.module'
 import { NgmSettingsPanelComponent } from './settings-panel/settings-panel.component'
 import { NxSettingsPanelService } from './settings-panel/settings-panel.service'
 import { DesignerSchema, STORY_DESIGNER_COMPONENT } from './types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 class SchemaService implements DesignerSchema {
   model: any
@@ -35,9 +36,9 @@ class SchemaService implements DesignerSchema {
   selector: 'ngm-designer-wrapper',
   template: `<ngm-settings-panel fxFlex="100"></ngm-settings-panel>
 <div>
-<button mat-raised-button (click)="openBasic()">Basic</button>
-<button mat-raised-button (click)="openTabs()">Tabs</button>
-<button mat-raised-button (click)="changeModel()">Change Model</button>
+<button z-button zType="default" (click)="openBasic()">Basic</button>
+<button z-button zType="default" (click)="openTabs()">Tabs</button>
+<button z-button zType="default" (click)="changeModel()">Change Model</button>
 </div>
   `,
   styles: [`
@@ -97,7 +98,7 @@ class NxDesignerWrapperComponent implements OnInit, AfterViewInit {
 
 @NgModule({
   declarations: [NxDesignerWrapperComponent],
-  imports: [CommonModule, NxDesignerModule, MatButtonModule],
+  imports: [CommonModule, NxDesignerModule, ZardButtonComponent],
   exports: [NxDesignerWrapperComponent],
 })
 class NxDesignerWrapperModule {
@@ -119,7 +120,7 @@ export default {
         }),
         NxDesignerWrapperModule,
         FormlyModule.forRoot(),
-        FormlyMaterialModule,
+        NgmFormlyModule,
       ],
       providers: [
         {

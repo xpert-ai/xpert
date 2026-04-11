@@ -8,16 +8,16 @@
     <div class="text-base flex">{{user()?.email}}</div>
   </div>
 
-  <nav mat-tab-nav-bar class="pac-tab-nav-bar w-full" color="accent" mat-align-tabs="center" mat-stretch-tabs="false" disableRipple
+  <nav z-tab-nav-bar class="pac-tab-nav-bar w-full" color="accent" alignTabs="center" stretchTabs="false" disableRipple
     [tabPanel]="tabPanel">
-    <span mat-tab-link [routerLink]="['profile']"
+    <span z-tab-link [routerLink]="['profile']"
       routerLinkActive #rla="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
     >
       {{ 'PAC.KEY_WORDS.Profile' | translate: {Default: 'Profile'} }}
     </span>
-    <span mat-tab-link [routerLink]="['password']"
+    <span z-tab-link [routerLink]="['password']"
       routerLinkActive #rla2="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla2.isActive"
@@ -26,9 +26,8 @@
     </span>
   </nav>
 </div>
-<mat-divider></mat-divider>
 
-<mat-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
+<z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>

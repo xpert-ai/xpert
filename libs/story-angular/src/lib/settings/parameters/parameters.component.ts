@@ -1,19 +1,16 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, ViewContainerRef, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { MatListModule } from '@angular/material/list'
-import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { ISelectOption, NgmDSCacheService } from '@metad/ocap-angular/core'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
-import { CalculationProperty, EntityType, ParameterProperty, getEntityCalculations } from '@metad/ocap-core'
+
+import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import { ISelectOption, NgmDSCacheService } from '@xpert-ai/ocap-angular/core'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
+import { CalculationProperty, EntityType, ParameterProperty, getEntityCalculations } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NxCoreService } from '@metad/core'
-import { NxStoryService } from '@metad/story/core'
+import { NxCoreService } from '@xpert-ai/core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { firstValueFrom } from 'rxjs'
 import { Dialog } from '@angular/cdk/dialog'
 
@@ -23,16 +20,14 @@ import { Dialog } from '@angular/cdk/dialog'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     DragDropModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatIconModule,
-    MatListModule,
-    MatDividerModule,
+    ZardDialogModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardDividerComponent,
     TranslateModule,
     NgmCommonModule
-  ],
+],
   selector: 'pac-story-parameters',
   templateUrl: 'parameters.component.html',
   styleUrls: ['parameters.component.scss']
@@ -40,6 +35,7 @@ import { Dialog } from '@angular/cdk/dialog'
 export class ParametersComponent {
   public readonly dsCoreService = inject(NgmDSCacheService)
   readonly #dialog = inject(Dialog)
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
 
   entities: ISelectOption<string>[] = []
   activeLink: { dataSource: string; entity: string }
@@ -76,7 +72,7 @@ export class ParametersComponent {
   constructor(
     private storyService: NxStoryService,
     private coreService: NxCoreService,
-    private readonly _dialog: MatDialog,
+    private readonly _dialog: ZardDialogService,
     private readonly _viewContainerRef: ViewContainerRef
   ) {}
 
@@ -176,9 +172,7 @@ export class ParametersComponent {
 
   async removeCalculation(calculationProperty: CalculationProperty) {
     const confirm = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, { data: { value: calculationProperty.caption || calculationProperty.name } })
-        .afterClosed()
+      this.#confirmDelete.confirm({ value: calculationProperty.caption || calculationProperty.name })
     )
     if (confirm) {
       this.storyService.removeCalculation({

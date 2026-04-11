@@ -1,7 +1,7 @@
 import { PregelTaskDescription } from '@langchain/langgraph/dist/pregel/types'
 import { Query } from '@nestjs/cqrs'
 import { AgentStateAnnotation } from '../../shared'
-import { TSensitiveOperation } from '@metad/contracts'
+import { TSensitiveOperation } from '@xpert-ai/contracts'
 
 /**
  * Derived detailed information for the tool calls of interrupted AI message by Xpert's agents and tools.

@@ -1,5 +1,5 @@
 import { Injectable, InjectionToken } from '@angular/core'
-import { QueryOptions } from '@metad/ocap-core'
+import { QueryOptions } from '@xpert-ai/ocap-core'
 import { Observable, of } from 'rxjs'
 
 /**

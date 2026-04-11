@@ -1,5 +1,4 @@
 import { ScrollingModule } from '@angular/cdk/scrolling'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
 import {
   booleanAttribute,
@@ -16,15 +15,10 @@ import {
   signal
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
+import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
+
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   DataSettings,
@@ -42,13 +36,21 @@ import {
   PrimitiveType,
   TreeNodeInterface,
   TreeSelectionMode
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { uniq } from 'lodash-es'
 import { combineLatestWith, debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
-
-
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardCheckboxComponent,
+  ZardLoaderComponent,
+  ZardTooltipImports,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener
+} from '@xpert-ai/headless-ui'
 export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   checked?: boolean
 }
@@ -69,12 +71,13 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   ],
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
-    MatIconModule,
-    MatCheckboxModule,
-    MatProgressSpinnerModule,
-    MatButtonModule,
-    MatTooltipModule,
+    ZardIconComponent,
+    ZardCheckboxComponent,
+    ZardLoaderComponent,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
     ScrollingModule,
     OcapCoreModule,
     NgmCommonModule,
@@ -106,21 +109,26 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   readonly _disabled = signal(false)
 
   @Output() loadingChanging = new EventEmitter<boolean>()
-  // @Output() change = new EventEmitter<MatCheckboxChange>()
+  // @Output() change = new EventEmitter<boolean>()
 
   onChange: (input: any) => void
 
-  itemSize = 40
+  itemSize = 30
   treeNodePaddingIndent = 20
   unfold = false
   searchControl = new FormControl()
   /** Map from nested node to flattened node. This helps us to keep the same object for selection */
   nestedNodeMap = new Map<TreeNodeInterface<T>, TreeItemFlatNode<T>>()
   keyNodeMap = new Map<PrimitiveType, TreeItemFlatNode<T>>()
-  treeControl: FlatTreeControl<TreeItemFlatNode<T>>
-  treeFlattener: MatTreeFlattener<TreeNodeInterface<T>, TreeItemFlatNode<T>>
-  dataSource: MatTreeFlatDataSource<TreeNodeInterface<T>, TreeItemFlatNode<T>>
-  readonly highlightKeyword = toSignal(this.searchControl.valueChanges.pipe(startWith(''), map((value) => value.replace(/\*/g, ''))))
+  treeControl: ZardFlatTreeControl<TreeItemFlatNode<T>>
+  treeFlattener: ZardTreeFlattener<TreeNodeInterface<T>, TreeItemFlatNode<T>>
+  dataSource: ZardTreeFlatDataSource<TreeNodeInterface<T>, TreeItemFlatNode<T>>
+  readonly highlightKeyword = toSignal(
+    this.searchControl.valueChanges.pipe(
+      startWith(''),
+      map((value) => value.replace(/\*/g, ''))
+    )
+  )
 
   /** The selection for checklist */
   readonly memberKeys = signal<string[]>([])
@@ -190,7 +198,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   | Effects
   |--------------------------------------------------------------------------
   */
-  readonly loadedTreeNodes = effect(() => this.initial.set(true), { allowSignalWrites: true })
+  readonly loadedTreeNodes = effect(() => this.initial.set(true))
   readonly autoActiveFirstEffect = effect(
     () => {
       // Auto active first option when no selection
@@ -212,14 +220,15 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
         }
         this.onChange(slicer)
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   // Subscribers
   private _membersSub = toObservable(this.treeNodes)
     .pipe(
-      combineLatestWith(this.searchControl.valueChanges.pipe(startWith(null), distinctUntilChanged(), debounceTime(300))),
+      combineLatestWith(
+        this.searchControl.valueChanges.pipe(startWith(null), distinctUntilChanged(), debounceTime(300))
+      ),
       map(([treeNodes, text]) => {
         text = text?.trim()
         if (text) {
@@ -255,16 +264,22 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   private _loadingSub = this.smartFilterService.loading$.pipe(takeUntilDestroyed()).subscribe((loading) => {
     this.loadingChanging.emit(loading)
   })
-  private errorSub = this.smartFilterService.selectResult().pipe(map(({ error }) => error), takeUntilDestroyed()).subscribe((err) => {
-    this.error.set(err)
-  })
+  private errorSub = this.smartFilterService
+    .selectResult()
+    .pipe(
+      map(({ error }) => error),
+      takeUntilDestroyed()
+    )
+    .subscribe((err) => {
+      this.error.set(err)
+    })
 
   constructor(private smartFilterService: NgmSmartFilterService) {
-    this.treeFlattener = new MatTreeFlattener(this.transformer, this.getLevel, this.isExpandable, this.getChildren)
-    this.treeControl = new FlatTreeControl<TreeItemFlatNode<T>>(this.getLevel, this.isExpandable, {
+    this.treeFlattener = new ZardTreeFlattener(this.transformer, this.getLevel, this.isExpandable, this.getChildren)
+    this.treeControl = new ZardFlatTreeControl<TreeItemFlatNode<T>>(this.getLevel, this.isExpandable, {
       trackBy: (dataNode: TreeItemFlatNode<T>) => dataNode.key as any
     })
-    this.dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener)
+    this.dataSource = new ZardTreeFlatDataSource(this.treeControl, this.treeFlattener)
     this.dataSource.data = []
 
     effect(
@@ -278,8 +293,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
             this.memberKeys.set(options.defaultMembers.map((member) => member.key))
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -300,8 +314,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
               this.treeNodePaddingIndent = 20
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -310,8 +323,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
         if (dataSettings) {
           this.smartFilterService.dataSettings = dataSettings
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -320,8 +332,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
         if (dimension) {
           this.smartFilterService.options = { ...(this.options ?? {}), dimension }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -444,10 +455,10 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     this.memberKeys.update((members) => members.filter((item) => keys.indexOf(item) !== -1))
   }
 
-  itemSelectionToggle(node: TreeItemFlatNode<T>, event: MatCheckboxChange) {
+  itemSelectionToggle(node: TreeItemFlatNode<T>, event: boolean) {
     const member = node.raw.memberKey
     this.toggleMemberKey(member)
-    
+
     const level = this.treeControl.getLevel(node)
 
     if (!this.isSingleRange()) {
@@ -479,13 +490,15 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   }
 
   memberTooltip(member: IDimensionMember) {
-    return DIMENSION_MEMBER_FIELDS.map(field => {
+    return DIMENSION_MEMBER_FIELDS.map((field) => {
       const value = member[field.key]
       if (value !== undefined && value !== null) {
         const displayValue = field.formatter ? field.formatter(value) : value
-        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, {Default: field.label})}: ${displayValue}`
+        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, { Default: field.label })}: ${displayValue}`
       }
       return null
-    }).filter(line => line !== null).join('\n')
+    })
+      .filter((line) => line !== null)
+      .join('\n')
   }
 }

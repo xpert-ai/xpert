@@ -1,5 +1,5 @@
 import { Connection } from 'typeorm';
-import { ILanguage, LanguagesEnum } from '@metad/contracts';
+import { ILanguage, LanguagesEnum } from '@xpert-ai/contracts';
 import faker from 'faker';
 import { Language } from './language.entity';
 import allLanguages from './all-languages';

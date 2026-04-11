@@ -1,19 +1,15 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
+import { ZardButtonComponent, ZardDrawerImports, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, Input } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { EntityCapacity, OcapCoreModule } from '@metad/ocap-angular/core'
-import { C_MEASURES, DataSettings, isPropertyMeasure, Syntax } from '@metad/ocap-core'
+import { EntityCapacity, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { C_MEASURES, DataSettings, isPropertyMeasure, Syntax } from '@xpert-ai/ocap-core'
 import { BehaviorSubject, Subject } from 'rxjs'
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.component'
-import { ResizerModule } from '@metad/ocap-angular/common'
+import { ResizerModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatIconModule } from '@angular/material/icon'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatButtonModule } from '@angular/material/button'
-
 @Component({
   standalone: true,
   imports: [
@@ -21,15 +17,15 @@ import { MatButtonModule } from '@angular/material/button'
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatSidenavModule,
-    MatIconModule,
-    MatTooltipModule,
-    MatButtonModule,
+    ...ZardDrawerImports,
+    ZardIconComponent,
+    ...ZardTooltipImports,
+    ZardButtonComponent,
     MonacoEditorModule,
 
     NgmEntitySchemaComponent,
     ResizerModule,
-    OcapCoreModule,
+    OcapCoreModule
   ],
   selector: 'ngm-formula-editor',
   templateUrl: 'editor.component.html',

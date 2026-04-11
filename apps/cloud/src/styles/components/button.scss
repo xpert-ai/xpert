@@ -1,27 +1,26 @@
-.ngm-theme-light {
+@reference "tailwindcss";
+[data-theme='light'] {
   .ngm-copilot-command-button {
     background: linear-gradient(136deg, rgb(151 0 255 / 80%) 0%, rgb(254 0 0 / 80%) 50%, rgb(255 149 0 / 80%) 100%);
     color: white;
     --mdc-icon-button-icon-color: white;
-    --mat-icon-color: white;
     
-    &.mat-mdc-button-base.mat-mdc-unelevated-button {
-      --mdc-filled-button-label-text-color: white;
+    &[data-z-type='default'] {
+      color: white;
     }
     &[disabled] {
       opacity: 0.5;
     }
   }
 }
-.dark {
+[data-theme='dark'] {
   .ngm-copilot-command-button {
     background: linear-gradient(136deg, rgb(151 0 255) 0%, rgb(254 0 0) 50%, rgb(255 149 0) 100%);
     color: white;
     --mdc-icon-button-icon-color: white;
-    --mat-icon-color: white;
 
-    &.mat-mdc-button-base.mat-mdc-unelevated-button {
-      --mdc-filled-button-label-text-color: white;
+    &[data-z-type='default'] {
+      color: white;
     }
     &[disabled] {
       opacity: 0.5;
@@ -35,7 +34,7 @@
     @apply flex justify-center items-center cursor-pointer rounded-xl px-2
       active:scale-95 origin-bottom transition-all
       disabled:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
-    bg-gray-100 border border-gray-100 hover:border-gray-200;
+    bg-components-input-bg-normal border border-divider-regular hover:border-divider-deep text-fg-primary;
   }
   .ngm-btn-sm, .btn-sm, .btn-small {
     @apply px-2 h-7 rounded-lg text-sm;
@@ -62,23 +61,23 @@
     font-size: 13px;
   }
   .btn-secondary {
-    @apply border-[0.5px] border-[--color-components-button-secondary-border] bg-[--color-components-button-secondary-bg] shadow-sm
-      hover:border-[--color-components-button-secondary-border-hover] hover:bg-[--color-components-button-secondary-bg-hover]
-      text-zinc-600;
+    @apply border-[0.5px] border-(--color-components-button-secondary-border) bg-(--color-components-button-secondary-bg) shadow-sm
+      hover:border-(--color-components-button-secondary-border-hover) hover:bg-(--color-components-button-secondary-bg-hover)
+      text-fg-secondary;
   }
 
   .btn-secondary-accent {
-    @apply border-[0.5px] border-[--color-components-button-secondary-border] bg-[--color-components-button-secondary-bg] shadow-sm
-      hover:border-[--color-components-button-secondary-border-hover] hover:bg-[--color-components-button-secondary-bg-hover]
+    @apply border-[0.5px] border-(--color-components-button-secondary-border) bg-(--color-components-button-secondary-bg) shadow-sm
+      hover:border-(--color-components-button-secondary-border-hover) hover:bg-(--color-components-button-secondary-bg-hover)
       text-text-accent;
   }
 
   .btn-tertiary {
-    @apply bg-gray-200 text-text-tertiary hover:text-text-primary;
+    @apply bg-components-list-option-active-bg text-text-tertiary hover:text-text-primary;
   }
 
   .btn-ghost {
-    @apply bg-transparent border-transparent hover:bg-gray-200;
+    @apply bg-transparent border-transparent hover:bg-button-ghost-hover;
   }
 
   .action-btn {
@@ -116,7 +115,7 @@
 
   .btn {
     &.btn-danger, &.danger {
-      @apply text-red-500 border-red-50 hover:border-red-500 hover:bg-red-50;
+      @apply text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive;
     }
 
     &.active {

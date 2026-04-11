@@ -1,4 +1,4 @@
-import { AggregationRole } from "@metad/ocap-core"
+import { AggregationRole } from "@xpert-ai/ocap-core"
 
 // dimension or hierarchy field name regex
 export const C_MDX_FIELD_NAME_REGEX = `[a-zA-Z0-9\u4E00-\u9FCC\\/\\s_\\-]*`

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { IFileAsset, IUploadFileTarget } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state'
+import { IFileAsset, IUploadFileTarget } from '@xpert-ai/contracts'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 
 const API_FILE_UPLOAD = API_PREFIX + '/files'
 

@@ -16,7 +16,6 @@ import {
   TemplateRef,
   NgZone,
 } from '@angular/core';
-
 import { CountdownConfig, CountdownStatus, CountdownEvent, CountdownEventAction, CountdownItem } from './interfaces';
 import { CountdownTimer } from './countdown.timer';
 import { CountdownGlobalConfig } from './countdown.config';
@@ -24,14 +23,15 @@ import { CountdownGlobalConfig } from './countdown.config';
 @Component({
   selector: 'ngm-countdown',
   template: `
-    <ng-container *ngIf="!render">
+    @if (!render) {
       <span [innerHTML]="i.text"></span>
-    </ng-container>
+    }
     <ng-container *ngTemplateOutlet="render; context: { $implicit: i }"></ng-container>
-  `,
+    `,
   host: { '[class.count-down]': 'true' },
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class NgmCountdownComponent implements OnInit, OnChanges, OnDestroy {
   private frequency = 1000;

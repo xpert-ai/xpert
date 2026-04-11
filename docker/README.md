@@ -9,13 +9,13 @@ Welcome to the `docker` directory for deploying XpertAI using Docker Compose. Th
 Execute the following command in the *docker* directory to set the permissions for the binding folder:
 
 - Create the directory if it doesn't exist
-`mkdir -p ./volumes/api/public`
+`mkdir -p ./volumes/api/public ./volumes/api/data`
 
 - Set ownership to UID 1000:GID 1000 (default for node user)
-`sudo chown -R 1000:1000 ./volumes/api/public`
+`sudo chown -R 1000:1000 ./volumes/api/public ./volumes/api/data`
 
 - Set permissions to allow read/write/execute for owner and group
-`sudo chmod -R 775 ./volumes/api/public`
+`sudo chmod -R 775 ./volumes/api/public ./volumes/api/data`
 
 #### Start up
 
@@ -26,6 +26,38 @@ Start up the Docker containers
 f you need to enable multidimensional modeling capabilities for data analysis, please start the Docker containers using the `bi` profile
 
 `docker compose --profile bi up -d`
+
+#### Organization bootstrap
+
+You can configure automatic organization initialization in `.env`:
+
+```bash
+ORG_DEFAULT_XPERT_TEMPLATE_KEYS=af7133cb-32b3-47ff-90c1-b144c4d4887e,af7133cb-32b3-47ff-90c1-b144c4d48872
+ORG_ANALYTICS_BOOTSTRAP_MODE=semantic-only
+XPERT_TEMPLATE_DIR=/var/lib/xpert/data/xpert-template
+```
+
+`ORG_DEFAULT_XPERT_TEMPLATE_KEYS` is a comma-separated list of template ids that will be imported into each new organization's default workspace.
+
+`ORG_ANALYTICS_BOOTSTRAP_MODE` supports:
+
+- `semantic-only` to create semantic-model prerequisites only
+- `full-demo` to also import demo indicators and stories
+
+#### External xpert templates
+
+`XPERT_TEMPLATE_DIR` defaults to `/var/lib/xpert/data/xpert-template`. On the first API startup, missing baseline files are copied into that mounted directory and all future reads use the external directory only.
+
+Update templates in the mounted volume instead of the repository source tree:
+
+```text
+./volumes/api/data/xpert-template/
+  templates.json
+  mcp-templates.json
+  knowledge-pipelines.json
+  templates/*.yaml
+  pipelines/*.yaml
+```
 
 ### For Chinese users
 

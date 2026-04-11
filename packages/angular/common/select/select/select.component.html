@@ -4,33 +4,29 @@
   }
   @if (label()) {
     <label class="ngm-select-label shrink-0" [title]="label()">
-      {{label()}}
+      {{ label() }}
     </label>
   }
 
   <ng-content select="[ngmLabel]"></ng-content>
 </div>
 
-@if (!searchable()) {
+@if (!searchable() || multiple()) {
   <div class="relative">
-    <mat-select class="ngm-select-element relative" [panelClass]="'ngm-select-panel ' + (displayDensity() === 'compact' ? 'ngm-density__compact' : '') + ' ' + (displayDensity() === 'cosy' ? 'ngm-density__cosy' : '')"
+    <z-select
+      class="ngm-select-element relative"
       [attr.disabled]="isDisabled"
       [formControl]="formControl"
-      [placeholder]="placeholder()"
-      [panelWidth]="panelWidth() || 'auto'"
-      [multiple]="multiple()"
-    >
-      <mat-select-trigger *ngIf="selectTrigger()" class="flex items-center overflow-hidden">
-        <span class="flex-1">
-          {{selectTrigger().caption || selectTrigger().label || selectTrigger()[valueKey()] || placeholder()}}
-        </span>
-      </mat-select-trigger>
+      [zDisabled]="isDisabled"
+      [zPlaceholder]="placeholder() || ''"
+      [zMultiple]="multiple()"
+      >
       @for (option of selectOptions(); track option[valueKey()]) {
-        <mat-option [value]="option[valueKey()]">
-          <ng-container *ngTemplateOutlet="optionTemplate; context: {$implicit: option}"></ng-container>
-        </mat-option>
+        <z-select-item [zValue]="option[valueKey()]">
+          <ng-container *ngTemplateOutlet="optionTemplate; context: { $implicit: option }"></ng-container>
+        </z-select-item>
       }
-    </mat-select>
+    </z-select>
 
     <div class="absolute right-6 top-0 h-full flex items-center">
       <ng-container *ngTemplateOutlet="suffixTemplate"></ng-container>
@@ -38,80 +34,110 @@
   </div>
 } @else {
   <div class="relative">
-    <input class="ngm-input-element w-full relative"
-      #searInput type="text"
+    <z-combobox-deprecated
+      zTriggerMode="input"
+      class="ngm-input-element w-full relative"
+      [value]="value()"
+      [options]="comboboxOptions()"
+      [placeholder]="placeholder() || ''"
       [disabled]="isDisabled"
-      [placeholder]="placeholder()"
-      matInput
-      [matAutocomplete]="auto"
-      [matAutocompleteDisabled]="isDisabled"
-      [ngModel]="autoInput()"
-      (ngModelChange)="onAutoInput($event)"
-      (blur)="onBlur($event)"
-      (keydown)="onKeydown($event)"
-    />
-  
+      [allowCustomValue]="allowInput()"
+      [zSearchTerm]="searchTerm()"
+      [zPanelWidth]="panelWidth()"
+      [zDisplayWith]="displayWith"
+      [zClearable]="true"
+      (zSearchTermChange)="onSearchTermChange($event)"
+      (zValueChange)="onOptionSelected($event)"
+    >
+      <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+        @if (virtualScroll()) {
+          <cdk-virtual-scroll-viewport
+            class="nx-formly__virtual-scroll-viewport"
+            minBufferPx="200"
+            maxBufferPx="400"
+            [style.height.px]="240"
+            [itemSize]="30"
+          >
+            <button
+              type="button"
+              role="option"
+              class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm"
+              *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackByValue; let i = index"
+              [class.bg-accent]="i === activeIndex"
+              [class.text-accent-foreground]="i === activeIndex"
+              (mousedown)="$event.preventDefault()"
+              (mouseenter)="setActiveIndex(i)"
+              (click)="select(option)"
+            >
+              <ng-container
+                *ngTemplateOutlet="optionTemplate; context: { $implicit: option.data, highlight: highlight() }"
+              ></ng-container>
+            </button>
+          </cdk-virtual-scroll-viewport>
+        } @else {
+          <div class="max-h-60 overflow-auto p-1">
+            @for (option of filteredComboboxOptions(); track option.id ?? option.value; let i = $index) {
+              <button
+                type="button"
+                role="option"
+                class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm"
+                [class.bg-accent]="i === activeIndex"
+                [class.text-accent-foreground]="i === activeIndex"
+                (mousedown)="$event.preventDefault()"
+                (mouseenter)="setActiveIndex(i)"
+                (click)="select(option)"
+              >
+                <ng-container
+                  *ngTemplateOutlet="optionTemplate; context: { $implicit: option.data, highlight: highlight() }"
+                ></ng-container>
+              </button>
+            }
+          </div>
+        }
+      </ng-template>
+    </z-combobox-deprecated>
+
     <div class="absolute right-0 top-0 h-full flex items-center mr-1">
       <ng-container *ngTemplateOutlet="suffixTemplate"></ng-container>
-      @if (value()) {
-        <button type="button" class="ngm-input-element__clear w-8 h-8 flex justify-center items-center rounded-lg border border-transparent text-center text-sm transition-all active:scale-95
-          disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none opacity-30 hover:opacity-100
-          hover:bg-white focus:bg-neutral-50 active:bg-neutral-50 dark:hover:bg-neutral-600 dark:focus:bg-neutral-700 dark:active:bg-neutral-700"
-          (click)="clear()">
-          <i class="ri-close-line"></i>
-        </button>
-      }
     </div>
   </div>
 }
 
-<mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" class="ngm-select__autocomplete-panel ngm-autocomplete-panel"
-  [class]="(displayDensity() === 'compact' ? 'ngm-density__compact' : '') + ' ' + (displayDensity() === 'cosy' ? 'ngm-density__cosy' : '')"
-  [panelWidth]="panelWidth() || null"
-  [displayWith]="displayWith"
-  (optionSelected)="onOptionSelected($event)"
->
-  @if (virtualScroll()) {
-    <cdk-virtual-scroll-viewport class="nx-formly__virtual-scroll-viewport" minBufferPx="200" maxBufferPx="400"
-      [style.height.px]="240" [itemSize]="30"
-    >
-      <mat-option *cdkVirtualFor="let option of options$(); trackBy: trackByValue" [value]="option">
-        <ng-container *ngTemplateOutlet="optionTemplate; context: {$implicit: option}"></ng-container>
-      </mat-option>
-    </cdk-virtual-scroll-viewport>
-  } @else {
-    @for (option of options$(); track option.key) {
-      <mat-option [value]="option" class="text-sm">
-        <ng-container *ngTemplateOutlet="optionTemplate; context: {$implicit: option}"></ng-container>
-      </mat-option>
-    }
-  }
-</mat-autocomplete>
-
 <div class="flex items-center">
   <ng-content select="[help]"></ng-content>
-  <mat-error class="text-xs h-4">
+  <z-form-message zType="error" class="ngm-select__message text-xs h-4">
     @if (formControl.invalid) {
-      <span>{{formControl.getError('error')}}</span>
+      <span>{{ formControl.getError('error') }}</span>
     }
     <ng-content select="[ngmError]"></ng-content>
-  </mat-error>
+  </z-form-message>
 </div>
 
-
 <ng-template #optionTemplate let-option>
-  <ng-template [ngIf]="_explicitContent" [ngIfElse]="optionTextLabel">
-    <ng-container *ngTemplateOutlet="_explicitContent; context: {$implicit: option, value: option.value, caption: option.caption, key: option.key, highlight: highlight()}"></ng-container>
-  </ng-template>
-  <ng-template #optionTextLabel>
-    @if (option.icon) {
-      <mat-icon [fontSet]="option.fontSet">{{option.icon}}</mat-icon>
-    }
-    <ngm-display-behaviour class="flex-1 overflow-hidden" [displayBehaviour]="displayBehaviour()"
-      [option]="option"
-      [highlight]="highlight()"
+  @if (_explicitContent) {
+    <ng-container
+      *ngTemplateOutlet="
+        _explicitContent;
+        context: {
+          $implicit: option,
+          value: option.value,
+          caption: option.caption,
+          key: option.key,
+          highlight: highlight()
+        }
+      "
+  ></ng-container>
+} @else {
+  @if (option.icon) {
+    <z-icon [zType]="option.icon"></z-icon>
+  }
+  <ngm-display-behaviour
+    class="flex-1 overflow-hidden"
+    [displayBehaviour]="displayBehaviour()"
+    [option]="option"
+    [highlight]="highlight()"
     />
-  </ng-template>
+}
 </ng-template>
 
 <ng-template #suffixTemplate>

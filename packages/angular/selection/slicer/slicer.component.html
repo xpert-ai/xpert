@@ -1,49 +1,78 @@
 <div class="flex justify-start items-center">
-  <button type="button" mat-icon-button *ngIf="editable()" [disabled]="disabled()" displayDensity="cosy"
-    (click)="editSlicer()">
-    <mat-icon>edit</mat-icon>
-  </button>
+  @if (editable()) {
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      type="button"
+      [disabled]="disabled()"
+      displayDensity="cosy"
+      (click)="editSlicer()"
+      >
+      <z-icon zType="edit"></z-icon>
+    </button>
+  }
 
-  <span *ngIf="title$ | async as title">{{title}}</span>
+  @if (title$ | async; as title) {
+    <span>{{ title }}</span>
+  }
 
-  <button *ngIf="editable()" mat-icon-button [disabled]="disabled()" displayDensity="cosy" class="ngm-slicer__remove"
-    (click)="remove()">
-    <mat-icon color="warn">remove_circle_outline</mat-icon>
-  </button>
+  @if (editable()) {
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      [disabled]="disabled()"
+      displayDensity="cosy"
+      class="ngm-slicer__remove"
+      (click)="remove()"
+      >
+      <z-icon color="warn" zType="remove_circle_outline"></z-icon>
+    </button>
+  }
 </div>
 
 @if (slicer()) {
-  <mat-chip-listbox [selectable]="false">
+  <z-chip-listbox [selectable]="false">
     @for (member of members(); track member.key; let i = $index) {
-      <mat-chip-option class="flex justify-start items-center" [value]="member"
+      <z-chip-option
+        class="flex justify-start items-center"
+        [value]="member"
         [removable]="editable()"
-        [matTooltip]="(member.key || member.value) + ':\n' + (member.caption || member.label || '')"
-        (removed)="removeMember(i)">
+        [zTooltip]="(member.key || member.value) + ':\n' + (member.caption || member.label || '')"
+        (removed)="removeMember(i)"
+        >
         <div class="flex justify-start items-center" [class.line-through]="exclude()">
           @if (member.operator) {
-            <span class="inline-block border-[0.5px] border-solid border-divider-deep rounded-md mr-1 text-xs leading-3 px-1 py-0.5 font-mono bg-neutral-50">
-              {{ 'Ngm.Controls.ValueHelp.' + member.operator | translate: {Default: member.operator} }}
+            <span
+              class="inline-block border-[0.5px] border-solid border-divider-deep rounded-md mr-1 text-xs leading-3 px-1 py-0.5 font-mono bg-neutral-50"
+              >
+              {{ 'Ngm.Controls.ValueHelp.' + member.operator | translate: { Default: member.operator } }}
             </span>
           }
-          <ngm-display-behaviour class="ngm-slicer__label inline-flex" [class.ngm-slicer__exclude]="exclude()"
+          <ngm-display-behaviour
+            class="ngm-slicer__label inline-flex"
+            [class.ngm-slicer__exclude]="exclude()"
             [displayBehaviour]="displayBehaviour$ | async"
             [option]="member"
-          />
+            />
         </div>
         @if (editable()) {
-          <mat-icon matChipRemove>cancel</mat-icon>
+          <z-icon zChipRemove zType="cancel"></z-icon>
         }
-      </mat-chip-option>
+      </z-chip-option>
     }
 
-    <mat-chip-option *ngIf="more() > 0">
-      +{{ more() }}
-    </mat-chip-option>
-    
-    @if (advancedSlicer$ | async; as advancedSlicer) {
-      <mat-chip-option [matTooltip]="advancedSlicer">
-        <div class="whitespace-normal">{{ advancedSlicer }}</div>
-      </mat-chip-option>
+    @if (more() > 0) {
+      <z-chip-option> +{{ more() }} </z-chip-option>
     }
-  </mat-chip-listbox>
+
+    @if (advancedSlicer$ | async; as advancedSlicer) {
+      <z-chip-option [zTooltip]="advancedSlicer">
+        <div class="whitespace-normal">{{ advancedSlicer }}</div>
+      </z-chip-option>
+    }
+  </z-chip-listbox>
 }

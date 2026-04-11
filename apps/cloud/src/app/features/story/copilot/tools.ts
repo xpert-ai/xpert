@@ -1,8 +1,8 @@
 import { inject } from '@angular/core'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { nanoid } from '@metad/copilot'
-import { markdownModelCube } from '@metad/core'
-import { AnalyticalGridOptions } from '@metad/ocap-angular/analytical-grid'
+import { nanoid } from '@xpert-ai/copilot'
+import { markdownModelCube } from '@xpert-ai/core'
+import { AnalyticalGridOptions } from '@xpert-ai/ocap-angular/analytical-grid'
 import {
   assignDeepOmitBlank,
   DataSettings,
@@ -12,8 +12,8 @@ import {
   omit,
   SlicerSchema,
   tryFixSlicer
-} from '@metad/ocap-core'
-import { FilterControlType, NxStoryService, WidgetComponentType } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { FilterControlType, NxStoryService, WidgetComponentType } from '@xpert-ai/story/core'
 import {
   chartAnnotationCheck,
   ChartSchema,
@@ -22,7 +22,7 @@ import {
   createWidgetSchema,
   KPIStylingSchema,
   tryFixAnalyticsAnnotation
-} from '@metad/story/story'
+} from '@xpert-ai/story/story'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom } from 'rxjs'
 import z from 'zod'

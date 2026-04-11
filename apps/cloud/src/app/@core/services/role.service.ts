@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IPagination, IRole, ITenant, RolesEnum } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state';
+import { IPagination, IRole, ITenant, RolesEnum } from '@xpert-ai/contracts'
+import { API_PREFIX } from '@xpert-ai/cloud/state';
 import { Observable } from 'rxjs'
 
 @Injectable({
@@ -25,6 +25,10 @@ export class RoleService {
     return this.http.post<IRole>(`${API_PREFIX}/roles`, {
       ...role
     })
+  }
+
+  update(id: string, role: Partial<IRole>): Observable<IRole> {
+    return this.http.put<IRole>(`${API_PREFIX}/roles/${id}`, role)
   }
 
   delete(role: IRole): Observable<IRole> {

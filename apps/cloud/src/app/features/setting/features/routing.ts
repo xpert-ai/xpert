@@ -8,22 +8,19 @@ export default [
     component: PACFeaturesComponent,
     children: [
       {
-        path: '',
-        redirectTo: 'tenant',
-        pathMatch: 'full'
-      },
-      {
         path: 'tenant',
         component: FeatureToggleComponent,
         data: {
-          isOrganization: false
+          isOrganization: false,
+          scopeContext: 'tenant-only'
         }
       },
       {
         path: 'organization',
         component: FeatureToggleComponent,
         data: {
-          isOrganization: true
+          isOrganization: true,
+          scopeContext: 'organization-only'
         }
       }
     ]

@@ -1,6 +1,5 @@
 import { ComponentType } from '@angular/cdk/portal'
 import { InjectionToken, TemplateRef, Type } from '@angular/core'
-import { MatTabHeaderPosition } from '@angular/material/tabs'
 import {
   Accessibility,
   IDataSource,
@@ -10,8 +9,8 @@ import {
   ISemanticModelPreferences,
   IStory,
   ISubscription
-} from '@metad/contracts'
-import { DisplayDensity, NgmAppearance, ThemesEnum } from '@metad/ocap-angular/core'
+} from '@xpert-ai/contracts'
+import { DisplayDensity, NgmAppearance, NgmTabHeaderPosition, ThemesEnum } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   DataSourceOptions,
@@ -22,10 +21,10 @@ import {
   Schema,
   TimeGranularity,
   UUID
-} from '@metad/ocap-core'
-import { NxWatermarkOptions } from '@metad/components/trial-watermark'
-import { DefaultDataSettings, IStoryWidget } from '@metad/core'
-import { GridsterConfig, GridsterItem } from 'angular-gridster2'
+} from '@xpert-ai/ocap-core'
+import { NxWatermarkOptions } from '@xpert-ai/components/trial-watermark'
+import { DefaultDataSettings, IStoryWidget } from '@xpert-ai/core'
+import { GridsterConfig, GridsterItemConfig } from 'angular-gridster2'
 import ShortUniqueId from 'short-unique-id'
 
 export const I18N_STORY_NAMESPACE = 'Story'
@@ -97,7 +96,7 @@ export interface StoryPreferences {
   storyStyling?: ComponentStyling
   story?: {
     tabBar?: 'fixed' | 'point' | 'hidden' | null
-    pageHeaderPosition?: MatTabHeaderPosition
+    pageHeaderPosition?: NgmTabHeaderPosition
     pageHeaderStretchTabs?: boolean
     pageHeaderAlignTabs?: 'start' | 'center' | 'end'
     pageHeaderShowLabel?: boolean | PageHeaderLabelEnum
@@ -182,7 +181,7 @@ export interface StoryOptions {
    * @deprecated use preferences.story.themeName
    * 主题
    */
-  themeName?: 'system' | 'light' | 'dark' | 'thin' | string
+  themeName?: 'default' | 'light' | 'dark' | string
   /**
    * 显示为全屏
    */
@@ -398,7 +397,7 @@ export interface WidgetStyling {
 export interface StoryWidget extends StoryWidgetKey {
   name: string
   title?: string
-  position: GridsterItem
+  position: GridsterItemConfig
   component: WidgetComponentType | string
   dataSettings?: DataSettings
   linkedAnalysis?: LinkedAnalysisSettings

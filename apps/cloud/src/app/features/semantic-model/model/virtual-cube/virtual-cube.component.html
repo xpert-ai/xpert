@@ -1,279 +1,369 @@
-<mat-toolbar displayDensity="compact" >
-    <button mat-icon-button displayDensity="compact" (click)="drawer.toggle()">
-        <mat-icon fontSet="material-icons-round">segment</mat-icon>
-    </button>
-    {{ 'PAC.MODEL.VirtualCube.VirtualCube' | translate: {Default: 'Virtual Cube'} }}:
-    <span style="overflow: hidden;">{{ virtualCube$().caption }} ({{ virtualCube$().name }})</span>
-    <button mat-icon-button displayDensity="compact" (click)="editVirtualCube(virtualCube$())">
-        <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-    </button>
-</mat-toolbar>
+<header class="pac-sub-toolbar flex shrink-0 items-center gap-2">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="drawer.toggle()">
+    <z-icon zType="segment"></z-icon>
+  </button>
+  {{ 'PAC.MODEL.VirtualCube.VirtualCube' | translate: { Default: 'Virtual Cube' } }}:
+  <span style="overflow: hidden">{{ virtualCube$().caption }} ({{ virtualCube$().name }})</span>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon"
+    zShape="circle"
+    displayDensity="compact"
+    (click)="editVirtualCube(virtualCube$())"
+  >
+    <z-icon zType="edit"></z-icon>
+  </button>
+</header>
 
-<mat-drawer-container class="flex-1" [hasBackdrop]="false" [autosize]="true">
-    <mat-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230" class="flex flex-col">
-        <div class="h-full flex-1 flex flex-col justify-start items-stretch overflow-y-auto">
-            <mat-toolbar class="pac-sub-toolbar flex justify-between items-center gap-2" displayDensity="compact">
-                <span>{{ 'PAC.MODEL.VirtualCube.CubeUsages' | translate: {Default: "Cube Usages"} }}</span>
-                <span class="flex-1 flex"></span>
-                <button mat-icon-button color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin"
-                    cdkDropList
-                    [cdkDropListEnterPredicate]="cubeRemovePredicate"
-                    (cdkDropListDropped)="removeCube($event.item.data.name)"
+<z-drawer-container class="flex-1" [hasBackdrop]="false">
+  <z-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230" class="flex flex-col">
+    <div class="h-full flex-1 flex flex-col justify-start items-stretch overflow-y-auto">
+      <div class="pac-sub-toolbar flex shrink-0 justify-between items-center gap-2">
+        <span>{{ 'PAC.MODEL.VirtualCube.CubeUsages' | translate: { Default: 'Cube Usages' } }}</span>
+        <span class="flex-1 flex"></span>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+
+          displayDensity="cosy"
+          class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+          cdkDropList
+          [cdkDropListEnterPredicate]="cubeRemovePredicate"
+          (cdkDropListDropped)="removeCube($event.item.data.name)"
+        >
+          <z-icon color="warn" zType="delete"></z-icon>
+        </button>
+      </div>
+
+      <div
+        class="pac-model-access__cubes pac-cdk-drop__list flex-1 flex flex-col overflow-y-auto"
+        cdkDropList
+        [cdkDropListEnterPredicate]="cubePredicate"
+        (cdkDropListDropped)="dropCube($event)"
+      >
+        <div class="h-full overflow-y-auto">
+          @for (cube of cubes$ | async; track cube.cubeName) {
+            <ngm-entity-schema
+              [class.selected]="cube.cubeName === selectedCube"
+              [dataSettings]="{
+                dataSource: dataSource$(),
+                entitySet: cube.cubeName
+              }"
+              [capacities]="[EntityCapacity.Dimension, EntityCapacity.Measure]"
+              (click)="selectCube(cube)"
+            ></ngm-entity-schema>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div ngmResizerBar resizerBarPosition="right" cdkDrag cdkDragLockAxis="x"></div>
+  </z-drawer>
+
+  <z-drawer-content>
+    @if (virtualCube(); as virtualCube) {
+      <div class="flex flex-wrap justify-start items-center gap-4">
+        <z-form-field appearance="fill" displayDensity="cosy">
+          <z-form-label>{{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</z-form-label>
+          <input z-input [(ngModel)]="virtualCube.name" />
+        </z-form-field>
+        <z-form-field appearance="fill" displayDensity="cosy">
+          <z-form-label>{{ 'PAC.KEY_WORDS.Caption' | translate: { Default: 'Caption' } }}</z-form-label>
+          <input z-input [(ngModel)]="virtualCube.caption" />
+        </z-form-field>
+        <z-form-field appearance="fill" displayDensity="cosy">
+          <z-form-label>{{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
+          <input z-input [(ngModel)]="virtualCube.description" cdkTextareaAutosize />
+        </z-form-field>
+
+        <div ngmButtonGroup displayDensity="cosy">
+          <button z-button zType="secondary" displayDensity="cosy" (click)="cancelVirtualCube()">
+            {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+          </button>
+          <button z-button zType="default" displayDensity="cosy" (click)="applyVirtualCube()">
+            {{ 'PAC.KEY_WORDS.Confirm' | translate: { Default: 'Confirm' } }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <z-accordion multi class="pac-model__accordion">
+      <z-accordion-item hideToggle class="shadow-sm bg-[var(--ngm-color-surface-container-low)]" expanded>
+        <z-accordion-header>
+          <z-accordion-title>{{ 'PAC.KEY_WORDS.Cubes' | translate: { Default: 'Cubes' } }}</z-accordion-title>
+          <z-accordion-description></z-accordion-description>
+        </z-accordion-header>
+        <ul role="list" class="ngm-list">
+          @for (cube of cubes$ | async; track cube.cubeName) {
+            <li role="listitem">
+              <div class="flex items-center">
+                <div class="flex-1 flex mr-4">{{ cube.cubeName }}</div>
+
+                <z-switch
+                  [ngModel]="cube.ignoreUnrelatedDimensions"
+                  (change)="changeIgnoreUnrelatedDimensions($event, cube)"
+                  >{{
+                    'PAC.MODEL.VirtualCube.IgnoreUnrelatedDimensions'
+                      | translate: { Default: 'Ignore Unrelated Dimensions' }
+                  }}</z-switch
                 >
-                    <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  displayDensity="cosy"
+                  ngmAppearance="danger"
+                  class="pac-nav-tab__close"
+                  (click)="removeCube(cube.cubeName)"
+                >
+                  <z-icon zType="cancel"></z-icon>
                 </button>
-            </mat-toolbar>
+              </div>
+            </li>
+          }
+        </ul>
+      </z-accordion-item>
 
-            <div class="pac-model-access__cubes pac-cdk-drop__list flex-1 flex flex-col overflow-y-auto"
-                cdkDropList
-                [cdkDropListEnterPredicate]="cubePredicate"
-                (cdkDropListDropped)="dropCube($event)"
-            >
-              <div class="h-full overflow-y-auto">
-                @for (cube of cubes$ | async; track cube.cubeName) {
-                    <ngm-entity-schema [class.selected]="cube.cubeName === selectedCube"
-                        [dataSettings]="{
-                            dataSource: dataSource$(),
-                            entitySet: cube.cubeName
-                        }"
-                        [capacities]="[
-                            EntityCapacity.Dimension,
-                            EntityCapacity.Measure,
-                        ]"
-                        (click)="selectCube(cube)"
-                    ></ngm-entity-schema>
-                }
+      <z-accordion-item hideToggle class="shadow-sm bg-[var(--ngm-color-surface-container-low)]" expanded>
+        <z-accordion-header>
+          <z-accordion-title>{{ 'PAC.KEY_WORDS.Dimensions' | translate: { Default: 'Dimensions' } }}</z-accordion-title>
+          <z-accordion-description></z-accordion-description>
+        </z-accordion-header>
+        <ul
+          role="list"
+          class="ngm-list pac-cdk-drop__list min-h-[60px]"
+          cdkDropList
+          [cdkDropListData]="dimensions$()"
+          [cdkDropListEnterPredicate]="dropDimensionPredicate"
+          (cdkDropListDropped)="dropDimension($event)"
+        >
+          @for (dimension of dimensions$(); track dimension.name) {
+            <li role="listitem" class="pac-cdk-drop-item" cdkDrag>
+              <div class="flex items-center">
+                <div class="flex-1 flex mr-4">
+                  <ngm-display-behaviour
+                    class="flex-1"
+                    [option]="{
+                      value: dimension.name,
+                      label: dimension.label
+                    }"
+                  >
+                  </ngm-display-behaviour>
+
+                  <ngm-display-behaviour
+                    class="flex-1"
+                    [option]="{
+                      value: dimension.cubeName,
+                      label: dimension.cubeCaption
+                    }"
+                  >
+                  </ngm-display-behaviour>
+                </div>
+
+                <z-switch [ngModel]="dimension.__shared__" (change)="changeDimensionShared($event, dimension.name)">{{
+                  'PAC.MODEL.VirtualCube.SharedDimension' | translate: { Default: 'Shared Dimension' }
+                }}</z-switch>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  displayDensity="cosy"
+                  ngmAppearance="danger"
+                  class="pac-nav-tab__close"
+                  (click)="removeDimension(dimension.name)"
+                >
+                  <z-icon zType="cancel"></z-icon>
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      </z-accordion-item>
+
+      <z-accordion-item hideToggle class="shadow-sm bg-[var(--ngm-color-surface-container-low)]" expanded>
+        <z-accordion-header>
+          <z-accordion-title>{{ 'PAC.KEY_WORDS.Measures' | translate: { Default: 'Measures' } }}</z-accordion-title>
+          <z-accordion-description></z-accordion-description>
+        </z-accordion-header>
+
+        <ul
+          role="list"
+          class="ngm-list pac-cdk-drop__list min-h-[60px]"
+          cdkDropList
+          [cdkDropListEnterPredicate]="dropMeasurePredicate"
+          (cdkDropListDropped)="dropMeasure($event)"
+        >
+          @for (measure of measures$ | async; track measure.name) {
+            <li role="listitem" class="pac-cdk-drop-item" cdkDrag>
+              <div class="flex items-center">
+                <div class="flex-1 flex">
+                  <ngm-display-behaviour
+                    style="flex: 1"
+                    [option]="{
+                      value: measure.name,
+                      label: measure.label
+                    }"
+                  >
+                  </ngm-display-behaviour>
+
+                  <ngm-display-behaviour
+                    style="flex: 1"
+                    [option]="{
+                      value: measure.cubeName,
+                      label: measure.cubeCaption
+                    }"
+                  >
+                  </ngm-display-behaviour>
+                </div>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  displayDensity="cosy"
+                  ngmAppearance="danger"
+                  class="pac-nav-tab__close"
+                  (click)="removeMeasure(measure.name)"
+                >
+                  <z-icon zType="cancel"></z-icon>
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      </z-accordion-item>
+
+      <z-accordion-item hideToggle class="shadow-sm bg-[var(--ngm-color-surface-container-low)]" expanded>
+        <z-accordion-header>
+          <z-accordion-title>{{
+            'PAC.KEY_WORDS.CalculatedMembers' | translate: { Default: 'Calculated Members' }
+          }}</z-accordion-title>
+          <z-accordion-description> </z-accordion-description>
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            displayDensity="cosy"
+            [zTooltip]="'PAC.MODEL.VirtualCube.NewCalculatedMember' | translate: { Default: 'New Calculated Member' }"
+            (click)="createCalculatedMember(); $event.stopPropagation()"
+          >
+            <z-icon zType="add_circle_outline"></z-icon>
+          </button>
+        </z-accordion-header>
+
+        <ul role="list" class="ngm-list pac-cdk-drop-list">
+          @for (measure of calculatedMembers$ | async; track measure.name) {
+            <li role="listitem">
+              <div class="flex items-center">
+                <ngm-display-behaviour
+                  class="flex-1 overflow-hidden"
+                  [option]="{
+                    value: measure.formula,
+                    label: measure.caption + '(' + measure.name + ')'
+                  }"
+                >
+                </ngm-display-behaviour>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  displayDensity="cosy"
+                  class="pac-nav-tab__close"
+                  (click)="editCalculatedMember(measure)"
+                >
+                  <z-icon zType="edit"></z-icon>
+                </button>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  displayDensity="cosy"
+                  ngmAppearance="danger"
+                  class="pac-nav-tab__close"
+                  (click)="removeCalculatedMember(measure.name)"
+                >
+                  <z-icon zType="cancel"></z-icon>
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+
+        <z-divider></z-divider>
+
+        @if (showCalculatedMember()) {
+          <form [formGroup]="calcMemberFormGroup" class="grid grid-cols-4 gap-2 mt-4">
+            <z-form-field class="col-span-1" appearance="fill" displayDensity="cosy">
+              <z-form-label>{{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</z-form-label>
+              <input z-input formControlName="name" />
+            </z-form-field>
+            <z-form-field class="col-span-2" appearance="fill" displayDensity="cosy">
+              <z-form-label>{{ 'PAC.KEY_WORDS.Caption' | translate: { Default: 'Caption' } }}</z-form-label>
+              <input z-input formControlName="caption" />
+            </z-form-field>
+
+            <z-form-field class="col-span-1" appearance="fill" displayDensity="cosy">
+              <z-form-label>{{ 'PAC.KEY_WORDS.Dimension' | translate: { Default: 'Dimension' } }}</z-form-label>
+              <ngm-select
+                formControlName="dimension"
+                [selectOptions]="[
+                  { value: 'Measures', label: ('Ngm.EntitySchema.Measures' | translate: { Default: 'Measures' }) }
+                ]"
+              />
+            </z-form-field>
+            <z-form-field class="col-span-1" appearance="fill" displayDensity="cosy">
+              <z-form-label>{{ 'PAC.KEY_WORDS.Unit' | translate: { Default: 'Unit' } }}</z-form-label>
+              <input z-input formControlName="unit" />
+            </z-form-field>
+
+            <z-form-field class="col-span-3" appearance="fill" displayDensity="cosy">
+              <z-form-label>{{ 'PAC.KEY_WORDS.Formula' | translate: { Default: 'Formula' } }}</z-form-label>
+              <textarea z-input formControlName="formula" cdkTextareaAutosize></textarea>
+
+              <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix (click)="toggleFormula()">
+                <z-icon zType="code"></z-icon>
+              </button>
+            </z-form-field>
+
+            @if (showFormula()) {
+              <ngm-calculated-measure
+                class="col-span-4 h-96 rounded-lg overflow-hidden border border-solid border-neutral-100 dark:border-neutral-800"
+                [syntax]="Syntax.MDX"
+                [dataSettings]="dataSettings$()"
+                [entityType]="entityType()"
+                formControlName="formula"
+              >
+              </ngm-calculated-measure>
+            }
+
+            <div class="col-span-4 flex justify-end items-center">
+              <div ngmButtonGroup displayDensity="cosy">
+                <button z-button zType="secondary" displayDensity="cosy" (click)="cancelCalculatedMember()">
+                  {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+                </button>
+                <button
+                  z-button
+                  zType="default"
+                  displayDensity="cosy"
+
+                  [disabled]="calcMemberFormGroup.invalid"
+                  (click)="applyCalculatedMember()"
+                >
+                  {{ 'PAC.KEY_WORDS.Confirm' | translate: { Default: 'Confirm' } }}
+                </button>
               </div>
             </div>
-        </div>
-
-        <div ngmResizerBar resizerBarPosition="right"
-            cdkDrag
-            cdkDragLockAxis="x"
-        ></div>
-    </mat-drawer>
-
-    <mat-drawer-content >
-      @if (virtualCube(); as virtualCube) {
-        <div class="flex flex-wrap justify-start items-center gap-4">
-            <mat-form-field appearance="fill" displayDensity="cosy">
-                <mat-label>{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</mat-label>
-                <input matInput [(ngModel)]="virtualCube.name">
-            </mat-form-field>
-            <mat-form-field appearance="fill" displayDensity="cosy">
-                <mat-label>{{ 'PAC.KEY_WORDS.Caption' | translate: {Default: 'Caption'} }}</mat-label>
-                <input matInput [(ngModel)]="virtualCube.caption">
-            </mat-form-field>
-            <mat-form-field appearance="fill" displayDensity="cosy">
-                <mat-label>{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</mat-label>
-                <input matInput [(ngModel)]="virtualCube.description" cdkTextareaAutosize>
-            </mat-form-field>
-
-            <div ngmButtonGroup displayDensity="cosy">
-                <button mat-flat-button displayDensity="cosy" (click)="cancelVirtualCube()">
-                    {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
-                </button>
-                <button mat-raised-button displayDensity="cosy" color="primary" (click)="applyVirtualCube()">
-                    {{ 'PAC.KEY_WORDS.Confirm' | translate: {Default: 'Confirm'} }}
-                </button>
-            </div>
-        </div>
-      }
-
-        <mat-accordion multi class="pac-model__accordion">
-            <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
-                <mat-expansion-panel-header>
-                    <mat-panel-title>{{ 'PAC.KEY_WORDS.Cubes' | translate: {Default: 'Cubes'} }}</mat-panel-title>
-                    <mat-panel-description></mat-panel-description>
-                </mat-expansion-panel-header>
-                <mat-list displayDensity="compact">
-                    <mat-list-item role="listitem" *ngFor="let cube of cubes$ | async">
-                        <div class="flex items-center">
-                            <div class="flex-1 flex mr-4">{{ cube.cubeName }}</div>
-                        
-                            <mat-slide-toggle [ngModel]="cube.ignoreUnrelatedDimensions"
-                                (change)="changeIgnoreUnrelatedDimensions($event, cube)">{{ 'PAC.MODEL.VirtualCube.IgnoreUnrelatedDimensions' | translate: {Default: 'Ignore Unrelated Dimensions'} }}</mat-slide-toggle>
-                            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close"
-                                (click)="removeCube(cube.cubeName)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
-                            </button>
-                        </div>
-                    </mat-list-item>
-                </mat-list>
-            </mat-expansion-panel>
-
-            <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
-                <mat-expansion-panel-header>
-                    <mat-panel-title>{{ 'PAC.KEY_WORDS.Dimensions' | translate: {Default: 'Dimensions'} }}</mat-panel-title>
-                    <mat-panel-description></mat-panel-description>
-                </mat-expansion-panel-header>
-                <mat-list role="list" class="pac-cdk-drop__list min-h-[60px]" displayDensity="compact"
-                    cdkDropList
-                    [cdkDropListData]="dimensions$()"
-                    [cdkDropListEnterPredicate]="dropDimensionPredicate"
-                    (cdkDropListDropped)="dropDimension($event)"
-                    >
-                    <mat-list-item role="listitem" class="pac-cdk-drop-item"
-                        *ngFor="let dimension of dimensions$()" cdkDrag>
-                        <div class="flex items-center">
-                            <div class="flex-1 flex mr-4">
-                                <ngm-display-behaviour class="flex-1"
-                                    [option]="{
-                                        value: dimension.name,
-                                        label: dimension.label
-                                    }">
-                                </ngm-display-behaviour>
-
-                                <ngm-display-behaviour class="flex-1"
-                                    [option]="{
-                                        value: dimension.cubeName,
-                                        label: dimension.cubeCaption
-                                    }">
-                                </ngm-display-behaviour>
-                            </div>
-
-                            <mat-slide-toggle [ngModel]="dimension.__shared__"
-                                (change)="changeDimensionShared($event, dimension.name)">{{ 'PAC.MODEL.VirtualCube.SharedDimension' | translate: {Default: 'Shared Dimension'} }}</mat-slide-toggle>
-                            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close"
-                                (click)="removeDimension(dimension.name)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
-                            </button>
-                        </div>
-                    </mat-list-item>
-                </mat-list>
-            </mat-expansion-panel>
-
-            <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
-                <mat-expansion-panel-header>
-                    <mat-panel-title>{{ 'PAC.KEY_WORDS.Measures' | translate: {Default: 'Measures'} }}</mat-panel-title>
-                    <mat-panel-description></mat-panel-description>
-                </mat-expansion-panel-header>
-
-                <mat-list role="list" class="pac-cdk-drop__list min-h-[60px]" displayDensity="compact"
-                    cdkDropList
-                    [cdkDropListEnterPredicate]="dropMeasurePredicate"
-                    (cdkDropListDropped)="dropMeasure($event)"
-                    >
-                    <mat-list-item role="listitem" class="pac-cdk-drop-item"
-                        *ngFor="let measure of measures$ | async" cdkDrag>
-                        <div class="flex items-center">
-                            <div class="flex-1 flex">
-                                <ngm-display-behaviour style="flex: 1;"
-                                    [option]="{
-                                        value: measure.name,
-                                        label: measure.label
-                                    }">
-                                </ngm-display-behaviour>
-
-                                <ngm-display-behaviour style="flex: 1;"
-                                    [option]="{
-                                        value: measure.cubeName,
-                                        label: measure.cubeCaption
-                                    }">
-                                </ngm-display-behaviour>
-                            </div>
-                            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close"
-                                (click)="removeMeasure(measure.name)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
-                            </button>
-                        </div>
-                    </mat-list-item>
-                </mat-list>
-            </mat-expansion-panel>
-
-            <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
-                <mat-expansion-panel-header>
-                    <mat-panel-title>{{ 'PAC.KEY_WORDS.CalculatedMembers' | translate: {Default: 'Calculated Members'} }}</mat-panel-title>
-                    <mat-panel-description>
-                    </mat-panel-description>
-                    <button mat-icon-button displayDensity="cosy" [matTooltip]="'PAC.MODEL.VirtualCube.NewCalculatedMember' | translate: {Default: 'New Calculated Member'}"
-                        (click)="createCalculatedMember();$event.stopPropagation()">
-                        <mat-icon>add_circle_outline</mat-icon>
-                    </button>
-                </mat-expansion-panel-header>
-
-                <mat-list role="list" class="pac-cdk-drop-list" displayDensity="compact">
-                    <mat-list-item role="listitem" *ngFor="let measure of calculatedMembers$ | async">
-                        <div class="flex items-center">
-                            <ngm-display-behaviour class="flex-1 overflow-hidden"
-                                [option]="{
-                                    value: measure.formula,
-                                    label: measure.caption + '(' + measure.name + ')'
-                                }">
-                            </ngm-display-behaviour>
-                            <button mat-icon-button displayDensity="cosy" class="pac-nav-tab__close"
-                                (click)="editCalculatedMember(measure)">
-                                <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-                            </button>
-                            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close"
-                                (click)="removeCalculatedMember(measure.name)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
-                            </button>
-                        </div>
-                    </mat-list-item>
-                </mat-list>
-
-                <mat-divider></mat-divider>
-
-              @if (showCalculatedMember()) {
-                <form [formGroup]="calcMemberFormGroup" class="grid grid-cols-4 gap-2 mt-4">
-                    <mat-form-field class="col-span-1" appearance="fill" displayDensity="cosy">
-                        <mat-label>{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</mat-label>
-                        <input matInput formControlName="name">
-                    </mat-form-field>
-                    <mat-form-field class="col-span-2" appearance="fill" displayDensity="cosy">
-                        <mat-label>{{ 'PAC.KEY_WORDS.Caption' | translate: {Default: 'Caption'} }}</mat-label>
-                        <input matInput formControlName="caption" >
-                    </mat-form-field>
-
-                    <mat-form-field class="col-span-1" appearance="fill" displayDensity="cosy">
-                        <mat-label>{{ 'PAC.KEY_WORDS.Dimension' | translate: {Default: 'Dimension'} }}</mat-label>
-                        <mat-select formControlName="dimension" >
-                          <mat-option [value]="'Measures'">
-                            {{ 'Ngm.EntitySchema.Measures' | translate: {Default: 'Measures'} }}
-                          </mat-option>
-                        </mat-select>
-                    </mat-form-field>
-                    <mat-form-field class="col-span-1" appearance="fill" displayDensity="cosy">
-                        <mat-label>{{ 'PAC.KEY_WORDS.Unit' | translate: {Default: 'Unit'} }}</mat-label>
-                        <input matInput formControlName="unit" >
-                    </mat-form-field>
-
-                    <mat-form-field class="col-span-3" appearance="fill" displayDensity="cosy">
-                        <mat-label>{{ 'PAC.KEY_WORDS.Formula' | translate: {Default: 'Formula'} }}</mat-label>
-                        <textarea matInput formControlName="formula" cdkTextareaAutosize></textarea>
-
-                        <button mat-icon-button matSuffix (click)="toggleFormula()">
-                            <mat-icon>code</mat-icon>
-                        </button>
-                    </mat-form-field>
-
-                  @if (showFormula()) {
-                    <ngm-calculated-measure class="col-span-4 h-96 rounded-lg overflow-hidden border border-solid border-neutral-100 dark:border-neutral-800"
-                        [syntax]="Syntax.MDX"
-                        [dataSettings]="dataSettings$()"
-                        [entityType]="entityType()"
-                        formControlName="formula"
-                        >
-                    </ngm-calculated-measure>
-                  }
-
-                    <div class="col-span-4 flex justify-end items-center">
-                        <div ngmButtonGroup displayDensity="cosy">
-                            <button mat-flat-button displayDensity="cosy" (click)="cancelCalculatedMember()">
-                                {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
-                            </button>
-                            <button mat-raised-button displayDensity="cosy" color="primary" [disabled]="calcMemberFormGroup.invalid"
-                                (click)="applyCalculatedMember()">
-                                {{ 'PAC.KEY_WORDS.Confirm' | translate: {Default: 'Confirm'} }}
-                            </button>
-                        </div>
-                    </div>
-                </form>
-              }
-            </mat-expansion-panel>
-        </mat-accordion>
-
-    </mat-drawer-content>
-
-</mat-drawer-container>
+          </form>
+        }
+      </z-accordion-item>
+    </z-accordion>
+  </z-drawer-content>
+</z-drawer-container>

@@ -1,7 +1,5 @@
 import { Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   injectToastr,
   IWFNCode,
@@ -16,12 +14,12 @@ import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow'
 import { XpertWorkflowCodeEditorComponent } from '@cloud/app/@shared/xpert'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-
+import { ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-workflow-code',
   templateUrl: './code.component.html',
@@ -29,14 +27,14 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   standalone: true,
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
-    MatSliderModule,
     XpertWorkflowCodeEditorComponent,
     NgmSelectComponent,
-    NgmSlideToggleComponent,
     XpertWorkflowErrorHandlingComponent,
-    StateVariableSelectComponent
+    StateVariableSelectComponent,
+    ZardSliderComponent,
+    ZardSwitchComponent
   ],
   host: {
     tabindex: '-1'
@@ -197,5 +195,17 @@ export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComp
   updateRetry(value: Partial<IWFNCode['retry']>) {
     const retry = this.retry() ?? {}
     this.updateEntity('retry', { ...retry, ...value })
+  }
+
+  updateRetryStopAfterAttempt(value: ZardSliderValue) {
+    this.updateRetry({ stopAfterAttempt: this.sliderValue(value) })
+  }
+
+  updateRetryIntervalValue(value: ZardSliderValue) {
+    this.updateRetry({ retryInterval: this.sliderValue(value) })
+  }
+
+  private sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
   }
 }

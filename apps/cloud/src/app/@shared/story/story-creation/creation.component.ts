@@ -1,32 +1,29 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Inject, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { BusinessAreasService, SemanticModelServerService, StoriesService } from '@metad/cloud/state'
-import { NgmTreeSelectComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { DisplayBehaviour, SemanticModel, TreeNodeInterface } from '@metad/ocap-core'
+import { BusinessAreasService, SemanticModelServerService, StoriesService } from '@xpert-ai/cloud/state'
+import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour, SemanticModel, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { ICollection, ISemanticModel } from '../../../@core'
-import { InlineSearchComponent } from '../../form-fields'
-import { MaterialModule } from '../../material.module'
+import { InlineSearchComponent, XpTreeSelectComponent } from '../../form-fields'
+import { SharedUiModule } from '../../ui.module'
 
+import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
-
+    SharedUiModule,
     ButtonGroupDirective,
-    NgmTreeSelectComponent,
+    XpTreeSelectComponent,
     DensityDirective,
     InlineSearchComponent
-  ],
+],
   selector: 'pac-story-creation',
   templateUrl: './creation.component.html',
   styles: [
@@ -34,8 +31,17 @@ import { MaterialModule } from '../../material.module'
       :host {
         display: flex;
         flex-direction: row;
-        flex: 1;
+        width: 100%;
+        max-width: 100%;
+        max-height: calc(100vh - 2rem);
         overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      @media (max-width: 767px) {
+        :host {
+          flex-direction: column;
+        }
       }
     `
   ]
@@ -67,16 +73,25 @@ export class StoryCreationComponent {
       startWith(''),
       distinctUntilChanged(),
       debounceTime(300),
-      map((search) =>
-        this._models.filter((model) => model.name.toLowerCase().includes(search.toLowerCase()))
-      )
+      map((search) => {
+        const filteredModels = this._models.filter((model) => model.name.toLowerCase().includes(search.toLowerCase()))
+        const selectedModels = this.modelsControl.value ?? []
+
+        selectedModels.forEach((selected) => {
+          if (!filteredModels.some((model) => this.compareWithModel(model, selected))) {
+            filteredModels.push(selected)
+          }
+        })
+
+        return filteredModels
+      })
     )
   )
 
   constructor(
     private businessAreaService: BusinessAreasService,
     private modelsService: SemanticModelServerService,
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data: {
       story: {
         id?: string
@@ -88,7 +103,7 @@ export class StoryCreationComponent {
       models: ISemanticModel[]
       collections: TreeNodeInterface<ICollection>[]
     },
-    public dialogRef: MatDialogRef<StoryCreationComponent>
+    public dialogRef: ZardDialogRef<StoryCreationComponent>
   ) {
     this._models = this.data.models
     this.collections = this.data.collections
@@ -114,7 +129,7 @@ export class StoryCreationComponent {
     }
   }
 
-  compareWithModel(a: SemanticModel, b: SemanticModel) {
+  compareWithModel(a: { id?: string }, b: { id?: string }) {
     return a?.id === b?.id
   }
 

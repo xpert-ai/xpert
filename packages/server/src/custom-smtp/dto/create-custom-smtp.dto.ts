@@ -1,24 +1,46 @@
-import { ICustomSmtpCreateInput } from "@metad/contracts";
-import { ApiProperty, IntersectionType, PickType } from "@nestjs/swagger";
-import { IsNotEmpty, IsString } from "class-validator";
-import { CustomSmtp } from "./../custom-smtp.entity";
-import { CustomSmtpQueryDTO } from "./custom-smtp.query.dto";
+import { ICustomSmtpCreateInput } from '@xpert-ai/contracts'
+import { parseToBoolean } from '@xpert-ai/server-common'
+import { ApiProperty, IntersectionType, PickType } from '@nestjs/swagger'
+import { Transform, TransformFnParams } from 'class-transformer'
+import { IsNotEmpty, IsString } from 'class-validator'
+import { CustomSmtp } from './../custom-smtp.entity'
+import { CustomSmtpQueryDTO } from './custom-smtp.query.dto'
 
 /**
  * Create custom SMTP Request DTO validation
  */
-export class CreateCustomSmtpDTO extends IntersectionType(
-    PickType(CustomSmtp, ['fromAddress', 'host', 'port', 'secure', 'isValidate']),
-    CustomSmtpQueryDTO
-) implements ICustomSmtpCreateInput {
+export class CreateCustomSmtpDTO
+	extends IntersectionType(
+		PickType(CustomSmtp, ['fromAddress', 'host', 'port', 'secure', 'isValidate']),
+		CustomSmtpQueryDTO
+	)
+	implements ICustomSmtpCreateInput
+{
+	@Transform(({ value }: TransformFnParams) => {
+		if (value === undefined || value === null || value === '') {
+			return value
+		}
 
-    @ApiProperty({ type: () => String })
-    @IsNotEmpty()
-    @IsString()
-    readonly username: string;
+		return typeof value === 'number' ? value : Number(value)
+	})
+	readonly port: number
 
-    @ApiProperty({ type: () => String })
-    @IsNotEmpty()
-    @IsString()
-    readonly password: string;
+	@Transform(({ value }: TransformFnParams) => {
+		if (value === undefined || value === null || value === '') {
+			return value
+		}
+
+		return typeof value === 'boolean' ? value : parseToBoolean(value)
+	})
+	readonly secure: boolean
+
+	@ApiProperty({ type: () => String })
+	@IsNotEmpty()
+	@IsString()
+	readonly username: string
+
+	@ApiProperty({ type: () => String })
+	@IsNotEmpty()
+	@IsString()
+	readonly password: string
 }

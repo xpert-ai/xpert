@@ -4,8 +4,8 @@ import {
   ChatMessageStepCategory,
   TChatMessageStep,
   TProgramToolMessage
-} from '@metad/contracts'
-import { BaseSandbox, ExecuteResponse, SandboxExecutionOptions } from '@xpert-ai/plugin-sdk'
+} from '@xpert-ai/contracts'
+import { ExecuteResponse, SandboxBackendProtocol, SandboxExecutionOptions } from '@xpert-ai/plugin-sdk'
 import ShortUniqueId from 'short-unique-id'
 
 const uid = new ShortUniqueId({ length: 10 })
@@ -92,7 +92,7 @@ export async function withStreamingToolMessage(
   toolCallId: string,
   toolName: string,
   command: string,
-  backend: BaseSandbox,
+  backend: SandboxBackendProtocol,
   executionOptions?: SandboxExecutionOptions
 ): Promise<ExecuteResponse> {
   const input = {

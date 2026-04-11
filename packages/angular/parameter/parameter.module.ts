@@ -3,7 +3,6 @@ import { NgmParameterSelectComponent } from './parameter-select/parameter-select
 import { NgmParameterComponent } from './parameter/parameter.component';
 import { NgmParameterCreateComponent } from './parameter-create/parameter-create.component';
 
-
 @NgModule({
   imports: [
     NgmParameterComponent,

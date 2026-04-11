@@ -1,4 +1,4 @@
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { DataSource } from 'typeorm'
@@ -25,7 +25,12 @@ export class StatisticsXpertConversationsHandler implements IQueryHandler<Statis
 			.addSelect('COUNT(*) as count')
 			.where('conversation.from != :from', { from: 'debugger' })
 			.andWhere('conversation.tenantId = :tenantId', {tenantId})
-			.andWhere('conversation.organizationId = :organizationId', {organizationId})
+
+		if (organizationId) {
+			query.andWhere('conversation.organizationId = :organizationId', { organizationId })
+		} else {
+			query.andWhere('conversation.organizationId IS NULL')
+		}
 
 		if (start) {
 			query.andWhere('conversation.createdAt >= :start', { start })

@@ -14,16 +14,12 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { environment } from '@cloud/environments/environment'
-import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
-import { NgmInputComponent, NgmRadioSelectComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, myRxResource, NgmDensityDirective } from '@metad/ocap-angular/core'
-import { cloneDeep } from '@metad/ocap-core'
+import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
+import { NgmInputComponent, NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, myRxResource, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { cloneDeep } from '@xpert-ai/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -47,12 +43,10 @@ import {
     TranslateModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatTooltipModule,
-    MatButtonModule,
-    MatSlideToggleModule,
-
+    ZardInputDirective,
+    ...ZardFormImports,
+    ...ZardTooltipImports,
+    ZardButtonComponent,
     FormlyModule,
     ContentLoaderModule,
     ButtonGroupDirective,
@@ -80,7 +74,7 @@ export class PACDataSourceEditComponent {
   formGroup = new FormGroup({
     name: new FormControl(),
     useLocalAgent: new FormControl(),
-    authType: new FormControl<AuthenticationEnum>(null),
+    authType: new FormControl<AuthenticationEnum>(null)
   })
   readonly optionsFormGroup = new FormGroup({})
   get nameCtrl() {
@@ -134,8 +128,7 @@ export class PACDataSourceEditComponent {
           this.optionsFormGroup.patchValue(dataSource.options)
           assign(this.model, dataSource.options)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

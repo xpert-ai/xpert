@@ -1,5 +1,5 @@
-import { AiModelTypeEnum, mapTranslationLanguage } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { AiModelTypeEnum, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'

@@ -1,5 +1,5 @@
+import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectorRef, Component, HostBinding, Inject, Input, OnInit, Optional, ViewChild, ViewContainerRef } from '@angular/core'
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import {
   Dimension,
   DisplayBehaviour,
@@ -12,17 +12,17 @@ import {
   isAdvancedFilter,
   FilterOperator,
   IFilter,
+  ISlicer,
   Property,
   Syntax,
   EntitySet,
   DataSettings,
   isNil,
-} from '@metad/ocap-core'
-import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+} from '@xpert-ai/ocap-core'
+import { NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import { firstValueFrom } from 'rxjs'
-import { NgmPropertySelectComponent, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { ISelectOption, KEYS } from '@metad/ocap-angular/core'
-
+import { NgmPropertySelectComponent, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import { ISelectOption, KEYS } from '@xpert-ai/ocap-angular/core'
 
 /**
  * @hidden
@@ -67,6 +67,7 @@ class ExpressionOperandItem extends ExpressionItem {
   selector: 'ngm-advanced-filter',
   templateUrl: './advanced-filter.component.html',
   styleUrls: ['./advanced-filter.component.scss'],
+  standalone: false,
   host: {
     class: 'ngm-advanced-filter'
   },
@@ -158,17 +159,17 @@ export class NgmAdvancedFilterComponent implements OnInit {
   private _preventChipClick = false
   constructor(
     public cdr: ChangeDetectorRef,
-    public dialog: MatDialog,
+    public dialog: Dialog,
     private readonly _viewContainerRef: ViewContainerRef,
     @Optional()
-    @Inject(MAT_DIALOG_DATA) public data?: {
+    @Inject(DIALOG_DATA) public data?: {
       dataSettings: DataSettings,
       entityType: EntityType,
       syntax: Syntax,
       advancedFilter: IAdvancedFilter
     },
     @Optional()
-    public dialogRef?: MatDialogRef<NgmAdvancedFilterComponent>,
+    public dialogRef?: DialogRef,
   ) {}
 
   ngOnInit(): void {
@@ -688,7 +689,7 @@ export class NgmAdvancedFilterComponent implements OnInit {
   }
 
   async openValueHelp(dimension: Dimension) {
-    return firstValueFrom(this.dialog.open(NgmValueHelpComponent, {
+    return firstValueFrom(this.dialog.open<ISlicer>(NgmValueHelpComponent, {
       viewContainerRef: this._viewContainerRef,
       data: {
         dataSettings: this.data.dataSettings,
@@ -699,7 +700,7 @@ export class NgmAdvancedFilterComponent implements OnInit {
           showAllMember: false
         }
       }
-    }).afterClosed())
+    }).closed)
   }
 
   async openLowValueHelp(dimension: Dimension) {

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core'
-import { compact, isNil } from '@metad/ocap-core'
-import { AbstractStoryWidget, DEFAULT_DIGITS_INFO, nonNullable } from '@metad/core'
+import { compact, isNil } from '@xpert-ai/ocap-core'
+import { AbstractStoryWidget, DEFAULT_DIGITS_INFO, nonNullable } from '@xpert-ai/core'
 import { Observable, distinctUntilChanged, filter, map } from 'rxjs'
 import { AccountingStatementDataService } from './accounting-statement-data.service'
 import { AccountingStatementOptions, ArrowDirection, IndicatorOption } from './types'
@@ -11,6 +11,7 @@ interface IndicatorData extends IndicatorOption {
 }
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-widget-accounting-statement',
   templateUrl: './accounting-statement.component.html',

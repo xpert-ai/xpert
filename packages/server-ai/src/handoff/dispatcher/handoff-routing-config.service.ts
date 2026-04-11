@@ -1,6 +1,6 @@
 import { RunSource, LaneName } from '@xpert-ai/plugin-sdk'
-import { ConfigService } from '@metad/server-config'
-import { loadYamlFile } from '@metad/server-core'
+import { ConfigService } from '@xpert-ai/server-config'
+import { loadYamlFile } from '@xpert-ai/server-core'
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import * as path from 'path'
 import { z } from 'zod'
@@ -208,14 +208,22 @@ export class HandoffRoutingConfigService implements OnModuleInit {
 
 	private loadConfig(): HandoffRoutingConfigSnapshot {
 		const configFilePath = this.resolveConfigFilePath()
-		const raw = loadYamlFile<unknown>(configFilePath, this.#logger, false)
-		const parsed = HandoffRoutingFileSchema.parse(raw as HandoffRoutingFile)
+		let parsed = HandoffRoutingFileSchema.parse({})
+		if (configFilePath) {
+			try {
+				const raw = loadYamlFile<unknown>(configFilePath, this.#logger, false)
+				parsed = HandoffRoutingFileSchema.parse(raw ?? {})
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error)
+				this.#logger.warn(
+					`Failed to load handoff routing config from "${configFilePath}". Using defaults. Error: ${message}`
+				)
+			}
+		}
 		const normalized = this.normalizeConfig(parsed)
-
 		this.#logger.log(
 			`Loaded handoff routing config from "${configFilePath}" (version=${normalized.version}, routes=${normalized.routes.length})`
 		)
-
 		return normalized
 	}
 
@@ -395,14 +403,17 @@ export class HandoffRoutingConfigService implements OnModuleInit {
 	}
 
 	private resolveLaneAliasFromPolicy(
-		input: string,
+		input: string | undefined,
 		lanePolicy: Record<string, HandoffLanePolicy>
 	): LaneName | undefined {
+		if (!input) {
+			return undefined
+		}
 		const key = input.trim().toLowerCase()
 		return LANE_ALIAS_MAP[key] ?? lanePolicy[key]?.mapToLane
 	}
 
-	private resolveConfigFilePath(): string {
+	private resolveConfigFilePath(): string | null {
 		const configuredPath =
 			process.env[HANDOFF_ROUTING_CONFIG_PATH_ENV_KEY]
 		if (configuredPath) {

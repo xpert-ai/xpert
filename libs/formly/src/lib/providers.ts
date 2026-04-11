@@ -1,9 +1,9 @@
 import { importProvidersFrom } from '@angular/core'
 import { AbstractControl } from '@angular/forms'
-import { PacFormlyColorsComponent } from '@metad/formly/colors'
-import { NgmFormlyToggleComponent } from '@metad/formly/mat-toggle'
+import { PacFormlyColorsComponent } from '@xpert-ai/formly/colors'
+import { NgmFormlyToggleComponent } from '@xpert-ai/formly/toggle'
+import { NgmFormlyRadioModule } from '@xpert-ai/formly/radio'
 import { FORMLY_CONFIG, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
-import { FormlyMatRadioModule } from '@ngx-formly/material/radio'
 import { TranslateService } from '@ngx-translate/core'
 
 export function provideFormly() {
@@ -101,9 +101,9 @@ export function formlyValidationConfig(translate: TranslateService) {
   }
 }
 
-export function provideFormlyMaterial() {
+export function provideFormlyUi() {
   return [
-    importProvidersFrom(FormlyMatRadioModule),
+    importProvidersFrom(NgmFormlyRadioModule),
     ...FormlyModule.forChild({
       types: [
         {

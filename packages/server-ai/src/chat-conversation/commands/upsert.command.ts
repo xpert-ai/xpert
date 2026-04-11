@@ -1,4 +1,4 @@
-import { IChatConversation } from '@metad/contracts'
+import { IChatConversation } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class ChatConversationUpsertCommand implements ICommand {

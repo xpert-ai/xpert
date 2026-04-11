@@ -7,7 +7,7 @@ import {
 	StoryStatusEnum,
 	VisitEntityEnum,
 	VisitTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	CrudController,
 	CurrentUser,
@@ -19,7 +19,7 @@ import {
 	SecretTokenGetCommand,
 	UUIDValidationPipe,
 	User
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	BadRequestException,
 	Body,

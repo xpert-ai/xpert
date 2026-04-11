@@ -1,4 +1,4 @@
-import { EntityType, ParameterProperty, getEntityProperty, parameterFormatter } from '@metad/ocap-core'
+import { EntityType, ParameterProperty, getEntityProperty, parameterFormatter } from '@xpert-ai/ocap-core'
 
 export function replaceParameters(title: string, entityType: EntityType): string {
   if (entityType && title) {

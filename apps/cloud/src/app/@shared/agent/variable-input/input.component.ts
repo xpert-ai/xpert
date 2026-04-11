@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Overlay, OverlayRef } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
-import { CommonModule } from '@angular/common'
+
 import {
   Component,
   computed,
@@ -15,28 +15,27 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { linkedModel } from '@metad/core'
+import { linkedModel } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { XpertAPIService } from '@cloud/app/@core'
 import { of } from 'rxjs'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
 import { TWorkflowVarGroup } from '../../../@core/types'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     StateVariableSelectComponent,
     XpertVariablePanelComponent
-  ],
+],
   selector: 'xpert-variable-input',
   templateUrl: './input.component.html',
   styleUrls: ['./input.component.scss'],
@@ -77,20 +76,21 @@ export class XpertVariableInputComponent {
   })
 
   readonly #variables = myRxResource({
-    request: () => this.variables() ? null : this.varOptions(),
-    loader: ({request}) => {
+    request: () => (this.variables() ? null : this.varOptions()),
+    loader: ({ request }) => {
       return request ? this.xpertAPI.getNodeVariables(request) : of(null)
     }
   })
   readonly loading = computed(() => this.#variables.status() === 'loading')
 
-
   constructor() {
-    effect(() => {
-      if (this.#variables.value()) {
-        this.variables.set(this.#variables.value())
+    effect(
+      () => {
+        if (this.#variables.value()) {
+          this.variables.set(this.#variables.value())
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   update(index: number, value: string) {

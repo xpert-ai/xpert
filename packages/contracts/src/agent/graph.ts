@@ -1,6 +1,6 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
-import { TMessageContentComplex } from '@xpert-ai/chatkit-types'
+import type { TMessageContentComplex } from '@xpert-ai/chatkit-types'
 import { Subscriber } from 'rxjs'
 import { ICopilotModel } from '../ai/copilot-model.model'
 import { IWFNTrigger, TWorkflowVarGroup, WorkflowNodeTypeEnum } from '../ai/xpert-workflow.model'
@@ -32,6 +32,10 @@ export type TMessageChannel = {
   messages: BaseMessage[]
   summary?: string
   error?: string | null
+}
+
+export interface IBackendProtocol {
+  workingDirectory: string
 }
 
 export type TSandboxConfigurable = {
@@ -85,6 +89,12 @@ export type TAgentRunnableConfigurable = {
   agentKey: string
   xpertName?: string
   toolName?: string
+  /**
+   * Additional runtime context for middleware/tool execution.
+   */
+  context?: Record<string, unknown> & {
+    env?: Record<string, unknown>
+  }
 
   copilotModel?: ICopilotModel
 

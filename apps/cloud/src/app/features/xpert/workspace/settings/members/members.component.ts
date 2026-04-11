@@ -1,21 +1,19 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
-import { nonNullable } from '@metad/copilot'
+import { nonNullable } from '@xpert-ai/copilot'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectUser, IUser, IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { uniqBy } from 'lodash-es'
 import { EMPTY, filter, switchMap } from 'rxjs'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { Dialog } from '@angular/cdk/dialog'
-
+import { ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workspace-members',
   standalone: true,
-  imports: [CommonModule, UserPipe, TranslateModule, MatTooltipModule, UserProfileInlineComponent],
+  imports: [UserPipe, TranslateModule, ...ZardTooltipImports, UserProfileInlineComponent],
   templateUrl: './members.component.html',
   styleUrl: './members.component.scss'
 })
@@ -33,7 +31,7 @@ export class XpertWorkspaceMembersComponent {
 
   readonly members = signal<IUser[]>([])
 
-  readonly allMembers = computed(() => this.owner() ? [this.owner(), ...this.members()] : this.members())
+  readonly allMembers = computed(() => (this.owner() ? [this.owner(), ...this.members()] : this.members()))
 
   private membersSub = toObservable(this.workspaceId)
     .pipe(
@@ -54,19 +52,20 @@ export class XpertWorkspaceMembersComponent {
 
   openAddUser() {
     this.#dialog
-      .open<{users: IUser[]}>(UserRoleSelectComponent, {
+      .open<{ users: IUser[] }>(UserRoleSelectComponent, {
         data: {}
       })
-      .closed
-      .pipe(switchMap((result) => (result ? this.updateMembers(result.users) : EMPTY)))
+      .closed.pipe(switchMap((result) => (result ? this.updateMembers(result.users) : EMPTY)))
       .subscribe()
   }
 
   removeMember(user: IUser) {
     this.members.update((members) => members.filter((m) => m.id !== user.id))
-    this.workspaceService.updateMembers(
-      this.workspaceId(),
-      this.members().map((user) => user.id)
-    ).subscribe()
+    this.workspaceService
+      .updateMembers(
+        this.workspaceId(),
+        this.members().map((user) => user.id)
+      )
+      .subscribe()
   }
 }

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   getEnabledTools,
   getToolLabel,
@@ -10,8 +9,8 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { NgxFloatUiModule, NgxFloatUiTriggers } from 'ngx-float-ui'
@@ -21,6 +20,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioNodeStatus } from '../../types'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-node-toolset',
@@ -28,7 +28,16 @@ import { XpertStudioNodeStatus } from '../../types'
   styleUrls: ['./toolset.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgxFloatUiModule, NgmSpinComponent, NgxJsonViewerModule, NgmI18nPipe, EmojiAvatarComponent],
+  imports: [
+    FFlowModule,
+    ...ZardTooltipImports,
+    TranslateModule,
+    NgxFloatUiModule,
+    NgmSpinComponent,
+    NgxJsonViewerModule,
+    NgmI18nPipe,
+    EmojiAvatarComponent
+  ],
   host: {
     tabindex: '-1',
     '[class]': 'status()'
@@ -70,7 +79,9 @@ export class XpertStudioNodeToolsetComponent {
     return tools?.map((tool) => ({
       tool,
       label: getToolLabel(tool),
-      executions: executions?.map((_) => _.data).filter((e) => e.toolset_id === this.toolsetId() && e.tool === tool.name),
+      executions: executions
+        ?.map((_) => _.data)
+        .filter((e) => e.toolset_id === this.toolsetId() && e.tool === tool.name)
     }))
   })
 
@@ -82,7 +93,6 @@ export class XpertStudioNodeToolsetComponent {
 
   readonly isSandbox = computed(() => this.toolset()?.options?.provider?.tags?.includes(ToolTagEnum.SANDBOX))
   readonly needSandbox = computed(() => this.toolsetDetail()?.options?.needSandbox)
-
 
   isSensitive(name: string) {
     return this.agentConfig()?.interruptBefore?.includes(name)

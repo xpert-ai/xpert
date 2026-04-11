@@ -14,9 +14,9 @@ import {
   viewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { NgmTransformScaleDirective } from '@metad/core'
-import { NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { NxStoryService, Story } from '@metad/story/core'
+import { NgmTransformScaleDirective } from '@xpert-ai/core'
+import { NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { NxStoryService, Story } from '@xpert-ai/story/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { NxStoryPointService } from '../story-point.service'
@@ -46,7 +46,6 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
 export class SinglePageStoryComponent {
   readonly storyService = inject(NxStoryService)
   readonly #renderer = inject(Renderer2)
-
 
   readonly story = input<Story>(null)
   readonly pointKey = input<string>(null)
@@ -80,21 +79,21 @@ export class SinglePageStoryComponent {
       if (story) {
         this.storyService.setStory(story, { fetched: true })
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const pointKey = this.pointKey()
       if (pointKey) {
         this.storyService.setCurrentPageKey(pointKey)
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const token = this.queryParams()['token']
       if (token) {
         this.storyService.patchState({ token })
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   resetScalePanState() {
@@ -113,12 +112,12 @@ export class SinglePageStoryComponent {
   }
 
   @HostListener('document:keydown.alt', ['$event'])
-  onAltKeydown(event: KeyboardEvent) {
+  onAltKeydown(_event: Event) {
     this.storyService.patchState({ isPanMode: true })
   }
 
   @HostListener('document:keyup.alt', ['$event'])
-  onAltKeyUp(event: KeyboardEvent) {
+  onAltKeyUp(_event: Event) {
     this.storyService.patchState({ isPanMode: false })
   }
 

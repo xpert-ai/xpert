@@ -1,57 +1,58 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 class="m-0 pointer-events-none">
     {{ 'Story.Query.Title' | translate: { Default: 'Query' } }}
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography">
+<xp-dialog-content class="">
   <div>
     <h4>HANA</h4>
     <P>
       <label>启用查询批处理</label>
-      <mat-slide-toggle></mat-slide-toggle>
+      <z-switch></z-switch>
     </P>
     <p>
       <label>每个批次的查询次数：</label>
-      <mat-icon>feedback</mat-icon>
+      <z-icon zType="feedback"></z-icon>
     </p>
     <p>
-      <mat-form-field appearance="outline">
-        <mat-label>最小值</mat-label>
-        <input matInput type="number" min="2" />
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>最大值</mat-label>
-        <input matInput type="number" min="2" />
-      </mat-form-field>
+      <z-form-field appearance="outline">
+        <z-form-label>最小值</z-form-label>
+        <input z-input type="number" min="2" />
+      </z-form-field>
+      <z-form-field appearance="outline">
+        <z-form-label>最大值</z-form-label>
+        <input z-input type="number" min="2" />
+      </z-form-field>
     </p>
   </div>
   <div>
     <h4>BW</h4>
     <p>
       <label>启用查询合并</label>
-      <mat-icon matTooltip="如果查询数值小于最小值,则这些查询将不会在一个批次中触发。如果查询次数大于最大值"
-        >feedback</mat-icon
-      >
-      <mat-slide-toggle></mat-slide-toggle>
+      <z-icon
+        zTooltip="如果查询数值小于最小值,则这些查询将不会在一个批次中触发。如果查询次数大于最大值"
+        zType="feedback"
+      ></z-icon>
+      <z-switch></z-switch>
     </p>
     <p>
       <label>显示查询合并</label>
-      <mat-slide-toggle></mat-slide-toggle>
+      <z-switch></z-switch>
     </p>
   </div>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions>
-  <button mat-button>
+<xp-dialog-actions>
+  <button z-button zType="ghost">
     {{ 'STORY.COMMON.RESET' | translate: { Default: 'Reset' } }}
   </button>
   <div ngmButtonGroup>
-    <button mat-button mat-dialog-close>
+    <button z-button zType="ghost" xpDialogClose>
       {{ 'STORY.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial [mat-dialog-close]="true" (click)="onApply()">
+    <button z-button zType="default" cdkFocusInitial [xpDialogClose]="true" (click)="onApply()">
       {{ 'STORY.COMMON.APPLY' | translate: { Default: 'Apply' } }}
     </button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

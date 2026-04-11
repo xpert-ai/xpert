@@ -9,8 +9,8 @@ import {
 	IRolePermissionMigrateInput,
 	PermissionsEnum,
 	ID
-} from '@metad/contracts';
-import { environment } from '@metad/server-config';
+} from '@xpert-ai/contracts';
+import { environment } from '@xpert-ai/server-config';
 import { TenantAwareCrudService } from './../core/crud';
 import { RequestContext } from './../core/context';
 import { RolePermission } from './role-permission.entity';

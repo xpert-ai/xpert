@@ -1,4 +1,4 @@
-import { ILLMUsage, IXpertAgentExecution } from '@metad/contracts'
+import { ILLMUsage, IXpertAgentExecution } from '@xpert-ai/contracts'
 
 export function assignExecutionUsage(execution: IXpertAgentExecution) {
 	return (usage: ILLMUsage) => {

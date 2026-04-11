@@ -5,7 +5,7 @@ import {
 	IUserOrganization,
 	ISeedUsers,
 	ITenant
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { BusinessAreaUser } from './business-area-user.entity';
 
 export const createDefaultUsersOrganizations = async (

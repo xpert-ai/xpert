@@ -3,6 +3,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
 
 @Component({
   selector: 'ngm-formly-tab-group',
+  standalone: false,
   templateUrl: './tab-group.component.html',
   styleUrls: ['./tab-group.component.scss'],
   host: {

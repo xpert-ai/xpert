@@ -1,15 +1,15 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardFormImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { omit } from 'lodash-es'
 import {
@@ -24,7 +24,6 @@ import {
   routeAnimations
 } from '../../../../../@core'
 import { EmojiAvatarComponent } from '../../../../../@shared/avatar/'
-import { PACCopilotService } from '../../../../services'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 
 @Component({
@@ -33,17 +32,17 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss'],
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardFormImports,
+    ...ZardTooltipImports,
     NgmSelectComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     KnowledgeRetrievalSettingsComponent
-  ],
+],
   animations: [routeAnimations]
 })
 export class KnowledgeConfigurationComponent {
@@ -58,8 +57,6 @@ export class KnowledgeConfigurationComponent {
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
-  readonly copilotService = inject(PACCopilotService)
-  readonly #cdr = inject(ChangeDetectorRef)
   readonly #translate = inject(I18nService)
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
@@ -117,7 +114,6 @@ export class KnowledgeConfigurationComponent {
   })
 
   readonly loading = signal(false)
-
 
   save() {
     this.loading.set(true)

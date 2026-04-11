@@ -1,19 +1,10 @@
+@reference "../../../../../tailwind-workspace-reference.css";
 :host {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-
-  ::ng-deep {
-    .mat-mdc-paginator-page-size-label {
-      @apply hidden;
-    }
-  }
 }
 
-table.mat-mdc-table {
+table[z-table] {
   min-width: 100%;
-}
-
-.mat-mdc-paginator {
-  border-top: 1px solid var(--mat-table-row-item-outline-color);
 }

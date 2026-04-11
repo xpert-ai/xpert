@@ -1,4 +1,4 @@
-<div class="absolute top-0 right-0 h-full flex gap-2">
+<div class="h-full flex gap-2">
   @for (node of selectedNodes(); track node.key) {
     <div class="h-full flex" @listFadeIn
       [style.width.px]="panelWidth()">
@@ -34,7 +34,7 @@
 
       <div class="absolute top-1/2 -translate-y-1/2 -left-1 w-[2px] h-full flex flex-col justify-center cursor-col-resize resize-x hover:bg-orange-400"
         (mousedown)="onResizeMouseDown($event)">
-        <div class="w-[2px] h-16 rounded-sm bg-gray-300"></div>
+        <div class="w-[2px] h-16 rounded-sm bg-divider-regular"></div>
       </div>
     </div>
   }
@@ -51,7 +51,7 @@
       }
     }
     @if (xpert()) {
-      <div class=""
+      <div class="space-x-1"
         [ngClass]="sidePanel() === 'preview' ? 'flex' : 'hidden'">
         @if (executionId()) {
           <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto overflow-x-hidden

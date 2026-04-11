@@ -1,6 +1,8 @@
-@use '@angular/material/core/tokens/token-utils';
-@use '@angular/material/core/style/sass-utils';
 
+
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
+@reference "../../../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, model);
 
@@ -28,8 +30,7 @@ $prefix: (ngm, model);
 :host {
   @include token-utils.create-token-values($prefix, get-token-slots());
   --mdc-list-list-item-container-shape: #{theme('borderRadius.lg')};
-  --mat-toolbar-standard-height: 30px;
-  --ngm-model-toolbar-background-color: linear-gradient(0.25turn, var(--mat-sidenav-content-background-color), var(--ngm-model-color-surface));
+  --ngm-model-toolbar-background-color: linear-gradient(0.25turn, var(--z-drawer-content-bg), var(--ngm-model-color-surface));
 
   display: flex;
   flex-direction: column;
@@ -48,46 +49,42 @@ $prefix: (ngm, model);
 }
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
-  .mat-drawer-container {
+  z-drawer-container {
     border-top-left-radius: var(#{token-utils.get-token-variable(container-rounded)});
   }
-  .mat-drawer.mat-drawer-over {
-    --mat-sidenav-container-background-color: var(#{token-utils.get-token-variable(color-surface)});
+  z-drawer[data-mode='over'] {
+    --z-drawer-bg: var(#{token-utils.get-token-variable(color-surface)});
   }
-  .mat-drawer-content {
+  z-drawer-content {
     background-color: var(#{token-utils.get-token-variable(color-surface)});
     border-top-left-radius: var(#{token-utils.get-token-variable(container-rounded)});
     @apply flex overflow-hidden;
   }
   .pac-model__shell-bar {
-    --mat-icon-color: theme('colors.gray.500');
-    --mat-toolbar-container-background-color: var(#{token-utils.get-token-variable(toolbar-background-color)});
+    color: theme('colors.gray.500');
+    background-color: var(#{token-utils.get-token-variable(toolbar-background-color)});
   }
   .pac-model-content {
-    --mat-sidenav-content-background-color: var(#{token-utils.get-token-variable(color-surface)});
+    --z-drawer-content-bg: var(#{token-utils.get-token-variable(color-surface)});
   }
 }
 
 :host ::ng-deep {
   .pac-model__shell-bar {
-    --mat-icon-color: theme('colors.gray.500');
+    color: theme('colors.gray.500');
   }
 
-  .mat-drawer-container {
-    --mat-toolbar-container-background-color: transparent;
-  }
-
-  .mat-drawer-container ngm-splitter {
+  z-drawer-container ngm-splitter {
     --ngm-splitter-background-color: transparent;
   }
 
   // Toolbar styles
-  .mat-toolbar.pac-sub-toolbar {
-    &.ngm-density__compact.mat-toolbar-row,
-    &.ngm-density__compact.mat-toolbar-single-row {
+  .pac-sub-toolbar {
+    @apply shrink-0 text-base;
+
+    &:not(.p-2) {
       height: 33px;
       padding: 0 6px;
-      font-size: 1rem;
     }
   }
 
@@ -101,7 +98,7 @@ $prefix: (ngm, model);
   z-index: 3;
 }
 
-.mat-drawer.ngm-story__designer-drawer {
+z-drawer.ngm-story__designer-drawer {
   width: 200px;
 }
 
@@ -136,7 +133,7 @@ $prefix: (ngm, model);
   line-height: 12px;
   margin: 5px 0;
 
-  .mat-mdc-input-element {
+  [z-input] {
     @apply flex-1 outline-none bg-transparent border-none;
   }
 }
@@ -159,7 +156,7 @@ list-content-loader {
   @apply w-full h-full rounded-lg shadow-lg overflow-hidden;
 }
 
-.mat-drawer-content {
+z-drawer-content {
   @apply flex overflow-hidden;
 }
 

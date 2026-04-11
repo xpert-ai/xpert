@@ -1,4 +1,4 @@
-import { IXpertAgent, TAvatar } from '@metad/contracts'
+import { IXpertAgent, TAvatar } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 /**

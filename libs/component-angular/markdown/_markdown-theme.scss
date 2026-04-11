@@ -1,10 +1,11 @@
-@use '@angular/material' as mat;
+@use "sass:map";
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 
 @mixin ngm-markdown-color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
-  $foreground: map-get($config, foreground);
-  $primary: map-get($config, primary);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $foreground: map.get($config, foreground);
+  $primary: map.get($config, primary);
 
   .ngm-markdown {
     pre {
@@ -28,8 +29,8 @@
 @mixin ngm-markdown-theme($theme-or-color-config) {
   $theme: mat-private-legacy-get-theme($theme-or-color-config);
   @include mat-private-check-duplicate-theme-styles($theme, 'ngm-markdown') {
-    $color: mat.get-color-config($theme);
-    $density: mat.get-density-config($theme);
+    $color: themeCompat.m2-get-color-config($theme);
+    $density: themeCompat.m2-get-density-config($theme);
     $typography: mat-get-typography-config($theme);
 
     @if $color != null {
@@ -39,7 +40,7 @@
       @include ngm-markdown-density($density);
     }
     // @if $typography != null {
-    //   @include mat.button-toggle-typography($typography);
+    //   @include themeCompat.button-toggle-typography($typography);
     // }
   }
 }

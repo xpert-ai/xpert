@@ -1,6 +1,7 @@
+@reference "tailwindcss";
 .pac-chat-button {
-  @apply h-10 rounded-lg px-2 text-zinc-500 focus-visible:outline-0
-     hover:bg-black/5 dark:hover:bg-white/10;
+  @apply h-10 rounded-lg px-2 text-text-tertiary focus-visible:outline-0
+     hover:bg-hover-bg dark:hover:bg-white/10;
 }
 
 .icon-md {

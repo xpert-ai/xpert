@@ -1,8 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { attrModel, linkedModel } from '@metad/core'
+import { attrModel, linkedModel } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNNote,
@@ -15,7 +14,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { CodeEditorCardComponent } from '@cloud/app/@shared/editors'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-note',
@@ -23,7 +22,7 @@ import { CodeEditorCardComponent } from '@cloud/app/@shared/editors'
   styleUrls: ['./note.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, CdkMenuModule, CodeEditorCardComponent],
+  imports: [FormsModule, ...ZardTooltipImports, TranslateModule, CdkMenuModule, CodeEditorCardComponent],
   host: {
     tabindex: '-1'
   }

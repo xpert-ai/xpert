@@ -1,12 +1,11 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MatTooltipModule],
+  imports: [CommonModule, FormsModule, TranslateModule, ...ZardTooltipImports],
   selector: 'chat-component-memories',
   templateUrl: './memories.component.html',
   styleUrl: 'memories.component.scss',

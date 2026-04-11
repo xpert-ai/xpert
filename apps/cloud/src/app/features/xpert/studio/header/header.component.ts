@@ -1,15 +1,12 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
+import { Component, computed, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { attrModel, OverlayAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, nonBlank } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel, nonBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -17,7 +14,6 @@ import {
   getErrorMessage,
   IChatConversation,
   OrderTypeEnum,
-  ToastrService,
   XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { XpertExportDslComponent, XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -41,6 +37,9 @@ import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
+import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
+import { OverlayAnimations } from '@xpert-ai/core'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -49,11 +48,11 @@ import { ChecklistComponent } from '@cloud/app/@shared/common'
     CommonModule,
     FormsModule,
     CdkMenuModule,
-    MatTooltipModule,
-    MatSliderModule,
+    ...ZardTooltipImports,
+    ZardSliderComponent,
     TranslateModule,
     NgmSpinComponent,
-    ChecklistComponent
+    ChecklistComponent,
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
@@ -67,7 +66,6 @@ export class XpertStudioHeaderComponent {
   readonly executionService = inject(XpertExecutionService)
   readonly chatConversationService = inject(ChatConversationService)
   readonly #dialog = inject(Dialog)
-  readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
@@ -113,7 +111,7 @@ export class XpertStudioHeaderComponent {
     }
   })
   readonly maxConcurrency = attrModel(this.agentConfig, 'maxConcurrency')
-  readonly recursionLimit = attrModel(this.agentConfig, 'recursionLimit')
+  readonly recursionLimit = attrModel(this.agentConfig, 'recursionLimit', 1000)
 
   // Executions
   readonly xpertId$ = toObservable(this.team).pipe(
@@ -126,7 +124,12 @@ export class XpertStudioHeaderComponent {
   readonly conversations$ = this.xpertId$.pipe(
     combineLatestWith(this.refreshConv$),
     tap(() => this.loadingConv.set(true)),
-    switchMap(([id]) => this.chatConversationService.findAllByXpert(id, { where: {from: {$in: ['debugger', 'knowledge']}}, order: { updatedAt: OrderTypeEnum.DESC } })),
+    switchMap(([id]) =>
+      this.chatConversationService.findAllByXpert(id, {
+        where: { from: { $in: ['debugger', 'knowledge'] } },
+        order: { updatedAt: OrderTypeEnum.DESC }
+      })
+    ),
     map(({ items }) => items),
     tap(() => this.loadingConv.set(false)),
     shareReplay(1)
@@ -180,21 +183,31 @@ export class XpertStudioHeaderComponent {
     this.showFeatures.update((state) => !state)
   }
 
+  setMaxConcurrency(value: ZardSliderValue) {
+    this.maxConcurrency.set(this.sliderValue(value))
+  }
+
+  setRecursionLimit(value: ZardSliderValue) {
+    this.recursionLimit.set(this.sliderValue(value))
+  }
+
   openConversation(item: IChatConversation) {
     this.sidePanel.set('preview')
     this.executionService.setConversation(item)
   }
 
   export(isDraft = false) {
-    this.#dialog.open(XpertExportDslComponent, {
-      data: {
-        xpertId: this.xpert().id,
-        slug: this.xpert().slug,
-        isDraft
-      }
-    }).closed.subscribe({
-      next: () => {}
-    })
+    this.#dialog
+      .open(XpertExportDslComponent, {
+        data: {
+          xpertId: this.xpert().id,
+          slug: this.xpert().slug,
+          isDraft
+        }
+      })
+      .closed.subscribe({
+        next: () => {}
+      })
   }
 
   publishToIntegration() {
@@ -220,5 +233,17 @@ export class XpertStudioHeaderComponent {
       event.preventDefault() // Prevent the default save dialog
       this.saveDraft()
     }
+  }
+
+  private sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
+  }
+
+  onMenuOpened(trigger: CdkMenuTrigger) {
+    const updatePosition = () => (trigger as any).overlayRef?.updatePosition()
+
+    queueMicrotask(updatePosition)
+    requestAnimationFrame(updatePosition)
+    window.setTimeout(updatePosition, 220)
   }
 }

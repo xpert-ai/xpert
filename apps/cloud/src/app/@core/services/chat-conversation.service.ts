@@ -7,9 +7,10 @@ import {
   PaginationParams,
   TFileDirectory,
   toHttpParams
-} from '@metad/cloud/state'
-import { toParams } from '@metad/core'
+} from '@xpert-ai/cloud/state'
+import { toParams } from '@xpert-ai/core'
 import { EMPTY, switchMap } from 'rxjs'
+import { TFile } from '../types'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
@@ -42,6 +43,14 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     return this.httpClient.get<any>(this.apiBaseUrl + `/${id}/state`)
   }
 
+  getByThreadId(threadId: string) {
+    return this.httpClient.get<IChatConversation>(this.apiBaseUrl + '/by-thread', {
+      params: toParams({
+        threadId
+      })
+    })
+  }
+
   getAttachments(id: string) {
     return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`)
   }
@@ -57,6 +66,21 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
       params: toParams({
         path
       })
+    })
+  }
+
+  getFile(id: string, path: string) {
+    return this.httpClient.get<TFile>(this.apiBaseUrl + `/${id}/file`, {
+      params: toParams({
+        path
+      })
+    })
+  }
+
+  saveFile(id: string, path: string, content: string) {
+    return this.httpClient.put<TFile>(this.apiBaseUrl + `/${id}/file`, {
+      path,
+      content
     })
   }
 

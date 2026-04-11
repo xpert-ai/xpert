@@ -1,6 +1,6 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
+<div class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group">
   <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
       {{ 'PAC.Project.Files' | translate: { Default: 'Files' } }}
     </span>
@@ -8,13 +8,13 @@
   
   <ngm-search class="my-2" [formControl]="searchControl"></ngm-search>
   
-  <mat-nav-list class="ngm-nav-list flex-1 overflow-auto" />
+  <ul class="ngm-nav-list flex-1 overflow-auto"></ul>
 
   <div class="flex justify-end items-center">
     <div ngmButtonGroup>
-      <button mat-stroked-button ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="upload()">
+      <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" (click)="upload()">
         <div class="flex justify-start items-center">
-          <mat-icon fontSet="material-icons-round">upload</mat-icon>
+          <z-icon zType="upload"></z-icon>
           {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}
         </div>
       </button>

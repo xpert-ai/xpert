@@ -1,7 +1,7 @@
-import { FileUploadVolumeCatalog, IUploadFileVolumeTarget } from '@metad/contracts'
-import { environment } from '@metad/server-config'
+import { FileUploadVolumeCatalog, IUploadFileVolumeTarget } from '@xpert-ai/contracts'
+import { environment } from '@xpert-ai/server-config'
 import path from 'path'
-import { getSandboxVolumeRootPath, usesFlattenedSandboxVolumeLayout } from '../volume/volume-layout'
+import { getApiContainerSandboxVolumeRootPath, usesFlattenedSandboxVolumeLayout } from '../volume/volume-layout'
 
 export function normalizeFileName(fileName: string) {
     const normalized = path.basename(fileName).trim()
@@ -22,8 +22,8 @@ export function normalizeRelativePath(...segments: Array<string | undefined>) {
     return normalized === '.' ? '' : normalized
 }
 
-export function getSandboxVolumeRoot(tenantId: string) {
-    return getSandboxVolumeRootPath(tenantId)
+export function getApiContainerSandboxVolumeRoot(tenantId: string) {
+    return getApiContainerSandboxVolumeRootPath(tenantId)
 }
 
 export function getVolumeSubpath(
@@ -62,7 +62,7 @@ export function getVolumeSubpath(
 export function resolveVolumeTarget(target: IUploadFileVolumeTarget, request: { tenantId?: string; userId?: string }) {
     const tenantId = target.tenantId || request.tenantId
     const userId = target.userId || request.userId
-    const root = getSandboxVolumeRoot(tenantId)
+    const root = getApiContainerSandboxVolumeRoot(tenantId)
     const subpath = getVolumeSubpath(target.catalog, {
         projectId: target.projectId,
         knowledgeId: target.knowledgeId,

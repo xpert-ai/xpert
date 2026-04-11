@@ -5,13 +5,15 @@ import {
 	IXpertAgent,
 	TXpertGraph,
 	WorkflowNodeTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	AgentMiddleware,
 	AgentMiddlewareRegistry,
 	IAgentMiddlewareContext,
 	IAgentMiddlewareStrategy
 } from '@xpert-ai/plugin-sdk'
+import { TXpertAgentRuntimeOptions } from './state'
+import { filterDisabledTools } from './tool-preference'
 import { orderNodesByKeyOrder } from './workflow'
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]
@@ -38,7 +40,8 @@ export async function getAgentMiddlewares(
 	graph: TXpertGraph,
 	agent: IXpertAgent,
 	agentMiddlewareRegistry: AgentMiddlewareRegistry,
-	context: Omit<IAgentMiddlewareContext, 'node'>
+	context: Omit<IAgentMiddlewareContext, 'node'>,
+	options?: TXpertAgentRuntimeOptions
 ): Promise<AgentMiddleware[]> {
 	const middlewares = orderNodesByKeyOrder(
 		getAgentMiddlewareNodes(graph, agent.key),
@@ -58,9 +61,19 @@ export async function getAgentMiddlewares(
 			continue
 		}
 
-		const middleware = await strategy.createMiddleware(entity.options, {...context, node: middlewareNode.entity as IWFNMiddleware })
+		const middleware = await strategy.createMiddleware(entity.options, {
+			...context,
+			xpertFeatures: context.xpertFeatures ?? null,
+			node: middlewareNode.entity as IWFNMiddleware
+		})
 		if (middleware?.tools?.length) {
-			middleware.tools = middleware.tools.filter((tool) => isMiddlewareToolEnabled(entity?.tools?.[tool.name]))
+			const enabledTools = middleware.tools.filter((tool) => isMiddlewareToolEnabled(entity?.tools?.[tool.name]))
+			middleware.tools = filterDisabledTools(
+				enabledTools,
+				'middleware',
+				middlewareNode.key,
+				options?.toolPreferences
+			)
 		}
 		if (middleware) result.push(middleware)
 	}

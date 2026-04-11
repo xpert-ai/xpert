@@ -1,0 +1,32 @@
+{
+  "name": "duckdb",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/duckdb/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/duckdb",
+        "main": "legacies/duckdb/src/index.ts",
+        "tsConfig": "legacies/duckdb/tsconfig.lib.json",
+        "assets": ["legacies/duckdb/*.md", "legacies/duckdb/dist/*"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["legacies/duckdb/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/packages/duckdb"],
+      "options": {
+        "jestConfig": "legacies/duckdb/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

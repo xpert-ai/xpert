@@ -7,8 +7,8 @@ import { NbAuthSocialLink, PAC_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 import { matchValidator, PacAuthResult, PacAuthService, passwordStrength, PasswordStrengthEnum } from '../services'
 
-
 @Component({
+  standalone: false,
   selector: 'pac-register',
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],

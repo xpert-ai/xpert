@@ -1,4 +1,4 @@
-import { IChatMessageFeedback } from '@metad/contracts'
+import { IChatMessageFeedback } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { ChatMessageFeedbackService } from '../../feedback.service';
 import { FindMessageFeedbackQuery } from '../feedback-find.query';

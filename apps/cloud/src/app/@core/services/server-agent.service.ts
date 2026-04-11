@@ -1,9 +1,8 @@
 import { HttpClient, HttpParams, HttpRequest, HttpResponse } from '@angular/common/http'
 import { Inject, Injectable, InjectionToken } from '@angular/core'
-import { MatBottomSheet } from '@angular/material/bottom-sheet'
-import { AgentEvent, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel } from '@metad/contracts'
-import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@metad/ocap-core'
-import { API_DATA_SOURCE, C_URI_API_MODELS, DataSourceService } from '@metad/cloud/state'
+import { AgentEvent, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel } from '@xpert-ai/contracts'
+import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@xpert-ai/ocap-core'
+import { API_DATA_SOURCE, C_URI_API_MODELS, DataSourceService } from '@xpert-ai/cloud/state'
 import { chunk, flatten, groupBy } from 'lodash-es'
 import {
   bufferTime,
@@ -17,6 +16,7 @@ import {
   of,
   Subject,
 } from 'rxjs'
+import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { getErrorMessage, uuid } from '../types'
 import { AbstractAgent, AuthInfoType } from '../auth'
 
@@ -56,13 +56,12 @@ export class ServerAgent extends AbstractAgent implements Agent {
   readonly request$ = new Subject<{ id: UUID; url: string; request: any; forceRefresh: boolean }>()
   batchSize = 10
 
-
   constructor(
     @Inject(PAC_SERVER_AGENT_DEFAULT_OPTIONS)
     private options: PacServerAgentDefaultOptions,
     private httpClient: HttpClient,
     dataSourceService: DataSourceService,
-    _bottomSheet: MatBottomSheet) {
+    _bottomSheet: ZardSheetService) {
     super(dataSourceService, _bottomSheet)
 
     this.request$

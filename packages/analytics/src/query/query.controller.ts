@@ -1,5 +1,5 @@
-import { IPagination } from '@metad/contracts'
-import { CrudController, ParseJsonPipe } from '@metad/server-core'
+import { IPagination } from '@xpert-ai/contracts'
+import { CrudController, ParseJsonPipe } from '@xpert-ai/server-core'
 import { Controller, Get, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { ModelQuery } from './query.entity'

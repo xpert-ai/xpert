@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs';
-import { IOrganizationContactCreateInput } from '@metad/contracts';
+import { IOrganizationContactCreateInput } from '@xpert-ai/contracts';
 
 export class OrganizationContactCreateCommand implements ICommand {
 	static readonly type = '[OrganizationContact] Create Organization Contact';

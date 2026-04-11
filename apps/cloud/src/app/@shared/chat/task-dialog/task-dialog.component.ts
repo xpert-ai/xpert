@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import {
@@ -15,8 +15,8 @@ import {
   XpertTaskService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, myRxResource } from '@metad/ocap-angular/core'
+import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { of } from 'rxjs'
@@ -26,7 +26,6 @@ import { ScheduleFormComponent } from '../../schedule'
   selector: 'xpert-task-new-blank',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     DragDropModule,
     FormsModule,
@@ -36,14 +35,14 @@ import { ScheduleFormComponent } from '../../schedule'
     NgmSearchComponent,
     NgmProgressSpinnerComponent,
     ScheduleFormComponent
-  ],
+],
   templateUrl: './task-dialog.component.html',
   styleUrl: './task-dialog.component.scss'
 })
 export class XpertTaskDialogComponent {
   eTaskFrequency = TaskFrequency
 
-  readonly #data = inject<{ task: IXpertTask; total: number }>(DIALOG_DATA)
+  readonly #data = inject<{ task?: Partial<IXpertTask>; total?: number; lockXpertSelection?: boolean }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef<IXpertTask | undefined>)
   readonly #toastr = inject(ToastrService)
   readonly taskAPI = inject(XpertTaskService)
@@ -56,18 +55,23 @@ export class XpertTaskDialogComponent {
     }
   })
   readonly total = this.#myTasks.value
-  readonly task = model<Partial<IXpertTask>>(this.#data.task ?? {})
+  readonly task = model<Partial<IXpertTask>>(this.#data?.task ?? {})
   readonly name = attrModel(this.task, 'name')
   readonly xpertId = attrModel(this.task, 'xpertId')
   readonly options = attrModel(this.task, 'options')
   readonly prompt = attrModel(this.task, 'prompt')
 
   readonly xpert = computed(() => this.myXperts()?.find((xpert) => xpert.id === this.xpertId()))
+  readonly lockXpertSelection = computed(() => !!this.#data?.lockXpertSelection)
 
   readonly loading = signal(false)
   readonly search = model<string>('')
 
   bindExpert(xpert: IXpert) {
+    if (this.lockXpertSelection()) {
+      return
+    }
+
     this.xpertId.set(xpert.id)
   }
 

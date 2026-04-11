@@ -1,4 +1,4 @@
-import { IStoryPoint } from '@metad/contracts'
+import { IStoryPoint } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 import { FindManyOptions } from 'typeorm'
 

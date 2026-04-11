@@ -1,10 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTabsModule } from '@angular/material/tabs'
 import { FormlyModule } from '@ngx-formly/core'
 import { FormlyTabGroupComponent } from './tab-group.component'
+import { ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use hl-tabs
@@ -14,8 +13,8 @@ import { FormlyTabGroupComponent } from './tab-group.component'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatTabsModule,
-    MatIconModule,
+    ...ZardTabsImports,
+    ZardIconComponent,
     FormlyModule.forChild({
       types: [
         {
@@ -29,4 +28,4 @@ import { FormlyTabGroupComponent } from './tab-group.component'
   declarations: [FormlyTabGroupComponent],
   providers: []
 })
-export class FormlyMatTabGroupModule {}
+export class FormlyTabGroupModule {}

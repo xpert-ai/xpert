@@ -1,9 +1,9 @@
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, inject, input, model, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertAPIService } from '@cloud/app/@core'
-import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { of } from 'rxjs'
@@ -21,7 +21,7 @@ import { expandVariablesWithItems } from '../types'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, NgmI18nPipe, XpertVariablePanelComponent],
+  imports: [CdkMenuModule, FormsModule, TranslateModule, NgmI18nPipe, XpertVariablePanelComponent],
   selector: 'xpert-state-variable-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
@@ -86,8 +86,7 @@ export class StateVariableSelectComponent {
         if (this.#variables.value()) {
           this.variables.set(this.#variables.value())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

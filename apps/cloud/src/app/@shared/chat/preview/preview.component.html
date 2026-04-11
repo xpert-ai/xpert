@@ -7,7 +7,7 @@
       <button
         type="button"
         class="action-btn action-btn-sm primary w-7 h-7"
-        [matTooltip]="'PAC.Xpert.Restart' | translate: { Default: 'Restart' }"
+        [zTooltip]="'PAC.Xpert.Restart' | translate: { Default: 'Restart' }"
         (click)="onRestart()"
       >
         <i class="ri-restart-line font-normal text-base"></i>
@@ -45,7 +45,7 @@
                   viewBox="0 0 8 12"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  class="absolute -left-2 top-0 w-2 h-3 text-gray-100"
+                  class="absolute -left-2 top-0 w-2 h-3 text-components-input-bg-normal"
                   data-icon="AnswerTriangle"
                   aria-hidden="true"
                 >
@@ -56,14 +56,14 @@
                   ></path>
                 </svg>
                 <div
-                  class="grow-0 relative inline-block px-2 py-3 max-w-full bg-gray-100 rounded-b-2xl rounded-tr-2xl text-base text-gray-900"
+                  class="grow-0 relative inline-block px-2 py-3 max-w-full bg-components-input-bg-normal rounded-b-2xl rounded-tr-2xl text-base text-text-primary"
                 >
                   <xpert-preview-ai-message [message]="message" [conversation]="conversation()" class="w-full grow" />
                 </div>
 
                 <div class="absolute flex justify-end items-center gap-1 right-0 -top-4">
                   <div
-                    class="group-hover:flex justify-center items-center p-1 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0"
+                    class="group-hover:flex justify-center items-center p-1 rounded-lg bg-components-panel-bg border-[0.5px] border-divider-regular shadow-sm shrink-0"
                     [ngClass]="{
                       hidden: !(synthesizeLoading() || isPlaying()),
                       flex: synthesizeLoading() || isPlaying()
@@ -72,18 +72,18 @@
                     @if (!readonly()) {
                       <!-- Retry button for this message -->
                       <div
-                        class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
-                        [matTooltip]="'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' }"
-                        matTooltipPosition="above"
+                        class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
+                        [zTooltip]="'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' }"
+                        zPosition="top"
                         (click)="onRetryMessage(message)"
                       >
                         <i class="ri-repeat-2-line"></i>
                       </div>
                     }
                     <div
-                      class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
-                      [matTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
-                      matTooltipPosition="above"
+                      class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
+                      [zTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
+                      zPosition="top"
                       (click)="copy(message)"
                     >
                       @if (copiedMessages()[message.id]) {
@@ -95,9 +95,9 @@
 
                     @if (textToSpeech_enabled()) {
                       <div
-                        class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
-                        [matTooltip]="'PAC.Xpert.ReadAloud' | translate: { Default: 'Read aloud' }"
-                        matTooltipPosition="above"
+                        class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
+                        [zTooltip]="'PAC.Xpert.ReadAloud' | translate: { Default: 'Read aloud' }"
+                        zPosition="top"
                         (click)="readAloud(message)"
                       >
                         @if (synthesizeLoading() || isPlaying()) {
@@ -111,10 +111,10 @@
 
                   @if (message.executionId) {
                     <div
-                      class="hidden group-hover:flex items-center w-max h-[28px] p-1 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0"
+                      class="hidden group-hover:flex items-center w-max h-[28px] p-1 rounded-lg bg-components-panel-bg border-[0.5px] border-divider-regular shadow-sm shrink-0"
                     >
                       <div
-                        class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+                        class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
                         (click)="openExecution(message)"
                       >
                         <svg
@@ -140,7 +140,7 @@
                           {{ 'PAC.Xpert.ExecutionLog' | translate: { Default: 'Execution Log' } }}
                         </div>
                       </div>
-                      <div class="mx-1 w-[1px] h-[14px] bg-gray-200"></div>
+                      <div class="mx-1 w-[1px] h-[14px] bg-components-list-option-active-bg"></div>
                     </div>
                   }
 
@@ -149,8 +149,8 @@
                       @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
                         <div
                           class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
-                          [matTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: { Default: 'Cancel like' }"
-                          matTooltipPosition="above"
+                          [zTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: { Default: 'Cancel like' }"
+                          zPosition="top"
                           (click)="cancelFeedback(message, feedback.id)"
                         >
                           <i class="ri-thumb-up-line"></i>
@@ -158,8 +158,8 @@
                       } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
                         <div
                           class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
-                          [matTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
-                          matTooltipPosition="above"
+                          [zTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
+                          zPosition="top"
                           (click)="cancelFeedback(message, feedback.id)"
                         >
                           <i class="ri-thumb-down-line"></i>
@@ -167,20 +167,20 @@
                       }
                     } @else {
                       <div
-                        class="hidden group-hover:flex shrink-0 items-center p-1 bg-white border-[0.5px] border-gray-100 shadow-md text-gray-500 rounded-lg"
+                        class="hidden group-hover:flex shrink-0 items-center p-1 bg-components-card-bg border-[0.5px] border-divider-regular shadow-md text-text-tertiary rounded-lg"
                       >
                         <div
-                          class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
-                          [matTooltip]="'PAC.KEY_WORDS.Like' | translate: { Default: 'Like' }"
-                          matTooltipPosition="above"
+                          class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
+                          [zTooltip]="'PAC.KEY_WORDS.Like' | translate: { Default: 'Like' }"
+                          zPosition="top"
                           (click)="feedback(message, eFeedbackRatingEnum.LIKE)"
                         >
                           <i class="ri-thumb-up-line"></i>
                         </div>
                         <div
-                          class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
-                          [matTooltip]="'PAC.KEY_WORDS.Dislike' | translate: { Default: 'Dislike' }"
-                          matTooltipPosition="above"
+                          class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
+                          [zTooltip]="'PAC.KEY_WORDS.Dislike' | translate: { Default: 'Dislike' }"
+                          zPosition="top"
                           (click)="feedback(message, eFeedbackRatingEnum.DISLIKE)"
                         >
                           <i class="ri-thumb-down-line"></i>
@@ -191,7 +191,7 @@
                 </div>
               </div>
               <div
-                class="flex items-center mt-1 h-[18px] text-xs text-gray-400 opacity-0 group-hover:opacity-100"
+                class="flex items-center mt-1 h-[18px] text-xs text-text-quaternary opacity-0 group-hover:opacity-100"
               ></div>
             </div>
           </div>
@@ -206,7 +206,7 @@
             viewBox="0 0 48 48"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            class="w-12 h-12 text-gray-300"
+            class="w-12 h-12 text-text-quaternary"
           >
             <g id="chat-bot">
               <g id="Vector">
@@ -233,7 +233,7 @@
           </svg>
         </div>
 
-        <div class="w-[256px] text-center text-[13px] text-gray-400">
+        <div class="w-[256px] text-center text-[13px] text-text-quaternary">
           {{
             'PAC.Xpert.StartDebuggingDigitalExpert'
               | translate: { Default: 'Enter your content in the box below to start debugging Digital Expert' }
@@ -241,8 +241,9 @@
         </div>
 
         @if (starters()?.length) {
-          <div class="w-full flex items-center mt-4 leading-[18px] text-sm text-gray-500 uppercase">
+          <div class="w-full flex items-center mt-4 leading-[18px] text-sm text-text-tertiary uppercase">
             <div class="grow w-0 h-px bg-divider-deep"></div>
+            <div class="mx-3">{{ 'PAC.Xpert.YouMightAsk' | translate: { Default: 'You might want to ask' } }}</div>
             <div class="mx-3">{{ 'PAC.Xpert.YouMightAsk' | translate: { Default: 'You might want to ask' } }}</div>
             <div class="grow w-0 h-px bg-divider-deep"></div>
           </div>
@@ -274,14 +275,20 @@
       } @else if (suggestionQuestions()?.length) {
         <div class="mb-2 py-2">
           <div class="mb-2.5 flex items-center justify-between gap-2">
-            <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180"></div>
-            <div class="shrink-0 text-text-tertiary">
+            <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180">
               {{ 'PAC.Xpert.TryAsking' | translate: { Default: 'Try asking' } }}
             </div>
             <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow"></div>
           </div>
           <div class="flex flex-wrap justify-center">
             @for (question of suggestionQuestions(); track question) {
+              <button
+                type="button"
+                class="btn disabled:btn-disabled btn-secondary btn-small mb-1 mr-1 last:mr-0"
+                (click)="onSelectSuggestionQuestion(question)"
+              >
+                {{ question }}
+              </button>
               <button
                 type="button"
                 class="btn disabled:btn-disabled btn-secondary btn-small mb-1 mr-1 last:mr-0"
@@ -309,7 +316,7 @@
 
     @if (conversationStatus() === eExecutionStatusEnum.ERROR) {
       <div
-        class="w-full flex items-start gap-2 p-4 rounded-3xl text-orange-500 bg-orange-50 border border-solid border-orange-200"
+        class="w-full flex items-start gap-2 p-4 rounded-3xl text-text-warning bg-background-default-subtle border border-solid border-text-warning"
       >
         <div>
           <i class="ri-information-2-line text-xl"></i>
@@ -340,10 +347,10 @@
   @if (!readonly()) {
     <div
       class="sticky bottom-0 px-4 rounded-bl-2xl"
-      style="background: linear-gradient(0deg, rgb(239, 247, 255) 40%, rgba(255, 255, 255, 0) 100%)"
+      style="background: linear-gradient(0deg, color-mix(in oklab, var(--background) 94%, transparent) 40%, color-mix(in oklab, var(--background) 0%, transparent) 100%)"
     >
       <div class="pb-4 w-full max-w-full mx-auto">
-        <div class="relative bg-white border border-gray-200 rounded-xl mb-2">
+        <div class="relative bg-components-panel-bg border border-divider-deep rounded-xl mb-2">
           @if (attachments()?.length) {
             <chat-attachments
               class="w-full p-1"
@@ -363,10 +370,10 @@
             ></textarea>
 
             <div class="absolute bottom-[7px] flex items-center h-8 right-2 z-10">
-              <div class="flex items-center px-1 h-5 rounded-md bg-gray-100 text-xs font-medium text-gray-500">
+              <div class="flex items-center px-1 h-5 rounded-md bg-components-input-bg-normal text-xs font-medium text-text-tertiary">
                 {{ inputLength() }}
               </div>
-              <div class="mx-2 w-[1px] h-4 bg-black opacity-5"></div>
+              <div class="mx-2 w-[1px] h-4 bg-divider-deep"></div>
 
               @if (attachment_enabled()) {
                 <button
@@ -425,7 +432,7 @@
             </div>
 
             <div
-              class="absolute left-0 bottom-0 w-full h-12 border border-solid border-gray-200 rounded-lg bg-white shadow-md z-10 p-2 overflow-hidden"
+              class="absolute left-0 bottom-0 w-full h-12 border border-solid border-divider-deep rounded-lg bg-components-panel-bg shadow-md z-10 p-2 overflow-hidden"
               [ngClass]="{
                 hidden: !speeching(),
                 block: speeching()

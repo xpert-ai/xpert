@@ -1,5 +1,5 @@
-import { ITag, IUser, IXpert, IXpertAgent, TAvatar, XpertTypeEnum } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { ITag, IUser, IXpert, IXpertAgent, TAvatar, XpertTypeEnum } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentIdentiDto } from '../../xpert-agent/dto'
 

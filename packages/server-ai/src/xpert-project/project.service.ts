@@ -7,7 +7,7 @@ import {
 	IXpertProjectVCS,
 	IXpertToolset,
 	OrderTypeEnum,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	applyWhereToQueryBuilder,
 	EventNameIntegrationAuthorized,
@@ -16,8 +16,8 @@ import {
 	RequestContext,
 	StorageFileDeleteCommand,
 	TenantOrganizationAwareCrudService
-} from '@metad/server-core'
-import { yaml } from '@metad/server-common'
+} from '@xpert-ai/server-core'
+import { yaml } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -84,7 +84,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 			.createQueryBuilder('project')
 			.leftJoinAndSelect('project.members', 'member')
 			.where('project.tenantId = :tenantId')
-			.andWhere('project.organizationId = :organizationId')
 			.andWhere(
 				new Brackets((qb) => {
 					qb.where(`project.status <> 'archived'`).orWhere(`project.status IS NULL`)
@@ -100,9 +99,15 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 			.orderBy(orderBy)
 			.setParameters({
 				tenantId: user.tenantId,
-				organizationId,
 				userId: user.id
 			})
+
+		if (organizationId) {
+			query.andWhere('project.organizationId = :organizationId', { organizationId })
+		} else {
+			query.andWhere('project.organizationId IS NULL')
+		}
+
 		if (options?.where) {
 			applyWhereToQueryBuilder(query, 'project', options.where)
 		}
@@ -123,14 +128,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 	}
 
 	async getXperts(id: string, params: PaginationParams<IXpertProject>) {
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const project = await this.repository.findOne({
-			where: {
-				id,
-				tenantId,
-				organizationId
-			},
+		const project = await this.findOne({
+			where: { id },
 			relations: ['xperts', ...(params?.relations?.map((relation) => `xperts.${relation}`) ?? [])]
 		})
 
@@ -182,14 +181,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 	}
 
 	async getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const project = await this.repository.findOne({
-			where: {
-				id,
-				tenantId,
-				organizationId
-			},
+		const project = await this.findOne({
+			where: { id },
 			relations: ['toolsets', ...(params?.relations?.map((relation) => `toolsets.${relation}`) ?? [])]
 		})
 
@@ -243,14 +236,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 	}
 
 	async getKnowledges(id: string, params: PaginationParams<IKnowledgebase>) {
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const project = await this.repository.findOne({
-			where: {
-				id,
-				tenantId,
-				organizationId
-			},
+		const project = await this.findOne({
+			where: { id },
 			relations: ['knowledges', ...(params?.relations?.map((relation) => `knowledges.${relation}`) ?? [])]
 		})
 

@@ -3,17 +3,25 @@ import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input, output } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { rxResource, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { getErrorMessage, NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import {
+  buildListboxOptions,
+  formatSelectOptionValue,
+  getErrorMessage,
+  hasSelectOptionValue,
+  NgmI18nPipe,
+  TSelectOption
+} from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, of, startWith, switchMap, tap, debounceTime } from 'rxjs'
+import { catchError, debounceTime, defer, of, startWith } from 'rxjs'
 import { TWorkflowVarGroup } from '../../../@core/types'
 import { expandVariablesWithItems } from '../../agent/types'
-import { toParams } from '@metad/core'
+import { toParams } from '@xpert-ai/core'
+import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { buildRemoteSelectRequest, isSameRemoteSelectRequest } from './select.request'
 
 type TSelectOptionValue = string | { id: string }
 
@@ -29,7 +37,10 @@ type TSelectOptionValue = string | { id: string }
     CdkListboxModule,
     CdkMenuModule,
     NgmI18nPipe,
-    NgmHighlightDirective
+    NgmHighlightDirective,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ZardLoaderComponent
   ],
   selector: 'xpert-remote-select',
   templateUrl: 'select.component.html',
@@ -68,10 +79,19 @@ export class XpertRemoteSelectComponent {
     }
     return this.cva.value$() ? [this.cva.value$() as TSelectOptionValue] : []
   })
-
-  readonly remoteOptions = derivedAsync(() => {
-    return this.url() ? this.getSelectOptions(this.url(), this.params()) : of([])
+  readonly #remoteRequest = computed(() => buildRemoteSelectRequest(this.url(), this.params()), {
+    equal: isSameRemoteSelectRequest
   })
+
+  readonly #remoteOptionsResource = rxResource<
+    TSelectOption<TSelectOptionValue>[],
+    { url: string; params?: Record<string, unknown> } | undefined
+  >({
+    params: () => this.#remoteRequest(),
+    defaultValue: [],
+    stream: ({ params }) => this.loadRemoteOptions(params.url, params.params)
+  })
+  readonly remoteOptions = computed(() => this.#remoteOptionsResource.value())
 
   readonly variableOptions = computed<TSelectOption<TSelectOptionValue>[]>(() => {
     if (!this.variable() || !this.variables()?.length) {
@@ -92,25 +112,36 @@ export class XpertRemoteSelectComponent {
 
     return deduped
   })
-
-  readonly searchText = toSignal<string>(
-    this.searchControl.valueChanges.pipe(debounceTime(300), startWith(null))
+  readonly listboxOptions = computed<TSelectOption<TSelectOptionValue>[]>(() =>
+    buildListboxOptions(
+      this.selectOptions(),
+      this.values(),
+      this.compareWith,
+      'Current value not found, please reselect or clear'
+    )
   )
+
+  readonly searchText = toSignal<string>(this.searchControl.valueChanges.pipe(debounceTime(300), startWith(null)))
 
   readonly filteredSelectOptions = computed(() => {
     const text = this.searchText()?.trim().toLowerCase()
     return text
-      ? this.selectOptions()?.filter((_) => {
-          const label = this.i18n.transform(_.label)?.toLowerCase() ?? ''
-          const description = this.i18n.transform(_.description)?.toLowerCase() ?? ''
-          return label.includes(text) || description.includes(text)
+      ? this.listboxOptions()?.filter((option) => {
+          const label = this.i18n.transform(option.label)?.toLowerCase() ?? ''
+          const description = this.i18n.transform(option.description)?.toLowerCase() ?? ''
+          return (
+            label.includes(text) ||
+            description.includes(text) ||
+            formatSelectOptionValue(option.value).toLowerCase().includes(text) ||
+            hasSelectOptionValue(this.values(), option.value, this.compareWith)
+          )
         })
-      : this.selectOptions()
+      : this.listboxOptions()
   })
 
   readonly selectedOptions = computed(() => {
     return this.values()?.map(
-      (value) => this.selectOptions()?.find((_) => this.compareWith(_.value, value)) ?? { value }
+      (value) => this.listboxOptions()?.find((_) => this.compareWith(_.value, value)) ?? { value }
     )
   })
 
@@ -124,14 +155,15 @@ export class XpertRemoteSelectComponent {
     return null
   })
 
-  getSelectOptions(url: string, params: Record<string, unknown>) {
-    return of(true).pipe(
-      tap(() => this.error.emit(null)),
-      switchMap(() =>
-        this.httpClient.get<TSelectOption<TSelectOptionValue>[]>(url, {
-          params: params ? toParams(params) : null
-        })
-      ),
+  readonly loading = computed(() => this.#remoteOptionsResource.isLoading())
+
+  private loadRemoteOptions(url: string, params?: Record<string, unknown>) {
+    return defer(() => {
+      this.error.emit(null)
+      return this.httpClient.get<TSelectOption<TSelectOptionValue>[]>(url, {
+        params: params ? toParams(params) : null
+      })
+    }).pipe(
       catchError((err) => {
         this.error.emit(getErrorMessage(err))
         return of([])
@@ -162,6 +194,14 @@ export class XpertRemoteSelectComponent {
     if (!this.multiple()) {
       trigger.close()
     }
+  }
+
+  refresh() {
+    if (!this.url()) {
+      return
+    }
+
+    this.#remoteOptionsResource.reload()
   }
 
   clear() {

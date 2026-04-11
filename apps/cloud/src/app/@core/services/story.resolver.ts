@@ -7,9 +7,9 @@ import {
   Router,
   RouterStateSnapshot
 } from '@angular/router'
-import { StoriesService, StoryPointsService, convertStoryResult } from '@metad/cloud/state'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { Story } from '@metad/story/core'
+import { StoriesService, StoryPointsService, convertStoryResult } from '@xpert-ai/cloud/state'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { Story } from '@xpert-ai/story/core'
 import { EMPTY, Observable, catchError, map } from 'rxjs'
 import { AccessEnum, IStoryPoint } from '../types'
 import { ToastrService } from './toastr.service'

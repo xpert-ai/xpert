@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AbstractInterruptComponent } from '../../types'
 
@@ -152,14 +152,14 @@ export class XpAgentInterruptHitlComponent extends AbstractInterruptComponent<HI
       this.editedActions.set(edits)
       this.parseErrors.set(actions.map(() => null))
       this.value.set({ decisions: defaults })
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const decisions = this.decisions()
       if (decisions?.length) {
         this.value.set({ decisions })
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   decisionFor(index: number) {

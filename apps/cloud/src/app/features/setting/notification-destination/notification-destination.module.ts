@@ -4,13 +4,15 @@ import { EditDestinationComponent } from './edit-destination/edit-destination.co
 import { NewNotificationDestinationComponent } from './new-notification-destination/new-notification-destination.component'
 import { NotificationDestinationRoutingModule } from './notification-destination-routing.module'
 import { NotificationDestinationsComponent } from './notification-destinations/notification-destinations.component'
-import { MaterialModule } from '../../../@shared/material.module'
+import { ZardStepperImports } from '@xpert-ai/headless-ui'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { SharedModule } from '../../../@shared/shared.module'
 
 @NgModule({
   imports: [
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
+    ...ZardStepperImports,
     FormlyModule,
     NotificationDestinationRoutingModule
   ],

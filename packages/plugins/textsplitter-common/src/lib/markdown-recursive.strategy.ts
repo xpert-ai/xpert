@@ -1,4 +1,4 @@
-import { IconType, KnowledgeStructureEnum } from '@metad/contracts'
+import { IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'

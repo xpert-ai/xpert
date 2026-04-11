@@ -18,21 +18,20 @@
     </label>
 
     <div class="w-2/3 flex justify-start items-center">
-        <mat-button-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent"
-            [(ngModel)]="textAlign">
-            <mat-button-toggle value="left">
-                <mat-icon fontSet="material-icons-round" displayDensity="compact">format_align_left</mat-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="center">
-                <mat-icon fontSet="material-icons-round" displayDensity="compact">format_align_center</mat-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="right">
-                <mat-icon fontSet="material-icons-round" displayDensity="compact">format_align_right</mat-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="justify">
-                <mat-icon fontSet="material-icons-round" displayDensity="compact">format_align_justify</mat-icon>
-            </mat-button-toggle>
-        </mat-button-toggle-group>
+        <z-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent" [(ngModel)]="textAlign">
+            <z-toggle-group-item value="left">
+                <z-icon zSize="sm" zType="format_align_left"></z-icon>
+            </z-toggle-group-item>
+            <z-toggle-group-item value="center">
+                <z-icon zSize="sm" zType="format_align_center"></z-icon>
+            </z-toggle-group-item>
+            <z-toggle-group-item value="right">
+                <z-icon zSize="sm" zType="format_align_right"></z-icon>
+            </z-toggle-group-item>
+            <z-toggle-group-item value="justify">
+                <z-icon zSize="sm" zType="format_align_justify"></z-icon>
+            </z-toggle-group-item>
+        </z-toggle-group>
     </div>
     
 </div>
@@ -43,17 +42,12 @@
     </label>
 
     <div class="w-2/3 flex justify-start items-center">
-        <mat-select id="fontWeight" class="max-w-full p-2 overflow-hidden text-ellipsis bg-gray-100 border-0 text-gray-900 text-xs rounded-lg
-            focus:ring-blue-500 focus:border-blue-500 block w-full dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            [panelClass]="'ngm-select-panel ngm-density__compact'"
+        <ngm-select id="fontWeight" class="max-w-full"
             [formControl]="fontWeight"
             placeholder="{{ 'PAC.Story.ChooseFontWeight' | translate: {Default: 'Choose a font weight'} }}"
+            [selectOptions]="fontWeightOptions"
         >
-            <mat-option selected [value]="null">--</mat-option>
-          @for (fWeight of fontWeights; track fWeight) {
-            <mat-option [value]="fWeight">{{fWeight}}</mat-option>
-          }
-        </mat-select>
+        </ngm-select>
     </div>
 </div>
 <ngm-input class="w-full" 

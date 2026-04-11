@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { SharedModule, TenantModule } from '@metad/server-core'
+import { SharedModule, TenantModule } from '@xpert-ai/server-core'
 import { ModelQueryService } from './query.service'
 import { ModelQuery } from './query.entity'
 import { RouterModule } from '@nestjs/core'

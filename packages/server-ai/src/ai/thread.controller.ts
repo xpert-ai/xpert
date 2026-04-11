@@ -7,8 +7,8 @@ import {
 	IUser,
 	IXpertAgentExecution,
 	USAGE_HOUR_FORMAT
-} from '@metad/contracts'
-import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import {
 	Body,
 	Controller,
@@ -193,46 +193,52 @@ export class ThreadsController {
 		@Body() body: components['schemas']['RunCreateStateful'],
 		@Headers('last-event-id') lastEventId?: string
 	) {
-		const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
-		stream.subscribe({
-			error: (err) => {
-				console.error('Error in run stream:', err)
+		try {
+			const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
+			stream.subscribe({
+				error: (err) => {
+					console.error('Error in run stream:', err)
+				}
+			})
+			const contender = buildSseLockOwner(req, {
+				mode: 'create',
+				lastEventId
+			})
+			const {
+				lockId,
+				lock,
+				stream: sseStream
+			} = await this.redisSseStreamService.createSseStream({
+				threadId: thread_id,
+				runId: execution.id,
+				lastEventId,
+				mode: 'create',
+				owner: contender
+			})
+
+			if (!lockId) {
+				this.#logger.warn(
+					{
+						threadId: thread_id,
+						runId: execution.id,
+						holder: sseStreamOwnerPayload(lock),
+						contender
+					},
+					'SSE run stream lock conflict'
+				)
+				throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
 			}
-		})
-		const contender = buildSseLockOwner(req, {
-			mode: 'create',
-			lastEventId
-		})
-		const {
-			lockId,
-			lock,
-			stream: sseStream
-		} = await this.redisSseStreamService.createSseStream({
-			threadId: thread_id,
-			runId: execution.id,
-			lastEventId,
-			mode: 'create',
-			owner: contender
-		})
 
-		if (!lockId) {
-			this.#logger.warn(
-				{
-					threadId: thread_id,
-					runId: execution.id,
-					holder: sseStreamOwnerPayload(lock),
-					contender
-				},
-				'SSE run stream lock conflict'
-			)
-			throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
+			res.on('close', () => {
+				this.redisSseStreamService.releaseLock(thread_id, execution.id, lockId).catch(() => null)
+			})
+
+			return sseStream
+		} catch (error) {
+			console.error('Error starting run stream:')
+			console.error(error)
+			throw error
 		}
-
-		res.on('close', () => {
-			this.redisSseStreamService.releaseLock(thread_id, execution.id, lockId).catch(() => null)
-		})
-
-		return sseStream
 	}
 
 	/**

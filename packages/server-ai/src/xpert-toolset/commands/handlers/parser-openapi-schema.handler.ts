@@ -1,4 +1,4 @@
-import { ApiToolBundle, CredentialsType, ToolProviderCredentials } from '@metad/contracts'
+import { ApiToolBundle, CredentialsType, ToolProviderCredentials } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ApiBasedToolSchemaParser } from '../../utils/parser'

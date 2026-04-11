@@ -26,13 +26,12 @@ import {
   FFlowModule,
   FZoomDirective
 } from '@foblex/flow'
-import { SemanticModelServerService, TSemanticModelDraft } from '@metad/cloud/state'
-import { attrModel, linkedModel, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { CalculationProperty, DeepPartial, isEntityType, ParameterProperty, Schema, Syntax } from '@metad/ocap-core'
+import { SemanticModelServerService, TSemanticModelDraft } from '@xpert-ai/cloud/state'
+import { attrModel, linkedModel, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { CalculationProperty, DeepPartial, isEntityType, ParameterProperty, Schema, Syntax } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IPoint } from '@foblex/2d'
 import { suuid } from '@cloud/app/@core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { CubeStudioCubeComponent } from './cube/cube.component'
@@ -44,9 +43,10 @@ import { layoutCubeGraph } from './layout'
 import { ModelStudioService } from '../model.service'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { filter, switchMap } from 'rxjs/operators'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
 import { Dialog } from '@angular/cdk/dialog'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -61,7 +61,7 @@ import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
     FFlowModule,
     TranslateModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     CubeStudioCubeComponent,
     CubeStudioSharedDimensionComponent,
     CubeStudioInlineDimensionComponent,
@@ -69,8 +69,7 @@ import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
   ],
   host: {
     class: 'xp-cube-studio'
-  },
-  
+  }
 })
 export class CubeStudioComponent {
   eEFConnectionType = EFConnectionType
@@ -115,7 +114,7 @@ export class CubeStudioComponent {
       }
     }
   })
-  
+
   readonly settings = attrModel(this.draft, 'settings')
   readonly settingsNodes = attrModel(this.settings, 'nodes')
   readonly dimensions = computed(() => this.cube()?.dimensions)
@@ -139,15 +138,13 @@ export class CubeStudioComponent {
 
   // Graph
   readonly nodesPosition = computed(() => {
-    return (
-      this.settingsNodes()?.reduce((acc, node) => {
-        acc[node.key] = {
-          position: node.position,
-          size: node.size
-        }
-        return acc
-      }, {})
-    )
+    return this.settingsNodes()?.reduce((acc, node) => {
+      acc[node.key] = {
+        position: node.position,
+        size: node.size
+      }
+      return acc
+    }, {})
   })
 
   readonly #nodes = computed<TCubeNode[]>(() => {
@@ -171,7 +168,7 @@ export class CubeStudioComponent {
         nodes.push({
           key: h.__id__,
           type: 'shared-dimension',
-          data: {dimension: dimension.__id__, hierarchy: h},
+          data: { dimension: dimension.__id__, hierarchy: h },
           ...this.getPosition(h.__id__)
         })
       })
@@ -187,7 +184,7 @@ export class CubeStudioComponent {
         })
       })
     })
-    
+
     return nodes
   })
 
@@ -227,11 +224,13 @@ export class CubeStudioComponent {
     const nodesPosition = this.nodesPosition()
     const nodes = this.#nodes()
     const connections = this.#connections()
-    return nodesPosition ? Promise.resolve({nodes, connections}) : layoutCubeGraph(nodes, connections).then((nodes) => {
-      return {nodes, connections}
-    })
+    return nodesPosition
+      ? Promise.resolve({ nodes, connections })
+      : layoutCubeGraph(nodes, connections).then((nodes) => {
+          return { nodes, connections }
+        })
   })
-  
+
   readonly scale = computed(() => this.settings()?.canvas?.scale || 1)
   readonly position = computed(() => this.settings()?.canvas?.position || { x: 0, y: 0 })
 
@@ -259,9 +258,9 @@ export class CubeStudioComponent {
           const parameters = state ? [...state] : []
           const index = parameters.findIndex((p) => p.__id__ === parameter.__id__)
           if (index > -1) {
-            parameters[index] = {...parameter}
+            parameters[index] = { ...parameter }
           } else {
-            parameters.push({...parameter})
+            parameters.push({ ...parameter })
           }
           return parameters
         })
@@ -338,8 +337,8 @@ export class CubeStudioComponent {
   }
 
   public onConnectionDropped(event: FCreateConnectionEvent): void {
-    if(!event.fInputId) {
-      this.createNode(event.fOutputId, event.fDropPosition);
+    if (!event.fInputId) {
+      this.createNode(event.fOutputId, event.fDropPosition)
     } else {
       // this.createConnection(event.fOutputId, event.fInputId);
     }
@@ -358,17 +357,20 @@ export class CubeStudioComponent {
           __id__: key,
           name: '',
           caption: `New Hierarchy ${hierarchies.length + 1}`,
-          levels: [],
+          levels: []
         }
         hierarchies.push(hierarchy)
-        return { ...cube, dimensions: [...cube.dimensions.map((d) => d.__id__ === dimension.__id__ ? { ...d, hierarchies } : d)] }
+        return {
+          ...cube,
+          dimensions: [...cube.dimensions.map((d) => (d.__id__ === dimension.__id__ ? { ...d, hierarchies } : d))]
+        }
       }
       return cube
     })
 
     this.settings.update((settings) => {
       const nodes = settings?.nodes ? [...settings.nodes] : []
-      nodes.push({key, position: this.fFlowComponent().getPositionInFlow(position) })
+      nodes.push({ key, position: this.fFlowComponent().getPositionInFlow(position) })
       return { ...settings, nodes }
     })
   }
@@ -378,14 +380,15 @@ export class CubeStudioComponent {
   }
 
   openModelInNewTab() {
-    const url = this.#router.createUrlTree(['/models', this.#studioService.model().id, 'cube', this.cube().__id__]).toString()
+    const url = this.#router
+      .createUrlTree(['/data', 'models', this.#studioService.model().id, 'cube', this.cube().__id__])
+      .toString()
     window.open(url, '_blank')
   }
 
   onEditCalculation(member?: Partial<CalculationProperty>) {
-    this.#dialog.open<CalculationProperty>(
-      NgmCalculationEditorComponent,
-      {
+    this.#dialog
+      .open<CalculationProperty>(NgmCalculationEditorComponent, {
         viewContainerRef: this.#vcr,
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet',
@@ -395,16 +398,17 @@ export class CubeStudioComponent {
           syntax: Syntax.MDX,
           value: member
         }
-      }).closed.subscribe({
+      })
+      .closed.subscribe({
         next: (value) => {
           if (value) {
             this.calculations.update((state) => {
               const calculations = [...(state ?? [])]
               const index = calculations.findIndex((item) => item.__id__ === value.__id__)
               if (index > -1) {
-                calculations[index] = {...value}
+                calculations[index] = { ...value }
               } else {
-                calculations.push({...value})
+                calculations.push({ ...value })
               }
               return calculations
             })

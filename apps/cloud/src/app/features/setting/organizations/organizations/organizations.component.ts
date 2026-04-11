@@ -2,27 +2,20 @@ import { SelectionModel } from '@angular/cdk/collections'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
-import { injectConfirmDelete } from '@metad/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { getErrorMessage, IOrganization, OrganizationsService, ToastrService } from '../../../../@core'
 import { OrganizationsComponent } from '../organizations.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-all-organizations',
   templateUrl: './organizations.component.html',
   styleUrls: ['./organizations.component.scss'],
-  imports: [
-    CommonModule,
-    TranslateModule,
-    RouterModule,
-    MatTooltipModule,
-    OrgAvatarComponent,
-  ]
+  imports: [CommonModule, TranslateModule, RouterModule, ...ZardTooltipImports, OrgAvatarComponent]
 })
 export class AllOrganizationsComponent extends TranslationBaseComponent {
   readonly #organizationsComponent = inject(OrganizationsComponent)
@@ -74,12 +67,15 @@ export class AllOrganizationsComponent extends TranslationBaseComponent {
     const organizations = await firstValueFrom(this.organizations$)
     const organization = organizations.find((item) => item.id === id)
     const information = this.#translate.instant('PAC.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
-        Default: 'Confirm to delete the org from server?'
-      })
-    this.confirmDelete({
-      value: organization?.name,
-      information
-    }, this.organizationsService.delete(organization.id)).subscribe({
+      Default: 'Confirm to delete the org from server?'
+    })
+    this.confirmDelete(
+      {
+        value: organization?.name,
+        information
+      },
+      this.organizationsService.delete(organization.id)
+    ).subscribe({
       next: () => {
         this._toastrService.success('PAC.NOTES.ORGANIZATIONS.DELETE_ORGANIZATION', {
           Default: `Organization '{{ name }}' was removed`,

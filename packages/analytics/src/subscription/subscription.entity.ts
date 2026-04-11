@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { INotificationDestination, IStory, ISubscription, SubscriptionType } from '@metad/contracts';
-import { TenantOrganizationBaseEntity } from '@metad/server-core';
+import { INotificationDestination, IStory, ISubscription, SubscriptionType } from '@xpert-ai/contracts';
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core';
 import { IsJSON, IsBoolean, IsOptional, IsString, IsEnum } from 'class-validator';
 import {
     Column,
@@ -25,7 +25,7 @@ export class Subscription extends TenantOrganizationBaseEntity implements ISubsc
 	 */
 	// @ApiProperty({ type: () => SubscriptionType })
     // @IsEnum(SubscriptionType)
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
 	type: SubscriptionType
 
     @ApiPropertyOptional({ type: () => String })

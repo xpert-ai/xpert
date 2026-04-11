@@ -1,13 +1,12 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { IWFNKnowledgeBase } from '@cloud/app/@core'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xp-workflow-node-knowledge-base',
   templateUrl: './knowledge-base.component.html',
@@ -15,13 +14,12 @@ import { WorkflowBaseNodeComponent } from '../workflow-base.component'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FFlowModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     CopilotModelSelectComponent,
-    PlusSvgComponent,
-  ],
+    PlusSvgComponent
+]
 })
 export class XpertWorkflowNodeKnowledgeBaseComponent extends WorkflowBaseNodeComponent {
   // States

@@ -7,7 +7,7 @@ import {
 	ProcessResult,
 	runWithRequestContext
 } from '@xpert-ai/plugin-sdk'
-import { runWithRequestContext as _runWithRequestContext } from '@metad/server-core'
+import { runWithRequestContext as _runWithRequestContext } from '@xpert-ai/server-core'
 import {
 	AGENT_CHAT_MESSAGE_TYPE,
 	LocalQueueTaskService

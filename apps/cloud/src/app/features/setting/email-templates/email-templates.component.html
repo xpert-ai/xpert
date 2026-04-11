@@ -28,7 +28,7 @@
     />
 
     @for (item of templates(); track item.name) {
-      <div class="ngm-card w-full min-h-[160px] p-4 group bg-gray-50 dark:bg-neutral-700 hover:bg-white dark:hover:bg-neutral-600">
+      <div class="ngm-card w-full min-h-[160px] p-4 group bg-background-default-subtle hover:bg-hover-bg">
         <div class="h-full flex flex-col cursor-pointer" (click)="open(item.name)">
           <div class="flex items-start gap-2">
             
@@ -52,7 +52,7 @@
   
           <div class="flex-1"></div>
   
-          <button class="group flex items-center justify-center bg-gray-100 !bg-transparent h-8 w-8 !p-2 rounded-md border-none hover:!bg-black/5" type="button"
+          <button class="group flex items-center justify-center bg-components-input-bg-normal !bg-transparent h-8 w-8 !p-2 rounded-md border-none hover:!bg-black/5" type="button"
             #mt="cdkMenuTriggerFor"
             [cdkMenuTriggerFor]="menu"
             [cdkMenuTriggerData]="{item: item}"
@@ -69,7 +69,7 @@
 @if (opened()) {
   <div @fadeOut class="absolute top-0 left-0 w-full h-full flex flex-col z-[900] bg-black/10 backdrop-blur-[2px]">
     <div class="shrink-0 w-full h-28" (click)="close()"></div>
-    <div class="w-full flex-1 flex justify-start rounded-t-3xl bg-gray-50 overflow-auto">
+    <div class="w-full flex-1 flex justify-start rounded-t-3xl bg-background-default-subtle overflow-auto">
       <pac-email-template (closed)="close()" />
     </div>
   </div>
@@ -89,9 +89,7 @@
 
     <div class="w-full flex justify-end">
       <div ngmButtonGroup displayDensity="cosy">
-        <button mat-raised-button color="primary" class="shrink-0 w-24"
-          [disabled]="!languageCode || !name()"
-          (click)="create()">
+        <button z-button zType="default" class="shrink-0 w-24" [disabled]="!languageCode || !name()" (click)="create()">
           <div class="flex items-center">
           {{ 'PAC.ACTIONS.Create' | translate: {Default: "Create"} }}
           </div>

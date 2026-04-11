@@ -4,7 +4,7 @@
   height: 100%;
 }
 
-.mat-tab-nav-panel {
+.z-tab-nav-panel {
   display: flex;
   flex: 1;
   flex-basis: 100%;
@@ -27,21 +27,6 @@
 .pac-model-sql-lab__editor-toolbar {
   padding: 5px;
 }
-.pac-model-sql-lab__results-toolbar {
-  position: relative;
-  .mat-progress-bar {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 2px;
-  }
-}
-
-.pac-model-query__progress-bar {
-  height: 2px;
-  position: absolute;
-  z-index: 102;
-}
 
 .emoji-loader {
   position: absolute;
@@ -50,7 +35,8 @@
   font-size: 2rem;
 }
 
-.mat-mdc-icon-button {
+[z-button][data-icon-only],
+z-button[data-icon-only] {
   .emoji-loader::before {
     font-size: .75rem;
     line-height: .75rem;

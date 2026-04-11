@@ -1,15 +1,13 @@
 import { Platform } from '@angular/cdk/platform'
 import { DOCUMENT } from '@angular/common'
 import { ChangeDetectionStrategy, Component, Inject, Renderer2, effect } from '@angular/core'
-import { MatIconRegistry } from '@angular/material/icon'
-import { DomSanitizer, Title } from '@angular/platform-browser'
-import {
-  ICONS,
-  UpdateService,
-} from './@core'
+import { Title } from '@angular/platform-browser'
 import { AppService } from './app.service'
 
+const LEGACY_THEME_CLASSES = ['default', 'light', 'dark', 'thin', 'system', 'dark-green']
+
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-root',
   templateUrl: './app.component.html',
@@ -21,39 +19,32 @@ export class AppComponent {
 
   constructor(
     public readonly appService: AppService,
-    // public readonly updateService: UpdateService,
     @Inject(DOCUMENT)
     private document: Document,
     private renderer: Renderer2,
-    private matIconRegistry: MatIconRegistry,
-    private domSanitizer: DomSanitizer,
     private platform: Platform,
     private title: Title,
   ) {
-    ICONS.forEach((icon) => {
-      this.matIconRegistry.addSvgIcon(icon.name, this.domSanitizer.bypassSecurityTrustResourceUrl(icon.resourceUrl))
-    })
-
     effect(() => {
       const isMobile = this.isMobile$()
-      // const { preferredTheme, primary } = this.appService.theme$()
+      const { primary } = this.appService.theme$()
+      const root = this.document.documentElement
 
-      // const theme = `ngm-theme-${preferredTheme} ${primary} ${preferredTheme}`
+      root.dataset.theme = primary
 
-      // for body's class
+      const rootThemeClasses = Array.from(root.classList).filter((item: string) => LEGACY_THEME_CLASSES.includes(item))
+      if (rootThemeClasses.length) {
+        root.classList.remove(...rootThemeClasses)
+      }
+
       const body = this.document.getElementsByTagName('body')[0]
-      // const bodyThemeRemove = Array.from(body.classList).filter(
-      //   (item: string) => item.includes('-theme') || item.startsWith('light') || item.startsWith('dark')
-      // )
-      // if (bodyThemeRemove.length) {
-      //   body.classList.remove(...bodyThemeRemove)
-      // }
-      // theme
-      //   .split(' ')
-      //   .filter(nonBlank)
-      //   .forEach((value) => {
-      //     this.renderer.addClass(body, value)
-      //   })
+      const bodyThemeClasses = Array.from(body.classList).filter(
+        (item: string) => item.startsWith('ngm-theme-') || LEGACY_THEME_CLASSES.includes(item)
+      )
+
+      if (bodyThemeClasses.length) {
+        body.classList.remove(...bodyThemeClasses)
+      }
 
       // for mobile
       if (isMobile && (this.platform.IOS || this.platform.ANDROID)) {
@@ -61,12 +52,6 @@ export class AppComponent {
       } else {
         body.classList.remove('mobile')
       }
-
-      // for <meta name="theme-color" content="white" />
-      // const themeColorMeta = document.querySelector('meta[name="theme-color"]')
-      // if (themeColorMeta) {
-      //   themeColorMeta.setAttribute('content', primary === 'dark' ? 'black' : '#f5f5f5')
-      // }
     })
 
     effect(() => {

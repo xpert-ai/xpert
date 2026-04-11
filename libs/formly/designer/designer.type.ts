@@ -1,14 +1,21 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, HostBinding, OnInit, inject } from '@angular/core'
 import { FieldType } from '@ngx-formly/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
 import { isObservable, Observable, of, Subscription } from 'rxjs'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
+type DesignerPanelService = {
+  openSecondDesigner: (...args: unknown[]) => Observable<any>
+}
+
+const noopDesignerPanelService: DesignerPanelService = {
+  openSecondDesigner: () => of(null)
+}
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-designer',
-  template: `<button mat-button type="button" ngmAppearance="dashed" displayDensity="cosy" (click)="openDesigner()">
+  standalone: false,
+  template: `<button z-button zType="ghost" type="button" ngmAppearance="dashed" displayDensity="cosy" (click)="openDesigner()">
     {{ 'FORMLY.COMMON.Options' | translate: { Default: 'Options' } }}
   </button>`,
   styles: [
@@ -23,8 +30,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 export class PACFormlyDesignerComponent extends FieldType implements OnInit {
   @HostBinding('class.pac-formly-designer') public _formlyDesignerComponent = true
 
-  readonly settingsService = inject(NxSettingsPanelService)
   readonly destroyRef = inject(DestroyRef)
+  private readonly settingsService: DesignerPanelService = noopDesignerPanelService
   
   type: string
   private subscription: Subscription

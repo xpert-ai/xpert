@@ -6,29 +6,38 @@ import {
   Input,
   TemplateRef,
   booleanAttribute,
+  computed,
   forwardRef,
   input,
   output,
   signal
 } from '@angular/core'
-import { toObservable } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatInputModule } from '@angular/material/input'
-import { DisplayDensity, ISelectOption, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
+import {
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
+  type ZardComboboxDeprecatedOption,
+  ZardFormImports,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
+import { DisplayDensity, ISelectOption, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { map, startWith, switchMap } from 'rxjs'
 import { NgmOptionContent } from './option-content'
 import { NgmHighlightDirective } from '../directives'
 
-/**
- * You can use the following custom elements to customize the input:
- * - ngmLabel: the custom label elements of the input
- * @deprecated use headless components instead
- */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatInputModule, MatAutocompleteModule, NgmHighlightDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
+    ZardInputDirective,
+    ...ZardFormImports,
+    NgmHighlightDirective
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-input',
   templateUrl: './input.component.html',
@@ -47,6 +56,12 @@ import { NgmHighlightDirective } from '../directives'
     }
   ]
 })
+/**
+ * You can use the following custom elements to customize the input:
+ * - ngmLabel: the custom label elements of the input
+ * @deprecated Use `z-form-field` + `input[z-input]` for plain inputs, or
+ * `z-form-field` + `z-combobox-deprecated` for option-backed inputs.
+ */
 export class NgmInputComponent implements ControlValueAccessor {
   readonly label = input<string>()
   readonly placeholder = input<string>()
@@ -88,35 +103,25 @@ export class NgmInputComponent implements ControlValueAccessor {
   }
   private readonly _value = signal(null)
 
-  readonly searchControl = new FormControl()
-  get highlight() {
-    return this.searchControl.value
-  }
+  readonly searchTerm = signal('')
+  readonly highlight = computed(() => this.searchTerm())
 
   private _onChange: (value) => void
   private _onTouched: (value) => void
 
-  readonly options$ = toObservable(this.options).pipe(
-    switchMap((options) =>
-      this.searchControl.valueChanges.pipe(
-        startWith(''),
-        map((text) => {
-          text = typeof text === 'string' ? text?.trim().toLowerCase() : `${text || ''}`
-          if (text && options) {
-            const terms = text.split(' ').filter((t) => !!t)
-            return options.filter((option) => {
-              const str = `${option.caption || option.label || ''}${option[this.valueKey]}`
-              return terms.every((term) => str?.toLowerCase().includes(term))
-            })
-          }
-          return options
-        })
-      )
-    )
+  readonly hasOptions = computed(() => !!this.options()?.length)
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption<unknown, ISelectOption>[]>(() =>
+    (this.options() ?? []).map((option) => ({
+      id: option.key ?? option[this.valueKey],
+      label: option.caption || option.label || `${option[this.valueKey] ?? ''}`,
+      value: option[this.valueKey],
+      data: option
+    }))
   )
 
   writeValue(obj: any): void {
     this.value = obj ?? this.defaultValue
+    this.searchTerm.set('')
   }
   registerOnChange(fn: any): void {
     this._onChange = fn
@@ -129,12 +134,33 @@ export class NgmInputComponent implements ControlValueAccessor {
   }
 
   onChange(event) {
-    this.searchControl.setValue(event)
     this.value = event
     this._onChange(this.value)
   }
 
-  onOptionSelected(event) {
-    this.searchControl.setValue(null)
+  onSearchTermChange(value: string) {
+    this.searchTerm.set(value)
+    this.onChange(value)
+  }
+
+  onOptionSelected(value: any) {
+    this.searchTerm.set('')
+    this.onChange(value)
+  }
+
+  readonly filterOption = (option: ZardComboboxDeprecatedOption<unknown, ISelectOption>, searchTerm: string) => {
+    const normalized = searchTerm?.trim().toLowerCase()
+    if (!normalized) {
+      return true
+    }
+
+    const original = option.data
+    const terms = normalized.split(' ').filter(Boolean)
+    const haystack = `${original?.caption || original?.label || ''}${original?.[this.valueKey] ?? ''}`.toLowerCase()
+    return terms.every((term) => haystack.includes(term))
+  }
+
+  displayValue(_option: ZardComboboxDeprecatedOption<unknown, ISelectOption> | null, value: unknown) {
+    return value == null ? '' : `${value}`
   }
 }

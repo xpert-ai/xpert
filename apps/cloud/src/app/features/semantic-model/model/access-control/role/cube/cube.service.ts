@@ -1,13 +1,12 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, inject } from '@angular/core'
-import { MDX } from '@metad/contracts'
-import { C_MEASURES, PropertyHierarchy, serializeUniqueName } from '@metad/ocap-core'
+import { MDX } from '@xpert-ai/contracts'
+import { C_MEASURES, PropertyHierarchy, serializeUniqueName } from '@xpert-ai/ocap-core'
 import { withProps } from '@ngneat/elf'
 import { TranslateService } from '@ngx-translate/core'
 import { ToastrService } from 'apps/cloud/src/app/@core'
 import { createSubStore, write } from '../../../../store'
 import { RoleStateService } from '../role.service'
-
 
 @Injectable()
 export class CubeStateService {

@@ -1,23 +1,28 @@
-import { CommonModule } from '@angular/common'
+/**
+ * Invariants:
+ * - Child properties need `context.model` to resolve sibling-driven `x-ui.depends`.
+ * - The injected model must be the current object value being edited, not a stale parent snapshot.
+ * - Keep this layer schema-driven; endpoint-specific select behavior belongs in property/field components.
+ */
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { JsonSchemaObjectType, TWorkflowVarGroup } from '@cloud/app/@core'
 import { JSONSchemaPropertyComponent } from '../json-schema-property/property.component'
 
-/**
- * 
- */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, JSONSchemaPropertyComponent],
+  imports: [FormsModule, TranslateModule, JSONSchemaPropertyComponent],
   selector: 'json-schema-form',
   templateUrl: 'form.component.html',
   styleUrls: ['form.component.scss'],
-  hostDirectives: [NgxControlValueAccessor]
+  hostDirectives: [NgxControlValueAccessor],
+  host: {
+    '[class]': `xUiSpan() ? 'gap-4 grid grid-cols-' + xUiSpan() : ''`
+  }
 })
 export class JSONSchemaFormComponent {
 
@@ -43,7 +48,14 @@ export class JSONSchemaFormComponent {
     name,
   })) )
 
+  readonly xUi = computed(() => this.schema()?.['x-ui'] || {})
+  readonly xUiSpan = computed(() => this.xUi()?.cols)
+
   readonly value$ = this.cva.value$
+  readonly propertyContext = computed(() => ({
+    ...(this.context() ?? {}),
+    model: this.value$()
+  }))
 
   readonly form = new FormGroup({})
   // optionsModel = {}
@@ -56,6 +68,11 @@ export class JSONSchemaFormComponent {
     return false
   })
 
+  constructor() {
+    effect(() => {
+      console.log(this.schema())
+    })
+  }
 
   updateValue(name: string, value: unknown) {
     this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))

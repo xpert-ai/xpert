@@ -2,14 +2,15 @@ import { ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/c
 import { FormGroup } from '@angular/forms'
 import { FormlyFormOptions } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
-import { pick } from '@metad/ocap-core'
-import { NgmConfirmCodeEditorComponent } from '@metad/ocap-angular/editor'
+import { pick } from '@xpert-ai/ocap-core'
+import { NgmConfirmCodeEditorComponent } from '@xpert-ai/ocap-angular/editor'
 import { cloneDeep } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { PreferencesSchema } from './schema'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 @Component({
+  standalone: false,
   selector: 'ngm-settings-preferences',
   templateUrl: './preferences.component.html',
   styleUrls: ['./preferences.component.scss']

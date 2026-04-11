@@ -1,37 +1,35 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { IXpert } from '@cloud/app/@core'
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { ChatService, XpertChatAppComponent, XpertOcapService } from '@cloud/app/xpert'
-import { provideOcapCore } from '@metad/ocap-angular/core'
+import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import { ChatPlatformService } from '../chat.service'
 import { ChatHomeService } from '../home.service'
 import { ChatHomeComponent } from '../home/home.component'
 import { ChatXpertsComponent } from '../xperts/xperts.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  */
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     CdkMenuModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     XpertChatAppComponent,
     ChatXpertsComponent
-  ],
+],
   selector: 'pac-chat-xpert',
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',
@@ -87,8 +85,7 @@ export class ChatXpertComponent {
           })
           this.chatHomeComponent.historyExpanded.set(true)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     this.searchControl.valueChanges.subscribe((value) => {

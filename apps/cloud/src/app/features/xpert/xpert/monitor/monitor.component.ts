@@ -1,14 +1,13 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { OverlayAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmTooltipDirective } from '@metad/ocap-angular/core'
+import { OverlayAnimations } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmTooltipDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { injectApiBaseUrl, injectToastr, routeAnimations, XpertAPIService } from '../../../../@core'
@@ -16,24 +15,23 @@ import { XpertAPIComponent } from '../api/api.component'
 import { XpertAppComponent } from '../app/app.component'
 import { XpertComponent } from '../xpert.component'
 import { XpertStatisticsComponent } from './statistics/statistics.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     NgmTooltipDirective,
     InDevelopmentComponent,
     XpertAppComponent,
     XpertAPIComponent,
     XpertStatisticsComponent
-  ],
+],
   selector: 'xpert-monitor',
   templateUrl: './monitor.component.html',
   styleUrl: 'monitor.component.scss',

@@ -1,0 +1,110 @@
+<section class="xp-file-pane">
+  <div class="xp-pane-header gap-3 border-b border-divider-regular px-4 py-3">
+    <div class="min-w-0 flex-1">
+      <div class="lg:hidden mb-2">
+        <button type="button" class="btn btn-ghost btn-small" (click)="back.emit()">
+          <i class="ri-arrow-left-line mr-1"></i>
+          {{ 'PAC.Files.BackToTree' | translate: { Default: 'Back to tree' } }}
+        </button>
+      </div>
+      <div class="truncate font-mono text-xs text-text-tertiary">
+        {{ filePath() || ('PAC.Files.NoFileSelected' | translate: { Default: 'No file selected' }) }}
+      </div>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <div class="text-sm font-semibold text-text-primary">
+          {{ 'PAC.Files.FileContent' | translate: { Default: 'File Content' } }}
+        </div>
+        @if (dirty()) {
+          <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] text-text-warning">
+            {{ 'PAC.Files.UnsavedChanges' | translate: { Default: 'Unsaved changes' } }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <z-segmented [(ngModel)]="mode">
+        <z-segmented-item [value]="'view'" [label]="'PAC.Chat.View' | translate: { Default: 'View' }" />
+        <z-segmented-item [value]="'edit'" [label]="'PAC.Chat.Edit' | translate: { Default: 'Edit' }" [zDisabled]="!editable()" />
+      </z-segmented>
+
+      <button
+        type="button"
+        class="btn btn-secondary btn-small"
+        [disabled]="!dirty()"
+        (click)="discard.emit()"
+      >
+        {{ 'PAC.Files.Discard' | translate: { Default: 'Discard' } }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary btn-small"
+        [disabled]="!dirty() || saving()"
+        (click)="save.emit()"
+      >
+        @if (saving()) {
+          <i class="ri-loader-4-line mr-1 animate-spin"></i>
+        }
+        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      </button>
+    </div>
+  </div>
+
+  <div class="xp-pane-body relative overflow-hidden">
+    @if (filePath()) {
+      @if (loading()) {
+        <ngm-spin class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm" />
+      } @else if (!readable()) {
+        <div class="xp-empty-state h-full">
+          <div class="text-lg font-semibold text-text-primary">
+            {{ 'PAC.Files.BinaryPreviewUnsupported' | translate: { Default: 'This file cannot be previewed here.' } }}
+          </div>
+          <div class="text-sm text-text-tertiary">
+            {{
+              'PAC.Files.BinaryPreviewHint'
+                | translate
+                  : { Default: 'Only text-based files can be previewed or edited in this workbench.' }
+            }}
+          </div>
+        </div>
+      } @else if (mode() === 'edit' && editable()) {
+        <pac-file-editor
+          class="h-full"
+          [editable]="true"
+          lineNumbers
+          wordWrap
+          [fileName]="filePath() || ''"
+          [content]="content()"
+          (contentChange)="contentChange.emit($event)"
+        />
+      } @else if (markdown()) {
+        <div class="h-full overflow-auto px-6 py-5">
+          <markdown class="ngm-copilot-markdown block" [data]="content()" />
+        </div>
+      } @else {
+        <pac-file-editor
+          class="h-full"
+          lineNumbers
+          wordWrap
+          [fileName]="filePath() || ''"
+          [content]="content()"
+        />
+      }
+
+      @if (!editable() && readable()) {
+        <div class="border-t border-divider-regular px-4 py-2 text-xs text-text-tertiary">
+          {{ readOnlyHint() }}
+        </div>
+      }
+    } @else {
+      <div class="xp-empty-state h-full">
+        <div class="text-lg font-semibold text-text-primary">
+          {{ 'PAC.Files.SelectFile' | translate: { Default: 'Select a file' } }}
+        </div>
+        <div class="text-sm text-text-tertiary">
+          {{ 'PAC.Files.SelectFileHint' | translate: { Default: 'Choose a file from the tree pane to preview or edit it.' } }}
+        </div>
+      </div>
+    }
+  </div>
+</section>

@@ -1,14 +1,14 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, forwardRef, inject, input, model, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { ChartType } from '@metad/ocap-core'
-import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@metad/story/designer'
+import { ChartType } from '@xpert-ai/ocap-core'
+import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@xpert-ai/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChartOptionsSchemaService } from '../../analytical-card.schema'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NxDesignerModule, NgmSchemaFormComponent],
+  imports: [FormsModule, TranslateModule, NxDesignerModule, NgmSchemaFormComponent],
   selector: 'ngm-chart-type-form',
   template: `<ngm-schema-form class="w-full" [(ngModel)]="model" [disabled]="isDisabled()" />`,
   styles: [
@@ -46,15 +46,13 @@ export class NgmSchemaChartTypeComponent implements ControlValueAccessor {
     effect(
       () => {
         this.schema.chartType = this.chartType()
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
       () => {
         this.onChange?.(this.model())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

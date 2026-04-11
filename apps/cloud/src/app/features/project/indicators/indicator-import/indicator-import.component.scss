@@ -1,3 +1,4 @@
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
   display: flex;
   flex-direction: row;
@@ -6,15 +7,15 @@
   max-height: 90vh;
 }
 
-.mat-mdc-nav-list .mat-mdc-list-item {
+.ngm-nav-list > li {
   @apply text-white rounded-lg duration-300;
 
   &.active {
-    @apply bg-slate-50 text-slate-500;
+    @apply bg-background-default-subtle text-text-tertiary;
   }
 
   &:hover {
-    .mat-icon {
+    .z-icon {
       visibility: visible;
     }
   }

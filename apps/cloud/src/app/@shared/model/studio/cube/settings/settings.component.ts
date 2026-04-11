@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,9 +13,9 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule } from '@angular/forms'
 import { injectHelpWebsite } from '@cloud/app/@core'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/formly'
-import { DensityDirective } from '@metad/ocap-angular/core'
-import { Cube } from '@metad/ocap-core'
+import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@xpert-ai/formly'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { Cube } from '@xpert-ai/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { map } from 'rxjs/operators'
@@ -28,7 +28,7 @@ import { CubeStudioComponent } from '../../studio.component'
   selector: 'xp-cube-studio-cube-settings',
   templateUrl: 'settings.component.html',
   styleUrls: ['settings.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, DensityDirective],
+  imports: [FormsModule, TranslateModule, FormlyModule, DensityDirective],
   host: {
     class: 'xp-cube-studio-settings-settings'
   }
@@ -87,7 +87,7 @@ export class CubeStudioCubeSettingsComponent {
   )
 
   @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
+  handleEscapeKey(event: Event) {
     const element = this.elementRef.nativeElement as HTMLElement
     if (document.activeElement && element.contains(document.activeElement)) {
       this.close.emit()

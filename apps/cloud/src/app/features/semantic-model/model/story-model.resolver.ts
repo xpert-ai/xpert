@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core'
 import { ActivatedRouteSnapshot, ResolveFn, Router, RouterStateSnapshot } from '@angular/router'
-import { SemanticModelServerService } from '@metad/cloud/state'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
 import { EMPTY, Observable, catchError } from 'rxjs'
 import { ISemanticModel } from '../../../@core'
 
@@ -31,7 +31,6 @@ export class StoryModelResolver  {
     })
   }
 }
-
 
 export const semanticModelResolver: ResolveFn<ISemanticModel> = (
   route: ActivatedRouteSnapshot,

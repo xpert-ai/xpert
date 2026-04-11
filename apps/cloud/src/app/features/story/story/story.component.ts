@@ -1,5 +1,6 @@
 import { CdkDragEnd } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   Component,
   computed,
@@ -18,12 +19,12 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { IsDirty, markdownModelCube, NgMapPipeModule, NxCoreService, ReversePipe } from '@metad/core'
-import { NgmDrawerTriggerComponent, ResizerModule } from '@metad/ocap-angular/common'
-import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { AgentType, CalculationProperty, DataSettings, isEqual } from '@metad/ocap-core'
-import { provideStoryDesigner, StoryExplorerComponent } from '@metad/story'
+import { IsDirty, markdownModelCube, NgMapPipeModule, NxCoreService, ReversePipe } from '@xpert-ai/core'
+import { NgmDrawerTriggerComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
+import { NgmOcapCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { AgentType, CalculationProperty, DataSettings, isEqual } from '@xpert-ai/ocap-core'
+import { provideStoryDesigner, StoryExplorerComponent } from '@xpert-ai/story'
 import {
   EmulatedDevice,
   NxStoryService,
@@ -31,13 +32,12 @@ import {
   StoryOptions,
   StoryPointType,
   WidgetComponentType
-} from '@metad/story/core'
-import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/story/core'
+import { NxDesignerModule, NxSettingsPanelService } from '@xpert-ai/story/designer'
 import {
   NxStoryComponent,
   NxStoryModule
-} from '@metad/story/story'
-import { NgmCopilotContextService, NgmCopilotContextToken } from '@metad/copilot-angular'
+} from '@xpert-ai/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { registerTheme } from 'echarts/core'
 import { NGXLogger } from 'ngx-logger'
@@ -49,10 +49,8 @@ import { AppService } from '../../../app.service'
 import { StoryToolbarComponent } from '../toolbar/toolbar.component'
 import { StoryToolbarService } from '../toolbar/toolbar.service'
 import { ResponsiveBreakpoints, ResponsiveBreakpointType } from '../types'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { MatDialog } from '@angular/material/dialog'
-import { injectCalculationGraphCommand, injectStoryCommand, injectStoryPageCommand, injectStoryStyleCommand, injectStoryWidgetCommand } from '../copilot'
-import { MaterialModule } from '../../../@shared/material.module'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
@@ -60,7 +58,7 @@ import { TranslationBaseComponent } from '../../../@shared/language'
   imports: [
     CommonModule,
     RouterModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
 
     NgMapPipeModule,
@@ -86,10 +84,6 @@ import { TranslationBaseComponent } from '../../../@shared/language'
     StoryToolbarService,
     provideStoryDesigner(),
     NxCoreService,
-    {
-      provide: NgmCopilotContextToken,
-      useClass: NgmCopilotContextService
-    }
   ]
 })
 export class StoryDesignerComponent extends TranslationBaseComponent implements OnInit, IsDirty {
@@ -105,9 +99,8 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
   private route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   private logger = inject(NGXLogger)
-  readonly copilotContext = inject(NgmCopilotContextToken)
   readonly coreService = inject(NgmOcapCoreService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly _viewContainerRef = inject(ViewContainerRef)
 
   @Input() storyId: string
@@ -167,24 +160,6 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
 
   /**
   |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #styleCommand = injectStoryStyleCommand()
-  #pageCommand = injectStoryPageCommand()
-  #widgetCommand = injectStoryWidgetCommand()
-  #storyCommand = injectStoryCommand()
-  readonly calculatioCommand = injectCalculationGraphCommand(
-    this.dataSettings,
-    (dataSettings: DataSettings, key: string) => {
-      this.logger.debug(`Created calculation '${key}' for dataSource '${dataSettings.dataSource}' entity '${dataSettings.entitySet}'`)
-      // this.activeEntity(dataSettings.dataSource, dataSettings.entitySet)
-      this.#router.navigate(['calculations', encodeURIComponent(dataSettings.entitySet), key], { relativeTo: this.route })
-    }
-  )
-
-  /**
-  |--------------------------------------------------------------------------
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
@@ -241,7 +216,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
     .subscribe(async (echartsTheme) => {
       const story = await firstValueFrom(this.storyService.story$)
       const key = story.key || story.id
-      ;['light', 'dark', 'thin'].forEach((theme) => {
+      ;['light', 'dark'].forEach((theme) => {
         if (echartsTheme?.[theme]) {
           registerTheme(`${theme}-${key}`, echartsTheme[theme])
         }
@@ -254,8 +229,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
     effect(
       () => {
         this.storyService.setAuthenticated(this.appService.isAuthenticated())
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -290,23 +264,23 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
       }
     }
 
-    this.copilotContext.cubes.update(() => this.storyService.modelCubes$.pipe(
-        map((models) => {
-          const items = []
-          models.forEach((model, index) => {
-            items.push(...model.cubes.map((cube) => ({ value: {
-              dataSource: model,
-              dataSourceId: model.value,
-              serizalize: async () => {
-                const entityType = await firstValueFrom(this.storyService.selectEntityType({dataSource: model.key, entitySet: cube.name}))
-                return markdownModelCube({modelId: model.value, dataSource: model.key, cube: entityType})
-              }
-            }, key: cube.name, caption: cube.caption })))
-          })
-          return items
-        }),
-      shareReplay(1)
-    ))
+    // this.copilotContext.cubes.update(() => this.storyService.modelCubes$.pipe(
+    //     map((models) => {
+    //       const items = []
+    //       models.forEach((model, index) => {
+    //         items.push(...model.cubes.map((cube) => ({ value: {
+    //           dataSource: model,
+    //           dataSourceId: model.value,
+    //           serizalize: async () => {
+    //             const entityType = await firstValueFrom(this.storyService.selectEntityType({dataSource: model.key, entitySet: cube.name}))
+    //             return markdownModelCube({modelId: model.value, dataSource: model.key, cube: entityType})
+    //           }
+    //         }, key: cube.name, caption: cube.caption })))
+    //       })
+    //       return items
+    //     }),
+    //   shareReplay(1)
+    // ))
   }
 
   isDirty(): boolean {
@@ -314,7 +288,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
   }
 
   openDataExploration(id: string) {
-    this.#router.navigate([`/models/${id}`])
+    this.#router.navigate(['/data', 'models', id])
   }
 
   toggleToolbarPin() {
@@ -410,6 +384,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
 
     if (event.metaKey || event.ctrlKey) {
       if (event.shiftKey) {
+        //
       } else {
         if (event.key === 's' || event.key === 'S') {
           this.storyService.saveStory()

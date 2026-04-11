@@ -1,20 +1,33 @@
 import { IPoint } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
-import { IXpert, TXpertTeamNode } from './xpert.model'
+import { IXpert, TXpertTeamConnection, TXpertTeamDraft, TXpertTeamNode } from './xpert.model'
 
 // Helpers
 export function omitXpertRelations(xpert: Partial<IXpert>) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { draft, agent, agents, executors, leaders, knowledgebases, knowledgebase, environment, integrations, toolsets, managers, ...rest } = xpert ?? {}
+  const {
+    draft,
+    agent,
+    agents,
+    executors,
+    leaders,
+    knowledgebases,
+    knowledgebase,
+    environment,
+    integrations,
+    toolsets,
+    userGroups,
+    ...rest
+  } = xpert ?? {}
   return rest
 }
 
 /**
  * Figure out latest xpert or draft xpert.
- * 
- * @param xpert 
+ *
+ * @param xpert
  * @param isDraft Is draft
- * @returns 
+ * @returns
  */
 export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
   return (isDraft ? xpert.draft?.team : xpert) ?? xpert
@@ -218,4 +231,75 @@ export function createAgentConnections(agent: IXpertAgent, collaborators: IXpert
   })
 
   return connections
+}
+
+export function replaceAgentInDraft(
+  draft: TXpertTeamDraft,
+  sourceKey: string,
+  agent: Partial<IXpertAgent>,
+  options?: { requireNode?: boolean }
+) {
+  const targetKey = agent?.key
+  if (!targetKey) {
+    throw new Error('Target agent key is required')
+  }
+
+  let replacedNode = false
+  const nodes = draft.nodes?.map((node) => {
+    if (node.type === 'agent' && node.key === sourceKey) {
+      replacedNode = true
+      return {
+        ...node,
+        key: targetKey,
+        entity: {
+          ...(node.entity ?? {}),
+          ...agent,
+          key: targetKey
+        }
+      } as TXpertTeamNode<'agent'>
+    }
+
+    return node
+  })
+
+  if (!replacedNode && options?.requireNode !== false) {
+    throw new Error(`Can't find agent for key: ${sourceKey}`)
+  }
+
+  const connections = draft.connections?.map((connection) => {
+    const from = connection.from === sourceKey ? targetKey : connection.from
+    const to = connection.to === sourceKey ? targetKey : connection.to
+
+    if (from === connection.from && to === connection.to) {
+      return connection
+    }
+
+    return {
+      ...connection,
+      from,
+      to,
+      key: `${from}/${to}`
+    } as TXpertTeamConnection
+  })
+
+  return {
+    ...draft,
+    team: draft.team
+      ? {
+          ...draft.team,
+          agent: draft.team.agent
+            ? {
+                ...draft.team.agent,
+                ...agent,
+                key: targetKey
+              }
+            : {
+                ...agent,
+                key: targetKey
+              }
+        }
+      : draft.team,
+    nodes,
+    connections
+  } as TXpertTeamDraft
 }

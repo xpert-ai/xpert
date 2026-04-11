@@ -1,15 +1,13 @@
-import { CommonModule } from '@angular/common'
-import { Component, Input, OnInit, forwardRef } from '@angular/core'
-import { ControlValueAccessor, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips'
-import { ThemePalette } from '@angular/material/core'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { distinctUntilChanged } from 'rxjs'
+
+import { Component, Input, forwardRef } from '@angular/core'
+import { ControlValueAccessor, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
+import { NgmFieldAppearance, NgmFieldColor } from "@xpert-ai/ocap-angular/core";
+import { TranslateModule } from '@ngx-translate/core'
+import { ZardFormImports, ZardTagSelectComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatChipsModule, MatFormFieldModule, MatIconModule, ReactiveFormsModule],
+  imports: [ZardTagSelectComponent, ...ZardFormImports, ReactiveFormsModule, TranslateModule],
   selector: 'pac-form-field-emails',
   templateUrl: 'emails.component.html',
   providers: [
@@ -20,29 +18,19 @@ import { distinctUntilChanged } from 'rxjs'
     }
   ]
 })
-export class FormFieldEmailsComponent implements ControlValueAccessor, OnInit {
+export class FormFieldEmailsComponent implements ControlValueAccessor {
   
-  @Input() appearance: MatFormFieldAppearance
+  @Input() appearance: NgmFieldAppearance
   @Input() label: string
   @Input() placeholder: string
-  @Input() color: ThemePalette = undefined
+  @Input() color: NgmFieldColor = undefined
   @Input() removable: boolean
 
-  addOnBlur = true
-  keywords = new Set([])
-  formControl = new FormControl([])
+  keywords: string[] = []
   _onChange: (value: string[]) => void
 
-  ngOnInit(): void {
-    this.formControl.valueChanges.pipe(distinctUntilChanged()).subscribe((value) => {
-      this._onChange?.(value)
-    })
-  }
-
   writeValue(obj: any): void {
-    if (obj) {
-      this.formControl.setValue(obj)
-    }
+    this.keywords = Array.isArray(obj) ? obj.filter(Boolean) : []
   }
   registerOnChange(fn: any): void {
     this._onChange = fn
@@ -52,16 +40,8 @@ export class FormFieldEmailsComponent implements ControlValueAccessor, OnInit {
   setDisabledState?(isDisabled: boolean): void {
   }
 
-  addKeywordFromInput(event: MatChipInputEvent) {
-    if (event.value) {
-      this.keywords.add(event.value)
-      event.chipInput!.clear()
-      this.formControl.setValue(Array.from(this.keywords))
-    }
-  }
-
-  removeKeyword(keyword: string) {
-    this.keywords.delete(keyword)
-    this.formControl.setValue(Array.from(this.keywords))
+  onValueChange(value: unknown[]) {
+    this.keywords = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+    this._onChange?.(this.keywords)
   }
 }

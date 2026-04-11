@@ -1,4 +1,4 @@
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 import { ExecutionContext, createParamDecorator } from '@nestjs/common'
 import { RequestContext } from '../../core/context'
 

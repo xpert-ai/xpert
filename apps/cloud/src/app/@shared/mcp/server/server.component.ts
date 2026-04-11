@@ -1,12 +1,11 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
-import { EntriesPipe, linkedModel } from '@metad/core'
-import { NgmAutoScrollBottomDirective, NgmSlideToggleComponent, NgmTimerDirective } from '@metad/ocap-angular/common'
-import { attrModel } from '@metad/ocap-angular/core'
+import { EntriesPipe, linkedModel } from '@xpert-ai/core'
+import { NgmAutoScrollBottomDirective, NgmTimerDirective } from '@xpert-ai/ocap-angular/common'
+import { attrModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -28,27 +27,26 @@ import {
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
 import { XpertEnvVarInputComponent } from '../../environment'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'mcp-server-form',
   templateUrl: './server.component.html',
   styleUrl: 'server.component.scss',
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkListboxModule,
     CodeEditorComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MCPToolsComponent,
     EntriesPipe,
-    NgmSlideToggleComponent,
     XpertEnvVarInputComponent,
     NgmAutoScrollBottomDirective,
-    NgmTimerDirective
-  ],
+    NgmTimerDirective,
+    ZardSwitchComponent
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class MCPServerFormComponent {
@@ -72,7 +70,7 @@ export class MCPServerFormComponent {
   readonly type = attrModel(this.value$, 'type')
   readonly types = linkedModel({
     initialValue: [MCPServerType.SSE],
-    compute: () => this.type() ? [this.type()] : [MCPServerType.SSE],
+    compute: () => (this.type() ? [this.type()] : [MCPServerType.SSE]),
     update: (types) => {
       this.type.set(types?.[0] ?? MCPServerType.SSE)
     }
@@ -91,13 +89,13 @@ export class MCPServerFormComponent {
       this.value$.update((state) => ({ ...(state ?? {}), toolNamePrefix }))
     }
   })
- 
+
   readonly args = attrModel(this.value$, 'args')
   readonly reconnect = attrModel(this.value$, 'reconnect')
   readonly reconnectEnabled = attrModel(this.reconnect, 'enabled')
   readonly maxAttempts = attrModel(this.reconnect, 'maxAttempts')
   readonly delayMs = attrModel(this.reconnect, 'delayMs')
-  
+
   readonly initScripts = linkedModel({
     initialValue: null,
     compute: () => this.value$()?.initScripts || '',
@@ -169,20 +167,22 @@ export class MCPServerFormComponent {
   readonly variables = computed(() => {
     const environment = this.environment()
     if (environment) {
-      return [{
-        group: {
-          name: 'env',
-          description: {
-            en_US: 'Environment',
-            zh_Hans: '环境变量'
-          }
-        },
-        variables: environment.variables?.map((_) => ({
-          name: _.name,
-          type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
-          title: _.name,
-        }))
-      } as TWorkflowVarGroup]
+      return [
+        {
+          group: {
+            name: 'env',
+            description: {
+              en_US: 'Environment',
+              zh_Hans: '环境变量'
+            }
+          },
+          variables: environment.variables?.map((_) => ({
+            name: _.name,
+            type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
+            title: _.name
+          }))
+        } as TWorkflowVarGroup
+      ]
     }
     return null
   })
@@ -200,8 +200,7 @@ export class MCPServerFormComponent {
           this.command = 'python3'
           this.args.set(['main.py'])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -209,8 +208,7 @@ export class MCPServerFormComponent {
         if (this.views()[0] === 'code' && !this.fileIndex()?.length) {
           this.fileIndex.set([0])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -309,7 +307,7 @@ if __name__ == "__main__":
               this.logs.set(result.data.logs)
               this.stopTime.set(new Date())
             }
-          } catch(err) {}
+          } catch (err) {}
         }
       },
       error: (err) => {

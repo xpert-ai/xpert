@@ -1,11 +1,10 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -22,7 +21,6 @@ import {
   XpertAPIService,
   XpertToolService
 } from 'apps/cloud/src/app/@core'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
@@ -35,8 +33,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
-
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-tool',
   templateUrl: './tool.component.html',
@@ -44,20 +41,19 @@ import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ClipboardModule,
     CdkMenuModule,
-    MatTooltipModule,
-    MatSlideToggleModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmDensityDirective,
     NgmI18nPipe,
     EmojiAvatarComponent,
     XpertStudioToolsetMenuComponent,
     XpertWorkflowErrorHandlingComponent,
-    XpToolParametersFormComponent
-  ]
+    XpToolParametersFormComponent,
+    ZardSwitchComponent
+]
 })
 export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -117,13 +113,13 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
     if (tool) {
       return {
         ...tool,
-        label: getToolLabel(tool),
+        label: getToolLabel(tool)
       }
     }
     return null
   })
   readonly schema = computed(() => this.tool()?.schema as JsonSchema7ObjectType)
-  readonly paramsSample = signal<{loading?: boolean; value?: any}>({})
+  readonly paramsSample = signal<{ loading?: boolean; value?: any }>({})
 
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
 
@@ -131,11 +127,13 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
 
   constructor() {
     super()
-    effect(() => {
-      if (this.tool()) {
-        this.paramsSample.set({ loading: false, value: null })
+    effect(
+      () => {
+        if (this.tool()) {
+          this.paramsSample.set({ loading: false, value: null })
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   toggleOutput() {
@@ -168,24 +166,24 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   createMCPTool() {
     let toolset: Partial<IXpertToolset> = null
     this.#dialog
-      .open<{toolset: IXpertToolset}>(XpertMCPManageComponent, {
+      .open<{ toolset: IXpertToolset }>(XpertMCPManageComponent, {
         backdropClass: 'backdrop-blur-lg-white',
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),
-          toolset,
+          toolset
         }
       })
       .closed.subscribe({
-        next: ({toolset}) => {
+        next: ({ toolset }) => {
           if (toolset) {
             this.toolsetId.set(toolset.id)
             this.studioService.refreshToolsets$.next()
           }
         }
       })
-    }
-  
+  }
+
   /**
    * @deprecated
    */
@@ -194,7 +192,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
       if (this.paramsSample().value) {
         const value = this.paramsSample().value
         this.#clipboard.copy(JSON.stringify(value, null, 2))
-        this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied'})
+        this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied' })
         return
       }
       this.paramsSample.update((state) => ({ ...state, loading: true }))
@@ -202,11 +200,11 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
         next: (value) => {
           this.paramsSample.update((state) => ({ loading: false, value }))
           this.#clipboard.copy(JSON.stringify(value, null, 2))
-          this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied'})
+          this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied' })
         },
         error: (error) => {
           this.paramsSample.update((state) => ({ loading: false, value: null }))
-          this._toastr.error(getErrorMessage(error)) 
+          this._toastr.error(getErrorMessage(error))
         }
       })
     }

@@ -1,0 +1,658 @@
+下面给你一套可直接交给 AI 落地开发的 **完整 GitHub Actions + GHCR 发布方案**。这套方案满足你要的 3 条发布规则：
+
+1. **push / MR 相关操作到 `develop`**
+   只发布 **candidate** 镜像到 GHCR
+
+2. **push 到 `main`**
+   发布 **production** 镜像到 GHCR，tag 为：
+
+   * `main`
+   * `latest`
+
+3. **push git tag**
+   发布 **production** 镜像到 GHCR，tag 为：
+
+   * 实际 git tag，例如 `v3.6.0`
+
+GitHub Actions 支持按 `push` 的 `branches` 和 `tags` 进行过滤；工作流文件放在 `.github/workflows/` 下；GHCR 作为 GitHub 的容器仓库，适合直接配合 Actions 发布 Docker/OCI 镜像。官方也提供了 `docker/build-push-action` 作为标准构建推送方式。([GitHub Docs][1])
+
+---
+
+# 一、先定最终规则
+
+## 1. develop 分支
+
+触发场景：
+
+* `git push origin develop`
+* MR/PR 合并到 `develop`，本质上也是一次对 `develop` 的 push
+
+行为：
+
+* 构建 Docker 镜像
+* 推送到 GHCR
+* 只打 candidate 类标签，不打 production 标签
+
+建议标签：
+
+* `develop-candidate`
+* `sha-<commit_sha>`
+* 可选 `candidate-<short_sha>`
+
+---
+
+## 2. main 分支
+
+触发场景：
+
+* `git push origin main`
+* PR 合并到 `main`
+
+行为：
+
+* 构建 production 镜像
+* 推送到 GHCR
+* 打正式标签
+
+建议标签：
+
+* `main`
+* `latest`
+* `sha-<commit_sha>`
+
+---
+
+## 3. git tag
+
+触发场景：
+
+* `git tag v3.6.0`
+* `git push origin v3.6.0`
+
+行为：
+
+* 构建 production 镜像
+* 推送到 GHCR
+* tag 直接等于 git tag
+
+建议标签：
+
+* `v3.6.0`
+
+GitHub Actions 的 `push` 事件可以同时监听指定分支和指定标签模式。([GitHub Docs][1])
+
+---
+
+# 二、推荐实现方式
+
+我建议你用 **一个 workflow 文件** 统一处理三种情况，通过 `github.ref` / `github.ref_type` / `github.ref_name` 判断当前是：
+
+* develop 分支
+* main 分支
+* tag 发布
+
+这样维护成本最低，也最清晰。GitHub Actions 上下文里可以直接读取这些 ref 信息。([GitHub Docs][2])
+
+---
+
+# 三、镜像命名约定
+
+假设：
+
+* GitHub org: `xpert-ai`
+* repo: `xpert`
+* GHCR 镜像名：`ghcr.io/xpert-ai/xpert`
+
+建议统一：
+
+```txt
+ghcr.io/<owner>/<repo>
+```
+
+例如：
+
+```txt
+ghcr.io/xpert-ai/xpert
+```
+
+GHCR 支持把容器镜像关联到仓库，并继承或单独设置权限。([GitHub Docs][3])
+
+---
+
+# 四、你最终的触发与结果
+
+## A. push 到 develop
+
+你执行：
+
+```bash
+git push origin develop
+```
+
+结果：
+
+* 发布到 GHCR：
+
+  * `ghcr.io/xpert-ai/xpert:develop-candidate`
+  * `ghcr.io/xpert-ai/xpert:sha-<commit_sha>`
+
+---
+
+## B. push 到 main
+
+你执行：
+
+```bash
+git push origin main
+```
+
+结果：
+
+* 发布到 GHCR：
+
+  * `ghcr.io/xpert-ai/xpert:main`
+  * `ghcr.io/xpert-ai/xpert:latest`
+  * `ghcr.io/xpert-ai/xpert:sha-<commit_sha>`
+
+---
+
+## C. push git tag
+
+你执行：
+
+```bash
+git tag v3.6.0
+git push origin v3.6.0
+```
+
+结果：
+
+* 发布到 GHCR：
+
+  * `ghcr.io/xpert-ai/xpert:v3.6.0`
+
+---
+
+# 五、完整 workflow 方案
+
+文件路径：
+
+```txt
+.github/workflows/docker-publish.yml
+```
+
+内容如下。
+
+```yaml
+name: Docker Publish to GHCR
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - 'v*'
+      - 'release-*'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/xpert
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        id: prep
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=${{ env.REGISTRY }}/${OWNER_LOWER}/xpert" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.prep.outputs.image }}
+          tags: |
+            # develop -> candidate only
+            type=raw,value=develop-candidate,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=sha-${{ github.sha }},enable=${{ github.ref == 'refs/heads/develop' }}
+
+            # main -> production tags
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=sha-${{ github.sha }},enable=${{ github.ref == 'refs/heads/main' }}
+
+            # git tag -> use actual git tag as docker tag
+            type=ref,event=tag,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+
+          labels: |
+            org.opencontainers.image.title=xpert
+            org.opencontainers.image.description=XpertAI application image
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          provenance: false
+          sbom: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+---
+
+# 六、这份 workflow 的逻辑说明
+
+## 1. 触发规则
+
+```yaml
+on:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - 'v*'
+      - 'release-*'
+```
+
+含义：
+
+* 只有 push 到 `develop` / `main` 才触发
+* 只有符合 `v*` 或 `release-*` 的 tag 才触发
+
+例如：
+
+* `v3.6.0` 会触发
+* `release-2026-04-07` 会触发
+* `test-tag` 不会触发
+
+GitHub 官方支持在 `push` 事件中同时使用 `branches` 和 `tags` 过滤。([GitHub Docs][1])
+
+---
+
+## 2. GHCR 登录
+
+```yaml
+permissions:
+  contents: read
+  packages: write
+```
+
+再配合：
+
+```yaml
+uses: docker/login-action@v3
+with:
+  registry: ghcr.io
+  username: ${{ github.actor }}
+  password: ${{ secrets.GITHUB_TOKEN }}
+```
+
+这是 GitHub 官方推荐的发布 Docker 镜像到 GitHub Packages / GHCR 的常见做法。发布到包仓库需要 `packages: write`。([GitHub Docs][4])
+
+---
+
+## 3. develop 只出 candidate
+
+这段：
+
+```yaml
+type=raw,value=develop-candidate,enable=${{ github.ref == 'refs/heads/develop' }}
+type=raw,value=sha-${{ github.sha }},enable=${{ github.ref == 'refs/heads/develop' }}
+```
+
+表示只有当前 ref 是 `develop` 时才打这些 tag。
+
+---
+
+## 4. main 只出 production
+
+这段：
+
+```yaml
+type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+type=raw,value=sha-${{ github.sha }},enable=${{ github.ref == 'refs/heads/main' }}
+```
+
+表示 push 到 `main` 时打：
+
+* `main`
+* `latest`
+* `sha-<commit_sha>`
+
+---
+
+## 5. git tag 直接映射 docker tag
+
+这段：
+
+```yaml
+type=ref,event=tag,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+```
+
+会把 Git ref tag 直接变成 Docker tag。
+
+例如：
+
+```bash
+git tag v3.6.0
+git push origin v3.6.0
+```
+
+最终会产出：
+
+```txt
+ghcr.io/xpert-ai/xpert:v3.6.0
+```
+
+---
+
+# 七、推荐补充：按环境拆开 Dockerfile target
+
+如果你想让 develop 走 candidate target、main/tag 走 production target，可以再加一步判断。
+
+例如 Dockerfile 有：
+
+```dockerfile
+FROM node:20-alpine AS candidate
+# candidate runtime
+
+FROM node:20-alpine AS production
+# production runtime
+```
+
+那么 workflow 里可以先生成一个 target：
+
+```yaml
+      - name: Resolve Docker target
+        id: target
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/develop" ]]; then
+            echo "target=candidate" >> $GITHUB_OUTPUT
+          else
+            echo "target=production" >> $GITHUB_OUTPUT
+          fi
+```
+
+然后构建时：
+
+```yaml
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ${{ steps.target.outputs.target }}
+          push: true
+          provenance: false
+          sbom: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+这样会变成：
+
+* `develop` 构建 Dockerfile 的 `candidate` target
+* `main` 和 `tag` 构建 Dockerfile 的 `production` target
+
+这不是 GitHub Actions 的硬性要求，而是你这套发布策略下更合理的工程化实现。
+
+---
+
+# 八、推荐的 Docker tag 规范
+
+我建议最终固定为：
+
+## develop
+
+* `develop-candidate`
+* `sha-<full_sha>`
+
+## main
+
+* `main`
+* `latest`
+* `sha-<full_sha>`
+
+## git tag
+
+* `<git_tag>`，例如 `v3.6.0`
+
+这样好处是：
+
+* `develop-candidate` 永远指向最新 develop 候选版
+* `main` / `latest` 永远指向当前主线正式版
+* `sha-*` 可回溯到精确 commit
+* `v3.6.0` 可对应正式发布版本
+
+---
+
+# 九、你的操作说明
+
+## 1. 发布 candidate
+
+开发或 MR 合并到 develop 后：
+
+```bash
+git push origin develop
+```
+
+或者 PR merge 到 `develop`。
+
+结果：
+
+* 自动构建
+* 自动推送到 GHCR
+* 产出 candidate tags
+
+拉取测试：
+
+```bash
+docker pull ghcr.io/xpert-ai/xpert:develop-candidate
+docker run --rm -p 3000:3000 ghcr.io/xpert-ai/xpert:develop-candidate
+```
+
+---
+
+## 2. 发布 main 正式版
+
+合并到 main 后：
+
+```bash
+git push origin main
+```
+
+结果：
+
+* 自动构建 production
+* 自动推送到 GHCR
+* 产出 `main` / `latest`
+
+拉取：
+
+```bash
+docker pull ghcr.io/xpert-ai/xpert:latest
+docker pull ghcr.io/xpert-ai/xpert:main
+```
+
+---
+
+## 3. 发布带版本号的正式版
+
+打 tag：
+
+```bash
+git tag v3.6.0
+git push origin v3.6.0
+```
+
+结果：
+
+* 自动构建 production
+* 自动推送到 GHCR
+* 产出 `v3.6.0`
+
+拉取：
+
+```bash
+docker pull ghcr.io/xpert-ai/xpert:v3.6.0
+```
+
+---
+
+# 十、你需要的仓库配置
+
+## 1. Actions 权限
+
+仓库里需要允许 workflow 写 packages。
+
+通常需要：
+
+* Repository Settings
+* Actions
+* General
+* Workflow permissions
+* 设为 **Read and write permissions**
+
+否则即使用 `GITHUB_TOKEN` 登录，也可能没有权限推送到 GHCR。GitHub 文档说明了通过 Actions 发布包时要配置对应权限；社区问题中也常见因为 workflow 权限不是读写而推送失败。([GitHub Docs][5])
+
+---
+
+## 2. 包权限
+
+GHCR 包最好关联到当前仓库，便于沿用仓库权限模型。GitHub Container registry 支持镜像与仓库关联，并选择继承仓库权限。([GitHub Docs][3])
+
+---
+
+## 3. workflow 文件必须在默认分支存在
+
+GitHub 某些事件要求 workflow 文件存在于默认分支才会运行；为避免触发问题，建议先把这份 workflow 合入默认分支。([GitHub Docs][6])
+
+---
+
+# 十一、推荐再加的增强项
+
+## 1. 只允许语义化版本 tag
+
+如果你只想允许 `v1.2.3`，可以把：
+
+```yaml
+tags:
+  - 'v*'
+```
+
+改细一点，例如仍先用 `v*`，然后在 job 开头自己再校验格式。
+
+---
+
+## 2. main 发布加 environment 保护
+
+你可以把 main / tag 发布 job 绑定到 GitHub Environment，比如 `production`，再要求人工批准。GitHub 支持 environments 以及对分支/tag 的部署限制。([GitHub Docs][7])
+
+---
+
+## 3. 增加镜像测试 job
+
+如果你希望 develop 推 candidate 后先跑 smoke test，再决定是否允许 main 合并，可以再加一个 job：
+
+* pull 刚发布的 candidate
+* `docker run`
+* 调 `/health`
+
+这属于你流程增强，不影响上面的基本发布策略。
+
+---
+
+# 十二、给 AI 的明确开发任务说明
+
+你可以直接把下面这段发给另一个 AI 或开发同事：
+
+> 请为仓库实现 GitHub Actions + GHCR 自动发布方案。要求：
+>
+> 1. 新增 `.github/workflows/docker-publish.yml`
+> 2. 触发规则：
+>
+>    * push 到 `develop`：发布 candidate 镜像到 GHCR
+>    * push 到 `main`：发布 production 镜像到 GHCR，tag 为 `main` 和 `latest`
+>    * push git tag（如 `v3.6.0`）：发布 production 镜像到 GHCR，tag 等于 git tag
+> 3. GHCR 镜像名格式：`ghcr.io/<owner>/xpert`
+> 4. 使用：
+>
+>    * `docker/setup-buildx-action`
+>    * `docker/login-action`
+>    * `docker/metadata-action`
+>    * `docker/build-push-action`
+> 5. 使用 `GITHUB_TOKEN` 登录 GHCR
+> 6. workflow 需要 `permissions: contents: read, packages: write`
+> 7. develop 只打：
+>
+>    * `develop-candidate`
+>    * `sha-<commit_sha>`
+> 8. main 只打：
+>
+>    * `main`
+>    * `latest`
+>    * `sha-<commit_sha>`
+> 9. git tag 只打：
+>
+>    * `<git_tag>`
+> 10. 如果 Dockerfile 有多阶段 target：
+>
+>     * `develop` 使用 `candidate`
+>     * `main` / `tag` 使用 `production`
+> 11. 开发完成后，补充 README 中的发布说明，包含：
+>
+>     * 如何 push develop
+>     * 如何 push main
+>     * 如何创建并 push tag
+>     * 如何从 GHCR pull 对应镜像
+
+---
+
+# 十三、最终建议
+
+你这个需求最合适的模型不是“多个 workflow 各管一块”，而是：
+
+**一个 workflow，三个触发来源，按 ref 类型动态决定发布哪类 tag。**
+
+这样最稳定，最容易维护，也最不容易出现 develop / main / tag 三套逻辑漂移的问题。
+
+如果你愿意，我下一条可以直接继续给你补上：
+**README 里的《发布使用说明》模板**，包括开发人员具体该怎么 `push develop`、`push main`、`git tag`。
+
+[1]: https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions?utm_source=chatgpt.com "Workflow syntax for GitHub Actions"
+[2]: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts?utm_source=chatgpt.com "Contexts reference"
+[3]: https://docs.github.com/packages/working-with-a-github-packages-registry/working-with-the-container-registry?utm_source=chatgpt.com "Working with the Container registry"
+[4]: https://docs.github.com/en/actions/publishing-packages/publishing-docker-images?utm_source=chatgpt.com "Publishing Docker images"
+[5]: https://docs.github.com/ja/enterprise-cloud%40latest/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions?utm_source=chatgpt.com "GitHub Actionsでのパッケージの公開とインストール"
+[6]: https://docs.github.com/actions/using-workflows/events-that-trigger-workflows?utm_source=chatgpt.com "Events that trigger workflows"
+[7]: https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments?utm_source=chatgpt.com "Deployments and environments"

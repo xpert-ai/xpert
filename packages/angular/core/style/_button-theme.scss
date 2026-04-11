@@ -1,0 +1,82 @@
+@use 'sass:map';
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+
+@mixin color($config-or-theme) {
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $background: map.get($config, background);
+  $foreground: map.get($config, foreground);
+}
+
+@mixin typography($config-or-theme) {
+}
+
+@mixin _button-target($density-class) {
+  [z-button].#{$density-class},
+  z-button.#{$density-class},
+  .#{$density-class} [z-button],
+  .#{$density-class} z-button {
+    @content;
+  }
+}
+
+@mixin density($config-or-theme) {
+  @include _button-target('ngm-density__cosy') {
+    height: 30px;
+    line-height: 30px;
+
+    &:not([data-icon-only]):not([data-z-size='icon']):not([data-z-size='icon-xs']):not([data-z-size='icon-sm']):not([data-z-size='icon-lg']) {
+      padding: 0 12px;
+    }
+
+    &[data-icon-only],
+    &[data-z-size='icon'],
+    &[data-z-size='icon-xs'],
+    &[data-z-size='icon-sm'],
+    &[data-z-size='icon-lg'] {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      padding: 2px;
+    }
+
+  }
+
+  @include _button-target('ngm-density__compact') {
+    height: 24px;
+    line-height: 24px;
+
+    &:not([data-icon-only]):not([data-z-size='icon']):not([data-z-size='icon-xs']):not([data-z-size='icon-sm']):not([data-z-size='icon-lg']) {
+      padding: 0 6px;
+    }
+
+    &[data-icon-only],
+    &[data-z-size='icon'],
+    &[data-z-size='icon-xs'],
+    &[data-z-size='icon-sm'],
+    &[data-z-size='icon-lg'] {
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      padding: 0;
+    }
+  }
+}
+
+@mixin theme($theme) {
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
+
+  @if $color != null {
+    @include color($color);
+  }
+  @if $density != null {
+    @include density($density);
+  }
+  @if $typography != null {
+    @include typography($typography);
+  }
+}

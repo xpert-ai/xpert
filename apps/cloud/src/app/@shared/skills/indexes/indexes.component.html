@@ -1,0 +1,150 @@
+<section class="flex flex-col gap-3 p-4">
+  <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+    <div class="relative w-full max-w-xl">
+      <input z-input
+        type="text"
+        class="w-full rounded-lg border border-input bg-background px-4 py-1.5 pr-10 text-foreground shadow-sm outline-none"
+        [placeholder]="'Pro.SearchSkillPlaceholder' | translate: {Default: 'Search skill by id, name, publisher or tag'}"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+      <button
+        type="button"
+        class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        (click)="search.set('')"
+      >
+        <i class="ri-close-circle-line"></i>
+      </button>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+      <div class="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/60 px-3 py-2">
+        <span class="text-text-warning">📂</span>
+        {{ indexes().length }} {{ 'Pro.SkillsIndexed' | translate: {Default: 'skills indexed'} }}
+      </div>
+      <div class="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/60 px-3 py-2">
+        <span class="text-text-success">⚡</span>
+        {{ selectedRepository()?.name || ('Pro.NoRepositorySelected' | translate: {Default: 'No repository selected'}) }}
+      </div>
+    </div>
+  </div>
+
+  @if (loadingIndexes()) {
+    <div class="grid place-items-center gap-2 rounded-xl border border-dashed border-border bg-muted/60 px-6 py-10 text-muted-foreground">
+      <span class="inline-block h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary"></span>
+      <div class="font-semibold text-foreground">
+        {{ 'Pro.LoadingSkillsFromRepository' | translate: {Default: 'Loading skills from repository...'} }}
+      </div>
+    </div>
+  } @else {
+    @if (filteredIndexes().length) {
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        @for (item of filteredIndexes(); track item.id) {
+          <article class="xp-ui-shell flex flex-col gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div class="flex items-center gap-1 border-b border-border pb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span class="h-2 w-2 shrink-0 rounded-full bg-text-success"></span>
+              <span class="h-2 w-2 shrink-0 rounded-full bg-text-warning"></span>
+              <span class="h-2 w-2 shrink-0 rounded-full bg-text-accent"></span>
+              <span class="ml-1 truncate">{{ item.skillPath }}</span>
+              <span class="flex-1"></span>
+              <div class="flex items-center gap-1 text-text-warning">
+                <i class="ri-star-line"></i>
+                <span class="text-muted-foreground">{{ formatStat(item.stats?.stars) }}</span>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="line-clamp-2 font-semibold">
+                {{item.name}}
+              </div>
+              <div class="flex items-start gap-2 text-sm">
+                <span class="shrink-0 text-muted-foreground">//</span>
+                <div class="line-clamp-2 min-w-0 text-muted-foreground">
+                  {{ item.description || ('Pro.AwaitingDescription' | translate: {Default: 'Awaiting description...'}) }}
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-3 pl-6 text-xs text-muted-foreground">
+                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-1">
+                  <i class="ri-download-line"></i>
+                  <span>{{ 'Pro.Downloads' | translate: {Default: 'Downloads'} }}</span>
+                  <span class="text-foreground">{{ formatStat(item.stats?.downloads) }}</span>
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-1">
+                  <i class="ri-star-line"></i>
+                  <span>{{ 'Pro.Stars' | translate: {Default: 'Stars'} }}</span>
+                  <span class="text-foreground">{{ formatStat(item.stats?.stars) }}</span>
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-1">
+                  <i class="ri-git-branch-line"></i>
+                  <span>{{ 'Pro.Versions' | translate: {Default: 'Versions'} }}</span>
+                  <span class="text-foreground">{{ formatStat(item.stats?.versions) }}</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 overflow-hidden rounded-xl bg-muted/40 px-3 py-2">
+              @if (item.publisher?.image) {
+                <img
+                  [src]="item.publisher.image"
+                  [alt]="publisherDisplayName(item)"
+                  class="h-9 w-9 shrink-0 rounded-full border border-border bg-background object-cover"
+                />
+              } @else {
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-primary/10 text-sm font-semibold text-primary">
+                  {{ publisherAvatarFallback(item) }}
+                </div>
+              }
+              <div class="min-w-0">
+                <div class="truncate text-sm font-semibold text-foreground">
+                  {{ publisherDisplayName(item) }}
+                </div>
+                <div class="truncate text-xs text-text-accent">
+                  {{ publisherHandle(item) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{{ item.updatedAt || item.createdAt | date: 'yyyy-MM-dd' }}</span>
+              <div class="flex flex-wrap justify-end gap-2">
+                @if (showInstallAction()) {
+                  <button type="button" class="btn btn-primary btn-small" (click)="install(item)">
+                    {{ 'Pro.Install' | translate: {Default: 'Install'} }}
+                  </button>
+                }
+                @if (item.link) {
+                  <a z-button zType="link"
+                    [href]="item.link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center gap-1 hover:text-text-primary"
+                  >
+                    <i class="ri-external-link-line"></i>
+                    {{ 'Pro.ViewDetails' | translate: {Default: 'Details'} }}
+                  </a>
+                }
+                @for (tag of item.tags ?? []; track tag) {
+                  <span class="rounded-full border border-border bg-primary/10 px-2 py-1 font-semibold text-primary">#{{ tag }}</span>
+                } @empty {
+                  <span class="rounded-full bg-muted px-2 py-1 font-semibold text-muted-foreground">
+                    {{ 'Pro.Untagged' | translate: {Default: 'untagged'} }}
+                  </span>
+                }
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="grid place-items-center gap-2 rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-muted-foreground">
+        <div class="text-3xl">🔍</div>
+        <div class="text-lg font-semibold text-foreground">
+          {{ 'Pro.NoSkillsFound' | translate: {Default: 'No skills found for this repository yet.'} }}
+        </div>
+        <p class="text-sm text-muted-foreground">
+          {{ 'Pro.NoSkillsFoundHint' | translate: {Default: 'Add or sync a repository to populate skill indexes.'} }}
+        </p>
+      </div>
+    }
+  }
+</section>

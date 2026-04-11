@@ -3,7 +3,7 @@ import { Repository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { ChatConversationService } from '../../conversation.service'
 import { StatisticsAverageSessionInteractionsQuery } from '../statistics-average-session-interactions.query'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { InjectRepository } from '@nestjs/typeorm'
 
 @QueryHandler(StatisticsAverageSessionInteractionsQuery)
@@ -34,7 +34,11 @@ export class StatisticsAverageSessionInteractionsHandler
 			.andWhere('chat_message.role = :role', { role: 'human' })
 
 		if (!xpertId) {
-			query.andWhere('conversation.organizationId = :organizationId', {organizationId})
+			if (organizationId) {
+				query.andWhere('conversation.organizationId = :organizationId', { organizationId })
+			} else {
+				query.andWhere('conversation.organizationId IS NULL')
+			}
 		}
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })

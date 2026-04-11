@@ -1,3 +1,4 @@
+@reference "../../../../../../styles/tailwind-reference.css";
 :host {
   @apply max-h-full flex flex-col rounded-2xl overflow-hidden bg-components-card-bg;
 }

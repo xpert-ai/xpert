@@ -1,6 +1,6 @@
 <div class="space-y-1 my-2">
   @for (assigner of assigners(); track $index) {
-    <div class="relative bg-zinc-50 hover:bg-zinc-100 flex h-8 cursor-pointer justify-between items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
+    <div class="relative bg-background-default-subtle hover:bg-hover-bg flex h-8 cursor-pointer justify-between items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
       @if (assigner.value) {
         <div class="text-primary-500 font-mono truncate">
           {{ assigner.value }}

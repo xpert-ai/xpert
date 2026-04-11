@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RouterModule } from '@nestjs/core';
-import { SharedModule, UserModule } from '@metad/server-core';
+import { SharedModule, UserModule } from '@xpert-ai/server-core';
 import { BusinessAreaService } from './business-area.service';
 import { BusinessAreaController } from './business-area.controller';
 import { BusinessArea } from './business-area.entity';

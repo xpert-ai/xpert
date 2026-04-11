@@ -1,8 +1,8 @@
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ICopilotModel, OrganizationBaseCrudService } from '@metad/cloud/state'
-import { toParams } from '@metad/core'
+import { ICopilotModel, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { toParams } from '@xpert-ai/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Observable, shareReplay, switchMap } from 'rxjs'
 import { API_COPILOT } from '../constants/app.constants'
@@ -45,6 +45,13 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
 
   getCopilots() {
     return this.copilots$
+  }
+
+  getAvailableByRole(role: AiProviderRole) {
+    return this.refresh$.pipe(
+      switchMap(() => this.selectOrganizationId()),
+      switchMap(() => this.httpClient.get<ICopilot | null>(this.apiBaseUrl + `/availables/${role}`))
+    )
   }
 
   getAiProviders() {

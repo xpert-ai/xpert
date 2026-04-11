@@ -1,9 +1,12 @@
-import { CommonModule } from '@angular/common'
+/**
+ * Invariants:
+ * - Shared schema property rendering stays endpoint-agnostic.
+ * - `depends` reads sibling values from `context.model` and emits flat key/value params for remote selects.
+ * - Do not add integration-specific widgets or query-shape exceptions in this layer.
+ */
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import {
@@ -18,34 +21,30 @@ import { XpertVariableInputComponent } from '../../agent'
 import { NgmSelectComponent } from '../../common'
 import { XpertRemoteSelectComponent } from '../../form-fields'
 import { TWorkflowVarGroup } from '../../../@core'
-import {
-  JsonSchemaWidgetOutletComponent
-} from './json-schema-widget-outlet.component'
+import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
-
-/**
- *
- */
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { CommonModule } from '@angular/common'
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
-    NgmSlideToggleComponent,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     NgmSelectComponent,
     XpertVariableInputComponent,
     XpertRemoteSelectComponent,
-    JsonSchemaWidgetOutletComponent
-  ],
+    JsonSchemaWidgetOutletComponent,
+    ZardSwitchComponent
+],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
   styleUrls: ['property.component.scss'],
   hostDirectives: [NgxControlValueAccessor],
   host: {
-    '[class]': `xUiSpan() ? 'col-span-' + xUiSpan() : ''`,
+    '[class]': `xUiSpan() ? 'col-span-' + xUiSpan() : ''`
   }
 })
 export class JSONSchemaPropertyComponent {
@@ -111,19 +110,36 @@ export class JSONSchemaPropertyComponent {
   // x-ui
   readonly xUi = computed(() => (this.meta() as any)?.['x-ui'] || {})
   readonly xUiComponent = computed(() => this.xUi()?.component)
-  readonly xUiInputType = computed(() => ['secretInput', 'password'].includes(this.xUi()?.component) ? 'password' : 'text')
+  readonly xUiInputType = computed(() =>
+    ['secretInput', 'password'].includes(this.xUi()?.component) ? 'password' : 'text'
+  )
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
   readonly xUiHelp = computed(() => this.xUi()?.help)
   readonly xUiSpan = computed(() => this.xUi()?.span)
+  readonly xUiCols = computed(() => this.xUi()?.cols)
   readonly xUiStyles = computed(() => this.xUi()?.styles)
+  readonly textareaRows = computed(() => {
+    const rows = this.xUi()?.inputs?.['rows']
+    return typeof rows === 'number' && Number.isFinite(rows) && rows > 0 ? rows : 1
+  })
   readonly hasCustomWidget = computed(() => this.widgetRegistry?.has(this.xUiComponent()))
-  readonly depends = computed(() => (this.xUi()?.depends ?? []).map((_) => {
-    if (typeof _ === 'string') {
-      return { name: _, value: this.value$()?.[_] }
-    } else if (typeof _ === 'object' && 'name' in _) {
-      return { name: _.alias || _.name, value: this.value$()?.[_.name] }
-    }
-  }))
+  readonly depends = computed(() =>
+    (this.xUi()?.depends ?? []).reduce((acc: Record<string, unknown>, _) => {
+      const model = (this.context()?.['model'] as Record<string, unknown> | undefined) ?? undefined
+      if (typeof _ === 'string') {
+        const value = model?.[_] ?? this.value$()?.[_]
+        if (value != null) {
+          acc[_] = value
+        }
+      } else if (typeof _ === 'object' && 'name' in _) {
+        const value = model?.[_.name] ?? this.value$()?.[_.name]
+        if (value != null) {
+          acc[_.alias || _.name] = value
+        }
+      }
+      return acc
+    }, {})
+  )
 
   constructor() {
     // Waiting NgxControlValueAccessor has been initialized

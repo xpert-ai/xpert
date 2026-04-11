@@ -12,8 +12,8 @@ import {
 	TAvatar,
 	TXpertProjectSettings,
 	TXpertProjectStatus
-} from '@metad/contracts'
-import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { StorageFile, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
@@ -43,7 +43,7 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status: TXpertProjectStatus
 
 	@ApiPropertyOptional({ type: () => Object })

@@ -1,3 +1,4 @@
+@reference "../../../../../../styles/tailwind-reference.css";
 :host {
   @apply px-1 overflow-hidden;
 
@@ -8,22 +9,23 @@
 
 .pac-cdk-drop__placeholder {
   @apply border-dashed border-2 border-gray-400 min-h-[60px] transition-transform
-  bg-gray-200 dark:bg-neutral-800;
+  bg-components-list-option-active-bg dark:bg-neutral-800;
 }
 
-.mat-mdc-list-item {
+.ngm-list-item,
+.row {
   @apply rounded-lg;
 }
 
 ::ng-deep {
   .pac-property-dimension.ngm-density__compact {
-    .cdk-tree-node {
+    [data-slot='tree-node'] {
       @apply rounded-lg;
     }
   }
 }
 
-.mat-toolbar {
+.pac-sub-toolbar {
   font-size: 1rem;
 }
 

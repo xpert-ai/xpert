@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import {
@@ -12,7 +12,6 @@ import {
   KnowledgeDocumentService
 } from '../../../../../../../@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
-
 
 @Component({
   standalone: true,

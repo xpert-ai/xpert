@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -13,6 +12,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-variable-aggregator',
@@ -20,7 +20,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./variable-aggregator.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, FormsModule, MatTooltipModule, TranslateModule, PlusSvgComponent]
+  imports: [FFlowModule, FormsModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent]
 })
 export class XpertWorkflowNodeVariableAggregatorComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

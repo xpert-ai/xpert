@@ -1,5 +1,5 @@
-import { ScheduleTaskStatus } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { ScheduleTaskStatus } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
@@ -39,7 +39,7 @@ export class QueryXpertTaskHandler implements ICommandHandler<QueryXpertTaskComm
 				deletedAt: task.deletedAt,
 			}
 			try {
-				const job = this.schedulerRegistry.getCronJob(task.name)
+				const job = this.schedulerRegistry.getCronJob(task.id)
 				return {
 					..._task,
 					job

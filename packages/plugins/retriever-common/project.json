@@ -22,11 +22,13 @@
         "tsConfig": "packages/plugins/retriever-common/tsconfig.lib.json",
         "assets": [],
         "project": "packages/plugins/retriever-common/package.json",
+        "buildLibsFromSource": false,
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
           "@nestjs/common",
           "@nestjs/core",
+          "@xpert-ai/plugin-sdk",
           "@nestjs/microservices",
           "kafkajs",
           "amqplib",

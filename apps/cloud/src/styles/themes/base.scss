@@ -1,20 +1,21 @@
 :root {
-  // --ngm-copilot-font-family: Söhne,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif,Helvetica Neue,Arial,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
-  --ngm-primary-container-rounded: theme('borderRadius.3xl');
+  --ngm-primary-container-rounded: 0; // @deprecated
 }
 
-:root .default, :root .light, :root .dark {
-  --mat-expansion-container-background-color: var(--ngm-color-surface-container-low);
-}
-
-:root .default, :root .light {
+:root[data-theme='light'],
+[data-theme='light'] {
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --ngm-app-background-color: white;
   --ngm-color-main-container-background: white;
   --ngm-color-on-surface: #1f1f1f;
   --ngm-color-on-surface-variant: #444746;
   --ngm-color-surface: white;
   --ngm-color-surface-container-low: theme('colors.neutral.50');
-  --ngm-color-surface-container: theme('colors.neutral.100');
+  --ngm-color-surface-container: var(--background);
   --ngm-color-surface-container-high: #f2f2f2;
   --ngm-color-surface-container-highest: #e5e5e5;
   --ngm-color-outline-variant: theme('colors.neutral.100');
@@ -28,6 +29,7 @@
   --color-components-panel-bg-blur: hsla(0, 0%, 100%, 0.9);
   --color-components-panel-border: #10182814;
   --color-components-card-bg: white;
+  --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.50') 45%, transparent);
   --color-components-button-primary-text: white;
   --color-components-button-primary-border: theme('colors.blue.600');
   --color-components-button-primary-bg: theme('colors.blue.600');
@@ -39,10 +41,13 @@
   --color-components-dropzone-bg: theme('colors.neutral.50');
   --color-components-input-bg: theme('colors.gray.100');
   --color-components-input-bg-normal: theme('colors.gray.100');
+  --color-components-input-bg-disabled: theme('colors.gray.100');
   --color-components-input-bg-hover: theme('colors.gray.50');
   --color-components-input-bg-active: theme('colors.gray.50');
   --color-components-input-border-hover: theme('colors.gray.200');
   --color-components-input-border-active: theme('colors.gray.200');
+  --color-components-input-text-filled: var(--color-text-primary);
+  --color-components-input-text-filled-disabled: var(--color-text-secondary);
   --color-components-input-text-placeholder: var(--color-text-tertiary);
   --color-components-list-option-bg: theme('colors.gray.50');
   --color-components-list-option-active-bg: theme('colors.gray.100');
@@ -70,21 +75,57 @@
   --color-text-destructive: theme('colors.red.500');
   --color-text-accent: theme('colors.amber.500');
   --color-text-accent-secondary: theme('colors.amber.400');
+  --color-fg-primary: var(--color-text-primary);
+  --color-fg-secondary: var(--color-text-secondary);
 
   --color-hover-bg: oklch(0 0 0 / 0.05);
+  --color-button-ghost-active: var(--color-components-list-option-active-bg);
   --color-danger-bg: theme('colors.red.50');
   --color-state-destructive-hover: theme('colors.red.50');
   --color-state-success-solid: theme('colors.green.600');
+  --color-background-default-subtle: var(--color-components-list-option-bg);
+  --color-hero-gradient-solid: #f9fafb;
+  --color-hero-gradient-transparent: rgb(249 250 251 / 0);
+  --color-surface-l1: var(--color-components-card-bg);
+  --color-surface-neutral: var(--color-components-list-option-bg);
+  --color-border-l2: var(--color-divider-deep);
+  --color-input-border: var(--border-medium);
+  --color-background-body: #f2f4f7;
+
+  --background: var(--ngm-app-background-color);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-components-card-bg);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-components-panel-bg);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-components-button-primary-bg);
+  --primary-foreground: var(--color-components-button-primary-text);
+  --secondary: var(--ngm-color-surface-container-low);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--ngm-color-surface-container-low);
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--main-surface-secondary);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: theme('colors.red.500');
+  --destructive-foreground: theme('colors.white');
+  --input: var(--border);
+  --ring: theme('colors.blue.500');
 }
 
-:root .dark {
+:root[data-theme='dark'],
+[data-theme='dark'] {
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --ngm-app-background-color: #1e1f20;
   --ngm-color-main-container-background: #1e1f20;
   --ngm-color-on-surface: #e3e3e3;
   --ngm-color-on-surface-variant: #444746;
   --ngm-color-surface: #16181c;
   --ngm-color-surface-container-low: #62626210;
-  --ngm-color-surface-container: black;
+  --ngm-color-surface-container: var(--background);
   --ngm-color-surface-container-high: #24292f;
   --ngm-color-surface-container-highest: #2f353c;
   --ngm-color-outline-variant: theme('colors.neutral.800');
@@ -95,24 +136,32 @@
   --border-light: theme('colors.neutral.700');
   --components-card-option-selected-border: theme('colors.blue.500');
   --color-components-panel-bg: #222225;
+  --color-components-panel-bg-blur: rgba(34, 34, 37, 0.9);
   --color-components-panel-border: theme('colors.neutral.600');
   --color-components-card-bg: #16181c;
+  --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.800') 72%, transparent);
   --color-components-button-primary-text: white;
   --color-components-button-primary-border: theme('colors.blue.500');
   --color-components-button-primary-bg: theme('colors.blue.500');
   --color-components-button-secondary-border: theme('colors.neutral.600');
   --color-components-button-secondary-border-hover: #10182833;
   --color-components-button-secondary-bg: theme('colors.neutral.700');
-  --color-components-button-secondary-bg-hover: #f9fafb;
+  --color-components-button-secondary-bg-hover: theme('colors.neutral.800');
   --color-components-input-bg: theme('colors.neutral.800');
   --color-components-input-bg-normal: theme('colors.neutral.800');
+  --color-components-input-bg-disabled: theme('colors.neutral.800');
   --color-components-input-bg-hover: theme('colors.neutral.700');
   --color-components-input-bg-active: theme('colors.neutral.700');
   --color-components-input-border-hover: theme('colors.neutral.600');
   --color-components-input-border-active: theme('colors.neutral.600');
+  --color-components-input-text-filled: var(--color-text-primary);
+  --color-components-input-text-filled-disabled: var(--color-text-tertiary);
   --color-components-input-text-placeholder: var(--color-text-tertiary);
   --color-components-list-option-bg: theme('colors.neutral.800');
   --color-components-list-option-active-bg: theme('colors.neutral.700');
+  --color-components-toggle-bg: theme('colors.primary.500');
+  --color-components-toggle-bg-unchecked: theme('colors.neutral.600');
+  --color-components-toggle-knob: theme('colors.neutral.50');
   --color-components-kbd-bg-white: #ffffff1f;
   // Divider
   --ngm-divider-color-secondary: theme('colors.neutral.900');
@@ -122,14 +171,49 @@
   // Text
   --color-base-content: #e3e3e3;
   --color-text-primary: var(--color-base-content);
-  --text-secondary: theme('colors.zinc.400');
+  --text-secondary: theme('colors.neutral.400');
   --color-text-success: theme('colors.green.500');
-  --color-text-secondary: theme('colors.zinc.500');
-  --color-text-tertiary: theme('colors.neutral.600');
-  --color-text-quaternary: theme('colors.neutral.700');
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: theme('colors.neutral.500');
+  --color-text-quaternary: theme('colors.neutral.600');
   --color-text-warning: theme('colors.red.300');
+  --color-text-destructive: theme('colors.red.400');
+  --color-text-accent: theme('colors.amber.400');
+  --color-text-accent-secondary: theme('colors.amber.300');
+  --color-fg-primary: var(--color-text-primary);
+  --color-fg-secondary: var(--color-text-secondary);
 
   --color-hover-bg: oklch(1 0 0 / 0.1);
+  --color-button-ghost-active: var(--color-components-list-option-active-bg);
   --color-danger-bg: #991b1b52;
   --color-danger-content: #ffd4d4;
+  --color-state-destructive-hover: var(--color-danger-bg);
+  --color-state-success-solid: theme('colors.green.500');
+  --color-background-default-subtle: #222225;
+  --color-hero-gradient-solid: #16181c;
+  --color-hero-gradient-transparent: rgb(22 24 28 / 0);
+  --color-surface-l1: var(--color-components-card-bg);
+  --color-surface-neutral: var(--color-components-list-option-bg);
+  --color-border-l2: var(--border-medium);
+  --color-input-border: var(--border-medium);
+  --color-background-body: #1d1d20;
+
+  --background: var(--ngm-app-background-color);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-components-card-bg);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-components-panel-bg);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-components-button-primary-bg);
+  --primary-foreground: var(--color-components-button-primary-text);
+  --secondary: var(--main-surface-secondary);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--main-surface-secondary);
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--main-surface-secondary);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: theme('colors.red.400');
+  --destructive-foreground: theme('colors.white');
+  --input: var(--border-medium);
+  --ring: theme('colors.blue.400');
 }

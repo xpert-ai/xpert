@@ -3,12 +3,20 @@ import { QueryBus } from '@nestjs/cqrs'
 import { PassportStrategy } from '@nestjs/passport'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
+import {
+	applyTenantScopeHeaders,
+	resolveApiKeyRequestedOrganizationId,
+	resolveApiKeyRequestedUserId
+} from './api-key-principal'
+import { ApiKeyService } from './api-key.service'
 import { UseApiKeyQuery } from './queries'
 
 @Injectable()
 export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
-	
-	constructor(private readonly queryBus: QueryBus) {
+	constructor(
+		private readonly queryBus: QueryBus,
+		private readonly apiKeyService: ApiKeyService
+	) {
 		super()
 	}
 
@@ -27,13 +35,22 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 			token = authHeader.split(' ')[1]
 		}
 
+		const requestedUserId = resolveApiKeyRequestedUserId(req)
+		const requestedOrganizationId = resolveApiKeyRequestedOrganizationId(req)
+
 		this.validateToken(token)
-			.then((apiKey) => {
+			.then(async (apiKey) => {
 				if (!apiKey.createdBy) {
 					return this.fail(new UnauthorizedException('Invalid token'))
 				}
-				req.headers['organization-id'] = apiKey.organizationId
-				this.success({...apiKey.createdBy, apiKey})
+
+				applyTenantScopeHeaders(req)
+				this.success(
+					await this.apiKeyService.resolvePrincipal(apiKey, {
+						requestedUserId,
+						requestedOrganizationId
+					})
+				)
 			})
 			.catch((err) => {
 				// console.error(err)
@@ -42,6 +59,6 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 	}
 
 	async validateToken(token: string) {
-	  return await this.queryBus.execute(new UseApiKeyQuery(token))
+		return await this.queryBus.execute(new UseApiKeyQuery(token))
 	}
 }

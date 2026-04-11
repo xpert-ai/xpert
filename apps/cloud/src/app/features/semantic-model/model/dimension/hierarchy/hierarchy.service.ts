@@ -1,11 +1,11 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, computed, effect, inject } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { nonNullable } from '@metad/core'
-import { effectAction } from '@metad/ocap-angular/core'
-import { EntityService, PropertyHierarchy, PropertyLevel, Table } from '@metad/ocap-core'
-import { allLevelCaption, allLevelName, allMemberCaption, allMemberName } from '@metad/ocap-sql'
-import { NxSettingsPanelService } from '@metad/story/designer'
+import { nonNullable } from '@xpert-ai/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { EntityService, PropertyHierarchy, PropertyLevel, Table } from '@xpert-ai/ocap-core'
+import { allLevelCaption, allLevelName, allMemberCaption, allMemberName } from '@xpert-ai/ocap-sql'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { select, withProps } from '@ngneat/elf'
 import { ToastrService, uuid } from 'apps/cloud/src/app/@core'
 import { assign, cloneDeep, isEqual, isNumber, negate, omit } from 'lodash-es'
@@ -102,8 +102,7 @@ export class ModelHierarchyService {
     effect(
       () => {
         this.dimensionService.updateDirty(this.store.value.__id__, this.dirtyCheckResult.dirty())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

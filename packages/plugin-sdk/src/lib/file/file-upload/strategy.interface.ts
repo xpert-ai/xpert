@@ -1,4 +1,4 @@
-import { IFileAssetDestination, IFileAssetSource, IStorageFile, IUploadFileTarget } from '@metad/contracts'
+import { IFileAssetDestination, IFileAssetSource, IStorageFile, IUploadFileTarget } from '@xpert-ai/contracts'
 
 export type TFileUploadRequestContext = {
   tenantId?: string

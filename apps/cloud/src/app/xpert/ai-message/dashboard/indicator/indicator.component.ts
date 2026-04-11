@@ -1,25 +1,23 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { Indicator, TimeGranularity } from '@metad/ocap-core'
+import { Indicator, TimeGranularity } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule
-  ],
+    ...ZardTooltipImports
+],
   selector: 'chat-component-indicator',
   templateUrl: './indicator.component.html',
   styleUrl: 'indicator.component.scss',

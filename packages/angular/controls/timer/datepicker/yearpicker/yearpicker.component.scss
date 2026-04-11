@@ -1,10 +1,4 @@
+@reference "../../../../../../tailwind-workspace-reference.css";
 :host {
   @apply relative flex flex-col items-stretch;
-}
-
-:host::ng-deep {
-  .mat-datepicker-toggle .mat-mdc-icon-button {
-    --mdc-icon-button-state-layer-size: 34px;
-    padding: 8px;
-  }
 }

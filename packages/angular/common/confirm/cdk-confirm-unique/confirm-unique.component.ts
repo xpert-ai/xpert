@@ -1,13 +1,11 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog, DIALOG_DATA, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormsModule, ReactiveFormsModule, ValidationErrors } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, Observable, switchMap } from 'rxjs'
 
@@ -20,20 +18,7 @@ export type TConfirmUniqueInfo = {
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    A11yModule,
-    FormsModule,
-    ReactiveFormsModule,
-    DragDropModule,
-    DialogModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    TranslateModule,
-
-    ButtonGroupDirective
-  ],
+  imports: [A11yModule, FormsModule, ReactiveFormsModule, DragDropModule, DialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, TranslateModule, ButtonGroupDirective],
   selector: 'cdk-confirm-unique',
   templateUrl: './confirm-unique.component.html',
   styleUrls: ['./confirm-unique.component.scss'],

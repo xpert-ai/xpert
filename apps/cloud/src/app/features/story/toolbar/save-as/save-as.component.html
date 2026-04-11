@@ -1,36 +1,36 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <h4 style="pointer-events: none;">
         {{ 'Story.Toolbar.SaveAs' | translate: {Default: 'Save As'} }}...
     </h4>
 </header>
 
-<mat-dialog-content class="mat-typography" fxLayout="column" fxLayoutAlign="start stretch">
-    <mat-form-field appearance="fill">
-        <mat-label>
+<xp-dialog-content class="" fxLayout="column" fxLayoutAlign="start stretch">
+    <z-form-field appearance="fill">
+        <z-form-label>
             {{ 'Story.Common.Name' | translate: {Default: 'Name'} }}
-        </mat-label>
-        <input matInput [(ngModel)]="model.name" required>
-    </mat-form-field>
+        </z-form-label>
+        <input z-input [(ngModel)]="model.name" required>
+    </z-form-field>
 
-    <mat-form-field appearance="fill">
-        <mat-label>
+    <z-form-field appearance="fill">
+        <z-form-label>
             {{ 'Story.Common.Description' | translate: {Default: 'Description'} }}
-        </mat-label>
-        <textarea matInput [(ngModel)]="model.description"></textarea>
-    </mat-form-field>
-</mat-dialog-content>
+        </z-form-label>
+        <textarea z-input [(ngModel)]="model.description"></textarea>
+    </z-form-field>
+</xp-dialog-content>
 
-<mat-dialog-actions>
-    <button mat-button>
+<xp-dialog-actions>
+    <button z-button zType="ghost">
         {{ 'STORY.COMMON.RESET' | translate: { Default: 'Reset' } }}
       </button>
 
     <div ngmButtonGroup>
-        <button mat-button mat-dialog-close>
+        <button z-button zType="ghost" xpDialogClose>
             {{ 'STORY.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
-        <button mat-raised-button color="accent" cdkFocusInitial [mat-dialog-close]="model">
+        <button z-button zType="default" cdkFocusInitial [xpDialogClose]="model">
             {{ 'STORY.COMMON.APPLY' | translate: { Default: 'Apply' } }}
         </button>
     </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

@@ -1,14 +1,13 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, DecimalPipe } from '@angular/common'
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, LOCALE_ID } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { EChartsOption } from 'echarts'
 import { maxBy } from 'lodash-es'
 import { NgxEchartsDirective } from 'ngx-echarts'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -18,7 +17,7 @@ import { NgxEchartsDirective } from 'ngx-echarts'
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgxEchartsDirective
   ],
   selector: 'pac-statistics-pie-chart',
@@ -73,9 +72,9 @@ export class StatisticsPieChartComponent {
             labelLine: {
               show: false
             },
-            data: items.map((item) => ({ value: item[this.measure()], name: item[this.dimension()] })),
+            data: items.map((item) => ({ value: item[this.measure()], name: item[this.dimension()] }))
           }
-        ],
+        ]
       } as EChartsOption)
     )
   })

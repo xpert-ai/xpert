@@ -1,5 +1,5 @@
 import { VectorStore } from '@langchain/core/vectorstores'
-import { I18nObject } from '@metad/contracts'
+import { I18nObject } from '@xpert-ai/contracts'
 import { Document } from '@langchain/core/documents'
 
 export type TRetrieverConfig = {

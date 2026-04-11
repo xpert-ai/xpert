@@ -24,6 +24,8 @@ export const TailwindThemeVars = {
   'text-logo-text': 'var(--color-text-logo-text)',
   'text-empty-state-icon': 'var(--color-text-empty-state-icon)',
   'text-inverted': 'var(--color-text-inverted)',
+  'fg-primary': 'var(--color-fg-primary)',
+  'fg-secondary': 'var(--color-fg-secondary)',
 
   'divider-subtle': 'var(--color-divider-subtle)',
   'divider-regular': 'var(--color-divider-regular)',
@@ -35,6 +37,10 @@ export const TailwindThemeVars = {
 
   'hover-bg': 'var(--color-hover-bg)',
   'danger-bg': 'var(--color-danger-bg)',
+  'state-base-hover': 'var(--color-hover-bg)',
+  'state-destructive-hover': 'var(--color-state-destructive-hover)',
+  'state-success-solid': 'var(--color-state-success-solid)',
+  'background-default-hover': 'var(--color-hover-bg)',
 
   'token-main-surface-primary': 'var(--main-surface-primary)',
   'token-main-surface-secondary': 'var(--main-surface-secondary)',
@@ -49,7 +55,16 @@ export const TailwindThemeVars = {
   'components-button-primary-text': 'var(--color-components-button-primary-text)',
   'components-button-primary-border': 'var(--color-components-button-primary-border)',
   'components-button-primary-bg': 'var(--color-components-button-primary-bg)',
+  'components-input-bg-disabled': 'var(--color-components-input-bg-disabled)',
   'components-input-bg': 'var(--color-components-input-bg)',
   'components-list-option-bg': 'var(--color-components-list-option-bg)',
   'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)',
+  'components-input-text-filled': 'var(--color-components-input-text-filled)',
+  'components-input-text-filled-disabled': 'var(--color-components-input-text-filled-disabled)',
+  'button-ghost-active': 'var(--color-button-ghost-active)',
+  'background-default-subtle': 'var(--color-background-default-subtle)',
+  'surface-l1': 'var(--color-surface-l1)',
+  'surface-neutral': 'var(--color-surface-neutral)',
+  'border-l2': 'var(--color-border-l2)',
+  'input-border': 'var(--color-input-border)',
 }

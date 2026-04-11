@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RolesEnum } from '@metad/contracts';
-import { environment as env } from '@metad/server-config';
+import { RolesEnum } from '@xpert-ai/contracts';
+import { environment as env } from '@xpert-ai/server-config';
 import { RequestContext } from './../../core/context';
 // import { TenantService } from './../../tenant/tenant.service';
 import { TenantBaseGuard } from './tenant-base.guard';

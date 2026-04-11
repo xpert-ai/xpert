@@ -1,3 +1,20 @@
+<div class="pac-page-header px-8 py-4">
+  <div class="min-w-0 flex flex-col">
+    <button
+      type="button"
+      class="mb-3 inline-flex w-fit items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+      (click)="backToList()"
+    >
+      <i class="ri-arrow-left-line text-base"></i>
+      <span>{{ 'PAC.Users.BackToList' | translate: { Default: 'Back to users' } }}</span>
+    </button>
+
+    <div class="pac-page-title">
+      {{ user() ? userLabel(user()) : ('PAC.MENU.USERS' | translate: { Default: 'Users' }) }}
+    </div>
+  </div>
+</div>
+
 <div class="px-8 py-4">
   <div class="text-xl font-semibold pb-2">
     {{ 'PAC.USERS_PAGE.BASIC' | translate: { Default: 'Basic' } }}
@@ -17,11 +34,7 @@
     <pac-user-change-password-form #password [(ngModel)]="newPassword" class="block max-w-lg m-auto ng-untouched ng-pristine ng-valid" />
 
     <div class="w-full flex justify-end p-2">
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="changePassword()"
-      >
+      <button z-button zType="default" (click)="changePassword()">
         {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
       </button>
     </div>
@@ -36,11 +49,11 @@
 </div>
 
 <div class="px-8 py-4">
-  <div class="text-xl font-semibold text-orange-500 pb-2">
+  <div class="text-xl font-semibold text-text-destructive pb-2">
     {{ 'PAC.KEY_WORDS.DangerZone' | translate: {Default: 'Danger zone'} }}
   </div>
 
-  <div class="border border-solid border-orange-500 rounded-xl flex flex-col">
+  <div class="border border-solid border-text-destructive rounded-xl flex flex-col">
     <div class="w-full flex justify-between items-center p-4">
       <div class="flex flex-col">
         <div class="font-semibold">

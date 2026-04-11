@@ -1,15 +1,14 @@
 import { isPlatformBrowser } from '@angular/common'
 import { HttpErrorResponse } from '@angular/common/http'
 import { Inject, Injectable, PLATFORM_ID, DebugElement, EventEmitter } from '@angular/core'
-import { compact, PivotColumn, uniqBy } from '@metad/ocap-core'
+import { compact, PivotColumn, uniqBy } from '@xpert-ai/ocap-core'
 import { includes, isNil, negate, isEqual, isEmpty, camelCase } from 'lodash-es'
 import { Observable } from 'rxjs'
 import { filter, takeUntil, tap } from 'rxjs/operators'
 import { ZodType, ZodTypeDef } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { isObject } from './utils/shared-utils'
-export { nonBlank, nonNullable } from '@metad/ocap-core'
-
+export { nonBlank, nonNullable } from '@xpert-ai/ocap-core'
 
 export const filterNil = filter(negate(isNil))
 export const isNotEqual = negate(isEqual)
@@ -345,7 +344,6 @@ export function makeid(length) {
 }
 
 export const mkenum = <T extends { [index: string]: U }, U extends string>(x: T) => x;
-
 
 // Search options
 export function includeIgnoreCase(text, target) {

@@ -1,45 +1,54 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-  <div class="w-full flex justify-start items-center mb-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+<div
+  class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group"
+>
+  <div
+    class="w-full flex justify-start items-center mb-4 cursor-move"
+    cdkDrag
+    cdkDragRootElement=".cdk-overlay-pane"
+    cdkDragHandle
+  >
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     @if (edit()) {
       <span class="text-xl font-semibold pointer-events-none">
-        {{ 'Ngm.Property.EditParameter' | translate: {Default: "Edit Parameter"} }}
+        {{ 'Ngm.Property.EditParameter' | translate: { Default: 'Edit Parameter' } }}
       </span>
     } @else {
       <span class="text-xl font-semibold pointer-events-none">
-        {{ 'Ngm.Property.CREATE_PARAMETER' | translate: {Default: "Create Parameter"} }}
+        {{ 'Ngm.Property.CREATE_PARAMETER' | translate: { Default: 'Create Parameter' } }}
       </span>
     }
   </div>
 
   <form [formGroup]="formGroup" class="flex-1">
     <div class="flex flex-col justify-start items-stretch">
-      <mat-form-field [appearance]="appearance()" color="accent">
-        <mat-label>{{ 'Ngm.Property.Name' | translate: {Default: "Name"} }}</mat-label>
-        <input matInput formControlName="name" required>
+      <z-form-field [appearance]="appearance()" color="accent">
+        <z-form-label>{{ 'Ngm.Property.Name' | translate: { Default: 'Name' } }}</z-form-label>
+        <input z-input formControlName="name" required />
         @if (name.invalid) {
-          <mat-error>{{ 'Ngm.Property.NameRequired' | translate: {Default: "Name Required"} }}</mat-error>
+          <z-form-message zType="error">{{
+            'Ngm.Property.NameRequired' | translate: { Default: 'Name Required' }
+          }}</z-form-message>
         }
-      </mat-form-field>
+      </z-form-field>
 
-      <mat-form-field [appearance]="appearance()" color="accent">
-        <mat-label>{{ 'Ngm.Property.Caption' | translate: {Default: "Caption"} }}</mat-label>
-        <input matInput formControlName="caption">
-      </mat-form-field>
+      <z-form-field [appearance]="appearance()" color="accent">
+        <z-form-label>{{ 'Ngm.Property.Caption' | translate: { Default: 'Caption' } }}</z-form-label>
+        <input z-input formControlName="caption" />
+      </z-form-field>
     </div>
 
     <div class="flex flex-col justify-start items-start gap-4 py-4 px-2">
-      <mat-radio-group formControlName="paramType" class="flex flex-col justify-start items-start gap-4">
-        <mat-radio-button [value]="eCubeParameterEnum.Input">
-          {{ 'Ngm.Property.Input' | translate: {Default: "Input"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="eCubeParameterEnum.Select">
-          {{ 'Ngm.Property.Select' | translate: {Default: "Select"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="eCubeParameterEnum.Dimension">
-          {{ 'Ngm.Property.Dimensions' | translate: {Default: "Dimensions"} }}
-        </mat-radio-button>
-      </mat-radio-group>
+      <z-radio-group formControlName="paramType" class="flex flex-col justify-start items-start gap-4">
+        <z-radio [value]="eCubeParameterEnum.Input">
+          {{ 'Ngm.Property.Input' | translate: { Default: 'Input' } }}
+        </z-radio>
+        <z-radio [value]="eCubeParameterEnum.Select">
+          {{ 'Ngm.Property.Select' | translate: { Default: 'Select' } }}
+        </z-radio>
+        <z-radio [value]="eCubeParameterEnum.Dimension">
+          {{ 'Ngm.Property.Dimensions' | translate: { Default: 'Dimensions' } }}
+        </z-radio>
+      </z-radio-group>
     </div>
   </form>
 
@@ -47,12 +56,19 @@
 
   <div class="flex justify-start">
     <div ngmButtonGroup>
-        <button mat-raised-button color="accent" cdkFocusInitial [disabled]="formGroup.invalid" (click)="onApply()">
-          {{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}
-        </button>
-        <button mat-button (click)="onCancel()">
-          {{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}
-        </button>
+      <button
+        z-button
+        zType="default"
+
+        cdkFocusInitial
+        [zDisabled]="formGroup.invalid"
+        (click)="onApply()"
+      >
+        {{ 'Ngm.Common.Apply' | translate: { Default: 'Apply' } }}
+      </button>
+      <button z-button zType="ghost" (click)="onCancel()">
+        {{ 'Ngm.Common.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
     </div>
   </div>
 </div>
@@ -61,17 +77,22 @@
   @if (paramType.value === eCubeParameterEnum.Input) {
     <div class="flex flex-col justify-start items-start gap-8 p-4">
       <div class="flex flex-col justify-start items-start gap-2">
-        <label>{{ 'Ngm.Property.ValueType' | translate: {Default: "Value Type"} }}</label>
-        <mat-button-toggle-group displayDensity="compact" ngmAppearance="outline" color="accent"
-          [formControl]="dataType">
-          <mat-button-toggle disableRipple value="number">Number</mat-button-toggle>
-          <mat-button-toggle disableRipple value="string">String</mat-button-toggle>
-          <mat-button-toggle disableRipple value="boolean">Boolean</mat-button-toggle>
-          <mat-button-toggle disableRipple value="date">Date</mat-button-toggle>
-        </mat-button-toggle-group>
+        <label>{{ 'Ngm.Property.ValueType' | translate: { Default: 'Value Type' } }}</label>
+        <z-toggle-group
+          displayDensity="compact"
+          ngmAppearance="outline"
+          color="accent"
+          [formControl]="dataType"
+        >
+          <z-toggle-group-item value="number">Number</z-toggle-group-item>
+          <z-toggle-group-item value="string">String</z-toggle-group-item>
+          <z-toggle-group-item value="boolean">Boolean</z-toggle-group-item>
+          <z-toggle-group-item value="date">Date</z-toggle-group-item>
+        </z-toggle-group>
       </div>
 
-      <ngm-input label="{{ 'Ngm.Property.DefaultValue' | translate: {Default: 'Default Value'} }}" 
+      <ngm-input
+        label="{{ 'Ngm.Property.DefaultValue' | translate: { Default: 'Default Value' } }}"
         [formControl]="value"
         [type]="inputType()"
       />
@@ -80,39 +101,48 @@
 
   @if (paramType.value === eCubeParameterEnum.Select) {
     <div class="flex-1 p-4 overflow-y-auto">
-      <div class="text-lg">{{ 'Ngm.Property.AvailableMembers' | translate: {Default: "Available Members"} }}</div>
-      @for (item of availableMembers.controls; track i; let i = $index;) {
-        <div class="group flex justify-start items-center gap-2 mt-2"
-          [formGroup]="$any(item)"
-        >
-          <mat-checkbox formControlName="isDefault">
-            {{ 'Ngm.Property.IsDefault' | translate: {Default: "Is Default"} }}
-          </mat-checkbox>
-          <mat-form-field [appearance]="appearance()">
-            <mat-label>{{ 'Ngm.Common.Key' | translate: {Default: "Key"} }}</mat-label>
-            <input matInput formControlName="key">
-          </mat-form-field>
-          <mat-form-field [appearance]="appearance()">
-            <mat-label>{{ 'Ngm.Common.Caption' | translate: {Default: "Caption"} }}</mat-label>
-            <input matInput formControlName="caption">
-          </mat-form-field>
+      <div class="text-lg">{{ 'Ngm.Property.AvailableMembers' | translate: { Default: 'Available Members' } }}</div>
+      @for (item of availableMembers.controls; track i; let i = $index) {
+        <div class="group flex justify-start items-center gap-2 mt-2" [formGroup]="$any(item)">
+          <z-checkbox formControlName="isDefault">
+            {{ 'Ngm.Property.IsDefault' | translate: { Default: 'Is Default' } }}
+          </z-checkbox>
+          <z-form-field [appearance]="appearance()">
+            <z-form-label>{{ 'Ngm.Common.Key' | translate: { Default: 'Key' } }}</z-form-label>
+            <input z-input formControlName="key" />
+          </z-form-field>
+          <z-form-field [appearance]="appearance()">
+            <z-form-label>{{ 'Ngm.Common.Caption' | translate: { Default: 'Caption' } }}</z-form-label>
+            <input z-input formControlName="caption" />
+          </z-form-field>
 
-          <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="opacity-0 group-hover:opacity-100" (click)="remove(i)">
-            <mat-icon>close</mat-icon>
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            ngmAppearance="danger"
+            displayDensity="cosy"
+            class="opacity-0 group-hover:opacity-100"
+            (click)="remove(i)"
+          >
+            <z-icon zType="close"></z-icon>
           </button>
         </div>
       }
 
-      <button mat-stroked-button displayDensity="cosy" ngmAppearance="dashed" (click)="add()">
-        {{ 'Ngm.Property.ADD_PARAMETER_MEMBER' | translate: {Default: "Add Member"} }}
+      <button z-button zType="outline" displayDensity="cosy" ngmAppearance="dashed" (click)="add()">
+        {{ 'Ngm.Property.ADD_PARAMETER_MEMBER' | translate: { Default: 'Add Member' } }}
       </button>
     </div>
   }
 
   @if (paramType.value === eCubeParameterEnum.Dimension) {
     <div class="flex-1 w-full max-w-full flex flex-col justify-start items-stretch">
-      <ngm-hierarchy-select class="p-4" [appearance]="appearance()"
-        [label]=" 'Ngm.Property.Dimension' | translate: {Default: 'Dimension' } "
+      <ngm-hierarchy-select
+        class="p-4"
+        [appearance]="appearance()"
+        [label]="'Ngm.Property.Dimension' | translate: { Default: 'Dimension' }"
         [dimensions]="dimensions$ | async"
         [ngModel]="hierarchy"
         (ngModelChange)="onHierarchyChange($event)"
@@ -120,18 +150,22 @@
 
       <div class="px-4">
         <ngm-checkbox [formControl]="multiple">
-          {{ 'Ngm.Property.AllowParameterMultipleSelection' | translate: {Default: "Allow Parameter Multiple Selection"} }}
+          {{
+            'Ngm.Property.AllowParameterMultipleSelection'
+              | translate: { Default: 'Allow Parameter Multiple Selection' }
+          }}
         </ngm-checkbox>
       </div>
 
       <div class="mt-4 px-4">
-        {{ 'Ngm.Property.SelectParameterOptions' | translate: {Default: "Select parameter options"} }}:
+        {{ 'Ngm.Property.SelectParameterOptions' | translate: { Default: 'Select parameter options' } }}:
       </div>
-      <ngm-member-tree class="flex-1 w-full min-h-[600px] px-4 pb-4"
+      <ngm-member-tree
+        class="flex-1 w-full min-h-[600px] px-4 pb-4"
         [dataSettings]="dataSettings()"
         [dimension]="dimension$ | async"
         [options]="memberTreeOptions"
-        [appearance]="{displayDensity: eDisplayDensity.compact}"
+        [appearance]="{ displayDensity: eDisplayDensity.compact }"
         [(ngModel)]="slicer"
       />
     </div>

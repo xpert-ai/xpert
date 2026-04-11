@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, HostBinding, input, model } from '@angular/core'
 
 @Component({
@@ -7,7 +7,7 @@ import { ChangeDetectionStrategy, Component, HostBinding, input, model } from '@
   selector: 'ngm-drawer-container',
   templateUrl: './drawer-container.component.html',
   styleUrls: ['./drawer-container.component.scss'],
-  imports: [CommonModule,]
+  imports: []
 })
 export class NgmDrawerContainerComponent {
   readonly opened = model<boolean>()

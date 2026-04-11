@@ -1,4 +1,4 @@
-import { ENTITY_TYPE_SALESORDER, workOutTimeRangeSlicers } from '@metad/ocap-core'
+import { ENTITY_TYPE_SALESORDER, workOutTimeRangeSlicers } from '@xpert-ai/ocap-core'
 import { tryFixChartType } from '../../../types'
 import { mapTimeSlicer, TTimeSlicerParam } from '../types'
 

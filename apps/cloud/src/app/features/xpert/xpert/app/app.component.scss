@@ -1,5 +1,6 @@
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
-  @apply shadow-sm border-[0.5px] rounded-xl overflow-hidden border-gray-200;
+  @apply shadow-sm border-[0.5px] rounded-xl overflow-hidden border-divider-deep;
 }
 
 .download {

@@ -4,9 +4,8 @@ import {
 	IKnowledgebaseTask,
 	IPagination,
 	KnowledgebasePermission,
-	KnowledgeDocumentMetadata,
-	RolesEnum
-} from '@metad/contracts'
+	KnowledgeDocumentMetadata
+} from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -14,14 +13,12 @@ import {
 	PermissionGuard,
 	Permissions,
 	RequestContext,
-	RoleGuard,
-	Roles,
 	TransformInterceptor,
 	UploadFileCommand,
 	getFileAssetDestination,
 	transformWhere
-} from '@metad/server-core'
-import { getErrorMessage } from '@metad/server-common'
+} from '@xpert-ai/server-core'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import {
 	Body,
 	Controller,
@@ -321,8 +318,8 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 
 	// Statistics
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 	@Get('statistics/knowledgebases')
 	async getStatisticsKnowledgebases(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsKnowledgebasesQuery(start, end))

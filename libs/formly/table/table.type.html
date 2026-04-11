@@ -1,0 +1,112 @@
+@if (props?.title) {
+  <div class="ngm-formly__title">{{ props.title }}</div>
+}
+
+@if (props?.type === 'inline') {
+  <ng-container *ngTemplateOutlet="inlineTable"></ng-container>
+}
+
+@if (props?.type !== 'inline') {
+  <button [class]="data.length ? 'text-text-accent hover:text-text-accent' : ''" z-button zType="ghost" ngmAppearance="dashed" displayDensity="cosy" (click)="open()">
+    <z-icon zType="edit"></z-icon>{{props?.title ?? ('FORMLY.TABLE.Open' | translate:
+    {Default: 'Open'} ) }}
+  </button>
+}
+
+<ng-template #inlineTable>
+  <div class="overflow-auto w-full">
+    <table z-table class="w-full">
+      <thead z-table-header>
+        <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+          <th z-table-head class="w-12 min-w-12"></th>
+
+          @for (column of columns; track column.key) {
+            <th z-table-head [style.width]="column.width">{{ column.label }}</th>
+          }
+
+          <th z-table-head class="w-16 min-w-16"></th>
+        </tr>
+      </thead>
+
+      <tbody
+        z-table-body
+        cdkDropList
+        [cdkDropListData]="data"
+        (cdkDropListDropped)="drop($event)"
+      >
+        @for (row of data; track $index; let i = $index) {
+          <tr z-table-row cdkDrag cdkDragLockAxis="y">
+            <td z-table-cell cdkDragHandle class="pac-formly-table__drag-handle">
+              <svg
+                t="1630562920128"
+                class="cursor-pointer dark:fill-slate-200"
+                viewBox="0 0 1024 1024"
+                version="1.1"
+                xmlns="http://www.w3.org/2000/svg"
+                p-id="2318"
+                width="20"
+                height="20"
+              >
+                <path
+                  d="M469.333333 256a85.333333 85.333333 0 1 1-85.333333-85.333333 85.333333 85.333333 0 0 1 85.333333 85.333333z m-85.333333 170.666667a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m0 256a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m256-341.333334a85.333333 85.333333 0 1 0-85.333333-85.333333 85.333333 85.333333 0 0 0 85.333333 85.333333z m0 85.333334a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m0 256a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z"
+                  p-id="2319"
+                ></path>
+              </svg>
+            </td>
+
+            @for (column of columns; track column.key; let j = $index) {
+              <td z-table-cell [style.width]="column.width">
+                <formly-field [field]="field.fieldGroup[i]?.fieldGroup[j]" [style.width]="column.width"></formly-field>
+              </td>
+            }
+
+            <td z-table-cell>
+              <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="deleteRow(i)">
+                <z-icon zType="close"></z-icon>
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr z-table-row>
+            <td z-table-cell class="py-8 text-center text-muted-foreground" [attr.colspan]="columns.length + 2">
+              {{ 'Ngm.Table.NoData' | translate: { Default: 'No data' } }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="my-2">
+    <button z-button zType="ghost" ngmAppearance="dashed" displayDensity="cosy" (click)="addRow()">
+      <div class="flex items-center justify-start">
+        <z-icon zType="add"></z-icon>
+        {{'FORMLY.TABLE.AddRow' | translate: {Default: 'Add'} }}
+      </div>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #dialogRef>
+  <header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <h4 style="pointer-events: none">
+      {{ props?.title || ('FORMLY.TABLE.Options' | translate: {Default: 'Options'}) }}
+    </h4>
+  </header>
+
+  <xp-dialog-content class="pac-formly-table">
+    <ng-container *ngTemplateOutlet="inlineTable"></ng-container>
+  </xp-dialog-content>
+
+  <xp-dialog-actions class="flex justify-between items-center">
+    <div>
+      <button z-button zType="ghost" (click)="clear()">{{ 'FORMLY.COMMON.Clear' | translate: {Default: 'Clear'} }}</button>
+    </div>
+
+    <div ngmButtonGroup>
+      <button z-button zType="ghost" xpDialogClose>{{ 'FORMLY.COMMON.Cancel' | translate: {Default: 'Cancel'} }}</button>
+      <button z-button zType="default" cdkFocusInitial [xpDialogClose]="true">
+        {{ 'FORMLY.COMMON.Apply' | translate: {Default: 'Apply'} }}
+      </button>
+    </div>
+  </xp-dialog-actions>
+</ng-template>

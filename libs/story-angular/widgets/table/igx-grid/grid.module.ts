@@ -1,14 +1,14 @@
 import { CommonModule } from '@angular/common'
 import { ModuleWithProviders, NgModule } from '@angular/core'
-import { STORY_WIDGET_COMPONENT } from '@metad/story/core'
-import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
+import { STORY_WIDGET_COMPONENT } from '@xpert-ai/story/core'
+import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@xpert-ai/story/designer'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 import {
   IgxActionStripModule,
   IgxChipsModule,
   IgxComboModule,
   IgxDragDropModule,
   IgxGridModule,
-  IgxIconModule,
   IgxInputGroupModule,
   IgxListModule,
   IgxProgressBarModule,
@@ -16,7 +16,7 @@ import {
   IgxSplitterModule,
   IgxTreeGridModule
 } from 'igniteui-angular'
-import { GridColumnSchema } from '@metad/story/widgets/pivot-grid'
+import { GridColumnSchema } from '@xpert-ai/story/widgets/pivot-grid'
 import { ContextMenuComponent } from './context-menu/context-menu.component'
 import { GridActionsModule } from './grid-actions/grid-actions.module'
 import { SmartGridSearchBarComponent } from './search-bar/search-bar.component'
@@ -27,7 +27,6 @@ import { WidgetDesignerType } from './types'
 const IGX_MODULES = [
   IgxGridModule,
   IgxTreeGridModule,
-  IgxIconModule,
   IgxComboModule,
   IgxProgressBarModule,
   IgxSplitterModule,
@@ -41,7 +40,7 @@ const IGX_MODULES = [
 
 @NgModule({
   declarations: [StoryWidgetSmartGridComponent, SmartGridSearchBarComponent, ContextMenuComponent],
-  imports: [CommonModule, ...IGX_MODULES, GridActionsModule],
+  imports: [CommonModule, ZardIconComponent, ...IGX_MODULES, GridActionsModule],
   exports: [StoryWidgetSmartGridComponent]
 })
 export class NxWidgetSmartGridModule {

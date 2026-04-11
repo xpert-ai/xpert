@@ -1,0 +1,66 @@
+# Workspace Skill Sharing to Organization Market
+
+**Summary**
+- Implement sharing only for workspace-uploaded custom skills, starting from Explore > Mine > Skills cards.
+- Scope the shared market to the current organization only.
+- Use a single built-in, system-managed repository provider `workspace-public`; do not require users to register or choose a repository.
+- Use `skill_package` as the canonical publication source in v1; do not add a separate publication table.
+- Publish by copying a snapshot of the current workspace skill into organization-level shared storage, so later workspace edits do not leak until the user explicitly republishes.
+
+**Implementation Changes**
+- Backend publishing flow:
+  - Add a new repository provider/strategy `workspace-public` under the skill repository plugin layer.
+  - Add an organization-level helper for shared skill storage, separate from workspace install storage.
+  - Extend `SkillPackage` persistence with `sharedSkillId` and `sharedPackagePath`; reuse existing `publishAt` as the published marker.
+  - Add `POST /skill-package/workspace/:workspaceId/:id/share` to publish or republish one skill.
+  - The share handler must validate workspace access, reject external market skills, ensure the built-in org repository exists, generate or reuse a stable `sharedSkillId`, copy the current skill directory to the shared snapshot path, update local `skill_package.metadata`, and upsert one `skill_repository_index` row in the built-in repository.
+  - Republish must update the existing shared snapshot and the same index row, not create a second market item.
+
+- Built-in repository behavior:
+  - `workspace-public` install logic must copy from the published snapshot into the target workspace skill root.
+  - `workspace-public` sync/list logic must rebuild index records from published `skill_package` rows in the current organization.
+  - Hide this provider from the manual repository registration form.
+  - Treat repositories with provider `workspace-public` as system-managed in settings: visible, but not manually editable or deletable.
+  - For existing organizations, lazily create the built-in repository on first share; for new organizations, also ensure it during bootstrap.
+
+- Metadata and market presentation:
+  - Share dialog edits the source package metadata used for publication: display name, description, tags, license, version.
+  - Creator/publisher is derived from the current user and stored into the market index `publisher`; it is read-only in the UI.
+  - Market index data for shared skills must at minimum populate `name`, `description`, `tags`, `license`, `version`, `publisher`, and basic stats defaults.
+  - Installation from the market should hydrate installed `skill_package.metadata` from the shared index values so the installed cards keep creator/tag/description information.
+
+- Frontend UX:
+  - Add a share CTA to Explore > Mine > Skills cards only when the skill is locally uploaded.
+  - Once a local skill has been shared to `workspace-public`, keep the CTA in place but switch it to “更新分享” and show a published badge/date on the card.
+  - Clicking the share CTA opens a dialog prefilled from `skill_package.metadata`; submit publishes and refreshes the Mine list.
+  - Do not add a separate unshare flow in v1.
+  - Update workspace-skill deletion/uninstall to use the workspace-aware uninstall endpoint so published snapshot and market index cleanup can run.
+
+**Public APIs / Types**
+- New backend API: `POST /skill-package/workspace/:workspaceId/:id/share`
+- New frontend service methods:
+  - `SkillPackageService.sharePackage(workspaceId, skillId, input)`
+  - `SkillPackageService.uninstallPackageInWorkspace(workspaceId, skillId)`
+- New provider value: `workspace-public`
+- New `SkillPackage` persistence fields: `sharedSkillId`, `sharedPackagePath`
+
+**Test Plan**
+- Backend:
+  - First share of a local skill creates the built-in repository if missing, writes the snapshot, sets publish fields, and upserts one market index row.
+  - Republish reuses the same `sharedSkillId` and index row while refreshing snapshot contents and metadata.
+  - Installing a shared market skill copies from the published snapshot and produces the expected installed metadata.
+  - Deleting/uninstalling a published source skill removes the published snapshot and soft-deletes the public index row.
+  - Sharing an externally installed repository skill is rejected.
+
+- Frontend:
+  - Explore Mine cards show share controls only for shareable local skills.
+  - Shared cards switch to published state and “更新分享”.
+  - Share dialog validates required fields, submits successfully, and refreshes the card state.
+  - Share button click does not trigger the card’s default navigation.
+  - Workspace delete action uses the workspace uninstall API.
+
+**Assumptions**
+- “公共” means current organization visibility, not tenant-wide or cross-tenant.
+- Creator is the current sharing user and is not editable in v1.
+- Workspace file edits do not auto-sync into market metadata; the user must explicitly republish.
+- No separate publication entity is introduced in v1; publication state lives on the source `skill_package`.

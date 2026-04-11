@@ -8,7 +8,6 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, of as observableOf } from 'rxjs';
 import { switchMap, map, catchError } from 'rxjs/operators';
-
 import { PacAuthResult } from '../../services/auth-result';
 import { PacAuthStrategy } from '../auth-strategy';
 import { PacAuthStrategyClass } from '../../auth.options';

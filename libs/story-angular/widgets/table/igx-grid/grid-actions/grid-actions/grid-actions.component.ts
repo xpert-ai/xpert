@@ -3,6 +3,7 @@ import { IgxGridActionsBaseDirective } from 'igniteui-angular'
 import { RowAction } from '../../types'
 
 @Component({
+  standalone: false,
   selector: 'smart-grid-actions',
   templateUrl: './grid-actions.component.html',
   styleUrls: ['./grid-actions.component.scss'],

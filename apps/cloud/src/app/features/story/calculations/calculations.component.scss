@@ -1,6 +1,8 @@
-@use '@angular/material/core/tokens/token-utils';
-@use '@angular/material/core/style/sass-utils';
 
+
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
+@reference "../../../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $global-prefix: ngm;
 $prefix: (ngm, story-calculation);
@@ -42,10 +44,10 @@ $prefix: (ngm, story-calculation);
   }
 }
 
-.mat-mdc-list {
+.ngm-nav-list {
   @apply m-2;
 }
 
-.mat-mdc-list-item {
-  @apply rounded-md hover:bg-black/5 dark:hover:bg-white/10;
+.ngm-nav-list > li {
+  @apply rounded-md hover:bg-hover-bg dark:hover:bg-white/10;
 }

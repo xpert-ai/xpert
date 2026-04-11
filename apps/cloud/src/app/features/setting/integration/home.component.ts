@@ -1,12 +1,11 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, DatePipe } from '@angular/common'
+import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@metad/core'
-import { NgmConfirmDeleteComponent, NgmSearchComponent, NgmTagsComponent } from '@metad/ocap-angular/common'
+import { DynamicGridDirective } from '@xpert-ai/core'
+import { NgmConfirmDeleteService, NgmSearchComponent, NgmTagsComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, EMPTY, map, startWith, switchMap } from 'rxjs'
 import { getErrorMessage, IIntegration, IntegrationService, OrderTypeEnum, routeAnimations, ToastrService } from '../../../@core'
@@ -14,7 +13,7 @@ import { EmojiAvatarComponent, IconComponent } from '../../../@shared/avatar'
 import { CardCreateComponent } from '../../../@shared/card'
 import { UserPipe } from '../../../@shared/pipes'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   standalone: true,
@@ -46,7 +45,7 @@ export class IntegrationHomeComponent {
   readonly #toastr = inject(ToastrService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #dialog = inject(MatDialog)
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
   readonly #translate = inject(TranslateService)
 
   readonly refresh$ = new BehaviorSubject<void>(null)
@@ -109,16 +108,13 @@ export class IntegrationHomeComponent {
   }
 
   remove(item: IIntegration) {
-    this.#dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: item.name,
-          information: this.#translate.instant('PAC.Integration.ConfirmDeleteIntegration', {
-            Default: `Confirm delete the integration?`
-          })
-        }
+    this.#confirmDelete
+      .confirm({
+        value: item.name,
+        information: this.#translate.instant('PAC.Integration.ConfirmDeleteIntegration', {
+          Default: `Confirm delete the integration?`
+        })
       })
-      .afterClosed()
       .pipe(switchMap((confirm) => (confirm ? this.integrationAPI.delete(item.id) : EMPTY)))
       .subscribe({
         next: () => {

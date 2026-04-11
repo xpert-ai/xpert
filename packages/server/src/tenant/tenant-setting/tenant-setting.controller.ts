@@ -1,4 +1,4 @@
-import { ITenantSetting, RolesEnum } from '@metad/contracts';
+import { ITenantSetting, RolesEnum } from '@xpert-ai/contracts';
 import {
 	Body,
 	Controller,

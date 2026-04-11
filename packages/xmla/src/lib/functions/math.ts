@@ -1,4 +1,4 @@
-import { AggregationProperty } from "@metad/ocap-core"
+import { AggregationProperty } from "@xpert-ai/ocap-core"
 import { AND, IsEmpty, Not, NOT, Parenthesis } from "./common"
 
 /**

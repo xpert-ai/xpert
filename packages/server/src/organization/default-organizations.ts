@@ -1,4 +1,4 @@
-import { CurrenciesEnum, DefaultValueDateTypeEnum } from '@metad/contracts'
+import { CurrenciesEnum, DefaultValueDateTypeEnum } from '@xpert-ai/contracts'
 
 export const DEFAULT_ORGANIZATIONS = [
 	{

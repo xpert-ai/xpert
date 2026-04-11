@@ -1,0 +1,1 @@
+export const SKILLS_MIDDLEWARE_NAME = 'skillsMiddleware'

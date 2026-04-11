@@ -23,7 +23,7 @@
   </div>
 
   @for (item of classes(); track i; let i = $index) {
-    <copilot-prompt-editor class="relative self-stretch mb-4 rounded-xl border border-solid border-neutral-100 hover:border-neutral-200 hover:shadow-sm"
+    <copilot-prompt-editor class="relative self-stretch mb-4 rounded-xl border border-solid border-neutral-100 hover:border-divider-deep hover:shadow-sm"
       [initHeight]="160"
       [role]="('PAC.Xpert.Category' | translate: {Default: 'Category'}) + ' ' + (i+1)"
       [variables]="variables()"
@@ -52,7 +52,7 @@
   </div>
 
   @if (expandAdvanced()) {
-    <copilot-prompt-editor class="relative self-stretch mb-4 rounded-xl border border-solid border-neutral-100 hover:border-neutral-200 hover:shadow-sm"
+    <copilot-prompt-editor class="relative self-stretch mb-4 rounded-xl border border-solid border-neutral-100 hover:border-divider-deep hover:shadow-sm"
       [initHeight]="160"
       [role]="'PAC.Xpert.Instruction' | translate: {Default: 'Instruction'}"
       [variables]="variables()"
@@ -60,7 +60,6 @@
     />
   }
 </div>
-
 
 <div class="h-[0.5px] bg-divider-subtle"></div>
 

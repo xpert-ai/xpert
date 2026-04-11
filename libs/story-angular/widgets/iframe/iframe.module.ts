@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { ModuleWithProviders, NgModule } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NxCoreModule } from '@metad/core'
-import { PlaceholderAddComponent } from '@metad/story/story'
+import { NxCoreModule } from '@xpert-ai/core'
+import { PlaceholderAddComponent } from '@xpert-ai/story/story'
 import { NxWidgetIframeComponent } from './iframe.component'
 
 @NgModule({

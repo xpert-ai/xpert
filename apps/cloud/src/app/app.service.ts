@@ -2,15 +2,15 @@ import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/l
 import { DOCUMENT } from '@angular/common'
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { DateAdapter } from '@angular/material/core'
-import { prefersColorScheme, ThemesEnum } from '@metad/ocap-angular/core'
-import { nonNullable } from '@metad/ocap-core'
-import { ComponentStore } from '@metad/store'
+import { normalizeTheme } from '@xpert-ai/ocap-angular/core'
+import { nonNullable } from '@xpert-ai/ocap-core'
+import { ComponentStore } from '@xpert-ai/store'
 import { TranslateService } from '@ngx-translate/core'
 import { includes, some } from 'lodash-es'
 import { combineLatest } from 'rxjs'
 import { filter, map, shareReplay, startWith } from 'rxjs/operators'
-import { LanguagesEnum, mapDateLocale, MenuCatalog, navigatorLanguage, Store } from './@core'
+import { injectTheme, LanguagesEnum, MenuCatalog, navigatorLanguage, Store } from './@core'
+import { normalizeLanguageCode } from './@core/config'
 import { I18nService } from './@shared/i18n'
 
 export interface PACAppState {
@@ -81,24 +81,7 @@ export class AppService extends ComponentStore<PACAppState> {
     map(() => this.store.hasFeatureEnabled('FEATURE_COPILOT' as any))
   )
 
-  readonly preferredTheme$ = toSignal(this.store.preferredTheme$)
-  readonly systemColorScheme$ = toSignal(prefersColorScheme())
-
-  readonly theme$ = computed(() => {
-    let preferredTheme = this.preferredTheme$()
-    const systemColorScheme = this.systemColorScheme$()
-    if (preferredTheme === ThemesEnum.system || !preferredTheme) {
-      preferredTheme = systemColorScheme
-    }
-
-    const [primary, color] = preferredTheme.split('-')
-
-    return {
-      preferredTheme,
-      primary,
-      color
-    }
-  })
+  readonly theme$ = injectTheme()
 
   // In a data project
   readonly inProject = signal(false)
@@ -110,24 +93,29 @@ export class AppService extends ComponentStore<PACAppState> {
 
   constructor(
     private store: Store,
-    private breakpointObserver: BreakpointObserver,
-    private _adapter: DateAdapter<any>
+    private breakpointObserver: BreakpointObserver
   ) {
     super({ navigation: {}, zIndexs: [] } as PACAppState)
 
+    const initialLanguage = normalizeLanguageCode(this.store.preferredLanguage || navigatorLanguage())
+
     this.translate.setDefaultLang('en')
     // the lang to use, if the lang isn't available, it will use the current loader to get them
-    this.translate.use(this.store.preferredLanguage || navigatorLanguage())
+    this.translate.use(initialLanguage)
 
-    this.#document.documentElement.lang = this.translate.currentLang
+    this.#document.documentElement.lang = initialLanguage
 
     this.store.preferredLanguage$
       .pipe(filter(nonNullable), startWith(this.translate.currentLang))
       .subscribe((language) => {
-        this.translate.use(language)
-        this.#document.documentElement.lang = language
-        this._adapter.setLocale(mapDateLocale(language))
+        const normalizedLanguage = normalizeLanguageCode(language, this.translate.currentLang || LanguagesEnum.English)
+        this.translate.use(normalizedLanguage)
+        this.#document.documentElement.lang = normalizedLanguage
       })
+
+    this.store.preferredTheme$.pipe(filter((theme) => normalizeTheme(theme) !== theme)).subscribe((theme) => {
+      this.store.preferredTheme = normalizeTheme(theme)
+    })
   }
 
   public toggleInsight = this.updater((state) => {

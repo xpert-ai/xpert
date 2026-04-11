@@ -1,11 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, HostBinding, Input, OnChanges, Output, SimpleChanges } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
 
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export interface Step {
   value: any
   label: string
@@ -19,14 +17,14 @@ export interface Step {
   standalone: true,
   selector: 'ngm-breadcrumb-bar',
   templateUrl: './breadcrumb.component.html',
-  host: {class: 'ngm-breadcrumb-bar'},
+  host: { class: 'ngm-breadcrumb-bar' },
   styleUrls: ['breadcrumb.component.scss'],
   imports: [
     CommonModule,
     TranslateModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardTooltipImports,
     OcapCoreModule
   ]
 })

@@ -1,6 +1,6 @@
 // import { RunnableLambda } from "@langchain/core/runnables";
 // import { END } from "@langchain/langgraph";
-// import { IWFNSplitter, TXpertGraph, TXpertTeamNode } from "@metad/contracts";
+// import { IWFNSplitter, TXpertGraph, TXpertTeamNode } from "@xpert-ai/contracts";
 // import { AgentStateAnnotation } from "../../shared";
 
 // export function createSplitterNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }) {

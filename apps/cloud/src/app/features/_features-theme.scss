@@ -1,19 +1,18 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use './setting/settings-theme' as settings;
 @use './story/story-theme' as story;
 @use './semantic-model/semantic-models' as semantic-models;
-@use './indicator/indicator-theme' as indicator;
 @use './home/home-theme' as home;
-@import '../@core/variables';
+@use '../@core/variables';
 
 $shell-bar-height: 48px;
 $sidebar-width: 200px;
 $sidebar-collapsed-width: 40px;
 
 @mixin color($theme) {
-  $config: mat.get-color-config($theme);
+  $config: themeCompat.m2-get-color-config($theme);
 
   $primary: map.get($config, 'primary');
   $accent: map.get($config, accent);
@@ -24,19 +23,18 @@ $sidebar-collapsed-width: 40px;
   @include settings.color($theme);
   @include story.color($theme);
   @include semantic-models.color($theme);
-  @include indicator.color($theme);
-
-  .mat-toolbar.pac__shell-bar {
+  .pac__shell-bar {
     // position: relative; // 使 z-index 生效的属性
     z-index: 2;
     height: $shell-bar-height;
     padding: 0 .5rem;
 
-    .mat-mdc-tab-link {
+    .z-tab-link {
       height: $shell-bar-height;
     }
 
-    .mat-mdc-icon-button {
+    [z-button][data-icon-only],
+    z-button[data-icon-only] {
       background-color: unset;
     }
 
@@ -46,30 +44,31 @@ $sidebar-collapsed-width: 40px;
       background: unset;
       border-bottom: unset;
       line-height: 40px;
-      color: mat.get-color-from-palette($primary, 'darker-contrast');
+      color: themeCompat.m2-get-color-from-palette($primary, 'darker-contrast');
 
-      .mat-divider-vertical {
+      .z-divider[data-orientation='vertical'] {
         height: 20px;
-        border-right-width: 2px;
+        border-left-width: 2px;
         margin: auto;
       }
 
-      .mat-button {
+      [z-button],
+      z-button {
         padding-right: 0;
       }
     }
   }
 
-  .pac__toolbar.mat-toolbar {
+  .pac__toolbar {
     padding: 0;
     
-    .mat-mdc-tab-nav-bar {
+    .z-tab-nav-bar {
       border-bottom: unset;
       max-width: 100%;
-      .mat-mdc-tab-link {
+      .z-tab-link {
         height: 36px;
         padding: 0 1rem;
-        color: mat.get-color-from-palette($primary, '100-contrast');
+        color: themeCompat.m2-get-color-from-palette($primary, '100-contrast');
       }
     }
   }
@@ -77,7 +76,7 @@ $sidebar-collapsed-width: 40px;
     box-shadow: 0 0.3px 0.9px #0000001c, 0 1.6px 3.6px #0002;
   }
 
-  // .pac-app__page-outlet.mat-drawer-content {
+  // .pac-app__page-outlet z-drawer-content {
   //   display: flex;
   //   flex: 1;
   //   // height: calc(100vh - #{$shell-bar-height} - #{$status-bar-height});
@@ -86,7 +85,7 @@ $sidebar-collapsed-width: 40px;
   //   overflow: hidden;
 
   //   /* 所有的 toolbar 都不设置高度 */
-  //   .mat-toolbar-row, .pac__toolbar.mat-toolbar-single-row {
+  //   .pac__toolbar {
   //     height: unset;
   //     font-size: 1rem;
   //     min-height: var(--header-toolbar-height);
@@ -102,18 +101,18 @@ $sidebar-collapsed-width: 40px;
   // }
 
   .cdk-overlay-container .ant-menu-submenu-popup > .ant-menu {
-    background-color: mat.get-color-from-palette($primary, 900);
+    background-color: themeCompat.m2-get-color-from-palette($primary, 900);
     user-select: none;
   }
 
-  .pac-sketch-card.mat-mdc-card {
+  .pac-sketch-card {
     box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 6px;
 
     &:hover {
       box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
     }
     &:active {
-      box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, mat.get-color-from-palette($primary, 300) 0px 0px 0px 1px;
+      box-shadow: themeCompat.m2-get-color-from-palette($foreground, base, 0.05) 0px 6px 24px 0px, themeCompat.m2-get-color-from-palette($primary, 300) 0px 0px 0px 1px;
     }
   }
 
@@ -133,7 +132,8 @@ $sidebar-collapsed-width: 40px;
             opacity: 0;
           }
       
-          .mat-mdc-icon-button.mat-accent {
+          [z-button][data-icon-only][data-color='accent'],
+          z-button[data-icon-only][data-color='accent'] {
             opacity: 1;
           }
         }
@@ -152,28 +152,28 @@ $sidebar-collapsed-width: 40px;
   }
 
   .pac-pro-tag {
-    background-color: mat.get-color-from-palette($accent, 300);
+    background-color: themeCompat.m2-get-color-from-palette($accent, 300);
     padding: 1px 5px;
     border-radius: 5px;
   }
   
   // 带 nav-bar 的 toolbar 组件样式
-  .pac-nav-toolbar.mat-toolbar {
-    // &.ngm-density__compact.mat-toolbar-single-row {
+  .pac-nav-toolbar {
+    // &.ngm-density__compact {
     //   padding: 0;
     // }
 
-    .mat-mdc-tab-nav-bar,
-    .mat-mdc-tab-header {
+    .z-tab-nav-bar,
+    .z-tab-group__nav {
       border-bottom: unset;
     }
 
-    .mat-mdc-tab-link {
+    .z-tab-link {
       min-width: unset;
       align-items: center;
 
-      &.mat-mdc-tab-label-active {
-        background-color: mat.get-color-from-palette($background, background);
+      &[data-active='true'] {
+        background-color: themeCompat.m2-get-color-from-palette($background, background);
       }
 
       .pac-nav-tab__close {
@@ -187,16 +187,15 @@ $sidebar-collapsed-width: 40px;
         content: "";
         height: 15px;
         width: 2px;
-        background-color: mat.get-color-from-palette($foreground, divider);
+        background-color: themeCompat.m2-get-color-from-palette($foreground, divider);
         position: absolute;
         right: 0;
         border-radius: 2px;
       }
     }
 
-    .mat-mdc-tab-nav-bar {
-      .mdc-tab--active,
-      .mat-mdc-tab-label .mat-mdc-tab-label-active {
+    .z-tab-nav-bar {
+      .z-tab-link[data-active='true'] {
         .pac-nav-tab__close {
           opacity: .5;
         }
@@ -210,7 +209,7 @@ $sidebar-collapsed-width: 40px;
       }
     }
 
-    .mat-mdc-tab-links {
+    .z-tab-nav-bar {
       align-items: center;
     }
 
@@ -219,16 +218,15 @@ $sidebar-collapsed-width: 40px;
       left: -1rem;
     }
 
-    &.ngm-density__compact {
-      .mat-button {
-        min-width: unset;
-        border-radius: 0;
-        line-height: 32px;
-        height: 32px;
+    [z-button],
+    z-button {
+      min-width: unset;
+      border-radius: 0;
+      line-height: 32px;
+      height: 32px;
 
-        &.mat-accent {
-          background-color: color.change(mat.get-color-from-palette($accent), $alpha: 0.1);
-        }
+      &[data-color='accent'] {
+        background-color: color.change(themeCompat.m2-get-color-from-palette($accent), $alpha: 0.1);
       }
     }
   }
@@ -243,24 +241,21 @@ $sidebar-collapsed-width: 40px;
   @include home.density($theme);
   @include story.density($theme);
   @include semantic-models.density($theme);
-  @include indicator.density($theme);
 
   /**
    * @deprecated
    */
-  .pac-nav-toolbar.mat-toolbar {
-    &.ngm-density__compact {
-      .mat-mdc-tab-header {
-        --mdc-secondary-navigation-tab-container-height: 32px;
-      }
+  .pac-nav-toolbar {
+    .z-tab-nav-bar {
+      min-height: 32px;
     }
   }
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

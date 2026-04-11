@@ -1,0 +1,67 @@
+<section class="relative min-h-[420px]">
+  @if (loading()) {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
+      <ngm-spin />
+    </div>
+  } @else if (mode() === 'mine' && myItems().length) {
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      @for (item of myItems(); track item.id) {
+        <xp-explore-xpert-card
+          [variant]="'mine'"
+          [search]="search()"
+          [mineItem]="item"
+          (cardClick)="openMineItem(item)"
+          (actionClick)="openMineWorkspace()"
+        />
+      }
+    </div>
+  } @else if (mode() !== 'mine' && items().length) {
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      @for (item of items(); track item.id) {
+        <xp-explore-xpert-card [search]="search()" [templateItem]="item" (actionClick)="install(item)" />
+      }
+    </div>
+  } @else {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg/70 px-6 text-center">
+      <div class="max-w-lg">
+        <div class="text-4xl text-text-tertiary">
+          <i class="ri-robot-3-line"></i>
+        </div>
+        @if (mode() === 'mine') {
+          <h3 class="mt-4 text-xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.NoMyAgents' | translate: { Default: 'No Agents in the Default Workspace Yet' } }}
+          </h3>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.NoMyAgentsHint'
+                | translate
+                  : {
+                      Default:
+                        'Install an agent template from the square first, or open the default workspace to create a new agent.'
+                    }
+            }}
+          </p>
+          <div class="mt-6 flex justify-center">
+            <button type="button" class="btn btn-secondary btn-medium" (click)="openMineWorkspace()">
+              {{ 'PAC.Explore.OpenWorkspaceAgents' | translate: { Default: 'Open Workspace Agents' } }}
+            </button>
+          </div>
+        } @else {
+          <h3 class="mt-4 text-xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.NoAgents' | translate: { Default: 'No Matching Agent Templates Found' } }}
+          </h3>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.NoAgentsHint'
+                | translate
+                  : {
+                      Default:
+                        'Try adjusting the keywords to browse more reusable agents and project templates from your organization.'
+                    }
+            }}
+          </p>
+        }
+      </div>
+    </div>
+  }
+</section>

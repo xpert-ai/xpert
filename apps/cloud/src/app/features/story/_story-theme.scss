@@ -1,11 +1,13 @@
-@use 'sass:map';
-@use '@angular/material' as mat;
 
+
+@use 'sass:map';
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@reference "tailwindcss";
 $toolbar-height: 50px;
 $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
 
 @mixin color($theme) {
-  $config: mat.get-color-config($theme);
+  $config: themeCompat.m2-get-color-config($theme);
 
   $primary-palette: map.get($config, 'primary');
   $accent-palette: map.get($config, 'accent');
@@ -14,13 +16,13 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
 
   // Story widget page
   .ngm-story-widget.pac-story-widget-viewer {
-    background-color: mat.get-color-from-palette($background, background);
-    color: mat.get-color-from-palette($foreground, text);
+    background-color: themeCompat.m2-get-color-from-palette($background, background);
+    color: themeCompat.m2-get-color-from-palette($foreground, text);
   }
   // Story point page
   .pac-story-point-viewer {
-    background-color: mat.get-color-from-palette($background, background);
-    color: mat.get-color-from-palette($foreground, text);
+    background-color: themeCompat.m2-get-color-from-palette($background, background);
+    color: themeCompat.m2-get-color-from-palette($foreground, text);
   }
   
   .pac-story-designer__copilot-popper {
@@ -48,9 +50,9 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

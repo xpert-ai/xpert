@@ -16,7 +16,7 @@ import {
   QueryReturn,
   RecursiveHierarchyType,
   Semantics,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { t } from 'i18next'
 import { BehaviorSubject, EMPTY, from, Observable, of } from 'rxjs'
 import { catchError, map } from 'rxjs/operators'

@@ -1,30 +1,32 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormBuilder, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { NgmInputComponent, NgmSliderInputComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { ComponentStyling } from '@metad/story/core'
+import { NgmInputComponent, NgmSelectComponent, NgmSliderInputComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { ComponentStyling } from '@xpert-ai/story/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ColorInputComponent } from '../color-input/color-input.component'
-import { MaterialModule } from '../../../../@shared/material.module'
+import { SharedUiModule } from '../../../../@shared/ui.module'
+
+const UI_DEFAULT_FONT_FAMILY =
+  "var(--font-xp-sans, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif)"
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     FormlyModule,
-    MaterialModule,
-
+    SharedUiModule,
     AppearanceDirective,
     DensityDirective,
     NgmSliderInputComponent,
     NgmInputComponent,
+    NgmSelectComponent,
     ColorInputComponent
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-designer-text',
   templateUrl: './text.component.html',
@@ -41,9 +43,8 @@ import { MaterialModule } from '../../../../@shared/material.module'
 export class DesignerTextComponent implements ControlValueAccessor {
   private readonly formBuilder = inject(FormBuilder)
 
-
   fontFamilies = [
-    "Lato, 'Noto Serif SC', monospace",
+    UI_DEFAULT_FONT_FAMILY,
     "Arial, Helvetica, sans-serif",
     "'Times New Roman', Times, serif",
     "Verdana, Geneva, sans-serif",
@@ -60,7 +61,11 @@ export class DesignerTextComponent implements ControlValueAccessor {
       value: null,
       label: '--'
     },
-    ...this.fontFamilies.map((value) => ({value}))
+    {
+      value: UI_DEFAULT_FONT_FAMILY,
+      label: 'UI Default Sans'
+    },
+    ...this.fontFamilies.filter((value) => value !== UI_DEFAULT_FONT_FAMILY).map((value) => ({ value, label: value }))
   ]
   fontWeights = [
     'normal',
@@ -77,6 +82,10 @@ export class DesignerTextComponent implements ControlValueAccessor {
     '800',
     '900'
   ]
+  fontWeightOptions = this.fontWeights.map((fontWeight) => ({
+    value: fontWeight,
+    label: fontWeight
+  }))
 
   formGroup = this.formBuilder.group<ComponentStyling>({
     color: null,
@@ -89,7 +98,6 @@ export class DesignerTextComponent implements ControlValueAccessor {
     filter: null,
     opacity: null
   } as any)
-
 
   get color() {
     return this.formGroup.get('color') as FormControl
@@ -141,14 +149,13 @@ export class DesignerTextComponent implements ControlValueAccessor {
   setDisabledState?(isDisabled: boolean): void {}
 }
 
-
 @Component({
   standalone: true,
-  imports: [CommonModule, FormlyModule, TranslateModule, ReactiveFormsModule, DesignerTextComponent],
+  imports: [FormlyModule, TranslateModule, ReactiveFormsModule, DesignerTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-text-designer',
   template: `
-<!-- <div *ngIf="props?.label" class="p-4">{{props.label}}</div> -->
+<!-- Optional field label rendered by the designer wrapper. -->
 <pac-designer-text class="ngm-density__compact" [formControl]="$any(formControl)" />`,
   styles: [
     `

@@ -1,8 +1,8 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { routeAnimations } from '@metad/core'
+import { routeAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertWorkspaceApiToolsComponent } from '../api-tools/tools.component'
 import { XpertWorkspaceBuiltinToolsComponent } from '../builtin-tools/tools.component'
@@ -14,7 +14,6 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -23,8 +22,8 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     XpertWorkspaceKnowledgesComponent,
     XpertWorkspaceApiToolsComponent,
     XpertWorkspaceBuiltinToolsComponent,
-    XpertWorkspaceMCPToolsComponent,
-  ],
+    XpertWorkspaceMCPToolsComponent
+],
   selector: 'xpert-workspace-all',
   templateUrl: './all.component.html',
   styleUrl: 'all.component.scss',

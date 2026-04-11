@@ -10,7 +10,6 @@ export const COMMON_COPILOT_ROLE = {
   type: XpertTypeEnum.Agent
 }
 
-
 export type TCopilotChatMessage = IChatMessage & {
   event?: string
   error?: string

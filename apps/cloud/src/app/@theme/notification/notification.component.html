@@ -1,9 +1,14 @@
-<button mat-icon-button class="opacity-80 hover:opacity-100 hover:scale-110 transition-transform duration-200"
-  [matTooltip]="'PAC.KEY_WORDS.Notification' | translate: {Default: 'Notification'}"
-  matTooltipPosition="right"
+<button
+  z-button
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  class="opacity-80 hover:opacity-100 hover:scale-110 transition-transform duration-200"
+  [zTooltip]="'PAC.KEY_WORDS.Notification' | translate: { Default: 'Notification' }"
+  zPosition="right"
   [cdkMenuTriggerFor]="statusNotifMenu"
 >
-  <mat-icon fontSet="material-icons-round">notifications</mat-icon>
+  <z-icon zType="notifications"></z-icon>
 </button>
 
 @if (errors().length > 0) {
@@ -14,42 +19,57 @@
 }
 
 <ng-template #statusNotifMenu>
-  <div cdkMenu class="max-h-[70vh] w-[300px] cdk-menu__medium rounded-xl"
-    (click)="$event.stopPropagation()">
+  <div cdkMenu class="max-h-[70vh] w-[300px] cdk-menu__medium rounded-xl" (click)="$event.stopPropagation()">
     <div class="flex justify-between items-center px-2">
       <h5 class="mb-2 text-lg font-bold tracking-tight">
-        {{'PAC.KEY_WORDS.Notification' | translate: {Default: 'Notification'} }}
+        {{ 'PAC.KEY_WORDS.Notification' | translate: { Default: 'Notification' } }}
 
-        <span>({{errors().length}})</span>
+        <span>({{ errors().length }})</span>
       </h5>
 
-      <button mat-icon-button displayDensity="cosy" class="ml-6"
-        [matTooltip]="'PAC.KEY_WORDS.ClearAll' | translate: {Default: 'Clear All'}"
-        matTooltipPosition="above"
-        (click)="clearErrors()">
-        <mat-icon fontSet="material-icons-round">clear_all</mat-icon>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
+        class="ml-6"
+        [zTooltip]="'PAC.KEY_WORDS.ClearAll' | translate: { Default: 'Clear All' }"
+        zPosition="top"
+        (click)="clearErrors()"
+      >
+        <z-icon zType="clear_all"></z-icon>
       </button>
     </div>
 
     <div class="flex flex-col overflow-auto" displayDensity="compact">
-      <mat-list class="ngm-list">
+      <ul class="ngm-list space-y-1">
         @for (error of errors(); track error; let i = $index) {
-          <mat-list-item class="group relative" [matTooltip]="error">
-            <p>{{error}}</p>
+          <li
+            class="group relative flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
+            [zTooltip]="error"
+          >
+            <p class="min-w-0 flex-1 break-words">{{ error }}</p>
+            <div class="shrink-0">
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
 
-            <div matListItemMeta>
-              <button mat-icon-button class="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                color="warn" (click)="clearError(i)">
-                <mat-icon fontSet="material-icons-round">close</mat-icon>
+                (click)="clearError(i)"
+              >
+                <z-icon zType="close"></z-icon>
               </button>
             </div>
-          </mat-list-item>
+          </li>
         } @empty {
           <div class="flex justify-center items-center">
-            {{ 'PAC.SHARED.Notification.NoNotificationYet' | translate: {Default: 'No notification yet'} }}
+            {{ 'PAC.SHARED.Notification.NoNotificationYet' | translate: { Default: 'No notification yet' } }}
           </div>
         }
-      </mat-list>
+      </ul>
     </div>
   </div>
 </ng-template>

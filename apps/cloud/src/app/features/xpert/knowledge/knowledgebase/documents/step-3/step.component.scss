@@ -1,9 +1,4 @@
+@reference "../../../../../../../styles/tailwind-reference.css";
 :host {
-  --mdc-linear-progress-track-height: 2px;
-  --mdc-linear-progress-active-indicator-height: 2px;
   @apply flex;
-}
-
-.mat-mdc-progress-bar {
-  @apply absolute bottom-0;
 }

@@ -1,5 +1,5 @@
-import { IDocChunkMetadata } from '@metad/contracts'
-import { DeepPartial } from '@metad/server-common'
+import { IDocChunkMetadata } from '@xpert-ai/contracts'
+import { DeepPartial } from '@xpert-ai/server-common'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
 import { IsJSON, IsNotEmpty, IsString } from 'class-validator'

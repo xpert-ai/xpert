@@ -10,27 +10,19 @@ import {
 	DestroyRef
 } from '@angular/core';
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
-import { filter, map, Observable, of as observableOf } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { IRole, IUser, RolesEnum } from '@metad/contracts';
+import { filter, map } from 'rxjs';
+import { IRole, IUser, RolesEnum } from '@xpert-ai/contracts';
 import { RoleService, Store } from './../../../../../@core/services';
-import { CommonModule } from '@angular/common';
+
 import { TranslateModule } from '@ngx-translate/core';
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
+import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
 	standalone: true,
-	imports: [
-		CommonModule,
-		FormsModule,
-		ReactiveFormsModule,
-		TranslateModule,
-
-		MatFormFieldModule,
-		MatSelectModule
-	],
+	imports: [FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, NgmSelectComponent],
 	selector: 'pac-role-form-field',
 	templateUrl: './role.component.html',
 	styleUrls: [],
@@ -46,11 +38,11 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 	readonly destroyRef = inject(DestroyRef)
 	
 	roles: IRole[] = [];
-	roles$: Observable<IRole[]> = observableOf([]);
+	roleOptions: Array<{ value: string; label: string }> = [];
 	onChange: any = () => {};
 	onTouched: any = () => {};
 
-	@Input() appearance: MatFormFieldAppearance
+	@Input() appearance: NgmFieldAppearance
 
 	/**
 	 * Getter & Setter for dynamic remove role from options
@@ -60,7 +52,8 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 		return this._excludes;
 	}
 	@Input() set excludes(value: RolesEnum[]) {
-		this._excludes = value;
+		this._excludes = value ?? [];
+		this.updateRoleOptions();
 	}
 
 	// ID attribute for the field and for attribute for the label
@@ -118,14 +111,15 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 	/**
 	 * Getter & Setter for internal [(NgModel)]
 	 */
-	private _roleId: string;
+	private _roleId: string | null = null;
 	get roleId(): string {
 		return this._roleId;
 	}
-	set roleId(value: string) {
-		this._roleId = value;
-		this.onChange(value)
-		this.onTouched(value)
+	set roleId(value: string | null) {
+		this._roleId = value ?? null;
+		this.updateRoleOptions();
+		this.onChange(this._roleId)
+		this.onTouched()
 	}
 
 	@Output()
@@ -140,10 +134,9 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 		this.store.user$
 			.pipe(
 				filter((user: IUser) => !!user),
-				tap(() => this.renderRoles()),
 				takeUntilDestroyed(this.destroyRef)
 			)
-			.subscribe();
+			.subscribe(() => this.renderRoles());
 	}
 
 	/**
@@ -151,24 +144,25 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 	* Excludes role if needed
 	*/
 	async renderRoles() {
-		this.roles$ = this.rolesService.getAll().pipe(
-			map(({items}) => items),
-			map((roles: IRole[]) => roles.filter(
-				(role: IRole) => !this.excludes.includes(role.name as RolesEnum)
-			)),
-			tap((roles: IRole[]) => this.roles = roles),
-			takeUntilDestroyed(this.destroyRef)
-		);
+		this.rolesService
+			.getAll()
+			.pipe(
+				map(({items}) => items),
+				takeUntilDestroyed(this.destroyRef)
+			)
+			.subscribe((roles: IRole[]) => {
+				this.roles = roles;
+				this.updateRoleOptions();
+			});
 	}
 
 	/**
 	 * Write Value
 	 * @param value 
 	 */
-	writeValue(value: IRole) {
-		if (value) {
-			this.roleId = value.id;
-		}
+	writeValue(value: IRole | string | null) {
+		this._roleId = typeof value === 'string' ? value : value?.id ?? null;
+		this.updateRoleOptions();
 	}
 
 	registerOnChange(fn: (rating: number) => void): void {
@@ -202,6 +196,36 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 		return this.roles.find(
 			(role: IRole) => value === role.id
 		);
+	}
+
+	onRoleIdChange(value: IRole['id'] | null) {
+		this.roleId = value;
+		const role = value ? this.getRoleById(value) : null;
+		if (role) {
+			this.selectedChange.emit(role);
+		}
+	}
+
+	private updateRoleOptions() {
+		const nextOptions = this.roles
+			.filter(
+				(role: IRole) => !this.excludes.includes(role.name as RolesEnum)
+			)
+			.map((role) => ({
+				value: role.id,
+				label: role.name
+			}));
+
+		if (
+			nextOptions.length === this.roleOptions.length &&
+			nextOptions.every((option, index) =>
+				option.value === this.roleOptions[index]?.value && option.label === this.roleOptions[index]?.label
+			)
+		) {
+			return;
+		}
+
+		this.roleOptions = nextOptions;
 	}
 
 	ngOnDestroy() {}

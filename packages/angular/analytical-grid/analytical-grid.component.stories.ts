@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common'
+
 import { provideHttpClient } from '@angular/common/http'
 import { Component, importProvidersFrom } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { provideAnimations } from '@angular/platform-browser/animations'
 import {
   DisplayDensity,
@@ -10,19 +10,20 @@ import {
   OCAP_DATASOURCE_TOKEN,
   OCAP_MODEL_TOKEN,
   OcapCoreModule
-} from '@metad/ocap-angular/core'
-import { AgentType, C_MEASURES, DataSource, Type } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/core'
+import { AgentType, C_MEASURES, DataSource, Type } from '@xpert-ai/ocap-core'
 import { Meta, StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { provideTranslate } from '../mock'
 import { CUBE_SALES_ORDER, MockAgent } from '../mock/agent-mock.service'
 import { AnalyticalGridComponent } from './analytical-grid.component'
 import { AnalyticalGridModule } from './analytical-grid.module'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatButtonModule, AnalyticalGridModule],
+  imports: [ZardButtonComponent, AnalyticalGridModule],
   selector: 'ngm-story-component-switch-grid',
-  template: `<button mat-button (click)="switch()">Switch</button>
+  template: `<button z-button zType="ghost" (click)="switch()">Switch</button>
     <ngm-analytical-grid
       style="width: 400px; height: 400px;"
       [dataSettings]="grid.dataSettings"
@@ -99,7 +100,7 @@ export default {
           useValue: {
             type: 'SQL',
             factory: async (): Promise<Type<DataSource>> => {
-              const { SQLDataSource } = await import('@metad/ocap-sql')
+              const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
               return SQLDataSource
             }
           },

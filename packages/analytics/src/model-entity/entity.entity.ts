@@ -7,8 +7,8 @@ import {
 	SemanticModelEntityJob,
 	TScheduleOptions,
 	ScheduleTaskStatus
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
@@ -34,7 +34,7 @@ export class SemanticModelEntity extends TenantOrganizationBaseEntity implements
 
 	@ApiProperty({ type: () => String, enum: ModelEntityType })
 	@IsEnum(ModelEntityType)
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type: ModelEntityType
 
 	@ApiPropertyOptional({ type: () => Object })
@@ -64,7 +64,7 @@ export class SemanticModelEntity extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ enum: ScheduleTaskStatus })
 	@IsEnum(ScheduleTaskStatus)
 	@IsOptional()
-	@Column({ nullable: true, length: 20 })
+	@Column({ type: 'varchar', nullable: true, length: 20 })
 	status?: ScheduleTaskStatus
 
 	/**

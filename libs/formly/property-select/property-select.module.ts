@@ -1,19 +1,15 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
-import { DensityDirective } from '@metad/ocap-angular/core'
+
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NxChromaticPreviewComponent } from '@metad/components/palette'
-import { PropertyCapacity, PropertyModule } from '@metad/components/property'
-import { NxDesignerModule } from '@metad/story/designer'
-import { NgmColorsComponent } from '@metad/components/form-field'
+import { NxChromaticPreviewComponent } from '@xpert-ai/components/palette'
+import { NgmEntityModule, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import { NgmColorsComponent } from '@xpert-ai/components/form-field'
 import { PACFormlyPropertySelectComponent } from './property-select.component'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardFormImports, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [PACFormlyPropertySelectComponent],
@@ -21,15 +17,14 @@ import { PACFormlyPropertySelectComponent } from './property-select.component'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-    MatRadioModule,
-    MatCheckboxModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardFormImports,
+    ...ZardMenuImports,
+    ZardCheckboxComponent,
     TranslateModule,
 
-    PropertyModule,
-    NxDesignerModule,
+    NgmEntityModule,
     NxChromaticPreviewComponent,
     DensityDirective,
     NgmColorsComponent,

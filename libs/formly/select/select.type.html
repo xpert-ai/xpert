@@ -1,36 +1,129 @@
-<ngm-select [displayDensity]="props?.displayDensity"
-  [label]="props?.label"
-  [placeholder]="props?.placeholder"
-  [required]="props?.required"
-  [valueKey]="props?.valueKey ?? 'value'"
-  [searchable]="props?.searchable"
-  [virtualScroll]="props?.virtualScroll"
-  [panelWidth]="props?.panelWidth"
-  [displayBehaviour]="props?.displayBehaviour"
-  [formControl]="valueFormControl"
-  [selectOptions]="selectOptions()"
+<z-form-field class="w-full p-0 pb-2" [displayDensity]="props?.displayDensity">
+  <z-form-label [zRequired]="props?.required" [title]="props.label">
+    {{ props.label || '' }}
+    @if (props?.help) {
+      <a
+        [href]="props.help"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal"
+      >
+        {{ 'FORMLY.COMMON.Help' | translate: { Default: 'Help' } }}
+        <i class="ri-external-link-line inline-block transition-transform group-hover:translate-x-1"></i>
+      </a>
+    }
+  </z-form-label>
 
-  [class.ngm-select-error]="error() || (formControl.invalid && formControl.touched)"
->
-  @if (props?.help) {
-    <a ngmLabel [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">
-      {{ 'FORMLY.COMMON.Help' | translate: {Default: 'Help'} }}
-      <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
-    </a>
+  @if (props?.searchable) {
+    <z-combobox-deprecated
+      zTriggerMode="input"
+      class="w-full pac-formly-select__control"
+      [class.pac-formly-select__control--error]="hasError()"
+      [formControl]="valueFormControl"
+      [options]="comboboxOptions()"
+      [placeholder]="props?.placeholder || ''"
+      [zSearchTerm]="searchTerm()"
+      [zPanelWidth]="props?.panelWidth"
+      [zDisplayWith]="displayWith"
+      [zClearable]="true"
+      (zSearchTermChange)="onSearchTermChange($event)"
+      (zValueChange)="onOptionSelected($event)"
+    >
+      <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+        @if (props?.virtualScroll) {
+          <cdk-virtual-scroll-viewport
+            class="pac-formly-select__viewport p-1!"
+            minBufferPx="200"
+            maxBufferPx="400"
+            [style.height.px]="240"
+            [itemSize]="30"
+          >
+            <button
+              type="button"
+              role="option"
+              class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-hover-bg"
+              *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackByValue; let i = index"
+              [class.bg-accent]="i === activeIndex"
+              [class.text-accent-foreground]="i === activeIndex"
+              (mousedown)="$event.preventDefault()"
+              (mouseenter)="setActiveIndex(i)"
+              (click)="select(option)"
+            >
+              <ngm-display-behaviour
+                class="flex-1 overflow-hidden"
+                [option]="option.data"
+                [displayBehaviour]="props?.displayBehaviour"
+                [highlight]="highlight()"
+              />
+            </button>
+          </cdk-virtual-scroll-viewport>
+        } @else {
+          <div class="pac-formly-select__panel max-h-[450px] overflow-auto p-1">
+            @for (option of filteredComboboxOptions(); track option.id ?? option.value; let i = $index) {
+              <button
+                type="button"
+                role="option"
+                class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-hover-bg"
+                [class.bg-accent]="i === activeIndex"
+                [class.text-accent-foreground]="i === activeIndex"
+                (mousedown)="$event.preventDefault()"
+                (mouseenter)="setActiveIndex(i)"
+                (click)="select(option)"
+              >
+                <ngm-display-behaviour
+                  class="flex-1 overflow-hidden"
+                  [option]="option.data"
+                  [displayBehaviour]="props?.displayBehaviour"
+                  [highlight]="highlight()"
+                />
+              </button>
+            } @empty {
+              <div class="px-2 py-6 text-sm text-muted-foreground">
+                {{ 'FORMLY.Select.Empty' | translate: { Default: 'No results found.' } }}
+              </div>
+            }
+          </div>
+        }
+      </ng-template>
+    </z-combobox-deprecated>
+  } @else {
+    <z-select
+      class="w-full pac-formly-select__control"
+      [class.pac-formly-select__control--error]="hasError()"
+      [formControl]="valueFormControl"
+      [zDisabled]="formControl.disabled"
+      [zPlaceholder]="props?.placeholder || ''"
+    >
+      @for (option of selectOptions() ?? []; track optionTrackBy(option)) {
+        <z-select-item [zValue]="optionValue(option)">
+          <ngm-display-behaviour
+            class="flex-1 overflow-hidden"
+            [option]="option"
+            [displayBehaviour]="props?.displayBehaviour"
+          />
+        </z-select-item>
+      }
+    </z-select>
   }
-  @if (formControl.invalid && formControl.touched) {
-    <formly-validation-message ngmError [field]="field" />
-  }
-  @if (error()) {
-    <span ngmError>{{error()}}</span>
-  }
-  <div ngmSuffix class="flex items-center">
-    <mat-progress-spinner class="hidden" color="primary" mode="indeterminate" diameter="16" />
+
+  <div zFormSuffix class="pac-formly-select__suffix flex items-center">
+    <z-loader class="hidden" diameter="16" />
     @if (props?.info) {
-      <i class="ri-information-2-line opacity-50"
-        [matTooltip]="props.info"
-        matTooltipPosition="above"
-      ></i>
+      <i class="ri-information-2-line opacity-50" [zTooltip]="props.info" zPosition="top"></i>
     }
   </div>
-</ngm-select>
+
+  @if (formControl.getError('error') || (formControl.invalid && formControl.touched) || error()) {
+    <z-form-message zType="error" class="text-xs">
+      @if (formControl.getError('error')) {
+        <span>{{ formControl.getError('error') }}</span>
+      } @else if (formControl.invalid && formControl.touched) {
+        <formly-validation-message [field]="field" />
+      }
+
+      @if (error()) {
+        <span>{{ error() }}</span>
+      }
+    </z-form-message>
+  }
+</z-form-field>

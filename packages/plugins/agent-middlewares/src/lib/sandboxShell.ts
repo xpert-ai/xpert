@@ -1,19 +1,20 @@
 import { tool } from '@langchain/core/tools'
-import { TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@metad/contracts'
+import { TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   AgentMiddleware,
   AgentMiddlewareStrategy,
-  BaseSandbox,
   DEFAULT_SANDBOX_SHELL_TIMEOUT_SEC,
   SANDBOX_SHELL_TIMEOUT_LIMITS_SEC,
-  secondsToMilliseconds,
   IAgentMiddlewareContext,
   IAgentMiddlewareStrategy,
-  PromiseOrValue
+  PromiseOrValue,
+  resolveSandboxBackend,
+  secondsToMilliseconds
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 import { getToolCallId, withStreamingToolMessage } from './toolMessageUtils'
+import { assertSandboxFeatureEnabled } from './xpertFeatureGate'
 
 const SANDBOX_SHELL_MIDDLEWARE_NAME = 'SandboxShell'
 const SANDBOX_SHELL_TOOL_NAME = 'sandbox_shell'
@@ -54,19 +55,22 @@ export class SandboxShellMiddleware implements IAgentMiddlewareStrategy {
       en_US: 'Adds a shell tool that runs commands via the sandbox backend.',
       zh_Hans: '添加一个通过沙箱后端运行命令的命令行工具。'
     },
+    features: ['sandbox'],
     configSchema: {
       type: 'object',
       properties: {}
     }
   }
 
-  createMiddleware(_options: unknown, _context: IAgentMiddlewareContext): PromiseOrValue<AgentMiddleware> {
+  createMiddleware(_options: unknown, context: IAgentMiddlewareContext): PromiseOrValue<AgentMiddleware> {
+    assertSandboxFeatureEnabled(context, SANDBOX_SHELL_MIDDLEWARE_NAME)
+
     const shellTool = tool(
       async ({ command, timeout_sec }, config) => {
         const configurable = config?.configurable as TAgentRunnableConfigurable | undefined
-        const backend = configurable?.sandbox?.backend as BaseSandbox | undefined
+        const backend = resolveSandboxBackend(configurable?.sandbox)
 
-        if (!backend || typeof backend.execute !== 'function') {
+        if (!backend) {
           throw new Error('Sandbox backend is not available for SandboxShell.')
         }
 

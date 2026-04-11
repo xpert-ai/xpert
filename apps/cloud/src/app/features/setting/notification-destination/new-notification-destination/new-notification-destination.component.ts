@@ -1,11 +1,11 @@
 import { Component, HostBinding, OnInit } from '@angular/core'
 import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms'
-import { MatDialogRef } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { mergeSelectedValues } from '@xpert-ai/ocap-angular/core'
 import { isEmpty } from 'lodash-es'
-import { BehaviorSubject } from 'rxjs'
-import { convertConfigurationSchema, IMG_ROOT, PACNotificationDestinationsService } from '../../../../@core'
+import { BehaviorSubject, combineLatest, map, startWith } from 'rxjs'
+import { convertConfigurationSchema, IMG_ROOT, PACNotificationDestinationsService, ToastrService } from '../../../../@core'
 
+import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'pac-new-notification-destination',
   templateUrl: './new-notification-destination.component.html',
@@ -19,6 +19,10 @@ export class NewNotificationDestinationComponent implements OnInit {
   typeFormGroup = new UntypedFormGroup({
     type: new UntypedFormControl(null, [Validators.required])
   })
+  readonly destinationTypesWithSelection$ = combineLatest([
+    this.destinationTypes$,
+    this.typeFormGroup.valueChanges.pipe(startWith(this.typeFormGroup.value))
+  ]).pipe(map(([types, value]) => mergeSelectedValues(types, value?.type ?? [], this.compareWithType)))
 
   get type() {
     return this.typeFormGroup.value?.type?.[0]
@@ -41,8 +45,8 @@ export class NewNotificationDestinationComponent implements OnInit {
   creating: boolean
   constructor(
     private destinationService: PACNotificationDestinationsService,
-    private _dialogRef: MatDialogRef<NewNotificationDestinationComponent>,
-    private _snakBar: MatSnackBar
+    private _dialogRef: ZardDialogRef<NewNotificationDestinationComponent>,
+    private readonly toastrService: ToastrService
   ) {}
 
   ngOnInit(): void {
@@ -65,7 +69,7 @@ export class NewNotificationDestinationComponent implements OnInit {
         type: this.type.type
       })
       .subscribe(() => {
-        this._snakBar.open('创建成功', '', { duration: 1000 })
+        this.toastrService.success('创建成功')
         this._dialogRef.close()
       })
   }
@@ -73,5 +77,9 @@ export class NewNotificationDestinationComponent implements OnInit {
   onReset() {
     this.configurationFormGroup.clearValidators()
     this.configurationFormGroup.reset()
+  }
+
+  compareWithType(a: any, b: any) {
+    return a?.type === b?.type
   }
 }

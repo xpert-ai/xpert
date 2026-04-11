@@ -1,5 +1,5 @@
 // request-context.middleware.ts
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import { IncomingMessage, ServerResponse } from 'node:http'

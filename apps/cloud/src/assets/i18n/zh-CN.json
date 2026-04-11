@@ -18,6 +18,92 @@
   },
   "PAC": {
     "Title": "元数分析云",
+    "Skill": {
+      "InstalledSkills": "已安装技能",
+      "WorkspaceSkillsWorkbenchDesc": "浏览已安装技能，查看其文件树，并在当前工作区直接编辑支持的文件。",
+      "UploadSkills": "上传技能",
+      "UploadSkillsHint": "上传包含一个或多个技能文件夹的 zip（每个包含 SKILL.md）。",
+      "SkillUploadSuccess": "技能上传成功",
+      "SkillPackageInstalled": "技能包已安装",
+      "DeleteSkillPackageTitle": "删除技能包",
+      "DeleteSkillPackageInfo": "确定要删除此技能包吗？此操作不可撤销。",
+      "SkillPackageDeleted": "技能包已删除",
+      "SelectedSkillPackages": "已选择 {{count}} 个",
+      "SkillPackagesDeleted": "所选技能包已删除",
+      "RegisterFromRepository": "从仓库注册",
+      "BulkImport": "批量导入",
+      "NoSkills": "暂无已安装技能。",
+      "NoSkillsWorkbenchHint": "上传一个技能，或从仓库注册技能，即可在此开始浏览其文件。",
+      "SkillsPane": "技能",
+      "TreePane": "文件树",
+      "FilePane": "文件",
+      "BackToSkills": "返回技能列表",
+      "SkillLibrary": "技能库",
+      "SkillsInstalledCount": "个已安装技能",
+      "SelectAll": "全选",
+      "SearchInstalledSkillPlaceholder": "按名称、摘要、作者、提供商或标签搜索",
+      "PrivateVisibility": "私有",
+      "DirectUpload": "直接上传",
+      "LocalProvider": "本地",
+      "LocalAuthor": "本地上传",
+      "RegisterSkillRepositoryTitle": "注册技能仓库",
+      "ChooseFile": "选择文件",
+      "DeleteSelected": "删除所选"
+    },
+    "Files": {
+      "InstalledSkills": "已安装技能",
+      "WorkspaceSkillsWorkbenchDesc": "浏览已安装技能，查看其文件树，并在当前工作区直接编辑支持的文件。",
+      "UploadSkills": "上传技能",
+      "UploadSkillsHint": "上传包含一个或多个技能文件夹的 zip（每个包含 SKILL.md）。",
+      "SkillUploadSuccess": "技能上传成功",
+      "SkillPackageInstalled": "技能包已安装",
+      "DeleteSkillPackageTitle": "删除技能包",
+      "DeleteSkillPackageInfo": "确定要删除此技能包吗？此操作不可撤销。",
+      "SkillPackageDeleted": "技能包已删除",
+      "SelectedSkillPackages": "已选择 {{count}} 个",
+      "SkillPackagesDeleted": "所选技能包已删除",
+      "RegisterFromRepository": "从仓库注册",
+      "BulkImport": "批量导入",
+      "NoSkills": "暂无已安装技能。",
+      "NoSkillsWorkbenchHint": "上传一个技能，或从仓库注册技能，即可在此开始浏览其文件。",
+      "SkillsPane": "技能",
+      "TreePane": "文件树",
+      "FilePane": "文件",
+      "BackToSkills": "返回技能列表",
+      "SkillLibrary": "技能库",
+      "SkillsInstalledCount": "个已安装技能",
+      "SelectAll": "全选",
+      "SearchInstalledSkillPlaceholder": "按名称、摘要、作者、提供商或标签搜索",
+      "PrivateVisibility": "私有",
+      "DirectUpload": "直接上传",
+      "LocalProvider": "本地",
+      "LocalAuthor": "本地上传",
+      "RegisterSkillRepositoryTitle": "注册技能仓库",
+      "ChooseFile": "选择文件",
+      "DeleteSelected": "删除所选",
+      "FileTree": "文件树",
+      "SelectItemForTree": "选择一个项目以查看其文件",
+      "NoFilesFound": "暂未找到文件。",
+      "NoFilesFoundHint": "当前项目在该根目录下没有可显示文件，或文件树仍在加载。",
+      "SelectItem": "选择一个项目",
+      "SelectItemTreeHint": "选择一个项目以加载其文件树。",
+      "BackToTree": "返回文件树",
+      "NoFileSelected": "未选择文件",
+      "FileContent": "文件内容",
+      "UnsavedChanges": "未保存更改",
+      "Discard": "放弃",
+      "BinaryPreviewUnsupported": "此文件无法在此处预览。",
+      "BinaryPreviewHint": "仅支持在此工作台中预览或编辑基于文本的文件。",
+      "SelectFile": "选择文件",
+      "SelectFileHint": "从文件树中选择一个文件进行预览或编辑。",
+      "ReadOnlyFileHint": "当前文件仅支持只读查看。只有 Markdown、代码和部分文本格式可编辑。",
+      "UnsavedChangesTitle": "未保存更改",
+      "UnsavedChangesInfo": "当前文件有未保存的编辑内容。切换前请先保存，或放弃这些待提交更改。",
+      "SkillFileSaved": "文件已保存",
+      "LoadFilesFailed": "加载文件列表失败",
+      "LoadFolderFailed": "加载文件夹失败",
+      "LoadFileFailed": "加载文件失败"
+    },
     "KEY_WORDS": {
       "Ask": "提问",
       "Certification": "认证",
@@ -157,7 +243,26 @@
       "SemanticModels": "语义模型",
       "Stories": "故事",
       "Indicators": "指标",
-      "IndicatorMarket": "指标市场"
+      "IndicatorMarket": "指标市场",
+      "Custom": "自定义",
+      "Default": "默认",
+      "Disabled": "禁用",
+      "Email": "邮箱",
+      "ID": "标识",
+      "IsActive": "启用",
+      "IsDefault": "默认",
+      "Loading": "加载中",
+      "Members": "成员",
+      "NameRequired": "名称必填",
+      "No": "否",
+      "NotSet": "未设置",
+      "Saving": "保存中",
+      "Selected": "已选",
+      "Status": "状态",
+      "TimeZone": "时区",
+      "Uploading": "上传中",
+      "Yes": "是",
+      "All": "所有"
     },
     "Common": {
       "Tools": "工具",
@@ -170,6 +275,7 @@
       "Certification": "认证",
       "Copilot": "副驾驶",
       "Dashboard": "仪表板",
+      "Data": "数据",
       "Semantic Model": "语义模型",
       "Story": "故事",
       "Indicator": "指标",
@@ -180,6 +286,7 @@
       "Settings": "设置",
       "General": "通用",
       "Account": "账号",
+      "ManageUsers": "管理用户",
       "User": "用户",
       "Datasource": "数据源",
       "Business Area": "业务域",
@@ -343,7 +450,11 @@
       }
     },
     "USERS_PAGE": {
-      "ADD_USER": "添加用户"
+      "ADD_USER": "添加用户",
+      "BatchImport": "批量导入",
+      "ConfirmDeleteInvite": "删除后，被邀请的用户将无法再确认邀请",
+      "NoRole": "无角色",
+      "RemoveUserFromOrg": "从此组织内移除此用户"
     },
     "ACTIONS": {
       "Add": "添加",
@@ -390,6 +501,8 @@
       "Edit": "编辑",
       "Generate": "生成演示数据",
       "ManageInvites": "管理邀请",
+      "Rename": "重命名",
+      "Resend": "重新发送",
       "Save": "保存",
       "Validate": "验证",
       "Connect": "连接",
@@ -403,6 +516,7 @@
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
       "USER_ORGANIZATION_ADDED": "用户组织添加成功",
       "USER_ORGANIZATION_REMOVED": "用户组织删除成功",
+      "UpdateSuccess": "更新成功",
       "LocalAgentOffline": "本地代理离线",
       "NameAlreadyExist": "名称已存在",
       "Required": "必输",
@@ -417,14 +531,16 @@
     },
     "Messages": {
       "AlreadyExists": "{{value}}已存在",
-      "IsRequired": "{{value}}未输入"
+      "IsRequired": "{{value}}未输入",
+      "DeletedSuccessfully": "删除成功"
     },
     "NOTES": {
       "ORGANIZATIONS": {
         "DELETE_CONFIRM": "确定从服务器上删除此组织?",
         "DELETE_ORGANIZATION": "组织'{{name}}'删除成功",
         "DEMO_GENERATE_ERROR": "演示数据生成错误",
-        "DEMO_GENERATED": "演示数据生成"
+        "DEMO_GENERATED": "演示数据生成",
+        "AddNewOrganization": "添加新组织"
       },
       "ROLES": {
         "PERMISSION_UPDATED": "角色'{{name}}'更新成功",
@@ -986,7 +1102,6 @@
       }
     },
     "INVITE_PAGE": {
-      "ForOrganization": "为组织",
       "INVITATION_EXPIRATION_OPTIONS": {
         "DAY": "一日",
         "WEEK": "一周",
@@ -1006,6 +1121,12 @@
         "ACCEPTED": "已接受",
         "EXPIRED": "过期"
       }
+    },
+    "Invite": {
+      "PageSubtitle": "查看并管理当前组织范围下的邀请。",
+      "EmptyTitle": "暂无邀请",
+      "EmptyDescription": "请先在当前组织范围内发起一条邀请。",
+      "ResendMissingData": "当前邀请缺少重新发送所需的数据。"
     },
     "Header": {
       "Organization": {
@@ -1031,6 +1152,79 @@
         "Database": "数据库",
         "Version": "版本"
       }
+    },
+    "Assistant": {
+      "MenuTenantSubtitle": "租户默认配置",
+      "MenuOrganizationSubtitle": "组织覆盖配置"
+    },
+    "Scope": {
+      "Current": "当前范围",
+      "Switch": "切换范围",
+      "TenantEyebrow": "租户控制台",
+      "TenantSection": "租户控制台",
+      "TenantLabel": "租户默认值与治理",
+      "TenantHint": "管理租户级默认值、组织以及继承的配置。",
+      "OrganizationEyebrow": "组织范围",
+      "OrganizationSection": "组织",
+      "SelectOrganization": "请选择一个组织"
+    },
+    "Organization": {
+      "MenuTenantSubtitle": "管理所有组织",
+      "MenuOrganizationSubtitle": "查看当前组织",
+      "RegistryTitle": "组织列表",
+      "CurrentOrganizationTitle": "当前组织",
+      "BackToList": "返回列表",
+      "RegistryTenantHelp": "租户范围会显示租户下的所有组织。选择一行即可打开下方详情工作区。",
+      "RegistryOrganizationHelp": "组织范围仅显示当前组织，方便你直接在此查看详情。",
+      "LoadFailed": "无法加载组织",
+      "EmptyStateTitle": "暂无可用组织",
+      "EmptyStateDescription": "当前范围下暂无组织。请在租户范围中新增组织，或先切换到某个组织上下文。",
+      "TabGeneral": "常规",
+      "TabControls": "控制项",
+      "LogoLabel": "徽标",
+      "LogoPreviewHint": "预览并维护当前组织头像。",
+      "RecordSummary": "记录摘要",
+      "ScopeRules": "范围规则",
+      "ScopeRulesTenant": "租户范围可查看所有组织，并维护本页可见的全部设置。",
+      "ScopeRulesOrganization": "组织范围仅限当前组织。治理类开关在此保持只读。",
+      "Today": "今天",
+      "StartOfMonth": "月初",
+      "EndOfMonth": "月末",
+      "Collaboration": "协作",
+      "InvitesAllowedHelp": "允许此组织接收并管理邀请链接。",
+      "Governance": "治理",
+      "GovernanceReadonlyHint": "租户治理字段在组织范围下保持锁定。",
+      "DefaultHelp": "租户范围决定哪个组织作为新会话的默认入口。",
+      "ActiveHelp": "停用可冻结该组织访问权限，而不删除其记录。",
+      "NoTags": "此组织尚未关联任何标签。",
+      "TagContext": "标签上下文",
+      "TagContextHelp": "此面板展示当前组织已绑定的标签。如有需要，标签治理仍可在专门的流程中处理。",
+      "GitHubSourceHelp": "使用维护中的 GitHub 演示数据源。",
+      "AliyunSourceHelp": "使用镜像的 Aliyun OSS 数据源。",
+      "CustomSourceHelp": "提供你自己的文件 URL。",
+      "ReadonlyActionHint": "你需要编辑权限才能执行演示数据生成。",
+      "SelectPromptTitle": "请选择一个组织",
+      "SelectPromptDescription": "请从上方列表选择一行以打开下方详情工作区。",
+      "MembersHint": "管理当前组织内用户的成员状态、默认组织和组织级访问关系。",
+      "MemberAdded": "成员添加成功",
+      "NoMembers": "当前组织暂无成员。",
+      "EmptySearch": "没有匹配的组织。"
+    },
+    "Role": {
+      "EnabledPermissions": "已启用权限",
+      "RoleList": "角色列表",
+      "RoleListHint": "选择一个角色以查看其权限配置和可执行操作。",
+      "SystemDefault": "系统默认",
+      "NoRoles": "暂无角色",
+      "NoRolesHint": "创建一个角色后，即可开始为组织配置基于角色的访问控制。",
+      "NoRoleSelected": "请选择一个角色",
+      "NoRoleSelectedHint": "从左侧列表选择角色后，即可查看权限、重命名角色或管理其访问范围。",
+      "RenameTitle": "重命名角色",
+      "RenameSuccess": "角色重命名成功",
+      "SystemRole": "系统角色",
+      "CustomRole": "自定义角色",
+      "SystemRoleHint": "系统角色由平台维护，不允许删除。",
+      "CustomRoleHint": "自定义角色在没有绑定关系时可以重命名或删除。"
     },
     "Story": {
       "EditStory": "编辑故事",
@@ -1143,10 +1337,19 @@
       "Files": "文件"
     },
     "Certification": {
-      "Certification": "认证",
+      "Entry": "认证条目",
       "UpdateCertification": "更新认证",
       "DeleteCertification": "删除认证",
-      "CreateCertification": "创建认证"
+      "CreateCertification": "创建认证",
+      "CreateFirst": "创建第一个认证",
+      "EmptyHint": "定义可复用的认证类型，用于项目、资产或审核流程。",
+      "DefaultName": "新认证",
+      "EmptyDescription": "暂未添加描述。",
+      "NamePlaceholder": "请输入认证名称",
+      "DescriptionPlaceholder": "描述该认证类型校验或表示的内容",
+      "OwnerPlaceholder": "请选择所有者",
+      "NoOwner": "未分配所有者",
+      "Untitled": "未命名认证"
     },
     "Copilot": {
       "Copilot": "Copilot",
@@ -1234,6 +1437,11 @@
       "NameRequired": "名称不能为空",
       "AddDataLater": "我稍后添加我的数据",
       "ConnectDatabase": "连接数据库",
+      "ConfigureAiModel": "配置 AI 模型",
+      "ConfigureAiModelDesc": "为模型提供商配置主提供商并选择默认模型。稍后您仍可以在系统设置中继续完善。",
+      "ConfigureAiModelTitle": "让您的模型提供商准备就绪",
+      "ConfigureAiModelHint": "我们会先为您创建主提供商，然后您可以在这里继续填写授权信息并选择默认模型。",
+      "ConfigureAiModelAction": "开始配置",
       "Done": "完成",
       "AllSetup": "您已经设置好了！",
       "TakeMetoMetadAnalyticsPlatform": "带我去 Metad 分析平台",
@@ -1249,7 +1457,48 @@
       "zh-Hant": "繁体中文"
     },
     "Users": {
-      "NoMoreOrganizations": "没有更多的组织可添加"
+      "BackToList": "返回用户列表",
+      "NoMoreOrganizations": "没有更多的组织可添加",
+      "GroupsHint": "查看用户在各个有效组织下所属的用户组。",
+      "NoActiveOrganizations": "该用户当前不在任何有效组织中。",
+      "DefaultOrganizationUpdated": "默认组织设置成功",
+      "OrganizationStatusUpdated": "组织成员状态更新成功",
+      "InviteOrganizationHint": "邀请在当前组织范围内发起。",
+      "NoInviteOrganization": "请先切换到组织范围再发起邀请。"
+    },
+    "UserGroup": {
+      "Title": "用户组",
+      "Subtitle": "管理用于已发布助手访问控制的组织级用户组。",
+      "Create": "创建用户组",
+      "Edit": "编辑用户组",
+      "FormHint": "把组织成员绑定成可复用的访问组。",
+      "NamePlaceholder": "输入用户组名称",
+      "DescriptionPlaceholder": "描述哪些用户应该加入该组",
+      "Members": "成员",
+      "MembersHint": "仅可选择当前组织中的有效用户。",
+      "MemberCount": "{{count}} 位成员",
+      "SearchGroups": "搜索用户组",
+      "SearchMembers": "搜索成员",
+      "CreateFirst": "创建第一个用户组",
+      "SelectedMembers": "已选成员",
+      "InactiveMember": "已失效",
+      "SelectMembersHint": "从右侧成员面板中选择用户加入当前用户组。",
+      "RemoveInactiveMembersHint": "保存前请先从当前用户组中移除已失效成员。",
+      "XpertAuthorizationHint": "选择该用户组可访问的已发布 XPERT。",
+      "NoPublishedXperts": "暂无可授权的已发布 XPERT。",
+      "NoAuthorizedXperts": "暂无已授权的 XPERT。",
+      "SelectVisible": "选择当前结果",
+      "NoActiveMembers": "当前组织暂无有效成员",
+      "NoActiveMembersHint": "请先为当前组织添加或激活用户，然后再把他们加入用户组。",
+      "NoMatchingGroups": "没有匹配的用户组。",
+      "NoMatchingMembers": "没有匹配的成员。",
+      "NoMatchingMembersHint": "请尝试其他搜索关键字。",
+      "NoGroupsInOrganization": "当前组织下暂无用户组。",
+      "DeleteConfirmDetail": "删除该用户组后，会同时移除成员绑定和 XPERT 授权关系，是否继续？",
+      "Joined": "加入时间"
+    },
+    "Xpert": {
+      "XpertUserGroups": "XPERT 用户组"
     },
     "Feature": {
       "Features": {
@@ -1489,7 +1738,10 @@
         "OfficialName": "组织全称",
         "ShortDescription": "组织简介",
         "Website": "网站链接",
-        "SelectDataNetwork": "选择数据网络"
+        "SelectDataNetwork": "选择数据网络",
+        "DataNetworkDescription": "服务端将从此网络存储地址下载相应的数据文件进行演示数据的导入",
+        "FileUrl": "文件链接",
+        "SelectTimeZone": "选择一个时区"
       }
     }
   },
@@ -2920,7 +3172,7 @@
       "Label": "排序字段"
     }
   },
-  "PANGOLIN": {
+  "XPERT": {
     "CORE": {
       "WIDGET": {
         "Rank": "排名",
@@ -2935,6 +3187,9 @@
       "INVITATION_EXPIRATION": "邀请过期"
     },
     "PLACEHOLDERS": {
+      "EMAILS_EMPTY_HINT": "点击右侧输入框以添加邮箱",
+      "MEMBERS_EMPTY_HINT": "使用右侧输入框搜索并添加成员",
+      "TAGS_EMPTY_HINT": "使用右侧输入框搜索或创建标签",
       "ROLE": "选择角色"
     }
   },

@@ -1,14 +1,13 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { SafePipe } from '@metad/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { SafePipe } from '@xpert-ai/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ITag } from '../../../@core'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, NgmI18nPipe, SafePipe],
+  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, NgmI18nPipe, SafePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag',
   templateUrl: './tag.component.html',

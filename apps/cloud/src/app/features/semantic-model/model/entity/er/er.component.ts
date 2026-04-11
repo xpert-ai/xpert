@@ -13,30 +13,28 @@ import {
   viewChildren
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmDisplayBehaviourComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
-import { AggregationRole, CalculationType, nonNullable } from '@metad/ocap-core'
+
+import { NgmDisplayBehaviourComponent } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityPropertyComponent } from '@xpert-ai/ocap-angular/entity'
+import { AggregationRole, CalculationType, nonNullable } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import ELK from 'elkjs'
 import { debounceTime } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
 import { ModelDesignerType } from '../../types'
 import { ModelEntityService } from '../entity.service'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     TranslateModule,
     DragDropModule,
-    MatButtonModule,
-    MatTooltipModule,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
     ButtonGroupDirective,
-    MatIconModule,
+    ZardIconComponent,
     DensityDirective,
     NgmEntityPropertyComponent,
     NgmDisplayBehaviourComponent
@@ -207,14 +205,14 @@ export class ERComponent {
     this.arrange()
 
     setTimeout(() => {
-      var parentWidth = this.parent().nativeElement.clientWidth;
-      var parentHeight = this.parent().nativeElement.clientHeight;
+      var parentWidth = this.parent().nativeElement.clientWidth
+      var parentHeight = this.parent().nativeElement.clientHeight
 
-      var childWidth = this.area().nativeElement.clientWidth;
-      var childHeight = this.area().nativeElement.clientHeight;
+      var childWidth = this.area().nativeElement.clientWidth
+      var childHeight = this.area().nativeElement.clientHeight
 
-      var leftPosition = (parentWidth - childWidth) / 2;
-      var topPosition = (parentHeight - childHeight) / 2;
+      var leftPosition = (parentWidth - childWidth) / 2
+      var topPosition = (parentHeight - childHeight) / 2
       this.areaPosition.update((state) => ({
         x: leftPosition,
         y: topPosition

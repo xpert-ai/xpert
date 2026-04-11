@@ -1,5 +1,5 @@
 import { EntitySubscriberInterface, EventSubscriber } from "typeorm";
-import { IEmailTemplate } from "@metad/contracts";
+import { IEmailTemplate } from "@xpert-ai/contracts";
 import { EmailTemplate } from "./email-template.entity";
 
 @EventSubscriber()

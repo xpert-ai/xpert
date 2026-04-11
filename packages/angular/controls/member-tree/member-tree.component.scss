@@ -9,12 +9,12 @@
   flex-direction: row;
   align-items: center;
 
-  .mat-checkbox {
+  z-checkbox {
     padding-right: 1rem;
   }
 }
 
-.mat-progress-spinner {
+z-loader {
   position: absolute;
   left: 50%;
   top: 50%;

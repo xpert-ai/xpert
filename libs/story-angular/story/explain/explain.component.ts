@@ -1,36 +1,32 @@
 import { Component, inject, OnInit } from '@angular/core'
-import { NgmPrismHighlightComponent } from '@metad/ocap-angular/prism'
-import { convertQueryResultColumns, nonNullable } from '@metad/core'
-import { NgmCopyComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import { OcapCoreModule, OmitBlankPipe } from '@metad/ocap-angular/core'
-import { isDataSettings } from '@metad/ocap-core'
-import { uuid } from '@metad/story/core'
+import { NgmPrismHighlightComponent } from '@xpert-ai/ocap-angular/prism'
+import { convertQueryResultColumns, nonNullable } from '@xpert-ai/core'
+import { NgmCopyComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { OcapCoreModule, OmitBlankPipe } from '@xpert-ai/ocap-angular/core'
+import { isDataSettings } from '@xpert-ai/ocap-core'
+import { uuid } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatIconModule } from '@angular/material/icon'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { MatButtonModule } from '@angular/material/button'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     DragDropModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltipModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
     NgmTableComponent,
     NgmPrismHighlightComponent,
     OcapCoreModule,
     OmitBlankPipe,
     NgxJsonViewerModule,
     NgmCopyComponent
-  ],
+],
   selector: 'pac-story-explain',
   templateUrl: 'explain.component.html',
   styleUrls: ['explain.component.scss']

@@ -13,6 +13,7 @@
         "tsConfig": "packages/xmla/tsconfig.lib.json",
         "project": "packages/xmla/package.json",
         "entryFile": "packages/xmla/src/index.ts",
+        "buildLibsFromSource": false,
         "globals": [
           {
             "global": "Rx",

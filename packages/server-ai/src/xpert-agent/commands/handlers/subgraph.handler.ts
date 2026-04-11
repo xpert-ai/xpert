@@ -52,10 +52,10 @@ import {
     TXpertTeamNode,
     WorkflowNodeTypeEnum,
     XpertAgentExecutionStatusEnum
-} from '@metad/contracts'
-import { stringifyMessageContent } from '@metad/copilot'
-import { getErrorMessage } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { stringifyMessageContent } from '@xpert-ai/copilot'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
@@ -108,6 +108,7 @@ import {
     TWorkflowGraphNode,
     TStateChannel,
     hasMultipleInputs,
+    filterDisabledTools,
     getAgentMiddlewares,
     orderNodesByKeyOrder,
     createAgentChannel
@@ -267,8 +268,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             stateVariables.push(...(_variables ?? []))
             // Filter available tools by agent
             const availableTools = agent.options?.availableTools?.[toolset.getName()] ?? []
-            items
-                .filter((tool) => (availableTools.length ? availableTools.includes(tool.name) : true))
+            const filteredItems = filterDisabledTools(
+                items.filter((tool) => (availableTools.length ? availableTools.includes(tool.name) : true)),
+                'toolset',
+                toolset.getId(),
+                options.toolPreferences
+            )
+            filteredItems
                 .forEach((tool) => {
                     const lc_name =
                         tool instanceof DynamicStructuredTool
@@ -683,8 +689,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 projectId: options.projectId,
                 conversationId: options.conversationId,
                 xpertId: xpert.id,
+                xpertFeatures: xpert.features ?? null,
                 agentKey,
                 tools: toolMap
+            },
+            {
+                toolPreferences: options.toolPreferences
             }
         )
         // Middleware tools

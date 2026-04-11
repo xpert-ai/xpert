@@ -1,11 +1,12 @@
-<div class="toolbar justify-between items-center z-10"
-  [class.show-toolbar]="showToolbar()">
+<div class="toolbar justify-between items-center z-10" [class.show-toolbar]="showToolbar()">
   <span class="title">
     @if (drilling()) {
-      <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
-        [matTooltip]="'Story.Common.Back' | translate: {Default: 'Back'}"
-        matTooltipPosition="above"
-        (click)="drillDimensions.set([])">
+      <button
+        class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+        [zTooltip]="'Story.Common.Back' | translate: { Default: 'Back' }"
+        zPosition="top"
+        (click)="drillDimensions.set([])"
+      >
         <i class="ri-arrow-left-line"></i>
       </button>
     }
@@ -15,25 +16,30 @@
     <ng-content></ng-content>
 
     @if (drilling()) {
-      <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
-        [matTooltip]="'Story.Common.Download' | translate: {Default: 'Download'}"
-        matTooltipPosition="above"
-        (click)="download()">
+      <button
+        class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+        [zTooltip]="'Story.Common.Download' | translate: { Default: 'Download' }"
+        zPosition="top"
+        (click)="download()"
+      >
         <i class="ri-download-line"></i>
       </button>
     }
 
-    <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+    <button
+      class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
       [cdkMenuTriggerFor]="filtersMenu"
-      [cdkMenuTriggerData]="{trigger: mt}"
+      [cdkMenuTriggerData]="{ trigger: mt }"
       #mt="cdkMenuTriggerFor"
       [class.active]="mt.isOpen()"
-      [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
-      matTooltipPosition="above"
-      >
+      [zTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
+      zPosition="top"
+    >
       <i class="ri-filter-line"></i>
       @if (hasSlicers$ | async) {
-        <span class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"></span>
+        <span
+          class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"
+        ></span>
       }
     </button>
 
@@ -42,11 +48,12 @@
         <i class="ri-loader-2-line animate-spin"></i>
       </div>
     } @else {
-      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 text-text-secondary hover:text-text-primary
-        bg-transparent hover:bg-hover-bg"
-        [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
-        matTooltipPosition="above"
-        (click)="refresh(true)">
+      <button
+        class="btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+        [zTooltip]="'Ngm.AnalyticalCard.Refresh' | translate: { Default: 'Refresh' }"
+        zPosition="top"
+        (click)="refresh(true)"
+      >
         <i class="ri-refresh-line"></i>
       </button>
     }
@@ -54,8 +61,8 @@
 </div>
 
 @if (error()) {
-  <div class="pac-kpi-card__error ngm-card-error relative left-0 top-0 w-full h-full overflow-auto
-    flex flex-col justify-center items-center"
+  <div
+    class="pac-kpi-card__error ngm-card-error relative left-0 top-0 w-full h-full overflow-auto flex flex-col justify-center items-center"
   >
     <span class="text-2xl font-notoColorEmoji">🐞</span>
     <div class="whitespace-pre-wrap max-w-full text-red-500">
@@ -66,25 +73,24 @@
   <div class="w-full h-full flex flex-col justify-between items-stretch" [class.hidden]="drilling()">
     <div class="ngm-kpi--kpi flex-1 flex justify-center items-center">
       @if (options?.icon) {
-        <mat-icon>{{options.icon}}</mat-icon>
+        <z-icon [zType]="options.icon"></z-icon>
       }
-      
+
       <ng-content select=".ngm-kpi--icon"></ng-content>
 
       @if (kpiValue$ | async; as kpiValue) {
-        <div class="ngm-kpi--content"
-          [class.ngm-kpi__intent]="intent()?.semanticObject"
-          (click)="onIntentClick()"
-        >
-          <ng-container *ngTemplateOutlet="kpi; context: {kpiValue: kpiValue, options: optionsSignal()}"></ng-container>
+        <div class="ngm-kpi--content" [class.ngm-kpi__intent]="intent()?.semanticObject" (click)="onIntentClick()">
+          <ng-container
+            *ngTemplateOutlet="kpi; context: { kpiValue: kpiValue, options: optionsSignal() }"
+          ></ng-container>
         </div>
       }
-      
+
       @if (trend$ | async; as trend) {
         <div class="ngm-kpi--trend flex justify-around items-end">
           <div class="ngm-kpi--reference">
             <div class="ngm-kpi--title" [ngStyle]="titleStyles$()">
-              {{options?.targetText}}
+              {{ options?.targetText }}
             </div>
             <ngm-object-number
               [number]="trend.referenceValue"
@@ -98,7 +104,7 @@
           @if (options?.showDeviation) {
             <div class="ngm-kpi--reference ngm-kpi--deviation">
               <div class="ngm-kpi--title">
-                {{options?.deviationText || ('NX.SMART_KPI.DEVIATION_TEXT' | translate)}}
+                {{ options?.deviationText || ('NX.SMART_KPI.DEVIATION_TEXT' | translate) }}
               </div>
               <ngm-object-number
                 [number]="trend.deviation"
@@ -116,13 +122,17 @@
       @if (isLoading()) {
         <ngm-spin class="absolute top-0 left-0 w-full h-full" />
       }
-      
     </div>
 
     @if (additionalDataPoints$ | async; as additionals) {
       <div class="ngm-kpi--additional">
         @for (kpiValue of additionals; track $index) {
-          <ng-container *ngTemplateOutlet="kpi; context: {kpiValue: kpiValue, options: optionsSignal()?.additionalDataPoint || optionsSignal()}"></ng-container>
+          <ng-container
+            *ngTemplateOutlet="
+              kpi;
+              context: { kpiValue: kpiValue, options: optionsSignal()?.additionalDataPoint || optionsSignal() }
+            "
+          ></ng-container>
         }
       </div>
     }
@@ -130,32 +140,35 @@
 }
 
 <ng-template #kpi let-kpiValue="kpiValue" let-options="options">
-  <div class="ngm-kpi--data-point" [ngClass]="{
-    'trend-strong-up': kpiValue.arrow === TrendType.StrongUp,
-    'trend-up': kpiValue.arrow === TrendType.Up,
-    'trend-sideways': kpiValue.arrow === TrendType.Sideways,
-    'trend-down': kpiValue.arrow === TrendType.Down,
-    'trend-strong-down': kpiValue.arrow === TrendType.StrongDown
-  }">
-    <span class="ngm-kpi--title" [ngStyle]="titleStyles$()">{{kpiValue?.Title || options?.valueText}}</span>
+  <div
+    class="ngm-kpi--data-point"
+    [ngClass]="{
+      'trend-strong-up': kpiValue.arrow === TrendType.StrongUp,
+      'trend-up': kpiValue.arrow === TrendType.Up,
+      'trend-sideways': kpiValue.arrow === TrendType.Sideways,
+      'trend-down': kpiValue.arrow === TrendType.Down,
+      'trend-strong-down': kpiValue.arrow === TrendType.StrongDown
+    }"
+  >
+    <span class="ngm-kpi--title" [ngStyle]="titleStyles$()">{{ kpiValue?.Title || options?.valueText }}</span>
     <div class="ngm-kpi--indicator flex">
       @if (kpiValue.arrow) {
         <div class="ngm-kpi--arrow flex justify-center items-end">
           @switch (kpiValue.arrow) {
             @case (TrendType.StrongUp) {
-              <mat-icon>north</mat-icon>
+              <z-icon zType="north"></z-icon>
             }
             @case (TrendType.Up) {
-              <mat-icon>north_east</mat-icon>
+              <z-icon zType="north_east"></z-icon>
             }
             @case (TrendType.Down) {
-              <mat-icon>south_east</mat-icon>
+              <z-icon zType="south_east"></z-icon>
             }
             @case (TrendType.StrongDown) {
-              <mat-icon>south</mat-icon>
+              <z-icon zType="south"></z-icon>
             }
             @default {
-              <mat-icon>remove</mat-icon>
+              <z-icon zType="remove"></z-icon>
             }
           }
         </div>
@@ -166,11 +179,12 @@
           <div class="ngm-kpi--reference ngm-kpi--deviation">
             @if (options?.deviationText) {
               <div class="ngm-kpi--title">
-                {{options?.deviationText}}
+                {{ options?.deviationText }}
               </div>
             }
             <ngm-object-number
-              [number]="kpiValue.deviation" unit="%"
+              [number]="kpiValue.deviation"
+              unit="%"
               [digitsInfo]="options?.digitsInfo"
               [shortNumber]="false"
               [locale]="locale"
@@ -178,7 +192,9 @@
           </div>
         }
 
-        <ngm-object-number class="ngm-kpi--value cursor-pointer hover:underline" [ngStyle]="valueStyles()"
+        <ngm-object-number
+          class="ngm-kpi--value cursor-pointer hover:underline"
+          [ngStyle]="valueStyles()"
           [number]="kpiValue.value"
           [unit]="options?.unit || kpiValue.unit"
           [digitsInfo]="options?.digitsInfo"
@@ -188,27 +204,30 @@
           [locale]="locale"
           [cdkMenuTriggerFor]="drillMenu"
         />
-
       </div>
-
     </div>
-    
   </div>
 </ng-template>
 
 @if (editableSignal() && showPlaceholder()) {
-  <div class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
+  <div
+    class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center"
+  >
     <pac-kpi-placeholder class="cursor-pointer" (click)="openDesigner()" />
-    <span class="ngm-story-widget__placeholder-title">{{ 'Story.Widgets.KPI.Title' | translate: {Default: 'KPI'} }}</span>
+    <span class="ngm-story-widget__placeholder-title">{{
+      'Story.Widgets.KPI.Title' | translate: { Default: 'KPI' }
+    }}</span>
   </div>
 }
 
 @if (drilling()) {
-  <div class=" w-full top-0 left-0 z-10">
-    <ngm-analytical-grid #gridComponent class="inset-0 max-h-96"
+  <div class="w-full top-0 left-0 z-10">
+    <ngm-analytical-grid
+      #gridComponent
+      class="inset-0 max-h-96"
       [dataSettings]="drillDataSettings()"
       [slicers]="selectOptions()"
-      [appearance]="{displayDensity: eDisplayDensity.compact}"
+      [appearance]="{ displayDensity: eDisplayDensity.compact }"
       [options]="{
         showToolbar: false,
         sticky: true,
@@ -222,8 +241,11 @@
 
 <ng-template #filtersMenu let-trigger="trigger">
   <div class="relative p-3 rounded-2xl border-light shadow-md bg-components-card-bg">
-    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
-    <ngm-slicers class="overflow-hidden" inline editable
+    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: { Default: 'Slicers' } }}</div>
+    <ngm-slicers
+      class="overflow-hidden"
+      inline
+      editable
       [slicers]="selectOptions()"
       [dataSettings]="dataSettings$ | async"
       [limit]="5"
@@ -232,8 +254,11 @@
       (click)="$event.stopPropagation()"
     />
 
-    <button type="button" class="btn-close btn btn-secondary absolute right-2 top-2 flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-      (click)="trigger.close()">
+    <button
+      type="button"
+      class="btn-close btn btn-secondary absolute right-2 top-2 flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+      (click)="trigger.close()"
+    >
       <i class="ri-close-line"></i>
     </button>
   </div>
@@ -242,7 +267,7 @@
 <ng-template #drillMenu>
   <div cdkMenu class="cdk-menu__medium text-text-primary">
     <div class="p-1">
-      {{ 'Ngm.AnalyticalCard.DrillDimension' | translate: {Default: "Drill Dimension"} }}
+      {{ 'Ngm.AnalyticalCard.DrillDimension' | translate: { Default: 'Drill Dimension' } }}
     </div>
     @for (item of dimensions(); track item.name) {
       @if (item.hierarchies.length > 1) {
@@ -250,10 +275,12 @@
           {{ item.caption }}
         </div>
         @for (h of item.hierarchies; track h.name) {
-          <button cdkMenuItem class="ml-2 font-mono" (click)="drill(h)">{{h.caption}}</button>
+          <button cdkMenuItem class="ml-2 font-mono" (click)="drill(h)">{{ h.caption }}</button>
         }
       } @else {
-        <button cdkMenuItem class="font-mono" (click)="drill(item.hierarchies[0])">{{item.hierarchies[0].caption}}</button>
+        <button cdkMenuItem class="font-mono" (click)="drill(item.hierarchies[0])">
+          {{ item.hierarchies[0].caption }}
+        </button>
       }
     }
   </div>

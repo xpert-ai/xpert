@@ -1,10 +1,9 @@
 import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { ChangeDetectionStrategy, Component, Input, ViewChild, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, Input, ViewChild, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
-import { MtxButtonModule } from '@ng-matero/extensions/button'
+
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage } from '../../../@core'
 import { ToastrService } from '../../../@core/services'
@@ -12,15 +11,15 @@ import { ICreateEmailInvitesOutput, InvitationTypeEnum } from '../../../@core/ty
 import { TranslationBaseComponent } from '../../language/translation-base.component'
 import { EmailInviteFormComponent } from '../forms'
 import { InviteFormsModule } from '../forms/invite-forms.module'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     FormsModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     DragDropModule,
-    MtxButtonModule,
     ButtonGroupDirective,
 
     InviteFormsModule
@@ -31,6 +30,8 @@ import { InviteFormsModule } from '../forms/invite-forms.module'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InviteMutationComponent extends TranslationBaseComponent {
+  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+
   private readonly toastrService = inject(ToastrService)
   private readonly _dialogRef = inject(DialogRef<ICreateEmailInvitesOutput>)
 
@@ -59,7 +60,7 @@ export class InviteMutationComponent extends TranslationBaseComponent {
 
       this._dialogRef.close(result)
     } catch (err) {
-      this.toastrService.success(getErrorMessage(err))
+      this.toastrService.error(getErrorMessage(err))
     }
   }
 

@@ -4,7 +4,7 @@ import {
 	IXpertToolset,
 	ToolProviderCredentials,
 	XpertToolsetCategoryEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 
 import { IToolRuntime, ToolProviderIdentity } from './types'
 import { _BaseToolset } from '../shared/'

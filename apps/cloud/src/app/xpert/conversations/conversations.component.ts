@@ -16,13 +16,11 @@ import {
   viewChild
 } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatSidenav } from '@angular/material/sidenav'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
-import { IXpert, PaginationParams } from '@metad/cloud/state'
+import { NgmCommonModule, NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { effectAction, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { IXpert, PaginationParams } from '@xpert-ai/cloud/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -39,7 +37,7 @@ import {
 import { AppService } from '../../app.service'
 import { XpertHomeService } from '../home.service'
 import { groupConversations } from '../types'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -54,7 +52,7 @@ import { groupConversations } from '../types'
     A11yModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     WaIntersectionObserver,
     NgmCommonModule,
     DateRelativePipe,
@@ -79,10 +77,9 @@ export class ChatConversationsComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
-  readonly #data = inject<{xpertId?: string; xpertSlug: string; basePath: string; projectId?: string;}>(DIALOG_DATA)
+  readonly #data = inject<{ xpertId?: string; xpertSlug: string; basePath: string; projectId?: string }>(DIALOG_DATA)
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
-  readonly sidenav = viewChild('sidenav', { read: MatSidenav })
 
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
@@ -93,7 +90,7 @@ export class ChatConversationsComponent {
   readonly xpertId = signal(this.#data.xpertId ?? '')
 
   readonly sidenavOpened = model(!this.isMobile())
-  readonly #cache = computed(() => this.homeService.conversations()[this.xpertId()]) 
+  readonly #cache = computed(() => this.homeService.conversations()[this.xpertId()])
   readonly groups = computed(() => {
     const cache = this.#cache()
     return cache ? groupConversations(cache.items) : []
@@ -106,7 +103,7 @@ export class ChatConversationsComponent {
   readonly pageSize = 20
   readonly currentPage = this.homeService.currentPage
   readonly pagesCompleted = this.homeService.pagesCompleted
-  
+
   readonly expand = signal(false)
   readonly _filterXpert = signal<IXpert>(null)
   readonly searchControl = new FormControl()
@@ -114,37 +111,56 @@ export class ChatConversationsComponent {
     return this.searchControl.value
   }
 
-  private searchSub = this.searchControl.valueChanges.pipe(
-      debounceTime(1000),
-      distinctUntilChanged()
-    ).subscribe(() => {
-      this.resetLoadConversations()
-      this.loadConversations()
-    })
+  readonly #basePath = this.#data.basePath ?? '/chat'
+
+  private searchSub = this.searchControl.valueChanges.pipe(debounceTime(1000), distinctUntilChanged()).subscribe(() => {
+    this.resetLoadConversations()
+    this.loadConversations()
+  })
 
   constructor() {
     this.onIntersection()
 
-    effect(() => {
-      const cache = this.#cache()
-      if (cache) {
-        this.searchControl.setValue(cache.search ?? null, { emitEvent: false })
-        this._filterXpert.set(cache.xpert ?? null)
+    effect(
+      () => {
+        const cache = this.#cache()
+        if (cache) {
+          this.searchControl.setValue(cache.search ?? null, { emitEvent: false })
+          this._filterXpert.set(cache.xpert ?? null)
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   selectConversation(item: IChatConversation) {
-    let basePath = this.#data.basePath ?? '/chat'
-    if (item.projectId) {
-      basePath += `/p/${item.projectId}`
-    }
+    const basePath = item.projectId ? this.getProjectBasePath(item.projectId) : this.#basePath
     if (this.xpertSlug()) {
       this.#router.navigate([basePath, 'x', this.xpertSlug(), 'c', item.id])
     } else {
       this.#router.navigate([basePath, 'c', item.id])
     }
     this.#dialogRef.close()
+  }
+
+  newConversation() {
+    let url = this.projectId() ? this.getProjectBasePath(this.projectId()) : this.#basePath
+
+    if (this.xpertSlug()) {
+      url += `/x/${this.xpertSlug()}`
+    }
+
+    this.homeService.conversationId.set(null)
+    this.homeService.conversation.set(null)
+    this.#router.navigateByUrl(url)
+    this.#dialogRef.close()
+  }
+
+  closeDialog() {
+    this.#dialogRef.close()
+  }
+
+  private getProjectBasePath(projectId: string) {
+    return this.#basePath === '/project' ? `/project/${projectId}` : `${this.#basePath}/p/${projectId}`
   }
 
   deleteConv(id: string) {
@@ -182,7 +198,7 @@ export class ChatConversationsComponent {
     this.homeService.conversations.update((state) => {
       return {
         ...state,
-        [this.xpertId()]: {items: [], xpert: this._filterXpert(), search: this.searchControl.value}
+        [this.xpertId()]: { items: [], xpert: this._filterXpert(), search: this.searchControl.value }
       }
     })
     this.pagesCompleted.set(false)
@@ -200,27 +216,30 @@ export class ChatConversationsComponent {
             take: this.pageSize,
             skip: this.currentPage() * this.pageSize,
             where: {
-              from: 'webapp',
+              from: 'webapp'
             }
           })
         } else {
           const where: PaginationParams<IChatConversation>['where'] = {
-            from: 'platform',
+            from: 'platform'
           }
           if (this.projectId()) {
             where.projectId = this.projectId()
           }
-          if (this.xpertId() || this._filterXpert())  {
+          if (this.xpertId() || this._filterXpert()) {
             where.xpertId = this.xpertId() || this._filterXpert()?.id
           }
-          return this.conversationService.getMyInOrg({
-            select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId'],
-            order: { updatedAt: OrderTypeEnum.DESC },
-            take: this.pageSize,
-            skip: this.currentPage() * this.pageSize,
-            where,
-            relations: ['xpert', 'project']
-          }, this.searchControl.value)
+          return this.conversationService.getMyInOrg(
+            {
+              select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId'],
+              order: { updatedAt: OrderTypeEnum.DESC },
+              take: this.pageSize,
+              skip: this.currentPage() * this.pageSize,
+              where,
+              relations: ['xpert', 'project']
+            },
+            this.searchControl.value
+          )
         }
       }),
       tap({
@@ -240,8 +259,7 @@ export class ChatConversationsComponent {
             this.homeService.conversations.update((state) => {
               return {
                 ...state,
-                [this.xpertId()]: 
-                {
+                [this.xpertId()]: {
                   xpert: this._filterXpert(),
                   search: this.searchControl.value,
                   items: [...items]
@@ -281,7 +299,7 @@ export class ChatConversationsComponent {
     if (this.xpertSlug()) {
       url = `${this.#data.basePath}x/${this.xpertSlug()}/c/${conv.id}`
     } else {
-      url = `${this.#data.basePath}c/${conv.id}`  
+      url = `${this.#data.basePath}c/${conv.id}`
     }
     window.open(url, '_blank')
   }

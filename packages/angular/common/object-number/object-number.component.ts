@@ -1,8 +1,8 @@
-import { CommonModule, getCurrencySymbol } from '@angular/common'
+import { CommonModule, getCurrencySymbol } from '@angular/common';
 import { Component, LOCALE_ID, booleanAttribute, computed, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmShortNumberPipe } from '@metad/ocap-angular/core'
-import { isNumber } from '@metad/ocap-core'
+import { NgmShortNumberPipe } from '@xpert-ai/ocap-angular/core'
+import { isNumber } from '@xpert-ai/ocap-core'
 
 /**
  * https://experience.sap.com/fiori-design-web/object-display-elements/

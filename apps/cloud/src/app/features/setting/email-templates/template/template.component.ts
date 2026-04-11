@@ -1,21 +1,11 @@
-import { CommonModule } from '@angular/common'
-import {
-  AfterViewInit,
-  ChangeDetectorRef,
-  Component,
-  computed,
-  inject,
-  output,
-  SecurityContext,
-  signal
-} from '@angular/core'
+
+import { AfterViewInit, ChangeDetectorRef, Component, computed, inject, output, SecurityContext, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
+
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
-import { EditorThemeMap } from '@metad/ocap-angular/formula'
+import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { EditorThemeMap } from '@xpert-ai/ocap-angular/formula'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
@@ -24,21 +14,19 @@ import { debounceTime, distinctUntilChanged, filter, map, tap } from 'rxjs/opera
 import { EmailTemplateService, Store, ToastrService } from '../../../../@core/'
 import { EmailTemplateNameEnum, IOrganization, LanguagesMap } from '../../../../@core/types'
 import { EmailTemplatesComponent } from '../email-templates.component'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-
-    MatButtonModule,
-    MatIconModule,
+    ZardButtonComponent,
+    ZardIconComponent,
     MonacoEditorModule,
-
     ButtonGroupDirective
-  ],
+],
   selector: 'pac-email-template',
   templateUrl: './template.component.html',
   styleUrls: ['./template.component.scss']

@@ -1,10 +1,10 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, input, output } from '@angular/core'
 import { injectHelpWebsite } from '../../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   selector: 'ngm-card-create',
   templateUrl: 'create.component.html',
   styleUrls: ['create.component.scss']

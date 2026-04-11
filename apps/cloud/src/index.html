@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <title>Xpert AI</title>
@@ -11,7 +11,6 @@
     <meta http-equiv="Expires" content="0" /> -->
     <link rel="icon" type="image/png" href="./assets/logo.png" />
     <link rel="apple-touch-icon" href="./assets/images/apple-touch-icon.png" />
-    <link href="./assets/fonts/noto-serif-sc/all.css" rel="stylesheet" />
     <!-- <script src="./assets/pace/pace.min.js"></script> -->
     <link rel="manifest" href="manifest.webmanifest" />
 
@@ -19,8 +18,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
   </head>
-  <body class="ngm-theme-light light"
-    style="font-family: Lato, 'Noto Serif SC', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';">
+  <body
+    style="font-family: var(--font-xp-sans, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji');">
     <pac-root>
       <style>
         .pace {
@@ -58,16 +57,6 @@
     </pac-root>
 
     <style>
-      @media (prefers-color-scheme: dark) {
-        .app-loader, html, body {
-          background-color: #16181c;
-        }
-      }
-      @media (prefers-color-scheme: light) {
-        .app-loader, html, body {
-          background-color: #f5f5f5;
-        }
-      }
       html, body {
         height: 100%;
       }

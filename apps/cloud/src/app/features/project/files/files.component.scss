@@ -2,7 +2,8 @@
   width: 100%;
   overflow: auto;
 }
-.rounded-full.mat-stroked-button {
+.rounded-full[z-button],
+z-button.rounded-full {
   border-radius: 50%;
 }
 

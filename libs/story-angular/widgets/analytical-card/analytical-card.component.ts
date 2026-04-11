@@ -1,8 +1,8 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { ChangeDetectionStrategy, Component, Input, ViewChild, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { AnalyticalCardComponent, AnalyticalCardOptions } from '@metad/ocap-angular/analytical-card'
-import { NgmSmartBusinessService } from '@metad/ocap-angular/core'
+import { AnalyticalCardComponent, AnalyticalCardOptions } from '@xpert-ai/ocap-angular/analytical-card'
+import { NgmSmartBusinessService } from '@xpert-ai/ocap-angular/core'
 import {
   ChartAnnotation,
   ChartOptions,
@@ -15,14 +15,13 @@ import {
   isBaseProperty,
   isEqual,
   isMeasure
-} from '@metad/ocap-core'
-import { SlicersCapacity } from '@metad/ocap-angular/selection'
-import { AbstractStoryWidget, StoryWidgetState, WidgetMenu, WidgetMenuType } from '@metad/core'
-import { NxStoryService } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
+import { AbstractStoryWidget, StoryWidgetState, WidgetMenu, WidgetMenuType } from '@xpert-ai/core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { isArray, isEmpty, isNil, negate } from 'lodash-es'
 import { Observable, combineLatest, combineLatestWith, distinctUntilChanged, filter, map, shareReplay, startWith } from 'rxjs'
 import { WidgetOrderMenu } from './types'
-
 
 export interface WidgetAnalyticalCardOptions extends AnalyticalCardOptions {
   showDownloadButton?: boolean
@@ -51,6 +50,7 @@ export interface AnalyticalCardState extends StoryWidgetState<WidgetAnalyticalCa
 }
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-widget-analytical-card',
   templateUrl: './analytical-card.component.html',

@@ -1,4 +1,4 @@
-import { IXpertTable, TXpertTableColumn, XpertTableStatus } from '@metad/contracts'
+import { IXpertTable, TXpertTableColumn, XpertTableStatus } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, DeleteDateColumn, Entity } from 'typeorm'
@@ -55,7 +55,7 @@ export class XpertTable extends WorkspaceBaseEntity implements IXpertTable {
 
 	@ApiProperty({ enum: XpertTableStatus })
 	@IsEnum(XpertTableStatus)
-	@Column({ length: 30, default: XpertTableStatus.DRAFT })
+	@Column({ type: 'varchar', length: 30, default: XpertTableStatus.DRAFT })
 	status: XpertTableStatus
 
 	@ApiPropertyOptional({ type: () => String })

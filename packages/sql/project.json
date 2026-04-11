@@ -13,6 +13,8 @@
         "tsConfig": "packages/sql/tsconfig.lib.json",
         "project": "packages/sql/package.json",
         "entryFile": "packages/sql/src/index.ts",
+        "skipTypeCheck": true,
+        "buildLibsFromSource": false,
         "globals": [
           {
             "global": "Rx",

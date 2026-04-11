@@ -1,18 +1,17 @@
-import { Component, afterNextRender, booleanAttribute, effect, input, signal, viewChild } from '@angular/core'
-import { MatPaginator, MatPaginatorDefaultOptions, MatPaginatorModule } from '@angular/material/paginator'
-import { MatTableDataSource, MatTableModule } from '@angular/material/table'
-import { NgmDisplayBehaviourComponent, TableColumn } from '@metad/ocap-angular/common'
-import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
-import { serializeMemberCaption } from '@metad/ocap-sql'
+import { Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
+import { ZardButtonComponent, ZardIconComponent, ZardPaginatorComponent, type ZardPageEvent, ZardTableImports } from '@xpert-ai/headless-ui'
+
+import { NgmDisplayBehaviourComponent, TableColumn } from '@xpert-ai/ocap-angular/common'
+import { DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { serializeMemberCaption } from '@xpert-ai/ocap-sql'
 import { findIndex, get } from 'lodash-es'
 import { HierarchyTableDataType } from '../types'
 import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
 
 type LevelTableColumn = TableColumn & { captionName: string }
+const DEFAULT_PAGE_SIZE_OPTIONS = [100, 200, 500, 1000]
 
 @Component({
   standalone: true,
@@ -25,10 +24,10 @@ type LevelTableColumn = TableColumn & { captionName: string }
   providers: [],
   imports: [
     CommonModule,
-    MatTableModule,
-    MatIconModule,
-    MatButtonModule,
-    MatPaginatorModule,
+    ...ZardTableImports,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ZardPaginatorComponent,
     TranslateModule,
     DensityDirective,
     NgmDisplayBehaviourComponent
@@ -54,14 +53,7 @@ export class HierarchyTableComponent<T> {
   readonly paging = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
-  readonly pageSizeOptions = input<MatPaginatorDefaultOptions['pageSizeOptions']>([100, 200, 500, 1000])
-
-  /**
-  |--------------------------------------------------------------------------
-  | Child Components
-  |--------------------------------------------------------------------------
-  */
-  readonly paginator = viewChild(MatPaginator)
+  readonly pageSizeOptions = input<number[]>([100, 200, 500, 1000])
 
   /**
   |--------------------------------------------------------------------------
@@ -70,14 +62,29 @@ export class HierarchyTableComponent<T> {
   */
   readonly _data = signal<HierarchyTableDataType<T>[]>([])
   readonly displayedColumns = signal<string[]>([])
+  readonly pageIndex = signal(0)
+  readonly pageSize = signal(DEFAULT_PAGE_SIZE_OPTIONS[0])
+  readonly rows = computed(() => {
+    const data = this._data()
+    if (!this.paging()) {
+      return data
+    }
 
-  readonly dataSource = new MatTableDataSource<any>()
+    const start = this.pageIndex() * this.pageSize()
+    return data.slice(start, start + this.pageSize())
+  })
+  readonly tableSize = computed(() => {
+    switch (this.displayDensity()) {
+      case DisplayDensity.comfortable:
+        return 'comfortable'
+      case DisplayDensity.compact:
+        return 'compact'
+      default:
+        return 'default'
+    }
+  })
 
   constructor() {
-    afterNextRender(() => {
-      this.dataSource.paginator = this.paginator()
-    })
-
     effect(
       () => {
         const data = this.data()
@@ -88,8 +95,7 @@ export class HierarchyTableComponent<T> {
             this.expandNode(root)
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -99,15 +105,30 @@ export class HierarchyTableComponent<T> {
           ...this.columns().map((column) => column.name),
           'childrenCardinality'
         ])
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
       () => {
-        this.dataSource.data = this._data()
-      },
-      { allowSignalWrites: true }
+        const pageSizeOptions = this.pageSizeOptions()
+        if (!pageSizeOptions?.length) {
+          this.pageSize.set(DEFAULT_PAGE_SIZE_OPTIONS[0])
+          return
+        }
+
+        if (!pageSizeOptions.includes(this.pageSize())) {
+          this.pageSize.set(pageSizeOptions[0])
+        }
+      }
+    )
+
+    effect(
+      () => {
+        const maxPageIndex = Math.max(Math.ceil(this._data().length / this.pageSize()) - 1, 0)
+        if (this.pageIndex() > maxPageIndex) {
+          this.pageIndex.set(maxPageIndex)
+        }
+      }
     )
   }
 
@@ -149,5 +170,10 @@ export class HierarchyTableComponent<T> {
       rows.splice(index + 1, 0, ...node.children.map((child) => ({ ...child, expanded: false })))
       return [...rows]
     })
+  }
+
+  onPage(event: ZardPageEvent) {
+    this.pageIndex.set(event.pageIndex)
+    this.pageSize.set(event.pageSize)
   }
 }

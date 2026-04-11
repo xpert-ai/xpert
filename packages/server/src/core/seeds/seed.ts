@@ -2,7 +2,7 @@
 // MIT License, see https://github.com/alexitaylor/angular-graphql-nestjs-postgres-starter-kit/blob/master/LICENSE
 // Copyright (c) 2019 Alexi Taylor
 
-import { IPluginConfig } from '@metad/server-common';
+import { IPluginConfig } from '@xpert-ai/server-common';
 import { NestFactory } from '@nestjs/core';
 import { registerPluginConfig } from '../../bootstrap';
 import { SeedDataService } from './seed-data.service';

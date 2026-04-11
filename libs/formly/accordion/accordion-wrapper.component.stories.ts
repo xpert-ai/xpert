@@ -1,13 +1,14 @@
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
+
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NgmFormlyModule } from '@xpert-ai/formly';
 import { FormlyModule } from '@ngx-formly/core';
-import { FormlyMaterialModule } from '@ngx-formly/material';
 import { Meta, moduleMetadata, Story } from '@storybook/angular';
 import { MetadFormlyEmptyModule } from '../empty';
 import { MetadFormlyPanelModule } from '../panel';
 import { MetadFormlyAccordionComponent } from './accordion-wrapper.component';
 import { MetadFormlyAccordionModule } from './accordion-wrapper.module';
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Material/Accordion',
@@ -17,9 +18,9 @@ export default {
       imports: [
         BrowserAnimationsModule,
         ReactiveFormsModule,
-        MatButtonModule,
+        ZardButtonComponent,
         FormlyModule.forRoot(),
-        FormlyMaterialModule,
+        NgmFormlyModule,
         MetadFormlyAccordionModule,
         MetadFormlyPanelModule,
         MetadFormlyEmptyModule,
@@ -31,7 +32,7 @@ export default {
 const Template: Story<any> = (args: MetadFormlyAccordionComponent) => ({
   props: args,
   template: `<formly-form [form]="form" [fields]="schema" [model]="model"></formly-form>
-<button mat-button [disabled]="form.invalid">Submit</button>
+<button z-button zType="ghost" [disabled]="form.invalid">Submit</button>
 <div>Result:</div>
 <pre>{{form.value | json}}</pre>`,
 });
@@ -300,7 +301,6 @@ SubAccordionWithHide.args = {
     },
   ],
 };
-
 
 export const SubAccordionWithFlatFields = Template.bind({});
 SubAccordionWithFlatFields.args = {

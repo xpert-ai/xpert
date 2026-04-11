@@ -1,23 +1,28 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, inject, Input, ViewChild } from '@angular/core'
+import { Component, inject, Input } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatRadioModule } from '@angular/material/radio'
-import { UsersService } from '@metad/cloud/state'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardLoaderComponent,
+  ZardTagSelectComponent
+} from '@xpert-ai/headless-ui'
+import { UsersService } from '@xpert-ai/cloud/state'
+import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxjs'
+import { catchError, debounce, distinctUntilChanged, map, of, startWith, switchMap, tap, timer } from 'rxjs'
 import { IUser } from '../../../@core'
-import { userLabel, UserPipe } from '../../pipes'
+import { userLabel } from '../../pipes'
+
+function isUser(value: unknown): value is IUser {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'id' in value &&
+    ('email' in value || 'username' in value || 'fullName' in value || 'firstName' in value || 'lastName' in value)
+  )
+}
 
 @Component({
   standalone: true,
@@ -25,31 +30,29 @@ import { userLabel, UserPipe } from '../../pipes'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-
-    MatButtonModule,
-    MatAutocompleteModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatChipsModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatRadioModule,
+    ZardButtonComponent,
+    ZardTagSelectComponent,
+    ...ZardFormImports,
+    ZardLoaderComponent,
     TranslateModule,
-
-    ButtonGroupDirective,
-    NgmCommonModule,
-    UserPipe
+    ButtonGroupDirective
   ],
   selector: 'pac-user-role-select',
   templateUrl: 'user-role-select.component.html',
   styleUrls: ['user-role-select.component.scss']
 })
 export class UserRoleSelectComponent {
-  separatorKeysCodes: number[] = [ENTER, COMMA]
-  userLabel = userLabel
-
   private userService = inject(UsersService)
-  public data: { role: string; roles: ISelectOption[]; single?: boolean } = inject(DIALOG_DATA)
+  public data: {
+    role?: string
+    roles?: ISelectOption[]
+    single?: boolean
+    emptyHint?: string
+    searchOptions?: {
+      organizationId?: string
+      membership?: string
+    }
+  } = inject(DIALOG_DATA)
   private _dialogRef = inject(DialogRef)
 
   @Input() single: boolean
@@ -57,19 +60,21 @@ export class UserRoleSelectComponent {
   role: string = null
   users: IUser[] = []
   loading = false
-  searchControl = new FormControl()
-  @ViewChild('userInput') userInput: ElementRef<HTMLInputElement>
+  searchControl = new FormControl<string>('')
+  readonly loadOnEmptySearch = this.data?.searchOptions?.membership === 'non-members'
 
   public readonly users$ = this.searchControl.valueChanges.pipe(
-    debounceTime(500),
-    filter((value) => typeof value === 'string'),
+    startWith(this.searchControl.value ?? ''),
+    map((value) => (typeof value === 'string' ? value : '')),
+    distinctUntilChanged(),
+    debounce((text) => timer(!text.trim() && this.loadOnEmptySearch ? 0 : 500)),
     switchMap((text) => {
-      if (text.trim()) {
+      if (text.trim() || this.loadOnEmptySearch) {
         this.loading = true
-        return this.userService.search(text).pipe(
+        return this.userService.search(text, this.data?.searchOptions).pipe(
           catchError((err) => {
             this.loading = false
-            return EMPTY
+            return of([])
           })
         )
       }
@@ -77,37 +82,37 @@ export class UserRoleSelectComponent {
     }),
     tap((items) => (this.loading = false))
   )
+  public readonly userOptions$ = this.users$.pipe(
+    map((items) =>
+      items.map((user) => ({
+        id: user.id,
+        label: userLabel(user),
+        value: user,
+        data: user
+      }))
+    )
+  )
 
   constructor() {
     this.role = this.data?.role
     this.single = this.data?.single
   }
 
-  displayWith(user: IUser) {
-    if (user === null) {
-      return null
+  readonly displayUser = (value: unknown) => {
+    if (!isUser(value)) {
+      return ''
     }
-    return user.fullName || user.firstName + user.firstName || user.email
+
+    return userLabel(value)
   }
 
-  remove(user: IUser): void {
-    const index = this.users.indexOf(user)
-
-    if (index >= 0) {
-      this.users.splice(index, 1)
-    }
+  onSearchTermChange(value: string) {
+    this.searchControl.setValue(value)
   }
 
-  selected(event: MatAutocompleteSelectedEvent): void {
-    if (event.option.value && !this.users.find((item) => item.id === event.option.value.id)) {
-      if (this.single) {
-        this.users = [event.option.value]
-      } else {
-        this.users.push(event.option.value)
-      }
-    }
-    this.userInput.nativeElement.value = ''
-    this.searchControl.setValue(null)
+  onUsersChange(value: unknown[]) {
+    const nextUsers = Array.isArray(value) ? value.filter(isUser) : []
+    this.users = this.single && nextUsers.length > 1 ? [nextUsers[nextUsers.length - 1]] : nextUsers
   }
 
   onPaste(event: ClipboardEvent) {
@@ -145,4 +150,6 @@ export class UserRoleSelectComponent {
   onCancel() {
     this._dialogRef.close()
   }
+
+  readonly compareUsers = (a: unknown, b: unknown) => isUser(a) && isUser(b) && a.id === b.id
 }

@@ -1,23 +1,15 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, HostBinding, Inject, Input, Optional, computed, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatChipsModule } from '@angular/material/chips'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatSelectModule } from '@angular/material/select'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { NgmParameterModule } from '@metad/ocap-angular/parameter'
-import { AdvancedSlicerOperator, DataSettings, DisplayBehaviour, EntityType, nonNullable } from '@metad/ocap-core'
+import { ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardIconComponent, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityModule, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import { NgmParameterModule } from '@xpert-ai/ocap-angular/parameter'
+import { AdvancedSlicerOperator, DataSettings, DisplayBehaviour, EntityType, nonNullable } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, Observable } from 'rxjs'
 import { filter, map, startWith, switchMap } from 'rxjs/operators'
@@ -95,21 +87,18 @@ const ADVANCED_SLICER_OPERATORS = [
     CommonModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatDialogModule,
-    MatIconModule,
-    MatButtonModule,
-    MatInputModule,
-    MatChipsModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
-    MatDividerModule,
-    MatMenuModule,
-    MatSelectModule,
+    ZardDialogModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ...ZardTooltipImports,
+    ZardDividerComponent,
     TranslateModule,
 
     NgmCommonModule,
     NgmEntityModule,
-    NgmParameterModule
+    NgmParameterModule,
+    ZardSwitchComponent
   ],
   selector: 'ngm-advanced-slicer',
   templateUrl: './advanced-slicer.component.html',
@@ -124,7 +113,7 @@ export class NgmAdvancedSlicerComponent {
   public readonly dsCoreService = inject(NgmDSCoreService)
   private readonly translateService = inject(TranslateService)
   private readonly _formBuilder = inject(FormBuilder)
-  private readonly dialogRef? = inject<MatDialogRef<NgmAdvancedSlicerComponent>>(MatDialogRef, { optional: true })
+  private readonly dialogRef? = inject(DialogRef, { optional: true })
 
   @Input() get dataSettings(): DataSettings {
     return this.dataSettings$.value
@@ -185,7 +174,7 @@ export class NgmAdvancedSlicerComponent {
 
   constructor(
     @Optional()
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(DIALOG_DATA)
     public data
   ) {
     this.dataSettings = this.data?.dataSettings

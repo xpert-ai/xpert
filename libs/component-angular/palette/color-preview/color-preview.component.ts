@@ -1,11 +1,19 @@
-import { CommonModule } from '@angular/common'
+
+import { animate, query, stagger, style, transition, trigger } from '@angular/animations'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit, inject } from '@angular/core'
-import { listEnterAnimation } from '@metad/core'
 import { NgmChromaticInterpolate, previewChromaticInterpolate } from '../types'
+
+const listEnterAnimation = trigger('listEnterAnimation', [
+  transition('* <=> *', [
+    query(':enter', [style({ opacity: 0 }), stagger('20ms', animate('100ms ease-out', style({ opacity: 1 })))], {
+      optional: true
+    })
+  ])
+])
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-chromatic-preview',
   templateUrl: 'color-preview.component.html',

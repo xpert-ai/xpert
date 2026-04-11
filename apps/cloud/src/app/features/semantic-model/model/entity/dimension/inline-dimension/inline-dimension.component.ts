@@ -1,27 +1,22 @@
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule } from '@angular/material/tree'
-import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
-import {
-  AggregationRole,
-  assign,
-  DisplayBehaviour,
-  isNil,
-  isVisible,
-  omit,
-  PropertyDimension
-} from '@metad/ocap-core'
+
+import { NgmEntityPropertyComponent } from '@xpert-ai/ocap-angular/entity'
+import { AggregationRole, assign, DisplayBehaviour, isNil, isVisible, omit, PropertyDimension } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelEntityService } from '../../entity.service'
 import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../types'
-
-
+import {
+  ZardButtonComponent,
+  ZardFlatTreeControl,
+  ZardIconComponent,
+  ZardTooltipImports,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener,
+  ZardTreeImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-inline-dimension',
@@ -35,10 +30,10 @@ import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../t
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatTreeModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
+    ...ZardTreeImports,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardTooltipImports,
     NgmEntityPropertyComponent
   ]
 })
@@ -76,16 +71,16 @@ export class InlineDimensionComponent {
   getLevel = (node: TreeItemFlatNode) => node.level
   getChildren = (node: TreeItemNode): TreeItemNode[] => node.children
   isExpandable = (node: TreeItemFlatNode) => node.expandable
-  readonly treeFlattener: MatTreeFlattener<TreeItemNode, TreeItemFlatNode, string> = new MatTreeFlattener(
+  readonly treeFlattener: ZardTreeFlattener<TreeItemNode, TreeItemFlatNode, string> = new ZardTreeFlattener(
     this.transformer,
     this.getLevel,
     this.isExpandable,
     this.getChildren
   )
-  readonly treeControl = new FlatTreeControl<TreeItemFlatNode, string>(this.getLevel, this.isExpandable, {
+  readonly treeControl = new ZardFlatTreeControl<TreeItemFlatNode, string>(this.getLevel, this.isExpandable, {
     trackBy: (dataNode: TreeItemFlatNode) => dataNode.id
   })
-  readonly dataSource: MatTreeFlatDataSource<TreeItemNode, TreeItemFlatNode, string> = new MatTreeFlatDataSource(
+  readonly dataSource: ZardTreeFlatDataSource<TreeItemNode, TreeItemFlatNode, string> = new ZardTreeFlatDataSource(
     this.treeControl,
     this.treeFlattener
   )
@@ -106,8 +101,8 @@ export class InlineDimensionComponent {
 
   /**
    * Click node to open attribute editor.
-   * 
-   * @param node 
+   *
+   * @param node
    */
   onSelect(node: TreeItemFlatNode) {
     this.cubeState.setSelectedProperty(node.role, node.id)

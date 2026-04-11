@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectorRef,
   Component,
@@ -13,7 +13,7 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BIInterruptMessageType,
@@ -30,7 +30,7 @@ import { XpAgentInterruptHitlComponent } from './hitl/hitl.component'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe],
+  imports: [FormsModule, TranslateModule, NgmI18nPipe],
   selector: 'xp-xpert-agent-interrupt',
   templateUrl: 'interrupt.component.html',
   styleUrls: ['interrupt.component.scss']
@@ -66,8 +66,7 @@ export class XpertAgentInterruptComponent {
             console.error('Error loading component:', error)
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -1,20 +1,25 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Attachment_Type_Options, TXpertAttachment, TXpertAttachmentType } from '@cloud/app/@core/types'
-import { attrModel, OverlayAnimations } from '@metad/core'
-import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import { attrModel, OverlayAnimations } from '@xpert-ai/core'
+import { NgmI18nPipe, TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { linkedXpertFeaturesModel } from '../types'
-
+import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-attachment',
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, MatTooltipModule, MatSliderModule, NgmI18nPipe],
+  imports: [
+    FormsModule,
+    CdkMenuModule,
+    TranslateModule,
+    ...ZardTooltipImports,
+    ZardSliderComponent,
+    NgmI18nPipe
+],
   templateUrl: './attachment.component.html',
   styleUrl: './attachment.component.scss',
   animations: [...OverlayAnimations]
@@ -60,7 +65,7 @@ export class XpertStudioFeaturesAttachmentComponent {
   }
 
   formatLabel(value: number): string {
-    return `${value}`;
+    return `${value}`
   }
 
   includeType(type: TXpertAttachmentType) {

@@ -1,12 +1,11 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { routeAnimations } from '@metad/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { routeAnimations } from '@xpert-ai/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
@@ -30,7 +29,8 @@ import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
 import { environment } from '@cloud/environments/environment'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
-import { injectOrganizationId } from '@metad/cloud/state'
+import { injectOrganizationId } from '@xpert-ai/cloud/state'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  * If toolset and tool do not have id, they are considered as templates.
@@ -38,18 +38,17 @@ import { injectOrganizationId } from '@metad/cloud/state'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     NgmI18nPipe,
     NgmSpinComponent,
     CardUpgradeComponent,
     XpertToolBuiltinAuthorizeComponent,
     XpertToolBuiltinToolComponent
-  ],
+],
   selector: 'xpert-tool-configure-builtin',
   templateUrl: './configure.component.html',
   styleUrl: 'configure.component.scss',
@@ -89,10 +88,12 @@ export class XpertToolConfigureBuiltinComponent {
   readonly #helpUrl = computed(() => this.provider()?.help_url)
   readonly helpUrl = derivedHelpUrl(this.#helpUrl)
   readonly avatar = computed(() => {
-    return this.provider()?.avatar && {
-      ...this.provider().avatar,
-      url: this.provider().avatar.url ? this.provider().avatar.url + `?org=${this.organizationId()}` : null
-    }
+    return (
+      this.provider()?.avatar && {
+        ...this.provider().avatar,
+        url: this.provider().avatar.url ? this.provider().avatar.url + `?org=${this.organizationId()}` : null
+      }
+    )
   })
 
   readonly builtinTools = derivedAsync(() => {
@@ -134,8 +135,12 @@ export class XpertToolConfigureBuiltinComponent {
     .subscribe((tools) => {
       if (tools) {
         this.tools.update((state) => {
-          const _tools = state?.filter((_) => !_.id && !tools.some((tool) => tool.name === _.name) && 
-              !(_.toolsetId && _.toolsetId !== this.toolsetId())
+          const _tools =
+            state?.filter(
+              (_) =>
+                !_.id &&
+                !tools.some((tool) => tool.name === _.name) &&
+                !(_.toolsetId && _.toolsetId !== this.toolsetId())
             ) ?? []
           return _tools.concat(tools)
         })
@@ -143,18 +148,20 @@ export class XpertToolConfigureBuiltinComponent {
     })
 
   constructor() {
-    effect(() => {
-      if (this.builtinTools()) {
-        this.tools.update((tools) =>
-          tools?.map((tool) => {
-            if (!tool.schema) {
-              return {...tool, schema: this.builtinTools().find((_) => _.identity.name === tool.name)}
-            }
-            return tool
-          })
-        )
+    effect(
+      () => {
+        if (this.builtinTools()) {
+          this.tools.update((tools) =>
+            tools?.map((tool) => {
+              if (!tool.schema) {
+                return { ...tool, schema: this.builtinTools().find((_) => _.identity.name === tool.name) }
+              }
+              return tool
+            })
+          )
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   openAuthorize(toolset?: IXpertToolset) {
@@ -185,13 +192,13 @@ export class XpertToolConfigureBuiltinComponent {
 
   setToolEnabled(name: string, enabled: boolean, tool: IBuiltinTool) {
     this.tools.update((state) => {
-      const existingTool = state?.find((tool) => tool.name === name);
+      const existingTool = state?.find((tool) => tool.name === name)
       if (existingTool) {
-        existingTool.disabled = !enabled;
-        existingTool.schema = existingTool.schema || tool.schema;
-        return [...state];
+        existingTool.disabled = !enabled
+        existingTool.schema = existingTool.schema || tool.schema
+        return [...state]
       } else {
-        return [...(state ?? []), { name, enabled, label: tool.identity.label, schema: tool.schema }];
+        return [...(state ?? []), { name, enabled, label: tool.identity.label, schema: tool.schema }]
       }
     })
 
@@ -209,19 +216,17 @@ export class XpertToolConfigureBuiltinComponent {
         toolPositions: this.getToolPositions()
       } as TXpertToolsetOptions
     }
-    this.#toolsetService
-      .update(this.toolset().id, toolset)
-      .subscribe({
-        next: () => {
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
-          this.loading.set(false)
-          this.#dialogRef.close(toolset)
-        },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
-          this.loading.set(false)
-        }
-      })
+    this.#toolsetService.update(this.toolset().id, toolset).subscribe({
+      next: () => {
+        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+        this.loading.set(false)
+        this.#dialogRef.close(toolset)
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+        this.loading.set(false)
+      }
+    })
   }
 
   getToolPositions() {

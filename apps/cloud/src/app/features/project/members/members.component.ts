@@ -1,31 +1,28 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, switchMap } from 'rxjs'
 import { ICertification, IProject, IUser, ProjectAPIService, Store, ToastrService } from '../../../@core'
 import { ProjectComponent } from '../project/project.component'
 import { uniq } from 'lodash-es'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmConfirmDeleteComponent, NgmTableComponent } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteService, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { CertificationSelectComponent } from '../../../@shared/certification'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { userLabel } from '../../../@shared/pipes'
 import { UserProfileComponent, UserProfileInlineComponent, UserRoleSelectComponent } from '../../../@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
-
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatIconModule,
-    MatButtonModule,
+    ZardIconComponent,
+    ZardButtonComponent,
     TranslateModule,
     UserProfileComponent,
     UserProfileInlineComponent,
@@ -33,7 +30,7 @@ import { Dialog } from '@angular/cdk/dialog'
     DensityDirective,
     AppearanceDirective,
     NgmTableComponent
-  ],
+],
   selector: 'pac-project-members',
   templateUrl: 'members.component.html',
   styles: [
@@ -42,7 +39,8 @@ import { Dialog } from '@angular/cdk/dialog'
   width: 100%;
   overflow: auto;
 }
-.rounded-full.mat-stroked-button {
+.rounded-full[z-button],
+z-button.rounded-full {
   border-radius: 50%;
 }
 `
@@ -55,7 +53,8 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   private projectAPI = inject(ProjectAPIService)
   private projectComponent = inject(ProjectComponent)
   private store = inject(Store)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   readonly #dialog = inject(Dialog)
   private _cdr = inject(ChangeDetectorRef)
   private _toastrService = inject(ToastrService)
@@ -150,9 +149,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   async removeMember(id: string) {
     if (this.project?.id) {
       const member = this.members.find((item) => item.id === id)
-      const confirm = await firstValueFrom(
-        this._dialog.open(NgmConfirmDeleteComponent, { data: { value: userLabel(member.user) } }).afterClosed()
-      )
+      const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: userLabel(member.user) }))
       if (confirm) {
         member.loading = true
         await firstValueFrom(this.projectAPI.deleteMember(this.project.id, id))
@@ -200,9 +197,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   }
 
   async deleteProject() {
-    const confirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: this.project.name } }).afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: this.project.name }))
     if (!confirm) {
       return
     }

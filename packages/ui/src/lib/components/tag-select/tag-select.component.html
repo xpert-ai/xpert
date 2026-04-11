@@ -1,0 +1,31 @@
+<div #triggerRef [class]="classes()">
+  <z-tag-select-input-trigger
+    [items]="displayItems()"
+    [disabled]="disabledState()"
+    [inputValue]="inputValue()"
+    [placeholder]="placeholder()"
+    [canInput]="canInput()"
+    [clearable]="clearable()"
+    [showClear]="showClear()"
+    [showSuggestionsIndicator]="enableSuggestions()"
+    [suggestionsOpen]="shouldOpenSuggestions()"
+    (chipRemove)="removeAt($event)"
+    (inputValueChange)="onInputValueChange($event)"
+    (inputKeydown)="onInputKeydown($event)"
+    (inputPaste)="onInputPaste($event)"
+    (inputFocus)="onInputFocus()"
+    (inputBlur)="onInputBlur()"
+    (clear)="clearAll()"
+  />
+</div>
+
+<ng-template #overlayTemplate>
+  <z-popover class="w-full p-0">
+    <z-tag-select-option-list
+      [options]="visibleOptions()"
+      [activeIndex]="activeIndex()"
+      (optionSelected)="onOptionSelected($event)"
+      (activeIndexChange)="onActiveIndexChange($event)"
+    />
+  </z-popover>
+</ng-template>

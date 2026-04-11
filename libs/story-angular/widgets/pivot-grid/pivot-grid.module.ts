@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { ModuleWithProviders, NgModule } from '@angular/core'
-import { STORY_WIDGET_COMPONENT, WidgetComponentType } from '@metad/story/core'
-import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
+import { STORY_WIDGET_COMPONENT, WidgetComponentType } from '@xpert-ai/story/core'
+import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@xpert-ai/story/designer'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 import {
   IgxGridModule, IgxTreeGridModule, IgxExcelExporterService, IgxGridResizingModule
 } from 'igniteui-angular'
@@ -10,11 +11,11 @@ import { PACWidgetPivotGridComponent } from './pivot-grid.component'
 import { PivotGridSchemaService } from './pivot-grid.schema'
 import { WidgetDesignerType } from './types'
 
-
 @NgModule({
   declarations: [PACWidgetPivotGridComponent],
   imports: [
     CommonModule,
+    ZardIconComponent,
     IgxGridModule,
     IgxTreeGridModule,
     IgxGridResizingModule

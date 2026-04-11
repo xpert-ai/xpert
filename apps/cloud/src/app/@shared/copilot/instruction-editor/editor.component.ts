@@ -1,5 +1,5 @@
 import { Clipboard } from '@angular/cdk/clipboard'
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -13,17 +13,16 @@ import {
   model,
   output,
   signal,
-  ViewChild,
+  ViewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { timer } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 import { agentLabel } from '../../../@core'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'copilot-instruction-editor',
@@ -31,13 +30,7 @@ import { agentLabel } from '../../../@core'
   styleUrls: ['./editor.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule,
-    FormsModule,
-    TranslateModule,
-    MonacoEditorModule,
-    MatTooltipModule,
-  ],
+  imports: [FormsModule, TranslateModule, MonacoEditorModule, ...ZardTooltipImports]
 })
 export class CopilotInstructionEditorComponent {
   agentLabel = agentLabel
@@ -92,10 +85,12 @@ export class CopilotInstructionEditorComponent {
     //   }
     // })
 
-    effect(() => {
-      const height = this.elementRef.nativeElement.offsetHeight
-      this.startHeight = height
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        const height = this.elementRef.nativeElement.offsetHeight
+        this.startHeight = height
+      }
+    )
   }
 
   remove() {

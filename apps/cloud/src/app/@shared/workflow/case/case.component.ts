@@ -11,9 +11,9 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr, TWFCase, WorkflowLogicalOperator, XpertAPIService } from 'apps/cloud/src/app/@core'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-case',
@@ -21,7 +21,7 @@ import { injectToastr, TWFCase, WorkflowLogicalOperator, XpertAPIService } from 
   styleUrls: ['./case.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslateModule, MatTooltipModule],
+  imports: [FormsModule, TranslateModule, ...ZardTooltipImports]
 })
 export class XpertWorkflowCaseComponent {
   eWorkflowLogicalOperator = WorkflowLogicalOperator

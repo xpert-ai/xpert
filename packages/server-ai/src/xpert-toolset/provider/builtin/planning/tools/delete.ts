@@ -1,7 +1,7 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { getContextVariable } from '@langchain/core/context'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'

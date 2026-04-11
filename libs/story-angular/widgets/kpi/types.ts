@@ -1,4 +1,4 @@
-import { Intent } from "@metad/core"
+import { Intent } from "@xpert-ai/core"
 
 export interface NxWidgetKPIOptions {
   showToolbar?: boolean

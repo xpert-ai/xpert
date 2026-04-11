@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
-import { Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { PacAuthService } from '../services'
 
 /**
@@ -14,10 +14,19 @@ export class NoAuthGuard  {
 		private readonly store: Store
 	) {}
 
+	private canAccessInviteRoute(route: ActivatedRouteSnapshot): boolean {
+		return route.routeConfig?.path === 'accept-invite' &&
+			route.queryParamMap.has('email') &&
+			route.queryParamMap.has('token');
+	}
+
 	async canActivate(
 		route: ActivatedRouteSnapshot,
 		state: RouterStateSnapshot
 	) {
+		if (this.canAccessInviteRoute(route)) {
+			return true;
+		}
 
 		if (!this.store.token) {
 			// not logged in so return true

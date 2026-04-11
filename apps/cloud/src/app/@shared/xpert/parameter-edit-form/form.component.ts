@@ -1,14 +1,12 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
@@ -21,21 +19,19 @@ import { XpertParameterIconComponent } from '../parameter-icon/icon.component'
   templateUrl: './form.component.html',
   styleUrl: 'form.component.scss',
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-    MatTooltipModule,
-    MatSlideToggleModule,
-    MatInputModule,
-
+    ...ZardTooltipImports,
+    ZardInputDirective,
     NgmDensityDirective,
     XpertParameterMenuItemComponent,
     XpertParameterIconComponent,
-  ],
+    ZardSwitchComponent
+],
 
   hostDirectives: [NgxControlValueAccessor]
 })

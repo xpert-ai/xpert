@@ -1,4 +1,4 @@
-import { FileStorageProviderEnum, ITenant } from "@metad/contracts";
+import { FileStorageProviderEnum, ITenant } from "@xpert-ai/contracts";
 import { TenantSetting } from "../../core/entities/internal";
 import { Connection } from "typeorm";
 

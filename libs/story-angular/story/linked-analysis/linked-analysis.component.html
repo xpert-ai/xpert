@@ -1,44 +1,63 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <h4 class="mb-0 pointer-events-none">
-        {{ 'Story.LinkedAnalysis.Title' | translate: {Default: "Linked Analysis"} }}
-    </h4>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h4 class="mb-0 pointer-events-none">
+    {{ 'Story.LinkedAnalysis.Title' | translate: { Default: 'Linked Analysis' } }}
+  </h4>
 </header>
 
-<mat-dialog-content class="mat-typography flex flex-col justify-start items-stretch overflow-hidden">
-    <form [formGroup]="formGroup" class="w-80 flex flex-col justify-start items-stretch gap-4">
-        <mat-radio-group formControlName="interactionApplyTo" class="flex flex-col gap-2" aria-label="Select an option" >
-            <mat-radio-button *ngFor="let option of applyTos" [value]="option">
-                {{ 'Story.LinkedAnalysis.' + option | translate: {Default: option} }}
-            </mat-radio-button>
-        </mat-radio-group>
+<xp-dialog-content class="flex flex-col justify-start items-stretch overflow-hidden">
+  <form [formGroup]="formGroup" class="w-80 flex flex-col justify-start items-stretch gap-4">
+    <z-radio-group formControlName="interactionApplyTo" class="flex flex-col gap-2" aria-label="Select an option">
+      @for (option of applyTos; track option) {
+        <z-radio [value]="option">
+          {{ 'Story.LinkedAnalysis.' + option | translate: { Default: option } }}
+        </z-radio>
+      }
+    </z-radio-group>
 
-        <mat-slide-toggle *ngIf="interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets" class="w-full flex justify-end items-center px-4"
-            style="display: flex;"
-            formControlName="connectNewly"
-            labelPosition="before"
-            >
-            {{ 'Story.LinkedAnalysis.ConnectNewly' | translate: {Default: 'Connect Newly'} }}
-        </mat-slide-toggle>
+    @if (interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets) {
+      <z-switch
+        class="w-full flex justify-end items-center px-4"
+        style="display: flex"
+        formControlName="connectNewly"
+        labelPosition="before"
+        >
+        {{ 'Story.LinkedAnalysis.ConnectNewly' | translate: { Default: 'Connect Newly' } }}
+      </z-switch>
+    }
 
-        <div class="flex-1 overflow-auto">
-            <mat-selection-list *ngIf="interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets" class="w-full" displayDensity="cosy"
-                formControlName="linkedWidgets">
-                <mat-list-option *ngFor="let widget of widgets" [value]="widget.key" class="rounded-lg">
-                    {{widget.caption}}
-                </mat-list-option>
-            </mat-selection-list>
-        </div>
-    </form>
-</mat-dialog-content>
-
-<mat-dialog-actions class="flex justify-between items-center">
-    <div></div>
-    <div ngmButtonGroup>
-        <button mat-flat-button mat-dialog-close>
-            {{ 'Story.Common.Cancel' | translate: {Default: 'Cancel'} }}
-        </button>
-        <button mat-raised-button color="accent" cdkFocusInitial [matDialogClose]="formGroup.value">
-            {{ 'Story.Common.Apply' | translate: {Default: 'Apply'} }}
-        </button>
+    <div class="flex-1 overflow-auto">
+      @if (interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets) {
+        <ul
+          cdkListbox
+          cdkListboxMultiple
+          class="w-full ngm-selection-list ngm-cdk-listbox"
+          aria-label="{{ 'Story.LinkedAnalysis.SelectWidgets' | translate: { Default: 'Select widgets' } }}"
+          formControlName="linkedWidgets"
+          >
+          @for (widget of widgets; track widget) {
+            <li [cdkOption]="widget.key" #option="cdkOption" class="ngm-cdk-option flex cursor-pointer items-center gap-3 rounded-lg pr-10">
+              {{ widget.caption }}
+              @if (option.isSelected()) {
+                <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" class="absolute right-3 h-4 w-4 text-primary-500">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.001 7.06a1 1 0 0 1-1.42 0L3.29 8.764a1 1 0 1 1 1.414-1.414l4.295 4.295 6.294-6.349a1 1 0 0 1 1.41-.006Z"></path>
+                </svg>
+              }
+            </li>
+          }
+        </ul>
+      }
     </div>
-</mat-dialog-actions>
+  </form>
+</xp-dialog-content>
+
+<xp-dialog-actions class="flex justify-between items-center">
+  <div></div>
+  <div ngmButtonGroup>
+    <button z-button zType="secondary" xpDialogClose>
+      {{ 'Story.Common.Cancel' | translate: { Default: 'Cancel' } }}
+    </button>
+    <button z-button zType="default" cdkFocusInitial [xpDialogClose]="formGroup.value">
+      {{ 'Story.Common.Apply' | translate: { Default: 'Apply' } }}
+    </button>
+  </div>
+</xp-dialog-actions>

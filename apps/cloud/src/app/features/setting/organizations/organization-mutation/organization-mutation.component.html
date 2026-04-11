@@ -1,23 +1,20 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 style="pointer-events: none">
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="px-5 pt-5 pb-2 text-xl font-semibold">
+  <h4 class="pointer-events-none">
     {{ 'PAC.ACTIONS.NEW' | translate: {Default: 'New'} }} 
     {{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: {Default: 'Organization'} }}
   </h4>
 </header>
 
-<div mat-dialog-content>
+<div class="px-5 pb-4">
   <pac-organization-step-form #stepForm [(ngModel)]="organization"></pac-organization-step-form>
 </div>
 
-<div mat-dialog-actions align="end">
-  <div ngmButtonGroup>
-    <button mat-button mat-dialog-close cdkFocusInitial>
-      {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
-    </button>
-    
-    <button mat-raised-button color="accent" [mat-dialog-close]="organization">
-      {{ 'PAC.ACTIONS.APPLY' | translate: {Default: 'Apply'} }} 
-    </button>
-  </div>
+<div class="flex justify-end gap-2 px-5 pt-2 pb-5">
+  <button z-button zType="ghost" cdkFocusInitial (click)="onCancel()">
+    {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
+  </button>
   
+  <button z-button zType="default" (click)="onApply()">
+    {{ 'PAC.ACTIONS.APPLY' | translate: {Default: 'Apply'} }} 
+  </button>
 </div>

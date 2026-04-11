@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { DimensionType, DisplayBehaviour, getLevelsHierarchy, PropertyLevel } from '@metad/ocap-core'
-import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
-import { ISelectOption } from '@metad/ocap-angular/core'
+import { DimensionType, DisplayBehaviour, getLevelsHierarchy, PropertyLevel } from '@xpert-ai/ocap-core'
+import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@xpert-ai/story/designer'
+import { ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { combineLatest, Observable } from 'rxjs'
 import { combineLatestWith, filter, map, shareReplay, startWith, switchMap } from 'rxjs/operators'
@@ -16,7 +16,6 @@ import {
   SemanticsAccordionWrapper
 } from '@cloud/app/@shared/model'
 import { CubeSchemaService } from './cube.schema'
-
 
 @Injectable()
 export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {

@@ -3,13 +3,27 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, ViewChild } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { nonNullable } from '@metad/core'
-import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { DisplayDensity, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
-import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { C_MEASURES, DataSettings, Dimension, FilterOperator, getEntityVariables, getEntityParameters, isEntitySet, ISlicer, Measure, PresentationVariant, Syntax, AggregationRole, ParameterProperty } from '@metad/ocap-core'
+import { nonNullable } from '@xpert-ai/core'
+import { AnalyticalGridComponent, AnalyticalGridModule } from '@xpert-ai/ocap-angular/analytical-grid'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmControlsModule } from '@xpert-ai/ocap-angular/controls'
+import { DisplayDensity, linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityModule, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import {
+  C_MEASURES,
+  DataSettings,
+  Dimension,
+  FilterOperator,
+  getEntityVariables,
+  getEntityParameters,
+  isEntitySet,
+  ISlicer,
+  Measure,
+  PresentationVariant,
+  Syntax,
+  AggregationRole,
+  ParameterProperty
+} from '@xpert-ai/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { differenceBy, isEmpty } from 'lodash-es'
@@ -20,16 +34,12 @@ import { getDropProperty } from '../types'
 import { CdkDragDropContainers } from '../../types'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { getErrorMessage } from '@cloud/app/@core'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatExpansionModule } from '@angular/material/expansion'
-import { Dialog } from '@angular/cdk/dialog'
-import { ExplainComponent } from '@metad/story/story'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmPresentationComponent } from '@metad/ocap-angular/selection'
-import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
 
+import { Dialog } from '@angular/cdk/dialog'
+import { ExplainComponent } from '@xpert-ai/story/story'
+import { NgmPresentationComponent } from '@xpert-ai/ocap-angular/selection'
+import { NgmParameterComponent } from '@xpert-ai/ocap-angular/parameter'
+import { ZardAccordionImports, ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,19 +55,18 @@ import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
     TranslateModule,
     ContentLoaderModule,
     DragDropModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltipModule,
-    MatExpansionModule,
-    MatSlideToggleModule,
-
+    ZardIconComponent,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
+    ...ZardAccordionImports,
     NgmCommonModule,
     AnalyticalGridModule,
     NgmControlsModule,
     NgmEntityModule,
     NgmDensityDirective,
     NgmPresentationComponent,
-    NgmParameterComponent
+    NgmParameterComponent,
+    ZardSwitchComponent
   ]
 })
 export class ModelEntityPreviewComponent {
@@ -92,9 +101,7 @@ export class ModelEntityPreviewComponent {
   set columns(value) {
     this.columns$.next(value)
   }
-  readonly columns$ = new BehaviorSubject<Array<Dimension | Measure>>([
-    ...(this.entityService.preview?.columns ?? [])
-  ])
+  readonly columns$ = new BehaviorSubject<Array<Dimension | Measure>>([...(this.entityService.preview?.columns ?? [])])
 
   get slicers() {
     return this.slicers$.value
@@ -172,64 +179,75 @@ export class ModelEntityPreviewComponent {
     maxItems: 1000
   })
 
-  readonly analyticsDataSettings = computed(() => ({
-    ...this.dataSettings(),
-    analytics: this.analytics(),
-    selectionVariant: {
-      selectOptions: this.analytics()?.slicers,
-    },
-    presentationVariant: this.presentationVariant()
-  } as DataSettings))
+  readonly analyticsDataSettings = computed(
+    () =>
+      ({
+        ...this.dataSettings(),
+        analytics: this.analytics(),
+        selectionVariant: {
+          selectOptions: this.analytics()?.slicers
+        },
+        presentationVariant: this.presentationVariant()
+      }) as DataSettings
+  )
 
   readonly #entityType = derivedAsync(() => {
     const cubeName = this.cubeName()
-    return cubeName ? this.modelService.dataSource$.pipe(
-      filter(nonNullable),
-      switchMap((dataSource) => dataSource.selectEntitySet(cubeName)),
-      map((result) => isEntitySet(result) ? {entityType: result.entityType} : {error: getErrorMessage(result)})
-    ) : of(null)
+    return cubeName
+      ? this.modelService.dataSource$.pipe(
+          filter(nonNullable),
+          switchMap((dataSource) => dataSource.selectEntitySet(cubeName)),
+          map((result) =>
+            isEntitySet(result) ? { entityType: result.entityType } : { error: getErrorMessage(result) }
+          )
+        )
+      : of(null)
   })
-  
+
   readonly entityType = computed(() => this.#entityType()?.entityType)
   readonly entityError = computed(() => this.#entityType()?.error)
 
   readonly variableList = computed(() => getEntityVariables(this.entityType()))
-  readonly parameters = computed(() => getEntityParameters(this.entityType()).filter(({role}) => role !== AggregationRole.variable))
+  readonly parameters = computed(() =>
+    getEntityParameters(this.entityType()).filter(({ role }) => role !== AggregationRole.variable)
+  )
 
   readonly explains = signal<any[]>([])
 
   constructor() {
-    effect(() => {
-      this.variableList().forEach((variable) => {
-        if (!this.variables[variable.name]?.members?.length && variable.defaultLow) {
-          const members = [
-            {
-              key: variable.defaultLow,
-              caption: variable.defaultLowCaption
-            }
-          ]
+    effect(
+      () => {
+        this.variableList().forEach((variable) => {
+          if (!this.variables[variable.name]?.members?.length && variable.defaultLow) {
+            const members = [
+              {
+                key: variable.defaultLow,
+                caption: variable.defaultLowCaption
+              }
+            ]
 
-          if (variable.defaultHigh) {
-            members.push({
-              key: variable.defaultHigh,
-              caption: variable.defaultHighCaption
-            })
-          }
-          this.variables.update((state) => ({
-            ...state,
-            [variable.name]: {
-              dimension: {
-                dimension: variable.referenceDimension,
-                hierarchy: variable.referenceHierarchy,
-                parameter: variable.name
-              },
-              members,
-              operator: variable.defaultHigh ? FilterOperator.BT : null
+            if (variable.defaultHigh) {
+              members.push({
+                key: variable.defaultHigh,
+                caption: variable.defaultHighCaption
+              })
             }
-          }))
-        }
-      })
-    }, { allowSignalWrites: true })
+            this.variables.update((state) => ({
+              ...state,
+              [variable.name]: {
+                dimension: {
+                  dimension: variable.referenceDimension,
+                  hierarchy: variable.referenceHierarchy,
+                  parameter: variable.name
+                },
+                members,
+                operator: variable.defaultHigh ? FilterOperator.BT : null
+              }
+            }))
+          }
+        })
+      }
+    )
   }
 
   onVariable(name: string, event: ISlicer | null) {

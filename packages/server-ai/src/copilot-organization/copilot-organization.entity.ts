@@ -1,9 +1,9 @@
-import { AiProvider, ICopilotOrganization, IOrganization } from '@metad/contracts'
+import { AiProvider, ICopilotOrganization, IOrganization } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsNumber, IsOptional, IsString } from 'class-validator'
 import { Transform } from 'class-transformer'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Organization, OrganizationPublicDTO, TenantBaseEntity, TenantOrganizationBaseEntity } from '@metad/server-core'
+import { Organization, OrganizationPublicDTO, TenantBaseEntity, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Copilot } from '../core/entities/internal'
 
 @Entity('copilot_organization')
@@ -12,7 +12,7 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 100 })
+	@Column({ type: 'varchar', nullable: true, length: 100 })
 	provider?: AiProvider | string
 
 	@ApiPropertyOptional({ type: () => String })

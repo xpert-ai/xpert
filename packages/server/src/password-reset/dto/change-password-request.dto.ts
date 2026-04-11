@@ -1,4 +1,4 @@
-import { IChangePasswordRequest } from "@metad/contracts";
+import { IChangePasswordRequest } from "@xpert-ai/contracts";
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsString, MinLength } from "class-validator";
 import { Match } from "./../../shared/decorators/validations";

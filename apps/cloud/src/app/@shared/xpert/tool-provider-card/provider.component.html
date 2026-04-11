@@ -1,28 +1,28 @@
 <div
-  class="group col-span-1 bg-white border-2 border-solid border-transparent rounded-xl shadow-sm min-h-[160px] flex flex-col transition-all duration-200 ease-in-out cursor-pointer hover:shadow-lg"
+  class="group col-span-1 bg-inherit border-2 border-solid border-transparent rounded-xl shadow-sm min-h-[160px] flex flex-col transition-all duration-200 ease-in-out cursor-pointer hover:shadow-lg"
 >
   <div class="flex pt-[14px] px-[14px] pb-3 h-[66px] items-center gap-3 grow-0 shrink-0">
     <div class="relative shrink-0">
       <emoji-avatar [avatar]="avatar()" class="rounded-lg shadow-sm overflow-hidden" />
     </div>
     <div class="grow w-0 py-[1px]">
-      <div class="flex items-center text-sm leading-5 font-semibold text-gray-800">
-        <div class="truncate" [title]="provider().label | i18n">{{provider().label | i18n}}</div>
+      <div class="flex items-center text-sm leading-5 font-semibold text-text-primary">
+        <div class="truncate" [title]="provider().label | i18n">{{ provider().label | i18n }}</div>
       </div>
-      <div class="flex items-center text-[10px] leading-[18px] text-gray-500 font-medium">
-        <div class="truncate">{{'PAC.KEY_WORDS.By' | translate: {Default: 'By'} }}&nbsp;{{provider().author}}</div>
+      <div class="flex items-center text-[10px] leading-[18px] text-text-tertiary font-medium">
+        <div class="truncate">{{ 'PAC.KEY_WORDS.By' | translate: { Default: 'By' } }}&nbsp;{{ provider().author }}</div>
       </div>
     </div>
   </div>
 
   <div
-    class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-gray-500 line-clamp-2 group-hover:line-clamp-2 group-hover:max-h-[36px]"
+    class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-text-tertiary line-clamp-2 group-hover:line-clamp-2 group-hover:max-h-[36px]"
     [title]="provider().description | i18n"
   >
-    {{provider().description | i18n }}
+    {{ provider().description | i18n }}
   </div>
   <div class="flex items-center shrink-0 mt-1 pt-1 pl-[14px] pr-[6px] pb-[6px] h-[42px]">
-    <div class="relative w-full flex items-center gap-1 py-[7px] rounded-md text-gray-500">
+    <div class="relative w-full flex items-center gap-1 py-[7px] rounded-md text-text-tertiary">
       <svg
         width="14"
         height="14"
@@ -49,7 +49,7 @@
       </svg>
       <div class="grow text-sm text-start leading-[18px] font-normal truncate">
         @for (tag of tags(); track tag.id; let last = $last) {
-          <span [matTooltip]="tag.description | i18n">{{tag.label ? (tag.label | i18n) : tag.name}}</span>
+          <span [zTooltip]="tag.description | i18n">{{ tag.label ? (tag.label | i18n) : tag.name }}</span>
           @if (!last) {
             ,
           }

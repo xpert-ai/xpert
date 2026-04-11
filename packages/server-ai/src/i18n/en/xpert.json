@@ -20,7 +20,8 @@
         "InputParamsRequired": "The input variables of node '{node}' is required",
         "OutputParamsRequired": "The output variables of node '{node}' is required",
         "ItemInputParamNotFound": "The item input variable of node '{node}' not found",
-        "ClassifierClassesRequired": "The classes of the classifier node '{node}' is required"
+        "ClassifierClassesRequired": "The classes of the classifier node '{node}' is required",
+        "NoGraph": "Graph not found"
     },
     "Project": {
         "CreatingTasks": "Creating tasks",

@@ -1,35 +1,50 @@
 <div class="w-full flex justify-start items-center px-3 pt-3 pb-2">
   <emoji-avatar [avatar]="knowledgebase()?.avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
   <div class="flex flex-col">
-    <span class="text-lg">{{knowledgebase()?.name}}</span>
+    <span class="text-lg">{{ knowledgebase()?.name }}</span>
   </div>
 
   <div class="flex-1"></div>
 
   <div class="flex items-center">
-    <button type="button" class="action-btn action-btn-sm justify-center w-8 h-8 p-0.5 rounded-md pressable"
-      (click)="edit()">
+    <button
+      type="button"
+      class="action-btn action-btn-sm justify-center w-8 h-8 p-0.5 rounded-md pressable"
+      (click)="edit()"
+    >
       <i class="ri-edit-line"></i>
     </button>
-    <button type="button" class="action-btn action-btn-sm justify-center w-8 h-8 p-0.5 rounded-md pressable"
-      [matTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
-      matTooltipPosition="above"
-      (click)="moveToNode()">
+    <button
+      type="button"
+      class="action-btn action-btn-sm justify-center w-8 h-8 p-0.5 rounded-md pressable"
+      [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+      zPosition="top"
+      (click)="moveToNode()"
+    >
       <i class="ri-crosshair-line"></i>
     </button>
 
-    <div class="flex items-center justify-center mr-1 w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content
-      hover:bg-hover-bg"
-      [matTooltip]="'PAC.Xpert.Test' | translate: { Default: 'Test' }"
+    <div
+      class="flex items-center justify-center mr-1 w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+      [zTooltip]="'PAC.Xpert.Test' | translate: { Default: 'Test' }"
       (click)="openTest()"
     >
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-5 h-5">
-        <path d="M8 18.3915V5.60846L18.2264 12L8 18.3915ZM6 3.80421V20.1957C6 20.9812 6.86395 21.46 7.53 21.0437L20.6432 12.848C21.2699 12.4563 21.2699 11.5436 20.6432 11.152L7.53 2.95621C6.86395 2.53993 6 3.01878 6 3.80421Z"></path>
+      <svg
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        fill="currentColor"
+        class="w-5 h-5"
+      >
+        <path
+          d="M8 18.3915V5.60846L18.2264 12L8 18.3915ZM6 3.80421V20.1957C6 20.9812 6.86395 21.46 7.53 21.0437L20.6432 12.848C21.2699 12.4563 21.2699 11.5436 20.6432 11.152L7.53 2.95621C6.86395 2.53993 6 3.01878 6 3.80421Z"
+        ></path>
       </svg>
     </div>
 
-    <div class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer
-      text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+    <div
+      class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
       (click)="closePanel()"
     >
       <ngm-close-svg class="w-5 h-5" />
@@ -39,11 +54,12 @@
 
 <div class="w-full flex flex-col justify-start items-stretch px-4">
   <div class="px-2 my-4 text-text-tertiary text-sm line-clamp-3" [title]="knowledgebase()?.description">
-    {{knowledgebase()?.description}}
+    {{ knowledgebase()?.description }}
   </div>
 
   @if (knowledgebase()?.id) {
-    <copilot-model-select class="text-text-secondary"
+    <copilot-model-select
+      class="text-text-secondary"
       readonly
       [modelType]="eModelType.TEXT_EMBEDDING"
       [copilotModel]="copilotModel()"
@@ -59,35 +75,52 @@
           <div class="system-sm-semibold-uppercase mr-0.5 text-text-secondary">
             {{ 'PAC.Xpert.KnowledgeMetadataFilter' | translate: { Default: 'Metadata Filtering' } }}
           </div>
-          <div class="w-4 h-4 flex justify-center items-center shrink-0 p-[1px] text-text-tertiary hover:text-text-primary"
-            [matTooltip]="'PAC.Xpert.KnowledgeMetadataFilterTooltip' | translate: { Default: 'Metadata filtering is the process of refining and controlling the retrieval of relevant information within a system using metadata attributes such as tags, categories, or access permissions.' }"
-            matTooltipPosition="above"
+          <div
+            class="w-4 h-4 flex justify-center items-center shrink-0 p-[1px] text-text-tertiary hover:text-text-primary"
+            [zTooltip]="
+              'PAC.Xpert.KnowledgeMetadataFilterTooltip'
+                | translate
+                  : {
+                      Default:
+                        'Metadata filtering is the process of refining and controlling the retrieval of relevant information within a system using metadata attributes such as tags, categories, or access permissions.'
+                    }
+            "
+            zPosition="top"
           >
             <i class="ri-information-line"></i>
           </div>
         </div>
         <div class="flex items-center">
-          <button type="button" class="group btn disabled:btn-disabled btn-secondary btn-small"
+          <button
+            type="button"
+            class="group btn disabled:btn-disabled btn-secondary btn-small"
             #trigger="cdkMenuTriggerFor"
             [cdkMenuTriggerFor]="filterModeMenu.template"
-            [cdkMenuTriggerData]="{trigger: trigger}"
+            [cdkMenuTriggerData]="{ trigger: trigger }"
           >
-            {{ 'PAC.Xpert.MetadataFilterMode_' + filtering_mode() | translate: { Default: filtering_mode() | capitalize } }}
-            <i class="ri-arrow-down-s-line w-4 h-4 ml-1 flex justify-center items-center text-text-tertiary group-hover:text-text-primary"></i>
+            {{
+              'PAC.Xpert.MetadataFilterMode_' + filtering_mode() | translate: { Default: filtering_mode() | capitalize }
+            }}
+            <i
+              class="ri-arrow-down-s-line w-4 h-4 ml-1 flex justify-center items-center text-text-tertiary group-hover:text-text-primary"
+            ></i>
           </button>
           @if (filtering_mode() === 'manual') {
             <div class="ml-1">
               <div class="inline-block" data-state="closed">
-                <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-small"
+                <button
+                  type="button"
+                  class="btn disabled:btn-disabled btn-secondary-accent btn-small"
                   [cdkMenuTriggerFor]="conditionsMenu"
                   #trigger="cdkMenuTriggerFor"
-                  [cdkMenuTriggerData]="{trigger: trigger}">
+                  [cdkMenuTriggerData]="{ trigger: trigger }"
+                >
                   <i class="ri-filter-3-line w-4 h-4 flex justify-center items-center mr-1"></i>
                   {{ 'PAC.Xpert.Conditions' | translate: { Default: 'Conditions' } }}
                   <div
                     class="text-xs font-medium uppercase ml-1 flex items-center rounded-[5px] border border-divider-deep px-1 font-mono text-text-tertiary"
                   >
-                    {{ filtering_conditions()?.conditions.length || 0}}
+                    {{ filtering_conditions()?.conditions.length || 0 }}
                   </div>
                 </button>
               </div>
@@ -101,30 +134,43 @@
   @if (filtering_mode() === 'automatic') {
     <div class="body-xs-regular px-4 text-text-tertiary">
       <div class="mb-2">
-        {{ 'PAC.Xpert.SelectFieldsAsMetadataFilter' | translate: { Default: 'Select fields to use as metadata filtering conditions' } }}
+        {{
+          'PAC.Xpert.SelectFieldsAsMetadataFilter'
+            | translate: { Default: 'Select fields to use as metadata filtering conditions' }
+        }}
       </div>
 
-      <button type="button" class="group w-full rounded-lg px-3 py-1 flex flex-wrap"
+      <button
+        type="button"
+        class="group w-full rounded-lg px-3 py-1 flex flex-wrap"
         #trigger="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="filterFieldsMenu.template"
-        [cdkMenuTriggerData]="{trigger: trigger}"
+        [cdkMenuTriggerData]="{ trigger: trigger }"
       >
         <div class="inline-block grow text-left">
           @for (field of filteringFields(); track field; let last = $last) {
-            <div class="inline-block text-sm text-text-secondary">{{field.key}}</div>
+            <div class="inline-block text-sm text-text-secondary">{{ field.key }}</div>
             @if (!last) {
               <span>,</span>
             }
           } @empty {
-            <div class="inline-block text-sm text-text-tertiary">{{ 'PAC.Xpert.SelectFieldsAsMetadataFilter' | translate: { Default: 'Select fields to use as metadata filtering conditions' } }}</div>
+            <div class="inline-block text-sm text-text-tertiary">
+              {{
+                'PAC.Xpert.SelectFieldsAsMetadataFilter'
+                  | translate: { Default: 'Select fields to use as metadata filtering conditions' }
+              }}
+            </div>
           }
         </div>
-        <i class="ri-arrow-down-s-line inline-flex w-4 h-4 ml-1 justify-center items-center text-text-tertiary group-hover:text-text-primary"></i>
-        <div class="w-4 h-4 inline-flex justify-center items-center cursor-pointer text-text-quaternary hover:text-text-tertiary"
-          [matTooltip]="'PAC.ACTIONS.Clear' | translate: { Default: 'Clear' }"
-          matTooltipPosition="above"
+        <i
+          class="ri-arrow-down-s-line inline-flex w-4 h-4 ml-1 justify-center items-center text-text-tertiary group-hover:text-text-primary"
+        ></i>
+        <div
+          class="w-4 h-4 inline-flex justify-center items-center cursor-pointer text-text-quaternary hover:text-text-tertiary"
+          [zTooltip]="'PAC.ACTIONS.Clear' | translate: { Default: 'Clear' }"
+          zPosition="top"
           (click)="clearFilteringFields()"
-          >
+        >
           <i class="ri-close-circle-line"></i>
         </div>
       </button>
@@ -139,26 +185,34 @@
 @if (!loading() && !knowledgebase()?.id) {
   <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
     <button class="btn btn-large btn-primary self-center" (click)="gotoKnowledgebase()">
-      {{ 'PAC.Xpert.Reconfigure' | translate: {Default: 'Reconfigure'} }}
+      {{ 'PAC.Xpert.Reconfigure' | translate: { Default: 'Reconfigure' } }}
     </button>
 
     @if (knowledgebases()?.length) {
-      <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-gray-500 uppercase">
-        <div class="mr-3">{{'PAC.Xpert.OrReselect' | translate: { Default: 'Or reselect'} }}</div>
+      <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-text-tertiary uppercase">
+        <div class="mr-3">{{ 'PAC.Xpert.OrReselect' | translate: { Default: 'Or reselect' } }}</div>
         <div class="grow w-0 h-px bg-divider-regular"></div>
       </div>
 
       <ul class="p-2 flex flex-col gap-1">
         @for (knowledgebase of knowledgebases(); track knowledgebase.id) {
-          <li class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-gray-100">
+          <li
+            class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-divider-regular"
+          >
             <div class="relative flex items-center w-full">
-              <emoji-avatar small [avatar]="knowledgebase.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
-              {{knowledgebase.name}}
+              <emoji-avatar
+                small
+                [avatar]="knowledgebase.avatar"
+                class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm"
+              />
+              {{ knowledgebase.name }}
 
-              <button type="button" class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
+              <button
+                type="button"
+                class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
                 (click)="useKnowledgebase(knowledgebase)"
               >
-                {{ 'PAC.Xpert.Use' | translate: {Default: 'Use'} }}
+                {{ 'PAC.Xpert.Use' | translate: { Default: 'Use' } }}
               </button>
             </div>
           </li>
@@ -169,9 +223,13 @@
 }
 
 @if (openedTest()) {
-  <div class="absolute top-0 left-0 w-full h-full z-50 rounded-t-2xl bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]" @ifAnimationTrigger
-    (click)="closeTest()">
-    <xpert-knowledge-test class="absolute top-14 left-0 bottom-0 w-full rounded-t-xl bg-components-panel-bg"
+  <div
+    class="absolute top-0 left-0 w-full h-full z-50 rounded-t-2xl bg-black/20 dark:bg-background-default-subtle/50 backdrop-blur-[2px]"
+    @ifAnimationTrigger
+    (click)="closeTest()"
+  >
+    <xpert-knowledge-test
+      class="absolute top-14 left-0 bottom-0 w-full rounded-t-xl bg-components-panel-bg"
       [knowledgebase]="knowledgebase()"
       [recall]="recall()"
       (click)="$event.stopPropagation()"
@@ -182,7 +240,10 @@
 
 <ngm-select-panel #filterModeMenu [selectOptions]="filterModeOptions" [(ngModel)]="filtering_mode" />
 
-<ngm-select-panel #filterFieldsMenu multiple [selectOptions]="metadataFieldsOptions()"
+<ngm-select-panel
+  #filterFieldsMenu
+  multiple
+  [selectOptions]="metadataFieldsOptions()"
   [(ngModel)]="filteringFieldNames"
 />
 
@@ -190,10 +251,9 @@
   <div class="pb-4 pt-2 rounded-2xl shadow-lg w-[420px] overflow-hidden bg-components-panel-bg-blur">
     <div class="flex justify-between px-2 mb-2">
       <h3 class="text-lg font-medium leading-6 text-text-primary">
-        {{ 'PAC.Xpert.MetadataFilterConditions' | translate: {Default: 'Metadata filtering conditions'} }}
+        {{ 'PAC.Xpert.MetadataFilterConditions' | translate: { Default: 'Metadata filtering conditions' } }}
       </h3>
-      <button type="button" class="btn btn-ghost btn-small w-7 h-7 rounded-full"
-        (click)="trigger.close()">
+      <button type="button" class="btn btn-ghost btn-small w-7 h-7 rounded-full" (click)="trigger.close()">
         <i class="ri-close-line text-lg"></i>
       </button>
     </div>

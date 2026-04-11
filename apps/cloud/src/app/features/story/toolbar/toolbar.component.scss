@@ -1,3 +1,4 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply flex justify-start items-stretch;
 
@@ -11,11 +12,12 @@
   @apply overflow-x-hidden overflow-y-auto;
 }
 
-.mat-divider {
+.z-divider {
   @apply border-dashed my-4;
 }
 
-.mat-mdc-icon-button.mat-mdc-button-base {
+[z-button][data-icon-only],
+z-button[data-icon-only] {
   --mdc-icon-button-state-layer-size: 40px;
   padding: 0;
   display: flex;

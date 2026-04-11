@@ -1,4 +1,4 @@
-import { TenantModule } from '@metad/server-core'
+import { TenantModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { BullModule } from '@nestjs/bull'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -10,6 +10,7 @@ import { CommandHandlers } from './commands/handlers'
 import { XpertTask } from './xpert-task.entity'
 import { XpertAgentModule } from '../xpert-agent/xpert-agent.module'
 import { TaskSchedulerProcessor } from './scheduler.job'
+import { Strategies } from './plugins'
 
 
 @Module({
@@ -25,7 +26,7 @@ import { TaskSchedulerProcessor } from './scheduler.job'
 		}),
 	],
 	controllers: [XpertTaskController],
-	providers: [XpertTaskService, TaskSchedulerProcessor, ...CommandHandlers],
+	providers: [XpertTaskService, TaskSchedulerProcessor, ...CommandHandlers, ...Strategies],
 	exports: [XpertTaskService]
 })
 export class XpertTaskModule {}

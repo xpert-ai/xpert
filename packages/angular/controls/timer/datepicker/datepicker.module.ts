@@ -1,13 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatNativeDateModule } from '@angular/material/core'
-import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatRadioModule } from '@angular/material/radio'
+
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmMemberDatepickerComponent } from './datepicker.component'
 import { NgmDatepickerComponent } from './datepicker/datepicker.component'
@@ -18,27 +13,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 @NgModule({
   declarations: [NgmMemberDatepickerComponent],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-
-    CdkMenuModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatFormFieldModule,
-    MatButtonModule,
-    MatInputModule,
-    MatRadioModule,
-    MatIconModule,
-
-    TranslateModule,
-
-    NgmMonthpickerComponent,
-    NgmQuarterpickerComponent,
-    NgmYearpickerComponent,
-    NgmDatepickerComponent
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardButtonComponent, ZardInputDirective, ZardIconComponent, TranslateModule, NgmMonthpickerComponent, NgmQuarterpickerComponent, NgmYearpickerComponent, NgmDatepickerComponent],
   exports: [
     NgmMemberDatepickerComponent,
     NgmMonthpickerComponent,

@@ -6,12 +6,14 @@
   "prefix": "pac",
   "targets": {
     "build": {
-      "executor": "@angular-devkit/build-angular:browser",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@angular/build:application",
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/apps/cloud",
         "index": "apps/cloud/src/index.html",
-        "main": "apps/cloud/src/main.ts",
+        "browser": "apps/cloud/src/main.ts",
         "polyfills": [
           "zone.js",
           "apps/cloud/src/polyfills.ts"
@@ -91,24 +93,40 @@
           },
           {
             "glob": "**/*.json",
-            "input": "packages/echarts/src/i18n/",
+            "input": "legacies/echarts/src/i18n/",
             "output": "./assets/locales/echarts/"
+          },
+          {
+            "glob": "**/*.json",
+            "input": "packages/ui/src/i18n/",
+            "output": "./assets/locales/xp-ui/"
+          },
+          {
+            "glob": "index.html",
+            "input": "node_modules/@xpert-ai/chatkit-ui/dist/app",
+            "output": "./chatkit"
+          },
+          {
+            "glob": "**/*",
+            "input": "node_modules/@xpert-ai/chatkit-ui/dist/app/assets",
+            "output": "./assets"
           },
           "apps/cloud/src/favicon.ico",
           "apps/cloud/src/assets",
           "apps/cloud/src/manifest.webmanifest"
         ],
         "styles": [
-          "packages/angular/_index.scss",
-          "packages/copilot-angular/_index.scss",
+          "packages/ui/styles.css",
           "apps/cloud/src/styles.scss",
           "node_modules/@ctrl/ngx-emoji-mart/picker.css"
         ],
         "stylePreprocessorOptions": {
-          "includePaths": ["node_modules/"]
+          "includePaths": [
+            "node_modules/",
+            "."
+          ]
         },
         "scripts": [
-          "node_modules/marked/marked.min.js",
           "node_modules/prismjs/prism.js",
           "node_modules/prismjs/components/prism-json.min.js",
           "node_modules/prismjs/components/prism-jsx.min.js",
@@ -118,11 +136,11 @@
           "node_modules/prismjs/components/prism-scss.min.js",
           "node_modules/prismjs/components/prism-css.min.js",
           "node_modules/prismjs/components/prism-sql.min.js",
+          "node_modules/prismjs/plugins/toolbar/prism-toolbar.min.js",
           "node_modules/prismjs/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js",
           "node_modules/clipboard/dist/clipboard.min.js"
         ],
-        "serviceWorker": true,
-        "ngswConfigPath": "apps/cloud/ngsw-config.json",
+        "serviceWorker": "apps/cloud/ngsw-config.json",
         "webWorkerTsConfig": "apps/cloud/tsconfig.worker.json"
       },
       "configurations": {
@@ -146,13 +164,10 @@
             }
           ],
           "outputHashing": "all",
-          "serviceWorker": true,
-          "ngswConfigPath": "apps/cloud/ngsw-config.json"
+          "serviceWorker": "apps/cloud/ngsw-config.json"
         },
         "development": {
-          "buildOptimizer": false,
           "optimization": false,
-          "vendorChunk": true,
           "extractLicenses": false,
           "sourceMap": true,
           "namedChunks": true
@@ -161,19 +176,23 @@
       "defaultConfiguration": "production",
       "dependsOn": [
         {
-          "projects": ["contracts"],
+          "projects": [
+            "contracts"
+          ],
           "target": "build",
           "params": "ignore"
         },
         {
-          "projects": ["sql"],
+          "projects": [
+            "sql"
+          ],
           "target": "build",
           "params": "ignore"
         }
       ]
     },
     "serve": {
-      "executor": "@angular-devkit/build-angular:dev-server",
+      "executor": "@angular/build:dev-server",
       "options": {
         "proxyConfig": "apps/cloud/proxy.conf.json"
       },
@@ -189,7 +208,7 @@
       "defaultConfiguration": "development"
     },
     "extract-i18n": {
-      "executor": "@angular-devkit/build-angular:extract-i18n",
+      "executor": "@angular/build:extract-i18n",
       "options": {
         "buildTarget": "cloud:build"
       }
@@ -197,12 +216,17 @@
     "lint": {
       "executor": "@nx/eslint:lint",
       "options": {
-        "lintFilePatterns": ["apps/cloud/src/**/*.ts", "apps/cloud/src/**/*.html"]
+        "lintFilePatterns": [
+          "apps/cloud/src/**/*.ts",
+          "apps/cloud/src/**/*.html"
+        ]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/apps/cloud"],
+      "outputs": [
+        "{workspaceRoot}/coverage/apps/cloud"
+      ],
       "options": {
         "jestConfig": "apps/cloud/jest.config.ts",
         "webWorkerTsConfig": "apps/cloud/tsconfig.worker.json"

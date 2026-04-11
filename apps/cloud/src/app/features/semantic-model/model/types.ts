@@ -1,4 +1,4 @@
-import { ISemanticModel, NgmSemanticModel } from '@metad/cloud/state'
+import { ISemanticModel, NgmSemanticModel } from '@xpert-ai/cloud/state'
 import {
   Cube,
   Dimension,
@@ -9,7 +9,7 @@ import {
   PropertyDimension,
   PropertyHierarchy,
   Schema,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { IStory, ModelQuery, TSemanticModelDraft, uuid } from '../../../@core'
 
 export { MODEL_TYPE } from '@cloud/app/@shared/model/types'

@@ -1,8 +1,8 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { nonNullable } from '@metad/copilot'
+import { nonNullable } from '@xpert-ai/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { TXpertAgentOptions, TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { KnowledgeRecallParamsComponent } from 'apps/cloud/src/app/@shared/knowledge'
@@ -15,7 +15,7 @@ import { XpertStudioPanelAgentComponent } from '../agent.component'
   styleUrls: ['./knowledge.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, KnowledgeRecallParamsComponent]
+  imports: [FormsModule, TranslateModule, CdkMenuModule, KnowledgeRecallParamsComponent]
 })
 export class XpertStudioPanelKnowledgeSectionComponent {
   readonly elementRef = inject(ElementRef)

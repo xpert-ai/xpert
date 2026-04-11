@@ -1,265 +1,321 @@
-@if ( indicator(); as indicator ) {
-<mat-card class="w-full h-full flex flex-col justify-start items-stretch">
-  <mat-card-header>
-    <mat-card-title class="text-lg">
-      {{ indicator.code }}
-    </mat-card-title>
-    <mat-card-subtitle class="text-base">
-      {{ indicator.name }}
-    </mat-card-subtitle>
-
-    <ng-template #indicators>
-      <div class="flex flex-col justify-start items-end">
-        <div>
-          {{'IndicatorApp.Current' | translate: {Default: 'Current'} }}
-        </div>
-        <div>
-          {{(indicator.data?.CURRENT | number:'1.0-1' | replaceNullWithText:'-' )!}}
-        </div>
+@if (indicator(); as indicator) {
+  <z-card class="w-full h-full max-w-full flex flex-col justify-start items-stretch gap-0 p-0 shadow-none">
+    <z-card-header class="px-[10px] pt-[10px]">
+      <div class="min-w-0 flex flex-1 flex-col items-start overflow-hidden whitespace-nowrap text-ellipsis">
+        <z-card-title class="max-w-full overflow-hidden text-ellipsis text-lg font-bold">
+          {{ indicator.code }}
+        </z-card-title>
+        <z-card-subtitle class="mb-2 max-w-full overflow-hidden text-ellipsis text-base">
+          {{ indicator.name }}
+        </z-card-subtitle>
       </div>
 
-      <div class="flex flex-col justify-start items-end">
-        <div>
-          {{ 'IndicatorApp.MOM' | translate: {Default: 'MOM'} }}
+      <ng-template #indicators>
+        <div class="flex flex-col justify-start items-end">
+          <div>
+            {{ 'IndicatorApp.Current' | translate: { Default: 'Current' } }}
+          </div>
+          <div>
+            {{ (indicator.data?.CURRENT | number: '1.0-1' | replaceNullWithText: '-')! }}
+          </div>
         </div>
-        <div [ngClass]="{'Trend-Up': mom$() === TREND.Up, 'Trend-Down': mom$() === TREND.Down}">
-          <mat-icon *ngIf="mom$() === TREND.Up" displayDensity="compact">arrow_drop_up</mat-icon>
-          <mat-icon *ngIf="mom$() === TREND.Down" displayDensity="compact">arrow_drop_down</mat-icon>
-          {{(indicator.data?.MOM | percent:'0.2-2' | replaceNullWithText:'-' )!}}
-        </div>
-      </div>
 
-      <div class="flex flex-col justify-start items-end">
-        <div>
-          {{'IndicatorApp.YTD' | translate: {Default: 'YTD'} }}
+        <div class="flex flex-col justify-start items-end">
+          <div>
+            {{ 'IndicatorApp.MOM' | translate: { Default: 'MOM' } }}
+          </div>
+          <div [ngClass]="{ 'Trend-Up': mom$() === TREND.Up, 'Trend-Down': mom$() === TREND.Down }">
+            @if (mom$() === TREND.Up) {
+              <z-icon zSize="sm" zType="arrow_drop_up"></z-icon>
+            }
+            @if (mom$() === TREND.Down) {
+              <z-icon zSize="sm" zType="chevron-down"></z-icon>
+            }
+            {{ (indicator.data?.MOM | percent: '0.2-2' | replaceNullWithText: '-')! }}
+          </div>
         </div>
-        <div>
-          {{(indicator.data?.YTD | number:'1.0-1' | replaceNullWithText:'-' )!}}
-        </div>
-      </div>
 
-      <div class="flex flex-col justify-start items-end">
-        <div>
-          {{ 'IndicatorApp.YOY' | translate: {Default: 'YOY'} }}
+        <div class="flex flex-col justify-start items-end">
+          <div>
+            {{ 'IndicatorApp.YTD' | translate: { Default: 'YTD' } }}
+          </div>
+          <div>
+            {{ (indicator.data?.YTD | number: '1.0-1' | replaceNullWithText: '-')! }}
+          </div>
         </div>
-        <div [ngClass]="{'Trend-Up': yoy$() === TREND.Up, 'Trend-Down': yoy$() === TREND.Down}">
-          @if (yoy$() === TREND.Up) {
-            <mat-icon displayDensity="compact">arrow_drop_up</mat-icon>
-          }
-          @if (yoy$() === TREND.Down) {
-            <mat-icon displayDensity="compact">arrow_drop_down</mat-icon>
-          }
-          {{(indicator.data?.YOY | percent:'0.2-2' | replaceNullWithText:'-' )!}}
+
+        <div class="flex flex-col justify-start items-end">
+          <div>
+            {{ 'IndicatorApp.YOY' | translate: { Default: 'YOY' } }}
+          </div>
+          <div [ngClass]="{ 'Trend-Up': yoy$() === TREND.Up, 'Trend-Down': yoy$() === TREND.Down }">
+            @if (yoy$() === TREND.Up) {
+              <z-icon zSize="sm" zType="arrow_drop_up"></z-icon>
+            }
+            @if (yoy$() === TREND.Down) {
+              <z-icon zSize="sm" zType="chevron-down"></z-icon>
+            }
+            {{ (indicator.data?.YOY | percent: '0.2-2' | replaceNullWithText: '-')! }}
+          </div>
         </div>
-      </div>
-    </ng-template>
-    
-    @if (notMobile$ | async) {
-      <div class="flex justify-end items-center gap-4">
-        <ng-container *ngTemplateOutlet="indicators"></ng-container>
-      </div>
-    }
+      </ng-template>
 
-    <div class="flex justify-end items-start gap-2">
-      <button mat-icon-button [color]="favour() ? 'accent' : ''"
-        (click)="toggleFavorite(indicator)">
-        <mat-icon>star</mat-icon>
-      </button>
-
-      @if (isMobile$ | async) {
-        <button mat-icon-button class="pac-indicator-app__close bg-white/10"
-          (click)="onClose($event)">
-          <mat-icon>close</mat-icon>
-        </button>
+      @if (notMobile$ | async) {
+        <div class="flex justify-end items-center gap-4">
+          <ng-container *ngTemplateOutlet="indicators"></ng-container>
+        </div>
       }
-    </div>
-  </mat-card-header>
 
-  <mat-divider></mat-divider>
+      <div class="flex justify-end items-start gap-2">
+        <button [class]="favour() ? 'text-text-accent hover:text-text-accent' : ''"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
 
-  <mat-card-content class="flex-1 overflow-y-auto">
-    @if (isMobile$ | async) {
-      <div class="flex justify-end items-center gap-4 py-2">
-        <ng-container *ngTemplateOutlet="indicators"></ng-container>
-      </div>
-    }
+          (click)="toggleFavorite(indicator)"
+          >
+          <z-icon zType="star"></z-icon>
+        </button>
 
-    @for (dataSettings of dataSettings$ | async; track dataSettings.id) {
-      <ngm-analytical-card class="h-[300px]"
-        [dataSettings]="dataSettings"
-        [chartOptions]="chartOptions()"
-        [chartSettings]="{theme: primaryTheme$()}"
-        [options]="{
-          realtimeLinked: true,
-          disableContextMenu: true
-        }"
-        (slicersChanging)="onPeriodSlicerChange($event)"
-        (explain)="onExplain($event)"
-        >
-        <div class=" flex-1 flex items-center md:gap-2">
-          @for (p of PERIODS; track p.name) {
-            <span class="pac-indicator__period-tag text-sm cursor-pointer inline-flex items-center font-semibold leading-sm uppercase px-2 py-1 rounded-lg"
-              [ngClass]="{selected: p.name === detailPeriods()}"
-              (click)="togglePeriod(p.name)"
+        @if (isMobile$ | async) {
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            class="pac-indicator-app__close bg-white/10"
+            (click)="onClose($event)"
             >
-              {{p.name}}
-            </span>
-          }
-        </div>
-
-        <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
-          bg-transparent hover:bg-hover-bg"
-          [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"
-          matTooltipPosition="above"
-          (click)="openExplain()">
-          <i class="ri-terminal-box-line"></i>
-        </button>
-      </ngm-analytical-card>
-    }
-
-    @if (indicator.business) {
-      <div class="pac-indicator-app__business mt-2">
-        <div class="title text-lg">
-          {{ 'IndicatorApp.BusinessCaliber' | translate: {Default: 'Business Caliber'} }}
-        </div>
-        <div class="content whitespace-pre-wrap opacity-50">{{ indicator.business }}</div>
+            <z-icon zType="close"></z-icon>
+          </button>
+        }
       </div>
-    }
-    
-    @if (freeDimensions$ | async; as freeDimensions) {
-      <div class="flex flex-col">
-        <div class="text-lg my-4 ">
-          {{ 'IndicatorApp.FreeDimensions' | translate: {Default: 'Free Dimensions'} }}
-        </div>
-        <div class="flex flex-wrap justify-between gap-4">
-          @for (item of freeDimensions; track item.dimension.dimension) {
-            <ngm-member-tree-select class="flex-1 min-w-[300px]"
-              [dataSettings]="item.dataSettings"
-              [dimension]="item.dimension"
-              [appearance]="{
-                appearance: 'fill',
-                color: 'accent'
-              }"
-              [options]="{
-                searchable: true,
-                autocomplete: true,
-                virtualScroll: true
-              }"
-              [ngModel]="item.slicer"
-              (ngModelChange)="onSlicerChange($event)"
-            ></ngm-member-tree-select>
-          }
-        </div>
-      </div>
-    }
-   
-    @if (drillDimensions(); as drillDimensions) {
-      <div class="flex flex-col">
-        <div class="text-lg my-4 ">
-          {{ 'IndicatorApp.DrillDown' | translate: {Default: 'Drill Down'} }}
-        </div>
+    </z-card-header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 grid-flow-row-dense gap-4">
-          @for (drill of drillDimensions; track drill.id; let i = $index) {
-            <ngm-analytical-card class="h-[400px]"
-              [title]="drill.title"
-              [dataSettings]="drill.dataSettings"
-              [chartOptions]="drill.chartOptions"
-              [chartSettings]="drill.chartSettings"
-              [options]="{
-              }"
-              (explain)="onDrillExplain(i, drill, $event)"
-              >
-              <mat-chip-list displayDensity="cosy" class="mr-2">
-                <mat-chip class="whitespace-nowrap text-ellipsis overflow-hidden">{{drill.period}}</mat-chip>
-              </mat-chip-list>
-            </ngm-analytical-card>
-          }
-        </div>
-      </div>
-    }
+    <z-divider></z-divider>
 
-    <div class="text-lg mb-4 mt-8">
-      {{ 'IndicatorApp.Comments' | translate: {Default: 'Comments'} }}
-    </div>
-    <div *ngIf="comments$ | async | reverse as comments" #commentsContent class="flex flex-col justify-start items-stretch w-full md:w-[500px] lg:w-[600px] m-auto overflow-y-auto">
-      
-      <div *ngFor="let comment of messages; index as i" class="relative pt-2 pr-2 flex flex-col justify-start items-stretch">
-        <div *ngIf="comment.prompt" class="ml-8 flex justify-end mb-4">
-          <div class="pac-indicator__comment-content overflow-auto max-w-full p-4 text-right rounded-lg rounded-tr-none ">
-            <div class="whitespace-pre-line">
-              {{comment.prompt}}
-            </div>
-          </div>
+    <z-card-content class="flex-1 overflow-y-auto p-[10px]">
+      @if (isMobile$ | async) {
+        <div class="flex justify-end items-center gap-4 py-2">
+          <ng-container *ngTemplateOutlet="indicators"></ng-container>
         </div>
+      }
 
-        <div class="mr-8 flex justify-start mb-4">
-          <div class="pac-indicator__comment-content overflow-auto max-w-full p-4 text-left rounded-lg rounded-tl-none ">
-            <markdown clipboard class="whitespace-pre-line"
-                lineNumbers
-                [start]="5"
-                [data]="comment.content"
+      @for (dataSettings of dataSettings$ | async; track dataSettings.id) {
+        <ngm-analytical-card
+          class="h-[300px]"
+          [dataSettings]="dataSettings"
+          [chartOptions]="chartOptions()"
+          [chartSettings]="{ theme: primaryTheme$() }"
+          [options]="{
+            realtimeLinked: true,
+            disableContextMenu: true
+          }"
+          (slicersChanging)="onPeriodSlicerChange($event)"
+          (explain)="onExplain($event)"
+          >
+          <div class="flex-1 flex items-center md:gap-2">
+            @for (p of PERIODS; track p.name) {
+              <span
+                class="pac-indicator__period-tag text-sm cursor-pointer inline-flex items-center font-semibold leading-sm uppercase px-2 py-1 rounded-lg"
+                [ngClass]="{ selected: p.name === detailPeriods() }"
+                (click)="togglePeriod(p.name)"
                 >
-            </markdown>
+                {{ p.name }}
+              </span>
+            }
           </div>
+
+          <button
+            ngmAction
+            class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+            [zTooltip]="'PAC.Chat.OpenExplain' | translate: { Default: 'Open Explain' }"
+            zPosition="top"
+            (click)="openExplain()"
+            >
+            <i class="ri-terminal-box-line"></i>
+          </button>
+        </ngm-analytical-card>
+      }
+
+      @if (indicator.business) {
+        <div class="pac-indicator-app__business mt-2">
+          <div class="title text-lg">
+            {{ 'IndicatorApp.BusinessCaliber' | translate: { Default: 'Business Caliber' } }}
+          </div>
+          <div class="content whitespace-pre-wrap opacity-50">{{ indicator.business }}</div>
         </div>
+      }
 
-        <button mat-icon-button displayDensity="compact" class="pac-indicator-app__comment-remove right-0 top-0"
-          (click)="messages.splice(i, 1)">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-
-      @if (isModeler()) {
-        <div class="w-full flex flex-col">
-          <div class="pac-indicator__comment-input relative w-full flex gap-2 p-2 rounded-lg">
-            <textarea type="text" id="simple-search" class="pac-indicator-app__comment-input block flex-1 p-0 bg-transparent border-none outline-none
-              text-base"
-              placeholder="{{ 'IndicatorApp.Comment' | translate: {Default: 'Comment'} }}..." required
-              matInput [(ngModel)]="prompt"
-              [disabled]="answering"
-              cdkTextareaAutosize
-            ></textarea>
+      @if (freeDimensions$ | async; as freeDimensions) {
+        <div class="flex flex-col">
+          <div class="text-lg my-4">
+            {{ 'IndicatorApp.FreeDimensions' | translate: { Default: 'Free Dimensions' } }}
           </div>
-
-          <div class="flex justify-end items-center gap-2 my-4">
-            <mat-checkbox [(ngModel)]="relative">
-              {{ 'IndicatorApp.IsPeriodRelated' | translate: {Default: 'Period Related'} }}
-            </mat-checkbox>
-
-            <!-- <button mat-button color="accent" class="ngm-accent" [disabled]="!copilotEnabled() || !prompt || answering" (click)="askCopilot()">
-              {{ 'IndicatorApp.AskCopilot' | translate: {Default: 'Ask Copilot'} }}
-            </button> -->
-    
-            <button mat-button color="accent" class="ngm-accent" [disabled]="!prompt || answering" (click)="saveAsComment(indicator.id, prompt, relative)">
-              {{ 'IndicatorApp.SaveAsComment' | translate: {Default: 'Save as Comment'} }}
-            </button>
+          <div class="flex flex-wrap justify-between gap-4">
+            @for (item of freeDimensions; track item.dimension.dimension) {
+              <ngm-member-tree-select
+                class="flex-1 min-w-[300px]"
+                [dataSettings]="item.dataSettings"
+                [dimension]="item.dimension"
+                [appearance]="{
+                  appearance: 'fill',
+                  color: 'accent'
+                }"
+                [options]="{
+                  searchable: true,
+                  autocomplete: true,
+                  virtualScroll: true
+                }"
+                [ngModel]="item.slicer"
+                (ngModelChange)="onSlicerChange($event)"
+              ></ngm-member-tree-select>
+            }
           </div>
         </div>
       }
 
-      <div *ngFor="let comment of comments" class="flex flex-col justify-start items-stretch mb-4">
-        <div class="relative ml-8 flex justify-end pt-2 pr-2">
-          <div class="pac-indicator__comment-content overflow-auto max-w-full p-4 text-right rounded-xl rounded-tr-none ">
-            <div class="whitespace-pre-line">
-              {{comment.content}}
-            </div>
+      @if (drillDimensions(); as drillDimensions) {
+        <div class="flex flex-col">
+          <div class="text-lg my-4">
+            {{ 'IndicatorApp.DrillDown' | translate: { Default: 'Drill Down' } }}
           </div>
 
-          @if (isModeler()) {
-            <button mat-icon-button displayDensity="compact" class="pac-indicator-app__comment-remove"
-              (click)="deleteComment(comment)">
-              <mat-icon>close</mat-icon>
-            </button>
-          }
+          <div class="grid grid-cols-1 md:grid-cols-2 grid-flow-row-dense gap-4">
+            @for (drill of drillDimensions; track drill.id; let i = $index) {
+              <ngm-analytical-card
+                class="h-[400px]"
+                [title]="drill.title"
+                [dataSettings]="drill.dataSettings"
+                [chartOptions]="drill.chartOptions"
+                [chartSettings]="drill.chartSettings"
+                [options]="{}"
+                (explain)="onDrillExplain(i, drill, $event)"
+                >
+                <z-chip-set displayDensity="cosy" class="mr-2">
+                  <z-chip class="whitespace-nowrap text-ellipsis overflow-hidden">{{ drill.period }}</z-chip>
+                </z-chip-set>
+              </ngm-analytical-card>
+            }
+          </div>
         </div>
+      }
 
-        <span *ngIf="comment.options?.period" class="pac-indicator__comment-period self-end text-xs font-medium mt-1 mr-2 px-2.5 py-0.5 rounded">
-          {{ comment.options?.periodCaption || comment.options?.period }}
-        </span>
+      <div class="text-lg mb-4 mt-8">
+        {{ 'IndicatorApp.Comments' | translate: { Default: 'Comments' } }}
       </div>
+      @if (comments$ | async | reverse; as comments) {
+        <div
+          #commentsContent
+          class="flex flex-col justify-start items-stretch w-full md:w-[500px] lg:w-[600px] m-auto overflow-y-auto"
+          >
+          @for (comment of messages; track comment; let i = $index) {
+            <div
+              class="relative pt-2 pr-2 flex flex-col justify-start items-stretch"
+              >
+              @if (comment.prompt) {
+                <div class="ml-8 flex justify-end mb-4">
+                  <div
+                    class="pac-indicator__comment-content overflow-auto max-w-full p-4 text-right rounded-lg rounded-tr-none"
+                    >
+                    <div class="whitespace-pre-line">
+                      {{ comment.prompt }}
+                    </div>
+                  </div>
+                </div>
+              }
+              <div class="mr-8 flex justify-start mb-4">
+                <div
+                  class="pac-indicator__comment-content overflow-auto max-w-full p-4 text-left rounded-lg rounded-tl-none"
+                  >
+                  <markdown clipboard class="whitespace-pre-line" lineNumbers [start]="5" [data]="comment.content">
+                  </markdown>
+                </div>
+              </div>
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                displayDensity="compact"
+                class="pac-indicator-app__comment-remove right-0 top-0"
+                (click)="messages.splice(i, 1)"
+                >
+                <z-icon zType="close"></z-icon>
+              </button>
+            </div>
+          }
+          @if (isModeler()) {
+            <div class="w-full flex flex-col">
+              <div class="pac-indicator__comment-input relative w-full flex gap-2 p-2 rounded-lg">
+                <textarea
+                  type="text"
+                  id="simple-search"
+                  class="pac-indicator-app__comment-input block flex-1 p-0 bg-transparent border-none outline-none text-base"
+                  placeholder="{{ 'IndicatorApp.Comment' | translate: { Default: 'Comment' } }}..."
+                  required
+                  z-input
+                  [(ngModel)]="prompt"
+                  [disabled]="answering"
+                  cdkTextareaAutosize
+                ></textarea>
+              </div>
+              <div class="flex justify-end items-center gap-2 my-4">
+                <z-checkbox [(ngModel)]="relative">
+                  {{ 'IndicatorApp.IsPeriodRelated' | translate: { Default: 'Period Related' } }}
+                </z-checkbox>
+                <!-- <button z-button zType="ghost" class="ngm-accent text-text-accent hover:text-text-accent" [zDisabled]="!copilotEnabled() || !prompt || answering" (click)="askCopilot()">
+                {{ 'IndicatorApp.AskCopilot' | translate: {Default: 'Ask Copilot'} }}
+              </button> -->
+              <button
+                z-button
+                zType="ghost"
 
-    </div>
-  </mat-card-content>
-</mat-card>
+                class="ngm-accent text-text-accent hover:text-text-accent"
+                [disabled]="!prompt || answering"
+                (click)="saveAsComment(indicator.id, prompt, relative)"
+                >
+                {{ 'IndicatorApp.SaveAsComment' | translate: { Default: 'Save as Comment' } }}
+              </button>
+            </div>
+          </div>
+        }
+        @for (comment of comments; track comment) {
+          <div class="flex flex-col justify-start items-stretch mb-4">
+            <div class="relative ml-8 flex justify-end pt-2 pr-2">
+              <div
+                class="pac-indicator__comment-content overflow-auto max-w-full p-4 text-right rounded-xl rounded-tr-none"
+                >
+                <div class="whitespace-pre-line">
+                  {{ comment.content }}
+                </div>
+              </div>
+              @if (isModeler()) {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  displayDensity="compact"
+                  class="pac-indicator-app__comment-remove"
+                  (click)="deleteComment(comment)"
+                  >
+                  <z-icon zType="close"></z-icon>
+                </button>
+              }
+            </div>
+            @if (comment.options?.period) {
+              <span
+                class="pac-indicator__comment-period self-end text-xs font-medium mt-1 mr-2 px-2.5 py-0.5 rounded"
+                >
+                {{ comment.options?.periodCaption || comment.options?.period }}
+              </span>
+            }
+          </div>
+        }
+      </div>
+    }
+  </z-card-content>
+</z-card>
 }

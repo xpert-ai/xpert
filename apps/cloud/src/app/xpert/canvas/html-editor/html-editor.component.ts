@@ -1,13 +1,13 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { SafePipe } from '@metad/core'
+import { SafePipe } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, SafePipe, FileEditorComponent],
+  imports: [FormsModule, TranslateModule, SafePipe, FileEditorComponent],
   selector: 'xpert-canvas-html-editor',
   templateUrl: './html-editor.component.html',
   styleUrls: ['./html-editor.component.scss']

@@ -1,5 +1,5 @@
-import { EntityService } from "@metad/ocap-core"
-import { XmlaDataSource } from "@metad/ocap-xmla"
+import { EntityService } from "@xpert-ai/ocap-core"
+import { XmlaDataSource } from "@xpert-ai/ocap-xmla"
 import { MyXmlaEntityService } from "./entity.service"
 
 

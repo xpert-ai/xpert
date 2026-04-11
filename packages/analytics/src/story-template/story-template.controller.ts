@@ -1,5 +1,5 @@
-import { IPagination, IStoryTemplate } from '@metad/contracts'
-import { CrudController, ParseJsonPipe, UUIDValidationPipe } from '@metad/server-core'
+import { IPagination, IStoryTemplate } from '@xpert-ai/contracts'
+import { CrudController, ParseJsonPipe, UUIDValidationPipe } from '@xpert-ai/server-core'
 import { Body, ClassSerializerInterceptor, Controller, Get, Param, Put, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

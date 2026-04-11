@@ -1,15 +1,15 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { environment } from '@cloud/environments/environment'
-import { LanguagesEnum, UsersService } from '@metad/cloud/state'
-import { OverlayAnimation1 } from '@metad/core'
-import { ThemesEnum } from '@metad/ocap-angular/core'
+import { LanguagesEnum, UsersService } from '@xpert-ai/cloud/state'
+import { OverlayAnimation1 } from '@xpert-ai/core'
+import { ThemesEnum } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectHelpWebsite, injectToastr, IUser, LANGUAGES, Store } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
@@ -19,7 +19,7 @@ import { HeaderAboutComponent } from '../about/about.component'
 
 const THEMES = [
   {
-    key: 'system',
+    key: 'default',
     caption: 'System',
     icon: 'settings_suggest'
   },
@@ -32,17 +32,12 @@ const THEMES = [
     key: 'dark',
     caption: 'Dark',
     icon: 'dark_mode'
-  },
-  {
-    key: 'dark-green',
-    caption: 'Dark Green',
-    icon: 'dark_mode'
   }
 ]
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
+  imports: [FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
   selector: 'pac-header-user',
   templateUrl: './user.component.html',
   animations: [OverlayAnimation1]
@@ -63,6 +58,8 @@ export class HeaderUserComponent {
 
   // Inputs
   readonly user = input<IUser>()
+  readonly compact = input(false)
+  readonly fullWidth = input(false)
 
   // States
   readonly preferredTheme$ = toSignal(this.store.preferredTheme$)
@@ -83,7 +80,7 @@ export class HeaderUserComponent {
 
   readonly langLabel = computed(() => LANGUAGES.find((_) => _.value === this.language$())?.label)
   readonly themeLabel = computed(
-    () => this.themeOptions$().find((_) => _.key === (this.preferredTheme$() ?? ThemesEnum.system))?.caption
+    () => this.themeOptions$().find((_) => _.key === (this.preferredTheme$() ?? ThemesEnum.default))?.caption
   )
 
   readonly firstLetter = computed(() => new UserPipe().transform(this.user())?.[0].toUpperCase())

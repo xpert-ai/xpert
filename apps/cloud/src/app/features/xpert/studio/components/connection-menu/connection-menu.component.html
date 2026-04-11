@@ -9,7 +9,7 @@
   </div>
   <ul cdkListbox cdkListboxMultiple [ngModel]="availableTools()" (ngModelChange)="updateAvailableTools($event)">
     @for (tool of tools(); track tool.name) {
-      <li [cdkOption]="tool.name" class="tool-option relative flex items-center cursor-pointer rounded-lg pl-6 pr-2 py-1 hover:bg-gray-50"
+      <li [cdkOption]="tool.name" class="tool-option relative flex items-center cursor-pointer rounded-lg pl-6 pr-2 py-1 hover:bg-hover-bg"
         >{{tool.name}}</li>
     }
   </ul>

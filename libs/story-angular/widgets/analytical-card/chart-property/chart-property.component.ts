@@ -2,21 +2,15 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
-import { NgmColorsComponent } from '@metad/components/form-field'
+import { NgmColorsComponent } from '@xpert-ai/components/form-field'
 import {
   NgmChromaticInterpolateGroup,
   NxChromaticPreviewComponent,
   getScaleChromaticInterpolates
-} from '@metad/components/palette'
-import { ColorPalettes, NxCoreService } from '@metad/core'
-import { AppearanceDirective, DensityDirective, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
+} from '@xpert-ai/components/palette'
+import { ColorPalettes, NxCoreService } from '@xpert-ai/core'
+import { AppearanceDirective, DensityDirective, NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityModule, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   CalculationProperty,
@@ -29,14 +23,15 @@ import {
   getEntityProperty,
   isEqual,
   pick
-} from '@metad/ocap-core'
-import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/ocap-core'
+import { NxDesignerModule, NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
 import { BehaviorSubject, distinctUntilChanged, from, map } from 'rxjs'
 import { NgmChartDimensionComponent } from './chart-dimension.component'
 import { NgmChartMeasureComponent } from './chart-measure.component'
 import { NgmReferenceLineComponent } from './reference-line.component'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardFormImports, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -44,12 +39,11 @@ import { NgmReferenceLineComponent } from './reference-line.component'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-    MatRadioModule,
-    MatCheckboxModule,
-    MatButtonToggleModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardFormImports,
+    ...ZardMenuImports,
+    ZardCheckboxComponent,
     TranslateModule,
 
     NxDesignerModule,

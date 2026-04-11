@@ -1,0 +1,38 @@
+{
+  "name": "@xpert-ai/headless-ui",
+  "version": "0.0.1",
+  "description": "Shared UI primitives and design tokens for Xpert Angular apps",
+  "license": "AGPL-3.0",
+  "peerDependencies": {
+    "@angular/cdk": "^21.0.0",
+    "@angular/common": "^21.1.0",
+    "@angular/core": "^21.1.0",
+    "@angular/forms": "^21.1.0",
+    "@angular/platform-browser": "^21.1.0",
+    "i18next": "^23.14.0"
+  },
+  "dependencies": {
+    "@ng-icons/core": "^33.2.0",
+    "@ng-icons/lucide": "^33.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-angular": "^0.544.0",
+    "ngx-sonner": "^3.1.0",
+    "tailwind-merge": "^3.4.1",
+    "tailwindcss-animate": "^1.0.7",
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "devDependencies": {
+    "@angular/core": "^21.1.4",
+    "@ngzard/ui": "1.0.0-beta.31",
+    "@tailwindcss/cli": "^4.1.18",
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
+  }
+}

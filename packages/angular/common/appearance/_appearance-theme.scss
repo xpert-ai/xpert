@@ -1,12 +1,13 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $accent: map.get($config, accent);
   $background: map.get($config, background);
 
-  .ngm-appearance-desktop.mat-icon-button:hover:not(.mat-button-disabled) {
-    background-color: mat.get-color-from-palette($background, hover);
+  [z-button].ngm-appearance-desktop[data-icon-only]:hover:not([disabled]):not([data-disabled]),
+  z-button.ngm-appearance-desktop[data-icon-only]:hover:not([disabled]):not([data-disabled]) {
+    background-color: themeCompat.m2-get-color-from-palette($background, hover);
   }
 }

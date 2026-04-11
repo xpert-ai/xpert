@@ -9,8 +9,8 @@ import {
   OCAP_DATASOURCE_TOKEN,
   OCAP_MODEL_TOKEN,
   OcapCoreModule
-} from '@metad/ocap-angular/core'
-import { AgentType, C_MEASURES, DataSource, Schema, Type } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/core'
+import { AgentType, C_MEASURES, DataSource, Schema, Type } from '@xpert-ai/ocap-core'
 import { MissingTranslationHandler, TranslateLoader, TranslateModule } from '@ngx-translate/core'
 import { Meta, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { NgxEchartsModule } from 'ngx-echarts'
@@ -65,7 +65,7 @@ export default {
           useValue: {
             type: 'SQL',
             factory: async (): Promise<Type<DataSource>> => {
-              const { SQLDataSource } = await import('@metad/ocap-sql')
+              const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
               return SQLDataSource
             }
           },
@@ -342,7 +342,6 @@ export const DrillDimensions = {
     options: {}
   }
 }
-
 
 export const ChartTypes = {
   args: {

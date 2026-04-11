@@ -34,9 +34,9 @@ import {
 	TCopilotModel,
 	KnowledgeDocumentMetadata,
 	IUser
-} from '@metad/contracts'
-import { getErrorMessage, shortuuid } from '@metad/server-common'
-import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
+import { IntegrationService, PaginationParams, RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { QueryFailedError } from 'typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
@@ -119,7 +119,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const { relations, order, take } = data ?? {}
 		let { where } = data ?? {}
 		where = where ?? {}
-		const organizationId = RequestContext.getOrganizationId()
+		const organizationId = RequestContext.getOrganizationId() ?? IsNull()
 		
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
 			where = {
@@ -438,12 +438,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
 			visionModel = knowledgebase.visionModel
 		}
-		const copilot = visionModel?.copilot
-		if (!copilot) {
+		// Workflow nodes usually persist only copilotId, not the eager-loaded copilot relation.
+		if (!visionModel?.copilot && !visionModel?.copilotId) {
 			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
 		}
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, visionModel, {
+			new CopilotModelGetChatModelQuery(visionModel?.copilot ?? null, visionModel, {
 				usageCallback: (token) => {
 					// execution.tokens += (token ?? 0)
 				}

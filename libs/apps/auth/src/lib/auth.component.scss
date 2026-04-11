@@ -1,3 +1,4 @@
+@reference "../../../../../tailwind-workspace-reference.css";
 :host {
   background-color: var(--ngm-color-surface-container);
   @apply w-full max-w-full h-full flex flex-col justify-start items-center overflow-auto bg-cover text-text-primary;

@@ -1,10 +1,13 @@
-<mat-tab-group mat-stretch-tabs [disableRipple]="to?.disableRipple">
-  <mat-tab *ngFor="let tab of field.fieldGroup; let i = index; let last = last">
-    <ng-template mat-tab-label>
-      <mat-icon *ngIf="tab.templateOptions?.['icon']" fontSet="material-icons-outlined">{{tab.templateOptions?.['icon']}}</mat-icon>
-      {{tab.templateOptions?.label}}
-    </ng-template>
-
-    <formly-field [field]="tab"></formly-field>
-  </mat-tab>
-</mat-tab-group>
+<z-tab-group stretchTabs [disableRipple]="to?.disableRipple">
+  @for (tab of field.fieldGroup; track tab; let i = $index; let last = $last) {
+    <z-tab>
+      <ng-template zTabLabel>
+        @if (tab.templateOptions?.['icon']) {
+          <z-icon [zType]="tab.templateOptions?.['icon']"></z-icon>
+        }
+        {{tab.templateOptions?.label}}
+      </ng-template>
+      <formly-field [field]="tab"></formly-field>
+    </z-tab>
+  }
+</z-tab-group>

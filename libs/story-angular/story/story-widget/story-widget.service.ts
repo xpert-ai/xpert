@@ -1,22 +1,22 @@
 import { computed, inject, Inject, Injectable, Optional } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
-import { ID } from '@metad/contracts'
-import { createSubStore, dirtyCheckWith, WidgetService, write } from '@metad/core'
-import { DataSettings } from '@metad/ocap-core'
+import { ID } from '@xpert-ai/contracts'
+import { createSubStore, dirtyCheckWith, WidgetService, write } from '@xpert-ai/core'
+import { DataSettings } from '@xpert-ai/ocap-core'
 import {
   LinkedAnalysisSettings,
   NX_STORY_FEED,
   NxStoryFeedService,
   StoryWidget
-} from '@metad/story/core'
+} from '@xpert-ai/story/core'
 import { TranslateService } from '@ngx-translate/core'
+import { ZardToastService } from '@xpert-ai/headless-ui'
 import { firstValueFrom, Observable } from 'rxjs'
 import { filter, tap } from 'rxjs/operators'
 import { NxStoryPointService } from '../story-point.service'
 import { select, withProps } from '@ngneat/elf'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { isEqual, negate } from 'lodash-es'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 
 @Injectable()
 export class NxStoryWidgetService {
@@ -71,7 +71,7 @@ export class NxStoryWidgetService {
     @Inject(NX_STORY_FEED)
     private feedService?: NxStoryFeedService,
     @Optional() private translateService?: TranslateService,
-    @Optional() private _snackBar?: MatSnackBar
+    @Optional() private toast?: ZardToastService
   ) {
   }
 
@@ -146,10 +146,10 @@ export class NxStoryWidgetService {
       )
 
       const pinSuccess = this.getTranslation('Story.Widget.PinSuccess', 'Widget pin success')
-      this._snackBar?.open(pinSuccess, widget.name, { duration: 1000 })
+      this.toast?.success(pinSuccess, { description: widget.name, duration: 1000 })
     } catch (err) {
       const pinFailed = this.getTranslation('Story.Widget.PinFailed', 'Widget pin failed')
-      this._snackBar?.open(pinFailed, widget.name, { duration: 1000 })
+      this.toast?.error(pinFailed, { description: widget.name, duration: 1000 })
     }
   }
 

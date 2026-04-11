@@ -6,9 +6,10 @@ import {
     TXpertChatInterruptPatch,
     TXpertChatResumeDecision,
     TXpertChatState
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
+import { TXpertAgentRuntimeOptions } from '../agent'
 
 export class XpertAgentInvokeCommand implements ICommand {
     static readonly type = '[Xpert Agent] Invoke'
@@ -17,7 +18,7 @@ export class XpertAgentInvokeCommand implements ICommand {
         public readonly state: TXpertChatState,
         public readonly agentKeyOrName: string,
         public readonly xpert: Partial<IXpert>,
-        public readonly options: TChatOptions & {
+        public readonly options: TChatOptions & TXpertAgentRuntimeOptions & {
             // Langgraph thread id
             thread_id?: string
             // Use xpert's draft

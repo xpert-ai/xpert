@@ -1,3 +1,4 @@
+@reference "tailwindcss";
 // .cdk-menu-bar {
 //   .cdk-menu-item {
 //     @apply p-2 whitespace-nowrap text-neutral-500 dark:text-neutral-500;
@@ -7,18 +8,17 @@
 //   }
 // }
 
-.cdk-menu-trigger[aria-expanded='true'] {
-  @apply bg-black/10 dark:bg-gray-100/20 text-neutral-600 dark:text-neutral-400;
+.cdk-menu-trigger[aria-expanded='true'],
+[z-menu][data-state='open'] {
+  @apply bg-button-ghost-active text-fg-secondary;
 }
 
-.mat-mdc-menu-panel .mat-mdc-menu-content {
-  .mat-mdc-menu-item {
-    .mat-icon {
+.cdk-menu,
+[z-menu-content] {
+  .cdk-menu-item,
+  [z-menu-item] {
+    .z-icon {
       @apply shrink-0;
-    }
-
-    .mat-mdc-menu-item-text {
-      @apply overflow-hidden whitespace-nowrap text-ellipsis;
     }
   }
 }

@@ -1,13 +1,16 @@
-import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { FormsModule } from '@angular/forms'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { NgmInputComponent } from '@metad/ocap-angular/common'
-import { DensityDirective, ISelectOption } from '@metad/ocap-angular/core'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isObservable, startWith } from 'rxjs'
+import {
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
+  type ZardComboboxDeprecatedOption
+} from '@xpert-ai/headless-ui/components/combobox-deprecated'
+import { ZardFormImports, ZardInputStatusVariants, ZardInputDirective } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -19,27 +22,39 @@ import { isObservable, startWith } from 'rxjs'
     class: 'pac-formly-input'
   },
   imports: [
-    CommonModule,
-    FormsModule,
     TranslateModule,
-    MatFormFieldModule,
-    FormlyModule,
-    DensityDirective,
-    NgmInputComponent
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
+    ZardInputDirective,
+    NgmHighlightDirective,
+    ...ZardFormImports,
+    FormlyModule
   ]
 })
 export class PACFormlyInputComponent extends FieldType implements OnInit {
   readonly #destroyRef = inject(DestroyRef)
 
   readonly selectOptions = signal<ISelectOption[]>([])
+  readonly searchTerm = signal('')
 
-  oldValue = null
-  newValue = null
+  readonly hasOptions = computed(() => !!this.selectOptions().length)
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption<unknown, ISelectOption>[]>(() =>
+    this.selectOptions().map((option) => ({
+      id: this.optionId(option),
+      label: this.optionLabel(option),
+      value: this.optionValue(option),
+      data: option
+    }))
+  )
+
+  oldValue: string | null = null
+  newValue: string | null = null
 
   ngOnInit(): void {
     this.formControl.valueChanges.pipe(startWith(this.formControl.value), takeUntilDestroyed(this.#destroyRef)).subscribe((value) => {
       this.oldValue = value
       this.newValue = value
+      this.searchTerm.set('')
     })
 
     if (isObservable(this.props?.options)) {
@@ -55,6 +70,23 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
     }
   }
 
+  onSearchTermChange(value: string) {
+    this.searchTerm.set(value)
+    this.newValue = value
+  }
+
+  onOptionSelected(value: unknown) {
+    this.searchTerm.set('')
+    this.newValue = value as string | null
+  }
+
+  onTextInput(event: Event) {
+    const target = event.target
+    if (target instanceof HTMLInputElement) {
+      this.newValue = target.value
+    }
+  }
+
   onFocus() {
     this.formControl.markAsTouched()
   }
@@ -64,5 +96,42 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
       this.formControl.setValue(this.newValue)
       this.formControl.markAsDirty()
     }
+  }
+
+  hasError() {
+    return this.formControl.invalid && this.formControl.touched
+  }
+
+  inputStatus(): ZardInputStatusVariants | undefined {
+    return this.hasError() ? 'error' : undefined as ZardInputStatusVariants
+  }
+
+  readonly filterOption = (option: ZardComboboxDeprecatedOption<unknown, ISelectOption>, searchTerm: string) => {
+    const normalized = searchTerm?.trim().toLowerCase()
+    if (!normalized) {
+      return true
+    }
+
+    const original = option.data
+    const terms = normalized.split(' ').filter(Boolean)
+    const haystack = `${original?.caption || original?.label || ''}${this.optionValue(original) ?? ''}`.toLowerCase()
+    return terms.every((term) => haystack.includes(term))
+  }
+
+  readonly displayValue = (_option: ZardComboboxDeprecatedOption<unknown, ISelectOption> | null, value: unknown) => {
+    return value == null ? '' : `${value}`
+  }
+
+  private optionValue(option: ISelectOption | null | undefined) {
+    return option?.value
+  }
+
+  private optionLabel(option: ISelectOption | null | undefined) {
+    return option?.caption || option?.label || `${this.optionValue(option) ?? ''}`
+  }
+
+  private optionId(option: ISelectOption | null | undefined): string | number {
+    const candidate = option?.key ?? this.optionValue(option)
+    return typeof candidate === 'string' || typeof candidate === 'number' ? candidate : `${candidate ?? ''}`
   }
 }

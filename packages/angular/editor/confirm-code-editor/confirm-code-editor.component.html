@@ -4,7 +4,7 @@
   </h4>
 </div>
 
-<div class="mat-typography flex flex-col">
+<div class="flex flex-col">
   <ngx-monaco-editor class="ngm-confirm__monaco-editor flex-1 h-full"
     [options]="editorOptions"
     [(ngModel)]="statement"
@@ -14,22 +14,22 @@
 
 <div class="flex justify-between items-center">
   <div ngmButtonGroup>
-    <button mat-button (click)="onReset()">
+    <button z-button zType="ghost" (click)="onReset()">
       {{ 'COMPONENTS.COMMON.RESET' | translate: {Default: 'Reset'} }}
     </button>
-    <button mat-button (click)="onClear()">
+    <button z-button zType="ghost" (click)="onClear()">
       {{ 'COMPONENTS.COMMON.CLEAR' | translate: {Default: 'Clear'} }}
     </button>
   </div>
     
   <div ngmButtonGroup>
-    <button mat-button (click)="onCancel()">
+    <button z-button zType="ghost" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-button color="accent" cdkFocusInitial (click)="onApply()">
+    <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial (click)="onOk()">
+    <button z-button zType="default" cdkFocusInitial (click)="onOk()">
       {{ 'COMPONENTS.COMMON.CONFIRM' | translate: {Default: 'Confirm'} }}
     </button>
   </div>

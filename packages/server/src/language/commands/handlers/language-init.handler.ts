@@ -1,4 +1,4 @@
-import { ILanguage } from '@metad/contracts'
+import { ILanguage } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { LanguageService } from '../../language.service'
 import { LanguageInitCommand } from '../language-init.command'

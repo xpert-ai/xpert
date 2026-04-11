@@ -5,7 +5,7 @@
   <div class="bg-background-default-dimm flex min-h-[160px] flex-col rounded-xl border-[0.5px] border-components-panel-border transition-all duration-200 ease-in-out">
     <a class="group flex grow cursor-pointer items-start p-4" (click)="newKnowledgebase()">
       <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-divider-deep bg-neutral-50 p-2
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-divider-deep bg-background-default-subtle p-2
           group-hover:border-solid group-hover:border-divider-deep group-hover:bg-components-card-bg">
           <i class="ri-add-line text-text-tertiary"></i>
         </div>
@@ -26,7 +26,7 @@
   </div>
 
   @for (item of knowledgebases(); track item.id) {
-    <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group bg-gray-50 hover:bg-white">
+    <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group bg-background-default-subtle hover:bg-hover-bg">
       <button class="ngm-card__menu transition-opacity h-8 w-8 rounded-md border-none opacity-0 group-hover:opacity-100" displayDensity="cosy"
         #mt="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="menu"
@@ -43,9 +43,9 @@
           <div class="flex flex-col items-start overflow-hidden">
             <p class="text-xs flex items-center text-token-text-secondary opacity-80">
               @if (item.permission === KnowledgebasePermission.Public || item.permission === KnowledgebasePermission.Organization) {
-                <mat-icon class="mr-1 scale-75" displayDensity="compact" fontSet="material-icons-round">public</mat-icon> {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
+                <z-icon class="mr-1 scale-75" zSize="sm" zType="public"></z-icon> {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
               } @else {
-                <mat-icon class="mr-1 scale-75" displayDensity="compact" fontSet="material-icons-round">lock</mat-icon> {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
+                <z-icon class="mr-1 scale-75" zSize="sm" zType="lock"></z-icon> {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
               }
             </p>
             <div class="max-w-full font-bold text-base truncate" [title]="item.name">{{item.name}}</div>
@@ -64,9 +64,9 @@
 
         <a class="inline-block cursor-pointer" (click)="openKnowledgebase(item.id)">
           <button
-            class="flex items-center gap-2 px-4 py-2 font-sans text-xs font-bold text-center whitespace-nowrap text-zinc-600 uppercase align-middle transition-all rounded-lg select-none disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none
+            class="flex items-center gap-2 px-4 py-2 font-sans text-xs font-bold text-center whitespace-nowrap text-text-secondary uppercase align-middle transition-all rounded-lg select-none disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none
               hover:bg-gray-900/10 active:bg-gray-900/20 hover:text-zinc-800
-              dark:text-zinc-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-500"
+              dark:text-zinc-200 dark:hover:bg-neutral-700 dark:active:bg-background-default-subtle"
             type="button">
             {{'PAC.KEY_WORDS.Open' | translate: {Default: 'Open'} }}
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"

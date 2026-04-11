@@ -1,17 +1,17 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
-import { SlideUpAnimation } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { SlideUpAnimation } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { tap } from 'rxjs/operators'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSpinComponent, MatSlideToggleModule],
+  imports: [FormsModule, TranslateModule, NgmSpinComponent, ZardSwitchComponent],
   selector: 'xpert-export-dsl',
   templateUrl: './export-dsl.component.html',
   styleUrl: './export-dsl.component.scss',

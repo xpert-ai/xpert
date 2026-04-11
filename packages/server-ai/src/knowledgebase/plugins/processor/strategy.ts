@@ -17,8 +17,8 @@ import {
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
-import { getErrorMessage, shortuuid } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
@@ -115,6 +115,8 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							})
 							input = items
 						}
+
+						const inputById = new Map(input.map((doc) => [doc.id, doc]))
 						
 						const results = await this.knowledgebaseService.transformDocuments(
 							knowledgebaseId,
@@ -130,9 +132,14 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 						// Update knowledge task progress
 						if (isTest) {
 							documents = results.map((result) => {
+								const previous = result.id ? inputById.get(result.id) : null
 								return {
-									id: result.id || shortuuid(),
-									metadata: result.metadata,
+									...(previous ?? {}),
+									id: result.id || previous?.id || shortuuid(),
+									metadata: {
+										...(previous?.metadata ?? {}),
+										...(result.metadata ?? {})
+									},
 									draft: {
 										chunks: result.chunks
 									},
@@ -142,11 +149,15 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 						} else {
 							for await (const result of results) {
 								if (result.id) {
+									const previous = inputById.get(result.id)
 									await this.documentService.update(result.id, {
 										draft: {
 											chunks: result.chunks
 										},
-										metadata: result.metadata,
+										metadata: {
+											...(previous?.metadata ?? {}),
+											...(result.metadata ?? {})
+										},
 										status: KBDocumentStatusEnum.TRANSFORMED
 									})
 									documents.push(result)

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt } from 'passport-jwt';
-import { ConfigService, IEnvironment } from '@metad/server-config';
+import { ConfigService, IEnvironment } from '@xpert-ai/server-config';
 import { Strategy } from 'passport-linkedin-oauth2';
-import { IApiServerOptions } from '@metad/server-common';
+import { IApiServerOptions } from '@xpert-ai/server-common';
 
 @Injectable()
 export class LinkedinStrategy extends PassportStrategy(Strategy, 'linkedin') {

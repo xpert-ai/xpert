@@ -1,10 +1,12 @@
-<div class="px-6 py-5 bg-purple-50 rounded-lg data-[small=true]:px-3 data-[small=true]:py-2" [attr.data-small]="small()">
+<div
+  class="px-6 py-5 bg-background-default-subtle rounded-lg data-[small=true]:px-3 data-[small=true]:py-2"
+  [attr.data-small]="small()"
+>
   <div class="mb-2.5 flex flex-row items-start justify-between">
     <div class="flex items-start p-1">
       <div class="flex-shrink-0 mr-3">
         <span
-          class="flex items-center justify-center relative rounded-lg grow-0 shrink-0 overflow-hidden w-9 h-9 text-[22px] border !bg-purple-50 !border-purple-200"
-          style="background: rgb(255, 234, 213)"
+          class="flex items-center justify-center relative rounded-lg grow-0 shrink-0 overflow-hidden w-9 h-9 text-[22px] border !bg-components-input-bg-normal !border-divider-deep"
           ><svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M8.5 3.5C8.5 4.60457 9.39543 5.5 10.5 5.5C11.6046 5.5 12.5 4.60457 12.5 3.5C12.5 2.39543 11.6046 1.5 10.5 1.5C9.39543 1.5 8.5 2.39543 8.5 3.5Z"
@@ -51,53 +53,66 @@
         ></span>
       </div>
       <div class="group">
-        <div
-          class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
-        >
-          {{ 'PAC.Xpert.BackendServiceAPI' | translate: {Default: 'Backend Service API'} }}
+        <div class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all">
+          {{ 'PAC.Xpert.BackendServiceAPI' | translate: { Default: 'Backend Service API' } }}
         </div>
-        <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
-          {{ 'PAC.Xpert.EasilyIntegratedApp' | translate: {Default: 'Easily integrated into your application'} }}
+        <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
+          {{ 'PAC.Xpert.EasilyIntegratedApp' | translate: { Default: 'Easily integrated into your application' } }}
         </div>
         <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
       </div>
     </div>
     <div class="flex flex-row items-center h-9">
       @if (enabledApi()) {
-        <div class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-green-800 bg-green-100 mr-2">
-          {{ 'PAC.KEY_WORDS.InService' | translate: {Default: 'In Service'} }}
+        <div
+          class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-text-success bg-components-input-bg-normal mr-2"
+        >
+          {{ 'PAC.KEY_WORDS.InService' | translate: { Default: 'In Service' } }}
         </div>
       } @else {
-        <div class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-yellow-800 bg-yellow-100 mr-2">
-          {{ 'PAC.KEY_WORDS.Disabled' | translate: {Default: 'Disabled'} }}
+        <div
+          class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-text-warning bg-components-input-bg-normal mr-2"
+        >
+          {{ 'PAC.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
         </div>
       }
 
-      <label class="inline-flex items-center cursor-pointer"
-        [matTooltip]="'PAC.Xpert.EnableXpertApi' | translate: {Default: 'Enable or disable api for xpert'}"
-        matTooltipPosition="above">
-        <input type="checkbox" value="" class="sr-only peer" [ngModel]="enabledApi()" (ngModelChange)="updateApi({disabled: !$event})">
-        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+      <label
+        class="inline-flex items-center cursor-pointer"
+        [zTooltip]="'PAC.Xpert.EnableXpertApi' | translate: { Default: 'Enable or disable api for xpert' }"
+        zPosition="top"
+      >
+        <input
+          type="checkbox"
+          value=""
+          class="sr-only peer"
+          [ngModel]="enabledApi()"
+          (ngModelChange)="updateApi({ disabled: !$event })"
+        />
+        <div
+          class="relative w-9 h-5 bg-components-list-option-active-bg peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-components-input-border-active rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-components-card-bg after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-components-card-bg after:border-divider-deep after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-components-toggle-bg"
+        ></div>
       </label>
     </div>
   </div>
   <div class="flex flex-col justify-center py-2">
     <div class="py-1">
-      <div class="pb-1 text-sm text-gray-500">
-        {{ 'PAC.Xpert.ServiceAPIEndpoint' | translate: {Default: 'Service API Endpoint'} }}
+      <div class="pb-1 text-sm text-text-tertiary">
+        {{ 'PAC.Xpert.ServiceAPIEndpoint' | translate: { Default: 'Service API Endpoint' } }}
       </div>
       <div
-        class="w-full h-9 pl-2 pr-0.5 py-0.5 bg-black bg-opacity-2 rounded-lg border border-black border-opacity-5 justify-start items-center inline-flex"
+        class="w-full h-9 pl-2 pr-0.5 py-0.5 bg-components-input-bg-normal rounded-lg border border-(--border) justify-start items-center inline-flex"
       >
         <div class="px-2 justify-start items-start gap-2 flex flex-1 min-w-0">
-          <div class="text-gray-700 text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap">
+          <div class="text-text-secondary text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap">
             {{ apiUrl() }}
           </div>
         </div>
         <div class="border-r border-solid mx-2 border-divider-deep !h-3.5 shrink-0"></div>
-        <div class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-gray-200 hover:text-text-primary"
-          [matTooltip]="'PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'}"
-          matTooltipPosition="above"
+        <div
+          class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-button-ghost-hover hover:text-text-primary"
+          [zTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
+          zPosition="top"
           (click)="copy(apiUrl())"
         >
           <i class="ri-clipboard-line text-lg"></i>
@@ -108,23 +123,21 @@
   <div class="pt-2 flex flex-row items-center flex-wrap gap-y-2">
     <button
       type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-medium px-3 flex-shrink-0 !h-8 bg-white mr-2"
+      class="btn disabled:btn-disabled btn-secondary btn-medium px-3 flex-shrink-0 !h-8 bg-components-card-bg mr-2"
       (click)="openApiKey()"
     >
       <div class="flex items-center justify-center">
         <i class="ri-key-2-line text-lg mr-1.5"></i>
       </div>
-      <div class="text-[13px] text-gray-800 font-medium">
-        API {{'PAC.KEY_WORDS.SecretKey' | translate: {Default: 'Key'} }}
+      <div class="text-[13px] text-text-primary font-medium">
+        API {{ 'PAC.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}
       </div>
     </button>
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2"
-      (click)="openApiReference()"
-    >
-      <div class="flex flex-row items-center" >
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2" (click)="openApiReference()">
+      <div class="flex flex-row items-center">
         <i class="ri-file-text-line text-lg mr-1.5"></i>
         <span class="text-[13px]">
-          {{ 'PAC.Xpert.APIReference' | translate: {Default: 'API Reference'} }}
+          {{ 'PAC.Xpert.APIReference' | translate: { Default: 'API Reference' } }}
         </span>
       </div>
     </button>

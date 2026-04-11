@@ -1,61 +1,48 @@
-import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core'
+import { Component, Inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardLoaderComponent,
+  ZardTagSelectComponent,
+  Z_MODAL_DATA,
+  ZardDialogRef
+} from '@xpert-ai/headless-ui'
+import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxjs'
+import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { EmployeesService, IEmployee } from '../../../@core'
 import { userLabel } from '../../pipes'
 import { SharedModule } from '../../shared.module'
+
+function isEmployee(value: unknown): value is IEmployee {
+  return !!value && typeof value === 'object' && 'user' in value && 'userId' in value && 'isActive' in value && 'tags' in value
+}
 
 @Component({
   standalone: true,
   imports: [
     SharedModule,
-
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-
-    MatDialogModule,
-    MatButtonModule,
-    MatAutocompleteModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatChipsModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-
+    ZardButtonComponent,
+    ZardTagSelectComponent,
+    ...ZardFormImports,
+    ZardLoaderComponent,
     TranslateModule,
-
-    ButtonGroupDirective,
-
-    NgmCommonModule
+    ButtonGroupDirective
   ],
   selector: 'pac-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']
 })
 export class EmployeeSelectComponent {
-  separatorKeysCodes: number[] = [ENTER, COMMA]
-  userLabel = userLabel
-
   role = null
   users: IEmployee[] = []
   loading = false
-  searchControl = new FormControl()
-
-  @ViewChild('userInput') userInput: ElementRef<HTMLInputElement>
+  searchControl = new FormControl<string>('')
 
   public readonly users$ = this.searchControl.valueChanges.pipe(
     debounceTime(500),
@@ -74,29 +61,40 @@ export class EmployeeSelectComponent {
     }),
     tap((items) => (this.loading = false))
   )
+  public readonly userOptions$ = this.users$.pipe(
+    map((items) =>
+      items.map((user) => ({
+        id: user.id,
+        label: userLabel(user.user),
+        value: user,
+        data: user
+      }))
+    )
+  )
 
   constructor(
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data: { role: string; roles: ISelectOption[] },
-    private _dialogRef: MatDialogRef<EmployeeSelectComponent>,
+    private _dialogRef: ZardDialogRef<EmployeeSelectComponent>,
     private employeeService: EmployeesService
   ) {
     this.role = data?.role
   }
 
-  remove(user: IEmployee): void {
-    const index = this.users.indexOf(user)
-    if (index >= 0) {
-      this.users.splice(index, 1)
-    }
+  onSearchTermChange(value: string) {
+    this.searchControl.setValue(value)
   }
 
-  selected(event: MatAutocompleteSelectedEvent): void {
-    if (event.option.value && !this.users.find((item) => item.id === event.option.value.id)) {
-      this.users.push(event.option.value)
+  onUsersChange(value: unknown[]) {
+    this.users = Array.isArray(value) ? value.filter(isEmployee) : []
+  }
+
+  readonly displayUser = (value: unknown) => {
+    if (!isEmployee(value)) {
+      return ''
     }
-    this.userInput.nativeElement.value = ''
-    this.searchControl.setValue(null)
+
+    return userLabel(value.user)
   }
 
   onApply() {
@@ -105,4 +103,6 @@ export class EmployeeSelectComponent {
       employees: this.users
     })
   }
+
+  readonly compareUsers = (a: unknown, b: unknown) => isEmployee(a) && isEmployee(b) && a.id === b.id
 }

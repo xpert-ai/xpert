@@ -1,4 +1,4 @@
-import { AggregationRole } from '@metad/ocap-core'
+import { AggregationRole } from '@xpert-ai/ocap-core'
 import { MDXDialect } from '../lib/types'
 
 export const ENTITY_TYPE = {

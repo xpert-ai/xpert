@@ -1,3 +1,4 @@
+@use "sass:map";
 $ngm-density-config: (
   '': default,
   '__cosy': default,
@@ -6,10 +7,10 @@ $ngm-density-config: (
 );
 
 @function _ngm-density-mapping($density) {
-  @return map-get($ngm-density-config, $density);
+  @return map.get($ngm-density-config, $density);
 }
 
-// from @metad/core
+// from @xpert-ai/core
 @function ngm-get-densities() {
   @return '', '__comfortable', '__cosy', '__compact';
 }

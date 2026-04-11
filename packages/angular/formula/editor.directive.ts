@@ -3,13 +3,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor } from '@angular/forms'
 import { BehaviorSubject, Observable, Observer, Subject, Subscription } from 'rxjs'
 import { debounceTime, filter, switchMap } from 'rxjs/operators'
-import { NgmThemeService } from '@metad/ocap-angular/core'
+import { NgmThemeService } from '@xpert-ai/ocap-angular/core'
 import { EditorThemeMap } from './types'
 
 declare var monaco: any
 
 @Directive({
-  selector: '[ngmEditor]'
+  selector: '[ngmEditor]',
+  standalone: false
 })
 export class NgmBaseEditorDirective implements ControlValueAccessor, OnDestroy {
   readonly themeService = inject(NgmThemeService)

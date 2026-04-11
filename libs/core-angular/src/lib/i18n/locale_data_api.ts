@@ -38,7 +38,7 @@ export enum LocaleDataIndex {
  *
  * The signature `registerLocaleData(data: any, extraData?: any)` is deprecated since v5.1
  */
-function registerLocaleData(data: any, localeId?: string | any, extraData?: any): void {
+export function registerLocaleData(data: any, localeId?: string | any, extraData?: any): void {
   if (typeof localeId !== 'string') {
     extraData = localeId
     localeId = data[LocaleDataIndex.LocaleId]

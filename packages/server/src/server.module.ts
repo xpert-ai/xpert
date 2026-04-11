@@ -1,4 +1,4 @@
-import { ConfigService } from '@metad/server-config'
+import { ConfigService } from '@xpert-ai/server-config'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { MulterModule } from '@nestjs/platform-express'
@@ -31,10 +31,12 @@ import { TagModule } from './tags/tag.module'
 import { TenantSettingModule } from './tenant/tenant-setting'
 import { TenantModule } from './tenant/tenant.module'
 import { UserOrganizationModule } from './user-organization/user-organization.module'
+import { UserGroupModule } from './user-group/user-group.module'
 import { UserModule } from './user/index'
 import { IntegrationModule } from './integration/integration.module'
 import { ApiKeyModule } from './api-key/api-key.module'
 import { HealthModule } from './health'
+import { ViewExtensionModule } from './view-extension/view-extension.module'
 
 @Module({
 	imports: [
@@ -58,6 +60,7 @@ import { HealthModule } from './health'
 		FileStorageModule,
 		AuthModule,
 		ApiKeyModule,
+		ViewExtensionModule,
 		UserModule,
 		TenantModule,
 		EmployeeModule,
@@ -72,6 +75,7 @@ import { HealthModule } from './health'
 		RoleModule,
 		OrganizationModule,
 		UserOrganizationModule,
+		UserGroupModule,
 		OrganizationContactModule,
 		OrganizationLanguageModule,
 		TagModule,

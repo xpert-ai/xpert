@@ -1,5 +1,5 @@
-import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMessage, IStorageFile, IXpertAgentExecution, TChatMessageStep, TMessageContent, TMessageContentReasoning, TSummaryJob, XpertAgentExecutionStatusEnum } from '@metad/contracts'
-import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMessage, IStorageFile, IXpertAgentExecution, TChatMessageStep, TMessageContent, TMessageContentReasoning, TSummaryJob, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, DeleteDateColumn, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
@@ -31,7 +31,7 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	role: CopilotMessageType
 
 	@ApiPropertyOptional({ type: () => Object })
@@ -49,7 +49,7 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status: ChatMessageStatusEnum
 
 	@ApiPropertyOptional({ type: () => String })

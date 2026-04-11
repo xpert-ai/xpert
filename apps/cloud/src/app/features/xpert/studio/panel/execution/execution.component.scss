@@ -1,7 +1,8 @@
+@reference "../../../../../../styles/tailwind-reference.css";
 :host {
   @apply relative flex flex-col justify-start items-stretch;
 }
 
 .tab.active {
-  @apply border-primary-500 text-gray-700;
+  @apply border-primary-500 text-text-secondary;
 }

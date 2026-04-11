@@ -1,9 +1,9 @@
 import { DeepPartial, FindManyOptions, FindOneOptions, IsNull, Repository, UpdateResult } from 'typeorm'
-import { IBasePerTenantAndOrganizationEntityModel, ID, IUser } from '@metad/contracts'
+import { IBasePerTenantAndOrganizationEntityModel, ID, IUser } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { RequestContext } from '../context'
 import { TenantOrganizationBaseEntity, User } from '../entities/internal'
-import { ICrudService } from './icrud.service'
+import { ICrudService, IPartialEntity } from './icrud.service'
 import { TenantAwareCrudService } from './tenant-aware-crud.service'
 import { ITryRequest } from './try-request'
 import { FindOptionsWhere } from './FindOptionsWhere'
@@ -22,13 +22,71 @@ export abstract class TenantOrganizationAwareCrudService<
 		super(repository)
 	}
 
+	protected getCurrentScopeOrganizationCondition() {
+		return RequestContext.getOrganizationId() ?? IsNull()
+	}
+
+	protected getTenantScopeOrganizationCondition() {
+		return IsNull()
+	}
+
+	protected writeToCurrentScope(entity: DeepPartial<T>): DeepPartial<T> {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+
+		return {
+			...entity,
+			...(tenantId
+				? {
+						tenant: { id: tenantId } as any,
+						tenantId
+					}
+				: {}),
+			organization: organizationId ? ({ id: organizationId } as any) : null,
+			organizationId: organizationId ?? null
+		}
+	}
+
+	private mergeScopeWhere(
+		user: IUser,
+		organizationId: string | ReturnType<typeof IsNull>,
+		where?: FindOptionsWhere<T>
+	): FindOptionsWhere<T> {
+		return {
+			...(where ?? {}),
+			tenant: {
+				id: user.tenantId
+			},
+			organizationId
+		} as FindOptionsWhere<T>
+	}
+
+	private normalizeWhere(
+		user: IUser,
+		organizationId: string | ReturnType<typeof IsNull>,
+		where?: FindOptionsWhere<T> | FindOptionsWhere<T>[]
+	): FindOptionsWhere<T> | FindOptionsWhere<T>[] {
+		if (Array.isArray(where)) {
+			return where.map((item) =>
+				this.mergeScopeWhere(user, organizationId, item)
+			)
+		}
+
+		return this.mergeScopeWhere(user, organizationId, where)
+	}
+
+	private asWhereArray(
+		where: FindOptionsWhere<T> | FindOptionsWhere<T>[]
+	): FindOptionsWhere<T>[] {
+		return Array.isArray(where) ? where : [where]
+	}
+
 	protected findConditionsWithTenantByUser(
 		user: User
 	): FindOptionsWhere<T> {
-		const organizationId = RequestContext.getOrganizationId()
 		return {
 			tenantId: user?.tenantId,
-			organizationId: organizationId || IsNull(),
+			organizationId: this.getCurrentScopeOrganizationCondition(),
 		} as FindOptionsWhere<T>
 	}
 
@@ -36,51 +94,11 @@ export abstract class TenantOrganizationAwareCrudService<
 		user: User,
 		where?: FindOptionsWhere<T> | FindOptionsWhere<T>[]
 	): FindOptionsWhere<T> | FindOptionsWhere<T>[] {
-		const organizationId = RequestContext.getOrganizationId()
-
-		if (Array.isArray(where)) {
-			return where.map((options) => {
-				options = {
-					...options,
-					organizationId: IsNull()
-				}
-
-				if (organizationId) {
-					options = {
-						...options,
-						organizationId: organizationId || null,
-					}
-				}
-
-				return {
-					...options,
-					tenantId: user.tenantId,
-				} as FindOptionsWhere<T>
-			})
-		}
-
-		const organizationWhere = organizationId
-			? {
-					organizationId
-			  }
-			: {
-				organizationId: IsNull()
-			}
-
-		return where
-			? ({
-					...where,
-					tenant: {
-						id: user.tenantId,
-					},
-					...organizationWhere,
-			  } as FindOptionsWhere<T>)
-			: ({
-					tenant: {
-						id: user.tenantId,
-					},
-					...organizationWhere,
-			  } as FindOptionsWhere<T>)
+		return this.normalizeWhere(
+			user,
+			this.getCurrentScopeOrganizationCondition(),
+			where
+		)
 	}
 
 	private findConditionsWithoutOrgByUser(
@@ -90,7 +108,7 @@ export abstract class TenantOrganizationAwareCrudService<
 			tenant: {
 				id: user.tenantId,
 			},
-			organizationId: IsNull()
+			organizationId: this.getTenantScopeOrganizationCondition()
 		} as FindOptionsWhere<T>
 	}
 
@@ -98,35 +116,11 @@ export abstract class TenantOrganizationAwareCrudService<
 		user: IUser,
 		where?: FindOptionsWhere<T> | FindOptionsWhere<T>[]
 	): FindOptionsWhere<T> | FindOptionsWhere<T>[] {
-		if (Array.isArray(where)) {
-			return where.map((options) => {
-				options = {
-					...options,
-					organizationId: IsNull()
-				}
-				return {
-					...options,
-					tenant: {
-						id: user.tenantId,
-					},
-				} as FindOptionsWhere<T>
-			})
-		}
-
-		return where
-			? ({
-					...where,
-					tenant: {
-						id: user.tenantId,
-					},
-					organizationId: IsNull()
-			  } as FindOptionsWhere<T>)
-			: ({
-					tenant: {
-						id: user.tenantId,
-					},
-					organizationId: IsNull()
-			  } as FindOptionsWhere<T>)
+		return this.normalizeWhere(
+			user,
+			this.getTenantScopeOrganizationCondition(),
+			where
+		)
 	}
 
 	private findManyWithoutOrganization(
@@ -162,6 +156,37 @@ export abstract class TenantOrganizationAwareCrudService<
 		return filter;
 	}
 
+	private findManyWithInheritance(
+		filter?: FindManyOptions<T>
+	): FindManyOptions<T> {
+		const user = RequestContext.currentUser()
+
+		if (!user || !user.tenantId) {
+			return filter
+		}
+
+		const where = filter?.where
+		const tenantWhere = this.asWhereArray(
+			this.findConditionsWithoutOrg(user, where)
+		)
+
+		if (!RequestContext.isOrganizationScope()) {
+			return {
+				...(filter ?? {}),
+				where: tenantWhere
+			}
+		}
+
+		const organizationWhere = this.asWhereArray(
+			this.findConditionsWithTenant(user as User, where)
+		)
+
+		return {
+			...(filter ?? {}),
+			where: [...organizationWhere, ...tenantWhere]
+		}
+	}
+
 	/*
 	|--------------------------------------------------------------------------
 	| @WithoutOrganization
@@ -173,6 +198,17 @@ export abstract class TenantOrganizationAwareCrudService<
 		const total = await this.repository.count(filter);
 		const items = await this.repository.find(filter);
 		return { items, total };
+	}
+
+	async findInCurrentScope(filter?: FindManyOptions<T>) {
+		return this.findAll(filter)
+	}
+
+	async findWithInheritance(filter?: FindManyOptions<T>) {
+		filter = this.findManyWithInheritance(filter)
+		const total = await this.repository.count(filter)
+		const items = await this.repository.find(filter)
+		return { items, total }
 	}
 
 	/**
@@ -214,39 +250,15 @@ export abstract class TenantOrganizationAwareCrudService<
 	}
 
 	async findAllInOrganizationOrTenant(options?: FindManyOptions<T>) {
-		// In organization
-		const orgResults = RequestContext.getOrganizationId() ? await this.findAll(options) : {
-			total: 0,
-			items: []
-		}
-		const tenantResults = await this.findAllWithoutOrganization(options)
-
-		return {
-			total: orgResults.total + tenantResults.total,
-			items: [...orgResults.items, ...tenantResults.items]
-		}
+		return this.findWithInheritance(options)
 	}
 
 	public async create(entity: DeepPartial<T>, ...options: any[]): Promise<T> {
-		const tenantId = RequestContext.currentTenantId()
-		const user = RequestContext.currentUser()
-		const organizationId = RequestContext.getOrganizationId()
+		return super.create(this.writeToCurrentScope(entity), ...options)
+	}
 
-		if (organizationId) {
-			entity = {
-				...entity,
-				organization: { id: organizationId },
-			}
-		}
-
-		if (tenantId) {
-			const entityWithTenant = {
-				...entity,
-				tenant: { id: tenantId },
-			}
-			return super.create(entityWithTenant, ...options)
-		}
-		return super.create(entity, ...options)
+	public async save(entity: IPartialEntity<T>): Promise<T> {
+		return super.save(this.writeToCurrentScope(entity) as IPartialEntity<T>)
 	}
 
 	/**

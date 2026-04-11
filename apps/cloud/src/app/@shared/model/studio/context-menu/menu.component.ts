@@ -1,10 +1,10 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { suuid } from '@cloud/app/@core'
-import { attrModel } from '@metad/ocap-angular/core'
-import { PropertyDimension } from '@metad/ocap-core'
+import { attrModel } from '@xpert-ai/ocap-angular/core'
+import { PropertyDimension } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CubeStudioComponent } from '../studio.component'
 
@@ -14,7 +14,7 @@ import { CubeStudioComponent } from '../studio.component'
   selector: 'xp-cube-studio-context-menu',
   templateUrl: 'menu.component.html',
   styleUrls: ['menu.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule],
+  imports: [FormsModule, TranslateModule, CdkMenuModule],
   host: {
     class: 'xp-cube-studio-context-menu'
   }

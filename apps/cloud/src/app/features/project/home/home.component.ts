@@ -1,27 +1,26 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject, ViewContainerRef } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
+
 import { Router } from '@angular/router'
-import { StoriesService } from '@metad/cloud/state'
-import { uploadYamlFile } from '@metad/core'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { Story } from '@metad/story/core'
+import { StoriesService } from '@xpert-ai/cloud/state'
+import { uploadYamlFile } from '@xpert-ai/core'
+import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { Story } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, switchMap, tap } from 'rxjs'
 import { DefaultCollection, IStory, IStoryTemplate, ProjectAPIService, ToastrService, tryHttp } from '../../../@core'
 import { ProjectComponent } from '../project/project.component'
 import { StoryCardComponent, StoryCreationComponent, StoryTemplateComponent } from '../../../@shared/story'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     StoryCardComponent,
-    MatIconModule,
+    ZardIconComponent,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     ButtonGroupDirective,
     DensityDirective
   ],
@@ -42,7 +41,7 @@ export class ProjectHomeComponent {
   private _router = inject(Router)
   private _viewContainerRef = inject(ViewContainerRef)
   private projectComponent = inject(ProjectComponent)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private _toastrService = inject(ToastrService)
 
   storyUploading = false
@@ -63,6 +62,8 @@ export class ProjectHomeComponent {
     const story = await firstValueFrom(
       this._dialog
         .open(StoryCreationComponent, {
+          width: '52rem',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             story: {},
             collections,
@@ -107,6 +108,8 @@ export class ProjectHomeComponent {
     const _story: Story = await firstValueFrom(
       this._dialog
         .open(StoryCreationComponent, {
+          width: '52rem',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             story,
             models,

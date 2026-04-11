@@ -2,11 +2,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { AsyncPipe } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { OverlayAnimations } from '@metad/core'
-import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { OverlayAnimations } from '@xpert-ai/core'
+import { CloseSvgComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -23,7 +21,7 @@ import { BehaviorSubject, map, shareReplay, startWith, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-xpert',
   templateUrl: './xpert.component.html',
@@ -33,8 +31,7 @@ import { XpertStudioPanelComponent } from '../panel.component'
   imports: [
     AsyncPipe,
     FormsModule,
-    MatTooltipModule,
-    MatSlideToggleModule,
+    ...ZardTooltipImports,
     TranslateModule,
     CdkMenuModule,
     CloseSvgComponent,
@@ -42,7 +39,8 @@ import { XpertStudioPanelComponent } from '../panel.component'
     CopilotModelSelectComponent,
     XpertParametersCardComponent,
     NgmSpinComponent,
-    NgmDensityDirective
+    NgmDensityDirective,
+    ZardSwitchComponent
   ],
   host: {
     tabindex: '-1'
@@ -66,9 +64,10 @@ export class XpertStudioPanelXpertComponent {
   readonly xpert = computed(() => this.node().entity as IXpert)
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly primaryAgent = computed(() => this.xpert()?.agent)
-  readonly parameters = computed(() => 
-    this.xpert().agentConfig?.parameters ||
-    (this.xpert().agent?.options?.hidden ? null : this.xpert().agent?.parameters)
+  readonly parameters = computed(
+    () =>
+      this.xpert().agentConfig?.parameters ||
+      (this.xpert().agent?.options?.hidden ? null : this.xpert().agent?.parameters)
   )
   readonly copilotModel = computed(() => this.xpert()?.copilotModel)
 
@@ -96,8 +95,7 @@ export class XpertStudioPanelXpertComponent {
             }
           })
         }
-      }
-      else {
+      } else {
         if (index >= 0) {
           this.agentConfig.update((config) => {
             const mute = [...config.mute]
@@ -139,7 +137,7 @@ export class XpertStudioPanelXpertComponent {
   }
 
   edit() {
-    window.open(['/xpert', this.xpertId() ,'agents'].join('/'), '_blank')
+    window.open(['/xpert', this.xpertId(), 'agents'].join('/'), '_blank')
   }
 
   closePanel() {

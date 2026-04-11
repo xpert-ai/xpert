@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { StorageFile } from './storage-file.entity'
 import { TenantOrganizationAwareCrudService } from '../core/crud'
-import { FileStorageProviderEnum, IStorageFile, UploadedFile } from '@metad/contracts'
+import { FileStorageProviderEnum, IStorageFile, UploadedFile } from '@xpert-ai/contracts'
 import { FileStorage } from '../file/file-storage/file-storage'
 
 @Injectable()
@@ -17,7 +17,6 @@ export class StorageFileService extends TenantOrganizationAwareCrudService<Stora
 
 	async createStorageFile(file: UploadedFile, storageProvider?: string) {
 		const { key, url, originalname, size, mimetype, encoding } = file
-		const decodedOriginalName = Buffer.from(originalname, 'latin1').toString('utf8')
 		const provider =
 			this.normalizeStorageProvider(storageProvider) ||
 			this.normalizeStorageProvider(new FileStorage().getProvider()?.name) ||
@@ -25,7 +24,7 @@ export class StorageFileService extends TenantOrganizationAwareCrudService<Stora
 		return await this.create({
 			file: key,
 			url: url,
-			originalName: decodedOriginalName,
+			originalName: originalname,
 			encoding,
 			size,
 			mimetype,

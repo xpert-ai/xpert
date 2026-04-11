@@ -1,29 +1,40 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Component, Inject, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
-import { nonNullable } from '@metad/core'
-import { AggregationRole, Cube, DBTable, isNil, omitBy, Property, PropertyDimension } from '@metad/ocap-core'
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidatorFn,
+  Validators
+} from '@angular/forms'
+import { nonNullable } from '@xpert-ai/core'
+import { AggregationRole, Cube, DBTable, isNil, omitBy, Property, PropertyDimension } from '@xpert-ai/ocap-core'
 import { of } from 'rxjs'
 import { debounceTime, distinctUntilChanged, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { SemanticModelService } from '../model.service'
 import { MODEL_TYPE, SemanticModelEntityType } from '../types'
 import { uuid } from '@cloud/app/@core'
-import { debouncedSignal, ISelectOption } from '@metad/ocap-angular/core'
+import { debouncedSignal, ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { CommonModule } from '@angular/common'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatListModule } from '@angular/material/list'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { CdkListboxModule } from '@angular/cdk/listbox'
+import {
+  ZardButtonComponent,
+  ZardComboboxDeprecatedComponent,
+  type ZardComboboxDeprecatedOption,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardSelectImports,
+  ZardCheckboxComponent,
+  ZardLoaderComponent
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatSelectModule } from '@angular/material/select'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { mergeSelectedValues } from '@xpert-ai/ocap-angular/core'
 
 export type CreateEntityColumnType = {
   name: string
@@ -79,16 +90,15 @@ export type CreateEntityDialogRetType = {
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatButtonToggleModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatAutocompleteModule,
-    MatListModule,
-    MatProgressSpinnerModule,
-    MatCheckboxModule,
-    MatSelectModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ZardComboboxDeprecatedComponent,
+    ...ZardFormImports,
+    ZardInputDirective,
+    ...ZardSelectImports,
+    CdkListboxModule,
+    ZardLoaderComponent,
+    ZardCheckboxComponent,
     TranslateModule,
     NgmCommonModule
   ],
@@ -99,6 +109,7 @@ export type CreateEntityDialogRetType = {
 export class ModelCreateEntityComponent {
   SemanticModelEntityType = SemanticModelEntityType
   MODEL_TYPE = MODEL_TYPE
+  readonly noDimensionValue = '__none__'
 
   private readonly modelService = inject(SemanticModelService)
 
@@ -115,10 +126,12 @@ export class ModelCreateEntityComponent {
     if (!search) {
       return this.columns()
     }
-    return this.columns()?.filter((column) => column.name.toLowerCase().includes(search) || column.caption?.toLowerCase().includes(search))
+    return this.columns()?.filter(
+      (column) => column.name.toLowerCase().includes(search) || column.caption?.toLowerCase().includes(search)
+    )
   })
-  
-  cubes: Cube[] = []
+
+  private readonly _cubes = signal<Cube[]>([])
   table = new FormControl(null)
   type = new FormControl<SemanticModelEntityType>(null, [Validators.required])
   name = new FormControl(null, [Validators.required, this.forbiddenNameValidator()])
@@ -134,16 +147,28 @@ export class ModelCreateEntityComponent {
   expression: string
   readonly loading = signal(false)
 
-  readonly types = signal(this.data.types ?? (this.data.modelType===MODEL_TYPE.OLAP ? [
-    SemanticModelEntityType.CUBE,
-    SemanticModelEntityType.DIMENSION,
-    SemanticModelEntityType.VirtualCube
-  ] : [
-    SemanticModelEntityType.CUBE,
-    SemanticModelEntityType.DIMENSION,
-  ]))
+  readonly types = signal(
+    this.data.types ??
+      (this.data.modelType === MODEL_TYPE.OLAP
+        ? [SemanticModelEntityType.CUBE, SemanticModelEntityType.DIMENSION, SemanticModelEntityType.VirtualCube]
+        : [SemanticModelEntityType.CUBE, SemanticModelEntityType.DIMENSION])
+  )
 
   readonly factFields = signal(this.data.factFields)
+  readonly tableComboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
+    (this.data.entitySets ?? []).map((item) => ({
+      id: item.name,
+      value: item.name,
+      label: item.label || item.caption || item.name
+    }))
+  )
+  readonly factFieldComboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
+    (this.factFields() ?? []).map((item) => ({
+      id: this.comboboxId(item.key ?? item.value),
+      value: `${item.value ?? ''}`,
+      label: item.caption || item.label || `${item.value ?? ''}`
+    }))
+  )
 
   private readonly tableName$ = this.table.valueChanges.pipe(
     startWith(this.data.model?.table),
@@ -163,17 +188,31 @@ export class ModelCreateEntityComponent {
   )
 
   public readonly cubes$ = this.modelService.cubeStates$.pipe(map((states) => states.map((state) => state.cube)))
+  readonly cubeOptions = toSignal(this.cubes$, { initialValue: [] })
+  readonly listboxCubes = computed(() => mergeSelectedValues(this.cubeOptions(), this.cubes, this.compareWithCube))
 
   private readonly entityColumns = toSignal(
     this.tableName$.pipe(
-      tap(() => (this.loading.set(true))),
+      tap(() => this.loading.set(true)),
       switchMap((tableName) => (tableName ? this.modelService.selectOriginalEntityProperties(tableName) : of([]))),
-      tap(() => (this.loading.set(false)))
+      tap(() => this.loading.set(false))
     )
   )
 
   private readonly entityType = toSignal(this.type.valueChanges)
   public readonly sharedDimensions = toSignal(this.modelService.sharedDimensions$)
+  readonly sharedDimensionOptions = computed<ISelectOption[]>(() => [
+    {
+      key: this.noDimensionValue,
+      value: this.noDimensionValue,
+      caption: 'None'
+    },
+    ...((this.sharedDimensions() ?? []).map((dimension) => ({
+      key: dimension.name,
+      value: dimension.name,
+      caption: dimension.caption
+    })) as ISelectOption[])
+  ])
 
   constructor(
     @Inject(DIALOG_DATA) public data: CreateEntityDialogDataType,
@@ -203,7 +242,7 @@ export class ModelCreateEntityComponent {
         if (!columns) {
           return
         }
-        
+
         // this.columns = [...columns.map((item) => ({ ...item }))]
         const type = this.entityType()
 
@@ -238,9 +277,15 @@ export class ModelCreateEntityComponent {
         }
 
         this.columns.set([...columns.map((item) => ({ ...item }))])
-      },
-      { allowSignalWrites: true }
+      }
     )
+  }
+
+  get cubes() {
+    return this._cubes()
+  }
+  set cubes(value: Cube[]) {
+    this._cubes.set(value ?? [])
   }
 
   forbiddenNameValidator(): ValidatorFn {
@@ -282,6 +327,15 @@ export class ModelCreateEntityComponent {
     }
   }
 
+  selectDimension(column: CreateEntityColumnType, dimensionName: string | null) {
+    if (!dimensionName || dimensionName === this.noDimensionValue) {
+      column.dimension = null
+      return
+    }
+
+    column.dimension = this.sharedDimensions()?.find((dimension) => dimension.name === dimensionName) ?? null
+  }
+
   clearSelection() {
     this.columns.update((columns) =>
       columns.map((column) => ({
@@ -291,6 +345,26 @@ export class ModelCreateEntityComponent {
       }))
     )
     this.cubes = []
+  }
+
+  displayText(_option: { label?: string } | null, value: unknown) {
+    return value == null ? '' : `${value}`
+  }
+
+  comboboxId(value: unknown): string | number {
+    return typeof value === 'string' || typeof value === 'number' ? value : `${value ?? ''}`
+  }
+
+  onTableSearchTermChange(value: string) {
+    this.table.setValue(value)
+  }
+
+  onTableValueChange(value: unknown) {
+    this.table.setValue((value ?? null) as string | null)
+  }
+
+  onForeignKeyValueChange(value: unknown) {
+    this.formGroup.get('foreignKey').setValue((value ?? null) as string | null)
   }
 
   onSubmit(event) {
@@ -314,7 +388,15 @@ export class ModelCreateEntityComponent {
   }
 }
 
-export function toDimension({ name, caption, table, expression, primaryKey, columns, foreignKey }: CreateEntityDialogRetType) {
+export function toDimension({
+  name,
+  caption,
+  table,
+  expression,
+  primaryKey,
+  columns,
+  foreignKey
+}: CreateEntityDialogRetType) {
   const id = uuid()
   const dimension = {
     __id__: id,

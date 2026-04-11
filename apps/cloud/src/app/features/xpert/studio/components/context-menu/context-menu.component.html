@@ -1,9 +1,11 @@
 <ng-template let-menuTrigger="menuTrigger" let-fromNode="fromNode">
   <div #menu="cdkMenu" cdkMenu class="cdk-menu__large bg-components-panel-bg-blur">
     <div cdkMenuItem class="text-text-secondary hover:text-text-primary" (click)="createAgent(menu, fromNode)">
-      <i class="ri-robot-3-line mr-1"></i><span>{{ 'PAC.Xpert.NewAgent' | translate: {Default: 'New Agent'} }}</span>
+      <i class="ri-robot-3-line mr-1"></i><span>{{ 'PAC.Xpert.NewAgent' | translate: { Default: 'New Agent' } }}</span>
     </div>
-    <div cdkMenuItem class="!pr-1 text-text-secondary hover:text-text-primary"
+    <div
+      cdkMenuItem
+      class="!pr-1 text-text-secondary hover:text-text-primary"
       [cdkMenuTriggerFor]="collaboratorsMenu"
       [cdkMenuPosition]="[
         {
@@ -11,15 +13,17 @@
           originY: 'top',
           overlayX: 'start',
           overlayY: 'top',
-          offsetX: 10,
+          offsetX: 10
         }
       ]"
     >
       <i class="ri-user-add-line mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddExternalExpert' | translate: {Default: 'Add External Expert'} }}</span>
+      <span class="grow">{{ 'PAC.Xpert.AddExternalExpert' | translate: { Default: 'Add External Expert' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
-    <div cdkMenuItem class="!pr-1 text-text-secondary hover:text-text-primary"
+    <div
+      cdkMenuItem
+      class="!pr-1 text-text-secondary hover:text-text-primary"
       [cdkMenuTriggerFor]="knowledgeMenu"
       [cdkMenuPosition]="[
         {
@@ -27,15 +31,17 @@
           originY: 'top',
           overlayX: 'start',
           overlayY: 'top',
-          offsetX: 10,
+          offsetX: 10
         }
       ]"
     >
       <i class="ri-book-shelf-line mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddKnowledgebase' | translate: {Default: 'Add Knowledgebase'} }}</span>
+      <span class="grow">{{ 'PAC.Xpert.AddKnowledgebase' | translate: { Default: 'Add Knowledgebase' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
-    <div cdkMenuItem class="!pr-1 text-text-secondary hover:text-text-primary"
+    <div
+      cdkMenuItem
+      class="!pr-1 text-text-secondary hover:text-text-primary"
       [cdkMenuTriggerFor]="toolsetMenu"
       [cdkMenuPosition]="[
         {
@@ -43,63 +49,70 @@
           originY: 'top',
           overlayX: 'start',
           overlayY: 'top',
-          offsetX: 10,
+          offsetX: 10
         }
       ]"
     >
       <i class="ri-hammer-line mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddToolset' | translate: {Default: 'Add Toolset'} }}</span>
+      <span class="grow">{{ 'PAC.Xpert.AddToolset' | translate: { Default: 'Add Toolset' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
 
-    <div cdkMenuItem class="!pr-1 text-text-secondary hover:text-text-primary"
+    <div
+      cdkMenuItem
+      class="!pr-1 text-text-secondary hover:text-text-primary"
       [cdkMenuTriggerFor]="workflowMenu"
-      [cdkMenuTriggerData]="{fromNode: fromNode}"
+      [cdkMenuTriggerData]="{ fromNode: fromNode }"
       [cdkMenuPosition]="[
         {
           originX: 'end',
           originY: 'top',
           overlayX: 'start',
           overlayY: 'top',
-          offsetX: 10,
+          offsetX: 10
         }
       ]"
     >
       <i class="ri-flow-chart mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddWorkflow' | translate: {Default: 'Add Workflow'} }}</span>
+      <span class="grow">{{ 'PAC.Xpert.AddWorkflow' | translate: { Default: 'Add Workflow' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
 
     @if (xpertType() === eXpertTypeEnum.Knowledge) {
-      <div cdkMenuItem class="!pr-1 text-text-secondary hover:text-text-primary"
+      <div
+        cdkMenuItem
+        class="!pr-1 text-text-secondary hover:text-text-primary"
         [cdkMenuTriggerFor]="pipelineMenu"
-        [cdkMenuTriggerData]="{ref: menuTrigger}"
+        [cdkMenuTriggerData]="{ ref: menuTrigger }"
         [cdkMenuPosition]="[
           {
             originX: 'end',
             originY: 'top',
             overlayX: 'start',
             overlayY: 'top',
-            offsetX: 10,
+            offsetX: 10
           }
         ]"
       >
         <i class="ri-folder-transfer-line mr-1"></i>
-        <span class="grow">{{ 'PAC.Xpert.AddKnowledgePipeline' | translate: {Default: 'Add Knowledge Pipeline'} }}</span>
+        <span class="grow">{{
+          'PAC.Xpert.AddKnowledgePipeline' | translate: { Default: 'Add Knowledge Pipeline' }
+        }}</span>
         <i class="ri-arrow-drop-right-fill ml-4"></i>
       </div>
     }
 
     @if (node) {
       <div cdkMenuItem class="danger" (click)="deleteNode(menu, node)">
-        <i class="ri-delete-bin-3-line mr-1"></i><span>{{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}</span>
+        <i class="ri-delete-bin-3-line mr-1"></i
+        ><span>{{ 'PAC.Xpert.Remove' | translate: { Default: 'Remove' } }}</span>
       </div>
     }
 
     <div class="h-[1px] bg-divider-regular my-1"></div>
 
     <div cdkMenuItem class="text-text-secondary hover:text-text-primary" (click)="pasteNode()">
-      <i class="ri-clipboard-line mr-1"></i> {{ 'PAC.ACTIONS.PasteHere' | translate: {Default: 'Paste Here'} }}
+      <i class="ri-clipboard-line mr-1"></i> {{ 'PAC.ACTIONS.PasteHere' | translate: { Default: 'Paste Here' } }}
     </div>
   </div>
 </ng-template>
@@ -111,21 +124,28 @@
 </ng-template>
 
 <ng-template #toolsetMenu>
-  <xpert-studio-toolset-menu cdkMenu class="cdk-menu__medium overflow-auto" [onSelect]="onSelectToolset.bind(this)"/>
+  <xpert-studio-toolset-menu cdkMenu class="cdk-menu__medium overflow-auto" [onSelect]="onSelectToolset.bind(this)" />
 </ng-template>
 
 <ng-template #collaboratorsMenu>
   <div cdkMenu class="cdk-menu__medium">
     @for (xpert of collaborators$ | async; track xpert.id) {
-      <div cdkMenuItem
+      <div
+        cdkMenuItem
         [cdkMenuItemDisabled]="isXpertExists(xpert)"
         [class.opacity-50]="isXpertExists(xpert)"
         [class.cursor-not-allowed]="isXpertExists(xpert)"
-        [matTooltip]="isXpertExists(xpert) ? ('PAC.Xpert.DuplicateExternalExpert' | translate: {Default: 'Cannot create duplicate external expert'}) : ''"
-        [matTooltipDisabled]="!isXpertExists(xpert)"
-        matTooltipPosition="right"
-        class="relative">
-        <xpert-inline-profile class="w-full max-w-sm my-0.5"
+        [zTooltip]="
+          isXpertExists(xpert)
+            ? ('PAC.Xpert.DuplicateExternalExpert' | translate: { Default: 'Cannot create duplicate external expert' })
+            : ''
+        "
+        [zDisabled]="!isXpertExists(xpert)"
+        zPosition="right"
+        class="relative"
+      >
+        <xpert-inline-profile
+          class="w-full max-w-sm my-0.5"
           [xpert]="xpert"
           [class.pointer-events-none]="isXpertExists(xpert)"
           (click)="addCollaborator(xpert)"
@@ -133,145 +153,194 @@
       </div>
     } @empty {
       <div class="p-2">
-        {{ 'PAC.Xpert.NoExternalExpert' | translate: {Default: 'No external expert'} }}
+        {{ 'PAC.Xpert.NoExternalExpert' | translate: { Default: 'No external expert' } }}
       </div>
     }
   </div>
 </ng-template>
 
 <ng-template #workflowMenu let-fromNode="fromNode">
-  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[256px]">
+  <div
+    cdkMenu
+    class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[256px]"
+  >
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Logic' | translate: {Default: 'Logic'} }}
+      {{ 'PAC.Xpert.Logic' | translate: { Default: 'Logic' } }}
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       [cdkMenuTriggerFor]="triggerMenu"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TRIGGER" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary grow">
-        {{ 'PAC.Workflow.Trigger' | translate: {Default: 'Trigger'} }}
+        {{ 'PAC.Workflow.Trigger' | translate: { Default: 'Trigger' } }}
       </div>
       <i class="ri-arrow-drop-right-fill"></i>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       [cdkMenuTriggerFor]="middlewaresMenu"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.MIDDLEWARE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary grow">{{'PAC.KEY_WORDS.Middleware' | translate: {Default: 'Middleware'} }}</div>
+      <div class="text-text-primary grow">{{ 'PAC.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' } }}</div>
       <i class="ri-arrow-drop-right-fill"></i>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowRouter(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.IF_ELSE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Xpert.Router' | translate: {Default: 'Router'} }}
+        {{ 'PAC.Xpert.Router' | translate: { Default: 'Router' } }}
       </div>
     </div>
 
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowIterator(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ITERATOR" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.Iterator' | translate: {Default: 'Iterator'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Xpert.Iterator' | translate: { Default: 'Iterator' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowSubflow(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.SUBFLOW" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.Subflow' | translate: {Default: 'Subflow'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Xpert.Subflow' | translate: { Default: 'Subflow' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowListOperator(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.LIST_OPERATOR" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.ListOperator' | translate: {Default: 'List Operator'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Workflow.ListOperator' | translate: { Default: 'List Operator' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowVariableAggregator(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.VariableAggregator' | translate: {Default: 'Variable Aggregator'} }}</div>
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.VariableAggregator' | translate: { Default: 'Variable Aggregator' } }}
+      </div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowVariableAssigner(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ASSIGNER" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.VariableAssigner' | translate: {Default: 'Variable Assigner'} }}</div>
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.VariableAssigner' | translate: { Default: 'Variable Assigner' } }}
+      </div>
     </div>
 
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Transform' | translate: {Default: 'Transform'} }}
+      {{ 'PAC.Xpert.Transform' | translate: { Default: 'Transform' } }}
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowQuestionClassifier(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.CLASSIFIER" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.QuestionClassifier' | translate: {Default: 'Question Classifier'} }}</div>
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.QuestionClassifier' | translate: { Default: 'Question Classifier' } }}
+      </div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowKnowledgeRetrieval(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.KNOWLEDGE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.KnowledgeRetrieval' | translate: {Default: 'Knowledge Retrieval'} }}</div>
+      <div class="text-text-primary">
+        {{ 'PAC.Xpert.KnowledgeRetrieval' | translate: { Default: 'Knowledge Retrieval' } }}
+      </div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-      (click)="addWorkflowCode(fromNode)">
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowCode(fromNode)"
+    >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.CODE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.Code' | translate: {Default: 'Code'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Xpert.Code' | translate: { Default: 'Code' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowTemplate(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TEMPLATE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.Template' | translate: {Default: 'Template'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Xpert.Template' | translate: { Default: 'Template' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowJSONStringify(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.JSON_STRINGIFY" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.JSONStringify' | translate: {Default: 'JSON Stringify'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Workflow.JSONStringify' | translate: { Default: 'JSON Stringify' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowJSONParse(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.JSON_PARSE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.JSONParse' | translate: {Default: 'JSON Parse'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Workflow.JSONParse' | translate: { Default: 'JSON Parse' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowAnswer(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ANSWER" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.Answer' | translate: {Default: 'Answer'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Xpert.Answer' | translate: { Default: 'Answer' } }}</div>
     </div>
-
 
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Tools' | translate: {Default: 'Tools'} }}
+      {{ 'PAC.Xpert.Tools' | translate: { Default: 'Tools' } }}
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowHttp(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.HTTP" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.Http' | translate: {Default: 'HTTP'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Xpert.Http' | translate: { Default: 'HTTP' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowTool(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TOOL" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.ToolCall' | translate: {Default: 'Tool Call'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Workflow.ToolCall' | translate: { Default: 'Tool Call' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowAgentTool(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.AGENT_TOOL" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.AgentTool' | translate: {Default: 'Agent Tool'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Workflow.AgentTool' | translate: { Default: 'Agent Tool' } }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowTask(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TASK" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.TaskHandover' | translate: {Default: 'Task Handover'} }}</div>
+      <div class="text-text-primary">{{ 'PAC.Workflow.TaskHandover' | translate: { Default: 'Task Handover' } }}</div>
     </div>
     <!-- <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addSkill()"
@@ -281,47 +350,55 @@
     </div> -->
 
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Memory' | translate: {Default: 'Memory'} }}
+      {{ 'PAC.Xpert.Memory' | translate: { Default: 'Memory' } }}
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       [cdkMenuTriggerFor]="databaseMenu"
     >
       <xpert-workflow-icon type="database" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary grow">
-        {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
+        {{ 'PAC.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
       </div>
       <i class="ri-arrow-drop-right-fill"></i>
     </div>
 
     <div class="flex items-start px-2 mt-2 font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Others' | translate: {Default: 'Others'} }}
+      {{ 'PAC.Xpert.Others' | translate: { Default: 'Others' } }}
     </div>
-    <div cdkMenuItem class="shrink-0 px-4 w-full h-9"
-      (click)="addWorkflowNote(fromNode)">
+    <div cdkMenuItem class="shrink-0 px-4 w-full h-9" (click)="addWorkflowNote(fromNode)">
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.NOTE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Xpert.Note' | translate: {Default: 'Note'} }}
+        {{ 'PAC.Xpert.Note' | translate: { Default: 'Note' } }}
       </div>
     </div>
   </div>
 </ng-template>
 
 <ng-template #triggerMenu>
-  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]">
+  <div
+    cdkMenu
+    class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]"
+  >
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Workflow.Triggers' | translate: {Default: 'Triggers'} }}
+      {{ 'PAC.Workflow.Triggers' | translate: { Default: 'Triggers' } }}
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowTrigger('chat')"
     >
       <xpert-workflow-icon [type]="'chat'" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.Chat' | translate: {Default: 'Chat'} }}
+        {{ 'PAC.Workflow.Chat' | translate: { Default: 'Chat' } }}
       </div>
     </div>
 
     @for (provider of triggerProviders(); track provider.name) {
-      <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      <div
+        cdkMenuItem
+        class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
         (click)="addWorkflowTrigger(provider)"
       >
         @if (provider.icon) {
@@ -337,79 +414,98 @@
 </ng-template>
 
 <ng-template #databaseMenu>
-  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]">
+  <div
+    cdkMenu
+    class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]"
+  >
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
+      {{ 'PAC.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_SQL)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_SQL" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.SQLCustom' | translate: {Default: 'SQL Custom'} }}
+        {{ 'PAC.Workflow.SQLCustom' | translate: { Default: 'SQL Custom' } }}
       </div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_INSERT)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_INSERT" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.NewData' | translate: {Default: 'New Data'} }}
+        {{ 'PAC.Workflow.NewData' | translate: { Default: 'New Data' } }}
       </div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_UPDATE)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_UPDATE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.UpdateData' | translate: {Default: 'Update Data'} }}
+        {{ 'PAC.Workflow.UpdateData' | translate: { Default: 'Update Data' } }}
       </div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <div
+      cdkMenuItem
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_DELETE)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_DELETE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.DeleteData' | translate: {Default: 'Delete Data'} }}
+        {{ 'PAC.Workflow.DeleteData' | translate: { Default: 'Delete Data' } }}
       </div>
     </div>
   </div>
 </ng-template>
 
 <ng-template #pipelineMenu let-ref="ref">
-  <div cdkMenu class="bg-components-panel-bg-blur rounded-xl backdrop-blur-[5px] shadow-lg border-[0.5px] border-solid border-gray-300 !min-w-[200px]">
-    <div class="relative flex bg-neutral-100 pl-1.5 pt-1.5">
-      <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
+  <div
+    cdkMenu
+    class="bg-components-panel-bg-blur rounded-xl backdrop-blur-[5px] shadow-lg border-[0.5px] border-solid border-divider-deep !min-w-[200px]"
+  >
+    <div class="relative flex bg-components-input-bg-normal pl-1.5 pt-1.5">
+      <div
+        class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'source'"
         (click)="pipelineType.set('source')"
       >
-        {{ 'PAC.Xpert.DataSource' | translate: {Default: 'Data Source'} }}
+        {{ 'PAC.Xpert.DataSource' | translate: { Default: 'Data Source' } }}
       </div>
-      <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
+      <div
+        class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'processor'"
-        (click)="pipelineType.set('processor');"
+        (click)="pipelineType.set('processor')"
       >
-        {{ 'PAC.Xpert.Processor' | translate: {Default: 'Processor'} }}
+        {{ 'PAC.Xpert.Processor' | translate: { Default: 'Processor' } }}
       </div>
-      <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
+      <div
+        class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'chunker'"
         (click)="pipelineType.set('chunker')"
       >
-        {{ 'PAC.Xpert.Chunker' | translate: {Default: 'Chunker'} }}
+        {{ 'PAC.Xpert.Chunker' | translate: { Default: 'Chunker' } }}
       </div>
-      <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
+      <div
+        class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'understanding'"
         (click)="pipelineType.set('understanding')"
       >
-        {{ 'PAC.Xpert.ImageUnderstanding' | translate: {Default: 'Image Understanding'} }}
+        {{ 'PAC.Xpert.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}
       </div>
     </div>
     <div class="p-1.5">
       @switch (pipelineType()) {
         @case ('source') {
           @for (provider of dataSources$ | async; track provider.meta.name) {
-            <div class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineSource(provider.meta);ref.close()"
+            <div
+              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              (click)="addPipelineSource(provider.meta); ref.close()"
             >
               @if (provider.meta.icon) {
                 <xp-icon [icon]="provider.meta.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
@@ -423,8 +519,9 @@
 
         @case ('processor') {
           @for (provider of transformers$ | async; track provider.meta.name) {
-            <div class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineProcessor(provider.meta);ref.close()"
+            <div
+              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              (click)="addPipelineProcessor(provider.meta); ref.close()"
             >
               @if (provider.meta.icon) {
                 <xp-icon [icon]="provider.meta.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
@@ -438,8 +535,9 @@
 
         @case ('chunker') {
           @for (provider of textSplitters$ | async; track provider.name) {
-            <div class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineChunker(provider);ref.close()"
+            <div
+              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              (click)="addPipelineChunker(provider); ref.close()"
             >
               @if (provider.icon) {
                 <xp-icon [icon]="provider.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
@@ -453,8 +551,9 @@
 
         @case ('understanding') {
           @for (provider of imageUnderstandings$ | async; track provider.name) {
-            <div class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineUnderstanding(provider);ref.close()"
+            <div
+              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              (click)="addPipelineUnderstanding(provider); ref.close()"
             >
               @if (provider.icon) {
                 <xp-icon [icon]="provider.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
@@ -470,32 +569,41 @@
   </div>
 </ng-template>
 
-
 <ng-template #middlewaresMenu let-ref="ref">
-  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]">
+  <div
+    cdkMenu
+    class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]"
+  >
     <div class="flex justify-center items-center px-2 my-1 text-base font-medium text-text-tertiary">
-      <span>{{ 'PAC.Xpert.AgentMiddlewares' | translate: {Default: 'Agent Middlewares'} }}</span>
+      <span>{{ 'PAC.Xpert.AgentMiddlewares' | translate: { Default: 'Agent Middlewares' } }}</span>
 
       <div class="relative w-[160px] ml-4">
-        <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
-        <input class="w-full appearance-none bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:bg-neutral-50 px-3 radius-md system-sm-regular pl-[26px]"
-          [placeholder]="'PAC.ACTIONS.Search' | translate: {Default: 'Search'}"
+        <i
+          class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"
+        ></i>
+        <input
+          class="w-full appearance-none bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:bg-background-default-subtle px-3 radius-md system-sm-regular pl-[26px]"
+          [placeholder]="'PAC.ACTIONS.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="searchMiddlewares"
-        >
+        />
         @if (searchMiddlewares()) {
-          <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
-            (click)="searchMiddlewares.set('')"></i>
+          <i
+            class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+            (click)="searchMiddlewares.set('')"
+          ></i>
         }
       </div>
     </div>
     @for (middleware of filteredAgentMiddlewares(); track middleware.meta?.name) {
-      <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      <div
+        cdkMenuItem
+        class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
         [cdkMenuItemDisabled]="!middleware.meta?.name"
         (click)="addMiddleware(middleware.meta?.name)"
       >
         @if (!middleware.meta?.name) {
           <div class="text-text-destructive">
-            {{ 'PAC.Xpert.UnknownMiddleware' | translate: {Default: 'Unknown Middleware'} }}
+            {{ 'PAC.Xpert.UnknownMiddleware' | translate: { Default: 'Unknown Middleware' } }}
           </div>
         } @else {
           @if (middleware.meta.icon) {

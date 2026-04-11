@@ -1,0 +1,9 @@
+@reference "../../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply block flex-1 bg-components-panel-bg h-full;
+}
+
+button {
+  @apply whitespace-nowrap cursor-pointer;
+}

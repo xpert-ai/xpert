@@ -1,11 +1,11 @@
 import { MessageType } from '@langchain/core/messages'
+import type { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types';
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
-import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
-import { JSONValue } from '../core.model'
-import { IStorageFile } from '../storage-file.model'
-import { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types'
+import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model';
+import { JSONValue } from '../core.model';
+import { IStorageFile } from '../storage-file.model';
 
 export type TSummaryJob = Record<
   LongTermMemoryTypeEnum,

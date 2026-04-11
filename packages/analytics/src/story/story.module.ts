@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { SecretTokenModule, SharedModule, TenantModule } from '@metad/server-core'
+import { SecretTokenModule, SharedModule, TenantModule } from '@xpert-ai/server-core'
 import { RouterModule } from '@nestjs/core'
 import { CaslModule } from '../core/index'
 import { StoryPointModule } from '../story-point/story-point.module'

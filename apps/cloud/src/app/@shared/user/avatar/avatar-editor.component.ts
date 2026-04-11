@@ -1,6 +1,6 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, model, output } from '@angular/core'
-import { Store, UsersService } from '@metad/cloud/state'
+import { Store, UsersService } from '@xpert-ai/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, IUser } from '../../../@core'
 import { AvatarEditorComponent } from '../../files'
@@ -14,7 +14,7 @@ import { AvatarEditorComponent } from '../../files'
   selector: 'pac-user-avatar-editor',
   templateUrl: './avatar-editor.component.html',
   styles: [``],
-  imports: [CommonModule, TranslateModule, AvatarEditorComponent]
+  imports: [TranslateModule, AvatarEditorComponent]
 })
 export class UserAvatarEditorComponent {
   readonly #store = inject(Store)

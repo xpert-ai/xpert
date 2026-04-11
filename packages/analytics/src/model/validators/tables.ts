@@ -1,4 +1,4 @@
-import { IDSTable } from '@metad/adapter'
+import { IDSTable } from '@xpert-ai/adapter'
 import { CommandBus } from '@nestjs/cqrs'
 import { QuerySchemaCommand } from '../../data-source/commands'
 

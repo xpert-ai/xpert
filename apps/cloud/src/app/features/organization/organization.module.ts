@@ -1,14 +1,14 @@
 import { NgModule } from '@angular/core'
 import { OrganizationRoutingModule } from './organization-routing.module'
 import { OrganizationComponent } from './organization.component'
-import { MaterialModule } from '../../@shared/material.module'
+import { SharedUiModule } from '../../@shared/ui.module'
 import { SharedModule } from '../../@shared/shared.module'
 
 @NgModule({
   declarations: [
     OrganizationComponent
   ],
-  imports: [SharedModule, MaterialModule, OrganizationRoutingModule],
+  imports: [SharedModule, SharedUiModule, OrganizationRoutingModule],
   providers: []
 })
 export class OrganizationModule {}

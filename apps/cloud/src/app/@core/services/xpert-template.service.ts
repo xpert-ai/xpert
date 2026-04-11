@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@metad/cloud/state'
+import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
-import { IXpertMCPTemplate, IXpertTemplate, TXpertTemplate } from '../types'
+import { ISkillMarketConfig, IXpertMCPTemplate, IXpertTemplate, TXpertTemplate } from '../types'
 
 @Injectable({ providedIn: 'root' })
 export class XpertTemplateService {
@@ -35,5 +35,9 @@ export class XpertTemplateService {
 
   getKnowledgePipelineTemplate(id: string) {
     return this.#httpClient.get<TKnowledgePipelineTemplate>(API_PREFIX + `/xpert-template/pipelines/${id}`)
+  }
+
+  getSkillsMarket() {
+    return this.#httpClient.get<ISkillMarketConfig>(API_PREFIX + `/xpert-template/skills-market`)
   }
 }

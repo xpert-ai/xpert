@@ -1,9 +1,9 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { parseYAML } from '@metad/core'
-import { injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { parseYAML } from '@xpert-ai/core'
+import { injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
@@ -26,13 +26,12 @@ import {
 import { IconComponent } from '../../avatar'
 import { injectI18nService } from '../../i18n'
 
-
 @Component({
   standalone: true,
   selector: 'xp-pipelines',
   templateUrl: './pipelines.component.html',
   styleUrls: ['./pipelines.component.scss'],
-  imports: [CommonModule, RouterModule, TranslateModule, NgmSpinComponent, IconComponent],
+  imports: [RouterModule, TranslateModule, NgmSpinComponent, IconComponent],
   animations: [routeAnimations]
 })
 export class XpertPipelinesComponent {
@@ -171,7 +170,6 @@ export class XpertPipelinesComponent {
         }
       })
   }
-
 
   /**
    * handle file from browsing

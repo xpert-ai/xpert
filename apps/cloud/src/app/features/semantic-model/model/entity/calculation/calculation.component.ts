@@ -13,23 +13,20 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { CommandDialogComponent } from '@metad/copilot-angular'
-import { convertQueryResultColumns, linkedModel } from '@metad/core'
-import { NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { convertQueryResultColumns, linkedModel } from '@xpert-ai/core'
+import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import {
   NgmCalculatedMeasureComponent,
   NgmEntityModule,
   NgmFormulaEditorComponent,
   PropertyCapacity
-} from '@metad/ocap-angular/entity'
-import { NgmBaseEditorDirective, NgmFormulaModule } from '@metad/ocap-angular/formula'
-import { Dimension, measureFormatter, nonBlank, QueryReturn, stringifyProperty, Syntax } from '@metad/ocap-core'
-import { Crossjoin, Members } from '@metad/ocap-xmla'
-import { getSemanticModelKey } from '@metad/story/core'
+} from '@xpert-ai/ocap-angular/entity'
+import { NgmBaseEditorDirective, NgmFormulaModule } from '@xpert-ai/ocap-angular/formula'
+import { Dimension, measureFormatter, nonBlank, QueryReturn, stringifyProperty, Syntax } from '@xpert-ai/ocap-core'
+import { Crossjoin, Members } from '@xpert-ai/ocap-xmla'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { differenceBy, isNil, isPlainObject } from 'lodash-es'
@@ -39,13 +36,13 @@ import { EMPTY, of } from 'rxjs'
 import { catchError, map, startWith } from 'rxjs/operators'
 import { getErrorMessage, ToastrService } from '../../../../../@core'
 import { AppService } from '../../../../../app.service'
-import { injectFormulaCommand } from '../../copilot/'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE, ModelDesignerType } from '../../types'
 import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
 import { animate, style, transition, trigger } from '@angular/animations'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
+import { ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -61,7 +58,7 @@ import { typeOfObj } from '@cloud/app/@shared/model/types'
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ContentLoaderModule,
     NgmTableComponent,
     NgmEntityModule,
@@ -76,7 +73,7 @@ import { typeOfObj } from '@cloud/app/@shared/model/types'
       transition(':enter', [
         style({ transform: 'rotate(90deg)', opacity: 0 }),
         animate('100ms ease-out', style({ transform: 'rotate(0deg)', opacity: 1 }))
-      ]),
+      ])
     ])
   ]
 })
@@ -84,9 +81,7 @@ export class ModelEntityCalculationComponent {
   DisplayDensity = DisplayDensity
   Syntax = Syntax
   ModelType = MODEL_TYPE
-  propertyCapacities = [
-    PropertyCapacity.Dimension,
-  ]
+  propertyCapacities = [PropertyCapacity.Dimension]
 
   readonly appService = inject(AppService)
   readonly modelService = inject(SemanticModelService)
@@ -95,7 +90,7 @@ export class ModelEntityCalculationComponent {
   readonly #router = inject(Router)
   readonly #logger = inject(NGXLogger)
   readonly #toastr = inject(ToastrService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
 
   @ViewChild('editor') editor!: NgmBaseEditorDirective
 
@@ -202,21 +197,13 @@ export class ModelEntityCalculationComponent {
       : of(null)
   })
 
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #formulaCommand = injectFormulaCommand(this.calculatedMember)
-
   constructor() {
     effect(
       () => {
         if (this.calculatedMember()) {
           this.entityService.setSelectedProperty(this.typeKey())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -260,18 +247,6 @@ export class ModelEntityCalculationComponent {
 
   onEditorKeyDown(event) {
     console.log(event)
-  }
-
-  aiFormula() {
-    this.#dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['formula']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   toggleTest() {

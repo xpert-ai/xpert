@@ -2,27 +2,24 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpErrorResponse } from '@angular/common/http'
-import { AfterViewInit, Component, inject, Inject, signal, TemplateRef, viewChild, ViewChild } from '@angular/core'
+import { AfterViewInit, Component, inject, Inject, Injector, signal, TemplateRef, viewChild, ViewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTooltipModule } from '@angular/material/tooltip'
+
 import { Router, RouterModule } from '@angular/router'
 import { ModelCreationComponent } from '@cloud/app/@shared/model'
-import { DataSourceService, IBusinessArea, SemanticModelServerService } from '@metad/cloud/state'
-import { uploadYamlFile } from '@metad/core'
+import { DataSourceService, IBusinessArea, SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { uploadYamlFile } from '@xpert-ai/core'
 import {
   NgmConfirmUniqueComponent,
   NgmSpinComponent,
   TreeTableColumn,
   TreeTableModule
-} from '@metad/ocap-angular/common'
-import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { ButtonGroupDirective, DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
-import { AgentType, Property, Syntax } from '@metad/ocap-core'
-import { NX_STORY_STORE, NxStoryStore, StoryModel, uuid } from '@metad/story/core'
+} from '@xpert-ai/ocap-angular/common'
+import { NgmControlsModule } from '@xpert-ai/ocap-angular/controls'
+import { ButtonGroupDirective, DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { AgentType, Property, Syntax } from '@xpert-ai/ocap-core'
+import { NX_STORY_STORE, NxStoryStore, StoryModel, uuid } from '@xpert-ai/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns'
 import { NgxPermissionsModule } from 'ngx-permissions'
@@ -42,7 +39,7 @@ import { CreatedByPipe } from '../../../@shared/pipes'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { BusinessAreaSelectComponent } from '@cloud/app/@shared/business-area'
-
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -50,9 +47,9 @@ import { BusinessAreaSelectComponent } from '@cloud/app/@shared/business-area'
     NgxPermissionsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
-    MatButtonModule,
-    MatIconModule,
+    ...ZardTooltipImports,
+    ZardButtonComponent,
+    ZardIconComponent,
     RouterModule,
 
     // OCAP Modles
@@ -74,6 +71,7 @@ export class ModelsComponent implements AfterViewInit {
   readonly #toastr = injectToastr()
   readonly translateService = inject(TranslateService)
   readonly #dialog = inject(Dialog)
+  readonly #injector = inject(Injector)
 
   displayedColumns = ['name', 'dataSource']
   columns: Array<
@@ -111,7 +109,7 @@ export class ModelsComponent implements AfterViewInit {
       this.loading.set(true)
       return component === 'my' ? this.modelsAPI.getMyModelsByAreaTree() : this.modelsAPI.getModelsByAreaTree()
     }),
-    tap(() => (this.loading.set(false))),
+    tap(() => this.loading.set(false)),
     takeUntilDestroyed(),
     shareReplay(1)
   )
@@ -125,7 +123,7 @@ export class ModelsComponent implements AfterViewInit {
     private dataSourcesStore: DataSourceService,
     @Inject(NX_STORY_STORE) private storyStore: NxStoryStore,
     private router: Router,
-    private _dialog: MatDialog
+    private _dialog: ZardDialogService
   ) {}
 
   ngOnInit() {
@@ -187,14 +185,10 @@ export class ModelsComponent implements AfterViewInit {
   //     Default: 'Delete this model permanently'
   //   })
   //   const result = await firstValueFrom(
-  //     this._dialog
-  //       .open(NgmConfirmDeleteComponent, {
-  //         data: {
-  //           value: model.name,
-  //           information: information + '?'
-  //         }
-  //       })
-  //       .afterClosed()
+  //     this.confirmDelete.confirm({
+  //       value: model.name,
+  //       information: information + '?'
+  //     })
   //   )
 
   //   if (result) {
@@ -257,6 +251,7 @@ export class ModelsComponent implements AfterViewInit {
       .open<Partial<ISemanticModel>>(ModelCreationComponent, {
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet',
+        injector: this.#injector,
         data: { businessAreaId, type }
       })
       .closed.pipe(
@@ -272,7 +267,7 @@ export class ModelsComponent implements AfterViewInit {
       )
       .subscribe((model) => {
         this.refresh$.next()
-        this.router.navigate(['/models', model.id])
+        this.router.navigate(['/data', 'models', model.id])
       })
   }
 
@@ -307,6 +302,7 @@ export class ModelsComponent implements AfterViewInit {
       this.#dialog.open<Partial<ISemanticModel>>(ModelCreationComponent, {
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet',
+        injector: this.#injector,
         data: {
           name: model.name,
           description: model.description,
@@ -337,7 +333,7 @@ export class ModelsComponent implements AfterViewInit {
       model = await firstValueFrom(this.modelsAPI.upload(model))
       this.modelUploading.set(false)
       this.#toastr.success('PAC.MODEL.TOASTR.ModelUpload', { Default: 'Model upload' })
-      this.router.navigate(['/models', model.id])
+      this.router.navigate(['/data', 'models', model.id])
     } catch (err) {
       this.modelUploading.set(false)
       this.#toastr.error((<HttpErrorResponse>err).statusText)
@@ -345,28 +341,31 @@ export class ModelsComponent implements AfterViewInit {
   }
 
   moveToBusinessArea(model: ISemanticModel) {
-    this.#dialog.open<IBusinessArea>(BusinessAreaSelectComponent, {
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-      }
-    }).closed.subscribe((area) => {
-      if (area) {
-        this.loading.set(true)
-        this.modelsAPI.updateModel(model.id, {
-          businessAreaId: area.id
-        }).subscribe({
-          next: () => {
-            this.loading.set(false)
-            this.#toastr.success('PAC.MODEL.ModelUpdateBusinessArea', { Default: 'Model business area updated' })
-            this.refresh$.next()
-          },
-          error: (err) => {
-            this.loading.set(false)
-            this.#toastr.error(getErrorMessage(err))
-          }
-        })
-      }
-    })
+    this.#dialog
+      .open<IBusinessArea>(BusinessAreaSelectComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {}
+      })
+      .closed.subscribe((area) => {
+        if (area) {
+          this.loading.set(true)
+          this.modelsAPI
+            .updateModel(model.id, {
+              businessAreaId: area.id
+            })
+            .subscribe({
+              next: () => {
+                this.loading.set(false)
+                this.#toastr.success('PAC.MODEL.ModelUpdateBusinessArea', { Default: 'Model business area updated' })
+                this.refresh$.next()
+              },
+              error: (err) => {
+                this.loading.set(false)
+                this.#toastr.error(getErrorMessage(err))
+              }
+            })
+        }
+      })
   }
 }

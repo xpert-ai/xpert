@@ -2,7 +2,8 @@ import { NgModule, Pipe, PipeTransform } from '@angular/core'
 import { isArray } from '../utils/utils'
 
 @Pipe({
-  name: 'filter'
+  name: 'filter',
+  standalone: false
 })
 export class FilterPipe implements PipeTransform {
   transform(input: any, fn: (item: any) => any): any {

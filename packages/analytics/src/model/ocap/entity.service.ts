@@ -1,6 +1,6 @@
-import { ISlicer, QueryOptions, QueryReturn, Semantics, VariableEntryType } from "@metad/ocap-core"
-import { XmlaEntityService } from "@metad/ocap-xmla"
-import { RequestContext } from "@metad/server-core"
+import { ISlicer, QueryOptions, QueryReturn, Semantics, VariableEntryType } from "@xpert-ai/ocap-core"
+import { XmlaEntityService } from "@xpert-ai/ocap-xmla"
+import { RequestContext } from "@xpert-ai/server-core"
 import { Observable } from "rxjs"
 
 export class MyXmlaEntityService<T> extends XmlaEntityService<T> {

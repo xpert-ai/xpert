@@ -1,4 +1,4 @@
-import { I18nObject, IXpertProject } from '@metad/contracts'
+import { I18nObject, IXpertProject } from '@xpert-ai/contracts'
 import { CommandBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { _BaseToolset, TBuiltinToolsetParams } from '../../../shared'

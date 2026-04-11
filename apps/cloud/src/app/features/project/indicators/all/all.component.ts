@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectorRef,
   Component,
@@ -12,14 +12,13 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
+
 import { RouterModule } from '@angular/router'
 import { exportIndicator, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
-import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
-import { saveAsYaml } from '@metad/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@xpert-ai/cloud/state'
+import { saveAsYaml } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { catchError, debounceTime, filter, map, merge, of, Subject, switchMap } from 'rxjs'
 import {
@@ -32,21 +31,19 @@ import {
 } from '../../../../@core/index'
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
+import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
-    MatCheckboxModule,
-    MatButtonModule,
-    MatTooltipModule,
+    ZardCheckboxComponent,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmSpinComponent,
     DateRelativePipe
-  ],
+],
   selector: 'pac-indicator-all',
   templateUrl: './all.component.html',
   styleUrls: ['./all.component.scss']
@@ -107,15 +104,17 @@ export class AllIndicatorComponent {
         debounceTime(100),
         switchMap(() => {
           this.loading.set(true)
-          return this.indicatorAPI.getByProject(this.projectService.project().id, {
-            select: ['id', 'code', 'name', 'embeddingStatus']
-          }).pipe(
-            catchError((error) => {
-              this.toastrService.error(getErrorMessage(error))
-              this.loading.set(false)
-              return of(null)
+          return this.indicatorAPI
+            .getByProject(this.projectService.project().id, {
+              select: ['id', 'code', 'name', 'embeddingStatus']
             })
-          )
+            .pipe(
+              catchError((error) => {
+                this.toastrService.error(getErrorMessage(error))
+                this.loading.set(false)
+                return of(null)
+              })
+            )
         }),
         map((data) => {
           // Flip flag to show that loading has finished.

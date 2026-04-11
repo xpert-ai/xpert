@@ -1,35 +1,48 @@
 import { CdkDrag, CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, ViewChild, computed, effect, inject, signal, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { Store } from '@metad/cloud/state'
-import { convertQueryResultColumns, LeanRightEaseInAnimation } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { EntityCapacity, getErrorMessage } from '@metad/ocap-angular/core'
-import { EntitySchemaNode, EntitySchemaType, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
-import { NgmMDXEditorComponent } from '@metad/ocap-angular/mdx'
-import { NgmSQLEditorComponent } from '@metad/ocap-angular/sql'
-import { C_MEASURES, DisplayBehaviour, QueryReturn, isPropertyMeasure, measureFormatter, nonNullable, serializeUniqueName } from '@metad/ocap-core'
+import { Store } from '@xpert-ai/cloud/state'
+import { convertQueryResultColumns, LeanRightEaseInAnimation } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { EntityCapacity, getErrorMessage } from '@xpert-ai/ocap-angular/core'
+import { EntitySchemaNode, EntitySchemaType, NgmEntitySchemaComponent } from '@xpert-ai/ocap-angular/entity'
+import { NgmMDXEditorComponent } from '@xpert-ai/ocap-angular/mdx'
+import { NgmSQLEditorComponent } from '@xpert-ai/ocap-angular/sql'
+import {
+  C_MEASURES,
+  DisplayBehaviour,
+  QueryReturn,
+  isPropertyMeasure,
+  measureFormatter,
+  nonNullable,
+  serializeUniqueName
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { connect } from 'ngxtension/connect'
 import { BehaviorSubject, Subscription, firstValueFrom, of } from 'rxjs'
 import { catchError, finalize, map, tap } from 'rxjs/operators'
-import { injectQueryCommand } from '../../copilot'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { serializePropertyUniqueName } from '../../utils'
 import { ModelEntityService } from '../entity.service'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { getSemanticModelKey } from '@metad/story/core'
-import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
+import { NgmBaseEditorDirective } from '@xpert-ai/ocap-angular/formula'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,9 +54,9 @@ import { typeOfObj } from '@cloud/app/@shared/model/types'
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatTooltipModule,
-    MatIconModule,
-    MatButtonModule,
+    ...ZardTooltipImports,
+    ZardIconComponent,
+    ZardButtonComponent,
     NgmCommonModule,
     NgmMDXEditorComponent,
     NgmSQLEditorComponent,
@@ -63,7 +76,7 @@ export class EntityQueryComponent {
   readonly #logger = inject(NGXLogger)
 
   @ViewChild('editor') editor!: NgmBaseEditorDirective
-  readonly dragHandler = viewChild('dragHandler', {read: CdkDrag})
+  readonly dragHandler = viewChild('dragHandler', { read: CdkDrag })
 
   /**
   |--------------------------------------------------------------------------
@@ -118,17 +131,6 @@ export class EntityQueryComponent {
 
   readonly displayBehaviour = signal<DisplayBehaviour>(DisplayBehaviour.auto)
 
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #queryCommand = injectQueryCommand(this.statement, this.queryContext, async (query: string) => {
-    this._error.set(null)
-    this.loading$.next(true)
-    return await firstValueFrom(this._query(query))
-  })
-
   constructor() {
     connect(this.statement, this.entityService.statement$)
     effect(
@@ -136,8 +138,7 @@ export class EntityQueryComponent {
         if (nonNullable(this.statement())) {
           this.entityService.statement = this.statement()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -293,7 +294,12 @@ export class EntityQueryComponent {
   }
 
   switchDisplay() {
-    const displayBehaviours = [DisplayBehaviour.auto, DisplayBehaviour.descriptionAndId, DisplayBehaviour.idAndDescription, DisplayBehaviour.idOnly]
+    const displayBehaviours = [
+      DisplayBehaviour.auto,
+      DisplayBehaviour.descriptionAndId,
+      DisplayBehaviour.idAndDescription,
+      DisplayBehaviour.idOnly
+    ]
     this.displayBehaviour.update((value) => {
       const currentIndex = displayBehaviours.indexOf(value)
       const nextIndex = (currentIndex + 1) % displayBehaviours.length

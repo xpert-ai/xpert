@@ -1,6 +1,6 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
+<div class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group">
     <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-      <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+      <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
       <span class="text-lg pointer-events-none">
         {{ 'PAC.Project.Files' | translate: { Default: 'Files' } }}
       </span>
@@ -8,32 +8,31 @@
   
     <ngm-search class="my-2" [formControl]="searchControl"></ngm-search>
   
-    <mat-nav-list class="ngm-nav-list flex-1 overflow-auto">
+    <ul class="ngm-nav-list flex-1 overflow-auto">
       @for (file of filteredFiles(); track file.id) {
-        <mat-list-item class="group/item"
+        <li class="group/item"
             [class.active]="activedFile()?.id === file.id" 
             (click)="activeLink(file)"
         >
             <div class="flex items-center">
                 <span class="flex-1 text-ellipsis overflow-hidden whitespace-nowrap"> {{ file.originalName }} </span>
 
-                <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="opacity-0 group-hover/item:opacity-100"
-                    (click)="deleteFile($event, file)">
-                    <mat-icon fontSet="material-icons-round">delete</mat-icon>
+                <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="opacity-0 group-hover/item:opacity-100" (click)="deleteFile($event, file)">
+                    <z-icon zType="delete"></z-icon>
                 </button>
             </div>
-        </mat-list-item>
+        </li>
       }
-    </mat-nav-list>
+    </ul>
 
     <input #fileUpload type="file" class="file-input h-0 invisible" (change)="onFileSelected($event)" (click)="fileUpload.value=null;" accept="*">
 
     <div class="flex justify-end items-center">
       @if (activedFile()) {
         <div ngmButtonGroup>
-            <button mat-stroked-button ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="fileUpload.click()">
+            <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" (click)="fileUpload.click()">
                 <div class="flex justify-start items-center">
-                  <mat-icon fontSet="material-icons-round">upload</mat-icon>
+                  <z-icon zType="upload"></z-icon>
                   {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}
                 </div>
             </button>
@@ -53,11 +52,9 @@
       }
     </div>
   } @else {
-    <button mat-stroked-button ngmAppearance="dashed" color="accent"
-        (click)="fileUpload.click()"
-    >
+    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" (click)="fileUpload.click()">
         <div class="flex justify-start items-center">
-          <mat-icon fontSet="material-icons-round">upload</mat-icon>
+          <z-icon zType="upload"></z-icon>
           {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}
         </div>
     </button>

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Repository, TreeRepository } from 'typeorm'
 import { BusinessArea } from './business-area.entity'
 import { BusinessAreaUser, BusinessAreaUserService } from '../business-area-user'

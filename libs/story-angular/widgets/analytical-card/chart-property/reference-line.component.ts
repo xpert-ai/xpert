@@ -1,13 +1,13 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, forwardRef, model, signal } from '@angular/core'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@metad/story/designer'
+import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@xpert-ai/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
 import { ReferenceLineSchemaService } from '../schemas'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NxDesignerModule, NgmSchemaFormComponent],
+  imports: [FormsModule, TranslateModule, NxDesignerModule, NgmSchemaFormComponent],
   selector: 'ngm-reference-line',
   template: `<ngm-schema-form class="w-full" [(ngModel)]="model" [disabled]="isDisabled()" />`,
   styles: [

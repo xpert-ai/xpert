@@ -1,30 +1,35 @@
 import { Component, forwardRef, inject, Input } from '@angular/core'
-import { ControlValueAccessor, FormBuilder, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, Validators } from '@angular/forms'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { CompareToEnum, DataSettings, EntityType } from '@metad/ocap-core'
+import {
+  ControlValueAccessor,
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { CompareToEnum, DataSettings, EntityType } from '@xpert-ai/ocap-core'
 import { PropertyCapacity } from '../types'
-import { CommonModule } from '@angular/common'
+
 import { TranslateModule } from '@ngx-translate/core'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatSelectModule } from '@angular/material/select'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
 import { NgmCompareMemberSelectComponent } from '../compare-member-select/member-select.component'
-import { MatCheckboxModule } from '@angular/material/checkbox'
+import { ZardFormImports, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatCheckboxModule,
-
+    ...ZardFormImports,
+    ZardCheckboxComponent,
     NgmPropertySelectComponent,
-    NgmCompareMemberSelectComponent
-  ],
+    NgmCompareMemberSelectComponent,
+    NgmSelectComponent
+],
   selector: 'ngm-calculation-variance',
   templateUrl: 'variance.component.html',
   styleUrls: ['variance.component.scss'],
@@ -39,6 +44,10 @@ import { MatCheckboxModule } from '@angular/material/checkbox'
 export class NgmCalculationVarianceComponent implements ControlValueAccessor {
   PropertyCapacity = PropertyCapacity
   COMPARE_TO_ENUM = CompareToEnum
+  readonly divideByOptions = [
+    { value: 'A', label: 'Compare Value (A)' },
+    { value: 'B', label: 'To Value (B)' }
+  ]
 
   private formBuilder = inject(FormBuilder)
 

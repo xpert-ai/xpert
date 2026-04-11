@@ -1,61 +1,63 @@
-@use 'sass:map';
-@use '@angular/material' as mat;
 
+
+@use 'sass:map';
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@reference "../../../tailwind-workspace-reference.css";
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $accent: map.get($config, accent);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
   .ngm-table {
-    .mat-sort-header-content {
+    [z-table-sort-header] {
       flex: 1;
     }
   }
 
-  .cdk-table {
+  table[z-table] {
     &.striped {
-      .cdk-row:nth-child(even) {
-        background-color: lighten(mat.get-color-from-palette($background, hover), 50%);
+      tr[z-table-row]:nth-child(even) {
+        background-color: lighten(themeCompat.m2-get-color-from-palette($background, hover), 50%);
       }
 
-      .cdk-row {
+      tr[z-table-row] {
         &:hover {
-          background-color: mat.get-color-from-palette($background, hover);
+          background-color: themeCompat.m2-get-color-from-palette($background, hover);
         }
       }
     }
 
     &.ngm-table-grid {
-      .cdk-header-cell,
-      .cdk-cell {
+      [z-table-head],
+      [z-table-cell] {
         padding: 0 10px;
       }
       &.ngm-density__compact {
-        .cdk-header-cell,
-        .cdk-cell {
+        [z-table-head],
+        [z-table-cell] {
           padding: 0 5px;
         }
       }
   
-      .cdk-header-row {
+      tr[z-table-row]:first-child {
         border-top-width: 1px;
         border-top-style: solid;
-        border-top-color: mat.get-color-from-palette($foreground, divider);
+        border-top-color: themeCompat.m2-get-color-from-palette($foreground, divider);
       }
-      .cdk-cell,
-      .cdk-header-cell {
-        border-right: 1px solid mat.get-color-from-palette($foreground, divider);
+      [z-table-cell],
+      [z-table-head] {
+        border-right: 1px solid themeCompat.m2-get-color-from-palette($foreground, divider);
   
         &:first-child {
-          border-left: 1px solid mat.get-color-from-palette($foreground, divider);
+          border-left: 1px solid themeCompat.m2-get-color-from-palette($foreground, divider);
         }
       }
     }
 
-    .cdk-row {
+    tr[z-table-row] {
       &:hover {
-        background-color: mat.get-color-from-palette($background, hover);
+        background-color: themeCompat.m2-get-color-from-palette($background, hover);
       }
     }
   }

@@ -2,8 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, ElementRef, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   agentLabel,
@@ -12,9 +11,10 @@ import {
   TWFCaseCondition,
   TWorkflowVarGroup,
   WorkflowComparisonOperator,
-  XpertParameterTypeEnum,
+  XpertParameterTypeEnum
 } from 'apps/cloud/src/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -25,7 +25,7 @@ import { StateVariableSelectComponent, TXpertVariablesOptions, XpertVariableInpu
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TextFieldModule,
     NgmI18nPipe,
     XpertVariableInputComponent,
@@ -49,7 +49,7 @@ export class XpertWorkflowConditionFormComponent {
 
   // States
   readonly loading = signal(false)
-  
+
   readonly _variableSelector = attrModel(this.condition, 'variableSelector')
 
   readonly variableSelector = computed(() => {
@@ -68,7 +68,9 @@ export class XpertWorkflowConditionFormComponent {
   readonly groupVariables = computed(() => {
     return this.variables()
   })
-  readonly envVariables = computed(() => this.valueVariables() || this.variables()?.filter((g) => g.group?.name === 'env'))
+  readonly envVariables = computed(
+    () => this.valueVariables() || this.variables()?.filter((g) => g.group?.name === 'env')
+  )
 
   readonly hoverDelete = signal(false)
 

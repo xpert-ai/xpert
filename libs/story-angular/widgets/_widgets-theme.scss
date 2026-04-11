@@ -1,6 +1,8 @@
+
+
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use './swiper/swiper-theme' as swiper;
 @use './tab-group/tabgroup-theme' as tabgroup;
 @use './financial/accounting-statement/accounting-statement-theme' as statement;
@@ -8,9 +10,9 @@
 @use './filter-bar/filter-bar-theme' as filter-bar;
 @use './pivot-grid/pivot-grid-theme' as pivot-grid;
 @use './kpi/kpi-card-theme' as kpi;
-
+@reference "../../../tailwind-workspace-reference.css";
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -33,17 +35,19 @@
     max-width: 100%;
   }
 
-  .pac-widget__slicer-menu.mat-mdc-menu-panel {
+  [z-menu-content].pac-widget__slicer-menu,
+  .pac-widget__slicer-menu[z-menu-content] {
     @apply px-4 max-w-[600px];
   }
   .pac-widget__action-toolbar {
-    .mat-icon-button {
+    [z-button][data-icon-only],
+    z-button[data-icon-only] {
       width: 24px;
       height: 24px;
       line-height: 24px;
       opacity: .1;
 
-      .mat-icon {
+      .z-icon {
         font-size: 20px;
         line-height: 20px;
         height: 20px;
@@ -55,7 +59,8 @@
   .ngm-story-widget {
     &.ngm-story-widget__active, &:hover {
       .pac-widget__action-toolbar {
-        .mat-icon-button {
+        [z-button][data-icon-only],
+        z-button[data-icon-only] {
           opacity: 1;
         }
       }
@@ -65,7 +70,7 @@
       color: green;
     }
     .semantic-color_negative {
-      color: mat.get-color-from-palette($warn, 500);
+      color: themeCompat.m2-get-color-from-palette($warn, 500);
     }
   }
   
@@ -86,9 +91,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

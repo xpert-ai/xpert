@@ -1,7 +1,6 @@
-import { SortDirection } from '@angular/material/sort'
-import { AnalyticsMeasure, Dimension, IMember, Measure, Property } from '@metad/ocap-core'
+import type { ZardTableSortDirection } from '@xpert-ai/headless-ui'
+import { AnalyticsMeasure, Dimension, IMember, Measure, Property } from '@xpert-ai/ocap-core'
 import { Parser } from 'expr-eval'
-
 
 export type SemanticExpression = {
       negative?: string
@@ -72,7 +71,7 @@ export interface AnalyticalGridColumn extends Dimension, AnalyticalGridColumnOpt
 
   // States for Excel style fitering
   isFilterOpen?: boolean
-  sortDirection?: SortDirection
+  sortDirection?: ZardTableSortDirection | null
   search?: string
   /**
    * inner state of excel style filter

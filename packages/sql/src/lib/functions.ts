@@ -1,4 +1,4 @@
-import { isEmpty } from "@metad/ocap-core"
+import { isEmpty } from "@xpert-ai/ocap-core"
 
 export function OrderBy(orders: string[]) {
   return isEmpty(orders) ? '' : `ORDER BY ${orders.join(', ')}`

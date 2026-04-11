@@ -6,9 +6,9 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, effect
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { OverlayAnimation1 } from '@metad/core'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { OverlayAnimation1 } from '@xpert-ai/core'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { map, shareReplay, Subject, takeUntil } from 'rxjs'
 import {
@@ -173,7 +173,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
         }, 0)
       }
     }
-  }, { allowSignalWrites: true })
+  })
   
   readonly schemasOptions = computed(() => {
     return (this.#schemasRs.value() || []).map((schema) => ({
@@ -1078,5 +1078,4 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     return normalizedType.includes('postgres') || normalizedType === 'pg'
   }
 }
-
 

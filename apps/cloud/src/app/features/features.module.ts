@@ -1,20 +1,18 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { PacAuthModule } from '@metad/cloud/auth'
-import { NgmFormlyModule, provideFormly, provideFormlyMaterial } from '@metad/formly'
-import { registerEChartsThemes } from '@metad/material-theme'
-import { NgmDrawerContentComponent, NgmDrawerTriggerComponent, NgmTableComponent, ResizerModule } from '@metad/ocap-angular/common'
-import { NgmCopilotContextService, NgmCopilotContextToken, NgmCopilotEngineService, NgmCopilotService } from '@metad/copilot-angular'
+import { PacMenuComponent } from '@xpert-ai/cloud/auth'
+import { NgmFormlyModule, provideFormly, provideFormlyUi } from '@xpert-ai/formly'
+import { registerEChartsThemes } from '@xpert-ai/material-theme'
+import { NgmDrawerContentComponent, NgmDrawerTriggerComponent, NgmTableComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
 import {
   DensityDirective,
   NgmAgentService,
   OCAP_AGENT_TOKEN,
   OCAP_DATASOURCE_TOKEN
-} from '@metad/ocap-angular/core'
-import { NGM_WASM_AGENT_WORKER, WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { DataSource, Type } from '@metad/ocap-core'
-import { NgmCopilotChatComponent } from '@metad/copilot-angular'
-import { NX_STORY_FEED, NX_STORY_MODEL, NX_STORY_STORE } from '@metad/story/core'
+} from '@xpert-ai/ocap-angular/core'
+import { NGM_WASM_AGENT_WORKER, WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { DataSource, Type } from '@xpert-ai/ocap-core'
+import { NX_STORY_FEED, NX_STORY_MODEL, NX_STORY_STORE } from '@xpert-ai/story/core'
 import { environment } from '../../environments/environment'
 import { DirtyCheckGuard, LocalAgent, ServerAgent, ServerSocketAgent, provideLogger } from '../@core/index'
 import { AssetsComponent } from '../@shared/assets/assets.component'
@@ -24,15 +22,14 @@ import { PACThemeModule } from '../@theme/theme.module'
 import { StoryFeedService, StoryModelService, StoryStoreService } from '../services/index'
 import { FeaturesRoutingModule } from './features-routing.module'
 import { FeaturesComponent } from './features.component'
-import { provideCheckpointSaver, provideCommandFewShotPrompt, provideDimensionMemberRetriever } from '../@core/copilot'
-import { NgmDrawerComponent, NgmDrawerContainerComponent } from '@metad/ocap-angular/common'
+import { provideCheckpointSaver, provideDimensionMemberRetriever } from '../@core/copilot'
+import { NgmDrawerComponent, NgmDrawerContainerComponent } from '@xpert-ai/ocap-angular/common'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { EmojiAvatarComponent } from '../@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { PACCopilotService } from './services'
-import { MaterialModule } from '../@shared/material.module'
-import { SharedModule } from '../@shared/shared.module'
+import { LayoutComponent, SidebarComponent } from '@xpert-ai/headless-ui/components/layout'
+import { ZardAvatarComponent, ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 registerEChartsThemes()
 
@@ -42,9 +39,10 @@ registerEChartsThemes()
     CommonModule,
     FeaturesRoutingModule,
     CdkMenuModule,
-    MaterialModule,
-    SharedModule,
-    PacAuthModule,
+    LayoutComponent,
+    ZardIconComponent,
+    SidebarComponent,
+    PacMenuComponent,
     PACThemeModule,
     AssetsComponent,
     ProjectSelectorComponent,
@@ -58,7 +56,12 @@ registerEChartsThemes()
     // Formly
     NgmFormlyModule,
 
-    NgmCopilotChatComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardAvatarComponent,
+    ZardDividerComponent,
+    ...ZardMenuImports,
+
     NgmDrawerTriggerComponent,
     NgmDrawerContainerComponent,
     NgmDrawerComponent,
@@ -78,7 +81,7 @@ registerEChartsThemes()
     // NgmDSCacheService,
     provideLogger(),
     provideFormly(),
-    provideFormlyMaterial(),
+    provideFormlyUi(),
     {
       provide: NGM_WASM_AGENT_WORKER,
       useValue: '/assets/ocap-agent-data-init.worker.js'
@@ -111,7 +114,7 @@ registerEChartsThemes()
       useValue: {
         type: 'SQL',
         factory: async (): Promise<Type<DataSource>> => {
-          const { SQLDataSource } = await import('@metad/ocap-sql')
+          const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
           return SQLDataSource
         }
       },
@@ -122,7 +125,7 @@ registerEChartsThemes()
       useValue: {
         type: 'XMLA',
         factory: async (): Promise<Type<DataSource>> => {
-          const { XmlaDataSource } = await import('@metad/ocap-xmla')
+          const { XmlaDataSource } = await import('@xpert-ai/ocap-xmla')
           return XmlaDataSource
         }
       },
@@ -140,18 +143,8 @@ registerEChartsThemes()
       provide: NX_STORY_FEED,
       useClass: StoryFeedService
     },
-    {
-      provide: NgmCopilotService,
-      useExisting: PACCopilotService
-    },
-    NgmCopilotEngineService,
-    {
-      provide: NgmCopilotContextToken,
-      useClass: NgmCopilotContextService
-    },
     provideDimensionMemberRetriever(),
     provideCheckpointSaver(),
-    provideCommandFewShotPrompt(),
   ]
 })
 export class FeaturesModule {}

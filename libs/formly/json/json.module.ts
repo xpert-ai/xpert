@@ -1,16 +1,19 @@
 import { NgModule } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { TextFieldModule } from '@angular/cdk/text-field'
 import { FormlyModule } from '@ngx-formly/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { PACFormlyJsonComponent } from './json.type'
-import { MatInputModule } from '@angular/material/input'
+import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [PACFormlyJsonComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatInputModule,
+    TextFieldModule,
+    ZardInputDirective,
+    ...ZardFormImports,
 
     FormlyModule.forChild({
       types: [

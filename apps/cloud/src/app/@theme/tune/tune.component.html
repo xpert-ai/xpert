@@ -1,47 +1,61 @@
-<button mat-icon-button class="opacity-80 hover:opacity-100 hover:scale-110 transition-transform duration-200"
-  [matTooltip]="'PAC.KEY_WORDS.Tune' | translate: {Default: 'Tune'}"
-  matTooltipPosition="right"
+<button
+  z-button
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  class="opacity-80 hover:opacity-100 hover:scale-110 transition-transform duration-200"
+  [zTooltip]="'PAC.KEY_WORDS.Tune' | translate: { Default: 'Tune' }"
+  zPosition="right"
   [cdkMenuTriggerFor]="menus"
->
-  <mat-icon fontSet="material-icons-round">tune</mat-icon>
+  >
+  <z-icon zType="tune"></z-icon>
 </button>
 
 <ng-template #menus>
   <div cdkMenu class="cdk-menu__large">
     <!-- <button cdkMenuItem [cdkMenuTriggerFor]="cacheMenu">
-      <mat-icon fontSet="material-icons-round" class="mr-2">layers_clear</mat-icon>
-      {{ 'PAC.KEY_WORDS.CACHE' | translate: {Default: 'Cache'} }}
-    </button> -->
-    <button cdkMenuItem [cdkMenuTriggerFor]="agentMenu">
-      <mat-icon fontSet="material-icons-round" class="mr-2">assistant_direction</mat-icon>
-      {{ 'PAC.KEY_WORDS.DataAgent' | translate: {Default: 'Data Agent'} }}
-    </button>
-    <button cdkMenuItem [cdkMenuTriggerFor]="wasmMenu">
-      <mat-icon fontSet="material-icons-round" class="mr-2"
-        [color]="wasmAgentStatus()?.status === AgentStatusEnum.OFFLINE ? '' : 'success'">memory</mat-icon>
-      {{ 'WASM' }}
-    </button>
-  </div>
+    <z-icon class="mr-2" zType="layers_clear"></z-icon>
+    {{ 'PAC.KEY_WORDS.CACHE' | translate: {Default: 'Cache'} }}
+  </button> -->
+  <button cdkMenuItem [cdkMenuTriggerFor]="agentMenu">
+    <z-icon class="mr-2" zType="assistant_direction"></z-icon>
+    {{ 'PAC.KEY_WORDS.DataAgent' | translate: { Default: 'Data Agent' } }}
+  </button>
+  <button cdkMenuItem [cdkMenuTriggerFor]="wasmMenu">
+    <z-icon
+      class="mr-2"
+      [color]="wasmAgentStatus()?.status === AgentStatusEnum.OFFLINE ? '' : 'success'"
+      zType="memory"
+    ></z-icon>
+    {{ 'WASM' }}
+  </button>
+</div>
 </ng-template>
 
 <ng-template #cacheMenu>
   <div cdkMenu class="cdk-menu__large">
     <div class="w-80 px-4 flex flex-col justify-start items-stretch overflow-hidden" (click)="$event.stopPropagation()">
       <h5 class="mb-2 text-lg font-bold tracking-tight">
-        {{'PAC.KEY_WORDS.CACHE' | translate: {Default: 'Cache'} }}
+        {{ 'PAC.KEY_WORDS.CACHE' | translate: { Default: 'Cache' } }}
       </h5>
-  
+
       <div class="flex px-4">
-        <mat-slider class="flex-1" color="accent" [max]="5" [min]="0" [step]="1" showTickMarks discrete 
-          [displayWith]="cacheLevelFormatter">
-          <input matSliderThumb [(ngModel)]="cacheLevel">
-        </mat-slider>
+        <z-slider
+          class="flex-1"
+          [max]="5"
+          [min]="0"
+          [step]="1"
+          [showTickMarks]="true"
+          [showValueLabel]="true"
+          [formatValue]="cacheLevelFormatter"
+          [(ngModel)]="cacheLevel"
+        ></z-slider>
       </div>
-  
+
       <div class="flex justify-start">
         <div ngmButtonGroup displayDensity="cosy">
-          <button mat-stroked-button displayDensity="cosy" (click)="clearCache()">
-            {{'PAC.ACTIONS.CLEAR_CACHE' | translate: {Default: 'Clear Cache'} }}
+          <button z-button zType="outline" displayDensity="cosy" (click)="clearCache()">
+            {{ 'PAC.ACTIONS.CLEAR_CACHE' | translate: { Default: 'Clear Cache' } }}
           </button>
         </div>
       </div>
@@ -52,81 +66,120 @@
 <ng-template #agentMenu>
   <div cdkMenu class="cdk-menu__large">
     <div class="pac-status-bar__local-agent h-60" (click)="$event.stopPropagation()">
-      <mat-tab-group mat-stretch-tabs fitInkBarToContent class="h-full">
-  
-        <mat-tab class="p-4" [label]=" 'PAC.KEY_WORDS.ServerAgent' | translate: {Default: 'Server Agent'} ">
+      <z-tab-group stretchTabs fitInkBarToContent class="h-full">
+        <z-tab bodyClass="p-4" [label]="'PAC.KEY_WORDS.ServerAgent' | translate: { Default: 'Server Agent' }">
           <div class="flex justify-between items-center">
             <span></span>
-            <span>{{'PAC.KEY_WORDS.Progress' | translate: {Default: 'Progress'} }}: {{progress()}}%</span>
+            <span>{{ 'PAC.KEY_WORDS.Progress' | translate: { Default: 'Progress' } }}: {{ progress() }}%</span>
           </div>
-          <mat-progress-bar class="w-full" [color]="progress() > 90 ? 'primary' : 'accent'" mode="buffer"
-            [bufferValue]="90" [value]="progress()" />
+          <div class="relative h-1 w-full overflow-hidden" [ngClass]="progress() > 90 ? 'bg-primary/20' : 'bg-chart-1/20'">
+            <div class="absolute inset-y-0 left-0 w-[90%]" [ngClass]="progress() > 90 ? 'bg-primary/35' : 'bg-chart-1/35'"></div>
+            <div class="absolute inset-y-0 left-0 transition-all duration-200" [ngClass]="progress() > 90 ? 'bg-primary' : 'bg-chart-1'" [style.width.%]="progress()"></div>
+          </div>
           <div class="flex justify-between items-center">
-            <span><span>{{'PAC.KEY_WORDS.Complete' | translate: {Default: 'Complete'} }}:</span> {{serverAgent.completeSize()}}</span>
-            <span><span>{{'PAC.KEY_WORDS.Request' | translate: {Default: 'Request'} }}:</span>{{serverAgent.bufferSize()}}</span>
-          </div>
-        </mat-tab>
-  
-        @if (enableLocalAgent) {
-          <mat-tab class="p-4" [label]=" 'PAC.MENU.LOCAL_AGENT' | translate: {Default: 'Local Agent'} ">
-            <div>
-              {{'PAC.KEY_WORDS.STATUS' | translate: {Default: 'Status'} }}: {{ localStatus()?.icon }} {{localStatus()?.status | translate}}
-            </div>
-  
-            <div class="flex-1"></div>
-  
-            <div class="flex justify-start">
-              <div ngmButtonGroup displayDensity="compact">
-                <button mat-stroked-button displayDensity="compact" (click)="tryConnectLocalAgent()">
-                  {{ 'PAC.ACTIONS.Connect' | translate: {Default: 'Connect'} }}
-                </button>
-          
-                <button mat-stroked-button displayDensity="compact" ngmAppearance="dashed">
-                  {{'PAC.ACTIONS.DOWNLOAD_AGENT' | translate}}
-                </button>
+            <span
+              ><span>{{ 'PAC.KEY_WORDS.Complete' | translate: { Default: 'Complete' } }}:</span>
+              {{ serverAgent.completeSize() }}</span
+              >
+              <span
+                ><span>{{ 'PAC.KEY_WORDS.Request' | translate: { Default: 'Request' } }}:</span
+                >{{ serverAgent.bufferSize() }}</span
+                >
               </div>
-            </div>
-          </mat-tab>
-        }
-  
-        <mat-tab [label]=" 'PAC.MENU.Authentication' | translate: {Default: 'Authentication'} ">
-          <mat-list role="list">
-            @if (enableLocalAgent && localAgent) {
-              @for (item of localAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
-                <mat-list-item role="listitem">
-                  <span>{{item.value[0]}}</span>
-                  <button mat-icon-button matListItemMeta displayDensity="compact" ngmAppearance="danger"
-                    [matTooltip]=" 'PAC.MENU.STATUS_BAR.ClearAuthentication' | translate: {Default: 'Clear Authentication'} "
-                    (click)="deleteAuth(localAgent, item.key)"><mat-icon>close</mat-icon></button>
-                </mat-list-item>
-              }
-            }
-  
-            @for (item of serverAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
-              <mat-list-item role="listitem" >
-                <span>{{item.value[0]}}</span>
-                <button mat-icon-button matListItemMeta displayDensity="compact" ngmAppearance="danger"
-                  [matTooltip]=" 'PAC.MENU.STATUS_BAR.ClearAuthentication' | translate: {Default: 'Clear Authentication'} "
-                  (click)="deleteAuth(serverAgent, item.key)"><mat-icon>close</mat-icon></button>
-              </mat-list-item>
-            }
-          </mat-list>
-        </mat-tab>
-      </mat-tab-group>
-    </div>
-  </div>
-</ng-template>
+            </z-tab>
 
-<ng-template #wasmMenu>
-  <div cdkMenu class="cdk-menu__large">
-    <div class="pac-status-bar__local-agent w-60 h-60 px-4 flex flex-col" (click)="$event.stopPropagation()">
-      <h5 class="mb-2 text-lg font-bold tracking-tight">
-        {{ 'PAC.MENU.WASM_DB' | translate: {Default: 'WASM Database'} }}
-      </h5>
+            @if (enableLocalAgent) {
+              <z-tab bodyClass="p-4" [label]="'PAC.MENU.LOCAL_AGENT' | translate: { Default: 'Local Agent' }">
+                <div>
+                  {{ 'PAC.KEY_WORDS.STATUS' | translate: { Default: 'Status' } }}: {{ localStatus()?.icon }}
+                  {{ localStatus()?.status | translate }}
+                </div>
 
-      <div *ngIf="wasmStatus()" class="flex-1 flex flex-col overflow-auto">
-        {{'PAC.KEY_WORDS.STATUS' | translate: {Default: 'Status'} }}: {{wasmStatus().icon}} {{wasmStatus().status | translate}}
+                <div class="flex-1"></div>
+
+                <div class="flex justify-start">
+                  <div ngmButtonGroup displayDensity="compact">
+                    <button z-button zType="outline" displayDensity="compact" (click)="tryConnectLocalAgent()">
+                      {{ 'PAC.ACTIONS.Connect' | translate: { Default: 'Connect' } }}
+                    </button>
+
+                    <button z-button zType="outline" displayDensity="compact" ngmAppearance="dashed">
+                      {{ 'PAC.ACTIONS.DOWNLOAD_AGENT' | translate }}
+                    </button>
+                  </div>
+                </div>
+              </z-tab>
+            }
+
+            <z-tab [label]="'PAC.MENU.Authentication' | translate: { Default: 'Authentication' }">
+              <ul role="list" class="space-y-1">
+                @if (enableLocalAgent && localAgent) {
+                  @for (item of localAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
+                    <li
+                      role="listitem"
+                      class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
+                      >
+                      <span class="min-w-0 flex-1 truncate">{{ item.value[0] }}</span>
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        zShape="circle"
+                        displayDensity="compact"
+                        ngmAppearance="danger"
+                    [zTooltip]="
+                      'PAC.MENU.STATUS_BAR.ClearAuthentication' | translate: { Default: 'Clear Authentication' }
+                    "
+                        (click)="deleteAuth(localAgent, item.key)"
+                        >
+                        <z-icon zType="close"></z-icon>
+                      </button>
+                    </li>
+                  }
+                }
+
+                @for (item of serverAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
+                  <li
+                    role="listitem"
+                    class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
+                    >
+                    <span class="min-w-0 flex-1 truncate">{{ item.value[0] }}</span>
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      zShape="circle"
+                      displayDensity="compact"
+                      ngmAppearance="danger"
+                  [zTooltip]="
+                    'PAC.MENU.STATUS_BAR.ClearAuthentication' | translate: { Default: 'Clear Authentication' }
+                  "
+                      (click)="deleteAuth(serverAgent, item.key)"
+                      >
+                      <z-icon zType="close"></z-icon>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </z-tab>
+          </z-tab-group>
+        </div>
       </div>
-    </div>
-  </div>
-</ng-template>
+    </ng-template>
+
+    <ng-template #wasmMenu>
+      <div cdkMenu class="cdk-menu__large">
+        <div class="pac-status-bar__local-agent w-60 h-60 px-4 flex flex-col" (click)="$event.stopPropagation()">
+          <h5 class="mb-2 text-lg font-bold tracking-tight">
+            {{ 'PAC.MENU.WASM_DB' | translate: { Default: 'WASM Database' } }}
+          </h5>
+
+          @if (wasmStatus()) {
+            <div class="flex-1 flex flex-col overflow-auto">
+              {{ 'PAC.KEY_WORDS.STATUS' | translate: { Default: 'Status' } }}: {{ wasmStatus().icon }}
+              {{ wasmStatus().status | translate }}
+            </div>
+          }
+        </div>
+      </div>
+    </ng-template>

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { API_PREFIX } from '@metad/cloud/state'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { IEnvironment } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 

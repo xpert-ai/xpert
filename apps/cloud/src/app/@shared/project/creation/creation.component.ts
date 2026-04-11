@@ -1,16 +1,13 @@
 import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatListModule } from '@angular/material/list'
-import { SemanticModelServerService, Store } from '@metad/cloud/state'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { SemanticModelServerService, Store } from '@xpert-ai/cloud/state'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, ISemanticModel, ProjectAPIService } from 'apps/cloud/src/app/@core'
 import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
@@ -18,22 +15,7 @@ import { combineLatest, debounceTime, map, startWith } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    DragDropModule,
-    MatFormFieldModule,
-    MatButtonModule,
-    MatInputModule,
-    MatIconModule,
-    MatListModule,
-    DensityDirective,
-    ButtonGroupDirective,
-    NgmHighlightDirective,
-    InlineSearchComponent
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, CdkListboxModule, ...ZardFormImports, ZardButtonComponent, ZardInputDirective, ZardIconComponent, DensityDirective, ButtonGroupDirective, NgmHighlightDirective, InlineSearchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-project-creation',
   templateUrl: `./creation.component.html`,
@@ -74,13 +56,22 @@ export class ProjectCreationComponent {
     this.modelsService.getMy(),
     this.searchControl.valueChanges.pipe(startWith(''), debounceTime(300))
   ]).pipe(
-    map(([models, search]) =>
-      models.filter(
+    map(([models, search]) => {
+      const filteredModels = models.filter(
         (model) =>
           model.name.toLowerCase().includes(search.toLowerCase()) ||
           model.description?.toLowerCase().includes(search.toLowerCase())
       )
-    )
+      const selectedModels = this.models.value ?? []
+
+      selectedModels.forEach((selected) => {
+        if (!filteredModels.some((model) => this.compareWith(model, selected))) {
+          filteredModels.push(selected)
+        }
+      })
+
+      return filteredModels
+    })
   )
 
   readonly creating = signal(false)

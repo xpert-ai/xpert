@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -12,19 +12,26 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { ChatDashboardMessageType, TMessageContentCube, TMessageContentMembers } from '@metad/cloud/state'
-import { OverlayAnimation1 } from '@metad/core'
-import { attrModel, linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { CalculationProperty, DeepPartial, isCalculationProperty, isParameterProperty, ParameterProperty, Syntax } from '@metad/ocap-core'
-import { getSemanticModelKey } from '@metad/story/core'
+import { ChatDashboardMessageType, TMessageContentCube, TMessageContentMembers } from '@xpert-ai/cloud/state'
+import { OverlayAnimation1 } from '@xpert-ai/core'
+import { attrModel, linkedModel, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
+import {
+  CalculationProperty,
+  DeepPartial,
+  isCalculationProperty,
+  isParameterProperty,
+  ParameterProperty,
+  Syntax
+} from '@xpert-ai/ocap-core'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { ModelMemberEditComponent } from './edit/edit.component'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import { ModelCubeComponent } from '../cube/cube.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -32,7 +39,14 @@ import { ModelCubeComponent } from '../cube/cube.component'
   selector: 'xp-model-members',
   templateUrl: 'members.component.html',
   styleUrls: ['members.component.scss'],
-  imports: [CommonModule, FormsModule, DragDropModule, MatTooltipModule, TranslateModule, ModelCubeComponent, ModelMemberEditComponent],
+  imports: [
+    FormsModule,
+    DragDropModule,
+    ...ZardTooltipImports,
+    TranslateModule,
+    ModelCubeComponent,
+    ModelMemberEditComponent
+],
   host: {
     class: 'xp-model-members'
   },
@@ -45,7 +59,6 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
   readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
 
-
   // Inputs
   readonly data = input<TMessageContentMembers>()
 
@@ -54,7 +67,9 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
 
   readonly #modelId = computed(() => this.data()?.data?.modelId)
   readonly #cubeName = computed(() => this.data()?.data?.cubeName)
-  readonly cubeData = computed(() => ({type: ChatDashboardMessageType.Cube, data: this.data().data} as TMessageContentCube))
+  readonly cubeData = computed(
+    () => ({ type: ChatDashboardMessageType.Cube, data: this.data().data }) as TMessageContentCube
+  )
 
   readonly memberKey = signal<string>(null)
 
@@ -112,8 +127,7 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
         if (this.#modelId()) {
           this.modelId.set(this.#modelId())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -121,8 +135,7 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
         if (this.#cubeName()) {
           this.cubeName.set(this.#cubeName())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

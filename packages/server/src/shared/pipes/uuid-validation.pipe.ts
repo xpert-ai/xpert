@@ -6,7 +6,7 @@ import {
 	PipeTransform
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
-import { isEmpty } from '@metad/server-common';
+import { isEmpty } from '@xpert-ai/server-common';
 
 /**
  * UUID Validation Pipe

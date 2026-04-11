@@ -1,6 +1,6 @@
 {
-  "name": "@metad/ocap-sql",
-  "version": "3.8.4",
+  "name": "@xpert-ai/ocap-sql",
+  "version": "3.9.0-beta.1",
   "keywords": [
     "metad",
     "ocap",
@@ -14,11 +14,11 @@
     "url": "git+https://github.com/xpert-ai/xpert.git"
   },
   "peerDependencies": {
-    "@metad/ocap-core": ">=3.0.0",
+    "@xpert-ai/ocap-core": "workspace:*",
     "i18next": "^23.14.0",
     "rxjs": "~7.8.0"
   },
   "scripts": {
-    "docs": "yarn typedoc --out ./.docs"
+    "docs": "pnpm typedoc --out ./.docs"
   }
 }

@@ -1,9 +1,7 @@
-import { Component, ChangeDetectionStrategy, Type } from '@angular/core';
-import { FieldTypeConfig, FormlyFieldConfig } from '@ngx-formly/core';
-import { FieldType, FormlyFieldProps } from '@ngx-formly/material/form-field';
-import { MAT_INPUT_VALUE_ACCESSOR } from '@angular/material/input';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { EntitySchemaType } from '@metad/ocap-angular/entity';
+import { ChangeDetectionStrategy, Component, Type } from '@angular/core';
+import { EntitySchemaType } from '@xpert-ai/ocap-angular/entity';
+import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core';
 
 interface TextAreaProps extends FormlyFieldProps {
   autosize?: boolean;
@@ -18,15 +16,17 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
 
 @Component({
   selector: 'pac-formly-textarea',
+  standalone: false,
   template: `
-<label *ngIf="props?.label" class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{to.label}}</label>
+@if (props?.label) {
+  <label class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{to.label}}</label>
+}
 <textarea class="ngm-input-element"
-  matInput
+  z-input
   [id]="id"
   [readonly]="props.readonly"
-  [required]="required"
+  [required]="props.required"
   [formControl]="formControl"
-  [errorStateMatcher]="errorStateMatcher"
   [cols]="props.cols"
   [rows]="props.rows"
   [formlyAttributes]="field"
@@ -41,19 +41,16 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
   [cdkDropListData]="[]"
   [cdkDropListDisabled]="!props.dropEntity"
   (cdkDropListDropped)="drop($event)"
->
+  >
 </textarea>
-<mat-error class="text-xs h-4">
-  <ng-container *ngIf="formControl.invalid">
-    <span *ngFor="let item of formControl.errors | keyvalue">{{item.value.message}}</span>
-  </ng-container>
-</mat-error>
-  `,
-  providers: [
-    // fix for https://github.com/ngx-formly/ngx-formly/issues/1688
-    // rely on formControl value instead of elementRef which return empty value in Firefox.
-    { provide: MAT_INPUT_VALUE_ACCESSOR, useExisting: FormlyFieldTextAreaComponent },
-  ],
+<z-form-message zType="error" class="text-xs h-4">
+  @if (formControl.invalid) {
+    @for (item of formControl.errors | keyvalue; track item) {
+      <span>{{item.value.message}}</span>
+    }
+  }
+</z-form-message>
+`,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./textarea.type.scss'],
   host: {

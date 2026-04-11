@@ -4,23 +4,18 @@ import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatExpansionModule, MatExpansionPanel } from '@angular/material/expansion'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { injectOrganizationId } from '@metad/cloud/state'
-import { AiProviderRole, ICopilot } from '@metad/contracts'
-import { CapitalizePipe, DisappearAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { injectOrganizationId } from '@xpert-ai/cloud/state'
+import { AiProviderRole, ICopilot } from '@xpert-ai/contracts'
+import { CapitalizePipe, DisappearAnimations } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardAccordionImports, type ZardAccordionItemLike, ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { getErrorMessage, injectCopilots, injectCopilotServer, injectToastr } from 'apps/cloud/src/app/@core'
 import { CopilotAiProvidersComponent, CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { capitalize } from 'lodash-es'
 import { map, Observable, switchMap } from 'rxjs'
-import { PACCopilotService } from '../../../services'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
-
-
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-basic',
@@ -32,24 +27,22 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
-    MatExpansionModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
+    ...ZardAccordionImports,
+    ...ZardTooltipImports,
+    ZardButtonComponent,
     NgmDensityDirective,
     NgmSpinComponent,
     NgmI18nPipe,
     CapitalizePipe,
     CopilotProviderComponent,
-    CopilotFormComponent
+    CopilotFormComponent,
+    ZardSwitchComponent
   ],
-  animations: [
-    ...DisappearAnimations,
-  ]
+  animations: [...DisappearAnimations]
 })
 export class CopilotBasicComponent {
   eAiProviderRole = AiProviderRole
-  
-  readonly copilotService = inject(PACCopilotService)
+
   readonly copilotServer = injectCopilotServer()
   readonly #toastr = injectToastr()
   readonly organizationId = injectOrganizationId()
@@ -62,17 +55,15 @@ export class CopilotBasicComponent {
       map(({ items }) => items)
     )
   )
-  readonly primary = computed(() =>
-    this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)
-  )
+  readonly primary = computed(() => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary))
 
-  readonly copilots = computed(() =>
-    this.#copilots()?.filter((_) => _.role !== AiProviderRole.Primary)
-  )
+  readonly copilots = computed(() => this.#copilots()?.filter((_) => _.role !== AiProviderRole.Primary))
 
   // Free quota for organizations in tenant
   readonly quotaCopilots = computed(() => {
-    return this.organizationId() ? this.avaliableCopilots()?.filter((item) => !item.organizationId && item.modelProvider) : []
+    return this.organizationId()
+      ? this.avaliableCopilots()?.filter((item) => !item.organizationId && item.modelProvider)
+      : []
   })
 
   readonly providers = signal([
@@ -95,7 +86,7 @@ export class CopilotBasicComponent {
   // Edit
   readonly editingId = signal<string | null>(null)
   readonly name = model<string>('')
-  
+
   constructor() {
     this.copilotServer.refresh()
 
@@ -104,7 +95,7 @@ export class CopilotBasicComponent {
     })
   }
 
-  onToggle(copilot: ICopilot, role: AiProviderRole, current: boolean, expansion: MatExpansionPanel) {
+  onToggle(copilot: ICopilot, role: AiProviderRole, current: boolean, expansion: ZardAccordionItemLike) {
     let updateObs: Observable<unknown>
     if (copilot) {
       updateObs = this.copilotServer.update(copilot.id, { enabled: !current })
@@ -128,31 +119,32 @@ export class CopilotBasicComponent {
 
   /**
    * Add AI Model Provider for role.
-   * 
+   *
    * @param role Provider role
    */
   addProvider(role: AiProviderRole) {
     this.loading.set(true)
-    this.copilotServer.create({ role, enabled: true })
-        .pipe(
-          switchMap((copilot) => {
-            return this.#dialog.open<string>(CopilotAiProvidersComponent, {
-              data: {
-                copilot
-              }
-            }).closed
-          })
-        )
-    .subscribe({
-      next: (copilotProvider) => {
-        this.loading.set(false)
-        this.copilotServer.refresh()
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+    this.copilotServer
+      .create({ role, enabled: true })
+      .pipe(
+        switchMap((copilot) => {
+          return this.#dialog.open<string>(CopilotAiProvidersComponent, {
+            data: {
+              copilot
+            }
+          }).closed
+        })
+      )
+      .subscribe({
+        next: (copilotProvider) => {
+          this.loading.set(false)
+          this.copilotServer.refresh()
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 
   deleteCopilot(copilot: ICopilot) {
@@ -170,7 +162,7 @@ export class CopilotBasicComponent {
   }
 
   editName(event: Event, copilot: ICopilot) {
-    event.stopPropagation();
+    event.stopPropagation()
     this.editingId.set(copilot.id)
     this.name.set(copilot.name || '')
   }
@@ -192,7 +184,7 @@ export class CopilotBasicComponent {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
+  handleEscapeKey(event: Event) {
     if (this.editingId()) {
       this.editingId.set(null)
       this.name.set('')

@@ -1,6 +1,8 @@
-<input [(ngModel)]="model" class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
-    [disabled]="disabled()"
-    [ngClass]="{error: nameError()}"
-    [matTooltip]="'PAC.Xpert.NameExistedOrInvalid' | translate: { Default: 'Name existed or invalid, use a-zA-Z0-9_-' }"
-    [matTooltipDisabled]="!nameError()"
->
+<input
+  [(ngModel)]="model"
+  class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
+  [disabled]="disabled()"
+  [ngClass]="{ error: nameError() }"
+  [zTooltip]="'PAC.Xpert.NameExistedOrInvalid' | translate: { Default: 'Name existed or invalid, use a-zA-Z0-9_-' }"
+  [zDisabled]="!nameError()"
+/>

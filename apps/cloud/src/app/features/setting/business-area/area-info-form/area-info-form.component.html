@@ -1,11 +1,12 @@
 <form class="py-4" [formGroup]="form">
-  <ngm-input formControlName="name" label="{{ 'PAC.BUSINESS_AREA.BASIC_INFO_FORM.Name' | translate: {Default: 'Name'} }}"></ngm-input>
+  <z-form-field>
+    <z-form-label>{{ 'PAC.BUSINESS_AREA.BASIC_INFO_FORM.Name' | translate: {Default: 'Name'} }}</z-form-label>
+    <input z-input formControlName="name" />
+  </z-form-field>
 </form>
 
 <div class="flex justify-end">
-  <button mat-flat-button color="primary" displayDensity="cosy"
-    [disabled]="form.pristine || form.invalid"
-    (click)="save()">
+  <button z-button zType="default" displayDensity="cosy" [disabled]="form.pristine || form.invalid" (click)="save()">
     {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
   </button>
 </div>

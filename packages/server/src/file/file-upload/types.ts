@@ -1,6 +1,6 @@
-import { IFileAsset, IFileAssetDestination, IFileAssetSource, IStorageFile, IUploadFileTarget } from '@metad/contracts'
+import { IFileAsset, IFileAssetDestination, IFileAssetSource, IStorageFile, IUploadFileTarget } from '@xpert-ai/contracts'
 import { TResolvedFileUploadSource } from '@xpert-ai/plugin-sdk'
-import { UploadedFile } from '@metad/contracts'
+import { UploadedFile } from '@xpert-ai/contracts'
 
 export type TUploadFileSource =
 	| {

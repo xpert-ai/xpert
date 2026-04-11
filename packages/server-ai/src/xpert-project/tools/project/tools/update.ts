@@ -1,6 +1,6 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
-import { ChatMessageEventTypeEnum, TAgentRunnableConfigurable } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../../../services'
 import { ProjectToolEnum } from '../project'

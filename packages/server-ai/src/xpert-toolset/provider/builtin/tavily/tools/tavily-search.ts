@@ -2,7 +2,7 @@ import { z } from "zod/v3";
 import { CallbackManagerForToolRun } from "@langchain/core/callbacks/manager";
 import { StructuredTool, ToolParams, ToolRunnableConfig } from "@langchain/core/tools";
 import { InferInteropZodOutput } from "@langchain/core/utils/types";
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig } from "@xpert-ai/contracts";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
 import { t } from 'i18next'
 import { TavilySearchAPIWrapper, type TavilySearchResponse } from "./utils";

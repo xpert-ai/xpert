@@ -17,15 +17,13 @@
   </div>
 
   <div>
-    <mat-form-field *ngIf="invitationExpiryOptions.length > 0">
-      <mat-label>{{
-        'FORM.LABELS.INVITATION_EXPIRATION' | translate: { Default: 'Invitation Expiry Period' }
-      }}</mat-label>
-      <mat-select formControlName="invitationExpirationPeriod">
-        <mat-option *ngFor="let option of invitationExpiryOptions" [value]="option?.value">{{
-          option?.label
-        }}</mat-option>
-      </mat-select>
-    </mat-form-field>
+    @if (invitationExpiryOptions.length > 0) {
+      <z-form-field>
+        <z-form-label>{{
+          'FORM.LABELS.INVITATION_EXPIRATION' | translate: { Default: 'Invitation Expiry Period' }
+        }}</z-form-label>
+        <ngm-select formControlName="invitationExpirationPeriod" [selectOptions]="invitationExpiryOptions" />
+      </z-form-field>
+    }
   </div>
 </form>

@@ -1,3 +1,4 @@
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   display: flex;
   flex-direction: column;
@@ -8,10 +9,6 @@
     flex-direction: column;
     flex: 1;
     max-width: 100%;
-
-    .mat-selection-list {
-      overflow: auto;
-    }
   }
 }
 
@@ -19,7 +16,7 @@
   max-height: 100%;
 }
 
-.mat-chip.mat-standard-chip {
+z-chip-option {
   cursor: pointer;
 }
 
@@ -55,25 +52,13 @@
 }
 
 :host::ng-deep {
-  .mdc-evolution-chip-set {
-    .mdc-evolution-chip-set__chips {
-      @apply content-start;
-    }
+  z-chip-listbox {
+    align-content: flex-start;
   }
 
   .ngm-parameter {
-    .mat-slider-thumb-label-showing {
-      &.mat-slider-horizontal {
-        margin-top: 1rem;
-        margin-left: 1rem;
-        margin-right: 1rem;
-      }
-
-      &.mat-slider-vertical {
-        margin-left: 1rem;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-      }
+    z-slider {
+      margin: 1rem;
     }
   }
 }

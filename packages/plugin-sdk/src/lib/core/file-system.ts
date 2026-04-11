@@ -54,8 +54,7 @@ export class XpFileSystem {
    * @returns Web URL of file
    */
   fullUrl(filePath: string): string {
-    const url = new URL(filePath, this.baseUrl)
-    return url.href
+    return this.buildUrl(filePath)
   }
 
   /**
@@ -77,8 +76,7 @@ export class XpFileSystem {
     this.ensureInScope(fullPath)
     await fsPromises.mkdir(path.dirname(fullPath), { recursive: true })
     await fsPromises.writeFile(fullPath, content)
-    const url = new URL(filePath, this.baseUrl)
-    return url.href
+    return this.buildUrl(filePath)
   }
 
   /**
@@ -109,5 +107,30 @@ export class XpFileSystem {
     } catch {
       return false
     }
+  }
+
+  // Keep URL generation tolerant of protocol-relative base URLs like "//localhost:3000",
+  // which are used by the current dev config and would otherwise make `new URL()` throw.
+  private buildUrl(filePath: string): string {
+    if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(filePath) || filePath.startsWith('//')) {
+      return filePath
+    }
+
+    const normalizedPath = this.encodePath(`${filePath}`.replace(/^\/+/, ''))
+    const normalizedBaseUrl = `${this.baseUrl}`.replace(/\/+$/, '')
+
+    if (normalizedBaseUrl.startsWith('//')) {
+      return `${normalizedBaseUrl}/${normalizedPath}`
+    }
+
+    const url = new URL(normalizedPath, `${normalizedBaseUrl}/`)
+    return url.href
+  }
+
+  private encodePath(filePath: string): string {
+    return filePath
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/')
   }
 }

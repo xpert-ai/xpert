@@ -1,8 +1,8 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { cloneDeep } from '@metad/ocap-core'
+import { cloneDeep } from '@xpert-ai/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -16,7 +16,7 @@ import { DesignerSchema, STORY_DESIGNER_SCHEMA } from '../types'
   selector: 'ngm-schema-form',
   templateUrl: 'schema-form.component.html',
   styleUrls: ['schema-form.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule],
+  imports: [FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

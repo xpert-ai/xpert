@@ -9,8 +9,8 @@ import { RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
 import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
 import { Command, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
 import { END, Send } from "@langchain/langgraph";
-import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from "@metad/contracts";
-import { getErrorMessage } from "@metad/server-common";
+import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from "@xpert-ai/contracts";
+import { getErrorMessage } from "@xpert-ai/server-common";
 import { RunnableCallable } from "./utils";
 import { setContextVariable } from "@langchain/core/context";
 

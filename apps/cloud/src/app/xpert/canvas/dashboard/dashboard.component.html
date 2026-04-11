@@ -1,13 +1,16 @@
 <div class="flex-1 min-w-0 p-4 flex flex-col h-full">
   <div class="flex items-center gap-2 w-full">
-    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
-      [matTooltip]="'PAC.Chat.ExpandCanvas' | translate: {Default: 'Expand canvas'}"
+    <button
+      class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
+      [zTooltip]="'PAC.Chat.ExpandCanvas' | translate: { Default: 'Expand canvas' }"
       (click)="toggleExpand()"
     >
       <i class="ri-expand-left-line transition-transform" [class.rotate-180]="expand()"></i>
     </button>
 
-    <div class="text-text-primary text-lg font-semibold whitespace-nowrap">{{'PAC.Chat.WhosDashboard' | translate: {value: 'Xpert', Default: "Xpert's Dashboard"} }}</div>
+    <div class="text-text-primary text-lg font-semibold whitespace-nowrap">
+      {{ 'PAC.Chat.WhosDashboard' | translate: { value: 'Xpert', Default: "Xpert's Dashboard" } }}
+    </div>
 
     <!-- <div class="flex flex-row flex-wrap gap-1.5 items-center">
       <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap disabled:pointer-events-none disabled:opacity-45 shrink-0 outline-none transition cursor-pointer text-[12px] px-[10px] py-[6px] rounded-full h-[32px] font-medium shadow-none border-0
@@ -21,8 +24,9 @@
 
     <div class="flex-1"></div>
 
-    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
-      [matTooltip]="'PAC.Chat.CloseCanvas' | translate: {Default: 'Close canvas'}"
+    <button
+      class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
+      [zTooltip]="'PAC.Chat.CloseCanvas' | translate: { Default: 'Close canvas' }"
       (click)="close()"
     >
       <i class="ri-collapse-diagonal-line"></i>
@@ -35,22 +39,40 @@
         @case ('component') {
           @switch (message.data.type) {
             @case (eChatDashboardMessageType.Cube) {
-              <xp-model-cube class="w-full grow p-1 rounded-2xl overflow-hidden hover:bg-neutral-50" [data]="message.data"/>
+              <xp-model-cube
+                class="w-full grow p-1 rounded-2xl overflow-hidden hover:bg-neutral-50"
+                [data]="message.data"
+              />
             }
             @case (eChatDashboardMessageType.VirtualCube) {
-              <xp-model-virtual-cube class="w-full grow p-1 rounded-2xl overflow-hidden hover:bg-neutral-50" [data]="message.data"/>
+              <xp-model-virtual-cube
+                class="w-full grow p-1 rounded-2xl overflow-hidden hover:bg-neutral-50"
+                [data]="message.data"
+              />
             }
             @case (eChatDashboardMessageType.Members) {
-              <xp-model-members class="w-full grow p-1 rounded-2xl overflow-hidden hover:bg-neutral-50" [data]="message.data"/>
+              <xp-model-members
+                class="w-full grow p-1 rounded-2xl overflow-hidden hover:bg-neutral-50"
+                [data]="message.data"
+              />
             }
             @case (eChatDashboardMessageType.ListIndicators) {
-              <xp-list-indicators class="w-full grow rounded-2xl overflow-hidden hover:bg-neutral-50" [data]="message.data" (close)="close()" />
+              <xp-list-indicators
+                class="w-full grow rounded-2xl overflow-hidden hover:bg-neutral-50"
+                [data]="message.data"
+                (close)="close()"
+              />
             }
             @case (eChatDashboardMessageType.Indicator) {
-              <xp-indicator-form class="w-full grow rounded-2xl overflow-hidden hover:bg-neutral-50" [data]="message.data" (close)="close()" />
+              <xp-indicator-form
+                class="w-full grow rounded-2xl overflow-hidden hover:bg-neutral-50"
+                [data]="message.data"
+                (close)="close()"
+              />
             }
             @default {
-              <chat-message-dashboard class="w-full grow p-2 rounded-2xl hover:bg-neutral-50"
+              <chat-message-dashboard
+                class="w-full grow p-2 rounded-2xl hover:bg-neutral-50"
                 [inline]="false"
                 [messageId]="message.id"
                 [message]="message"

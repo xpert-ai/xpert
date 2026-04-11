@@ -2,12 +2,9 @@ import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, forwardRef, inject, input, ViewContainerRef } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmSelectModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
+
+import { NgmSelectModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   getEntityMeasures,
@@ -17,21 +14,21 @@ import {
   isIndicatorMeasureProperty,
   nonNullable,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { orderBy } from 'lodash-es'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs'
 import { NgmEntityPropertyComponent } from '../property/property.component'
-
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardTooltipImports,
     NgmSelectModule,
     NgmEntityPropertyComponent
   ],
@@ -53,7 +50,7 @@ import { NgmEntityPropertyComponent } from '../property/property.component'
 export class NgmMeasureSelectComponent implements ControlValueAccessor {
   private readonly dsCoreService = inject(NgmDSCoreService)
   private readonly coreService = inject(NgmOcapCoreService)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
   // Inputs

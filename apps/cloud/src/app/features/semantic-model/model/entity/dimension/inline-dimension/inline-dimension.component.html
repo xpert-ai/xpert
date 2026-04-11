@@ -1,14 +1,9 @@
-<mat-tree
-  [dataSource]="dataSource"
-  [treeControl]="treeControl"
-  class="ngm-tree_selection"
-  id="pac-entity-dimension"
->
-  <mat-tree-node
-    *matTreeNodeDef="let node"
-    matTreeNodeToggle
-    matTreeNodePaddingIndent="20"
-    matTreeNodePadding
+<z-tree [dataSource]="dataSource" [treeControl]="treeControl" class="ngm-tree_selection" id="pac-entity-dimension">
+  <div
+    *zTreeNodeDef="let node"
+    zTreeNodeToggle
+    zTreeNodePaddingIndent="20"
+    zTreeNodePadding
     class="ngm-list-item group/item relative"
     [class.bg-orange-100]="!node.name && node.role !== eAggregationRole.hierarchy"
     [ngClass]="isSelected(node) ? 'selected' : ''"
@@ -16,80 +11,113 @@
     cdkDrag
     [cdkDragData]="node"
   >
-    <button mat-icon-button displayDensity="cosy" disabled></button>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" disabled></button>
     @if (node.raw.visible === false || node.raw.semantics?.hidden) {
-      <i class="ri-eye-off-line mr-0.5 text-text-tertiary"
-        [matTooltip]="'PAC.MODEL.InvisibleToLLM' | translate: {Default: 'Invisible to LLM'}"
-        matTooltipPosition="above"></i>
-    }
-
-    <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
-
-    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
-      @if (!readonly() && (node.role === eAggregationRole.dimension || node.role === eAggregationRole.hierarchy)) {
-        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-          [matTooltip]="node.role === eAggregationRole.dimension ? ('PAC.MODEL.AddHierarchy' | translate: {Default: 'Add hierarchy'})
-            : ('PAC.MODEL.AddLevel' | translate: {Default: 'Add level'})"
-          matTooltipPosition="above"
-          (click)="addNewItem($event, node)">
-          <i class="ri-add-circle-line"></i>
-        </button>
-      }
-
-      <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-destructive hover:bg-hover-bg"
-        [matTooltip]="node.role === eAggregationRole.dimension ? ('PAC.MODEL.RemoveDimension' | translate: {Default: 'Remove dimension'})
-          : node.role === eAggregationRole.hierarchy ? ('PAC.MODEL.RemoveHierarchy' | translate: {Default: 'Remove hierarchy'})
-          : ('PAC.MODEL.RemoveLevel' | translate: {Default: 'Remove level'})"
-        matTooltipPosition="above"
-        (click)="onDelete($event, node)">
-        <i class="ri-delete-bin-line"></i>
-      </button>
-    </div>
-  </mat-tree-node>
-
-  <mat-tree-node
-    *matTreeNodeDef="let node; when: hasChild"
-    matTreeNodePaddingIndent="20"
-    matTreeNodePadding
-    class="ngm-list-item group/item relative"
-    [class.bg-orange-100]="!node.name && node.role !== eAggregationRole.hierarchy"
-    [ngClass]="isSelected(node) ? 'selected' : ''"
-    (click)="onSelect(node)"
-    cdkDrag
-    [cdkDragData]="node"
-  >
-    <button mat-icon-button matTreeNodeToggle displayDensity="cosy">
-      <mat-icon class="mat-icon-rtl-mirror" fontSet="material-icons-round">
-        {{ treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right' }}
-      </mat-icon>
-    </button>
-    @if (node.raw.visible === false || node.raw.semantics?.hidden) {
-      <i class="ri-eye-off-line mr-0.5 text-text-tertiary"
-        [matTooltip]="'PAC.MODEL.InvisibleToLLM' | translate: {Default: 'Invisible to LLM'}"
-        matTooltipPosition="above"
+      <i
+        class="ri-eye-off-line mr-0.5 text-text-tertiary"
+        [zTooltip]="'PAC.MODEL.InvisibleToLLM' | translate: { Default: 'Invisible to LLM' }"
+        zPosition="top"
       ></i>
     }
-    
+
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
-      @if (!readonly()) {
-        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-          [matTooltip]="node.role === eAggregationRole.dimension ? ('PAC.MODEL.AddHierarchy' | translate: {Default: 'Add hierarchy'})
-            : ('PAC.MODEL.AddLevel' | translate: {Default: 'Add level'})"
-          matTooltipPosition="above"
-          (click)="addNewItem($event, node)">
+    <div
+      class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg"
+    >
+      @if (!readonly() && (node.role === eAggregationRole.dimension || node.role === eAggregationRole.hierarchy)) {
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [zTooltip]="
+            node.role === eAggregationRole.dimension
+              ? ('PAC.MODEL.AddHierarchy' | translate: { Default: 'Add hierarchy' })
+              : ('PAC.MODEL.AddLevel' | translate: { Default: 'Add level' })
+          "
+          zPosition="top"
+          (click)="addNewItem($event, node)"
+        >
           <i class="ri-add-circle-line"></i>
         </button>
       }
 
-      <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-destructive hover:bg-hover-bg"
-        [matTooltip]="node.role === eAggregationRole.dimension ? ('PAC.MODEL.RemoveDimension' | translate: {Default: 'Remove dimension'})
-          : ('PAC.MODEL.RemoveHierarhcy' | translate: {Default: 'Remove hierarchy'})"
-        matTooltipPosition="above"
-        (click)="onDelete($event, node)">
+      <button
+        type="button"
+        class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-destructive hover:bg-hover-bg"
+        [zTooltip]="
+          node.role === eAggregationRole.dimension
+            ? ('PAC.MODEL.RemoveDimension' | translate: { Default: 'Remove dimension' })
+            : node.role === eAggregationRole.hierarchy
+              ? ('PAC.MODEL.RemoveHierarchy' | translate: { Default: 'Remove hierarchy' })
+              : ('PAC.MODEL.RemoveLevel' | translate: { Default: 'Remove level' })
+        "
+        zPosition="top"
+        (click)="onDelete($event, node)"
+      >
         <i class="ri-delete-bin-line"></i>
       </button>
     </div>
-  </mat-tree-node>
-</mat-tree>
+  </div>
+
+  <div
+    *zTreeNodeDef="let node; when: hasChild"
+    zTreeNodePaddingIndent="20"
+    zTreeNodePadding
+    class="ngm-list-item group/item relative"
+    [class.bg-orange-100]="!node.name && node.role !== eAggregationRole.hierarchy"
+    [ngClass]="isSelected(node) ? 'selected' : ''"
+    (click)="onSelect(node)"
+    cdkDrag
+    [cdkDragData]="node"
+  >
+    <button z-button zType="ghost" zSize="icon" zShape="circle" zTreeNodeToggle displayDensity="cosy">
+      <z-icon
+        class="z-icon-rtl-mirror"
+        [zType]="treeControl.isExpanded(node) ? 'chevron-down' : 'chevron-right'"
+      ></z-icon>
+    </button>
+    @if (node.raw.visible === false || node.raw.semantics?.hidden) {
+      <i
+        class="ri-eye-off-line mr-0.5 text-text-tertiary"
+        [zTooltip]="'PAC.MODEL.InvisibleToLLM' | translate: { Default: 'Invisible to LLM' }"
+        zPosition="top"
+      ></i>
+    }
+
+    <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
+
+    <div
+      class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg"
+    >
+      @if (!readonly()) {
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [zTooltip]="
+            node.role === eAggregationRole.dimension
+              ? ('PAC.MODEL.AddHierarchy' | translate: { Default: 'Add hierarchy' })
+              : ('PAC.MODEL.AddLevel' | translate: { Default: 'Add level' })
+          "
+          zPosition="top"
+          (click)="addNewItem($event, node)"
+        >
+          <i class="ri-add-circle-line"></i>
+        </button>
+      }
+
+      <button
+        type="button"
+        class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-destructive hover:bg-hover-bg"
+        [zTooltip]="
+          node.role === eAggregationRole.dimension
+            ? ('PAC.MODEL.RemoveDimension' | translate: { Default: 'Remove dimension' })
+            : ('PAC.MODEL.RemoveHierarhcy' | translate: { Default: 'Remove hierarchy' })
+        "
+        zPosition="top"
+        (click)="onDelete($event, node)"
+      >
+        <i class="ri-delete-bin-line"></i>
+      </button>
+    </div>
+  </div>
+</z-tree>

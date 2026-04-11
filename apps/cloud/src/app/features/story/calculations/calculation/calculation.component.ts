@@ -1,12 +1,10 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, DestroyRef, computed, effect, inject } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialogModule } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
+
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { CalculationProperty } from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
+import { CalculationProperty } from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -14,19 +12,18 @@ import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
 import { StoryCalculationsComponent } from '../calculations.component'
+import { ZardButtonComponent, ZardDialogModule, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatIconModule,
+    ZardDialogModule,
+    ZardButtonComponent,
+    ZardIconComponent,
     TranslateModule,
-
     NgmCalculationEditorComponent
-  ],
+],
   selector: 'pac-story-calculation',
   templateUrl: 'calculation.component.html',
   styleUrls: ['calculation.component.scss'],
@@ -78,8 +75,7 @@ export class StoryCalculationComponent {
     effect(
       () => {
         this.calculationsComponent.property.set(this.property())
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -87,8 +83,7 @@ export class StoryCalculationComponent {
         if (this.dataSettings()) {
           this.calculationsComponent.activeEntity(this.dataSettings().dataSource, this.dataSettings().entitySet)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     this.destroyRef.onDestroy(() => {

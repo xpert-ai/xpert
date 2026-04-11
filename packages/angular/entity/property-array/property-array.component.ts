@@ -1,23 +1,17 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, HostBinding, Input, forwardRef, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import {
-  AbstractControl,
-  ControlValueAccessor,
-  FormBuilder,
-  NG_VALUE_ACCESSOR,
-  ReactiveFormsModule
-} from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { DataSettings, Dimension, EntityType, Measure, isEmpty } from '@metad/ocap-core'
+import { AbstractControl, ControlValueAccessor, FormBuilder, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
+
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, Dimension, EntityType, Measure, isEmpty } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter } from 'rxjs/operators'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
 import { PropertyCapacity } from '../types'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 /**
  * The component `PropertySelect` array.
@@ -37,15 +31,13 @@ import { PropertyCapacity } from '../types'
     }
   ],
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatIconModule,
-    MatButtonModule,
+    ZardIconComponent,
+    ZardButtonComponent,
     TranslateModule,
     NgmCommonModule,
-
     NgmPropertySelectComponent
-  ]
+]
 })
 export class NgmPropertyArrayComponent implements ControlValueAccessor {
   private readonly formBuilder = inject(FormBuilder)

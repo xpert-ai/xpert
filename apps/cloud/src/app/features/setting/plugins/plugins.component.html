@@ -1,7 +1,9 @@
 <div class="flex justify-between items-center px-8 py-4">
   <div class="flex justify-between items-center">
     <div class="pac-page-title mr-2">{{ 'PAC.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
-    <div class="relative inline-flex items-center justify-center gap-1 rounded-[10px] h-10 bg-neutral-100 p-0.5">
+    <div
+      class="relative inline-flex items-center justify-center gap-1 rounded-[10px] h-10 bg-components-input-bg-normal p-0.5"
+    >
       <div
         id="tab-0"
         class="tab relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
@@ -90,211 +92,360 @@
 
   <div class="flex grow flex-wrap content-start items-start justify-center gap-2 self-stretch overflow-y-auto px-12">
     <div class="w-full">
-      <div class="pb-3">
-        <div class="grid grid-cols-2 gap-3">
-          @for (plugin of filteredPlugins(); track plugin.__trackId) {
-            <div
-              class="relative overflow-hidden rounded-xl border-[1.5px] border-background-section-burn p-1 bg-gray-100"
-            >
-              <div
-                class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
-              >
-                <div class="absolute right-0 top-0 flex pl-[13px]">
-                  <svg
-                    width="13"
-                    height="18"
-                    viewBox="0 0 13 20"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="-mr-[1px] text-gray-100"
-                  >
-                    <path
-                      id="Shape"
-                      d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
-                      fill="currentColor"
-                    ></path>
-                  </svg>
-                  <div
-                    class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary"
-                  >
-                    {{ 'PAC.Plugin.Category_' + plugin.meta.category | translate: { Default: plugin.meta.category } }}
-                  </div>
-                </div>
-                <div class="flex">
-                  <xp-icon
-                    [icon]="plugin.meta.icon"
-                    size="24"
-                    class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-components-panel-border-subtle"
-                  />
-                  <div class="ml-3 w-0 grow">
-                    <div class="flex h-5 items-center">
-                      <div
-                        class="system-md-semibold truncate text-text-primary"
-                        [title]="plugin.meta.displayName"
-                        [ngmHighlight]="searchText()"
-                        [content]="plugin.meta.displayName"
-                      >
-                        {{ plugin.meta.displayName }}
-                      </div>
-                      <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
-                      <div
-                        class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
-                        [class.text-text-warning]="plugin.hasUpdate"
-                        [matTooltip]="
-                          ('PAC.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
-                          ': ' +
-                          (plugin.latestVersion || '-')
-                        "
-                        matTooltipPosition="above"
-                        [matTooltipDisabled]="!plugin.hasUpdate"
-                      >
-                        {{ plugin.meta.version || '-' }}
-                      </div>
-                    </div>
-                    <div class="flex items-center justify-between">
-                      <div class="min-w-0 grow">
-                        <div
-                          class="text-sm text-text-tertiary font-body truncate"
-                          [title]="plugin.meta.description"
-                          [ngmHighlight]="searchText()"
-                          [content]="plugin.meta.description"
-                        >
-                          {{ plugin.meta.description }}
-                        </div>
-                        @if (plugin.configurationStatus === 'invalid') {
-                          <div
-                            class="mt-2 flex items-center gap-1 text-xs text-text-warning"
-                            [matTooltip]="
-                              plugin.configurationError ||
-                              ('PAC.Plugin.RequiresConfiguration'
-                                | translate: { Default: 'This plugin needs configuration before it can be used.' })
-                            "
-                            matTooltipPosition="above"
-                          >
-                            <i class="ri-alert-line"></i>
-                            <span>
-                              {{
-                                'PAC.Plugin.RequiresConfiguration'
-                                  | translate: { Default: 'This plugin needs configuration before it can be used.' }
-                              }}
-                            </span>
-                          </div>
-                        }
-                      </div>
-                      <div class="flex space-x-1">
-                        @if (plugin.isGlobal) {
-                          <div
-                            class="w-7 h-7 flex justify-center items-center"
-                            [matTooltip]="
-                              'PAC.Plugin.GlobalPlugin'
-                                | translate: { Default: 'This is a global plugin available to all organizations' }
-                            "
-                            matTooltipPosition="above"
-                          >
-                            <i class="ri-global-line text-text-tertiary"></i>
-                          </div>
-                        }
-                        @if (plugin.canConfigure && plugin.configSchema) {
-                          <button
-                            type="button"
-                            class="action-btn action-btn-m hover:bg-gray-100 hover:text-text-primary flex items-center justify-center"
-                            [class.text-text-warning]="plugin.configurationStatus === 'invalid'"
-                            [class.text-text-tertiary]="plugin.configurationStatus !== 'invalid'"
-                            [matTooltip]="
-                              'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
-                            "
-                            matTooltipPosition="above"
-                            (click)="configure(plugin)"
-                          >
-                            <i class="ri-settings-4-line"></i>
-                          </button>
-                        }
-                        @if (plugin.canUpdate && plugin.hasUpdate) {
-                          <button
-                            type="button"
-                            class="action-btn action-btn-m text-text-tertiary hover:bg-gray-100 hover:text-text-primary flex items-center justify-center"
-                            [matTooltip]="
-                              'PAC.Plugin.UpdatePlugin'
-                                | translate: { Default: 'Update this plugin to the latest version' }
-                            "
-                            matTooltipPosition="above"
-                            [disabled]="updating() === plugin.name"
-                            (click)="update(plugin)"
-                          >
-                            <i class="ri-refresh-line"></i>
-                          </button>
-                        }
-                        @if (!plugin.isGlobal) {
-                          <button
-                            type="button"
-                            class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
-                            [matTooltip]="
-                              'PAC.Plugin.RemovePlugin'
-                                | translate: { Default: 'Remove this plugin from your organization' }
-                            "
-                            matTooltipPosition="above"
-                            (click)="uninstall(plugin)"
-                          >
-                            <i class="ri-delete-bin-line"></i>
-                          </button>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="mb-1 mt-2 flex h-4 items-center gap-x-2 px-2">
-                <div class="flex grow items-center overflow-hidden">
-                  <div class="flex h-4 items-center space-x-0.5">
-                    <span class="system-xs-regular shrink-0 text-text-tertiary">{{ plugin.meta.author }}</span>
-                    <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
-                    <a
-                      class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono hover:underline hover:text-primary-500"
-                      [href]="plugin.meta.homepage || 'https://www.npmjs.com/package/' + plugin.meta.name"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {{ plugin.meta.name }}
-                    </a>
-                  </div>
-                </div>
-                <div class="flex shrink-0 items-center">
-                  <div class="flex w-full items-center gap-1 overflow-hidden text-text-tertiary">
-                    @for (keyword of plugin.meta.keywords; track keyword) {
-                      <div
-                        class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-gray-50 px-[5px] py-[1px] hover:bg-gray-100"
-                        [ngClass]="{ 'text-primary-500': keywords().includes(keyword) }"
-                        (click)="toggleKeyword(keyword)"
-                      >
-                        <div class="text-xs font-medium uppercase font-body text-nowrap"># {{ keyword }}</div>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </div>
-
-              @if (removing() === plugin.name || updating() === plugin.name) {
-                <ngm-spin class="absolute inset-0 z-10 backdrop-blur-sm bg-white/10" />
-              }
-            </div>
-          }
+      @if (pluginsLoading()) {
+        <div
+          class="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-6 py-10 text-center"
+        >
+          <ngm-spin />
+          <div class="system-md-semibold text-text-primary">
+            {{ 'PAC.Plugin.LoadingPlugins' | translate: { Default: 'Loading plugins...' } }}
+          </div>
+          <div class="max-w-md text-sm text-text-tertiary">
+            {{
+              'PAC.Plugin.LoadingPluginsHelp'
+                | translate: { Default: 'Installed plugins and health information are being loaded.' }
+            }}
+          </div>
         </div>
-      </div>
+      } @else if (pluginsError()) {
+        <div
+          class="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-6 py-10 text-center"
+        >
+          <i class="ri-error-warning-line text-2xl text-text-destructive"></i>
+          <div class="system-md-semibold text-text-primary">
+            {{ 'PAC.Plugin.LoadPluginsFailed' | translate: { Default: 'Failed to load plugins' } }}
+          </div>
+          <div class="max-w-2xl break-words text-sm text-text-tertiary max-h-16 overflow-auto">
+            {{ pluginsError() }}
+          </div>
+        </div>
+      } @else if (!filteredPlugins().length) {
+        <div
+          class="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-6 py-10 text-center"
+        >
+          <i class="ri-inbox-line text-2xl text-text-tertiary"></i>
+          <div class="system-md-semibold text-text-primary">
+            {{ 'PAC.Plugin.NoPluginsFound' | translate: { Default: 'No plugins found' } }}
+          </div>
+          <div class="max-w-md text-sm text-text-tertiary">
+            {{
+              'PAC.Plugin.NoPluginsFoundHelp'
+                | translate: { Default: 'Try adjusting the search, category, or keyword filters.' }
+            }}
+          </div>
+        </div>
+      } @else {
+        <div class="pb-3">
+          <div class="grid grid-cols-2 gap-3">
+            @for (plugin of filteredPlugins(); track plugin.__trackId) {
+              <div
+                class="relative overflow-hidden rounded-xl border-[1.5px] border-(--border) p-1 bg-components-input-bg-normal"
+              >
+                <div
+                  class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
+                  class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
+                >
+                  @if (plugin.loadStatus === 'failed') {
+                    <div class="absolute right-0 top-0 flex pl-[13px]">
+                      <svg
+                        width="13"
+                        height="18"
+                        viewBox="0 0 13 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="-mr-[1px] text-components-input-bg-normal"
+                      >
+                        <path
+                          id="Shape"
+                          d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
+                          fill="currentColor"
+                        ></path>
+                      </svg>
+                      <div
+                        class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-components-input-bg-normal pr-2 leading-5 text-text-destructive"
+                      >
+                        {{ 'PAC.Plugin.LoadFailed' | translate: { Default: 'Load failed' } }}
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="absolute right-0 top-0 flex pl-[13px]">
+                      <svg
+                        width="13"
+                        height="18"
+                        viewBox="0 0 13 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="-mr-[1px] text-components-input-bg-normal"
+                      >
+                        <path
+                          id="Shape"
+                          d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
+                          fill="currentColor"
+                        ></path>
+                      </svg>
+                      <div
+                        class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-components-input-bg-normal pr-2 leading-5 text-text-tertiary"
+                      >
+                        {{
+                          'PAC.Plugin.Category_' + plugin.meta.category | translate: { Default: plugin.meta.category }
+                        }}
+                      </div>
+                    </div>
+                  }
+                  <div class="flex">
+                    <xp-icon
+                      [icon]="plugin.meta.icon"
+                      size="24"
+                      class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-components-panel-border-subtle"
+                    />
+                    <div class="ml-3 w-0 grow">
+                      <div class="flex h-5 items-center">
+                        <div
+                          class="system-md-semibold truncate text-text-primary"
+                          [title]="plugin.meta.displayName"
+                          [ngmHighlight]="searchText()"
+                          [content]="plugin.meta.displayName"
+                        >
+                          {{ plugin.meta.displayName }}
+                        </div>
+                        @if (plugin.loadStatus === 'failed') {
+                          <i class="ri-error-warning-line shrink-0 ml-1 text-text-destructive"></i>
+                        } @else {
+                          <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
+                        }
+                        <div
+                          class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
+                          [class.text-text-warning]="plugin.hasUpdate"
+                          [zTooltip]="
+                            ('PAC.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
+                            ': ' +
+                            (plugin.latestVersion || '-')
+                          "
+                          zPosition="top"
+                          [zDisabled]="!plugin.hasUpdate"
+                        >
+                          {{ plugin.currentVersion || plugin.meta.version || '-' }}
+                        </div>
+                        <div
+                          class="ml-1 inline-flex h-5 items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-tertiary shrink-0"
+                        >
+                          <i
+                            class="shrink-0"
+                            [class.ri-global-line]="plugin.isGlobal"
+                            [class.ri-building-line]="!plugin.isGlobal"
+                          ></i>
+                          <span class="font-body font-medium uppercase">
+                            {{
+                              (plugin.isGlobal ? 'PAC.Plugin.ScopeGlobal' : 'PAC.Plugin.ScopeOrganization')
+                                | translate: { Default: plugin.isGlobal ? 'Global' : 'Organization' }
+                            }}
+                          </span>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <div class="min-w-0 grow">
+                          <div
+                            class="text-sm text-text-tertiary font-body truncate"
+                            [title]="plugin.meta.description"
+                            [ngmHighlight]="searchText()"
+                            [content]="plugin.meta.description"
+                          >
+                            {{ plugin.meta.description }}
+                          </div>
+                          @if (plugin.loadStatus === 'failed') {
+                            <div
+                              class="mt-2 rounded-lg border border-state-destructive-hover bg-state-destructive-hover/10 p-2"
+                            >
+                              <div class="flex items-start gap-2">
+                                <i class="ri-error-warning-line mt-0.5 text-text-destructive"></i>
+                                <div class="min-w-0">
+                                  <div class="text-xs font-medium text-text-destructive">
+                                    {{
+                                      'PAC.Plugin.LoadFailureReason'
+                                        | translate: { Default: 'This plugin is in the database but was not loaded.' }
+                                    }}
+                                  </div>
+                                  <div class="mt-1 break-words text-xs text-text-secondary max-h-16 overflow-auto">
+                                    {{
+                                      plugin.loadError ||
+                                        ('PAC.Plugin.LoadFailureReasonUnknown'
+                                          | translate: { Default: 'No detailed error was captured.' })
+                                    }}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          }
+                          @if (plugin.configurationStatus === 'invalid') {
+                            <div
+                              class="mt-2 flex items-center gap-1 text-xs text-text-warning"
+                              [zTooltip]="
+                                plugin.configurationError ||
+                                ('PAC.Plugin.RequiresConfiguration'
+                                  | translate: { Default: 'This plugin needs configuration before it can be used.' })
+                              "
+                              zPosition="top"
+                            >
+                              <i class="ri-alert-line"></i>
+                              <span>
+                                {{
+                                  'PAC.Plugin.RequiresConfiguration'
+                                    | translate: { Default: 'This plugin needs configuration before it can be used.' }
+                                }}
+                              </span>
+                            </div>
+                          }
+                          <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                            @if (plugin.scopeRelation === 'overrides-global') {
+                              <div
+                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
+                              >
+                                <i class="ri-arrow-up-circle-line shrink-0"></i>
+                                <span>
+                                  {{ 'PAC.Plugin.OverridesGlobal' | translate: { Default: 'Overrides global' } }}
+                                </span>
+                              </div>
+                            } @else if (plugin.scopeRelation === 'shadowed-by-organization') {
+                              <div
+                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-warning"
+                              >
+                                <i class="ri-eye-off-line shrink-0"></i>
+                                <span>
+                                  {{
+                                    'PAC.Plugin.ShadowedByOrganization'
+                                      | translate: { Default: 'Shadowed by organization' }
+                                  }}
+                                </span>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                        <div class="flex space-x-1">
+                          @if (plugin.canConfigure && plugin.configSchema) {
+                            <button
+                              type="button"
+                              class="action-btn action-btn-m hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                              [class.text-text-warning]="plugin.configurationStatus === 'invalid'"
+                              [class.text-text-tertiary]="plugin.configurationStatus !== 'invalid'"
+                              [zTooltip]="
+                                'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
+                              "
+                              zPosition="top"
+                              (click)="configure(plugin)"
+                            >
+                              <i class="ri-settings-4-line"></i>
+                            </button>
+                          }
+                          @if (plugin.canUpdate && plugin.hasUpdate) {
+                            <button
+                              type="button"
+                              class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                              [zTooltip]="
+                                'PAC.Plugin.UpdatePlugin'
+                                  | translate: { Default: 'Update this plugin to the latest version' }
+                              "
+                              zPosition="top"
+                              [disabled]="updating() === plugin.name"
+                              (click)="update(plugin)"
+                            >
+                              <i class="ri-refresh-line"></i>
+                            </button>
+                          }
+                          @if (isDevEnvironment && plugin.canRefresh) {
+                            <button
+                              type="button"
+                              class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                              [zTooltip]="
+                                'PAC.Plugin.RefreshPlugin'
+                                  | translate: { Default: 'Reload this local code plugin from workspace files' }
+                              "
+                              zPosition="top"
+                              [disabled]="refreshing() === plugin.name"
+                              (click)="refresh(plugin)"
+                            >
+                              <i class="ri-restart-line"></i>
+                            </button>
+                          }
+                          @if (plugin.canUninstall) {
+                            <button
+                              type="button"
+                              class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
+                              [zTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin' }"
+                              zPosition="top"
+                              (click)="uninstall(plugin)"
+                            >
+                              <i class="ri-delete-bin-line"></i>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="mb-1 mt-2 flex h-4 items-center gap-x-2 px-2">
+                  <div class="flex grow items-center overflow-hidden">
+                    <div class="flex h-4 items-center space-x-0.5">
+                      <span class="system-xs-regular shrink-0 text-text-tertiary">{{ plugin.meta.author }}</span>
+                      <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
+                      <a
+                        class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono hover:underline hover:text-primary-500"
+                        [href]="plugin.meta.homepage || 'https://www.npmjs.com/package/' + plugin.meta.name"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {{ plugin.meta.name }}
+                      </a>
+                    </div>
+                  </div>
+                  <div class="flex shrink-0 items-center">
+                    <div class="flex w-full items-center gap-1 overflow-hidden text-text-tertiary">
+                      @if (plugin.loadStatus !== 'failed') {
+                        @for (keyword of plugin.meta.keywords; track keyword) {
+                          <div
+                            class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-background-default-subtle px-[5px] py-[1px] hover:bg-hover-bg"
+                            [ngClass]="{ 'text-primary-500': keywords().includes(keyword) }"
+                            (click)="toggleKeyword(keyword)"
+                          >
+                            <div class="text-xs font-medium uppercase font-body text-nowrap"># {{ keyword }}</div>
+                          </div>
+                        }
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                @if (removing() === plugin.name || updating() === plugin.name || refreshing() === plugin.name) {
+                  <ngm-spin
+                    class="absolute inset-0 z-10 backdrop-blur-sm"
+                    style="background-color: color-mix(in oklab, var(--background) 10%, transparent)"
+                  />
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
     </div>
   </div>
 }
 
 <ng-template #installMenu>
-  <div cdkMenu class="cdk-menu__large w-28">
+  <div cdkMenu class="cdk-menu__large w-44">
     <div class="font-semibold mb-2">
       {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
     </div>
     <div cdkMenuItem class="" (click)="installNpm()"><i class="ri-npmjs-line mr-1"></i> NPM</div>
+    @if (isDevEnvironment) {
+      <div cdkMenuItem class="" (click)="installLocal()">
+        <i class="ri-folder-open-line mr-1"></i>
+        {{ 'PAC.Plugin.LocalSource' | translate: { Default: 'Local workspace' } }}
+      </div>
+    }
   </div>
 </ng-template>
 
 <ng-template #npmInstallDialog let-dialogRef="dialogRef">
-  <div class="w-full rounded-2xl bg-white px-6 py-5">
+  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
     <div class="flex items-start justify-between pb-3">
       <div class="text-xl font-semibold text-text-primary">
         {{ 'PAC.Plugin.InstallFromNpm' | translate: { Default: 'Install from NPM' } }}
@@ -329,10 +480,10 @@
         />
       </div>
       @if (npmInstallError()) {
-        <div class="max-w-sm text-sm text-text-destructive">{{ npmInstallError() }}</div>
+        <div class="max-w-sm text-sm max-h-96 overflow-auto text-text-destructive">{{ npmInstallError() }}</div>
       }
       @if (npmInstalling()) {
-        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-white/2" />
+        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
       }
     </div>
     <div class="flex items-center justify-end gap-2 pt-4">
@@ -346,6 +497,80 @@
         (click)="confirmInstallNpm(dialogRef)"
       >
         @if (npmInstalling()) {
+          <ngm-spin small class="!text-primary-200" />
+        }
+        <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #localInstallDialog let-dialogRef="dialogRef">
+  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
+    <div class="flex items-start justify-between pb-3">
+      <div class="text-xl font-semibold text-text-primary">
+        {{ 'PAC.Plugin.InstallFromLocal' | translate: { Default: 'Install from Local Workspace' } }}
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center"
+        (click)="dialogRef.close()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="relative flex flex-col gap-4">
+      <div class="rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs text-text-tertiary">
+        {{
+          'PAC.Plugin.LocalInstallHint'
+            | translate
+              : {
+                  Default:
+                    'Development only. workspacePath must be an absolute path on the API host and inside PLUGIN_WORKSPACE_ROOTS. Xpert copies the workspace into the host plugin directory for loading.'
+                }
+        }}
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.LocalPluginName' | translate: { Default: 'Plugin package name' } }}
+        </label>
+        <input
+          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="'PAC.Plugin.InputLocalPluginName' | translate: { Default: 'e.g. @xpert-ai/plugin-lark' }"
+          [(ngModel)]="localPluginName"
+        />
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.LocalWorkspacePath' | translate: { Default: 'Workspace path' } }}
+        </label>
+        <input
+          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="
+            'PAC.Plugin.InputLocalWorkspacePath'
+              | translate: { Default: '/Users/.../xpert-plugins/xpertai/integrations/lark' }
+          "
+          [(ngModel)]="localWorkspacePath"
+        />
+      </div>
+      @if (localInstallError()) {
+        <div class="max-w-sm text-sm max-h-96 overflow-auto text-text-destructive">{{ localInstallError() }}</div>
+      }
+      @if (localInstalling()) {
+        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
+      }
+    </div>
+    <div class="flex items-center justify-end gap-2 pt-4">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
+        [disabled]="localInstalling() || !localPluginName()?.trim() || !localWorkspacePath()?.trim()"
+        (click)="confirmInstallLocal(dialogRef)"
+      >
+        @if (localInstalling()) {
           <ngm-spin small class="!text-primary-200" />
         }
         <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>

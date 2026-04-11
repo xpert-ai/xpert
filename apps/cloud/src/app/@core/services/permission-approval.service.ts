@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IPermissionApproval, IPermissionApprovalCreateInput, IPermissionApprovalFindInput } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state'
+import { IPermissionApproval, IPermissionApprovalCreateInput, IPermissionApprovalFindInput } from '@xpert-ai/contracts'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { firstValueFrom } from 'rxjs'
 
 @Injectable({

@@ -3,6 +3,7 @@ import { Annotation, CompiledStateGraph, messagesStateReducer, BaseChannel } fro
 import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
 import {
 	channelName,
+	IAssistantBindingToolPreferences,
 	IEnvironment,
 	IXpertAgent,
 	STATE_VARIABLE_HUMAN,
@@ -17,8 +18,8 @@ import {
 	TXpertTeamNode,
 	VariableOperationEnum,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
-import { isFunction } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { isFunction } from '@xpert-ai/server-common'
 import { Subscriber } from 'rxjs'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
@@ -32,11 +33,17 @@ export type TAgentStateSystem = {
 	date: string
 	datetime: string
 	common_times: string
+	soul?: string | null
+	profile?: string | null
 }
 
 export type TStateChannel = {
 	name: string
 	annotation: BaseChannel
+}
+
+export type TXpertAgentRuntimeOptions = {
+	toolPreferences?: IAssistantBindingToolPreferences | null
 }
 
 export const AgentStateAnnotation = Annotation.Root({
@@ -248,7 +255,7 @@ export function stateVariable(variable: TStateVariable) {
 	}
 }
 
-export type TAgentSubgraphParams = {
+export type TAgentSubgraphParams = TXpertAgentRuntimeOptions & {
 	/**
 	 * Collect mute nodes tag
 	 */

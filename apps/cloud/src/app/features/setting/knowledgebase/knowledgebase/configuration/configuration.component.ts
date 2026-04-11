@@ -2,8 +2,8 @@ import { ChangeDetectorRef, Component, computed, effect, inject, signal } from '
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IKnowledgebase,
@@ -18,7 +18,7 @@ import {
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { EmojiAvatarComponent } from "../../../../../@shared/avatar/emoji-avatar/avatar.component";
 import { PACCopilotService } from '../../../../services'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
@@ -34,7 +34,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     RouterModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     NgmCommonModule,
     EmojiAvatarComponent,
     CopilotModelSelectComponent
@@ -78,7 +78,6 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
     copilotModel: new FormControl(null),
     copilotModelId: new FormControl(null),
   })
-
 
   // readonly copilots = computed(() =>
   //   this.copilotService.copilots()?.filter((item) => item.enabled && item.organizationId === this.organizationId())
@@ -143,8 +142,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
         if (knowledgebase && this.formGroup.pristine) {
           this.formGroup.patchValue(knowledgebase)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -154,8 +152,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
         } else {
           this.formGroup.enable()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

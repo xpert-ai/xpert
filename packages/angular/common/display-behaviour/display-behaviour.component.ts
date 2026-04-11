@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, computed, input } from '@angular/core'
-import { MatIconModule } from '@angular/material/icon'
-import { ISelectOption, splitByHighlight } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { ISelectOption, splitByHighlight } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -10,7 +10,7 @@ import { DisplayBehaviour } from '@metad/ocap-core'
   selector: 'ngm-display-behaviour',
   templateUrl: './display-behaviour.component.html',
   styleUrls: ['./display-behaviour.component.scss'],
-  imports: [CommonModule, MatIconModule]
+  imports: [CommonModule, ZardIconComponent]
 })
 export class NgmDisplayBehaviourComponent {
   DISPLAY_BEHAVIOUR = DisplayBehaviour

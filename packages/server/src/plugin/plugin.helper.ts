@@ -1,10 +1,17 @@
-import { isNotEmpty } from '@metad/server-common'
-import { getConfig } from '@metad/server-config'
+/**
+ * Invariants:
+ * - Startup restore and runtime install must converge on the same staged plugin path semantics.
+ * - Local code plugins with a persisted workspace path should be restaged before load so restarts do not depend on stale copies.
+ * - Non-code plugins continue to install through the organization plugin store and keep load-failure tracking centralized here.
+ */
+import { isNotEmpty } from '@xpert-ai/server-common'
+import { getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Type, Logger } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
 import { ModuleRef, NestContainer } from '@nestjs/core'
-import { PluginLevel } from '@metad/contracts'
+import { PluginLevel, PluginSourceConfig } from '@xpert-ai/contracts'
 import {
+	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
 	ORGANIZATION_METADATA_KEY,
 	PLUGIN_METADATA,
@@ -16,7 +23,8 @@ import {
 	getOrganizationPluginPath,
 	getOrganizationPluginRoot,
 	installOrganizationPlugins,
-	OrganizationPluginStoreOptions
+	OrganizationPluginStoreOptions,
+	stageWorkspacePlugin
 } from './organization-plugin.store'
 import {
 	isClassProvider,
@@ -31,6 +39,8 @@ import { loadPlugin } from './plugin-loader'
 import { inspectConfig } from './config'
 import { createPluginContext } from './lifecycle'
 import { resolvePluginLevel } from './plugin-instance.entity'
+import { getCodeWorkspacePath } from './source-config'
+import { findWorkspacePluginDirectory } from './plugin-sdk-versioning'
 
 /**
  * Get plugin classes from an array of plugins by reflecting metadata.
@@ -152,6 +162,79 @@ export function getDynamicPluginsModules(): DynamicModule[] {
 }
 
 export const loaded: LoadedPluginRecord[] = []
+export interface PluginLoadFailureRecord {
+	organizationId: string
+	pluginName: string
+	packageName?: string
+	error: string
+}
+
+export const loadFailures: PluginLoadFailureRecord[] = []
+
+function hasPluginName(name: string | undefined | null): name is string {
+	return typeof name === 'string' && !!name
+}
+
+function appendStageWorkspacePluginError(message: string, stageError?: string) {
+	if (!stageError || message.includes(stageError)) {
+		return message
+	}
+
+	return `${message} | stageWorkspacePlugin failed earlier: ${stageError}`
+}
+
+export function upsertPluginLoadFailure(failure: PluginLoadFailureRecord) {
+	const pluginName = normalizePluginName(failure.pluginName)
+	const packageName = failure.packageName ? normalizePluginName(failure.packageName) : pluginName
+	const index = loadFailures.findIndex(
+		(item) =>
+			item.organizationId === failure.organizationId &&
+			(item.pluginName === pluginName || item.packageName === packageName)
+	)
+
+	const next = {
+		...failure,
+		pluginName,
+		packageName
+	}
+
+	if (index >= 0) {
+		loadFailures.splice(index, 1, next)
+	} else {
+		loadFailures.push(next)
+	}
+}
+
+export function clearPluginLoadFailure(organizationId: string, ...names: Array<string | undefined | null>) {
+	const normalized = new Set(names.filter(hasPluginName).map((name) => normalizePluginName(name)))
+	if (!normalized.size) {
+		return
+	}
+
+	for (let i = loadFailures.length - 1; i >= 0; i--) {
+		const item = loadFailures[i]
+		if (
+			item.organizationId === organizationId &&
+			(normalized.has(item.pluginName) || (item.packageName && normalized.has(item.packageName)))
+		) {
+			loadFailures.splice(i, 1)
+		}
+	}
+}
+
+export function findPluginLoadFailure(organizationId: string, ...names: Array<string | undefined | null>) {
+	const normalized = new Set(names.filter(hasPluginName).map((name) => normalizePluginName(name)))
+	if (!normalized.size) {
+		return undefined
+	}
+
+	return loadFailures.find(
+		(item) =>
+			item.organizationId === organizationId &&
+			(normalized.has(item.pluginName) || (item.packageName && normalized.has(item.packageName)))
+	)
+}
+
 /**
  * Collect providers from modules tagged with PLUGIN_METADATA_KEY/ORGANIZATION_METADATA_KEY.
  */
@@ -159,17 +242,21 @@ export function collectProvidersWithMetadata<TMeta = any>(
 	moduleRef: ModuleRef,
 	organizationId: string,
 	pluginName: string,
-	logger: Logger
+	logger: Logger,
+	beforeModuleIds?: Set<string>
 ) {
 	logger.debug(`Collecting providers for plugin '${pluginName}' under organization '${organizationId}'`)
 	const container = (moduleRef as unknown as { container?: NestContainer }).container
 	if (!container?.getModules) return []
 
+	const modules = Array.from(container.getModules().values()).filter(
+		(module) => !beforeModuleIds || !beforeModuleIds.has(module.id)
+	)
 	const providers: any[] = []
 	const seen = new Set<any>()
 
 	logger.debug(`Scanning modules in the NestJS container...`)
-	for (const module of container.getModules().values()) {
+	for (const module of modules) {
 		const target = module.metatype ?? module.constructor
 		const modPluginName = Reflect.getMetadata(PLUGIN_METADATA_KEY, target)
 		const modOrganization = Reflect.getMetadata(ORGANIZATION_METADATA_KEY, target)
@@ -203,7 +290,14 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
 	baseDir?: string
 	/** Explicit list of plugin package names (takes precedence) */
-	plugins?: { name: string; version?: string; source?: LoadedPluginRecord['source']; level?: PluginLevel }[]
+	plugins?: {
+		name: string
+		runtimeName?: string
+		version?: string
+		source?: LoadedPluginRecord['source']
+		level?: PluginLevel
+		sourceConfig?: PluginSourceConfig | null
+	}[]
 	/** Auto-discovery options (effective when plugins are not explicitly provided) */
 	discovery?: { prefix?: string; manifestPath?: string }
 	/** Configuration map injected by the main app (indexed by plugin name) */
@@ -220,7 +314,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
  * @param opts
  * @returns
  */
-export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) {
+export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, logger: Logger,) {
 	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 	const baseDirRoot =
 		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, opts) : process.cwd())
@@ -232,18 +326,54 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 
 	const pluginNames: Array<{
 		name: string
+		runtimeName?: string
 		version?: string
 		source?: LoadedPluginRecord['source']
 		level?: PluginLevel
+		sourceConfig?: PluginSourceConfig | null
+		stageError?: string
 	}> = opts.plugins?.length
 		? opts.plugins
 		: opts.discovery || opts.organizationId
 			? discoverPlugins(baseDirRoot, discoveryOptions).map((plugin) => ({
 					...plugin,
 					source: plugin.source as LoadedPluginRecord['source'],
-					level: undefined
+					level: undefined,
+					sourceConfig: null
 				}))
 			: []
+
+	// Stage code plugins first to ensure their workspace paths are persisted and available for loading, and also to allow them to be included in the manifest for non-code plugin installs.
+	for (const plugin of pluginNames) {
+		if (plugin.source !== 'code') {
+			continue
+		}
+
+		const workspacePath =
+			getCodeWorkspacePath(plugin.sourceConfig) ??
+			findWorkspacePluginDirectory(normalizePluginName(plugin.name), baseDirRoot)
+		if (!workspacePath) {
+			continue
+		}
+
+		try {
+			stageWorkspacePlugin({
+				organizationId,
+				pluginName: plugin.runtimeName ?? plugin.name,
+				expectedPackageName: normalizePluginName(plugin.name),
+				workspacePath,
+				rootDir: opts.rootDir,
+				manifestName: opts.manifestName
+			})
+		} catch (error) {
+			plugin.stageError = getErrorMessage(error)
+			console.error(error)
+			logger.error(
+				`Failed to stage workspace plugin ${plugin.name} for organization ${organizationId}: ${plugin.stageError}`,
+				error instanceof Error ? error.stack : error
+			)
+		}
+	}
 
 	// 1) install into organization workspace (and update manifest)
 	installOrganizationPlugins(
@@ -253,14 +383,23 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 	)
 
 	const modules: DynamicModule[] = []
+	const errors: PluginLoadFailureRecord[] = []
 
-	for (const { name, level, source } of pluginNames) {
+	for (const { name, runtimeName, level, source, sourceConfig, stageError } of pluginNames) {
 		try {
+			const pluginPathName = runtimeName ?? name
 			const pluginBaseDir = opts.organizationId
-				? getOrganizationPluginPath(organizationId, name, opts)
+				? getOrganizationPluginPath(organizationId, pluginPathName, opts)
 				: baseDirRoot
+			const workspacePath = source === 'code'
+				? getCodeWorkspacePath(sourceConfig) ?? findWorkspacePluginDirectory(normalizePluginName(name), baseDirRoot)
+				: undefined
 			// 2) Load each plugin and merge its configuration defaults.
-			const plugin = await loadPlugin(name, { basedir: pluginBaseDir })
+			const plugin = await loadPlugin(name, {
+				basedir: pluginBaseDir,
+				source,
+				workspacePath
+			})
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
 			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
 
@@ -278,6 +417,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 			if (existing >= 0) {
 				loaded.splice(existing, 1)
 			}
+			clearPluginLoadFailure(organizationId, plugin.meta.name, name)
 			loaded.push({
 				organizationId,
 				name: plugin.meta.name,
@@ -289,15 +429,24 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 				baseDir: pluginBaseDir
 			})
 		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error)
+			const message = appendStageWorkspacePluginError(getErrorMessage(error), stageError)
 			const stack = error instanceof Error ? error.stack : undefined
+			const failure = {
+				organizationId,
+				pluginName: normalizePluginName(name),
+				packageName: normalizePluginName(name),
+				error: message
+			}
+			upsertPluginLoadFailure(failure)
+			errors.push(failure)
 			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${message}`, stack)
 		}
 	}
 
 	return {
 		organizationId,
-		modules
+		modules,
+		errors
 	}
 }
 

@@ -1,4 +1,4 @@
-import { IEmailTemplate } from '@metad/contracts'
+import { IEmailTemplate } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index } from 'typeorm'

@@ -1,4 +1,4 @@
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

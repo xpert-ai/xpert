@@ -13,8 +13,8 @@ import {
 	TLongTermMemoryConfig,
 	TMemory,
 	TMessageChannel
-} from '@metad/contracts'
-import { omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'

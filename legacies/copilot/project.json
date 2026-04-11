@@ -1,0 +1,42 @@
+{
+  "name": "copilot",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "legacies/copilot/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/legacies/copilot",
+        "main": "legacies/copilot/src/index.ts",
+        "tsConfig": "legacies/copilot/tsconfig.lib.json",
+        "project": "legacies/copilot/package.json",
+        "assets": [
+          {
+            "glob": "*.md",
+            "input": "legacies/copilot/",
+            "output": "."
+          }
+        ],
+        "compiler": "swc",
+        "format": ["cjs", "esm"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["legacies/copilot/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/legacies/copilot"],
+      "options": {
+        "jestConfig": "legacies/copilot/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

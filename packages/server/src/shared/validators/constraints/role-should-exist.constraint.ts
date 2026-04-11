@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
-import { IRole } from '@metad/contracts';
+import { IRole } from '@xpert-ai/contracts';
 import { RequestContext } from '../../../core/context';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from '../../../core/entities/internal';

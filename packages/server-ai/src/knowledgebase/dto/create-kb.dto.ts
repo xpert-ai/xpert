@@ -6,7 +6,7 @@ import {
 	KnowledgebaseTypeEnum,
 	TAvatar,
 	TKBRecallParams
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Expose } from 'class-transformer'
 import { IsOptional, IsString, IsUUID } from 'class-validator'

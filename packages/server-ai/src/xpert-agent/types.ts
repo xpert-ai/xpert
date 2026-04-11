@@ -1,5 +1,5 @@
-import { TWFCaseCondition, WorkflowComparisonOperator, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { isEmpty } from '@metad/server-common'
+import { TWFCaseCondition, WorkflowComparisonOperator, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { isEmpty } from '@xpert-ai/server-common'
 import { get } from 'lodash'
 
 export const AgenticWorkflowTypes = [

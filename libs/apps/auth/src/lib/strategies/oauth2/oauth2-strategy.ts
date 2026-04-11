@@ -9,7 +9,6 @@ import { ActivatedRoute } from '@angular/router';
 import { Observable, of as observableOf } from 'rxjs';
 import { switchMap, map, catchError } from 'rxjs/operators';
 import { PAC_WINDOW } from '@nebular/theme';
-
 import { NbAuthStrategy } from '../auth-strategy';
 import { NbAuthIllegalTokenError, NbAuthRefreshableToken, PacAuthToken } from '../../services/token/token';
 import { NbAuthResult } from '../../services/auth-result';
@@ -20,7 +19,6 @@ import {
   NbOAuth2GrantType, NbOAuth2ClientAuthMethod,
 } from './oauth2-strategy.options';
 import { PacAuthStrategyClass } from '../../auth.options';
-
 
 /**
  * OAuth2 authentication strategy.
@@ -357,7 +355,6 @@ export class NbOAuth2AuthStrategy extends NbAuthStrategy {
     }
     return params;
   }
-
 
   protected handleResponseError(res: any): Observable<NbAuthResult> {
     let errors = [];

@@ -1,4 +1,4 @@
-import { OrganizationModule, RedisModule, TenantModule } from '@metad/server-core'
+import { OrganizationModule, RedisModule, TenantModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AgentModule } from './agent/index'
@@ -36,6 +36,7 @@ import { SemanticModelMemberModule } from './model-member'
 import { ChatBIModelModule } from './chatbi-model'
 import { ModelQueryLogModule } from './model-query-log'
 import { AiBiModule } from './ai/aibi.module'
+import { InitializationModule } from './initialization/initialization.module'
 
 @Module({
 	imports: [
@@ -74,7 +75,8 @@ import { AiBiModule } from './ai/aibi.module'
 		CertificationModule,
 		RedisModule,
 		ChatBIModelModule,
-		AiBiModule
+		AiBiModule,
+		InitializationModule
 	],
 	controllers: [AppController],
 	providers: [AnalyticsService, ...EventHandlers, ...CommandHandlers]

@@ -13,7 +13,7 @@ import { AgentChatHandoffProcessor } from '../../plugins/agent-chat/agent-chat.p
 import { XPERT_HANDOFF_QUEUE } from '../../constants'
 import { EnqueueAgentChatMessageCommand } from '../enqueue-agent-chat-message.command'
 import { StopHandoffMessageCommand } from '../stop-handoff-message.command'
-import { ConfigService } from '@metad/server-config'
+import { ConfigService } from '@xpert-ai/server-config'
 
 const customEnvPath = process.env.SERVER_AI_E2E_ENV_PATH
 const defaultEnvPath = path.resolve(process.cwd(), 'packages/server-ai/.env.e2e.local')

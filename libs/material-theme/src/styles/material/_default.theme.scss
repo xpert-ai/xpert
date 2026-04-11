@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use 'libs/formly/formly-theme' as formly;
 @use 'libs/story-angular/responsive/responsive-theme' as responsive;
 @use 'libs/story-angular/story/story-theme' as story;
@@ -14,12 +14,12 @@
 
 
 // Define a theme.
-$primary: mat.define-palette(mat.$blue-grey-palette, 600);
-$accent:  mat.define-palette(mat.$amber-palette, A700, A400, A200);
+$primary: themeCompat.m2-define-palette(themeCompat.$m2-blue-grey-palette, 600);
+$accent:  themeCompat.m2-define-palette(themeCompat.$m2-amber-palette, A700, A400, A200);
 
-$material-typeface: Lato, 'Noto Serif SC', monospace;
+$material-typeface: var(--font-xp-sans, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif);
 
-$mat-theme: mat.define-light-theme(
+$mat-theme: themeCompat.m2-define-light-theme(
   (
     color: (
       primary: $primary,
@@ -29,17 +29,17 @@ $mat-theme: mat.define-light-theme(
   ),
 );
 
-$custom-typography: mat.define-typography-config(
+$custom-typography: themeCompat.m2-define-typography-config(
   $font-family: $material-typeface
 );
 
 // Include the common styles for Angular Material. We include this here so that you only
 // have to load a single css file for Angular Material in your app.
 // Be sure that you only ever include this mixin once!
-@include mat.core();
+@include themeCompat.core();
 
 // Include all theme styles for the mat components.
-@include mat.all-component-themes($mat-theme);
+@include themeCompat.all-component-themes($mat-theme);
 @include formly.theme($mat-theme);
 @include responsive.theme($mat-theme);
 @include story.theme($mat-theme);
@@ -54,20 +54,20 @@ $custom-typography: mat.define-typography-config(
 @include ocap.common-density($mat-theme);
 @include auth.theme($mat-theme);
 
-$config: mat.get-color-config($mat-theme);
+$config: themeCompat.m2-get-color-config($mat-theme);
 $foreground: map.get($config, foreground);
 
 // Set color for the Story component separately to override global styles
-.ngm-theme-light, .ngm-story-container.ngm-theme-light.light {
-  --ngm-color-primary: #{mat.get-color-from-palette($primary)};
-  --ngm-color-on-primary-container: #{darken(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container: #{lighten(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container-variant: #{color.change(mat.get-color-from-palette($primary), $alpha: 0.1)};
-  --ngm-color-secondary: #{mat.get-color-from-palette($accent)};
-  --ngm-color-secondary-container: #{lighten(mat.get-color-from-palette($accent), 30%)};
+[data-theme='light'] {
+  --ngm-color-primary: #{themeCompat.m2-get-color-from-palette($primary)};
+  --ngm-color-on-primary-container: #{darken(themeCompat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container: #{lighten(themeCompat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container-variant: #{color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1)};
+  --ngm-color-secondary: #{themeCompat.m2-get-color-from-palette($accent)};
+  --ngm-color-secondary-container: #{lighten(themeCompat.m2-get-color-from-palette($accent), 30%)};
   --ngm-color-outline: #{map.get($foreground, divider)};
 
-  // @include mat.all-component-colors($mat-theme);
+  // @include themeCompat.all-component-colors($mat-theme);
   @include formly.color($mat-theme);
   @include responsive.color($mat-theme);
   @include story.color($mat-theme);

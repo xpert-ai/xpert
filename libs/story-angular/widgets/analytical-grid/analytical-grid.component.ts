@@ -4,15 +4,15 @@ import {
   AnalyticalGridComponent,
   AnalyticalGridOptions,
   IColumnSelectionEventArgs
-} from '@metad/ocap-angular/analytical-grid'
-import { effectAction } from '@metad/ocap-angular/core'
-import { ISlicer } from '@metad/ocap-core'
-import { AbstractStoryWidget, StoryWidgetState } from '@metad/core'
-import { WidgetComponentType } from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/ocap-angular/analytical-grid'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { ISlicer } from '@xpert-ai/ocap-core'
+import { AbstractStoryWidget, StoryWidgetState } from '@xpert-ai/core'
+import { WidgetComponentType } from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { EMPTY, Observable } from 'rxjs'
 import { map, switchMap, tap } from 'rxjs/operators'
-import { SlicersCapacity } from '@metad/ocap-angular/selection'
+import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
 
 export interface WidgetAnalyticalGridOptions extends AnalyticalGridOptions {
   strip: boolean
@@ -26,6 +26,7 @@ export interface AnalyticalGridState extends StoryWidgetState<WidgetAnalyticalGr
 }
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-widget-analytical-grid',
   templateUrl: 'analytical-grid.component.html',

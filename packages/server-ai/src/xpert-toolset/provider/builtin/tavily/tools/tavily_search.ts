@@ -2,7 +2,7 @@ import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
 import { CallbackManagerForToolRun } from "@langchain/core/callbacks/manager";
 import { Tool, ToolRunnableConfig, type ToolParams } from "@langchain/core/tools";
 import { getEnvironmentVariable } from "@langchain/core/utils/env";
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig } from "@xpert-ai/contracts";
 import { t } from 'i18next'
 import { Logger } from '@nestjs/common'
 import { TavilyToolset } from "../tavily";

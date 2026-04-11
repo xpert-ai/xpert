@@ -1,5 +1,5 @@
-import { Cube, EntityType, getEntityDimensions, getEntityMeasures } from '@metad/ocap-core'
-export { markdownEntityType, markdownModelCube } from '@metad/ocap-core'
+import { Cube, EntityType, getEntityDimensions, getEntityMeasures } from '@xpert-ai/ocap-core'
+export { markdownEntityType, markdownModelCube } from '@xpert-ai/ocap-core'
 
 /**
  * @deprecated use markdownEntityType

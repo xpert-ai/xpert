@@ -1,6 +1,6 @@
 import './polyfills';
-import { bootstrap, prepare, seedModule } from '@metad/analytics'
-import {  seedDefault } from '@metad/server-core'
+import { bootstrap, prepare, seedModule } from '@xpert-ai/analytics'
+import {  seedDefault } from '@xpert-ai/server-core'
 import yargs from 'yargs'
 import { pluginConfig } from './plugin-config'
 

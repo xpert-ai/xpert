@@ -1,5 +1,6 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
+
 import { Component, Input, forwardRef } from '@angular/core'
 import {
   ControlValueAccessor,
@@ -10,10 +11,7 @@ import {
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule
 } from '@angular/forms'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatListModule, MatSelectionListChange } from '@angular/material/list'
-import { MatSelectModule } from '@angular/material/select'
-import { NgmPropertyComponent } from '@metad/ocap-angular/common'
+import { NgmPropertyComponent, NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 import {
   CalculationProperty,
   CalculationType,
@@ -23,25 +21,15 @@ import {
   Property,
   getEntityMeasures,
   isMeasureControlProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import { map } from 'rxjs/operators'
+import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    DragDropModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatListModule,
-
-    NgmPropertyComponent
-  ],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, CdkListboxModule, ...ZardFormImports, NgmPropertyComponent, NgmSelectComponent],
   selector: 'ngm-measure-control',
   templateUrl: './measure-control.component.html',
   styleUrl: './measure-control.component.scss',
@@ -55,6 +43,14 @@ import { map } from 'rxjs/operators'
 })
 export class NgmMeasureControlComponent implements ControlValueAccessor {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
+  readonly autoDisplayBehaviour = '__auto__'
+  readonly displayBehaviourOptions = [
+    { value: DisplayBehaviour.descriptionOnly, label: 'Description' },
+    { value: DisplayBehaviour.descriptionAndId, label: 'Description ID' },
+    { value: DisplayBehaviour.idAndDescription, label: 'ID Description' },
+    { value: DisplayBehaviour.idOnly, label: 'ID Only' },
+    { value: this.autoDisplayBehaviour, label: 'Auto' }
+  ]
 
   @Input() get entityType(): EntityType {
     return this.entityType$.value
@@ -104,13 +100,19 @@ export class NgmMeasureControlComponent implements ControlValueAccessor {
       .subscribe(this.measures$)
 
     this.formGroup.valueChanges.subscribe((value) => {
-      this._onChange?.(value)
+      this._onChange?.({
+        ...value,
+        displayBehaviour: value.displayBehaviour === this.autoDisplayBehaviour ? null : value.displayBehaviour
+      })
     })
   }
 
   writeValue(obj: MeasureControlProperty): void {
     if (obj) {
-      this.formGroup.patchValue(obj)
+      this.formGroup.patchValue({
+        ...obj,
+        displayBehaviour: obj.displayBehaviour ?? this.autoDisplayBehaviour
+      })
       this.selectedMeasures = obj.availableMembers?.map((member) => member.key)
     }
   }
@@ -134,9 +136,26 @@ export class NgmMeasureControlComponent implements ControlValueAccessor {
     this.onSelectionChange()
   }
 
-  onSelectionChange(event?: MatSelectionListChange) {
+  listboxMeasures() {
+    const measures = [...this.measures$.value]
+    this.selectedMeasures.forEach((name) => {
+      if (!measures.some((measure) => measure.name === name)) {
+        measures.push({
+          name,
+          caption: name
+        } as Property)
+      }
+    })
+    return measures
+  }
+
+  onSelectionChange(event?: ListboxValueChangeEvent<string>) {
+    if (event) {
+      this.selectedMeasures = [...event.value]
+    }
+
     this.measures.setValue(
-      this.measures$.value
+      this.listboxMeasures()
         .filter((property) => this.selectedMeasures.includes(property.name))
         .map((property) => ({
           key: property.name,

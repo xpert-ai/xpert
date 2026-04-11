@@ -1,12 +1,12 @@
+import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 // Angular standalone component
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { ChartAnnotation, DataSettings, isNil, omit, omitBy, pick } from '@metad/ocap-core'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { ChartAnnotation, DataSettings, isNil, omit, omitBy, pick } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NX_STORY_STORE, NxStoryStore, Story, StoryPoint, StoryPointState } from '@metad/story/core'
+import { NX_STORY_STORE, NxStoryStore, Story, StoryPoint, StoryPointState } from '@xpert-ai/story/core'
 import { firstValueFrom } from 'rxjs'
 import {
   IStoryTemplate,
@@ -18,21 +18,22 @@ import {
   getErrorMessage,
   uuid
 } from '../../../@core'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TagEditorComponent } from '../../../@shared/tag'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
+    ZardLoaderComponent,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     ButtonGroupDirective,
     AppearanceDirective,
     DensityDirective,
     TagEditorComponent
-  ],
+],
   selector: 'pac-save-as-template',
   templateUrl: './save-as-template.component.html',
   styleUrls: ['./save-as-template.component.scss']
@@ -41,9 +42,9 @@ export class SaveAsTemplateComponent {
   StoryTemplateType = StoryTemplateType
   eTagCategoryEnum = TagCategoryEnum
 
-  private _dialogRef = inject(MatDialogRef<SaveAsTemplateComponent>)
+  private _dialogRef = inject(ZardDialogRef<SaveAsTemplateComponent>)
   private readonly data: { story: Story; storyTemplate: IStoryTemplate; points: StoryPoint[] } =
-    inject(MAT_DIALOG_DATA)
+    inject(Z_MODAL_DATA)
   private readonly storyStore: NxStoryStore = inject(NX_STORY_STORE)
   private readonly storyTemplateService = inject(StoryTemplateService)
   private readonly screenshotService = inject(ScreenshotService)

@@ -1,17 +1,36 @@
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, model, output, signal } from '@angular/core'
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  input,
+  model,
+  output,
+  signal
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectToastr, TWFCase, TWFCaseCondition, TWorkflowVarGroup, uuid, WorkflowComparisonOperator, WorkflowLogicalOperator, XpertAPIService } from 'apps/cloud/src/app/@core'
+import {
+  injectToastr,
+  TWFCase,
+  TWFCaseCondition,
+  TWorkflowVarGroup,
+  uuid,
+  WorkflowComparisonOperator,
+  WorkflowLogicalOperator,
+  XpertAPIService
+} from 'apps/cloud/src/app/@core'
 import { XpertWorkflowConditionFormComponent } from '../condition-form/condition.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-case-form',
   templateUrl: './case.component.html',
   styleUrls: ['./case.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslateModule, MatTooltipModule, XpertWorkflowConditionFormComponent],
+  imports: [FormsModule, TranslateModule, ...ZardTooltipImports, XpertWorkflowConditionFormComponent],
   host: {
     '[class.danger]': 'hoverDelete()'
   }
@@ -55,7 +74,7 @@ export class XpertWorkflowCaseFormComponent {
   updateCondition(index: number, value: TWFCaseCondition) {
     this.case.update((state) => {
       state.conditions[index] = value
-      return {...state, conditions: [...state.conditions]}
+      return { ...state, conditions: [...state.conditions] }
     })
   }
 
@@ -68,8 +87,9 @@ export class XpertWorkflowCaseFormComponent {
 
   switchOperator() {
     this.case.update((state) => {
-      state.logicalOperator = state.logicalOperator === WorkflowLogicalOperator.AND ? WorkflowLogicalOperator.OR : WorkflowLogicalOperator.AND
-      return {...state}
+      state.logicalOperator =
+        state.logicalOperator === WorkflowLogicalOperator.AND ? WorkflowLogicalOperator.OR : WorkflowLogicalOperator.AND
+      return { ...state }
     })
   }
 }

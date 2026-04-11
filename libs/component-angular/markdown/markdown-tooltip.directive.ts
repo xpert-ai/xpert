@@ -7,6 +7,7 @@ import { Component, ComponentRef, Directive, ElementRef, HostListener, Input } f
  */
 @Directive({
   selector: '[nxMarkdownTooltip]',
+  standalone: false,
 })
 export class MarkdownTooltipDirective {
   @Input('nxMarkdownTooltip') markdown: string
@@ -51,11 +52,12 @@ export class MarkdownTooltipDirective {
  */
 @Component({
   selector: 'ngm-markdown-tooltip',
-  template: `<mat-card>
-    <mat-card-content>
+  standalone: false,
+  template: `<z-card>
+    <z-card-content>
       <div [innerHTML]="markdown | markdown"></div>
-    </mat-card-content>
-  </mat-card>`,
+    </z-card-content>
+  </z-card>`,
   styles: [],
 })
 export class MarkdownTooltipComponent {

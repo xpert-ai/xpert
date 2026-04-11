@@ -1,4 +1,4 @@
-import { IDocumentSourceProvider, IIntegration } from '@metad/contracts';
+import { IDocumentSourceProvider, IIntegration } from '@xpert-ai/contracts';
 import { Document } from '@langchain/core/documents';
 import { Permissions } from '../../core';
 

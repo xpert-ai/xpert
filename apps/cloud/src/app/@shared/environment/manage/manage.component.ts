@@ -2,10 +2,9 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import {
   EnvironmentService,
@@ -16,15 +15,16 @@ import {
   OrderTypeEnum,
   TEnvironmentVariable
 } from '@cloud/app/@core'
-import { linkedModel } from '@metad/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { BehaviorSubject, Observable, pipe } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { NgmSelectComponent } from '../../common'
 import { VariableTypeOptions } from '../types'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const AutoSaveDebounceTime = 1000
 
@@ -32,18 +32,16 @@ const AutoSaveDebounceTime = 1000
   selector: 'xpert-environment-manage',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-    MatTooltipModule,
-
+    ...ZardTooltipImports,
     NgmSpinComponent,
     NgmSelectComponent
-  ],
+],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
   animations: [IfAnimation]
@@ -123,8 +121,7 @@ export class XpertEnvironmentManageComponent {
         if (!this.environment() && this.environments()?.length) {
           this.environmentId.set(this.environments().find((_) => _.isDefault)?.id)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

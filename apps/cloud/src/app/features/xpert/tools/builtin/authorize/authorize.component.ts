@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -14,12 +14,9 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialogModule } from '@angular/material/dialog'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { routeAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { routeAnimations } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   CredentialsType,
@@ -34,26 +31,24 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { XpertToolBuiltinCredentialComponent } from './credential/credential.component'
 import { isNil } from 'lodash-es'
-import { MatInputModule } from '@angular/material/input'
+import { ZardDialogModule, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TextFieldModule } from '@angular/cdk/text-field'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatDialogModule,
-    MatTooltipModule,
-    MatSlideToggleModule,
+    ZardDialogModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     NgmSpinComponent,
-    MatInputModule,
+    ZardInputDirective,
     TextFieldModule,
-
-    XpertToolBuiltinCredentialComponent
-  ],
+    XpertToolBuiltinCredentialComponent,
+    ZardSwitchComponent
+],
   selector: 'xpert-tool-builtin-authorize',
   templateUrl: './authorize.component.html',
   styleUrl: 'authorize.component.scss',
@@ -95,7 +90,9 @@ export class XpertToolBuiltinAuthorizeComponent {
   readonly credentialsValue = computed(() => this.#credentials())
 
   readonly credentialsInvalid = computed(() => {
-    return this.credentialsSchema()?.filter((item) => item.required).some((_) => isNil(this.#credentials()?.[_.name]))
+    return this.credentialsSchema()
+      ?.filter((item) => item.required)
+      .some((_) => isNil(this.#credentials()?.[_.name]))
   })
 
   constructor() {
@@ -106,21 +103,24 @@ export class XpertToolBuiltinAuthorizeComponent {
     //       this.save()
     //     }
     //   },
-    //   { allowSignalWrites: true }
     // )
 
-    effect(() => {
-      if (this.toolsetCredentials()) {
-        this.#credentials.set(this.toolsetCredentials())
+    effect(
+      () => {
+        if (this.toolsetCredentials()) {
+          this.#credentials.set(this.toolsetCredentials())
+        }
       }
-    }, { allowSignalWrites: true })
+    )
 
-    effect(() => {
-      if (this.toolset()) {
-        this.toolsetName.set(this.toolset().name)
-        this.toolsetDescription.set(this.toolset().description)
+    effect(
+      () => {
+        if (this.toolset()) {
+          this.toolsetName.set(this.toolset().name)
+          this.toolsetDescription.set(this.toolset().description)
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   getCredential(name: string) {
@@ -166,12 +166,17 @@ export class XpertToolBuiltinAuthorizeComponent {
     if (this.toolsetId()) {
       entity.id = this.toolsetId()
     }
-    this.toolsetService.createBuiltinToolsetInstance(this.provider(), entity)
+    this.toolsetService
+      .createBuiltinToolsetInstance(this.provider(), entity)
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (toolset) => {
           if (this.toolsetId()) {
-            this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' }, this.toolset().type)
+            this.#toastr.success(
+              'PAC.Messages.UpdatedSuccessfully',
+              { Default: 'Updated successfully' },
+              this.toolset().type
+            )
           } else {
             this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' }, toolset.type)
           }

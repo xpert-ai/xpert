@@ -1,3 +1,4 @@
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   background-color: var(--ngm-color-surface);
   @apply block relative overflow-y-auto;
@@ -10,6 +11,6 @@
 }
 
 .ngm-settings-panel__drawer-drawer {
-  --mat-toolbar-standard-height: 40px;
+  min-height: 40px;
   padding: 5px 8px;
 }

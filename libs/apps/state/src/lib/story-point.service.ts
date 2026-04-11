@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IStoryPoint } from '@metad/contracts'
+import { IStoryPoint } from '@xpert-ai/contracts'
 import { C_API_STORY_POINT } from './constants'
 
 @Injectable({

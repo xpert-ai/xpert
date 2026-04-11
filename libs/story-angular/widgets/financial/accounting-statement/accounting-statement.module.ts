@@ -1,32 +1,34 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCardModule } from '@angular/material/card'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTableModule } from '@angular/material/table'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { ComponentCoreModule } from '@metad/components/core'
-import { DensityDirective } from '@metad/ocap-angular/core'
-import { NgmSelectionModule } from '@metad/ocap-angular/selection'
-import { PlaceholderAddComponent } from '@metad/story/story'
+
+import { ComponentCoreModule } from '@xpert-ai/components/core'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmSelectionModule } from '@xpert-ai/ocap-angular/selection'
+import { PlaceholderAddComponent } from '@xpert-ai/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { AccountingStatementComponent } from './accounting-statement.component'
-
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardCardImports,
+  ZardChipsImports,
+  ZardLoaderComponent,
+  ZardMenuImports,
+  ZardTableImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @NgModule({
   imports: [
     CommonModule,
     TranslateModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatProgressSpinnerModule,
-    MatTableModule,
+    ...ZardCardImports,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardChipsImports,
+    ...ZardMenuImports,
+    ...ZardTooltipImports,
+    ZardLoaderComponent,
+    ...ZardTableImports,
 
     TranslateModule,
 

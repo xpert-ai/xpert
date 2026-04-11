@@ -3,62 +3,43 @@
 </header>
 
 <div class="flex flex-col py-4">
-  <mat-form-field appearance="fill" color="accent">
-    <mat-label>{{ 'PAC.KEY_WORDS.Users' | translate: {Default: 'Users'} }}</mat-label>
-    <mat-chip-grid #chipGrid>
-      @for (user of users; track user.id) {
-        <mat-chip-row (removed)="remove(user)">
-          @if (user.imageUrl) {
-            <img matChipAvatar src="{{user.imageUrl}}" alt="Avatar"/>
-          }
-          {{user | user}}
-          <button matChipRemove>
-            <mat-icon>cancel</mat-icon>
-          </button>
-        </mat-chip-row>
-      }
-    </mat-chip-grid>
-
-    <input
-      [placeholder]=" 'PAC.SHARED.User.NameEmail' | translate: {Default: 'Name,Email'} "
-      #userInput
-      [formControl]="searchControl"
-      [matAutocomplete]="auto"
-      [matChipInputFor]="chipGrid"
-      [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
-      (paste)="onPaste($event)"
-    >
-    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="selected($event)">
-      @for (option of users$ | async; track option.email) {
-      <mat-option [value]="option">
-        <ngm-display-behaviour class="flex-1" [option]="{
-            value: option.email,
-            label: userLabel(option)
-          }" 
-          [highlight]="searchControl.value ?? ''" />
-      </mat-option>
-      }
-    </mat-autocomplete>
+  <z-form-field appearance="fill" color="accent">
+    <z-form-label>{{ 'PAC.KEY_WORDS.Users' | translate: {Default: 'Users'} }}</z-form-label>
+    <z-tag-select
+      mode="multiple"
+      [value]="users"
+      [options]="(userOptions$ | async) ?? []"
+      [enableSuggestions]="true"
+      [searchable]="true"
+      [compareWith]="compareUsers"
+      [displayWith]="displayUser"
+      [placeholder]="'PAC.SHARED.User.NameEmail' | translate: {Default: 'Name,Email'}"
+      [clearable]="!single"
+      (valueChange)="onUsersChange($event)"
+      (zSearchTermChange)="onSearchTermChange($event)"
+    />
     @if (loading) {
-      <mat-spinner matSuffix diameter="20" />
+      <div class="flex items-center justify-end pt-2">
+        <z-loader diameter="20" />
+      </div>
     }
-  </mat-form-field>
+  </z-form-field>
 
   @if (data?.roles) {
-    <mat-radio-group [(ngModel)]="role" displayDensity="cosy">
+    <z-radio-group [(ngModel)]="role" displayDensity="cosy">
       @for (role of data.roles; track role.value) {
-        <mat-radio-button  [value]="role.value">{{role.label}}</mat-radio-button>
+        <z-radio  [value]="role.value">{{role.label}}</z-radio>
       }
-    </mat-radio-group>
+    </z-radio-group>
   }
 </div>
 
 <div class="w-full flex justify-end">
   <div ngmButtonGroup>
-    <button mat-flat-button (click)="onCancel()">
+    <button z-button zType="secondary" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial (click)="onApply()">
+    <button z-button zType="default" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

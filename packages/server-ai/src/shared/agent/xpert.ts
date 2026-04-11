@@ -13,7 +13,7 @@ import {
 	TXpertParameter,
 	TXpertTeamNode,
 	XpertAgentExecutionStatusEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import z from 'zod'

@@ -2,7 +2,6 @@ import { Component, ElementRef, Input, OnChanges, Renderer2, ViewEncapsulation }
 import { NxWatermarkOptions } from './types'
 import { WatermarkHandler } from './watermark.handler'
 
-
 @Component({
   standalone: true,
   encapsulation: ViewEncapsulation.ShadowDom,

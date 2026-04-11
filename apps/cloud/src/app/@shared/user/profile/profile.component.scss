@@ -1,5 +1,7 @@
-@use '@angular/material/core/tokens/token-utils';
 
+
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@reference "../../../../styles/tailwind-reference.css";
 $global-prefix: ngm;
 $prefix: (ngm, color);
 

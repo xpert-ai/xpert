@@ -1,4 +1,4 @@
-import { FileStorageProviderEnum, VectorTypeEnum } from '@metad/contracts'
+import { FileStorageProviderEnum, VectorTypeEnum } from '@xpert-ai/contracts'
 import {
   IAuth0Config,
   IFacebookConfig,
@@ -15,7 +15,7 @@ import {
   IDingtalkConfig,
   ILarkConfig,
   IWecomConfig
-} from '@metad/server-common'
+} from '@xpert-ai/server-common'
 
 export type LogLevel = 'verbose' | 'debug' | 'log' | 'warn' | 'error'
 
@@ -24,6 +24,10 @@ export type LogLevel = 'verbose' | 'debug' | 'log' | 'warn' | 'error'
  */
 export interface Env {
   LOG_LEVEL?: LogLevel
+  LOG_DIR?: string
+  LOG_FILE_PATH?: string
+  LOG_FILE_MAX_SIZE?: string
+  LOG_FILE_MAX_FILES?: string
   IS_DOCKER?: string
   [key: string]: string
 }

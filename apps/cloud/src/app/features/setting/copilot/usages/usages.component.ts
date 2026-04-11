@@ -1,13 +1,10 @@
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTooltipModule } from '@angular/material/tooltip'
+
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
@@ -21,7 +18,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { CommonModule } from '@angular/common'
-
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-usages',
@@ -33,9 +30,9 @@ import { CommonModule } from '@angular/common'
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    MatTooltipModule,
-    MatButtonModule,
-    MatIconModule,
+    ...ZardTooltipImports,
+    ZardButtonComponent,
+    ZardIconComponent,
     WaIntersectionObserver,
     NgmCommonModule,
     OrgAvatarComponent,
@@ -49,7 +46,7 @@ export class CopilotUsagesComponent {
   readonly _toastrService = inject(ToastrService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
-  readonly dialog = inject(MatDialog)
+  readonly dialog = inject(ZardDialogService)
   readonly translate = inject(TranslateService)
   readonly formatRelative = injectFormatRelative()
 

@@ -1,14 +1,12 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
-import { TSelectOption } from '@metad/ocap-angular/core'
+import { TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { BehaviorSubject } from 'rxjs'
@@ -26,14 +24,14 @@ import {
   StorageFileService,
   TDocumentWebOptions,
   ToastrService,
-  TRagWebResult,
+  TRagWebResult
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
 import { KnowledgeDocumentCreateStep1Component } from './step-1/step.component'
 import { KnowledgeDocumentCreateStep2Component } from './step-2/step.component'
 import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -41,19 +39,16 @@ import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
   templateUrl: './create.component.html',
   styleUrls: ['./create.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
-    MatTooltipModule,
-    MatProgressBarModule,
+    ...ZardTooltipImports,
     WaIntersectionObserver,
-
     KnowledgeDocumentCreateStep1Component,
     KnowledgeDocumentCreateStep2Component,
     KnowledgeDocumentCreateStep3Component
-  ]
+]
 })
 export class KnowledgeDocumentCreateComponent {
   eKDocumentSourceType = KDocumentSourceType
@@ -77,12 +72,14 @@ export class KnowledgeDocumentCreateComponent {
   readonly step = signal(0)
 
   // Step 1
-  readonly sourceType = model<Array<DocumentSourceProviderCategoryEnum | DocumentTypeEnum>>([KDocumentSourceType.LocalFile])
+  readonly sourceType = model<Array<DocumentSourceProviderCategoryEnum | DocumentTypeEnum>>([
+    KDocumentSourceType.LocalFile
+  ])
   readonly sourceConfig = model<any>(null)
 
   // readonly fileList = signal<TFileItem[]>([])
   readonly files = model<KnowledgeFileUploader[]>([])
-  
+
   readonly webTypes = model<TSelectOption<KDocumentWebTypeEnum>[]>([])
   readonly integration = model<IIntegration>(null)
   readonly webOptions = model<TDocumentWebOptions>(null)

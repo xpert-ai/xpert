@@ -1,13 +1,13 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
+
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
 import { ProjectCreationComponent } from '@cloud/app/@shared/project'
-import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, startWith, switchMap } from 'rxjs/operators'
@@ -16,7 +16,6 @@ import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } fro
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -24,13 +23,14 @@ import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } fro
     TranslateModule,
     NgmSearchComponent,
     NgmHighlightDirective
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-header-project',
   templateUrl: `./project.component.html`
 })
 export class ProjectSelectorComponent {
   readonly #dialog = inject(Dialog)
+  readonly navigateOnSelect = input(false)
   private _toastrService = inject(ToastrService)
   private _router = inject(Router)
   private projectService = inject(ProjectAPIService)
@@ -96,11 +96,22 @@ export class ProjectSelectorComponent {
   })
 
   routeProject(project: Partial<IProject>) {
-    this._router.navigate(['/project/'])
+    this._router.navigate(['/data/project'])
   }
 
   selectProject(project: IProject) {
+    const currentProjectId = this.store.selectedProject?.id ?? DefaultProject.id
+    const nextProjectId = project?.id ?? DefaultProject.id
+
+    if (currentProjectId === nextProjectId) {
+      return
+    }
+
     this.store.selectedProject = project
+
+    if (this.navigateOnSelect()) {
+      this._router.navigate(['/data/project'])
+    }
   }
 
   createProject() {
@@ -114,7 +125,7 @@ export class ProjectSelectorComponent {
       .subscribe({
         next: (newProject) => {
           this.store.selectedProject = newProject
-          this._router.navigate(['/project'])
+          this._router.navigate(['/data/project'])
         },
         error: (err) => {
           this._toastrService.error(err.message)

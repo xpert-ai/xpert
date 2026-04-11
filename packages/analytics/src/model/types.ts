@@ -1,4 +1,4 @@
-import { ChecklistItem } from "@metad/contracts"
+import { ChecklistItem } from "@xpert-ai/contracts"
 
 export const QUERY_QUEUE_NAME = 'model-query-queue'
 export const EVENT_SEMANTIC_MODEL_DELETED = 'semantic-model.deleted'

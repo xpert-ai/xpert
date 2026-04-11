@@ -1,10 +1,10 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, ElementRef, forwardRef, inject, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { AuthService } from '@metad/cloud/state'
-import { IUser } from '@metad/contracts'
-import { DisplayBehaviour } from '@metad/ocap-core'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
+import { AuthService } from '@xpert-ai/cloud/state'
+import { IUser } from '@xpert-ai/contracts'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -12,7 +12,7 @@ import { Store } from '../../../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
   selector: 'pac-user-change-password-form',
   templateUrl: 'change-password.component.html',
   styleUrls: ['change-password.component.scss'],

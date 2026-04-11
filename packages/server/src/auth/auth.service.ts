@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, InternalServerErro
 import { CommandBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
-import { buildQueryString } from '@metad/server-common'
+import { buildQueryString } from '@xpert-ai/server-common'
 import {
 	IAuthResponse,
 	IChangePasswordRequest,
@@ -16,9 +16,9 @@ import {
 	IUserRegistrationInput,
 	LanguagesEnum,
 	mapTranslationLanguage,
-} from '@metad/contracts'
-import { SocialAuthService } from '@metad/server-auth'
-import { environment as env, environment, IEnvironment } from '@metad/server-config'
+} from '@xpert-ai/contracts'
+import { SocialAuthService } from '@xpert-ai/server-auth'
+import { environment as env, environment, IEnvironment } from '@xpert-ai/server-config'
 import bcrypt from 'bcryptjs'
 import { StringValue } from 'ms'
 import { nanoid } from 'nanoid'
@@ -32,6 +32,7 @@ import { UserService } from '../user/user.service'
 import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
+import { OrganizationService } from '../organization'
 
 
 @Injectable()
@@ -45,6 +46,7 @@ export class AuthService extends SocialAuthService {
 	constructor(
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
+		private readonly organizationService: OrganizationService,
 		private emailService: EmailService,
 		private userOrganizationService: UserOrganizationService,
 		private readonly i18n: I18nService,
@@ -55,8 +57,9 @@ export class AuthService extends SocialAuthService {
 	}
 
 	async validateUser(email: string, password: string): Promise<any> {
+		const normalizedIdentifier = email?.trim().toLowerCase()
 		const user = await this.userService.findOneByOptions({
-			where: { email, emailVerified: true },
+			where: { email: normalizedIdentifier, emailVerified: true },
 			order: {
 				createdAt: 'DESC'
 			}
@@ -75,9 +78,13 @@ export class AuthService extends SocialAuthService {
 	 * @returns 
 	 */
 	async login(email: string, password: string): Promise<IAuthResponse | null> {
+		const normalizedIdentifier = email?.trim().toLowerCase()
 		const user = await this.userService.findOneByOptions(
 			{
-				where: [{ email, emailVerified: true }, {username: email}],
+				where: [
+					{ email: normalizedIdentifier, emailVerified: true },
+					{ username: normalizedIdentifier }
+				],
 				relations: ['role', 'role.rolePermissions', 'employee'],
 				order: {
 					createdAt: 'DESC'
@@ -263,9 +270,10 @@ export class AuthService extends SocialAuthService {
 	 * @returns {Promise<User[]>} A Promise that resolves to an array of User objects.
 	 */
 	async fetchUsers(email: IUserEmailInput['email']): Promise<User[]> {
+		const normalizedEmail = email?.trim().toLowerCase()
 		// Find users matching the criteria
 		return await this.userRepository.find({
-			where: { email },
+			where: { email: normalizedEmail },
 			relations: { tenant: true, role: true }
 		});
 	}
@@ -383,6 +391,8 @@ export class AuthService extends SocialAuthService {
 		languageCode: LanguagesEnum
 	): Promise<User> {
 		let tenant = input.user.tenant
+		const normalizedEmail = input.user.email?.trim().toLowerCase()
+		const normalizedUsername = input.user.username?.trim().toLowerCase()
 
 		if (input.createdById) {
 			const creatingUser = await this.userService.findOne(input.createdById, {
@@ -391,19 +401,22 @@ export class AuthService extends SocialAuthService {
 			tenant = creatingUser.tenant
 		}
 
+		const resolvedOrganizationId =
+			input.organizationId ?? (await this.resolveDefaultOrganizationId(tenant?.id))
+
 		
 		// Uniqueness Check
 		const where: FindOptionsWhere<User>[] = []
-		if (input.user.email) {
+		if (normalizedEmail) {
 			where.push({
 				tenantId: tenant.id,
-				email: input.user.email.toLowerCase()
+				email: normalizedEmail
 			})
 		}
-		if (input.user.username) {
+		if (normalizedUsername) {
 			where.push({
 				tenantId: tenant.id,
-				email: input.user.username.toLowerCase()
+				email: normalizedUsername
 			})
 		}
 		const exist = await this.userService.findOneOrFailByOptions({
@@ -424,8 +437,8 @@ export class AuthService extends SocialAuthService {
 		// Create User
 		const _user = await this.userService.create({
 			...input.user,
-			email: input.user.email?.toLowerCase(),
-			username: input.user.username?.toLowerCase(),
+			email: normalizedEmail,
+			username: normalizedUsername,
 			tenant,
 			...(input.password
 				? {
@@ -439,10 +452,10 @@ export class AuthService extends SocialAuthService {
 			relations: ['role', 'tenant'],
 		})
 
-		if (input.organizationId) {
+		if (resolvedOrganizationId) {
 			await this.userOrganizationService.addUserToOrganization(
 				user,
-				input.organizationId
+				resolvedOrganizationId
 			)
 		}
 
@@ -462,11 +475,28 @@ export class AuthService extends SocialAuthService {
 		this.emailService.welcomeUser(
 			user,
 			languageCode,
-			input.organizationId,
+			resolvedOrganizationId,
 			input.originalUrl
 		)
 
 		return user
+	}
+
+	private async resolveDefaultOrganizationId(tenantId?: string): Promise<string | undefined> {
+		if (!tenantId) {
+			return undefined
+		}
+
+		const organization = await this.organizationService.findOneByOptions({
+			select: ['id'],
+			where: {
+				tenantId,
+				isDefault: true,
+				isActive: true
+			}
+		})
+
+		return organization?.id
 	}
 
 	async getAuthenticatedUser(id: string, thirdPartyId?: string): Promise<User> {

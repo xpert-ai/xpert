@@ -1,4 +1,4 @@
-import { SemanticObjectMappingType } from '@metad/ocap-core'
+import { SemanticObjectMappingType } from '@xpert-ai/ocap-core'
 
 export interface IntentNavigation {
   /**

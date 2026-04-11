@@ -1,10 +1,10 @@
-import { buildChunkTree, IIntegration, IKnowledgeDocument, IKnowledgeDocumentChunk, isAudioType, isDocumentSheet, isImageType, isVideoType, KBDocumentCategoryEnum, KBDocumentStatusEnum, TRagWebOptions } from '@metad/contracts'
+import { buildChunkTree, IIntegration, IKnowledgeDocument, IKnowledgeDocumentChunk, isAudioType, isDocumentSheet, isImageType, isVideoType, KBDocumentCategoryEnum, KBDocumentStatusEnum, TRagWebOptions } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	IntegrationService,
 	ParseJsonPipe,
 	TransformInterceptor,
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import {
 	BadRequestException,
@@ -22,7 +22,7 @@ import {
 	Query,
 	UseInterceptors
 } from '@nestjs/common'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { ChunkMetadata, RequestContext } from '@xpert-ai/plugin-sdk'

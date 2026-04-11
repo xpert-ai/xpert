@@ -1,107 +1,62 @@
+@use '../@core/variables';
 @use 'sass:map';
-@use 'sass:color';
-@use '@angular/material' as mat;
-@import '../@core/variables';
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@reference "tailwindcss";
 
 @mixin color($theme) {
-  $config: mat.get-color-config($theme);
+  $config: themeCompat.m2-get-color-config($theme);
   $is-dark-theme: map.get($config, is-dark);
 
   $primary: map.get($config, 'primary');
   $accent: map.get($config, 'accent');
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
-  $fill-background:
-    mat.get-color-from-palette($foreground, base, if($is-dark-theme, 0.05, 0.02));
-  $fill-disabled-background:
-    mat.get-color-from-palette($foreground, base, if($is-dark-theme, 0.05, 0.02));
-
-  .mat-form-field-appearance-fill .mdc-text-field--filled:not(.mdc-text-field--disabled) {
-    background-color: $fill-background;
+  $fill-opacity: 0.02;
+  @if $is-dark-theme {
+    $fill-opacity: 0.05;
   }
+  $fill-background: themeCompat.m2-get-color-from-palette($foreground, base, $fill-opacity);
+  $fill-disabled-background: themeCompat.m2-get-color-from-palette($foreground, base, $fill-opacity);
 
   // a {
-  //   color: mat.get-color-from-palette($foreground, text);
+  //   color: themeCompat.m2-get-color-from-palette($foreground, text);
   //   &:hover {
-  //     color: mat.get-color-from-palette($primary, 500);
+  //     color: themeCompat.m2-get-color-from-palette($primary, 500);
   //   }
   // }
 
-  .mat-checkbox.ngm-density__compact {
+  .ngm-density__compact z-checkbox,
+  .ngm-density__compact .z-checkbox {
     font-size: 12px;
     line-height: 12px;
-    .mat-checkbox-inner-container {
+
+    .z-checkbox__control {
       height: 12px;
       width: 12px;
-      margin-right: 4px;
-    }
-    .mat-checkbox-ripple {
-      left: calc(50% - 15px);
-      top: calc(50% - 15px);
-      height: 30px;
-      width: 30px;
-    }
-    .mat-ripple-element {
-      height: 30px;
-      width: 30px;
     }
   }
-  .mat-checkbox.ngm-density__cosy {
+  .ngm-density__cosy z-checkbox,
+  .ngm-density__cosy .z-checkbox {
     font-size: 14px;
     line-height: 14px;
-    .mat-checkbox-inner-container {
+
+    .z-checkbox__control {
       height: 14px;
       width: 14px;
-      margin-right: 6px;
-    }
-    .mat-checkbox-ripple {
-      left: calc(50% - 15px);
-      top: calc(50% - 15px);
-      height: 30px;
-      width: 30px;
-    }
-  }
-
-  .mat-mdc-list.ngm-density__compact, .mat-mdc-list.ngm-density__cosy {
-    .mat-mdc-list-item.mat-mdc-list-item-with-avatar {
-      height: unset;
     }
   }
 
   // 公共样式, 需要抽取统一
   /* button */
-  .mat-button,
-  .mat-mdc-icon-button,
-  .mat-stroked-button {
-    &.mat-success {
-      color: mat.get-color-from-palette($success-palette);
-    }
-  }
+  [z-button],
+  z-button {}
 
-  .mat-mdc-icon-button {
-    .mat-icon {
+  [z-button][data-icon-only],
+  z-button[data-icon-only] {
+    .z-icon {
       // display: block;
       // margin: auto;
     }
-  }
-
-  .mat-stepper-horizontal {
-    .mat-step-icon {
-      width: 40px;
-      height: 40px;
-      border: 2px solid mat.get-color-from-palette($primary);
-      background-color: unset;
-      color: mat.get-color-from-palette($foreground, text);
-      &.mat-step-icon-selected {
-        background-color: mat.get-color-from-palette($primary);
-        color: white;
-      }
-    }
-  }
-
-  .mat-datepicker-content {
-    box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
-    border-radius: 15px;
   }
 
   pac-features {
@@ -110,14 +65,17 @@
     }
   }
 
-  .mat-mdc-menu-panel {
-    .selected.mat-menu-item {
+  .cdk-menu,
+  [z-menu-content] {
+    .selected.cdk-menu-item,
+    .selected[z-menu-item] {
       font-weight: 600;
     }
 
-    &.mat-color-accent {
-      .selected.mat-menu-item {
-        color: mat.get-color-from-palette($accent);
+    &.ngm-menu-accent {
+      .selected.cdk-menu-item,
+      .selected[z-menu-item] {
+        color: themeCompat.m2-get-color-from-palette($accent);
       }
     }
   }
@@ -130,51 +88,22 @@
     }
 
     .formly-field,
-    .mat-form-field {
+    z-form-field {
       font-size: 12px;
     }
   }
 
-  .mat-mdc-list-base.ngm-density__compact .mat-mdc-list-item {
-    height: 30px;
-    line-height: 30px;
-    font-size: 12px;
-
-    .mat-mdc-list-item-content {
-      padding: 0 6px;
-    }
-  }
-
-  .mat-mdc-list-base.ngm-density__compact .mat-mdc-list-item .mat-mdc-list-item-content > .mat-icon {
-    font-size: 16px;
-    line-height: 18px;
-    width: 18px;
-    height: 18px;
-  }
-
-  .mat-toolbar.ngm-density__compact {
-    &.mat-toolbar-row, &.mat-toolbar-single-row {
-      height: 33px;
-      padding: 0 6px;
-      font-size: 1rem;
-    }
-
-    .mat-toolbar-row {
-      padding: 0 6px;
-    }
-  }
-
-  // .mat-mdc-icon-button.mat-mdc-button-base {
-  //   &:hover:not(.mat-button-disabled):not(.cdk-menu-item) {
-  //     @apply bg-gray-400/20;
-  //   }
+  // [z-button][data-icon-only]:hover:not([disabled]):not(.cdk-menu-item) {
+  //   @apply bg-gray-400/20;
   // }
 
-  .mat-accordion.ngm-density__compact {
-    .mat-expansion-panel-header:not(.mat-expanded) {
-      height: 38px;
+  [data-slot='accordion'].ngm-density__compact,
+  .ngm-density__compact [data-slot='accordion'] {
+    [data-slot='accordion-header'][data-state='closed'] {
+      min-height: 38px;
     }
-    .mat-expansion-panel-header {
+
+    [data-slot='accordion-header'] {
       padding: 0 14px;
     }
   }
@@ -198,13 +127,13 @@
   }
 
   .metad-formly-accordion {
-    .mat-expansion-panel-header-description {
+    [data-slot='accordion-description'] {
       margin-right: 0;
     }
   }
 
   .metad-formly-expansion {
-    .mat-expansion-panel-header > .mat-content {
+    [data-slot='accordion-header-content'] {
       overflow: visible;
     }
   }
@@ -214,41 +143,42 @@
     display: block;
   }
 
-  .mat-radio-group.ngm-density__compact {
+  z-radio-group.ngm-density__compact,
+  z-radio-group[data-density='compact'] {
     --radio-size: 15px;
-    .mat-radio-container, .mat-radio-outer-circle, .mat-radio-inner-circle {
+    .z-radio__control {
       width: var(--radio-size);
       height: var(--radio-size);
     }
+    .z-radio__dot {
+      width: calc(var(--radio-size) / 2);
+      height: calc(var(--radio-size) / 2);
+    }
   }
 
-  .ngm-tree-table .mat-cell, .ngm-tree-table .mat-header-cell {
+  .ngm-tree-table td[z-table-cell],
+  .ngm-tree-table th[z-table-head] {
     white-space: nowrap;
     padding: 0 10px;
   }
 
   .ngm-entity-property {
     --icon-size: 16px;
-    .mat-icon.mat-icon-no-color {
-      opacity: .5;
-      font-size: var(--icon-size);
-      width: var(--icon-size);
-      height: var(--icon-size);
-      line-height: var(--icon-size);
-    }
   }
 
   .ngxp__container > .ngxp__arrow::before {
-    background-color: mat.get-color-from-palette($background, card);
+    background-color: themeCompat.m2-get-color-from-palette($background, card);
   }
 
   .ngm-selection-list {
-    .mat-mdc-list-option {
+    > li,
+    .ngm-cdk-option {
       @apply rounded-md;
     }
   }
   // @deprecated
-  .ngm-rounded-full.mat-mdc-button-base {
+  .ngm-rounded-full[z-button],
+  z-button.ngm-rounded-full {
     @apply rounded-full;
   }
 
@@ -263,77 +193,79 @@
       font-size: 2rem;
       text-align: center;
       transform: translate(-50%, -50%);
-      content: "" "🕛";
+      content: '' '🕛';
       animation: emoji-loader 1.2s steps(12) infinite forwards 0s;
     }
   }
 
   @keyframes emoji-loader {
     0% {
-      content: "🕐";
+      content: '🕐';
     }
     8.3% {
-      content: "🕑";
+      content: '🕑';
     }
     16.6% {
-      content: "🕒";
+      content: '🕒';
     }
     24.9% {
-      content: "🕓";
+      content: '🕓';
     }
     33.2% {
-      content: "🕔";
+      content: '🕔';
     }
     41.5% {
-      content: "🕕";
+      content: '🕕';
     }
     49.8% {
-      content: "🕖";
+      content: '🕖';
     }
     58.1% {
-      content: "🕗";
+      content: '🕗';
     }
     66.4% {
-      content: "🕘";
+      content: '🕘';
     }
     74.7% {
-      content: "🕙";
+      content: '🕙';
     }
     83.0% {
-      content: "🕚";
+      content: '🕚';
     }
     92.3% {
-      content: "🕛";
+      content: '🕛';
     }
     100% {
-      content: "🕐";
+      content: '🕐';
     }
   }
 
   .pac-copilot-chat {
     p {
-      margin: 0
+      margin: 0;
     }
 
     markdown {
       pre {
         @apply text-xs;
       }
-  
+
       table {
         border-collapse: collapse;
         width: 100%;
       }
-      
-      th, td {
-        @apply border border-gray-300 text-left;
+
+      th,
+      td {
+        @apply border border-divider-deep text-left;
         padding: 4px 8px;
       }
     }
   }
 
-  .active.mat-menu-item {
-    color: mat.get-color-from-palette($accent);
+  .active.cdk-menu-item,
+  .active[z-menu-item] {
+    color: themeCompat.m2-get-color-from-palette($accent);
     font-weight: 600;
   }
 
@@ -345,49 +277,44 @@
     }
   }
 
-  .mat-mdc-menu-panel {
-    .mat-mdc-menu-item {
+  .cdk-menu,
+  [z-menu-content] {
+    .cdk-menu-item,
+    [z-menu-item] {
       &.ngm-appearance-danger:hover {
         @apply bg-red-400 text-white;
-        .mat-icon-no-color {
-          @apply text-white;
-        }
       }
 
-      .mat-checkbox-layout {
+      z-checkbox {
         width: 100%;
-        .mat-checkbox-label {
-          flex: 1
+
+        .z-checkbox__label {
+          flex: 1;
         }
       }
     }
   }
 
   // Status bar
-  .pac-status-bar__local-agent .mat-mdc-tab-body-wrapper {
+  .pac-status-bar__local-agent .z-tab-group__content {
     @apply flex-1;
 
-    .mat-mdc-tab-body-content {
+    .z-tab-group__panel {
       @apply p-4 flex flex-col;
     }
   }
 }
 
 @mixin density($theme) {
-  .ngm-stepper.mat-stepper-vertical {
-    .mat-step-icon {
-      @apply w-10 h-10 -left-2;
-    }
-  }
 }
 
 @mixin typography($theme) {
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

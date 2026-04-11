@@ -1,25 +1,25 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
   $accent: map.get($config, accent);
 
   .pac-story-widget-tabgroup {
-    .mat-mdc-tab-body-wrapper {
+    .z-tab-group__content {
       flex: 1;
       max-height: calc(100% - 40px);
     }
-    .mat-tab-body-content {
+    .z-tab-group__panel {
       overflow: hidden;
     }
     &.editable {
       .selected {
-        border: 1px dashed map-get($accent, 500);
+        border: 1px dashed map.get($accent, 500);
       }
     }
 
@@ -38,9 +38,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

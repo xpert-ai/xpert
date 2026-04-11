@@ -1,18 +1,18 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpEventType } from '@angular/common/http'
 import { booleanAttribute, Component, effect, inject, input, output, signal } from '@angular/core'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { StorageFileService } from '@cloud/app/@core'
 import { getErrorMessage, IStorageFile } from '@cloud/app/@core/types'
-import { FileTypePipe } from '@metad/core'
-import { effectAction, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { FileTypePipe } from '@xpert-ai/core'
+import { effectAction, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 import { catchError, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
 import { FileIconComponent } from '../icon/icon.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MatProgressBarModule, FileTypePipe, FileIconComponent],
+  imports: [TranslateModule, ZardProgressBarComponent, FileTypePipe, FileIconComponent],
   selector: 'storage-file',
   templateUrl: './storage-file.component.html',
   styleUrls: ['./storage-file.component.scss'],
@@ -44,13 +44,13 @@ export class StorageFileComponent {
   constructor() {
     effect(() => {
       this.onProgress.emit(this.progress())
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.file() && this.immediately()) {
         this.upload(this.file())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   readonly upload = effectAction((file$: Observable<File>) => {

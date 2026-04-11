@@ -4,6 +4,7 @@ import {
   appendMessagePlainText,
   createMessageAppendContextTracker,
   inferMessageAppendContext,
+  mergeMessageContentForDisplay,
   resolveMessageAppendContext,
   TMessageAppendContext
 } from './message-content.utils'
@@ -61,7 +62,7 @@ describe('message-content.utils', () => {
     expect(chunks[1].text).toBe('\nB1')
   })
 
-  it('adds a line break when next text follows a closed code fence from another stream', () => {
+  it('does not insert a line break when another text stream follows a code fence', () => {
     const message = { id: 'm1', role: 'ai', content: '' } as CopilotChatMessage
 
     appendMessageContent(message, { type: 'text', id: 'stream-a', text: '```ts\nconst n = 1\n```' } as any)
@@ -69,10 +70,10 @@ describe('message-content.utils', () => {
 
     const chunks = message.content as any[]
     expect(chunks).toHaveLength(2)
-    expect(chunks[1].text).toBe('\nnext')
+    expect(chunks[1].text).toBe('next')
   })
 
-  it('separates text after component with paragraph break', () => {
+  it('does not insert a paragraph break for text after a component', () => {
     const message = { id: 'm1', role: 'ai', content: '' } as CopilotChatMessage
 
     appendMessageContent(message, { type: 'text', id: 'stream-a', text: 'intro' } as any)
@@ -85,7 +86,25 @@ describe('message-content.utils', () => {
 
     const chunks = message.content as any[]
     expect(chunks).toHaveLength(3)
-    expect(chunks[2].text).toBe('\n\nsummary')
+    expect(chunks[2].text).toBe('summary')
+  })
+
+  it('merges text chunks without ids when previous context indicates the same stream', () => {
+    const message = { id: 'm1', role: 'ai', content: '' } as CopilotChatMessage
+
+    appendMessageContent(message, { type: 'text', text: 'hello' } as any, {
+      source: 'chat_stream',
+      streamId: 'stream-a'
+    })
+    appendMessageContent(message, { type: 'text', text: ' world' } as any, {
+      previous: { source: 'chat_stream', streamId: 'stream-a' },
+      source: 'chat_stream',
+      streamId: 'stream-a'
+    })
+
+    const chunks = message.content as any[]
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0].text).toBe('hello world')
   })
 
   it('aggregates plain text output consistently with join hints', () => {
@@ -177,6 +196,68 @@ describe('message-content.utils', () => {
     expect(chunks[0].data.status).toBe('success')
     expect(chunks[0].data.output).toBe('ok')
     expect(chunks[0].data.created_date).toBe('2026-01-01T00:00:00.000Z')
+  })
+
+  it('merges text chunks by id for display across component boundaries', () => {
+    const display = mergeMessageContentForDisplay([
+      { type: 'text', id: 'stream-a', text: '```ts\nconst a = 1' } as any,
+      {
+        id: 'tool-1',
+        type: 'component',
+        data: { category: 'Tool', type: 'task', status: 'running' }
+      } as any,
+      { type: 'text', id: 'stream-a', text: '\n```' } as any
+    ])
+
+    expect(display).toHaveLength(2)
+    expect(display[0]).toEqual({
+      type: 'text',
+      id: 'stream-a',
+      text: '```ts\nconst a = 1\n```'
+    })
+    expect(display[1]).toMatchObject({
+      id: 'tool-1',
+      type: 'component'
+    })
+  })
+
+  it('reduces the auto paragraph separator when merging display text across a component boundary', () => {
+    const display = mergeMessageContentForDisplay([
+      { type: 'text', id: 'stream-a', text: '| a | b |\n| - | - |' } as any,
+      {
+        id: 'tool-1',
+        type: 'component',
+        data: { category: 'Tool', type: 'task', status: 'running' }
+      } as any,
+      { type: 'text', id: 'stream-a', text: '\n\n| 1 | 2 |' } as any
+    ])
+
+    expect(display).toHaveLength(2)
+    expect(display[0]).toEqual({
+      type: 'text',
+      id: 'stream-a',
+      text: '| a | b |\n| - | - |\n| 1 | 2 |'
+    })
+  })
+
+  it('keeps other text streams separate while merging each display block by id', () => {
+    const display = mergeMessageContentForDisplay([
+      { type: 'text', id: 'stream-a', text: '| a | b |\n| - | - |' } as any,
+      { type: 'text', id: 'stream-b', text: '\ninterruption' } as any,
+      { type: 'text', id: 'stream-a', text: '\n| 1 | 2 |' } as any
+    ])
+
+    expect(display).toHaveLength(2)
+    expect(display[0]).toEqual({
+      type: 'text',
+      id: 'stream-a',
+      text: '| a | b |\n| - | - |\n| 1 | 2 |'
+    })
+    expect(display[1]).toEqual({
+      type: 'text',
+      id: 'stream-b',
+      text: '\ninterruption'
+    })
   })
 
   it('merges reasoning chunks by id', () => {

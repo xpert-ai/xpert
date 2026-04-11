@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-agent-middlewares",
-  "version": "0.0.1",
+  "version": "0.0.2-beta.0",
   "xpert": {
     "plugin": {
       "level": "system"
@@ -10,7 +10,11 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
-    "@xpert-ai/chatkit-types": "^0.0.8",
-    "@xpert-ai/plugin-sdk": "*"
+    "@xpert-ai/contracts": "workspace:*",
+    "@nestjs/common": ">=10",
+    "@nestjs/core": ">=10",
+    "@xpert-ai/chatkit-types": "^0.0.15",
+    "@xpert-ai/plugin-sdk": "workspace:*",
+    "zod": ">=3.22.4"
   }
 }

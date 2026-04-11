@@ -1,8 +1,10 @@
-@use 'sass:map';
-@use '@angular/material' as mat;
 
+
+@use 'sass:map';
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@reference "../../../tailwind-workspace-reference.css";
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
 
@@ -17,17 +19,11 @@
 
   .pac-indicator-market__detail-container {
     --ngm-indicator-app-bottom-sheet-height: calc(100vh - 50px);
-    .mat-bottom-sheet-container {
-      display: flex;
-      background: unset;
-      padding: 0;
-      height: var(--ngm-indicator-app-bottom-sheet-height);
-      max-height: var(--ngm-indicator-app-bottom-sheet-height);
-
-      .mat-card {
-        box-shadow: unset;
-      }
-    }
+    display: flex;
+    background: unset;
+    padding: 0;
+    height: var(--ngm-indicator-app-bottom-sheet-height);
+    max-height: var(--ngm-indicator-app-bottom-sheet-height);
   }
 
   .pac-indicator-market__infinite-container.cdk-virtual-scroll-orientation-vertical
@@ -36,26 +32,6 @@
   }
 
   .pac-indicator-detail {
-    .mat-mdc-card {
-      .mat-mdc-card-header-text {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-
-        .mat-mdc-card-title {
-          @apply text-lg font-bold overflow-hidden text-ellipsis max-w-full;
-        }
-
-        .mat-mdc-card-subtitle {
-          @apply text-base overflow-hidden text-ellipsis max-w-full mb-2;
-        }
-      }
-    }
-
     .ngm-analytical-card {
       .ngm-card-header {
         white-space: nowrap;
@@ -78,22 +54,8 @@ $density-cosy: 12px;
         padding: 0 $density-cosy;
       }
     }
-
-    pac-indicator-detail {
-      .mat-mdc-card {
-        .mat-mdc-card-header-text {
-          .mat-mdc-card-title {
-            margin: 0;
-          }
-          .mat-mdc-card-subtitle {
-            margin: 0;
-          }
-        }
-      }
-    }
-
     .pac-indicator-market__infinite-container {
-      .mat-mdc-list-item {
+      .pac-indicator-list__item {
         --mdc-list-list-item-one-line-container-height: 70px;
         padding: $density-cosy 0;
         border-radius: $density-cosy;
@@ -107,19 +69,12 @@ $density-cosy: 12px;
     }
   }
 
-  pac-indicator-detail {
-    .mat-mdc-card {
-      .mat-mdc-card-header-text {
-        margin: 0;
-      }
-    }
-  }
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

@@ -17,8 +17,8 @@ import {
     TXpertParameter,
     WorkflowNodeTypeEnum,
     XpertParameterTypeEnum
-} from '@metad/contracts'
-import { omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
@@ -195,6 +195,22 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                         description: {
                             en_US: 'Common Times',
                             zh_Hans: '常用时间'
+                        }
+                    },
+                    {
+                        name: 'soul',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Assistant soul',
+                            zh_Hans: '助手灵魂'
+                        }
+                    },
+                    {
+                        name: 'profile',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'User profile',
+                            zh_Hans: '用户档案'
                         }
                     },
                     {

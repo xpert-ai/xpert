@@ -1,35 +1,34 @@
-import { CommonModule } from '@angular/common'
-import { Component, Inject, inject } from '@angular/core'
+
+import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ToastrService } from '@metad/cloud/state'
-import { NgmInputComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
+
+import { ToastrService } from '@xpert-ai/cloud/state'
+import { NgmInputComponent } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AuthInfoType } from '../types'
+import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatCheckboxModule,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
     TranslateModule,
-
     ButtonGroupDirective,
     OcapCoreModule,
     NgmInputComponent
-  ],
+],
   selector: 'bottom-sheet-basic',
   templateUrl: 'bottom-sheet-basic.component.html'
 })
 export class BottomSheetBasicAuthComponent {
   readonly #formBuilder = inject(FormBuilder)
   readonly #translate = inject(TranslateService)
+  readonly data = inject<{ name: string; ping: (auth: AuthInfoType) => Promise<any> }>(Z_SHEET_DATA)
+  readonly #sheetRef = inject(ZardSheetRef<BottomSheetBasicAuthComponent, AuthInfoType | undefined>)
 
   form = this.#formBuilder.group<AuthInfoType>({
     username: '',
@@ -37,23 +36,20 @@ export class BottomSheetBasicAuthComponent {
     remeberMe: true
   })
 
-  constructor(
-    @Inject(MAT_BOTTOM_SHEET_DATA)
-    public data: { name: string; ping: (auth: AuthInfoType) => Promise<any> },
-    private _bottomSheetRef: MatBottomSheetRef<BottomSheetBasicAuthComponent>,
-    private toastrService: ToastrService
-  ) {}
+  constructor(private toastrService: ToastrService) {}
 
   async onSubmit() {
     try {
       await this.data.ping({ ...this.form.value } as AuthInfoType)
-      this._bottomSheetRef.dismiss(this.form.value)
+      this.#sheetRef.close(this.form.value as AuthInfoType)
     } catch (err) {
-      this.toastrService.error(this.#translate.instant('PAC.MESSAGE.UserAuthenticationFailure', {Default: 'User authentication failure'}))
+      this.toastrService.error(
+        this.#translate.instant('PAC.MESSAGE.UserAuthenticationFailure', { Default: 'User authentication failure' })
+      )
     }
   }
 
   onCancel() {
-    this._bottomSheetRef.dismiss()
+    this.#sheetRef.close()
   }
 }

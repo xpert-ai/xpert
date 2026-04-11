@@ -1,4 +1,4 @@
-import { TFile } from '@metad/contracts'
+import { TFile } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**

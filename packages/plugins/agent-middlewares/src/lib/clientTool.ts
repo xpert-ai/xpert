@@ -6,7 +6,7 @@ import { tool } from '@langchain/core/tools'
 import { CallbackManager, type Callbacks } from '@langchain/core/callbacks/manager'
 import type { Serialized } from '@langchain/core/load/serializable'
 import { interrupt } from '@langchain/langgraph'
-import { TAgentMiddlewareMeta } from '@metad/contracts'
+import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   AgentMiddleware,
@@ -16,7 +16,7 @@ import {
   JsonSchemaValidator,
   PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
-import { ClientToolMessageInput, ClientToolRequest, ClientToolResponse } from '@xpert-ai/chatkit-types'
+import type { ClientToolMessageInput, ClientToolRequest, ClientToolResponse } from '@xpert-ai/chatkit-types'
 
 const contextSchema = z.object({
   /**

@@ -1,41 +1,37 @@
+@reference "../../../tailwind-workspace-reference.css";
 :host {
   @apply relative flex flex-col items-stretch min-w-[100px] w-full;
 }
-.mat-mdc-input-element {
-  @apply block w-full max-w-full box-border px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-700;
+
+.pac-formly-select__control {
+  @apply w-full;
 }
-.mat-mdc-select {
-  @apply text-xs;
+
+.pac-formly-select__control--error {
+  [role='combobox'] {
+    border-color: var(--destructive);
+  }
 }
+
+.pac-formly-select__viewport {
+  .cdk-virtual-scroll-content-wrapper {
+    max-width: 100%;
+  }
+}
+
 ::ng-deep {
   formly-field {
-    .pac-formly-select [ngmsuffix] {
-      .mat-mdc-progress-spinner {
+    .pac-formly-select .pac-formly-select__suffix {
+      z-loader {
         @apply hidden;
       }
     }
 
     &.formly-loader {
-      .pac-formly-select [ngmsuffix] {
-        .mat-mdc-progress-spinner {
+      .pac-formly-select .pac-formly-select__suffix {
+        z-loader {
           @apply block;
         }
-      }
-    }
-  }
-
-  .mat-autocomplete-panel.pac-formly-select__autocomplete {
-    @apply mt-2;
-  }
-  .cdk-overlay-pane.mat-autocomplete-panel-above {
-    .mat-autocomplete-panel.pac-formly-select__autocomplete {
-      @apply mb-2;
-    }
-  }
-  .pac-formly-select {
-    .mat-mdc-select {
-      .mat-mdc-select-arrow-wrapper {
-        height: unset;
       }
     }
   }

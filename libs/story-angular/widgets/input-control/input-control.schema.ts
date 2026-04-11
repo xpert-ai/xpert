@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { PropertyCapacity } from '@metad/ocap-angular/entity'
+import { NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import {
   CubeParameterEnum,
   FilterSelectionType,
@@ -9,8 +9,8 @@ import {
   MemberSource,
   ParameterProperty,
   Property
-} from '@metad/ocap-core'
-import { FilterControlType } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { FilterControlType } from '@xpert-ai/story/core'
 import {
   AccordionWrappers,
   ColorOptions,
@@ -21,7 +21,7 @@ import {
   FORMLY_W_FULL,
   hierarchyAttributes,
   SelectionType
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { combineLatest, distinctUntilChanged, map, startWith, withLatestFrom } from 'rxjs'
 import { determineControlType } from './types'

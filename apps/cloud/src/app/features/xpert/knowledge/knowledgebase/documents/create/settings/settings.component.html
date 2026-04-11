@@ -2,29 +2,42 @@
   <div class="grow max-w-[40%] flex flex-col px-8 py-4 overflow-auto">
     @if (onlySheet()) {
       <div class="flex px-4 py-2 font-body bg-yellow-50 border border-yellow-200 rounded-xl mb-4 text-text-secondary">
-        {{ 'PAC.Knowledgebase.OnlyIndexedFields' | translate: {Default: 'Only indexed fields can be searched, other full fields are displayed in metadata.'} }}
+        {{
+          'PAC.Knowledgebase.OnlyIndexedFields'
+            | translate
+              : { Default: 'Only indexed fields can be searched, other full fields are displayed in metadata.' }
+        }}
       </div>
     } @else {
       <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
         <div class="flex-1">
-          <span>{{ 'PAC.Knowledgebase.TransformerSettings' | translate: {Default: 'Transformer Settings'} }}</span>
+          <span>{{ 'PAC.Knowledgebase.TransformerSettings' | translate: { Default: 'Transformer Settings' } }}</span>
 
-          <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [matTooltip]=" 'PAC.Knowledgebase.TransformerSettingsDesc' | translate: {Default: 'Configure the document transformer to extract the file content.'} "
-            matTooltipPosition="above"></i>
+          <i
+            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+            [zTooltip]="
+              'PAC.Knowledgebase.TransformerSettingsDesc'
+                | translate: { Default: 'Configure the document transformer to extract the file content.' }
+            "
+            zPosition="top"
+          ></i>
         </div>
 
         @if (transformerStrategy()?.meta.helpUrl; as helpUrl) {
-          <a [href]="helpUrl"
+          <a
+            [href]="helpUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
-            {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
+          >
+            {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
             <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
             <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
           </a>
         }
-        <ngm-select class="flex-1 w-52" [placeholder]=" 'PAC.Knowledgebase.SelectTransformer' | translate: {Default: 'Select a transformer'} "
+        <ngm-select
+          class="flex-1 w-52"
+          [placeholder]="'PAC.Knowledgebase.SelectTransformer' | translate: { Default: 'Select a transformer' }"
           [(ngModel)]="transformerType"
           [selectOptions]="documentTransformerStrategies()"
         >
@@ -40,7 +53,12 @@
               }
               <div class="flex flex-col gap-1">
                 <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
-                <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+                <div
+                  class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
+                  [title]="option.description | i18n"
+                >
+                  {{ option.description | i18n }}
+                </div>
               </div>
             </div>
           </ng-template>
@@ -50,7 +68,9 @@
       <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
         <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
           <div class="flex justify-center items-center">
-            <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+            <div
+              class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
+            >
               @if (transformerStrategy()?.meta.icon; as icon) {
                 <xp-icon class="!flex w-8 h-8 shrink-0 justify-center items-center" [icon]="icon" />
               } @else {
@@ -58,25 +78,36 @@
               }
             </div>
           </div>
-          
+
           @if (transformerStrategy(); as transformerStrategy) {
             <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
               <div class="text-text-secondary system-md-semibold">
                 {{ transformerStrategy.meta.label | i18n }}
               </div>
-              <div class="text-text-tertiary system-xs-regular truncate" [title]="transformerStrategy.meta.description | i18n">
+              <div
+                class="text-text-tertiary system-xs-regular truncate"
+                [title]="transformerStrategy.meta.description | i18n"
+              >
                 {{ transformerStrategy.meta.description | i18n }}
               </div>
             </div>
 
             @if (transformerIntegration(); as integration) {
               <div class="w-48 shrink-0">
-                <xp-integration-select class="grow" [placeholder]="'PAC.Knowledgebase.NoIntegrationUseEnv' | translate: {Default: 'Default environment configuration will be used'}"
-                  [provider]="transformerIntegrationProvider()" [(ngModel)]="transformerIntegrationId">
+                <xp-integration-select
+                  class="grow"
+                  [placeholder]="
+                    'PAC.Knowledgebase.NoIntegrationUseEnv'
+                      | translate: { Default: 'Default environment configuration will be used' }
+                  "
+                  [provider]="transformerIntegrationProvider()"
+                  [(ngModel)]="transformerIntegrationId"
+                >
                   @if (transformerIntegrationId()) {
-                    <div icon class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm
-                    bg-green-500 border-green-600 shadow-green-300 mr-1.5">
-                    </div>
+                    <div
+                      icon
+                      class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm bg-green-500 border-green-600 shadow-green-300 mr-1.5"
+                    ></div>
                   }
                 </xp-integration-select>
               </div>
@@ -85,7 +116,9 @@
         </div>
         <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
           @if (transformerConfigSchema(); as transformerConfigSchema) {
-            <json-schema-form class="grid grid-cols-2 gap-2" [schema]="transformerConfigSchema" 
+            <json-schema-form
+              class="grid grid-cols-2 gap-2"
+              [schema]="transformerConfigSchema"
               [(ngModel)]="transformer"
             />
           }
@@ -97,24 +130,33 @@
       <div class="system-md-semibold mb-1 flex justify-between items-center">
         <div class="flex-1">
           <span>
-            {{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}
+            {{ 'PAC.Knowledgebase.ChunkSettings' | translate: { Default: 'Chunk Settings' } }}
           </span>
-          <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [matTooltip]=" 'PAC.Knowledgebase.ChunkSettingsDesc' | translate: {Default: 'Configure text chunking mode.'} "
-            matTooltipPosition="above"></i>
+          <i
+            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+            [zTooltip]="'PAC.Knowledgebase.ChunkSettingsDesc' | translate: { Default: 'Configure text chunking mode.' }"
+            zPosition="top"
+          ></i>
         </div>
 
         @if (textSplitterStrategy()?.helpUrl; as helpUrl) {
-          <a [href]="helpUrl"
+          <a
+            [href]="helpUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
-            {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
+          >
+            {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
             <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
             <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
           </a>
         }
-        <ngm-select class="w-52" [(ngModel)]="textSplitterType" [selectOptions]="textSplitterStrategies()" [nullable]="false">
+        <ngm-select
+          class="w-52"
+          [(ngModel)]="textSplitterType"
+          [selectOptions]="textSplitterStrategies()"
+          [nullable]="false"
+        >
           <div icon>
             @if (textSplitterStrategy()?.icon; as icon) {
               <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
@@ -127,7 +169,12 @@
               }
               <div class="flex flex-col gap-1">
                 <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
-                <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+                <div
+                  class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
+                  [title]="option.description | i18n"
+                >
+                  {{ option.description | i18n }}
+                </div>
               </div>
             </div>
           </ng-template>
@@ -138,16 +185,21 @@
         @if (textSplitterStrategy(); as textSplitterStrategy) {
           <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer">
             <div class="px-2 flex justify-center items-center">
-              <div class="w-8 h-8 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+              <div
+                class="w-8 h-8 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
+              >
                 <i class="ri-equalizer-3-line"></i>
               </div>
             </div>
-            
+
             <div class="flex-1 space-y-0.5 py-3 pr-4 overflow-hidden">
               <div class="text-text-secondary system-md-semibold">
                 {{ textSplitterStrategy.label | i18n }}
               </div>
-              <div class="text-text-tertiary system-xs-regular truncate" [title]="textSplitterStrategy.description | i18n">
+              <div
+                class="text-text-tertiary system-xs-regular truncate"
+                [title]="textSplitterStrategy.description | i18n"
+              >
                 {{ textSplitterStrategy.description | i18n }}
               </div>
             </div>
@@ -155,7 +207,9 @@
         }
         <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
           <div class="flex flex-col gap-y-4">
-            <json-schema-form class="grid grid-cols-2 gap-2" [schema]="textSplitterConfigSchema()" 
+            <json-schema-form
+              class="grid grid-cols-2 gap-2"
+              [schema]="textSplitterConfigSchema()"
               [ngModel]="textSplitter()"
               (ngModelChange)="textSplitter.set($event)"
             />
@@ -167,26 +221,38 @@
 
       <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
         <div class="flex-1">
-          <ngm-slide-toggle class="inline-flex items-center mr-1"
-            [(ngModel)]="enableImageUnderstanding" />
-          <span>{{ 'PAC.Knowledgebase.ImageUnderstanding' | translate: {Default: 'Image Understanding'} }}</span>
+          <z-switch class="inline-flex items-center mr-1" [(ngModel)]="enableImageUnderstanding" />
+          <span>{{ 'PAC.Knowledgebase.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}</span>
 
-          <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [matTooltip]=" 'PAC.Knowledgebase.ImageUnderstandingDesc' | translate: {Default: 'Extract text and metadata from images using OCR and image recognition technologies.'} "
-            matTooltipPosition="above"></i>
+          <i
+            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+            [zTooltip]="
+              'PAC.Knowledgebase.ImageUnderstandingDesc'
+                | translate
+                  : { Default: 'Extract text and metadata from images using OCR and image recognition technologies.' }
+            "
+            zPosition="top"
+          ></i>
         </div>
 
         @if (imageUnderstandingStrategy()?.meta.helpUrl; as helpUrl) {
-          <a [href]="helpUrl"
+          <a
+            [href]="helpUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
-            {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
+          >
+            {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
             <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
             <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
           </a>
         }
-        <ngm-select class="flex-1 w-52" [placeholder]=" 'PAC.Knowledgebase.SelectImageUnderstandingTool' | translate: {Default: 'Select a image understanding tool'} "
+        <ngm-select
+          class="flex-1 w-52"
+          [placeholder]="
+            'PAC.Knowledgebase.SelectImageUnderstandingTool'
+              | translate: { Default: 'Select a image understanding tool' }
+          "
           [(ngModel)]="imageUnderstandingType"
           [disabled]="!enableImageUnderstanding()"
           [selectOptions]="imageUnderstandingStrategies()"
@@ -203,7 +269,12 @@
               }
               <div class="flex flex-col gap-1">
                 <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
-                <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+                <div
+                  class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
+                  [title]="option.description | i18n"
+                >
+                  {{ option.description | i18n }}
+                </div>
               </div>
             </div>
           </ng-template>
@@ -214,7 +285,9 @@
         <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
           <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
             <div class="flex justify-center items-center">
-              <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+              <div
+                class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
+              >
                 @if (imageUnderstandingStrategy()?.meta.icon; as icon) {
                   <xp-icon class="!flex w-8 h-8 shrink-0 justify-center items-center" [icon]="icon" />
                 } @else {
@@ -222,25 +295,35 @@
                 }
               </div>
             </div>
-            
+
             @if (imageUnderstandingStrategy(); as imageUnderstandingStrategy) {
               <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
                 <div class="text-text-secondary system-md-semibold">
                   {{ imageUnderstandingStrategy.meta.label | i18n }}
                 </div>
-                <div class="text-text-tertiary system-xs-regular truncate" [title]="imageUnderstandingStrategy.meta.description | i18n">
+                <div
+                  class="text-text-tertiary system-xs-regular truncate"
+                  [title]="imageUnderstandingStrategy.meta.description | i18n"
+                >
                   {{ imageUnderstandingStrategy.meta.description | i18n }}
                 </div>
               </div>
 
               @if (imageUnderstandingIntegration(); as integration) {
                 <div class="w-48 shrink-0">
-                  <xp-integration-select class="grow" [placeholder]="'PAC.Knowledgebase.NoIntegrationUseEnv' | translate: {Default: 'Default environment configuration will be used'}"
-                    [provider]="imageUnderstandingIntegrationProvider()" [(ngModel)]="imageUnderstandingIntegrationId">
+                  <xp-integration-select
+                    class="grow"
+                    [placeholder]="
+                      'PAC.Knowledgebase.NoIntegrationUseEnv'
+                        | translate: { Default: 'Default environment configuration will be used' }
+                    "
+                    [provider]="imageUnderstandingIntegrationProvider()"
+                    [(ngModel)]="imageUnderstandingIntegrationId"
+                  >
                     @if (imageUnderstandingIntegrationId()) {
-                      <div class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm
-                      bg-green-500 border-green-600 shadow-green-300 mr-1.5">
-                      </div>
+                      <div
+                        class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm bg-green-500 border-green-600 shadow-green-300 mr-1.5"
+                      ></div>
                     }
                   </xp-integration-select>
                 </div>
@@ -251,34 +334,44 @@
             @if (requireVisionModel()) {
               <div>
                 <div>
-                  {{ 'PAC.Pipeline.VisionModel' | translate: {Default: 'Vision Model'} }}
+                  {{ 'PAC.Pipeline.VisionModel' | translate: { Default: 'Vision Model' } }}
                   <span class="text-text-destructive">*</span>
                 </div>
-                <copilot-model-select hiddenLabel [modelType]="eModelType.LLM" [features]="[eModelFeature.VISION]"
+                <copilot-model-select
+                  hiddenLabel
+                  [modelType]="eModelType.LLM"
+                  [features]="[eModelFeature.VISION]"
                   [(ngModel)]="imageUnderstandingModel"
                   [inheritModel]="kbVisionModel()"
                 />
               </div>
             }
             @if (imageUnderstandingConfigSchema(); as imageUnderstandingConfigSchema) {
-              <json-schema-form class="grid grid-cols-2 gap-2" [schema]="imageUnderstandingConfigSchema" 
+              <json-schema-form
+                class="grid grid-cols-2 gap-2"
+                [schema]="imageUnderstandingConfigSchema"
                 [(ngModel)]="imageUnderstanding"
               />
             }
           </div>
         </div>
       }
-      
+
       <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
 
       <div class="system-md-semibold mb-1 flex justify-between items-center">
         <div class="flex-1">
           <span>
-            {{ 'PAC.Knowledgebase.TextPreprocessingRules' | translate: {Default: 'Text preprocessing rules'} }}
+            {{ 'PAC.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
           </span>
-          <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [matTooltip]=" 'PAC.Knowledgebase.TextPreprocessingRulesDesc' | translate: {Default: 'Configure text processing rules.'} "
-            matTooltipPosition="above"></i>
+          <i
+            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+            [zTooltip]="
+              'PAC.Knowledgebase.TextPreprocessingRulesDesc'
+                | translate: { Default: 'Configure text processing rules.' }
+            "
+            zPosition="top"
+          ></i>
         </div>
       </div>
 
@@ -301,43 +394,57 @@
           </div>
         </div> -->
         <div class="mt-1">
-          <ngm-checkbox [label]="'PAC.Knowledgebase.ReplaceWhiteChar' | translate: {Default: 'Replace consecutive spaces, newlines, and tabs'} " class="mb-4"
-            [(ngModel)]="replaceWhitespace" />
-          <ngm-checkbox [label]="'PAC.Knowledgebase.RemoveEmailUrls' | translate: {Default: 'Remove all URLs and email addresses'}" class="mb-2"
+          <ngm-checkbox
+            [label]="
+              'PAC.Knowledgebase.ReplaceWhiteChar'
+                | translate: { Default: 'Replace consecutive spaces, newlines, and tabs' }
+            "
+            class="mb-4"
+            [(ngModel)]="replaceWhitespace"
+          />
+          <ngm-checkbox
+            [label]="
+              'PAC.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' }
+            "
+            class="mb-2"
             [(ngModel)]="removeSensitive"
           />
         </div>
       </div>
 
       <div class="flex justify-end gap-2 mt-4">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium"
-          (click)="onPreview()">
+        <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium" (click)="onPreview()">
           <i class="ri-search-eye-line"></i>
-          {{ 'PAC.Knowledgebase.PreviewChunk' | translate: {Default: 'Preview Chunk'} }}
+          {{ 'PAC.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
         </button>
       </div>
     }
     <ng-content select="[actions]"></ng-content>
   </div>
 
-  <div class="grow max-w-[60%] relative flex flex-col pl-4 border-l border-y border-solid border-divider-regular rounded-xl">
+  <div
+    class="grow max-w-[60%] relative flex flex-col pl-4 border-l border-y border-solid border-divider-regular rounded-xl"
+  >
     <header class="py-2 pr-4 border-b border-divider-subtle">
-      <div class="">
+      <div>
         <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">
-          {{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}
+          {{ 'PAC.Knowledgebase.Preview' | translate: { Default: 'Preview' } }}
         </div>
         <div class="flex items-center gap-1">
-          <div class="flex items-center h-6 px-1 rounded-md hover:bg-state-base-hover select-none text-text-secondary"
+          <div
+            class="flex items-center h-6 px-1 rounded-md hover:bg-state-base-hover select-none text-text-secondary"
             [cdkMenuTriggerFor]="docsMenu"
           >
             <div class="flex items-center space-x-0.5 font-body text-sm text-text-secondary hover:text-text-primary">
-          <!-- @else if(selectedWebDoc()) {
+              <!-- @else if(selectedWebDoc()) {
                 <div>{{selectedWebDoc().metadata.title}}</div>
               } -->
               @if (selectedDocument(); as doc) {
                 <knowledge-doc-id [doc]="doc" />
               } @else {
-                <div>{{ 'PAC.Knowledgebase.SelectFilePreview' | translate: {Default: 'Select file to preview'} }}</div>
+                <div>
+                  {{ 'PAC.Knowledgebase.SelectFilePreview' | translate: { Default: 'Select file to preview' } }}
+                </div>
               }
               <i class="ri-arrow-down-s-line"></i>
             </div>
@@ -348,10 +455,11 @@
             </div>
           } -->
 
-          <i class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
+          <i
+            class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
             [class.!text-primary-500]="preview()"
-            [matTooltip]="'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'}"
-            matTooltipPosition="above"
+            [zTooltip]="'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
+            zPosition="top"
             (click)="toggleAllPreview()"
           ></i>
         </div>
@@ -359,8 +467,9 @@
     </header>
 
     @if (selectedDocument()) {
-      <xp-knowledge-document-preview class="pb-4 w-full grow space-y-6" 
-        [(document)]="selectedDocument" 
+      <xp-knowledge-document-preview
+        class="pb-4 w-full grow space-y-6"
+        [(document)]="selectedDocument"
         [parserConfig]="parserConfig()"
         [preview]="preview()"
       />
@@ -375,7 +484,7 @@
 <ng-template #docsMenu>
   <div cdkMenu class="cdk-menu__medium">
     @for (doc of documents(); track doc; let i = $index) {
-      <div cdkMenuItem (click)="selectedDocIndex.set(i);">
+      <div cdkMenuItem (click)="selectedDocIndex.set(i)">
         <div class="w-full flex flex-col items-start">
           <div>{{ doc.metadata.title }}</div>
           <div class="text-xs text-text-secondary">{{ doc.metadata.url }}</div>

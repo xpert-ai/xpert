@@ -1,4 +1,4 @@
-import { cloneValue } from "@metad/core";
+import { cloneValue } from "@xpert-ai/core";
 import { IStoryToolbarResourceStrings, StoryToolbarResourceStringsEN } from "./story-toolbar-resources";
 
 export interface IResourceStrings extends IStoryToolbarResourceStrings { }

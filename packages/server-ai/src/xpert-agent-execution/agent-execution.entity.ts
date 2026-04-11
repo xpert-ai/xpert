@@ -7,8 +7,8 @@ import {
 	TXpertTeamNodeType,
 	WorkflowNodeTypeEnum,
 	XpertAgentExecutionStatusEnum,
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum, IsObject } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
@@ -20,13 +20,13 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ default: 'agent' })
+	@Column({ type: 'varchar', default: 'agent' })
 	category: TXpertTeamNodeType
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type?: WorkflowNodeTypeEnum | string
 	
 	@ApiPropertyOptional({ type: () => Object })
@@ -68,7 +68,7 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiProperty({ type: () => String, enum: XpertAgentExecutionStatusEnum })
 	@IsEnum(XpertAgentExecutionStatusEnum)
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status?: XpertAgentExecutionStatusEnum
 
 	@ApiPropertyOptional({ type: () => String })

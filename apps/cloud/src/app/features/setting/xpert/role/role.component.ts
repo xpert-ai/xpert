@@ -2,14 +2,14 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { Component, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayBehaviour, nonBlank } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour, nonBlank } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs'
 import {
+import { ZardDialogService } from '@xpert-ai/headless-ui'
   getErrorMessage,
   IKnowledgebase,
   IXpertRole,
@@ -24,8 +24,8 @@ import { KnowledgebaseListComponent, ToolsetListComponent } from '../../../../@s
 import { XpertRolesComponent } from '../roles/roles.component'
 import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
 import { AvatarEditorComponent } from 'apps/cloud/src/app/@shared/files'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -35,11 +35,12 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
   imports: [
     RouterModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     CdkListboxModule,
     FormsModule,
     ReactiveFormsModule,
     NgmCommonModule,
+    ZardLoaderComponent,
     AvatarEditorComponent,
     KnowledgebaseListComponent,
     ToolsetListComponent
@@ -55,7 +56,7 @@ export class XpertRoleComponent extends UpsertEntityComponent<IXpertRole> {
   readonly _toastrService = inject(ToastrService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly dialog = inject(MatDialog)
+  readonly dialog = inject(ZardDialogService)
   readonly fb = inject(FormBuilder)
   readonly paramId = injectParams('id')
 
@@ -139,8 +140,7 @@ export class XpertRoleComponent extends UpsertEntityComponent<IXpertRole> {
         }
         this.formGroup.markAsPristine()
         this.loading.set(false)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

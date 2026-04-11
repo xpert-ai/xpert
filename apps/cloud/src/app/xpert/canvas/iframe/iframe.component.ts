@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { TChatMessageStep, TFile } from '@cloud/app/@core'
@@ -7,7 +7,7 @@ import { XpertHomeService } from '../../home.service'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   selector: 'chat-canvas-iframe',
   templateUrl: './iframe.component.html',
   styleUrl: 'iframe.component.scss',

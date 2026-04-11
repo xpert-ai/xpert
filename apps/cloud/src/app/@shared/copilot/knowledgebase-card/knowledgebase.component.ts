@@ -1,23 +1,22 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IKnowledgebase } from '../../../@core/types'
 import { EmojiAvatarComponent } from '../../avatar'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ButtonGroupDirective,
     EmojiAvatarComponent
-  ],
+],
   selector: 'pac-knowledgebase-card',
   templateUrl: 'knowledgebase.component.html',
   styleUrls: ['knowledgebase.component.scss']

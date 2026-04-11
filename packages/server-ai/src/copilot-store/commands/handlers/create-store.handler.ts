@@ -1,5 +1,5 @@
 import { BaseStore } from '@langchain/langgraph'
-import { DATABASE_POOL_TOKEN, RequestContext } from '@metad/server-core'
+import { DATABASE_POOL_TOKEN, RequestContext } from '@xpert-ai/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Pool } from 'pg'

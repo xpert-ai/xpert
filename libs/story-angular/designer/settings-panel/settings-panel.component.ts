@@ -1,5 +1,6 @@
 import { BooleanInput, coerceBooleanProperty } from '@angular/cdk/coercion'
-import { ComponentPortal } from '@angular/cdk/portal'
+import { ComponentPortal, PortalModule } from '@angular/cdk/portal'
+import { CommonModule } from '@angular/common'
 import {
   ChangeDetectorRef,
   Component,
@@ -7,7 +8,6 @@ import {
   Input,
   OnChanges,
   SimpleChanges,
-  ViewChild,
   ViewContainerRef,
   computed,
   effect,
@@ -16,16 +16,28 @@ import {
   signal
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatTabGroup } from '@angular/material/tabs'
-import { nonNullable } from '@metad/core'
+
+import { nonNullable } from '@xpert-ai/core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, filter, map } from 'rxjs/operators'
 import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE, STORY_DESIGNER_SCHEMA } from '../types'
 import { NxSettingsPanelService } from './settings-panel.service'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
+  standalone: true,
   selector: 'ngm-settings-panel',
   templateUrl: './settings-panel.component.html',
   styleUrls: ['./settings-panel.component.scss'],
+  imports: [
+    CommonModule,
+    PortalModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardTooltipImports,
+    TranslateModule,
+    OcapCoreModule
+  ],
   host: {
     class: 'ngm-settings-panel'
   }
@@ -47,8 +59,6 @@ export class NgmSettingsPanelComponent implements OnChanges {
     this.settingsService.liveMode = this._liveMode
   }
   private _liveMode = false
-
-  @ViewChild('tabGroup') tabGroup: MatTabGroup
 
   settingsPortal: ComponentPortal<unknown>
 
@@ -198,8 +208,7 @@ export class NgmSettingsPanelComponent implements OnChanges {
     effect(
       () => {
         this.opened.set(this.editable())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -219,10 +228,6 @@ export class NgmSettingsPanelComponent implements OnChanges {
   submitDrawer() {
     this.settingsService.drawerSubmit$.next(false)
     this.closeDrawer()
-  }
-
-  onResize() {
-    this.tabGroup?.realignInkBar()
   }
 
   remove() {

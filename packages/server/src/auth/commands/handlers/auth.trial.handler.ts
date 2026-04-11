@@ -1,4 +1,4 @@
-import { CurrenciesEnum, DEFAULT_TENANT, DefaultValueDateTypeEnum, IOrganizationCreateInput, IUser, RolesEnum } from '@metad/contracts'
+import { CurrenciesEnum, DEFAULT_TENANT, DefaultValueDateTypeEnum, IOrganizationCreateInput, IUser, RolesEnum } from '@xpert-ai/contracts'
 import { ConflictException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from 'eventemitter2'

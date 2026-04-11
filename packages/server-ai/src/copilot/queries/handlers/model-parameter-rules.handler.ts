@@ -12,7 +12,7 @@ export class ModelParameterRulesHandler implements IQueryHandler<ModelParameterR
 	public async execute(command: ModelParameterRulesQuery): Promise<any[]> {
 		const { provider, modelType, model } = command
 
-		const modelProvider = this.providersService.getProvider(provider)
+		const modelProvider = this.providersService.getProvider(provider, true)
 
 		return modelProvider.getModelManager(modelType)?.getParameterRules(model, null)
 	}

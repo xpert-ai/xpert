@@ -7,13 +7,11 @@
 
 <div class="flex justify-start">
   <div ngmButtonGroup>
-    <button mat-stroked-button displayDensity="cosy" color="accent" [disabled]="isValidated()"
-      (click)="validateSmtp()">
+    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" displayDensity="cosy" [disabled]="isValidated()" (click)="validateSmtp()">
       {{ 'PAC.ACTIONS.Validate' | translate: {Default: 'Validate'} }}
     </button>
   
-    <button mat-raised-button displayDensity="cosy" color="primary" [disabled]="!isValidated() || form.invalid || form.pristine"
-      (click)="onSubmit()">
+    <button z-button zType="default" displayDensity="cosy" [disabled]="!isValidated() || form.invalid || form.pristine" (click)="onSubmit()">
       {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
     </button>
   </div>

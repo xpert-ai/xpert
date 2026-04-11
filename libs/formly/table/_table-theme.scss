@@ -1,0 +1,23 @@
+@use 'sass:map';
+@reference "../../../tailwind-workspace-reference.css";
+@mixin color($config-or-theme) {
+  .pac-formly-table {
+    width: 100%;
+    display: block;
+    max-width: 100%;
+  }
+}
+
+@mixin density($config-or-theme) {
+  .pac-formly-table {
+    .ngm-formly__title {
+      @apply my-2;
+    }
+
+    th,
+    td {
+      white-space: nowrap;
+      padding: 0 5px;
+    }
+  }
+}

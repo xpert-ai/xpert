@@ -1,7 +1,7 @@
-import { PaginationParams } from '@metad/server-core'
+import { PaginationParams } from '@xpert-ai/server-core'
 import { Query } from '@nestjs/cqrs'
 import { XpertAgentExecution } from '../agent-execution.entity'
-import { IXpertAgentExecution } from '@metad/contracts'
+import { IXpertAgentExecution } from '@xpert-ai/contracts'
 
 export class XpertAgentExecutionOneQuery extends Query<IXpertAgentExecution> {
     static readonly type = '[Xpert Agent Execution] Get one'

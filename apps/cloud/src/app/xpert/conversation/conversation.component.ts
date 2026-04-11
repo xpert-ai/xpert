@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -13,7 +13,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotChatMessage, injectToastr, IXpert, TInterruptCommand, XpertAgentExecutionStatusEnum } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
@@ -28,7 +28,6 @@ import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -39,7 +38,7 @@ import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
     ChatAiMessageComponent,
     ChatHumanMessageComponent,
     XpertParametersCardComponent
-  ],
+],
   selector: 'chat-conversation',
   templateUrl: './conversation.component.html',
   styleUrl: 'conversation.component.scss',
@@ -101,8 +100,7 @@ export class ChatConversationComponent {
     effect(
       () => {
         this.homeService.conversation.set(this.conversation() && { ...this.conversation(), messages: this.messages() })
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     this.destroyRef.onDestroy(() => {

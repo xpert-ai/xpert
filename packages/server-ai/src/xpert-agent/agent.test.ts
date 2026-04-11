@@ -1,4 +1,4 @@
-import { TXpertGraph } from '@metad/contracts'
+import { TXpertGraph } from '@xpert-ai/contracts'
 import { getSwarmPartners } from './agent'
 
 const graph = {

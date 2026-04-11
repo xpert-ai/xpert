@@ -5,7 +5,7 @@ import {
 	SlicerSchema,
 	TimeGranularity,
 	VariableSchema
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { z } from 'zod'
 
 export const LanguageSchema = z.enum(['en', 'zh', 'zh-Hans']).describe('Language ​​used by user')

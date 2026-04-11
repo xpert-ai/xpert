@@ -1,4 +1,4 @@
-import { NxChartType } from '@metad/core'
+import { NxChartType } from '@xpert-ai/core'
 import { AriaCapacity } from './aria'
 import { CategoryAxisCapacity, SingleAxisAccordionWrappers, ValueAxisCapacity } from './axis'
 import { CARTESIAN_CHART_TYPES } from './cartesian'
@@ -28,7 +28,6 @@ import { TreemapCapacity } from './series/treemap'
 import { WaterfallCapacity } from './series/waterfall'
 import { TitleCapacity } from './title'
 import { TooltipCapacity } from './tooltip'
-
 
 export const SeriesCapacityMatrix: any = {
   [NxChartType.Bar]: [BarCapacity],

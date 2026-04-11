@@ -1,4 +1,4 @@
-// import { C_MEASURES } from '@metad/ocap-core'
+// import { C_MEASURES } from '@xpert-ai/ocap-core'
 // import { MockAgent } from './agent-mock.service'
 // import { SQLDataSource } from './data-source'
 // import { CUBE_SALESORDER, SCHEMA } from './mock-data'

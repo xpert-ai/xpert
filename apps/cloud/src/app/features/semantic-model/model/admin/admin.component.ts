@@ -1,15 +1,13 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
+
 import { ActivatedRoute, Router } from '@angular/router'
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, ISemanticModel, IUser, Store, ToastrService } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -22,14 +20,14 @@ import {
 import { uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, map, switchMap } from 'rxjs'
 import { ModelComponent } from '../model.component'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatIconModule,
-    MatButtonModule,
+    ZardIconComponent,
+    ZardButtonComponent,
     TranslateModule,
     UserProfileComponent,
     UserProfileInlineComponent,
@@ -39,7 +37,7 @@ import { ModelComponent } from '../model.component'
     NgmSearchComponent,
     NgmTableComponent,
     NgmSpinComponent
-  ],
+],
   selector: 'pac-model-admin',
   templateUrl: 'admin.component.html',
   styleUrl: 'admin.component.scss'
@@ -110,7 +108,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
     })
 
   constructor(
-    private _dialog: MatDialog,
+    private _dialog: ZardDialogService,
     private _cdr: ChangeDetectorRef,
     private _toastrService: ToastrService
   ) {
@@ -181,7 +179,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
         next: () => {
           this.loading.set(false)
           this.#toastr.success('PAC.MODEL.TOASTR.ModelDelete', { Default: 'Model delete' })
-          this.#router.navigate(['/models'])
+          this.#router.navigate(['/data', 'models'])
         },
         error: (err) => {
           this.loading.set(false)

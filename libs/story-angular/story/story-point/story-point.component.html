@@ -1,61 +1,61 @@
 @if (unfetched$ | async) {
   <facebook-content-loader class="absolute w-full h-full dark:opacity-20"
     [animate]="true"
-  />
+    />
 }
 
 @switch (point.type) {
   @case(STORY_POINT_TYPE.Responsive) {
     @if (responsive$ | async; as responsive) {
-        <ngm-flex-layout class="ngm-story-point__responsive" 
-          [editable]="editable()"
-          [flexLayout]="responsive"
+      <ngm-flex-layout class="ngm-story-point__responsive"
+        [editable]="editable()"
+        [flexLayout]="responsive"
         />
     }
   }
   @default {
     <div class="ngm-story-point__page"
-        [ngStyle]="scaleStyles$ | async"
+      [ngStyle]="scaleStyles$ | async"
         [ngClass]="{
             'ngm-story-point__size-continuous-height': point.styling?.pageSize?.type === 'fixed' && point.styling?.pageSize?.continuousHeight,
             'ngm-story-point__size-a4': point.styling?.pageSize?.type === 'fixed' && point.styling?.pageSize?.size === 'A4',
             'ngm-story-point__size-a3': point.styling?.pageSize?.type === 'fixed' && point.styling?.pageSize?.size === 'A3'
         }"
-        resizeObserver [resizeDebounceTime]="100" (sizeChange)="onResize($event)"
-        [cdkContextMenuTriggerFor]="context_menu"
-    >
+      resizeObserver [resizeDebounceTime]="100" (sizeChange)="onResize($event)"
+      [cdkContextMenuTriggerFor]="context_menu"
+      >
       @if (gridOptions$ | async; as options) {
         <gridster class="ngm-story__layout" [options]="options" (contextmenu)="onGridContextmenu($event)" >
           @for (widget of widgets$ | async; track widget.key) {
             <gridster-item class="ngm-story__widget group"
-                [item]="widget.position"
-                [ngStyle]="{'z-index': widget.key === currentWidgetKey() ? maxLayerIndex : widget.position.layerIndex}"
-                [class.editable]="editable()"
-                [class.active]="widget.key === currentWidgetKey()"
-                [class.ngm-fullscreen]="widget.fullscreen"
-                [class.ngm-story__focus]="focus === widget.key"
-                (itemChange)="onGridsterItemChange($event, widget)"
-                (click)="onWidgetItemClick($event, widget, widgetComponent)"
-            >
-                <ngm-story-widget #widgetComponent
-                    [selected]="widget.key === currentWidgetKey()"
-                    [editable]="editable()"
-                    [key]="widget.key"
-                    (fullscreenChange)="onFullscreenChange($event, widget);"
-                    (focusChange)="onFocus(widget.key)"
-                    (selectedChange)="onWidgetSelected(widget, widgetComponent)"
+              [item]="widget.position"
+              [ngStyle]="{'z-index': widget.key === currentWidgetKey() ? maxLayerIndex : widget.position.layerIndex}"
+              [class.editable]="editable()"
+              [class.active]="widget.key === currentWidgetKey()"
+              [class.ngm-fullscreen]="widget.fullscreen"
+              [class.ngm-story__focus]="focus === widget.key"
+              (itemChange)="onGridsterItemChange($event, widget)"
+              (click)="onWidgetItemClick($event, widget, widgetComponent)"
+              >
+              <ngm-story-widget #widgetComponent
+                [selected]="widget.key === currentWidgetKey()"
+                [editable]="editable()"
+                [key]="widget.key"
+                (fullscreenChange)="onFullscreenChange($event, widget);"
+                (focusChange)="onFocus(widget.key)"
+                (selectedChange)="onWidgetSelected(widget, widgetComponent)"
                 />
-                <!-- <div *ngIf="editable" class="ngm-drag-handler"></div> -->
-                @if (editable() && (resizingWidgetKey === widget.key || !resizingWidgetKey)) {
-                  <div class="ngm-story__layout-widget-size absolute -top-6 right-0 items-center gap-1 hidden group-hover:inline-flex">
-                    <div class="text-xs font-mono">{{widget.key}}</div>
-                    <div class="text-xs font-semibold py-1 px-2 rounded text-gray-600 bg-orange-200 last:mr-0 mr-1"
-                      [class.ngm-story__layout-widget-size-show]="resizingWidgetKey === widget.key"
+              <!-- Drag handle placeholder kept disabled. -->
+              @if (editable() && (resizingWidgetKey === widget.key || !resizingWidgetKey)) {
+                <div class="ngm-story__layout-widget-size absolute -top-6 right-0 items-center gap-1 hidden group-hover:inline-flex">
+                  <div class="text-xs font-mono">{{widget.key}}</div>
+                  <div class="text-xs font-semibold py-1 px-2 rounded text-gray-600 bg-orange-200 last:mr-0 mr-1"
+                    [class.ngm-story__layout-widget-size-show]="resizingWidgetKey === widget.key"
                     >
-                      {{widget.position.cols}}x{{widget.position.rows}}
-                    </div>
+                    {{widget.position.cols}}x{{widget.position.rows}}
                   </div>
-                }
+                </div>
+              }
             </gridster-item>
           }
         </gridster>
@@ -66,108 +66,109 @@
 }
 
 @if (quickStart$ | async;) {
-    <div class="ngm-story-point__quick-start absolute top-0 left-0 w-full h-full flex justify-center items-center z-10">
-        <div class="container relative p-12 mx-8 rounded-xl flex flex-col justify-center items-center">
-            <button mat-icon-button style="position: absolute;" class="absolute right-1 top-1" (click)="closeQuickStart()">
-                <mat-icon class="mr-1">close</mat-icon>
-            </button>
-            
-            <span class="text-6xl font-notoColorEmoji">🛒</span>
-            <div class="text-lg my-2">
-                {{ 'Story.StoryPoint.LookingEmpty' | translate: {Default: 'This story point is looking empty'} }}.
-            </div>
-            <div class="text-sm">
-                {{ 'Story.StoryPoint.LookingEmptyAddWidget' | translate: {Default: 'Add a widget to start'} }}!
-            </div>
-        
-            <div class="flex flex-wrap justify-between gap-4 mt-4">
-                <div class="ngm-story__quick-start-widget" (click)="createWidget(ComponentType.AnalyticalCard)">
-                    {{ 'Story.Widget.AnalyticalCard' | translate: {Default: 'Chart'} }}
-                </div>
-                <div class="ngm-story__quick-start-widget" (click)="createWidget(ComponentType.AnalyticalGrid)">
-                    {{ 'Story.Widget.AnalyticalGrid' | translate: {Default: 'Table'} }}
-                </div>
-                <div class="ngm-story__quick-start-widget" (click)="createWidget(ComponentType.InputControl)">
-                    {{ 'Story.Widget.InputControl' | translate: {Default: 'Input Control'} }}
-                </div>
-                <div class="ngm-story__quick-start-widget" (click)="createWidget(ComponentType.KpiCard)">
-                    {{ 'Story.Widget.KpiCard' | translate: {Default: 'KPI'} }}
-                </div>
-            </div>
+  <div class="ngm-story-point__quick-start absolute top-0 left-0 w-full h-full flex justify-center items-center z-10">
+    <div class="container relative p-12 mx-8 rounded-xl flex flex-col justify-center items-center">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" style="position: absolute;" class="absolute right-1 top-1" (click)="closeQuickStart()">
+        <z-icon class="mr-1" zType="close"></z-icon>
+      </button>
+
+      <span class="text-6xl font-notoColorEmoji">🛒</span>
+      <div class="text-lg my-2">
+        {{ 'Story.StoryPoint.LookingEmpty' | translate: {Default: 'This story point is looking empty'} }}.
+      </div>
+      <div class="text-sm">
+        {{ 'Story.StoryPoint.LookingEmptyAddWidget' | translate: {Default: 'Add a widget to start'} }}!
+      </div>
+
+      <div class="flex flex-wrap justify-between gap-4 mt-4">
+        <div class="ngm-story__quick-start-widget" (click)="createWidget(ComponentType.AnalyticalCard)">
+          {{ 'Story.Widget.AnalyticalCard' | translate: {Default: 'Chart'} }}
         </div>
+        <div class="ngm-story__quick-start-widget" (click)="createWidget(ComponentType.AnalyticalGrid)">
+          {{ 'Story.Widget.AnalyticalGrid' | translate: {Default: 'Table'} }}
+        </div>
+        <div class="ngm-story__quick-start-widget" (click)="createWidget(ComponentType.InputControl)">
+          {{ 'Story.Widget.InputControl' | translate: {Default: 'Input Control'} }}
+        </div>
+        <div class="ngm-story__quick-start-widget" (click)="createWidget(ComponentType.KpiCard)">
+          {{ 'Story.Widget.KpiCard' | translate: {Default: 'KPI'} }}
+        </div>
+      </div>
     </div>
+  </div>
 }
 
 <ng-template #defaultTemplate let-widget let-laneKey="laneKey" let-editable="editable" let-selected="selected">
-    <ngm-story-widget [key]="widget.key" [laneKey]="laneKey" [editable]="editable" [selected]="selected" style="width: 100%;height: 100%;"/>
+  <ngm-story-widget [key]="widget.key" [laneKey]="laneKey" [editable]="editable" [selected]="selected" style="width: 100%;height: 100%;"/>
 </ng-template>
 
 <ng-template #context_menu>
-    <div cdkMenu class="cdk-menu__medium space-y-1">
-        <button cdkMenuItem *ngIf="!point.hidden" (click)="hidePage()">
-            <mat-icon class="mr-1">flip_to_back</mat-icon>
-            {{ 'Story.Story.Hidden' | translate: {Default: "Hidden"} }}
+  <div cdkMenu class="cdk-menu__medium space-y-1">
+    @if (!point.hidden) {
+      <button cdkMenuItem (click)="hidePage()">
+        <z-icon class="mr-1" zType="flip_to_back"></z-icon>
+        {{ 'Story.Story.Hidden' | translate: {Default: "Hidden"} }}
+      </button>
+    }
+    @if (point.hidden) {
+      <button cdkMenuItem (click)="showPage()">
+        <z-icon class="mr-1" zType="flip_to_front"></z-icon>
+        {{ 'Story.Story.Visiable' | translate: {Default: "Visiable"} }}
+      </button>
+    }
+    <button cdkMenuItem (click)="openShare()">
+      <z-icon class="mr-1" zType="share"></z-icon>
+      {{ 'Story.Story.Share' | translate: {Default: "Share"} }}
+    </button>
+    @if (editable()) {
+      <div class="w-full border-b border-solid border-divider-deep my-1"></div>
+      <button cdkMenuItem (click)="openEditAttributes()">
+        <z-icon class="mr-1" zType="edit_attributes"></z-icon>
+        {{ 'Story.Widget.EditAttributes' | translate: {Default: "Edit Attributes"} }}
+      </button>
+      <button cdkMenuItem class="disabled:opacity-50" [disabled]="isFirst" (click)="move('left')">
+        <z-icon class="mr-1" zType="chevron_left"></z-icon>
+        {{ 'Story.Story.MOVE_LEFT' | translate: {Default: "Move Left"} }}
+      </button>
+      <button cdkMenuItem class="disabled:opacity-50" [disabled]="isLast" (click)="move('right')">
+        <z-icon class="mr-1" zType="chevron_right"></z-icon>
+        {{ 'Story.Story.MOVE_RIGHT' | translate: {Default: "Move Right"} }}
+      </button>
+      <button cdkMenuItem class="disabled:opacity-50" [disabled]="isFirst" (click)="move('first')">
+        <z-icon class="mr-1" zType="first_page"></z-icon>
+        {{ 'Story.Story.MOVE_FIRST' | translate: {Default: "Move First"} }}
+      </button>
+      <button cdkMenuItem class="disabled:opacity-50" [disabled]="isLast" (click)="move('last')">
+        <z-icon class="mr-1" zType="last_page"></z-icon>
+        {{ 'Story.Story.MOVE_LAST' | translate: {Default: "Move Last"} }}
+      </button>
+      <button cdkMenuItem (click)="rename()">
+        <z-icon class="mr-1" zType="drive_file_rename_outline"></z-icon>
+        {{ 'Story.Story.Rename' | translate: {Default: "Rename"} }}
+      </button>
+      <button cdkMenuItem (click)="duplicate()">
+        <z-icon class="mr-1" zType="content_copy"></z-icon>
+        {{ 'Story.Story.Duplicate' | translate: {Default: "Duplicate"} }}
+      </button>
+      @if (isCopyWidgetSelected$ | async; as isCopyWidgetSelected) {
+        <button cdkMenuItem
+          (click)="isCopyWidgetSelected?pasteWidget():''">
+          <z-icon class="mr-1" zType="content_paste"></z-icon>
+          {{ 'Story.Story.Paste' | translate: {Default: "Paste"} }}
         </button>
-        <button cdkMenuItem *ngIf="point.hidden" (click)="showPage()">
-            <mat-icon class="mr-1">flip_to_front</mat-icon>
-            {{ 'Story.Story.Visiable' | translate: {Default: "Visiable"} }}
-        </button>
-        <button cdkMenuItem (click)="openShare()">
-            <mat-icon class="mr-1" fontSet="material-icons-outlined">share</mat-icon>
-            {{ 'Story.Story.Share' | translate: {Default: "Share"} }}
-        </button>
-        <ng-container *ngIf="editable()">
-            <div class="w-full border-b border-solid border-divider-deep my-1"></div>
-
-            <button cdkMenuItem (click)="openEditAttributes()">
-                <mat-icon class="mr-1" fontSet="material-icons-outlined">edit_attributes</mat-icon>
-                {{ 'Story.Widget.EditAttributes' | translate: {Default: "Edit Attributes"} }}
-            </button>
-
-            <button cdkMenuItem class="disabled:opacity-50" [disabled]="isFirst" (click)="move('left')">
-                <mat-icon class="mr-1">chevron_left</mat-icon>
-                {{ 'Story.Story.MOVE_LEFT' | translate: {Default: "Move Left"} }}
-            </button>
-            <button cdkMenuItem class="disabled:opacity-50" [disabled]="isLast" (click)="move('right')">
-                <mat-icon class="mr-1">chevron_right</mat-icon>
-                {{ 'Story.Story.MOVE_RIGHT' | translate: {Default: "Move Right"} }}
-            </button>
-            <button cdkMenuItem class="disabled:opacity-50" [disabled]="isFirst" (click)="move('first')">
-                <mat-icon class="mr-1">first_page</mat-icon>
-                {{ 'Story.Story.MOVE_FIRST' | translate: {Default: "Move First"} }}
-            </button>
-            <button cdkMenuItem class="disabled:opacity-50" [disabled]="isLast" (click)="move('last')">
-                <mat-icon class="mr-1">last_page</mat-icon>
-                {{ 'Story.Story.MOVE_LAST' | translate: {Default: "Move Last"} }}
-            </button>
-            <button cdkMenuItem (click)="rename()">
-                <mat-icon class="mr-1" fontSet="material-icons-outlined">drive_file_rename_outline</mat-icon>
-                {{ 'Story.Story.Rename' | translate: {Default: "Rename"} }}
-            </button>
-            <button cdkMenuItem (click)="duplicate()">
-                <mat-icon class="mr-1">content_copy</mat-icon>
-                {{ 'Story.Story.Duplicate' | translate: {Default: "Duplicate"} }}
-            </button>
-
-            <button cdkMenuItem *ngIf="isCopyWidgetSelected$ | async as isCopyWidgetSelected"
-                (click)="isCopyWidgetSelected?pasteWidget():''">
-                <mat-icon class="mr-1" fontSet="material-icons-outlined">content_paste</mat-icon>
-                {{ 'Story.Story.Paste' | translate: {Default: "Paste"} }}
-            </button>
-            
-            <button cdkMenuItem (click)="fileUpload.click()">
-                <mat-icon class="mr-1" fontSet="material-icons-outlined">file_upload</mat-icon>
-                {{ 'Story.Story.Upload' | translate: {Default: "Upload"} }}
-            </button>
-
-            <div class="w-full border-b border-solid border-divider-deep my-1"></div>
-            <button cdkMenuItem class="danger" (click)="remove()">
-              <i class="ri-delete-bin-line text-lg mr-2"></i>
-              {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
-            </button>
-        </ng-container>
-    </div>
+      }
+      <button cdkMenuItem (click)="fileUpload.click()">
+        <z-icon class="mr-1" zType="file_upload"></z-icon>
+        {{ 'Story.Story.Upload' | translate: {Default: "Upload"} }}
+      </button>
+      <div class="w-full border-b border-solid border-divider-deep my-1"></div>
+      <button cdkMenuItem class="danger" (click)="remove()">
+        <i class="ri-delete-bin-line text-lg mr-2"></i>
+        {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
+      </button>
+    }
+  </div>
 </ng-template>
 
 <input #fileUpload type="file" hidden multiple (change)="onUploadChange($event)"
-    (click)="fileUpload.value=null;">
+  (click)="fileUpload.value=null;">

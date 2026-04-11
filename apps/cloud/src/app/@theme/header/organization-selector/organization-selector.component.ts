@@ -1,20 +1,17 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
-import { Component, computed, DestroyRef, inject, input, model, OnInit } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+
+import { Component, computed, effect, inject, input, model } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { nonNullable, OverlayAnimation1 } from '@metad/core'
-import { NgmSearchComponent, NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { debouncedSignal } from '@metad/ocap-angular/core'
+import { nonNullable, OverlayAnimation1 } from '@xpert-ai/core'
+import { NgmSearchComponent, NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
-import { NgxPermissionsService } from 'ngx-permissions'
-import { combineLatestWith, filter, map, switchMap, tap } from 'rxjs'
-import { IOrganization, PermissionsEnum, Store, UsersOrganizationsService } from '../../../@core'
+import { IOrganization, RequestScopeLevel, RolesEnum, ScopeService, Store } from '../../../@core'
 import { OrgAvatarComponent } from '../../../@shared/organization'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-organization-selector',
@@ -24,146 +21,139 @@ import { OrgAvatarComponent } from '../../../@shared/organization'
     class: 'pac-organization-selector'
   },
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSearchComponent,
     OrgAvatarComponent,
     NgmHighlightDirective
-],
+  ],
   animations: [OverlayAnimation1]
 })
-export class OrganizationSelectorComponent implements OnInit {
+export class OrganizationSelectorComponent {
   private readonly store = inject(Store)
-  private readonly userOrganizationService = inject(UsersOrganizationsService)
-  private readonly permissionsService = inject(NgxPermissionsService)
-  private readonly destroyRef = inject(DestroyRef)
+  private readonly scopeService = inject(ScopeService)
   readonly i18nService = injectI18nService()
 
   readonly isCollapsed = input<boolean>(false)
 
-  readonly organization = model<IOrganization>(null)
   readonly searchTerm = model<string>('')
   readonly search = debouncedSignal(this.searchTerm, 300)
+  readonly activeScope = this.scopeService.activeScope
+  readonly canUseTenantScope = this.scopeService.canUseTenantScope
+  readonly currentUser = toSignal(this.store.user$, {
+    initialValue: this.store.user
+  })
 
-  readonly #organizations = toSignal(
-    this.store.user$
-      .pipe(
-        filter(nonNullable),
-        switchMap(({ id }) =>
-          this.userOrganizationService.getAll(
-            [
-              'organization',
-              // 'organization.contact',
-              'organization.featureOrganizations',
-              'organization.featureOrganizations.feature'
-            ],
-            { userId: id }
-          )
-        )
-      )
-      .pipe(
-        map(({ items }) =>
-          uniqBy(
-            items.map(({ organization }) => organization),
-            (item) => item.id
-          ).sort((a, b) => a.name.localeCompare(b.name))
-        ),
-        tap((organizations) => {
-          if (organizations.length > 0) {
-            const defaultOrganization = organizations.find((organization: IOrganization) => organization.isDefault)
-            const [firstOrganization] = organizations
-
-            if (this.store.organizationId) {
-              const organization = organizations.find(
-                (organization: IOrganization) => organization.id === this.store.organizationId
-              )
-              this.store.selectedOrganization = organization || defaultOrganization || firstOrganization
-            } else {
-              // set default organization as selected
-              this.store.selectedOrganization = defaultOrganization || firstOrganization
-              this.store.organizationId = this.store.selectedOrganization.id
-            }
-          }
-        }),
-        combineLatestWith(
-          this.permissionsService.permissions$.pipe(
-            switchMap(() => this.permissionsService.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT))
-          )
-        ),
-        map(([organizations, canAllOrgEdit]) => {
-          return canAllOrgEdit
-            ? [
-                {
-                  name: this.i18nService.instant('PAC.KEY_WORDS.Tenant', { Default: 'Tenant' }),
-                  id: null
-                } as IOrganization,
-                ...organizations
-              ]
-            : organizations
-        })
-      )
+  readonly #organizations = computed(
+    () =>
+      uniqBy(
+        (this.currentUser()?.organizations ?? [])
+          .filter((membership) => membership?.isActive !== false && membership?.organization?.isActive !== false)
+          .map((membership) => membership.organization)
+          .filter(nonNullable),
+        (item) => item.id
+      ).sort((a, b) => a.name.localeCompare(b.name))
   )
 
   readonly organizations = computed(() => {
     if (this.search()) {
-      return this.#organizations()?.filter((org) => org.name.toLowerCase().includes(this.search().toLowerCase()))
+      return this.#organizations().filter((org) => org.name.toLowerCase().includes(this.search().toLowerCase()))
     }
 
     return this.#organizations()
   })
 
-  readonly canSelectOrg = computed(() => this.#organizations()?.length > 1)
+  readonly currentOrganization = computed(() => {
+    const scope = this.activeScope()
+    if (scope.level !== RequestScopeLevel.ORGANIZATION) {
+      return null
+    }
 
-  ngOnInit() {
-    this.loadSelectedOrganization()
+    return (
+      this.#organizations().find((organization) => organization.id === scope.organizationId) ||
+      this.store.selectedOrganization ||
+      null
+    )
+  })
+
+  readonly scopeEyebrow = computed(() =>
+    this.activeScope().level === RequestScopeLevel.TENANT
+      ? this.i18nService.instant('PAC.Scope.TenantEyebrow', {
+          Default: 'Tenant Console'
+        })
+      : this.i18nService.instant('PAC.Scope.OrganizationEyebrow', {
+          Default: 'Organization Scope'
+        })
+  )
+
+  readonly scopeLabel = computed(() =>
+    this.activeScope().level === RequestScopeLevel.TENANT
+      ? this.i18nService.instant('PAC.Scope.TenantLabel', {
+          Default: 'Tenant defaults and governance'
+        })
+      : this.currentOrganization()?.name ||
+        this.i18nService.instant('PAC.Scope.SelectOrganization', {
+          Default: 'Select an organization'
+        })
+  )
+
+  readonly showTenantScopeItem = computed(
+    () => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN
+  )
+  readonly hasOrganizations = computed(() => this.#organizations().length > 0)
+  readonly hasVisibleOrganizations = computed(() => this.organizations().length > 0)
+  readonly canOpenMenu = computed(() => this.showTenantScopeItem() || this.hasOrganizations())
+
+  constructor() {
+    effect(() => {
+      this.store.featureOrganizations = this.currentOrganization()?.featureOrganizations ?? []
+    })
+
+    effect(() => {
+      const user = this.currentUser()
+      if (!user || !Array.isArray(user.organizations)) {
+        return
+      }
+
+      this.scopeService.ensureValidScope(this.#organizations())
+    })
   }
 
-  compareWith(a: IOrganization, b: IOrganization) {
-    return a?.id === b?.id
+  isTenantScope() {
+    return this.activeScope().level === RequestScopeLevel.TENANT
   }
 
-  private loadSelectedOrganization() {
-    this.store.selectedOrganization$
-      .pipe(
-        filter((organization) => !!organization),
-        tap((organization: IOrganization) => {
-          this.organization.set(organization)
-          this.store.featureOrganizations = organization.featureOrganizations ?? []
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe()
+  isActiveOrganization(organization: IOrganization) {
+    const scope = this.activeScope()
+    return (
+      scope.level === RequestScopeLevel.ORGANIZATION &&
+      scope.organizationId === organization?.id
+    )
   }
 
-  /**
-   * Toggle another organization
-   *
-   * @param organization
-   */
-  selectOrganization(organization: IOrganization) {
-    if (organization?.id === this.organization()?.id) {
+  selectTenantScope() {
+    if (this.isTenantScope()) {
       return
     }
-    if (organization?.id) {
-      this.store.selectedOrganization = organization
-      this.store.organizationId = organization.id
-      this.store.selectedEmployee = null
-      // reload page
-      window.location.reload()
-    } else {
-      this.store.selectedOrganization = null
-      this.store.organizationId = null
-      this.store.selectedEmployee = null
-      this.organization.set({
-        name: this.i18nService.instant('PAC.Header.Organization.AllOrg', { Default: 'All Org' }),
-        id: null
-      } as IOrganization)
+
+    void this.scopeService.switchToTenant()
+  }
+
+  selectOrganization(organization: IOrganization) {
+    if (this.isActiveOrganization(organization)) {
+      return
     }
 
-    // Reset selected project when organization is changed
-    this.store.selectedProject = null
+    void this.scopeService.switchToOrganization(organization)
+  }
+
+  resetSearch() {
+    if (!this.searchTerm()) {
+      return
+    }
+
+    this.searchTerm.set('')
   }
 }

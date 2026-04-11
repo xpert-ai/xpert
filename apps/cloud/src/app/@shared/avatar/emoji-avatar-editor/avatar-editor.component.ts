@@ -1,16 +1,15 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { PickerComponent } from '@ctrl/ngx-emoji-mart'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
-import { AppearanceDirective, ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective, ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { ScreenshotService, TAvatar } from '../../../@core'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -18,12 +17,15 @@ import { ScreenshotService, TAvatar } from '../../../@core'
   selector: 'emoji-avatar-editor',
   templateUrl: './avatar-editor.component.html',
   styleUrl: './avatar-editor.component.scss',
+  host: {
+    class: 'ngm-dialog-container'
+  },
   imports: [
     CommonModule,
     CdkListboxModule,
-    MatIconModule,
-    MatButtonModule,
-    MatDialogModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ZardDialogModule,
     TranslateModule,
     ButtonGroupDirective,
     AppearanceDirective,
@@ -33,8 +35,8 @@ import { ScreenshotService, TAvatar } from '../../../@core'
 })
 export class EmojiAvatarEditorComponent {
   readonly screenshotService = inject(ScreenshotService)
-  readonly #dialogRef = inject(MatDialogRef)
-  readonly avatar = inject<TAvatar>(MAT_DIALOG_DATA)
+  readonly #dialogRef = inject(ZardDialogRef)
+  readonly avatar = inject<TAvatar>(Z_MODAL_DATA)
 
   readonly disabled = signal<boolean>(false)
   readonly type = model<'emoji' | 'image'>('emoji')
@@ -71,13 +73,13 @@ export class EmojiAvatarEditorComponent {
     effect(
       () => {
         if (this.avatar) {
+          this.type.set(this.avatar.url ? 'image' : 'emoji')
           this.background.set(this.avatar.background)
           this.emoji.set(this.avatar.emoji)
           this.set.set(this.avatar.emoji?.set)
           this.imageUrl.set(this.avatar.url)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -86,6 +88,7 @@ export class EmojiAvatarEditorComponent {
     const screenshot = await this.uploadScreenshot(file!)
     this.imageUrl.set(screenshot.url)
     this.emoji.set(null)
+    this.type.set('image')
   }
 
   async uploadScreenshot(fileUpload: File) {
@@ -100,11 +103,13 @@ export class EmojiAvatarEditorComponent {
       const screenshot = await this.uploadScreenshot(file)
       this.imageUrl.set(screenshot.url)
       this.emoji.set(null)
+      this.type.set('image')
     }
   }
 
   addEmoji(event: { emoji: any }) {
     this.emoji.set(pick(event.emoji, 'id', 'set', 'colons', 'unified'))
+    this.type.set('emoji')
   }
 
   apply() {

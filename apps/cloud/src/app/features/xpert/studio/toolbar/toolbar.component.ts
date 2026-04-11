@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { OverlayAnimations } from '@metad/core'
+import { OverlayAnimations } from '@xpert-ai/core'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertStudioApiService } from '../domain'
 import { XpertStudioContextMenuComponent } from '../components'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-toolbar',
   standalone: true,
@@ -16,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     CommonModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     AppearanceDirective,
 
     XpertStudioContextMenuComponent

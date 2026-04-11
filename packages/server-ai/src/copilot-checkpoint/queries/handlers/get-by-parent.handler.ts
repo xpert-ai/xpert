@@ -1,5 +1,5 @@
 import { type SerializerProtocol } from '@langchain/langgraph-checkpoint'
-import { ICopilotCheckpoint } from '@metad/contracts'
+import { ICopilotCheckpoint } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { CopilotCheckpointService } from '../../copilot-checkpoint.service'
 import { JsonPlusSerializer } from '../../serde'

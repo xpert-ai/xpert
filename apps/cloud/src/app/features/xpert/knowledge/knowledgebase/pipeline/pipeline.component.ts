@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { routeAnimations } from '../../../../../@core'
@@ -11,7 +11,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
   selector: 'xp-knowledgebase-pipeline',
   templateUrl: './pipeline.component.html',
   styleUrls: ['./pipeline.component.scss'],
-  imports: [CommonModule, RouterModule, XpertStudioComponent],
+  imports: [RouterModule, XpertStudioComponent],
   animations: [routeAnimations],
   providers: [XpertService]
 })

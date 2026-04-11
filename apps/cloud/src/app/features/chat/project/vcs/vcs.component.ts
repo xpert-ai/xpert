@@ -1,16 +1,16 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr, Repository, transformInstallation } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 
 @Component({
   selector: 'chat-project-vcs',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgmSelectComponent, NgmSpinComponent],
+  imports: [FormsModule, NgmSelectComponent, NgmSpinComponent],
   templateUrl: './vcs.component.html',
   styleUrl: './vcs.component.scss'
 })
@@ -66,7 +66,7 @@ export class ChatProjectVcsComponent {
       if (this.installationId()) {
         this.checkInstallation()
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   handleInstallationChange(installationId: string) {

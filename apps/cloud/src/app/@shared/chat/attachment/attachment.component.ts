@@ -1,19 +1,19 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpEventType } from '@angular/common/http'
 import { booleanAttribute, Component, computed, effect, inject, input, model, output, signal, TemplateRef, viewChild } from '@angular/core'
 import { StorageFileService } from '@cloud/app/@core'
 import { getErrorMessage, IStorageFile } from '@cloud/app/@core/types'
-import { FileTypePipe, linkedModel } from '@metad/core'
-import { effectAction, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { FileTypePipe, linkedModel } from '@xpert-ai/core'
+import { effectAction, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
-import { NgmProgressSpinnerComponent } from '@metad/ocap-angular/common'
+import { NgmProgressSpinnerComponent } from '@xpert-ai/ocap-angular/common'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { FileIconComponent } from '../../files'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmProgressSpinnerComponent, FileTypePipe, FileIconComponent,],
+  imports: [TranslateModule, NgmProgressSpinnerComponent, FileTypePipe, FileIconComponent],
   selector: 'chat-attachment',
   templateUrl: './attachment.component.html',
   styleUrls: ['./attachment.component.scss'],
@@ -69,7 +69,7 @@ export class ChatAttachmentComponent {
   constructor() {
     effect(() => {
       this.onProgress.emit(this.progress())
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const file = this.file();
@@ -88,7 +88,7 @@ export class ChatAttachmentComponent {
           this.upload(file)
         }
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const url = this.url()
@@ -105,7 +105,7 @@ export class ChatAttachmentComponent {
           this.createUrlFile(url)
         }
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const file = this.storageFile()
@@ -113,7 +113,7 @@ export class ChatAttachmentComponent {
         // Check if file is an image
         this.isImage.set(file.mimetype.startsWith('image/'));
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   readonly upload = effectAction((file$: Observable<File>) => {

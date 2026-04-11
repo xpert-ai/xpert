@@ -1,4 +1,4 @@
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectDataSource } from '@nestjs/typeorm'
@@ -23,7 +23,12 @@ export class StatisticsKnowledgebasesHandler implements IQueryHandler<Statistics
 		const queryBuilder = repository
 			.createQueryBuilder('knowledgebase')
 			.where('knowledgebase.tenantId = :tenantId', { tenantId })
-			.andWhere('knowledgebase.organizationId = :organizationId', { organizationId })
+
+		if (organizationId) {
+			queryBuilder.andWhere('knowledgebase.organizationId = :organizationId', { organizationId })
+		} else {
+			queryBuilder.andWhere('knowledgebase.organizationId IS NULL')
+		}
 
 		if (start && end) {
 			queryBuilder.andWhere('knowledgebase.createdAt BETWEEN :start AND :end', { start: new Date(start), end: new Date(end) })

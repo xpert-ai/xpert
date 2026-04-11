@@ -1,10 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent, XpertVariableInputComponent } from '@cloud/app/@shared/agent'
 import { XpertWorkflowConditionFormComponent } from '@cloud/app/@shared/workflow'
-import { NgmCheckboxComponent, NgmSlideToggleComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getVariableSchema,
@@ -17,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-list-operator',
   templateUrl: './list-operator.component.html',
@@ -26,13 +25,13 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
-    NgmSlideToggleComponent,
     NgmCheckboxComponent,
     StateVariableSelectComponent,
     XpertWorkflowConditionFormComponent,
-    XpertVariableInputComponent
+    XpertVariableInputComponent,
+    ZardSwitchComponent
   ]
 })
 export class XpertWorkflowListOperatorComponent extends XpertWorkflowBaseComponent {
@@ -80,11 +79,13 @@ export class XpertWorkflowListOperatorComponent extends XpertWorkflowBaseCompone
   constructor() {
     super()
 
-    effect(() => {
-      if (this.inputVariableItemType()) {
-        this.itemVarType.set(this.inputVariableItemType())
+    effect(
+      () => {
+        if (this.inputVariableItemType()) {
+          this.itemVarType.set(this.inputVariableItemType())
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   addCondition() {

@@ -1,0 +1,159 @@
+@if (treeViewer()) {
+  <div class="flex h-full min-h-0 w-full flex-col gap-2">
+    @if (searchable()) {
+      <div class="shrink-0 px-2 pt-2">
+        <div class="relative">
+          <input
+            z-input
+            class="w-full pr-10"
+            [disabled]="disabled()"
+            [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+            [value]="searchTerm()"
+            (input)="onSearchTermChange($any($event.target).value ?? '')"
+          />
+
+          <div class="pointer-events-none absolute right-3 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center text-text-secondary">
+            <z-icon zType="search" />
+          </div>
+        </div>
+      </div>
+    }
+
+    <z-tree class="ngm-tree-select__panel flex-1 overflow-auto" [dataSource]="dataSource" [treeControl]="treeControl">
+      <div
+        *zTreeNodeDef="let node"
+        zTreeNodePadding
+        [zTreeNodePaddingIndent]="indentStep()"
+        class="ngm-tree-select__option flex cursor-pointer items-center rounded-md"
+        [class.bg-accent]="isSelected(node)"
+        [class.text-accent-foreground]="isSelected(node)"
+        [class.opacity-60]="disabled()"
+        (click)="selectTreeNode(node)"
+      >
+        <span class="size-8 shrink-0"></span>
+        <span class="min-w-0 flex-1 truncate">{{ displayText(node) }}</span>
+      </div>
+
+      <div
+        *zTreeNodeDef="let node; when: hasChild"
+        zTreeNodePadding
+        [zTreeNodePaddingIndent]="indentStep()"
+        class="ngm-tree-select__option flex cursor-pointer items-center rounded-md"
+        [class.bg-accent]="isSelected(node)"
+        [class.text-accent-foreground]="isSelected(node)"
+        [class.opacity-60]="disabled()"
+        (click)="selectTreeNode(node)"
+      >
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          zTreeNodeToggle
+          [disabled]="disabled()"
+          [attr.aria-label]="'Toggle ' + displayText(node)"
+          (click)="$event.stopPropagation()"
+        >
+          <z-icon
+            class="z-icon-rtl-mirror"
+            [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"
+          ></z-icon>
+        </button>
+        <span class="min-w-0 flex-1 truncate">{{ displayText(node) }}</span>
+      </div>
+    </z-tree>
+  </div>
+} @else {
+  <z-form-field
+    class="w-full flex-1"
+    [appearance]="appearance()"
+    [floatLabel]="floatLabel()"
+    [color]="color()"
+    [displayDensity]="displayDensity()"
+  >
+    @if (label()) {
+      <z-form-label>{{ label() }}</z-form-label>
+    }
+
+    <z-combobox-deprecated
+      class="w-full"
+      [zTriggerMode]="triggerMode()"
+      [value]="value()"
+      [options]="comboboxOptions()"
+      [placeholder]="placeholder() || ''"
+      [disabled]="disabled()"
+      [searchable]="searchable()"
+      [zSearchTerm]="searchTerm()"
+      [zDisplayWith]="displayWith"
+      [zClearable]="true"
+      [zSelectOnEnter]="true"
+      (zOpenChange)="onOpenChange($event)"
+      (zSearchTermChange)="onSearchTermChange($event)"
+      (zValueChange)="onComboboxValueChange($event)"
+      (zBlur)="markTouched()"
+    >
+      <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+        @if (comboboxOptions().length) {
+          <div class="max-h-72 overflow-auto p-1">
+            <z-tree class="ngm-tree-select__panel w-full" [dataSource]="dataSource" [treeControl]="treeControl">
+              <div
+                *zTreeNodeDef="let node"
+                zTreeNodePadding
+                [zTreeNodePaddingIndent]="indentStep()"
+                [class]="'ngm-tree-select__option ' + optionClasses()"
+                [class.bg-accent]="isSelected(node) || isActive(node, activeIndex)"
+                [class.text-accent-foreground]="isSelected(node) || isActive(node, activeIndex)"
+                [class.opacity-60]="disabled()"
+                role="option"
+                [attr.aria-selected]="isSelected(node)"
+                (mousedown)="$event.preventDefault()"
+                (mouseenter)="setActiveIndex(treeNodeIndex(node))"
+                (click)="select(asComboboxOption(node))"
+              >
+                <span class="size-8 shrink-0"></span>
+                <span class="min-w-0 flex-1 truncate">{{ displayText(node) }}</span>
+              </div>
+
+              <div
+                *zTreeNodeDef="let node; when: hasChild"
+                zTreeNodePadding
+                [zTreeNodePaddingIndent]="indentStep()"
+                [class]="'ngm-tree-select__option ' + optionClasses()"
+                [class.bg-accent]="isSelected(node) || isActive(node, activeIndex)"
+                [class.text-accent-foreground]="isSelected(node) || isActive(node, activeIndex)"
+                [class.opacity-60]="disabled()"
+                role="option"
+                [attr.aria-selected]="isSelected(node)"
+                (mousedown)="$event.preventDefault()"
+                (mouseenter)="setActiveIndex(treeNodeIndex(node))"
+                (click)="select(asComboboxOption(node))"
+              >
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  zTreeNodeToggle
+                  [disabled]="disabled()"
+                  [attr.aria-label]="'Toggle ' + displayText(node)"
+                  (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+                  (click)="$event.stopPropagation()"
+                >
+                  <z-icon
+                    class="z-icon-rtl-mirror"
+                    [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"
+                  ></z-icon>
+                </button>
+                <span class="min-w-0 flex-1 truncate">{{ displayText(node) }}</span>
+              </div>
+            </z-tree>
+          </div>
+        } @else {
+          <div class="px-3 py-6 text-sm text-text-secondary">
+            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No results found.' } }}
+          </div>
+        }
+      </ng-template>
+    </z-combobox-deprecated>
+  </z-form-field>
+}

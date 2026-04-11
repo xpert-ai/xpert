@@ -2,18 +2,18 @@ import yargs from 'yargs';
 import chalk from 'chalk';
 
 import { NestFactory } from '@nestjs/core';
-import { IPluginConfig } from '@metad/server-common';
+import { IPluginConfig } from '@xpert-ai/server-common';
 import { registerPluginConfig } from './../../bootstrap';
 import { SeedDataService } from './seed-data.service';
 import { SeederModule } from './seeder.module';
 
 /**
 * Usage:
-* yarn seed:module All
-* yarn seed:module Default
-* yarn seed:module Jobs
-* yarn seed:module Reports
-* yarn seed:module Tenant --tenant Peanut
+* pnpm seed:module All
+* pnpm seed:module Default
+* pnpm seed:module Jobs
+* pnpm seed:module Reports
+* pnpm seed:module Tenant --tenant Peanut
 *
 */
 export async function seedModule(devConfig: Partial<IPluginConfig>) {

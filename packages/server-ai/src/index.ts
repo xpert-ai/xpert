@@ -1,4 +1,5 @@
 export * from './app.module'
+export * from './assistant-binding/index'
 export * from './copilot/index'
 export * from './copilot-user/index'
 export * from './copilot-organization/index'

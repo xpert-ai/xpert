@@ -1,5 +1,7 @@
-<ngm-story-widget *ngIf="widget$ | async as widget" fxFill
+@if (widget$ | async; as widget) {
+  <ngm-story-widget fxFill
     [widget]="widget"
     [editable]="false"
     [showMenu]="false"
-></ngm-story-widget>
+  ></ngm-story-widget>
+}

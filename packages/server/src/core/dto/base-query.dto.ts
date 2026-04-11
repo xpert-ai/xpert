@@ -2,8 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FindOptionsOrder, FindOptionsRelations, FindOptionsSelect, FindOptionsWhere } from 'typeorm';
 import { plainToClass, Transform, TransformFnParams, Type } from 'class-transformer';
 import { IsNotEmpty, IsOptional, Max, Min, ValidateNested } from 'class-validator';
-import { PlainObject } from '@metad/contracts';
-import { parseObject, parseToBoolean } from '@metad/server-common';
+import { PlainObject } from '@xpert-ai/contracts';
+import { parseObject, parseToBoolean } from '@xpert-ai/server-common';
 import { TenantOrganizationBaseDTO } from './tenant-organization-base.dto';
 
 /**

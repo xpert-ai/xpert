@@ -1,32 +1,29 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from '@cloud/app/@core/types'
 import { XpertToolNameInputComponent } from '@cloud/app/@shared/xpert'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { MCPToolTestDialogComponent } from '../tool-test'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmDensityDirective,
-    XpertToolNameInputComponent
-  ],
+    XpertToolNameInputComponent,
+    ZardSwitchComponent
+],
   selector: 'mcp-config-tools',
   templateUrl: 'tools.component.html',
   styleUrls: ['tools.component.scss'],

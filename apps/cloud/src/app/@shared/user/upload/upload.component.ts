@@ -1,10 +1,10 @@
 import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { UsersService } from '@metad/cloud/state'
-import { NgmSpinComponent, NgmStepperComponent, NgmTableComponent } from '@metad/ocap-angular/common'
+import { UsersService } from '@xpert-ai/cloud/state'
+import { NgmSpinComponent, NgmStepperComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, IUserUpdateInput } from '../../../@core'
@@ -13,7 +13,6 @@ import { FilesUploadComponent, UploadFile } from '../../files'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -22,7 +21,7 @@ import { FilesUploadComponent, UploadFile } from '../../files'
     NgmStepperComponent,
     NgmTableComponent,
     NgmSpinComponent
-  ],
+],
   selector: 'user-upload',
   templateUrl: 'upload.component.html',
   styleUrls: ['upload.component.scss']

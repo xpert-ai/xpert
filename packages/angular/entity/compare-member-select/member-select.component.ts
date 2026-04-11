@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,11 +19,9 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatSelectModule } from '@angular/material/select'
-import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import { ZardDialogService, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import {
   AggregationRole,
   CompareToEnum,
@@ -34,21 +32,14 @@ import {
   FilterSelectionType,
   getEntityProperty,
   isSemanticCalendar
-} from '@metad/ocap-core'
-import { TranslateModule } from '@ngx-translate/core'
+} from '@xpert-ai/ocap-core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, firstValueFrom, startWith } from 'rxjs'
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule
-  ],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, ZardInputDirective, NgmSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-compare-member-select',
   templateUrl: './member-select.component.html',
@@ -69,10 +60,11 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
   DISPLAY_BEHAVIOUR = DisplayBehaviour.descriptionAndId
   COMPARE_TO_ENUM = CompareToEnum
 
-  private readonly _dialog? = inject(MatDialog, { optional: true })
+  private readonly _dialog? = inject(ZardDialogService, { optional: true })
   private readonly _viewContainerRef = inject(ViewContainerRef)
+  private readonly translate = inject(TranslateService)
 
-  @Input() appearance: MatFormFieldAppearance = 'fill'
+  @Input() appearance: NgmFieldAppearance = 'fill'
   @Input() label: string
 
   readonly dataSettings = input<DataSettings>()
@@ -127,6 +119,32 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
   })
 
   readonly isCalendar = computed(() => isSemanticCalendar(this.property()))
+  readonly compareOptions = computed(() => [
+    {
+      value: CompareToEnum.CurrentMember,
+      label: this.getTranslation('Ngm.Property.CurrentMember', { Default: 'Current Member' })
+    },
+    {
+      value: CompareToEnum.Lag,
+      label: this.getTranslation('Ngm.Property.PreviousNMember', { Default: "Previous 'N' Member" })
+    },
+    {
+      value: CompareToEnum.Lead,
+      label: this.getTranslation('Ngm.Property.NextNMember', { Default: "Next 'N' Member" })
+    },
+    {
+      value: CompareToEnum.Parallel,
+      label: this.getTranslation('Ngm.Property.ParallelMember', { Default: 'Parallel Member' })
+    },
+    {
+      value: CompareToEnum.Ancestor,
+      label: this.getTranslation('Ngm.Property.AncestorMember', { Default: 'Ancestor Member' })
+    },
+    {
+      value: CompareToEnum.SelectedMember,
+      label: this.getTranslation('Ngm.Property.SelectByMembers', { Default: 'Select by Members' }) + '...'
+    }
+  ])
 
   /**
   |--------------------------------------------------------------------------
@@ -139,6 +157,8 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
     .subscribe((type) => {
       if (type === CompareToEnum.CurrentMember) {
         this.value = null
+      } else if (type === CompareToEnum.SelectedMember) {
+        this.selectByMember()
       }
     })
 
@@ -161,8 +181,8 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
     this.disabled = isDisabled
   }
 
-  async selectByMember(event) {
-    event.stopPropagation()
+  async selectByMember(event?: Event) {
+    event?.stopPropagation()
     const slicer = await firstValueFrom(
       this._dialog
         .open(NgmValueHelpComponent, {
@@ -189,5 +209,9 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
         value: slicer.members?.[0]?.value
       })
     }
+  }
+
+  private getTranslation(key: string, params?: Record<string, unknown>) {
+    return this.translate.instant(key, params)
   }
 }

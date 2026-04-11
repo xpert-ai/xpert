@@ -9,7 +9,7 @@ import {
 	FileStorageProviderEnum,
 	DEFAULT_TENANT,
 	IOrganizationCreateInput
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { CrudService } from '../core/crud/crud.service';
 import { Tenant } from './tenant.entity';
@@ -19,7 +19,7 @@ import { TenantFeatureOrganizationCreateCommand } from './commands/tenant-featur
 import { Role } from './../core/entities/internal';
 import { TenantSettingSaveCommand } from './tenant-setting/commands';
 import { OrganizationCreateCommand } from '../organization/commands';
-import { TenantCreatedEvent } from './events';
+import { EVENT_TENANT_CREATED, TenantCreatedEvent } from './events';
 
 
 @Injectable()
@@ -118,7 +118,7 @@ export class TenantService extends CrudService<Tenant> {
 
 		//8. Apply tenant created event
 		this.eventEmitter.emit(
-			'tenant.created',
+			EVENT_TENANT_CREATED,
 			new TenantCreatedEvent(tenant.id, tenant.name),
 		  );
 		  

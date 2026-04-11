@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { isNumber, PeriodFunctions, QueryOptions, SmartIndicatorDataService } from '@metad/ocap-core'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { isNumber, PeriodFunctions, QueryOptions, SmartIndicatorDataService } from '@xpert-ai/ocap-core'
 import { combineLatest, map } from 'rxjs'
 import { Trend } from '../types'
-
 
 /**
  * @deprecated use the individual `NgmIndicatorComponent` for indicator

@@ -1,30 +1,35 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { AiModelTypeEnum, injectToastr, IXpertProject, IXpertToolset, XpertAPIService, XpertToolsetService } from '@cloud/app/@core'
+import {
+  AiModelTypeEnum,
+  injectToastr,
+  IXpertProject,
+  IXpertToolset,
+  XpertAPIService,
+  XpertToolsetService
+} from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map } from 'rxjs/operators'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent
-  ],
+],
   selector: 'project-install-toolset',
   templateUrl: 'toolset.component.html',
   styleUrl: 'toolset.component.scss',
@@ -78,7 +83,7 @@ export class ProjectInstallToolsetComponent {
   }
 
   importToolset() {
-    if (this.bindedToolset())  {
+    if (this.bindedToolset()) {
       this.createdToolset.set(this.bindedToolset())
     } else {
       this.configureToolBuiltin()

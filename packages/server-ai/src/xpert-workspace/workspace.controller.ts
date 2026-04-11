@@ -1,14 +1,14 @@
-import { RolesEnum } from '@metad/contracts'
-import { DeepPartial } from '@metad/server-common'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { DeepPartial } from '@xpert-ai/server-common'
 import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
+	PermissionGuard,
+	Permissions,
 	RequestContext,
-	RoleGuard,
-	Roles,
 	TransformInterceptor
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	Body,
 	Controller,
@@ -30,7 +30,7 @@ import { XpertWorkspace } from './workspace.entity'
 import { XpertWorkspaceService } from './workspace.service'
 import { WorkspaceGuard } from './guards/workspace.guard'
 import { WorkspaceOwnerGuard } from './guards/workspace-owner.guard'
-import { XpertWorkspaceDTO } from './dto'
+import { WorkspacePublicDTO, XpertWorkspaceDTO } from './dto'
 
 @ApiTags('XpertWorkspace')
 @ApiBearerAuth()
@@ -45,8 +45,8 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
 		super(service)
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.XPERT_EDIT)
 	@Get()
 	async findAllWorkspaces(@Query('data', ParseJsonPipe) options: PaginationParams<XpertWorkspace>) {
 		return this.service.findAll(options)
@@ -55,6 +55,17 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
 	@Get('my')
 	async findAllMy(@Query('data', ParseJsonPipe) options: PaginationParams<XpertWorkspace>) {
 		return this.service.findAllMy(options)
+	}
+
+	@Get('my/default')
+	async findMyDefault() {
+		const workspace = await this.service.findMyDefault()
+		return workspace ? new WorkspacePublicDTO(workspace) : null
+	}
+
+	@Post(':workspaceId/default')
+	async setMyDefault(@Param('workspaceId') workspaceId: string) {
+		return new WorkspacePublicDTO(await this.service.setMyDefault(workspaceId))
 	}
 
 	@ApiOperation({ summary: 'Create new record' })

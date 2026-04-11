@@ -1,44 +1,42 @@
-<div class="sticky top-0 flex justify-between items-center gap-4 pt-4 px-12 pb-2 leading-[56px] z-20 flex-wrap gap-y-2
-  bg-surface-container-bg">
+<div
+  class="sticky top-0 flex justify-between items-center gap-4 pt-4 px-12 pb-2 leading-[56px] z-20 flex-wrap gap-y-2 bg-background-body"
+>
   <div class="flex justify-start items-center gap-4">
-    <div type="button"
-      class="group flex-0 flex cursor-poin ter items-center gap-1 rounded-lg py-1.5 px-3 text-lg font-semibold overflow-hidden whitespace-nowrap bg-white text-token-text-secondary hover:bg-token-main-surface-secondary"
+    <div
+      type="button"
+      class="group flex-0 flex cursor-pointer items-center gap-1 rounded-lg py-1.5 px-3 text-lg font-semibold whitespace-nowrap bg-components-card-bg text-token-text-secondary hover:bg-token-main-surface-secondary"
       [cdkMenuTriggerFor]="workspaceMenu"
     >
       <div class="max-w-[160px] truncate text-token-text-secondary">
-        {{ workspace()?.name || ('PAC.Xpert.SelectWorkspace' | translate: {Default: 'Select a workspace'} ) }}
+        {{ workspace()?.name || ('PAC.Xpert.SelectWorkspace' | translate: { Default: 'Select a workspace' }) }}
       </div>
       <i class="ri-arrow-down-s-line text-token-text-tertiary"></i>
     </div>
 
     @if (workspace()) {
-    <ul class="relative flex flex-wrap" cdkListbox [cdkListboxDisabled]="!workspace()" [(ngModel)]="types">
-      <li
-        [cdkOption]="null"
-        class="xpert-list-option" [ngClass]="{active: !type() }"
-        [routerLink]="['.']"
-      >
-        @if (type()) {
-          <i class="ri-apps-line text-lg mr-1"></i>
-        } @else {
-          <i class="ri-apps-fill text-lg mr-1"></i>
-        }
-        {{ 'PAC.KEY_WORDS.All' | translate: {Default: 'All'} }}
-      </li>
-      <li
-        [cdkOption]="XpertRoleTypeEnum.Agent"
-        class="xpert-list-option"
-        [ngClass]="{active: type() === XpertRoleTypeEnum.Agent }"
-        [routerLink]="['xperts']"
-      >
-        @if (type() === XpertRoleTypeEnum.Agent) {
-          <i class="ri-team-fill text-lg mr-1"></i>
-        } @else {
-          <i class="ri-team-line text-lg mr-1"></i>
-        }
-        {{ 'PAC.Xpert.DigitalExpert' | translate: {Default: 'Digital Expert'} }}
-      </li>
-      <!-- <li
+      <ul class="relative flex flex-wrap" cdkListbox [cdkListboxDisabled]="!workspace()" [(ngModel)]="types">
+        <li [cdkOption]="null" class="xpert-list-option" [ngClass]="{ active: !type() }" [routerLink]="['.']">
+          @if (type()) {
+            <i class="ri-apps-line text-lg mr-1"></i>
+          } @else {
+            <i class="ri-apps-fill text-lg mr-1"></i>
+          }
+          {{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}
+        </li>
+        <li
+          [cdkOption]="XpertRoleTypeEnum.Agent"
+          class="xpert-list-option"
+          [ngClass]="{ active: type() === XpertRoleTypeEnum.Agent }"
+          [routerLink]="['xperts']"
+        >
+          @if (type() === XpertRoleTypeEnum.Agent) {
+            <i class="ri-team-fill text-lg mr-1"></i>
+          } @else {
+            <i class="ri-team-line text-lg mr-1"></i>
+          }
+          {{ 'PAC.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' } }}
+        </li>
+        <!-- <li
         [cdkOption]="XpertRoleTypeEnum.Copilot"
         class="xpert-list-option"
         [ngClass]="{active: type() === XpertRoleTypeEnum.Copilot }"
@@ -53,98 +51,195 @@
         {{ 'PAC.Xpert.Copilot' | translate: {Default: 'Copilot'} }}
       </li> -->
 
-      <li [cdkOption]="XpertToolsetCategory.BUILTIN"
-        class="xpert-list-option"
-        [routerLink]="['builtin']"
-        routerLinkActive="active"
-        #rla3="routerLinkActive"
-      >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-[14px] h-[14px] mr-1">
-          <g id="Icon">
-            <g id="Solid">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M5.83333 2.91667C5.83333 2.27233 6.35567 1.75 7 1.75C7.64433 1.75 8.16667 2.27233 8.16667 2.91667C8.16667 3.561 7.64433 4.08333 7 4.08333C6.35567 4.08333 5.83333 3.561 5.83333 2.91667Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M5.83333 7C5.83333 6.35567 6.35567 5.83333 7 5.83333C7.64433 5.83333 8.16667 6.35567 8.16667 7C8.16667 7.64433 7.64433 8.16667 7 8.16667C6.35567 8.16667 5.83333 7.64433 5.83333 7Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M5.83333 11.0833C5.83333 10.439 6.35567 9.91667 7 9.91667C7.64433 9.91667 8.16667 10.439 8.16667 11.0833C8.16667 11.7277 7.64433 12.25 7 12.25C6.35567 12.25 5.83333 11.7277 5.83333 11.0833Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M9.91667 2.91667C9.91667 2.27233 10.439 1.75 11.0833 1.75C11.7277 1.75 12.25 2.27233 12.25 2.91667C12.25 3.561 11.7277 4.08333 11.0833 4.08333C10.439 4.08333 9.91667 3.561 9.91667 2.91667Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M9.91667 7C9.91667 6.35567 10.439 5.83333 11.0833 5.83333C11.7277 5.83333 12.25 6.35567 12.25 7C12.25 7.64433 11.7277 8.16667 11.0833 8.16667C10.439 8.16667 9.91667 7.64433 9.91667 7Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M9.91667 11.0833C9.91667 10.439 10.439 9.91667 11.0833 9.91667C11.7277 9.91667 12.25 10.439 12.25 11.0833C12.25 11.7277 11.7277 12.25 11.0833 12.25C10.439 12.25 9.91667 11.7277 9.91667 11.0833Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M1.75 2.91667C1.75 2.27233 2.27233 1.75 2.91667 1.75C3.561 1.75 4.08333 2.27233 4.08333 2.91667C4.08333 3.561 3.561 4.08333 2.91667 4.08333C2.27233 4.08333 1.75 3.561 1.75 2.91667Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M1.75 7C1.75 6.35567 2.27233 5.83333 2.91667 5.83333C3.561 5.83333 4.08333 6.35567 4.08333 7C4.08333 7.64433 3.561 8.16667 2.91667 8.16667C2.27233 8.16667 1.75 7.64433 1.75 7Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M1.75 11.0833C1.75 10.439 2.27233 9.91667 2.91667 9.91667C3.561 9.91667 4.08333 10.439 4.08333 11.0833C4.08333 11.7277 3.561 12.25 2.91667 12.25C2.27233 12.25 1.75 11.7277 1.75 11.0833Z" fill="currentColor"></path>
+        <li
+          [cdkOption]="XpertToolsetCategory.BUILTIN"
+          class="xpert-list-option"
+          [routerLink]="['builtin']"
+          routerLinkActive="active"
+          #rla3="routerLinkActive"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-[14px] h-[14px] mr-1"
+          >
+            <g id="Icon">
+              <g id="Solid">
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M5.83333 2.91667C5.83333 2.27233 6.35567 1.75 7 1.75C7.64433 1.75 8.16667 2.27233 8.16667 2.91667C8.16667 3.561 7.64433 4.08333 7 4.08333C6.35567 4.08333 5.83333 3.561 5.83333 2.91667Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M5.83333 7C5.83333 6.35567 6.35567 5.83333 7 5.83333C7.64433 5.83333 8.16667 6.35567 8.16667 7C8.16667 7.64433 7.64433 8.16667 7 8.16667C6.35567 8.16667 5.83333 7.64433 5.83333 7Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M5.83333 11.0833C5.83333 10.439 6.35567 9.91667 7 9.91667C7.64433 9.91667 8.16667 10.439 8.16667 11.0833C8.16667 11.7277 7.64433 12.25 7 12.25C6.35567 12.25 5.83333 11.7277 5.83333 11.0833Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M9.91667 2.91667C9.91667 2.27233 10.439 1.75 11.0833 1.75C11.7277 1.75 12.25 2.27233 12.25 2.91667C12.25 3.561 11.7277 4.08333 11.0833 4.08333C10.439 4.08333 9.91667 3.561 9.91667 2.91667Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M9.91667 7C9.91667 6.35567 10.439 5.83333 11.0833 5.83333C11.7277 5.83333 12.25 6.35567 12.25 7C12.25 7.64433 11.7277 8.16667 11.0833 8.16667C10.439 8.16667 9.91667 7.64433 9.91667 7Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M9.91667 11.0833C9.91667 10.439 10.439 9.91667 11.0833 9.91667C11.7277 9.91667 12.25 10.439 12.25 11.0833C12.25 11.7277 11.7277 12.25 11.0833 12.25C10.439 12.25 9.91667 11.7277 9.91667 11.0833Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M1.75 2.91667C1.75 2.27233 2.27233 1.75 2.91667 1.75C3.561 1.75 4.08333 2.27233 4.08333 2.91667C4.08333 3.561 3.561 4.08333 2.91667 4.08333C2.27233 4.08333 1.75 3.561 1.75 2.91667Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M1.75 7C1.75 6.35567 2.27233 5.83333 2.91667 5.83333C3.561 5.83333 4.08333 6.35567 4.08333 7C4.08333 7.64433 3.561 8.16667 2.91667 8.16667C2.27233 8.16667 1.75 7.64433 1.75 7Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M1.75 11.0833C1.75 10.439 2.27233 9.91667 2.91667 9.91667C3.561 9.91667 4.08333 10.439 4.08333 11.0833C4.08333 11.7277 3.561 12.25 2.91667 12.25C2.27233 12.25 1.75 11.7277 1.75 11.0833Z"
+                  fill="currentColor"
+                ></path>
+              </g>
             </g>
-          </g>
-        </svg>
-        {{ 'PAC.Xpert.BuiltinTool' | translate: {Default: 'Built-in Tool'} }}
-      </li>
+          </svg>
+          {{ 'PAC.Xpert.BuiltinTool' | translate: { Default: 'Built-in Tool' } }}
+        </li>
 
-      <li [cdkOption]="XpertToolsetCategory.MCP"
-        class="xpert-list-option"
-        [routerLink]="['mcp']"
-        routerLinkActive="active"
-      >
-        <i class="ri-route-line text-lg mr-1"></i>
-        {{ 'PAC.Xpert.MCPTool' | translate: {Default: 'MCP Tool'} }}
-      </li>
+        <li
+          [cdkOption]="XpertToolsetCategory.MCP"
+          class="xpert-list-option"
+          [routerLink]="['mcp']"
+          routerLinkActive="active"
+        >
+          <i class="ri-route-line text-lg mr-1"></i>
+          {{ 'PAC.Xpert.MCPTool' | translate: { Default: 'MCP Tool' } }}
+        </li>
 
-      <li [cdkOption]="XpertToolsetCategory.API"
-        class="xpert-list-option"
-        [routerLink]="['custom']"
-        routerLinkActive="active"
-        #rla2="routerLinkActive"
-      >
-        <i class="ri-links-line text-lg mr-1"></i>
-        {{ 'PAC.Xpert.APITool' | translate: {Default: 'API Tool'} }}
-      </li>
-      <li [cdkOption]="'knowledgebase'"
-        class="xpert-list-option"
-        [routerLink]="['knowledges']"
-        routerLinkActive="active"
-        #rla1="routerLinkActive"
-      >
-        @if (rla1.isActive) {
-          <i class="ri-book-shelf-fill text-lg mr-1"></i>
-        } @else {
-          <i class="ri-book-shelf-line text-lg mr-1"></i>
-        }
-        {{ 'PAC.Xpert.Knowledgebase' | translate: {Default: 'Knowledgebase'} }}
-      </li>
+        <li
+          [cdkOption]="XpertToolsetCategory.API"
+          class="xpert-list-option"
+          [routerLink]="['custom']"
+          routerLinkActive="active"
+          #rla2="routerLinkActive"
+        >
+          <i class="ri-links-line text-lg mr-1"></i>
+          {{ 'PAC.Xpert.APITool' | translate: { Default: 'API Tool' } }}
+        </li>
+        <li
+          [cdkOption]="'knowledgebase'"
+          class="xpert-list-option"
+          [routerLink]="['knowledges']"
+          routerLinkActive="active"
+          #rla1="routerLinkActive"
+        >
+          @if (rla1.isActive) {
+            <i class="ri-book-shelf-fill text-lg mr-1"></i>
+          } @else {
+            <i class="ri-book-shelf-line text-lg mr-1"></i>
+          }
+          {{ 'PAC.Xpert.Knowledgebase' | translate: { Default: 'Knowledgebase' } }}
+        </li>
 
-      <li class="xpert-list-option"
-        [routerLink]="['database']"
-        routerLinkActive="active"
-        #rla6="routerLinkActive">
-        @if (rla6.isActive) {
-          <i class="ri-database-2-fill text-lg mr-1"></i>
-        } @else {
-          <i class="ri-database-2-line text-lg mr-1"></i>
-        }
-        
-        {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
-      </li>
+        <li class="xpert-list-option" [routerLink]="['database']" routerLinkActive="active" #rla6="routerLinkActive">
+          @if (rla6.isActive) {
+            <i class="ri-database-2-fill text-lg mr-1"></i>
+          } @else {
+            <i class="ri-database-2-line text-lg mr-1"></i>
+          }
 
-      <li class="xpert-list-option" (click)="openEnvs()">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1">
-          <g id="env">
-            <g id="Vector">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M1.33325 3.33325C1.33325 2.22868 2.22868 1.33325 3.33325 1.33325H12.6666C13.7712 1.33325 14.6666 2.22869 14.6666 3.33325V3.66659C14.6666 4.03478 14.3681 4.33325 13.9999 4.33325C13.6317 4.33325 13.3333 4.03478 13.3333 3.66659V3.33325C13.3333 2.96506 13.0348 2.66659 12.6666 2.66659H3.33325C2.96506 2.66659 2.66659 2.96506 2.66659 3.33325V3.66659C2.66659 4.03478 2.36811 4.33325 1.99992 4.33325C1.63173 4.33325 1.33325 4.03478 1.33325 3.66659V3.33325Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M14.6666 12.6666C14.6666 13.7712 13.7712 14.6666 12.6666 14.6666L3.33325 14.6666C2.22866 14.6666 1.33325 13.7711 1.33325 12.6666L1.33325 12.3333C1.33325 11.9651 1.63173 11.6666 1.99992 11.6666C2.36811 11.6666 2.66659 11.9651 2.66659 12.3333V12.6666C2.66659 13.0348 2.96505 13.3333 3.33325 13.3333L12.6666 13.3333C13.0348 13.3333 13.3333 13.0348 13.3333 12.6666V12.3333C13.3333 11.9651 13.6317 11.6666 13.9999 11.6666C14.3681 11.6666 14.6666 11.9651 14.6666 12.3333V12.6666Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M1.33325 5.99992C1.33325 5.63173 1.63173 5.33325 1.99992 5.33325H4.33325C4.70144 5.33325 4.99992 5.63173 4.99992 5.99992C4.99992 6.36811 4.70144 6.66658 4.33325 6.66658H2.66659V7.33325H3.99992C4.36811 7.33325 4.66659 7.63173 4.66659 7.99992C4.66659 8.36811 4.36811 8.66658 3.99992 8.66658H2.66659V9.33325H4.33325C4.70144 9.33325 4.99992 9.63173 4.99992 9.99992C4.99992 10.3681 4.70144 10.6666 4.33325 10.6666H1.99992C1.63173 10.6666 1.33325 10.3681 1.33325 9.99992V5.99992Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M6.4734 5.36186C6.75457 5.27673 7.05833 5.38568 7.22129 5.63012L8.66659 7.79807V5.99992C8.66659 5.63173 8.96506 5.33325 9.33325 5.33325C9.70144 5.33325 9.99992 5.63173 9.99992 5.99992V9.99992C9.99992 10.2937 9.80761 10.5528 9.52644 10.638C9.24527 10.7231 8.94151 10.6142 8.77855 10.3697L7.33325 8.20177V9.99992C7.33325 10.3681 7.03478 10.6666 6.66659 10.6666C6.2984 10.6666 5.99992 10.3681 5.99992 9.99992V5.99992C5.99992 5.70614 6.19222 5.44699 6.4734 5.36186Z" fill="currentColor"></path>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M11.0768 5.38453C11.4167 5.24292 11.807 5.40364 11.9486 5.74351L12.9999 8.26658L14.0512 5.74351C14.1928 5.40364 14.5831 5.24292 14.923 5.38453C15.2629 5.52614 15.4236 5.91646 15.282 6.25633L13.6153 10.2563C13.5118 10.5048 13.2691 10.6666 12.9999 10.6666C12.7308 10.6666 12.488 10.5048 12.3845 10.2563L10.7179 6.25633C10.5763 5.91646 10.737 5.52614 11.0768 5.38453Z" fill="currentColor"></path>
+          {{ 'PAC.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
+        </li>
+
+        <li class="xpert-list-option"
+          [routerLink]="['skills']"
+          routerLinkActive="active"
+          #rla7="routerLinkActive">
+          @if (rla7.isActive) {
+            <i class="ri-pencil-ruler-fill text-lg mr-1"></i>
+          } @else {
+            <i class="ri-pencil-ruler-line text-lg mr-1"></i>
+          }
+          
+          {{ 'PAC.KEY_WORDS.Skills' | translate: {Default: 'Skills'} }}
+        </li>
+
+        <li class="xpert-list-option" (click)="openEnvs()">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4 mr-1"
+          >
+            <g id="env">
+              <g id="Vector">
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M1.33325 3.33325C1.33325 2.22868 2.22868 1.33325 3.33325 1.33325H12.6666C13.7712 1.33325 14.6666 2.22869 14.6666 3.33325V3.66659C14.6666 4.03478 14.3681 4.33325 13.9999 4.33325C13.6317 4.33325 13.3333 4.03478 13.3333 3.66659V3.33325C13.3333 2.96506 13.0348 2.66659 12.6666 2.66659H3.33325C2.96506 2.66659 2.66659 2.96506 2.66659 3.33325V3.66659C2.66659 4.03478 2.36811 4.33325 1.99992 4.33325C1.63173 4.33325 1.33325 4.03478 1.33325 3.66659V3.33325Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M14.6666 12.6666C14.6666 13.7712 13.7712 14.6666 12.6666 14.6666L3.33325 14.6666C2.22866 14.6666 1.33325 13.7711 1.33325 12.6666L1.33325 12.3333C1.33325 11.9651 1.63173 11.6666 1.99992 11.6666C2.36811 11.6666 2.66659 11.9651 2.66659 12.3333V12.6666C2.66659 13.0348 2.96505 13.3333 3.33325 13.3333L12.6666 13.3333C13.0348 13.3333 13.3333 13.0348 13.3333 12.6666V12.3333C13.3333 11.9651 13.6317 11.6666 13.9999 11.6666C14.3681 11.6666 14.6666 11.9651 14.6666 12.3333V12.6666Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M1.33325 5.99992C1.33325 5.63173 1.63173 5.33325 1.99992 5.33325H4.33325C4.70144 5.33325 4.99992 5.63173 4.99992 5.99992C4.99992 6.36811 4.70144 6.66658 4.33325 6.66658H2.66659V7.33325H3.99992C4.36811 7.33325 4.66659 7.63173 4.66659 7.99992C4.66659 8.36811 4.36811 8.66658 3.99992 8.66658H2.66659V9.33325H4.33325C4.70144 9.33325 4.99992 9.63173 4.99992 9.99992C4.99992 10.3681 4.70144 10.6666 4.33325 10.6666H1.99992C1.63173 10.6666 1.33325 10.3681 1.33325 9.99992V5.99992Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M6.4734 5.36186C6.75457 5.27673 7.05833 5.38568 7.22129 5.63012L8.66659 7.79807V5.99992C8.66659 5.63173 8.96506 5.33325 9.33325 5.33325C9.70144 5.33325 9.99992 5.63173 9.99992 5.99992V9.99992C9.99992 10.2937 9.80761 10.5528 9.52644 10.638C9.24527 10.7231 8.94151 10.6142 8.77855 10.3697L7.33325 8.20177V9.99992C7.33325 10.3681 7.03478 10.6666 6.66659 10.6666C6.2984 10.6666 5.99992 10.3681 5.99992 9.99992V5.99992C5.99992 5.70614 6.19222 5.44699 6.4734 5.36186Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M11.0768 5.38453C11.4167 5.24292 11.807 5.40364 11.9486 5.74351L12.9999 8.26658L14.0512 5.74351C14.1928 5.40364 14.5831 5.24292 14.923 5.38453C15.2629 5.52614 15.4236 5.91646 15.282 6.25633L13.6153 10.2563C13.5118 10.5048 13.2691 10.6666 12.9999 10.6666C12.7308 10.6666 12.488 10.5048 12.3845 10.2563L10.7179 6.25633C10.5763 5.91646 10.737 5.52614 11.0768 5.38453Z"
+                  fill="currentColor"
+                ></path>
+              </g>
             </g>
-          </g>
-        </svg>
-        {{ 'PAC.Environment.Environments' | translate: {Default: 'Environments'} }}
-      </li>
-      
-    </ul>
+          </svg>
+          {{ 'PAC.Environment.Environments' | translate: { Default: 'Environments' } }}
+        </li>
+      </ul>
     }
   </div>
 
   <div class="flex items-center gap-2">
-    <tag-filter [allTags]="allTags()" [(tags)]="tags"/>
+    <tag-filter [allTags]="allTags()" [(tags)]="tags" />
 
-    <ngm-search class="rounded-xl overflow-hidden" [formControl]="searchControl"/>
+    <ngm-search class="rounded-xl overflow-hidden" [formControl]="searchControl" />
   </div>
 </div>
 
@@ -160,32 +255,63 @@
 
 <ng-template #workspaceMenu>
   <div cdkMenu class="cdk-menu__large">
-    @if (workspaces().length > 10) {
+    @if (workspaces()?.length > 10) {
       <div class="p-1 relative w-full">
-        <div class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder flex justify-center items-center">
-          <i class="ri-search-line "></i>
-        </div>
-        <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
-          [placeholder]="'PAC.Xpert.FilterWorkspace' | translate: {Default: 'Filter Workspace'}"
-          [(ngModel)]="searchWorkspace"
+        <div
+          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder flex justify-center items-center"
         >
+          <i class="ri-search-line"></i>
+        </div>
+        <input
+          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+          [placeholder]="'PAC.Xpert.FilterWorkspace' | translate: { Default: 'Filter Workspace' }"
+          [(ngModel)]="searchWorkspace"
+        />
       </div>
     } @else {
       <label class="px-2 font-semibold">{{ 'PAC.KEY_WORDS.Workspaces' | translate: { Default: 'Workspaces' } }}</label>
     }
-    
+
     <div class="max-h-96 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
-      @for (item of filteredWorkspaces(); track item.name) {
-        <div class="workspace-item p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
+      @for (item of filteredWorkspaces(); track item.id) {
+        <div
+          class="workspace-item flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
           [class.active]="item.id === selectedWorkspace()?.id"
-          (click)="selectWorkspace(item)">
+          (click)="selectWorkspace(item)"
+        >
           <div class="flex-1 truncate">
             @if (me().id === item.ownerId) {
-              <i class="ri-user-2-fill mr-1 opacity-50" [matTooltip]="'PAC.Xpert.YouAreOwner' | translate: {Default: 'You are owner'}"
-                  matTooltipPosition="left"></i>
+              <i
+                class="ri-user-2-fill mr-1 opacity-50"
+                [zTooltip]="'PAC.Xpert.YouAreOwner' | translate: { Default: 'You are owner' }"
+                zPosition="left"
+              ></i>
             }
             <span [ngmHighlight]="searchWorkspace()" [content]="item.name">{{ item.name }}</span>
           </div>
+
+          @if (!loadingDefaultWorkspace() && defaultWorkspaceId() === item.id) {
+            <span
+              class="inline-flex shrink-0 items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary"
+            >
+              <i class="ri-star-fill text-[10px]"></i>
+              {{ 'PAC.Xpert.DefaultWorkspace' | translate: { Default: '默认' } }}
+            </span>
+          } @else {
+            <button
+              type="button"
+              class="inline-flex shrink-0 items-center gap-1 rounded-full border border-transparent px-2 py-1 text-[11px] font-medium text-text-tertiary hover:border-divider-regular hover:bg-background-default-subtle hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="settingDefaultWorkspaceId() === item.id"
+              (click)="setDefaultWorkspace($event, item)"
+            >
+              @if (settingDefaultWorkspaceId() === item.id) {
+                <i class="ri-loader-4-line animate-spin"></i>
+              } @else {
+                <i class="ri-star-line"></i>
+              }
+              {{ 'PAC.Xpert.SetDefaultWorkspace' | translate: { Default: '设为默认' } }}
+            </button>
+          }
         </div>
       } @empty {
         <div class="flex justify-center p-4 text-token-text-secondary">
@@ -197,30 +323,46 @@
 
     <div class="border-b border-divider-regular w-full my-1"></div>
 
-    <button cdkMenuItem class="ngm-cdk-menu-item p-2 w-full"
-      (click)="newWorkspace()">
-      <div class="shrink-0 flex justify-center items-center w-6 h-6 bg-gray-50 rounded-[6px] border-gray-200 border" role="none">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-gray-500" role="none">
+    <button cdkMenuItem class="ngm-cdk-menu-item p-2 w-full" (click)="newWorkspace()">
+      <div
+        class="shrink-0 flex justify-center items-center w-6 h-6 bg-background-default-subtle rounded-[6px] border-divider-deep border"
+        role="none"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          fill="currentColor"
+          class="w-4 h-4 text-text-tertiary"
+          role="none"
+        >
           <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z" role="none"></path>
         </svg>
       </div>
-      
-      <div class="grow text-left font-normal ml-2 text-[14px] text-gray-700" role="none">{{ 'PAC.ACTIONS.New' | translate: { Default: 'New' } }}</div>
-      <!-- <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="shrink-0 w-3.5 h-3.5  text-gray-500" role="none">
+
+      <div class="grow text-left font-normal ml-2 text-[14px] text-text-secondary" role="none">
+        {{ 'PAC.ACTIONS.New' | translate: { Default: 'New' } }}
+      </div>
+      <!-- <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="shrink-0 w-3.5 h-3.5  text-text-tertiary" role="none">
         <path d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z" role="none"></path>
       </svg> -->
     </button>
 
-  @if (workspace()) {
-    <button class="ngm-cdk-menu-item p-2" cdkMenuItem (click)="openSettings()">
-      <div class="shrink-0 flex justify-center items-center w-6 h-6 bg-gray-50 rounded-[6px] border-gray-200 border mr-2" role="none">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-          class="w-4 h-4" >
-          <path d="M2 11.9998C2 11.1353 2.1097 10.2964 2.31595 9.49631C3.40622 9.55283 4.48848 9.01015 5.0718 7.99982C5.65467 6.99025 5.58406 5.78271 4.99121 4.86701C6.18354 3.69529 7.66832 2.82022 9.32603 2.36133C9.8222 3.33385 10.8333 3.99982 12 3.99982C13.1667 3.99982 14.1778 3.33385 14.674 2.36133C16.3317 2.82022 17.8165 3.69529 19.0088 4.86701C18.4159 5.78271 18.3453 6.99025 18.9282 7.99982C19.5115 9.01015 20.5938 9.55283 21.6841 9.49631C21.8903 10.2964 22 11.1353 22 11.9998C22 12.8643 21.8903 13.7032 21.6841 14.5033C20.5938 14.4468 19.5115 14.9895 18.9282 15.9998C18.3453 17.0094 18.4159 18.2169 19.0088 19.1326C17.8165 20.3043 16.3317 21.1794 14.674 21.6383C14.1778 20.6658 13.1667 19.9998 12 19.9998C10.8333 19.9998 9.8222 20.6658 9.32603 21.6383C7.66832 21.1794 6.18354 20.3043 4.99121 19.1326C5.58406 18.2169 5.65467 17.0094 5.0718 15.9998C4.48848 14.9895 3.40622 14.4468 2.31595 14.5033C2.1097 13.7032 2 12.8643 2 11.9998ZM6.80385 14.9998C7.43395 16.0912 7.61458 17.3459 7.36818 18.5236C7.77597 18.8138 8.21005 19.0652 8.66489 19.2741C9.56176 18.4712 10.7392 17.9998 12 17.9998C13.2608 17.9998 14.4382 18.4712 15.3351 19.2741C15.7899 19.0652 16.224 18.8138 16.6318 18.5236C16.3854 17.3459 16.566 16.0912 17.1962 14.9998C17.8262 13.9085 18.8225 13.1248 19.9655 12.7493C19.9884 12.5015 20 12.2516 20 11.9998C20 11.7481 19.9884 11.4981 19.9655 11.2504C18.8225 10.8749 17.8262 10.0912 17.1962 8.99982C16.566 7.90845 16.3854 6.65378 16.6318 5.47605C16.224 5.18588 15.7899 4.93447 15.3351 4.72552C14.4382 5.52844 13.2608 5.99982 12 5.99982C10.7392 5.99982 9.56176 5.52844 8.66489 4.72552C8.21005 4.93447 7.77597 5.18588 7.36818 5.47605C7.61458 6.65378 7.43395 7.90845 6.80385 8.99982C6.17376 10.0912 5.17754 10.8749 4.03451 11.2504C4.01157 11.4981 4 11.7481 4 11.9998C4 12.2516 4.01157 12.5015 4.03451 12.7493C5.17754 13.1248 6.17376 13.9085 6.80385 14.9998ZM12 14.9998C10.3431 14.9998 9 13.6567 9 11.9998C9 10.343 10.3431 8.99982 12 8.99982C13.6569 8.99982 15 10.343 15 11.9998C15 13.6567 13.6569 14.9998 12 14.9998ZM12 12.9998C12.5523 12.9998 13 12.5521 13 11.9998C13 11.4475 12.5523 10.9998 12 10.9998C11.4477 10.9998 11 11.4475 11 11.9998C11 12.5521 11.4477 12.9998 12 12.9998Z"></path>
-        </svg>
-      </div>
-      {{ 'PAC.KEY_WORDS.Settings' | translate: { Default: 'Settings' } }}
-    </button>
-  }
+    @if (workspace()) {
+      <button class="ngm-cdk-menu-item p-2" cdkMenuItem (click)="openSettings()">
+        <div
+          class="shrink-0 flex justify-center items-center w-6 h-6 bg-background-default-subtle rounded-[6px] border-divider-deep border mr-2"
+          role="none"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+            <path
+              d="M2 11.9998C2 11.1353 2.1097 10.2964 2.31595 9.49631C3.40622 9.55283 4.48848 9.01015 5.0718 7.99982C5.65467 6.99025 5.58406 5.78271 4.99121 4.86701C6.18354 3.69529 7.66832 2.82022 9.32603 2.36133C9.8222 3.33385 10.8333 3.99982 12 3.99982C13.1667 3.99982 14.1778 3.33385 14.674 2.36133C16.3317 2.82022 17.8165 3.69529 19.0088 4.86701C18.4159 5.78271 18.3453 6.99025 18.9282 7.99982C19.5115 9.01015 20.5938 9.55283 21.6841 9.49631C21.8903 10.2964 22 11.1353 22 11.9998C22 12.8643 21.8903 13.7032 21.6841 14.5033C20.5938 14.4468 19.5115 14.9895 18.9282 15.9998C18.3453 17.0094 18.4159 18.2169 19.0088 19.1326C17.8165 20.3043 16.3317 21.1794 14.674 21.6383C14.1778 20.6658 13.1667 19.9998 12 19.9998C10.8333 19.9998 9.8222 20.6658 9.32603 21.6383C7.66832 21.1794 6.18354 20.3043 4.99121 19.1326C5.58406 18.2169 5.65467 17.0094 5.0718 15.9998C4.48848 14.9895 3.40622 14.4468 2.31595 14.5033C2.1097 13.7032 2 12.8643 2 11.9998ZM6.80385 14.9998C7.43395 16.0912 7.61458 17.3459 7.36818 18.5236C7.77597 18.8138 8.21005 19.0652 8.66489 19.2741C9.56176 18.4712 10.7392 17.9998 12 17.9998C13.2608 17.9998 14.4382 18.4712 15.3351 19.2741C15.7899 19.0652 16.224 18.8138 16.6318 18.5236C16.3854 17.3459 16.566 16.0912 17.1962 14.9998C17.8262 13.9085 18.8225 13.1248 19.9655 12.7493C19.9884 12.5015 20 12.2516 20 11.9998C20 11.7481 19.9884 11.4981 19.9655 11.2504C18.8225 10.8749 17.8262 10.0912 17.1962 8.99982C16.566 7.90845 16.3854 6.65378 16.6318 5.47605C16.224 5.18588 15.7899 4.93447 15.3351 4.72552C14.4382 5.52844 13.2608 5.99982 12 5.99982C10.7392 5.99982 9.56176 5.52844 8.66489 4.72552C8.21005 4.93447 7.77597 5.18588 7.36818 5.47605C7.61458 6.65378 7.43395 7.90845 6.80385 8.99982C6.17376 10.0912 5.17754 10.8749 4.03451 11.2504C4.01157 11.4981 4 11.7481 4 11.9998C4 12.2516 4.01157 12.5015 4.03451 12.7493C5.17754 13.1248 6.17376 13.9085 6.80385 14.9998ZM12 14.9998C10.3431 14.9998 9 13.6567 9 11.9998C9 10.343 10.3431 8.99982 12 8.99982C13.6569 8.99982 15 10.343 15 11.9998C15 13.6567 13.6569 14.9998 12 14.9998ZM12 12.9998C12.5523 12.9998 13 12.5521 13 11.9998C13 11.4475 12.5523 10.9998 12 10.9998C11.4477 10.9998 11 11.4475 11 11.9998C11 12.5521 11.4477 12.9998 12 12.9998Z"
+            ></path>
+          </svg>
+        </div>
+        {{ 'PAC.KEY_WORDS.Settings' | translate: { Default: 'Settings' } }}
+      </button>
+    }
   </div>
 </ng-template>

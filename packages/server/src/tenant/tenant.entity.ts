@@ -11,7 +11,7 @@ import {
 	IFeatureOrganization,
 	IImportRecord,
 	ISetting
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { TenantSetting } from './tenant-setting/tenant-setting.entity';
 
 @Entity('tenant')

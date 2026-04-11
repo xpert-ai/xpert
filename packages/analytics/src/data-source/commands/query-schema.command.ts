@@ -1,4 +1,4 @@
-import { XpertToolContext } from '@metad/contracts'
+import { XpertToolContext } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class QuerySchemaCommand implements ICommand {

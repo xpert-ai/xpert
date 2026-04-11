@@ -1,6 +1,7 @@
-@use '@angular/material' as mat;
-@use '@angular/material' as theming;
-@import './breadcrumb-variables';
+@use "sass:map";
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'libs/material-theme/src/styles/theme-compat' as theming;
+@use 'breadcrumb-variables';
 
 @mixin _ngm-breadcrumb-height($height) {
   $counter: calc(#{$height} / 2);
@@ -33,16 +34,16 @@
 }
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
-  $foreground: map-get($config, foreground);
-  $primary: map-get($config, primary);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $foreground: map.get($config, foreground);
+  $primary: map.get($config, primary);
 
-  $step-background: map-get(map-get($config, background), background);
-  $step-active-background: map-get($primary, 300);
-  $step-hover-background: map-get($primary, 400);
-  $step-color: mat.get-color-from-palette(map-get($config, background), darker); // map-get(map-get($config, foreground), text);
-  $step-active-color: mat.get-color-from-palette($primary, '500-contrast'); // map-get(map-get($config, foreground), text);
-  $step-divider-color: map-get(map-get($config, accent), 500);
+  $step-background: map.get(map.get($config, background), background);
+  $step-active-background: map.get($primary, 300);
+  $step-hover-background: map.get($primary, 400);
+  $step-color: themeCompat.m2-get-color-from-palette(map.get($config, background), darker); // map-get(map-get($config, foreground), text);
+  $step-active-color: themeCompat.m2-get-color-from-palette($primary, '500-contrast'); // map-get(map-get($config, foreground), text);
+  $step-divider-color: map.get(map.get($config, accent), 500);
 
   .ngm-breadcrumb-bar {
     &:not(.disabled) {
@@ -55,11 +56,6 @@
       display: flex;
       counter-reset: flag;
       transition: transform 500ms cubic-bezier(0.35, 0, 0.25, 1);
-
-      .mat-ink-bar {
-        bottom: 0;
-        top: auto;
-      }
     }
     .breadcrumb__step {
       text-decoration: none;
@@ -132,9 +128,9 @@
 }
 
 @mixin theme($theme) {
-  $color: theming.get-color-config($theme);
-  $density: theming.get-density-config($theme);
-  $typography: theming.get-typography-config($theme);
+  $color: theming.m2-get-color-config($theme);
+  $density: theming.m2-get-density-config($theme);
+  $typography: theming.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

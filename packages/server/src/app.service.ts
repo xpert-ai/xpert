@@ -1,4 +1,4 @@
-import { ConfigService } from '@metad/server-config'
+import { ConfigService } from '@xpert-ai/server-config'
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 // import { SeedDataService } from './core/seeds/seed-data.service';
 import { CommandBus } from '@nestjs/cqrs'

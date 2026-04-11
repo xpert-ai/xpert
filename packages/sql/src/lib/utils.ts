@@ -1,4 +1,4 @@
-import { AggregationRole, isNil, PropertyHierarchy, SQL } from '@metad/ocap-core'
+import { AggregationRole, isNil, PropertyHierarchy, SQL } from '@xpert-ai/ocap-core'
 import { C_ALL_MEMBER_CAPTION, C_ALL_MEMBER_NAME } from './types'
 
 /**

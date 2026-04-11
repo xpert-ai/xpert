@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core'
-import { ThemesEnum } from '@metad/ocap-angular/core'
+import { ThemesEnum } from '@xpert-ai/ocap-angular/core'
 import { BehaviorSubject } from 'rxjs'
-
 
 @Injectable({ providedIn: 'root' })
 export class PACThemeService {

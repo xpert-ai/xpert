@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertAgent, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -17,13 +17,12 @@ import { XpertExecutionService } from '../../services/execution.service'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
-  ]
+]
 })
 export class XpertStudioPanelExecutionComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -87,8 +86,7 @@ export class XpertStudioPanelExecutionComponent {
         if (this.#execution()) {
           this.executionService.setAgentExecution(this.#execution().agentKey, this.#execution())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // Watch execution status and start/stop polling accordingly
@@ -99,7 +97,7 @@ export class XpertStudioPanelExecutionComponent {
       } else {
         this.#stopPolling()
       }
-    }, { allowSignalWrites: true })
+    })
 
     // Stop polling when component is destroyed
     this.#destroyRef.onDestroy(() => {

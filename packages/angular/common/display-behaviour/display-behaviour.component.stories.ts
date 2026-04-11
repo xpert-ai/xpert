@@ -1,5 +1,5 @@
 import { moduleMetadata, Meta, componentWrapperDecorator } from '@storybook/angular';
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { NgmDisplayBehaviourComponent } from './display-behaviour.component';
 
 export default {

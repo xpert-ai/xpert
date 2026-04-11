@@ -1,9 +1,10 @@
 import { inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { LanguagesMap, Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { TranslateService } from '@ngx-translate/core'
 import i18next from 'i18next'
 import { map } from 'rxjs/operators'
+import { normalizeLanguageCode } from '../../@core/config'
 
 /**
  * Centrally manage language-related affairs of multiple frameworks
@@ -16,7 +17,9 @@ export class I18nService {
   readonly #translate = inject(TranslateService)
   
   // Obserables
-  readonly preferredLanguage$ = this.store.preferredLanguage$.pipe(map((lang) => lang ?? this.#translate.currentLang))
+  readonly preferredLanguage$ = this.store.preferredLanguage$.pipe(
+    map((lang) => normalizeLanguageCode(lang, this.#translate.currentLang))
+  )
 
   get currentLanguage(): string {
     return i18next.language
@@ -40,7 +43,7 @@ export class I18nService {
    * Change language for `i18next` and `store`
    */
   changeLanguage(language: string) {
-    const lang = LanguagesMap[language] ?? language
+    const lang = normalizeLanguageCode(language)
     this.store.preferredLanguage = lang
     return i18next.changeLanguage(lang)
   }

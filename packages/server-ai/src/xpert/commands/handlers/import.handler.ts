@@ -1,46 +1,71 @@
-import { IXpert, IXpertAgent, LongTermMemoryTypeEnum, mapTranslationLanguage, TXpertTeamDraft } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
-import { BadRequestException, Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import {t} from 'i18next'
-import { groupBy, omit, pick } from 'lodash'
+import {
+	convertToUrlPath,
+	IXpert,
+	IXpertAgent,
+	LongTermMemoryTypeEnum,
+	mapTranslationLanguage,
+	omitXpertRelations,
+	replaceAgentInDraft,
+	TXpertTeamDraft
+} from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
+import { BadRequestException } from '@nestjs/common'
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { t } from 'i18next'
+import { groupBy, omit } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { XpertAgentService } from '../../../xpert-agent'
 import { XpertNameInvalidException } from '../../types'
 import { XpertService } from '../../xpert.service'
-import { XpertImportCommand } from '../import.command'
 import { XpertDraftDslDTO } from '../../dto'
+import { XpertImportCommand } from '../import.command'
 
 const SYSTEM_FIELDS = ['tenantId', 'organizationId', 'id', 'createdById', 'updatedById']
+const OVERWRITE_PROTECTED_TEAM_FIELDS = [
+	...SYSTEM_FIELDS,
+	'createdAt',
+	'updatedAt',
+	'workspaceId',
+	'type',
+	'agent',
+	'slug',
+	'latest',
+	'version',
+	'publishAt'
+]
+const OVERWRITE_PROTECTED_AGENT_FIELDS = [
+	...SYSTEM_FIELDS,
+	'createdAt',
+	'updatedAt',
+	'xpertId',
+	'key'
+]
 
 /**
  * @todo add import toolsets and knowledgebases
  */
 @CommandHandler(XpertImportCommand)
 export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
-	readonly #logger = new Logger(XpertImportHandler.name)
-
 	constructor(
 		private readonly xpertService: XpertService,
-		private readonly agentService: XpertAgentService,
-		private readonly i18n: I18nService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly i18n: I18nService
 	) {}
 
 	public async execute(command: XpertImportCommand): Promise<IXpert> {
-		let draft = command.draft as XpertDraftDslDTO
-
-		// Check if the name is unique
-		const team = draft.team
-		const valid = await this.xpertService.validateName(team.name)
-		if (!valid) {
-			throw new XpertNameInvalidException(
-				await this.i18n.t('xpert.Error.NameInvalid', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
+		const draft = command.draft as XpertDraftDslDTO
+		if (!draft?.team) {
+			throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
 		}
+
+		if (command.options?.targetXpertId) {
+			return this.overwriteExistingXpertDraft(command.options.targetXpertId, draft)
+		}
+
+		return this.importAsNewXpert(draft)
+	}
+
+	private async importAsNewXpert(draft: XpertDraftDslDTO): Promise<IXpert> {
+		const team = draft.team
+		await this.validateImportedName(team.name)
 
 		if (!team.agent) {
 			throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
@@ -53,46 +78,123 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 			agent: omit(getLatestPrimaryAgent(draft, team.agent.key), ...SYSTEM_FIELDS)
 		})
 
-		// Replace agent in draft
+		let nextDraft = draft as TXpertTeamDraft
 		if (!xpert.agent.options?.hidden) {
-			draft = replaceAgentInDraft(draft, team.agent.key, xpert.agent)
+			nextDraft = replaceAgentInDraft(nextDraft, team.agent.key, xpert.agent)
 		}
 
-		// Update draft into xpert
 		await this.xpertService.saveDraft(xpert.id, {
-				...omit(draft, 'memories'),
-				team: xpert
-			})
-		// await this.xpertService.update(xpert.id, {
-		// 	draft: ,
-		// 	// graph: pick(draft, 'connections', 'nodes') // Graph will be available after publishing
-		// })
+			...omit(nextDraft, 'memories'),
+			team: xpert
+		})
 
-		// Memories
 		if (draft.memories?.length) {
-			const items = groupBy(draft.memories.map((item) => {
-				const namespace = item.prefix.split(':')
-				return {
-					type: namespace[namespace.length - 1] as LongTermMemoryTypeEnum,
-					value: item.value
-				}
-			}), 'type')
+			const items = groupBy(
+				draft.memories.map((item) => {
+					const namespace = item.prefix.split(':')
+					return {
+						type: namespace[namespace.length - 1] as LongTermMemoryTypeEnum,
+						value: item.value
+					}
+				}),
+				'type'
+			)
 			await Promise.all(
-				Object.keys(items).filter((name) => !!name && items[name].length).map((type: LongTermMemoryTypeEnum) => {
-					const memories = items[type].map((_) => _.value)
-					return this.xpertService.createBulkMemories(xpert.id, {
-						type,
-						memories
+				Object.keys(items)
+					.filter((name) => !!name && items[name].length)
+					.map((type: LongTermMemoryTypeEnum) => {
+						const memories = items[type].map((_) => _.value)
+						return this.xpertService.createBulkMemories(xpert.id, {
+							type,
+							memories
+						})
 					})
-				})
 			)
 		}
 
 		return xpert
 	}
 
-	async createConnection(id: string, leaderKey: string) {
-		await this.agentService.update(id, { leaderKey })
+	private async overwriteExistingXpertDraft(targetXpertId: string, draft: XpertDraftDslDTO): Promise<IXpert> {
+		const currentXpert = await this.loadXpertById(targetXpertId)
+		if (draft.team.type !== currentXpert.type) {
+			throw new BadRequestException('DSL type does not match the current xpert.')
+		}
+
+		if (!currentXpert.agent?.key || !draft.team.agent?.key) {
+			throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
+		}
+
+		await this.validateImportedName(draft.team.name, currentXpert)
+
+		const currentTeam = {
+			...omitXpertRelations(currentXpert),
+			...(currentXpert.draft?.team ?? {}),
+			agent: currentXpert.agent
+		} as TXpertTeamDraft['team']
+
+		const importedPrimaryAgent = getLatestPrimaryAgent(draft, draft.team.agent.key)
+		const targetPrimaryAgent = {
+			...currentXpert.agent,
+			...omit(importedPrimaryAgent, ...OVERWRITE_PROTECTED_AGENT_FIELDS),
+			key: currentXpert.agent.key
+		} as IXpertAgent
+
+		const nextTeam = {
+			...currentTeam,
+			...omit(draft.team, ...OVERWRITE_PROTECTED_TEAM_FIELDS),
+			id: currentTeam.id ?? currentXpert.id,
+			workspaceId: currentTeam.workspaceId ?? currentXpert.workspaceId,
+			type: currentXpert.type,
+			agent: targetPrimaryAgent
+		} as TXpertTeamDraft['team']
+
+		const nextDraft = replaceAgentInDraft(
+			{
+				...(currentXpert.draft ?? {}),
+				...omit(draft, 'memories'),
+				team: nextTeam,
+				nodes: draft.nodes ?? [],
+				connections: draft.connections ?? []
+			} as TXpertTeamDraft,
+			draft.team.agent.key,
+			targetPrimaryAgent,
+			{ requireNode: false }
+		)
+
+		currentXpert.draft = await this.xpertService.saveDraft(currentXpert.id, nextDraft)
+		return currentXpert
+	}
+
+	private async validateImportedName(name: string, currentXpert?: IXpert) {
+		const nextSlug = convertToUrlPath(name)
+		if (currentXpert && nextSlug === currentXpert.slug) {
+			return
+		}
+
+		const valid = await this.xpertService.validateName(name)
+		if (!valid) {
+			throw new XpertNameInvalidException(
+				await this.i18n.t('xpert.Error.NameInvalid', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				})
+			)
+		}
+	}
+
+	private async loadXpertById(xpertId: string) {
+		const xpert = await this.xpertService.repository.findOne({
+			where: {
+				id: xpertId
+			},
+			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'agents', 'agents.copilotModel', 'toolsets', 'knowledgebases']
+		})
+
+		if (!xpert) {
+			throw new BadRequestException(`Xpert '${xpertId}' was not found.`)
+		}
+
+		return xpert
 	}
 }
 
@@ -109,33 +211,4 @@ function getLatestPrimaryAgent(draft: TXpertTeamDraft, key: string): IXpertAgent
 			}
 		}
 	}
-}
-
-export function replaceAgentInDraft(draft: TXpertTeamDraft, key: string, agent: IXpertAgent) {
-  const index = draft.nodes.findIndex((_) => _.type === 'agent' && _.key === key)
-  if (index > -1) {
-    draft.nodes[index] = {
-      ...draft.nodes[index],
-      type: 'agent',
-      key: agent.key,
-      entity: agent
-    }
-  } else {
-    throw new Error(`Can't found agent for key: ${key}`)
-  }
-
-  // Replace agent in connections
-  if (key !== agent.key) {
-    draft.connections.forEach((conn) => {
-      if (conn.from === key) {
-        conn.from = agent.key
-        conn.key = `${conn.from}/${conn.to}`
-      } else if (conn.to === key) {
-        conn.to = agent.key
-        conn.key = `${conn.from}/${conn.to}`
-      }
-    })
-  }
-
-  return draft
 }

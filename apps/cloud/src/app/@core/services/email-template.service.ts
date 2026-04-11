@@ -1,12 +1,12 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_PREFIX, BaseOrgCrudService } from '@metad/cloud/state'
+import { API_PREFIX, BaseOrgCrudService } from '@xpert-ai/cloud/state'
 import {
   ICustomizableEmailTemplate,
   ICustomizeEmailTemplateFindInput,
   IEmailTemplate,
   IEmailTemplateSaveInput
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { firstValueFrom, switchMap } from 'rxjs'
 import { API_EMAIL_TEMPLATE } from '../constants/app.constants'
 

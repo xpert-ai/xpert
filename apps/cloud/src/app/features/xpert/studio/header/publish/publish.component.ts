@@ -3,17 +3,15 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { nonBlank, SlideUpAnimation } from '@metad/core'
-import { injectConfirm, injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { nonBlank, SlideUpAnimation } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, IXpert, ToastrService, TSelectOption, XpertAPIService } from '@cloud/app/@core'
 import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
-
+import { injectConfirm, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -22,10 +20,10 @@ import { XpertService } from '../../../xpert/xpert.service'
     ReactiveFormsModule,
     DragDropModule,
     TranslateModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
-    NgmSelectComponent
+    NgmSelectComponent,
+    ZardSwitchComponent
   ],
   selector: 'xpert-publish',
   templateUrl: './publish.component.html',
@@ -55,9 +53,9 @@ export class XpertPublishVersionComponent {
   readonly releaseNotes = model('')
   readonly releaseNotesError = computed(() => {
     if (!this.releaseNotes()) {
-      return this.#translate.instant('PAC.Xpert.AddReleaseNotes', {Default: 'Add release notes'})
+      return this.#translate.instant('PAC.Xpert.AddReleaseNotes', { Default: 'Add release notes' })
     } else if (this.releaseNotes().trim().length < 10) {
-      return this.#translate.instant('PAC.Xpert.ReleaseNotesLess', {Default: 'Release notes too less'})
+      return this.#translate.instant('PAC.Xpert.ReleaseNotesLess', { Default: 'Release notes too less' })
     }
     return null
   })
@@ -81,11 +79,15 @@ export class XpertPublishVersionComponent {
 
   setAsLatest(xpert: Partial<IXpert>) {
     this.loading.set(true)
-    this.confirm({
-      title: this.#translate.instant('PAC.Xpert.SetAsLatest', {Default: 'Set as latest'}),
-      information: this.#translate.instant('PAC.Xpert.LatestDefaultVersion', {Default: 'Set this version as the latest, the default version when opening Digital Expert'})
-    }, this.xpertAPI.setAsLatest(xpert.id))
-    .subscribe({
+    this.confirm(
+      {
+        title: this.#translate.instant('PAC.Xpert.SetAsLatest', { Default: 'Set as latest' }),
+        information: this.#translate.instant('PAC.Xpert.LatestDefaultVersion', {
+          Default: 'Set this version as the latest, the default version when opening Digital Expert'
+        })
+      },
+      this.xpertAPI.setAsLatest(xpert.id)
+    ).subscribe({
       next: () => {
         this.loading.set(false)
         this.studioService.refresh()
@@ -99,11 +101,15 @@ export class XpertPublishVersionComponent {
 
   deleteVer(xpert: Partial<IXpert>) {
     this.loading.set(true)
-    this.confirmDelete({
-      value: 'v' + xpert.version,
-      information: this.#translate.instant('PAC.Xpert.DeleteThisVersion', {Default: 'Deleting this version will not affect the use of other versions'})
-    }, this.xpertAPI.delete(xpert.id))
-    .subscribe({
+    this.confirmDelete(
+      {
+        value: 'v' + xpert.version,
+        information: this.#translate.instant('PAC.Xpert.DeleteThisVersion', {
+          Default: 'Deleting this version will not affect the use of other versions'
+        })
+      },
+      this.xpertAPI.delete(xpert.id)
+    ).subscribe({
       next: () => {
         this.loading.set(false)
         if (xpert.id === this.xpert().id) {
@@ -128,23 +134,31 @@ export class XpertPublishVersionComponent {
     this.loading.set(true)
     // Check if the draft has been saved
     const obser: Observable<any> = this.studioService.unsaved() ? this.studioService.saveDraft() : of(true)
-    obser.pipe(switchMap(() => this.xpertAPI.publish(this.xpert().id, this.newVersion(), {
-      environmentId: this.environmentId(), releaseNotes: this.releaseNotes()}))).subscribe({
-      next: (result) => {
-        this.#toastr.success(
-          `PAC.Xpert.PublishedSuccessfully`,
-          { Default: 'Published successfully' },
-          `v${result.version}`
+    obser
+      .pipe(
+        switchMap(() =>
+          this.xpertAPI.publish(this.xpert().id, this.newVersion(), {
+            environmentId: this.environmentId(),
+            releaseNotes: this.releaseNotes()
+          })
         )
-        this.loading.set(false)
-        this.studioService.refresh()
-        this.xpertService.published$.next(result)
-        this.close()
-      },
-      error: (error) => {
-        this.#toastr.error(getErrorMessage(error))
-        this.loading.set(false)
-      }
-    })
+      )
+      .subscribe({
+        next: (result) => {
+          this.#toastr.success(
+            `PAC.Xpert.PublishedSuccessfully`,
+            { Default: 'Published successfully' },
+            `v${result.version}`
+          )
+          this.loading.set(false)
+          this.studioService.refresh()
+          this.xpertService.published$.next(result)
+          this.close()
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+          this.loading.set(false)
+        }
+      })
   }
 }

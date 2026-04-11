@@ -1,17 +1,109 @@
-import { Routes } from '@angular/router'
+import { inject } from '@angular/core'
+import { Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
+import { of } from 'rxjs'
+import { filter, map, switchMap, take, catchError } from 'rxjs/operators'
+import { AiFeatureEnum, AssistantBindingScope, AssistantBindingService, AssistantCode, Store } from '../../@core'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatHomeComponent } from './home/home.component'
-import { ChatProjectsComponent } from './projects/projects.component'
-import { ChatProjectHomeComponent } from './project/home/home.component'
-import { ChatProjectConversationComponent } from './project/conversation/conversation.component'
-import { ChatProjectComponent } from './project/project.component'
+import { ChatBiComponent } from './chatbi/chatbi.component'
+import { ChatCommonAssistantComponent } from './common/common.component'
+import { ChatCommonWelcomeComponent } from './welcome/welcome.component'
+import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
+import { ClawXpertComponent } from './clawxpert/clawxpert.component'
+import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
+
+function featureGate(featureKeys: AiFeatureEnum[]) {
+  return () => {
+    const store = inject(Store)
+    const router = inject(Router)
+
+    return store.user$.pipe(
+      filter((user) => Array.isArray(user?.tenant?.featureOrganizations)),
+      take(1),
+      map(() =>
+        featureKeys.every((featureKey) => store.hasFeatureEnabled(featureKey))
+          ? true
+          : router.createUrlTree(['/chat'])
+      )
+    )
+  }
+}
+
+function redirectToDefaultChatEntry() {
+  return () => {
+    const store = inject(Store)
+    const router = inject(Router)
+    const assistantBindingService = inject(AssistantBindingService)
+
+    return store.user$.pipe(
+      filter((user) => Array.isArray(user?.tenant?.featureOrganizations)),
+      take(1),
+      switchMap(() => {
+        if (
+          !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) ||
+          !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
+        ) {
+          return of(router.createUrlTree(['/chat/x/welcome']))
+        }
+
+        if (!store.organizationId) {
+          return of(router.createUrlTree(['/chat/clawxpert']))
+        }
+
+        return assistantBindingService.get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER).pipe(
+          switchMap((binding) => {
+            const assistantId = readAssistantBindingAssistantId(binding)
+            if (!assistantId) {
+              return of(router.createUrlTree(['/chat/clawxpert']))
+            }
+
+            return assistantBindingService.getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT).pipe(
+              map((xperts) =>
+                hasMatchingXpertId(xperts, assistantId)
+                  ? router.createUrlTree(['/chat/clawxpert/c'])
+                  : router.createUrlTree(['/chat/clawxpert'])
+              ),
+              catchError(() => of(router.createUrlTree(['/chat/clawxpert'])))
+            )
+          }),
+          catchError(() => of(router.createUrlTree(['/chat/clawxpert'])))
+        )
+      })
+    )
+  }
+}
 
 export const routes: Routes = [
   {
     path: '',
     component: ChatHomeComponent,
     children: [
+      {
+        path: '',
+        component: ChatCommonWelcomeComponent,
+        canActivate: [redirectToDefaultChatEntry()],
+        pathMatch: 'full'
+      },
+      {
+        path: 'x/welcome',
+        component: ChatCommonWelcomeComponent,
+        data: {
+          title: 'Common Welcome',
+        }
+      },
+      {
+        path: 'x/common/c/:id',
+        redirectTo: '/chat/x/common',
+        pathMatch: 'full'
+      },
+      {
+        path: 'x/common',
+        component: ChatCommonAssistantComponent,
+        data: {
+          title: 'Common Assistant',
+        }
+      },
       {
         path: 'x/:name',
         component: ChatXpertComponent,
@@ -33,58 +125,39 @@ export const routes: Routes = [
           title: 'Chat Xpert Conversation',
         }
       },
-
       {
-        path: 'p/:id',
-        component: ChatProjectComponent,
+        path: 'clawxpert',
+        component: ClawXpertComponent,
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
         data: {
-          title: 'Chat Xpert Project',
+          title: 'ClawXpert',
         },
         children: [
           {
             path: '',
-            component: ChatProjectHomeComponent,
+            component: ClawXpertOverviewComponent,
             data: {
-              title: 'Chat Xpert Project Home',
+              title: 'ClawXpert Overview',
             }
           },
           {
-            path: 'x/:name',
-            component: ChatProjectConversationComponent,
+            matcher: clawxpertConversationMatcher,
+            component: ClawXpertConversationDetailComponent,
             data: {
-              title: 'Chat Project Xpert',
+              title: 'ClawXpert Conversation',
             }
-          },
-          {
-            path: 'c',
-            component: ChatProjectConversationComponent,
-            data: {
-              title: 'Chat Project New Conversation',
-            }
-          },
-          {
-            path: 'c/:c',
-            component: ChatProjectConversationComponent,
-            data: {
-              title: 'Chat Project Conversation',
-            }
-          },
-          {
-            path: 'x/:name/c/:c',
-            component: ChatProjectConversationComponent,
-            data: {
-              title: 'Chat Project Xpert Conversation',
-            }
-          },
+          }
         ]
       },
       {
-        path: 'p',
-        component: ChatProjectsComponent,
+        path: 'chatbi',
+        component: ChatBiComponent,
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CHATBI])],
         data: {
-          title: 'Chat Xpert Projects',
+          title: 'Chat BI',
         }
       },
+
       {
         path: 'tasks',
         component: ChatTasksComponent,
@@ -101,9 +174,60 @@ export const routes: Routes = [
       },
       {
         path: '**',
-        redirectTo: 'x/common',
+        redirectTo: 'x/welcome',
         pathMatch: 'prefix'
       },
     ]
   },
 ]
+
+function clawxpertConversationMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  if (segments[0]?.path !== 'c') {
+    return null
+  }
+
+  if (segments.length === 1) {
+    return {
+      consumed: segments
+    }
+  }
+
+  if (segments.length === 2) {
+    return {
+      consumed: segments,
+      posParams: {
+        threadId: segments[1]
+      }
+    }
+  }
+
+  return null
+}
+
+function readAssistantBindingAssistantId(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || !('assistantId' in value)) {
+    return null
+  }
+
+  const assistantId = value.assistantId
+  if (typeof assistantId !== 'string') {
+    return null
+  }
+
+  const normalizedAssistantId = assistantId.trim()
+  return normalizedAssistantId || null
+}
+
+function hasMatchingXpertId(value: unknown, assistantId: string): boolean {
+  if (!Array.isArray(value)) {
+    return false
+  }
+
+  return value.some((item) => {
+    if (!item || typeof item !== 'object' || !('id' in item)) {
+      return false
+    }
+
+    return item.id === assistantId
+  })
+}

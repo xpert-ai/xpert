@@ -1,5 +1,5 @@
-import { IUser } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IUser } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Expose, Transform } from 'class-transformer'
 
 @Expose()

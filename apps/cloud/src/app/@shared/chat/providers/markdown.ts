@@ -1,21 +1,21 @@
-import { MarkdownModuleConfig, MARKED_OPTIONS, MarkedOptions, MarkedRenderer, provideMarkdown } from 'ngx-markdown'
+import { MarkdownModuleConfig, MARKED_EXTENSIONS, MARKED_OPTIONS, MarkedOptions, MarkedRenderer, provideMarkdown } from 'ngx-markdown'
 import markedKatex from 'marked-katex-extension'
 import { CustomElementsService } from './custom-elements.service'
 
 export function markedOptionsFactory(): MarkedOptions {
   const renderer = new MarkedRenderer()
 
-  const _codeFun = renderer.code
-  renderer.code = (code: string, language: string | undefined, escaped: boolean) => {
-    if (language === 'echarts') {
-      const escaped = encodeURIComponent(code)
+  const originalCode = renderer.code.bind(renderer)
+  renderer.code = (token: { text: string; lang?: string; escaped?: boolean }) => {
+    if (token.lang === 'echarts') {
+      const escaped = encodeURIComponent(token.text)
       return `<echarts-wrapper code="${escaped}"></echarts-wrapper>`
     }
-    if (language === 'mermaid') {
-      const escaped = encodeURIComponent(code)
+    if (token.lang === 'mermaid') {
+      const escaped = encodeURIComponent(token.text)
       return `<mermaid-wrapper code="${escaped}"></mermaid-wrapper>`
     }
-    return _codeFun.apply(renderer, [code, language, escaped])
+    return originalCode(token as any)
   }
 
   return {
@@ -36,14 +36,18 @@ export function provideChatMarkdown(markdownModuleConfig?: MarkdownModuleConfig)
     // Configure marked extensions for KaTeX math rendering
     // Supports inline math ($...$) and display math ($$...$$)
     markedExtensions: [
-      markedKatex({
-        // Enable display mode for $$...$$ blocks
-        displayMode: true,
-        // Don't throw error on invalid LaTeX syntax (show error message instead)
-        throwOnError: false,
-        // Output HTML for rendering
-        output: 'html'
-      })
+      {
+        provide: MARKED_EXTENSIONS,
+        useValue: markedKatex({
+          // Enable display mode for $$...$$ blocks
+          displayMode: true,
+          // Don't throw error on invalid LaTeX syntax (show error message instead)
+          throwOnError: false,
+          // Output HTML for rendering
+          output: 'html'
+        }),
+        multi: true
+      }
     ],
     ...(markdownModuleConfig ?? {})
   })

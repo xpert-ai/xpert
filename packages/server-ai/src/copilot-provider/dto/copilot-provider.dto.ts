@@ -1,4 +1,4 @@
-import { IAiProviderEntity, ICopilot } from '@metad/contracts'
+import { IAiProviderEntity, ICopilot } from '@xpert-ai/contracts'
 import { Expose, Transform } from 'class-transformer'
 import { AiProviderDto } from '../../ai-model'
 import { CopilotDto } from '../../copilot/dto'

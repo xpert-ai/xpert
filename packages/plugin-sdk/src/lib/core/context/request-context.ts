@@ -1,10 +1,21 @@
 // request-context.ts
-import { IUser, LanguagesEnum, PermissionsEnum, RolesEnum } from '@metad/contracts'
-import { HttpException, HttpStatus } from '@nestjs/common'
+import {
+  IApiKey,
+  IRequestScopeContext,
+  IUser,
+  LanguagesEnum,
+  PermissionsEnum,
+  RolesEnum
+} from '@xpert-ai/contracts'
+import type { IApiPrincipal, RequestScopeLevel } from '@xpert-ai/contracts'
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { ExtractJwt } from 'passport-jwt'
 import { JsonWebTokenError, verify } from 'jsonwebtoken'
+
+const TENANT_SCOPE = 'tenant' as RequestScopeLevel
+const ORGANIZATION_SCOPE = 'organization' as RequestScopeLevel
 
 export class RequestContext {
   constructor(
@@ -19,6 +30,15 @@ export class RequestContext {
     const session = getRequestContext()
     return session
   }
+
+  static currentApiKey(): IApiKey | null {
+		return RequestContext.currentApiPrincipal()?.apiKey ?? null;
+	}
+
+	static currentApiPrincipal(): IApiPrincipal | null {
+		const user = RequestContext.currentUser() as IApiPrincipal | null;
+		return user?.apiKey ? user : null;
+	}
 
   static currentRequest(): IncomingMessage {
     const requestContext = RequestContext.currentRequestContext()
@@ -102,20 +122,78 @@ export class RequestContext {
     return lang || LanguagesEnum.English
   }
 
-  static getOrganizationId(): string {
-    const req = this.currentRequest()
-    let organizationId: string
-    const keys = ['organization-id']
-    if (req) {
-      for (const key of keys) {
-        if (req.headers && req.headers[key]) {
-          organizationId = req.headers[key] as string
-          break
+  static getScope(): IRequestScopeContext {
+    const request = this.currentRequest()
+    const user = this.currentUser()
+    const tenantId = user?.tenantId ?? getHeaderValue(request, ['tenant-id']) ?? null
+    const organizationId = getHeaderValue(request, ['organization-id']) ?? null
+    const scopeLevelHeader = getHeaderValue(request, ['x-scope-level'])
+
+    if (scopeLevelHeader) {
+      if (
+        scopeLevelHeader !== TENANT_SCOPE &&
+        scopeLevelHeader !== ORGANIZATION_SCOPE
+      ) {
+        throw new BadRequestException(`Unsupported scope level: ${scopeLevelHeader}`)
+      }
+
+      if (scopeLevelHeader === TENANT_SCOPE) {
+        if (organizationId) {
+          throw new BadRequestException('Tenant scope requests must not include Organization-Id.')
         }
+
+        return {
+          tenantId,
+          level: TENANT_SCOPE,
+          organizationId: null
+        }
+      }
+
+      if (!organizationId) {
+        throw new BadRequestException('Organization scope requests require Organization-Id.')
+      }
+
+      return {
+        tenantId,
+        level: ORGANIZATION_SCOPE,
+        organizationId
       }
     }
 
-    return organizationId
+    if (organizationId) {
+      return {
+        tenantId,
+        level: ORGANIZATION_SCOPE,
+        organizationId
+      }
+    }
+
+    return {
+      tenantId,
+      level: TENANT_SCOPE,
+      organizationId: null
+    }
+  }
+
+  static getOrganizationId(): string | null {
+    return this.getScope().organizationId
+  }
+
+  static isTenantScope(): boolean {
+    return this.getScope().level === TENANT_SCOPE
+  }
+
+  static isOrganizationScope(): boolean {
+    return this.getScope().level === ORGANIZATION_SCOPE
+  }
+
+  static requireOrganizationScope(): string {
+    const scope = this.getScope()
+    if (scope.level !== ORGANIZATION_SCOPE || !scope.organizationId) {
+      throw new BadRequestException('Organization scope is required for this operation.')
+    }
+
+    return scope.organizationId
   }
 
   static hasPermissions(findPermissions: Array<PermissionsEnum | string>, throwError?: boolean): boolean {
@@ -235,4 +313,25 @@ export const als = new AsyncLocalStorage<RequestContext>()
 
 export function getRequestContext() {
   return als.getStore()
+}
+
+function getHeaderValue(
+  req: IncomingMessage | null,
+  keys: string[]
+): string | null {
+  if (!req?.headers) {
+    return null
+  }
+
+  for (const key of keys) {
+    const value = req.headers[key]
+    if (Array.isArray(value)) {
+      return value[0] ?? null
+    }
+    if (typeof value === 'string' && value) {
+      return value
+    }
+  }
+
+  return null
 }

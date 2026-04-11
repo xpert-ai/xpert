@@ -4,39 +4,35 @@
   </h4>
 </header>
 
-<div class="mat-typography py-4" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+<div class="py-4" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
   @if (data?.description) {
     <p class="mb-4 font-body text-sm text-text-secondary">
       {{data.description}}
     </p>
   }
   <form (ngSubmit)="onApply()" class="max-w-xs">
-    <mat-form-field appearance="fill" class="w-full">
-      <mat-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: {Default: 'Name'} }}</mat-label>
-      <input cdkFocusInitial matInput name="value" [formControl]="value" />
+    <z-form-field appearance="fill" class="w-full">
+      <z-form-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: {Default: 'Name'} }}</z-form-label>
+      <input cdkFocusInitial z-input name="value" [formControl]="value" />
       @if (invalid) {
-        <mat-error>
+        <z-form-message zType="error">
           {{error || 'Error'}}
-        </mat-error>
+        </z-form-message>
       }
-    </mat-form-field>
+    </z-form-field>
   </form>
 </div>
 
 <div class="w-full flex justify-between items-center">
-  <button mat-button (click)="reset()">
+  <button z-button zType="ghost" (click)="reset()">
     {{ 'COMPONENTS.COMMON.RESET' | translate: {Default: 'Reset'} }}
   </button>
 
   <div ngmButtonGroup class="ml-8">
-    <button mat-flat-button (click)="onCancel()">
+    <button z-button zType="secondary" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent"
-      [disabled]="invalid"
-      cdkFocusInitial
-      (click)="onApply()"
-    >
+    <button z-button zType="default" [disabled]="invalid" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

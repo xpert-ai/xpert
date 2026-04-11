@@ -3,26 +3,29 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, Validators } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { MatSlideToggleChange } from '@angular/material/slide-toggle'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute } from '@angular/router'
-import { calcEntityTypePrompt, nonBlank } from '@metad/core'
-import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
-import { injectCopilotCommand } from '@metad/copilot-angular'
-import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
-import { AggregationRole, C_MEASURES, CalculatedMember, CubeUsage, Syntax, VirtualCube, VirtualCubeDimension } from '@metad/ocap-core'
+import { calcEntityTypePrompt, nonBlank } from '@xpert-ai/core'
+import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@xpert-ai/ocap-angular/entity'
+import {
+  AggregationRole,
+  C_MEASURES,
+  CalculatedMember,
+  CubeUsage,
+  Syntax,
+  VirtualCube,
+  VirtualCubeDimension
+} from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
-import { NgmNotificationComponent } from 'apps/cloud/src/app/@theme'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
+import { ZardAccordionImports, ZardDialogService, ZardToastService, type ZardSwitchChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../model.service'
 import { CdkDragDropContainers, SemanticModelEntityType } from '../types'
 import { VirtualCubeStateService } from './virtual-cube.service'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 
 @Component({
   standalone: true,
@@ -33,7 +36,9 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
   imports: [
     CommonModule,
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
+    ...ZardAccordionImports,
+    NgmSelectComponent,
 
     OcapCoreModule,
     NgmEntitySchemaComponent,
@@ -46,12 +51,12 @@ export class VirtualCubeComponent {
   Syntax = Syntax
   EntityCapacity = EntityCapacity
 
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private dsCoreService = inject(NgmDSCoreService)
   private modelState = inject(SemanticModelService)
   private virtualCubeState = inject(VirtualCubeStateService)
   private route = inject(ActivatedRoute)
-  readonly #snackBar = inject(MatSnackBar)
+  readonly #toast = inject(ZardToastService)
   readonly #translate = inject(TranslateService)
   readonly #logger = inject(NGXLogger)
 
@@ -117,72 +122,11 @@ export class VirtualCubeComponent {
     this.virtualCubeState.init(key)
   })
 
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  #formula = injectCopilotCommand({
-    name: 'formula',
-    description: this.#translate.instant('PAC.MODEL.Copilot.CreateCalculatedFormula', {
-      Default: 'Create a formula for the measure'
-    }),
-    systemPrompt: async () => {
-      let prompt = `你是一名 BI 多维数据建模专家，你现在需要根据用户需求用 Multidimensional Expressions (MDX) 创建计算公式度量。
-如果计算度量结果为比率类型，请将 unit 设置为 % 。 如果有当前计算度量请修改公式，如果未提供则新建。`
-      if (this.showCalculatedMember()) {
-        prompt += `\n当前计算度量为:
-\`\`\`
-${Object.entries(this.calcMemberFormGroup.value)
-  .map(([key, value]) => `${key}: ${value}`)
-  .join('\n')}
-\`\`\`
-`
-      }
-
-      if (this.entityType()) {
-        prompt += `\n当前选择的 Cube 信息为:
-\`\`\`
-${calcEntityTypePrompt(this.entityType())}
-\`\`\`
-`
-      }
-      return prompt
-    },
-    actions: [
-      // injectMakeCopilotActionable({
-      //   name: 'new_or_edit_calculated_member',
-      //   description: 'Create a new formula for the calculated measure',
-      //   argumentAnnotations: [
-      //     {
-      //       name: 'formula',
-      //       type: 'string',
-      //       description: 'provide the new formula',
-      //       required: true
-      //     },
-      //     {
-      //       name: 'unit',
-      //       type: 'string',
-      //       description: 'unit of the formula',
-      //       required: true
-      //     }
-      //   ],
-      //   implementation: async (formula: string, unit: string) => {
-      //     this.#logger.debug(`Copilot command 'formula' params: formula is`, formula, `unit is`, unit)
-      //     this.calcMemberFormGroup.patchValue({ formula, unit })
-      //     this.showCalculatedMember.set(true)
-
-      //     return `✅`
-      //   }
-      // })
-    ]
-  })
-
-  constructor() {
-    effect(() => {
-      console.log(`[VirtualCubeComponent] dataSettings`, this.dataSettings$())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(`[VirtualCubeComponent] dataSettings`, this.dataSettings$())
+  //   })
+  // }
 
   trackByName(index: number, item: CubeUsage) {
     return item.cubeName
@@ -223,7 +167,7 @@ ${calcEntityTypePrompt(this.entityType())}
 
   selectCube(cube) {}
 
-  changeIgnoreUnrelatedDimensions(event: MatSlideToggleChange, cube: CubeUsage) {
+  changeIgnoreUnrelatedDimensions(event: ZardSwitchChange, cube: CubeUsage) {
     this.virtualCubeState.updateCube({
       cubeName: cube.cubeName,
       ignoreUnrelatedDimensions: event.checked
@@ -246,7 +190,7 @@ ${calcEntityTypePrompt(this.entityType())}
     }
   }
 
-  changeDimensionShared(event: MatSlideToggleChange, name: string) {
+  changeDimensionShared(event: ZardSwitchChange, name: string) {
     this.virtualCubeState.updateDimension({
       name,
       __shared__: event.checked
@@ -330,17 +274,11 @@ ${calcEntityTypePrompt(this.entityType())}
   }
 
   openNeedSaveMessage() {
-    this.#snackBar.openFromComponent(NgmNotificationComponent, {
-      data: {
-        color: 'primary',
-        message: this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSave', { Default: 'Please Save' }),
-        description: this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSaveTheCorrectVirtualCube', {
-          Default: 'Please save the correct virtual cube configuration before editing the formula.'
-        })
-      },
-      duration: 5 * 1000,
-      horizontalPosition: 'end',
-      verticalPosition: 'bottom'
+    this.#toast.warning(this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSave', { Default: 'Please Save' }), {
+      description: this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSaveTheCorrectVirtualCube', {
+        Default: 'Please save the correct virtual cube configuration before editing the formula.'
+      }),
+      duration: 5 * 1000
     })
   }
 }

@@ -1,16 +1,18 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatExpansionModule } from '@angular/material/expansion'
-import { MatIconModule } from '@angular/material/icon'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { Cube, EntityType, FilterSelectionType, Property, getEntityDimensions, getEntityProperty } from '@metad/ocap-core'
+
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import {
+  Cube,
+  EntityType,
+  FilterSelectionType,
+  Property,
+  getEntityDimensions,
+  getEntityProperty
+} from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ISemanticModelEntity,
@@ -23,25 +25,25 @@ import {
 import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from 'rxjs'
 import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import { NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'
-
+import { ZardAccordionImports, ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardProgressCircleComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatIconModule,
-    MatExpansionModule,
-    MatButtonModule,
-    MatTooltipModule,
-    MatProgressSpinnerModule,
+    ZardIconComponent,
+    ...ZardAccordionImports,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
+    ZardProgressCircleComponent,
     DensityDirective,
     AppearanceDirective,
-    NgmCheckboxComponent,
+    NgmCheckboxComponent
   ],
   selector: 'pac-model-members-cube',
   templateUrl: 'cube.component.html',
@@ -51,7 +53,7 @@ export class ModelMembersCubeComponent {
   readonly modelService = inject(SemanticModelService)
   readonly modelEntityService = inject(SemanticModelEntityService)
   readonly modelsService = inject(SemanticModelServerService)
-  readonly dialog = inject(MatDialog)
+  readonly dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly translate = inject(TranslateService)
@@ -93,7 +95,7 @@ export class ModelMembersCubeComponent {
   readonly job = computed(() => this.cube()?.__entity__?.job)
 
   readonly delayRefresh$ = new Subject<boolean>()
-  
+
   constructor() {
     // effect(
     //   () => {
@@ -101,7 +103,6 @@ export class ModelMembersCubeComponent {
     //       this.selectedDims.set(this.entity()?.options?.vector?.hierarchies ?? [])
     //     }
     //   },
-    //   { allowSignalWrites: true }
     // )
 
     effect(
@@ -109,12 +110,11 @@ export class ModelMembersCubeComponent {
         if (this.entity() && !this.selectedDims()) {
           this.selectedDims.set(this.entity()?.options?.vector?.dimensions ?? [])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
-      if (this.job()?.status ==='processing') {
+      if (this.job()?.status === 'processing') {
         this.delayRefresh$.next(true)
       }
     })
@@ -162,7 +162,7 @@ export class ModelMembersCubeComponent {
         const dimensionProperty = getEntityProperty(this.cube().entityType, name)
         for await (const hierarchy of dimensionProperty.hierarchies ?? []) {
           let storeMembers = []
-        // const hierarchy = getEntityHierarchy(this.cube().entityType, name)
+          // const hierarchy = getEntityHierarchy(this.cube().entityType, name)
           if (!hierarchy) {
             this.#toastr.error('PAC.MODEL.CanntFoundHierarchy', null, {
               Default: `Can't found hierarchy '${name}'`,
@@ -176,7 +176,7 @@ export class ModelMembersCubeComponent {
               }),
               this.#toastr
             )
-            
+
             if (members) {
               storeMembers = storeMembers.concat(members)
             }
@@ -213,7 +213,7 @@ export class ModelMembersCubeComponent {
         type: ModelEntityType.Cube,
         options: {
           vector: {
-            dimensions,
+            dimensions
             // hierarchies: uniq(dimensions)
           }
         }
@@ -221,7 +221,9 @@ export class ModelMembersCubeComponent {
       .subscribe({
         next: (entity) => {
           this.cube.update((cube) => ({ ...cube, __entity__: entity }))
-          this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', { Default: 'Synchronization job created successfully!' })
+          this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', {
+            Default: 'Synchronization job created successfully!'
+          })
         },
         error: (err) => {
           this.#toastr.error(getErrorMessage(err))
@@ -257,8 +259,7 @@ export class ModelMembersCubeComponent {
           })
         }
       })
-      .closed
-      .pipe(
+      .closed.pipe(
         switchMap((confirm) =>
           confirm
             ? this.modelEntityService.delete(id).pipe(
@@ -303,32 +304,38 @@ export class ModelMembersCubeComponent {
   }
 
   retrievalTesting() {
-    this.#dialog.open(ModelMembersRetrievalTestingComponent, {
-      viewContainerRef: this.viewContainerRef,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-        modelId: this.modelService.modelSignal().id,
-        cube: this.cube()
-      }
-    }).closed.subscribe((result) => {
-      if (result) {
-      }
-    })
+    this.#dialog
+      .open(ModelMembersRetrievalTestingComponent, {
+        viewContainerRef: this.viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          modelId: this.modelService.modelSignal().id,
+          cube: this.cube()
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+        }
+      })
   }
 
   scheduledSyncTask() {
-    this.#dialog.open(ModelTaskDialogComponent, {
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-        task: this.entity()
-      }
-    }).closed.subscribe((task) => {
-      if (task) {
-        this.cube.update((cube) => ({ ...cube, __entity__: task }))
-        this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', { Default: 'Synchronization job created successfully!' })
-      }
-    })
+    this.#dialog
+      .open(ModelTaskDialogComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          task: this.entity()
+        }
+      })
+      .closed.subscribe((task) => {
+        if (task) {
+          this.cube.update((cube) => ({ ...cube, __entity__: task }))
+          this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', {
+            Default: 'Synchronization job created successfully!'
+          })
+        }
+      })
   }
 }

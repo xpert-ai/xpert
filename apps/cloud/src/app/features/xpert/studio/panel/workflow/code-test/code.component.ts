@@ -1,6 +1,5 @@
 import { Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -10,21 +9,21 @@ import {
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
-  XpertAgentService,
+  XpertAgentService
 } from '@cloud/app/@core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { Subscription } from 'rxjs'
 import { CopyComponent } from '@cloud/app/@shared/common'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertStudioApiService } from '../../../domain'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-code-test',
   templateUrl: './code.component.html',
   styleUrls: ['./code.component.scss'],
   standalone: true,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, NgxJsonViewerModule, CopyComponent],
+  imports: [FormsModule, ...ZardTooltipImports, TranslateModule, NgxJsonViewerModule, CopyComponent]
 })
 export class XpertWorkflowCodeTestComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -48,12 +47,12 @@ export class XpertWorkflowCodeTestComponent {
   readonly parameters = signal({})
   readonly results = signal(null)
   readonly error = signal(null)
-  
+
   readonly loading = signal(false)
   #subscription: Subscription = null
 
   updateParameter(name: string, value: string) {
-    this.parameters.update((state) => ({...state, [name]: value}))
+    this.parameters.update((state) => ({ ...state, [name]: value }))
   }
 
   test() {

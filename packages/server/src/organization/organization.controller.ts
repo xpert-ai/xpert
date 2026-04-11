@@ -1,9 +1,10 @@
-import { IOrganization, IOrganizationCreateInput, IPagination, OrgGenerateDemoOptions, PermissionsEnum, RolesEnum } from '@metad/contracts'
-import { isNotEmpty } from '@metad/server-common'
-import { Body, Controller, Get, HttpCode, HttpStatus, InternalServerErrorException, Param, Post, Put, Query, UseGuards } from '@nestjs/common'
+import { IOrganization, IOrganizationCreateInput, IPagination, OrgGenerateDemoOptions, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
+import { isNotEmpty } from '@xpert-ai/server-common'
+import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, HttpStatus, InternalServerErrorException, Param, Post, Put, Query, UseGuards, ValidationPipe } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { CrudController } from './../core/crud'
+import { CrudController, PaginationParams } from './../core/crud'
+import { RequestContext } from '../core/context'
 import { Permissions, Public, Roles } from './../shared/decorators'
 import { PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards'
 import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes'
@@ -18,6 +19,23 @@ export class OrganizationController extends CrudController<Organization> {
 		super(organizationService)
 	}
 
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
+	@Get('count')
+	async getCount(@Query('data', ParseJsonPipe) data: any): Promise<number> {
+		const { findInput } = data ?? {}
+		return this.organizationService.count({
+			where: findInput
+		})
+	}
+
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
+	@Get('pagination')
+	async pagination(@Query() filter: PaginationParams<Organization>): Promise<IPagination<Organization>> {
+		return this.organizationService.paginate(filter)
+	}
+
 	@ApiOperation({ summary: 'Find all organizations within the tenant.' })
 	@ApiResponse({
 		status: HttpStatus.OK,
@@ -29,7 +47,7 @@ export class OrganizationController extends CrudController<Organization> {
 		description: 'Record not found'
 	})
 	@UseGuards(PermissionGuard)
-	@Permissions(PermissionsEnum.ALL_ORG_VIEW)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
 	@Get()
 	async findAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<Organization>> {
 		const { relations, findInput } = data
@@ -49,12 +67,40 @@ export class OrganizationController extends CrudController<Organization> {
 		status: HttpStatus.NOT_FOUND,
 		description: 'Record not found'
 	})
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(
+		PermissionsEnum.ALL_ORG_VIEW,
+		PermissionsEnum.ALL_ORG_EDIT,
+		PermissionsEnum.ORG_USERS_VIEW,
+		PermissionsEnum.ORG_USERS_EDIT
+	)
+	@Get(':id')
+	async findById(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Query('$relations', ParseJsonPipe) relations?: any,
+		@Query('$select', ParseJsonPipe) select?: any
+	): Promise<IOrganization> {
+		this.ensureAccessibleOrganizationId(id)
+		return this.organizationService.findOne(id, {
+			relations,
+			select
+		})
+	}
+
 	@Get(':id/:select')
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(
+		PermissionsEnum.ALL_ORG_VIEW,
+		PermissionsEnum.ALL_ORG_EDIT,
+		PermissionsEnum.ORG_USERS_VIEW,
+		PermissionsEnum.ORG_USERS_EDIT
+	)
 	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Param('select', ParseJsonPipe) select: any,
 		@Query('data', ParseJsonPipe) data: any
 	): Promise<IOrganization> {
+		this.ensureAccessibleOrganizationId(id)
 		const request = {}
 		const { relations } = data
 		if (isNotEmpty(select)) {
@@ -124,6 +170,14 @@ export class OrganizationController extends CrudController<Organization> {
 		return await this.commandBus.execute(new OrganizationUpdateCommand({ id, ...entity }))
 	}
 
+	@HttpCode(HttpStatus.ACCEPTED)
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_EDIT)
+	@Delete(':id')
+	async delete(@Param('id', UUIDValidationPipe) id: string): Promise<any> {
+		return this.organizationService.delete(id)
+	}
+
 	@ApiOperation({
 		summary: 'Generate demo for organization',
 		security: [
@@ -147,5 +201,25 @@ export class OrganizationController extends CrudController<Organization> {
 			console.error(err)
 			throw new InternalServerErrorException(err.message)
 		}
+	}
+
+	private canViewAllOrganizations() {
+		return RequestContext.hasAnyPermission([
+			PermissionsEnum.ALL_ORG_VIEW,
+			PermissionsEnum.ALL_ORG_EDIT
+		])
+	}
+
+	private ensureAccessibleOrganizationId(organizationId: string) {
+		if (this.canViewAllOrganizations()) {
+			return organizationId
+		}
+
+		const currentOrganizationId = RequestContext.requireOrganizationScope()
+		if (organizationId !== currentOrganizationId) {
+			throw new ForbiddenException('Cross-organization access requires tenant-level permissions.')
+		}
+
+		return organizationId
 	}
 }

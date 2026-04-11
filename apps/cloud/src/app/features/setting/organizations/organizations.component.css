@@ -1,0 +1,94 @@
+@reference "../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply block min-h-0 w-full flex-1 overflow-y-auto;
+}
+
+.organization-row {
+  @apply transition-colors duration-150 ease-out hover:bg-hover-bg;
+}
+
+.organization-row.active {
+  @apply bg-background-default-subtle;
+}
+
+.form-field {
+  @apply flex flex-col gap-3;
+}
+
+.form-label {
+  @apply text-base font-semibold text-text-primary;
+}
+
+
+.form-textarea {
+  @apply min-h-[168px] rounded-2xl border-divider-regular bg-components-input-bg-normal px-4 py-3 text-base text-text-primary placeholder:text-components-input-text-placeholder hover:bg-components-input-bg-hover focus-visible:border-components-input-border-active focus-visible:ring-components-input-border-active/20 disabled:bg-background-default-subtle disabled:text-text-tertiary;
+}
+
+.info-panel {
+  @apply rounded-2xl border border-divider-regular bg-background-default-subtle/60 p-5;
+}
+
+.info-title {
+  @apply mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-text-tertiary;
+}
+
+.toggle-group {
+  @apply flex flex-col gap-4;
+}
+
+.toggle-group-panel {
+  @apply rounded-2xl border border-divider-regular bg-background-default-subtle/60;
+}
+
+.toggle-setting {
+  @apply flex items-start justify-between gap-4 px-5 py-4;
+}
+
+.toggle-setting + .toggle-setting {
+  @apply border-t border-divider-regular;
+}
+
+.demo-source-option {
+  @apply w-full rounded-2xl border border-divider-regular px-5 py-4 transition-colors duration-150 ease-out hover:border-components-input-border-hover hover:bg-background-default-subtle/40;
+}
+
+.z-radio[data-checked] .demo-source-option {
+  @apply border-components-input-border-active bg-background-default-subtle/60;
+}
+
+.demo-source-copy {
+  @apply flex min-w-0 flex-col gap-1.5;
+}
+
+.demo-source-title {
+  @apply text-base font-semibold text-text-primary;
+}
+
+.demo-source-description {
+  @apply text-sm text-text-tertiary;
+}
+
+.field-shell {
+  @apply rounded-2xl border border-divider-regular bg-background-default-subtle p-4;
+}
+
+.field-label {
+  @apply mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-tertiary;
+}
+
+.field-input {
+  @apply w-full rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2.5 text-sm text-text-primary outline-none placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active;
+}
+
+.field-textarea {
+  @apply min-h-[140px] w-full resize-y rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2.5 text-sm text-text-primary outline-none placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active;
+}
+
+.toggle-row {
+  @apply flex items-start justify-between gap-4 rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3;
+}
+
+.logo-edit-overlay {
+  @apply absolute inset-0 flex items-center justify-center gap-1 rounded-2xl bg-components-panel-bg/80 text-xs font-medium text-text-primary opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 group-focus-within:opacity-100;
+}

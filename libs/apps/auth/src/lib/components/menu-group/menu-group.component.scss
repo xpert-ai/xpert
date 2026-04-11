@@ -1,3 +1,4 @@
+@reference "../../../../../../../tailwind-workspace-reference.css";
 :host:not(.collapsed) {
   .pac-router-link {
     @apply hover:bg-black/5 dark:hover:bg-white/10;
@@ -9,19 +10,14 @@
       @apply dark:bg-white/10 bg-black/5;
     }
   }
-  .pac-router-link {
-    @apply py-3 px-4;
-  }
 }
 
 .pac-router-link {
-  @apply transition-all duration-200 ease-in-out;
-
-  
+  @apply transition-all duration-200 ease-in-out cursor-pointer;
 
   &.active {
     .menu-button {
-      @apply rounded-xl shadow-lg bg-white text-primary-600;
+      @apply rounded-lg shadow-lg bg-background-default-subtle text-primary-600;
     }
   }
 }

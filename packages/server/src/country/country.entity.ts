@@ -1,4 +1,4 @@
-import { ICountry } from '@metad/contracts';
+import { ICountry } from '@xpert-ai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';

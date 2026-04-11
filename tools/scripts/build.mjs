@@ -35,24 +35,26 @@ const createZip = (sourceDir, zipFileName) => {
 };
 
 try {
-    execSync('yarn build', { stdio: 'inherit' });
+    execSync('pnpm build', { stdio: 'inherit' });
 
     // 编译前端
     process.env.NODE_OPTIONS = '--max_old_space_size=8192';
-    execSync('yarn nx build cloud --configuration=production --skip-nx-cache', { stdio: 'inherit' });
+    execSync('pnpm nx build cloud --configuration=production --skip-nx-cache', { stdio: 'inherit' });
     
     // 编译后端
-    execSync('yarn nx build api', { stdio: 'inherit' });
+    execSync('pnpm nx build api', { stdio: 'inherit' });
     
     // copyDir('dist/packages', 'dist/apps/api/packages');
     fs.copyFileSync('.deploy/api/package-prod.json', 'dist/apps/api/package.json');
     fs.copyFileSync('tsconfig.base.json', 'dist/apps/api/tsconfig.json');
-    fs.copyFileSync('yarn.lock', 'dist/apps/api/yarn.lock');
+    fs.copyFileSync('pnpm-lock.yaml', 'dist/apps/api/pnpm-lock.yaml');
+    fs.copyFileSync('pnpm-workspace.yaml', 'dist/apps/api/pnpm-workspace.yaml');
+    fs.copyFileSync('.npmrc', 'dist/apps/api/.npmrc');
     
-    // 切换到 dist/apps/api 目录并执行 yarn install
+    // 切换到 dist/apps/api 目录并执行 pnpm install
     process.chdir('dist/apps/api');
     execSync('mv ../../packages ./packages', { stdio: 'inherit' });
-    execSync('yarn install --ignore-engines', { stdio: 'inherit' });
+    execSync('pnpm install --prod --no-frozen-lockfile', { stdio: 'inherit' });
     // 切换回原始目录（可选，如果你需要在原目录继续后续操作）
     process.chdir('../../..');
 

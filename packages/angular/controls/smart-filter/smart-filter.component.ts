@@ -1,6 +1,6 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
+import { OverlayModule } from '@angular/cdk/overlay'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -22,18 +22,30 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DateVariableEnum, DisplayDensity, injectTranslate, ISelectOption, NgmAppearance, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+
+import { 
+  ZardButtonComponent, 
+  ZardCheckboxComponent, 
+  ZardDialogService, 
+  ZardFormImports, 
+  ZardIconComponent, 
+  ZardInputDirective, 
+  ZardTooltipImports,
+  ZardLoaderComponent,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener 
+} from '@xpert-ai/headless-ui'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import {
+  DateVariableEnum,
+  DisplayDensity,
+  injectTranslate,
+  ISelectOption,
+  NgmAppearance,
+  NgmOcapCoreService,
+  OcapCoreModule
+} from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -51,7 +63,7 @@ import {
   isTimeRangesSlicer,
   omit,
   timeRangesSlicerAsString
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   combineLatest,
@@ -66,7 +78,6 @@ import {
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
 import { NgmValueHelpComponent } from '../value-help/value-help.component'
-import { MatRadioModule } from '@angular/material/radio'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmTimeFilterEditorComponent } from '../timer'
 
@@ -103,23 +114,22 @@ export interface SmartFilterState {
     TranslateModule,
     ReactiveFormsModule,
     CdkMenuModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatAutocompleteModule,
-    MatInputModule,
-    MatTooltipModule,
-    MatMenuModule,
-    MatRadioModule,
-    MatCheckboxModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardFormImports,
+    ZardLoaderComponent,
+    OverlayModule,
+    ZardInputDirective,
+    ...ZardTooltipImports,
+    ZardCheckboxComponent,
     ScrollingModule,
     OcapCoreModule,
-    NgmCommonModule,
+    NgmCommonModule
   ]
 })
 export class NgmSmartFilterComponent implements ControlValueAccessor {
   private smartFilterService = inject(NgmSmartFilterService)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private _viewContainerRef = inject(ViewContainerRef)
   private _cdr = inject(ChangeDetectorRef)
   public coreService = inject(NgmOcapCoreService)
@@ -149,9 +159,9 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
   public members = signal<IMember[]>(null)
 
   readonly appearance = input<NgmAppearance>(null)
- 
+
   readonly displayDensity = input<DisplayDensity | string>(null)
-  
+
   readonly disabled = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
@@ -168,6 +178,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
   // States
   readonly disabled$ = computed(() => this.disabled() || this._disabled())
   readonly slicerSignal = signal<ISlicer>(null)
+  readonly panelOpen = signal(false)
 
   readonly hierarchy = model<string>()
 
@@ -195,44 +206,53 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       raw: node.raw
     }
   }
-  treeControl = new FlatTreeControl<FlatTreeNode<any>>(
+  treeControl = new ZardFlatTreeControl<FlatTreeNode<any>>(
     (node) => node.level,
     (node) => node.expandable
   )
-  private treeFlattener = new MatTreeFlattener(
+  private treeFlattener = new ZardTreeFlattener(
     this.transformer,
     (node) => node.level,
     (node) => node.expandable,
     (node) => node.children
   )
-  private dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener)
+  private dataSource = new ZardTreeFlatDataSource(this.treeControl, this.treeFlattener)
   public readonly selectOptions$ = this.dataSource.connect({ viewChange: of() })
 
   private readonly entityType = toSignal(this.smartFilterService.selectEntityType())
   public readonly options$ = toObservable(this.options)
   // readonly slicerSignal = toSignal(this.slicer$)
 
-  readonly _dimension = computed(() => this.dimension() ? {
-    ...this.dimension(),
-    hierarchy: this.hierarchy(),
-    level: this.hierarchy() === this.dimension().hierarchy ? this.dimension().level : null,
-    displayBehaviour: this.displayBehaviour()
-  } : null)
+  readonly _dimension = computed(() =>
+    this.dimension()
+      ? {
+          ...this.dimension(),
+          hierarchy: this.hierarchy(),
+          level: this.hierarchy() === this.dimension().hierarchy ? this.dimension().level : null,
+          displayBehaviour: this.displayBehaviour()
+        }
+      : null
+  )
 
   public readonly property = computed(() => getEntityProperty(this.entityType(), this._dimension()))
   public readonly hierarchies = computed(() => this.property()?.hierarchies)
-  readonly _label = computed(() => this.label() ?? (this.options()?.label || this.property()?.caption || this.property()?.name))
+  readonly _label = computed(
+    () => this.label() ?? (this.options()?.label || this.property()?.caption || this.property()?.name)
+  )
 
   public readonly placeholder$ = this.options$.pipe(map((options) => options?.placeholder))
 
   readonly maxTagCount = computed(() =>
-    this.selectionType() === FilterSelectionType.SingleRange ? 2 : this.options()?.maxTagCount ?? 1
+    this.selectionType() === FilterSelectionType.SingleRange ? 2 : (this.options()?.maxTagCount ?? 1)
   )
   public readonly autoActiveFirst$ = this.options$.pipe(map((options) => options?.autoActiveFirst))
 
   readonly selectionType = computed(() => this.options()?.selectionType)
   readonly isSingleRange = computed(() => this.selectionType() === FilterSelectionType.SingleRange)
-  readonly multiple = computed(() => this.selectionType() === FilterSelectionType.Multiple || this.selectionType() === FilterSelectionType.SingleRange)
+  readonly multiple = computed(
+    () =>
+      this.selectionType() === FilterSelectionType.Multiple || this.selectionType() === FilterSelectionType.SingleRange
+  )
   readonly isCalendar = computed(() => isCalendarProperty(this.property()))
   readonly dateVariables = this.coreService.getDateVariables().filter((variable) => !!variable.dateRange)
   readonly isTimeRangesSlicer = computed(() => isTimeRangesSlicer(this.slicerSignal()))
@@ -244,12 +264,13 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       return timeRangesSlicerAsString(slicer, SELECTION?.TimeRanges || 'Time Ranges')
     }
     if (this.isSingleRange() && this.membersSignal()?.length) {
-      return `${(members[0]?.caption || members[0]?.key) || '?'} : ${(members[1]?.caption || members[1]?.key) || '?'}`
+      return `${members[0]?.caption || members[0]?.key || '?'} : ${members[1]?.caption || members[1]?.key || '?'}`
     }
     return null
   })
 
-  public readonly members$ = combineLatest([toObservable(this.slicerSignal).pipe(map((slicer) => slicer?.members)),
+  public readonly members$ = combineLatest([
+    toObservable(this.slicerSignal).pipe(map((slicer) => slicer?.members)),
     this.smartFilterService.selectOptions$
   ]).pipe(
     map(([members, selectOptions]) => {
@@ -310,13 +331,15 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     .subscribe(() => {
       this.smartFilterService.refresh()
     })
-  private slicerSub = toObservable(this.slicerSignal).pipe(takeUntilDestroyed()).subscribe((slicer) => {
-    slicer.dimension = this._dimension()
-    if (this.isSingleRange()) {
-      slicer.selectionType = this.selectionType()
-    }
-    this.onChange?.(slicer)
-  })
+  private slicerSub = toObservable(this.slicerSignal)
+    .pipe(takeUntilDestroyed())
+    .subscribe((slicer) => {
+      slicer.dimension = this._dimension()
+      if (this.isSingleRange()) {
+        slicer.selectionType = this.selectionType()
+      }
+      this.onChange?.(slicer)
+    })
 
   // Update tree dataSource data when select options and search text changed
   private _treeNodesSub = this.membersTree$
@@ -352,14 +375,12 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       // console.log(this.slicerSignal())
     })
 
-    // 由于 set dataSettings 会同步执行至 toSignal entityType，所以需要使用 allowSignalWrites 设置
     effect(
       () => {
         if (this.dataSettings()) {
           this.smartFilterService.dataSettings = this.dataSettings()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -369,14 +390,16 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       }
     })
 
-    effect(() => {
-      if (this.options()?.defaultMembers) {
-        this.slicerSignal.update((slicer) => ({
-          ...(slicer ?? {}),
-          members: [...this.options().defaultMembers]
-        }))
+    effect(
+      () => {
+        if (this.options()?.defaultMembers) {
+          this.slicerSignal.update((slicer) => ({
+            ...(slicer ?? {}),
+            members: [...this.options().defaultMembers]
+          }))
+        }
       }
-    }, { allowSignalWrites: true })
+    )
 
     effect(() => {
       if (this._displayDensity()) {
@@ -401,16 +424,19 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       }
     })
 
-    effect(() => {
-      const dimension = this.dimension()
-      this.hierarchy.set(dimension.hierarchy || dimension.dimension)
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        const dimension = this.dimension()
+        this.hierarchy.set(dimension.hierarchy || dimension.dimension)
+      }
+    )
 
-    effect(() => {
-      const dimension = this.dimension()
-      this.displayBehaviour.set(dimension.displayBehaviour)
-    }, { allowSignalWrites: true })
-    
+    effect(
+      () => {
+        const dimension = this.dimension()
+        this.displayBehaviour.set(dimension.displayBehaviour)
+      }
+    )
   }
 
   writeValue(obj: any): void {
@@ -446,8 +472,8 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     return this.slicerSignal().members?.some((member) => member.key === option.key)
   }
 
-  onCheckboxChange(event: MatCheckboxChange, option: FlatTreeNode<any>) {
-    if (event.checked) {
+  onCheckboxChange(event: boolean, option: FlatTreeNode<any>) {
+    if (event) {
       this.toggleMember({
         key: option.key,
         value: option.key,
@@ -472,12 +498,11 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
   clearMembers() {
     this.slicerSignal.update((slicer) => ({
       ...omit(slicer, 'members', 'ranges'),
-      members: [],
+      members: []
     }))
   }
 
-  selectMember(event: MatAutocompleteSelectedEvent) {
-    const memberFlatNode = event.option.value as FlatTreeNode<IDimensionMember>
+  selectMember(memberFlatNode: FlatTreeNode<IDimensionMember>) {
     this.toggleMember({
       key: memberFlatNode.key,
       value: memberFlatNode.key,
@@ -485,6 +510,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     })
     this.searchInput.nativeElement.value = ''
     this.valueControl.setValue(null)
+    this.closeAutocomplete()
     this.searchInput.nativeElement.blur()
   }
 
@@ -531,8 +557,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
             dimension: this._dimension(),
             options: {
               ...(this.options() ?? {}),
-              selectionType:
-                this.selectionType() ?? (this.options()?.multiple ? FilterSelectionType.Multiple : null),
+              selectionType: this.selectionType() ?? (this.options()?.multiple ? FilterSelectionType.Multiple : null),
               searchable: true,
               initialLevel: 1
             },
@@ -558,6 +583,23 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     this.cdkVirtualScrollViewPort?.checkViewportSize()
   }
 
+  openAutocomplete() {
+    this.panelOpen.set(true)
+  }
+
+  closeAutocomplete() {
+    this.panelOpen.set(false)
+  }
+
+  onAutocompleteBlur(event: FocusEvent) {
+    window.setTimeout(() => {
+      const activeElement = document.activeElement as HTMLElement | null
+      if (!activeElement?.closest('.ngm-tree-select__panel')) {
+        this.closeAutocomplete()
+      }
+    })
+  }
+
   /**
    * Open dialog for create dynamic date ranges of dimension
    *
@@ -579,9 +621,10 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
           }
         }
       })
-      .afterClosed().subscribe((timeRangesSlicer) => {
+      .afterClosed()
+      .subscribe((timeRangesSlicer) => {
         if (timeRangesSlicer) {
-          this.slicerSignal.set({...timeRangesSlicer})
+          this.slicerSignal.set({ ...timeRangesSlicer })
           this._cdr.detectChanges()
         }
       })

@@ -1,5 +1,5 @@
 <div class="pt-2">
-  <div class="py-2 text-sm font-medium leading-[20px] text-gray-900">
+  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
     <span class="text-red-500">*</span>{{ 'PAC.Xpert.Avatar' | translate: {Default: 'Avatar'} }} &amp; {{ 'PAC.Xpert.ID' | translate: {Default: 'ID'} }}
   </div>
   <div class="flex items-center justify-between space-x-2">
@@ -29,7 +29,7 @@
 </div>
 
 <div class="pt-2">
-  <div class="py-2 text-sm font-medium leading-[20px] text-gray-900">{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</div>
+  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</div>
   <input class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover
         focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm
         placeholder:text-components-input-text-placeholder
@@ -39,7 +39,7 @@
   />
 </div>
 
-<div class="mt-2 text-sm font-medium leading-[20px] text-gray-900">
+<div class="mt-2 text-sm font-medium leading-[20px] text-text-primary">
   <span class="text-red-500">*</span>
   {{ 'PAC.KEY_WORDS.Model' | translate: {Default: 'Model'} }}
 </div>
@@ -49,8 +49,8 @@
 />
 
 <div class="pt-2">
-  <div class="py-2 text-sm font-medium leading-[20px] text-gray-900">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</div>
-  <textarea matInput
+  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</div>
+  <textarea z-input
     class="w-full min-h-20 p-2 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular resize-none"
     placeholder="{{ 'PAC.Xpert.InputXpertDescription' | translate: {Default: 'Input xpert description'} }}"
     [(ngModel)]="description"

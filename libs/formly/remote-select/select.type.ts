@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmRemoteSelectComponent } from '@metad/ocap-angular/common'
+import { NgmRemoteSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -16,7 +16,7 @@ import { TranslateModule } from '@ngx-translate/core'
   host: {
     class: 'ngm-formly-remote-select'
   },
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule, NgmRemoteSelectComponent]
+  imports: [FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule, NgmRemoteSelectComponent]
 })
 export class NgmFormlyRemoteSelectComponent extends FieldType {
   get valueFormControl() {

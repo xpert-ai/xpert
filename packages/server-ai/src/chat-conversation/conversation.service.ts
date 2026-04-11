@@ -1,6 +1,6 @@
 import { BaseStore } from '@langchain/langgraph'
-import { IChatMessage, LongTermMemoryTypeEnum } from '@metad/contracts'
-import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { IChatMessage, LongTermMemoryTypeEnum, TFile, TFileDirectory } from '@xpert-ai/contracts'
+import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -9,6 +9,8 @@ import { Queue } from 'bull'
 import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
+import { VolumeClient } from '../shared/volume'
+import { WorkspaceVolumeClient } from '../shared/volume/workspace-volume'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationPublicDTO } from './dto'
@@ -34,6 +36,14 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 			where: {
 				...(options.where ?? {}),
 				xpertId
+			}
+		})
+	}
+
+	async findOneByThreadId(threadId: string) {
+		return this.findOne({
+			where: {
+				threadId
 			}
 		})
 	}
@@ -148,5 +158,35 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		const conversation = await this.findOne(id, { relations: ['attachments'] })
 		return conversation.attachments
 	}
+
+    async getWorkspaceFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
+        const conversation = await this.findOne(id)
+        return this.createWorkspaceVolumeClient(conversation).list(conversation.threadId, {
+            path,
+            deepth
+        })
+    }
+
+    async readWorkspaceFile(id: string, filePath: string): Promise<TFile> {
+        const conversation = await this.findOne(id)
+        return this.createWorkspaceVolumeClient(conversation).readFile(conversation.threadId, filePath)
+    }
+
+    async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
+        const conversation = await this.findOne(id)
+        return this.createWorkspaceVolumeClient(conversation).saveFile(conversation.threadId, filePath, content)
+    }
+
+    private createWorkspaceVolumeClient(conversation: ChatConversation) {
+        return new WorkspaceVolumeClient(this.createVolumeClient(conversation))
+    }
+
+    private createVolumeClient(conversation: ChatConversation) {
+        return new VolumeClient({
+            tenantId: conversation.tenantId,
+            catalog: 'users',
+            userId: conversation.createdById
+        })
+    }
 
 }

@@ -1,25 +1,24 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatDialogRef } from '@angular/material/dialog'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { getErrorMessage, TagCategoryEnum, TagService, ToastrService } from '../../../@core'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
+import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     CdkListboxModule,
     NgxFloatUiModule,
     ButtonGroupDirective
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-creator',
   templateUrl: './creator.component.html',
@@ -31,7 +30,7 @@ export class TagCreatorComponent {
 
   readonly tagService = inject(TagService)
   readonly #toastr = inject(ToastrService)
-  readonly #dialogRef = inject(MatDialogRef)
+  readonly #dialogRef = inject(ZardDialogRef)
   readonly #fb = inject(FormBuilder)
 
   readonly formGroup = this.#fb.group({

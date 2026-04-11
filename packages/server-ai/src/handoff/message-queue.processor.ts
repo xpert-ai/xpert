@@ -54,6 +54,7 @@ abstract class BaseHandoffQueueProcessor {
 			const result = await this.dispatcher.dispatch(message)
 			await this.handleResult(message, result)
 		} catch (error) {
+			console.error(`Error dispatching handoff message ${message.id}:`, error)
 			await this.handleError(message, error)
 		}
 	}
@@ -102,6 +103,7 @@ abstract class BaseHandoffQueueProcessor {
 	}
 
 	private async handleError(message: HandoffMessage, error: unknown) {
+		console.error(`Error processing handoff message ${message.id}:`, error)
 		const reason = this.getErrorMessage(error)
 		if (isCanceledReason(reason) || isAbortLikeError(error)) {
 			this.pendingResults.resolve(message.id, {

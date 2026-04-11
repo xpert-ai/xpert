@@ -1,6 +1,6 @@
 {
-  "name": "@metad/ocap-core",
-  "version": "3.8.4",
+  "name": "@xpert-ai/ocap-core",
+  "version": "3.9.0-beta.1",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -12,6 +12,7 @@
   "main": "./src/index.js",
   "typings": "./src/index.d.ts",
   "peerDependencies": {
+    "@xpert-ai/store": "workspace:*",
     "rxjs": ">=7.4.0",
     "uuid": "^8.3.2",
     "idb-keyval": "^6.2.0",
@@ -20,6 +21,6 @@
     "date-fns": "^3.0.4"
   },
   "scripts": {
-    "docs": "yarn typedoc --out ./.docs"
+    "docs": "pnpm typedoc --out ./.docs"
   }
 }

@@ -2,10 +2,10 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { Copy2Component, NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
@@ -102,7 +102,7 @@ export class SemancticModelLogsComponent {
       this.currentPage.set(0)
       this.done.set(false)
       this.loadLogs({ cube, status, timeRange, currentPage: 0 })
-    }, { allowSignalWrites: true })
+    })
   }
 
   loadLogs = effectAction((origin$: Observable<{ cube: string; status: QueryStatusEnum; timeRange: string[]; currentPage: number }>) => {

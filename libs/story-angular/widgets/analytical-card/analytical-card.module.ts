@@ -1,32 +1,28 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+
+import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { PlaceholderAddComponent } from '@metad/story/story'
+import { PlaceholderAddComponent } from '@xpert-ai/story/story'
 import { WidgetAnalyticalCardComponent } from './analytical-card.component'
 import { AnalyticalChartPlaceholderComponent } from './chart-placeholder/chart-placeholder.component'
-import { NgmSelectionModule } from '@metad/ocap-angular/selection'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
-
+import { NgmSelectionModule } from '@xpert-ai/ocap-angular/selection'
+import { ZardButtonComponent, ZardIconComponent, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @NgModule({
   imports: [
     CommonModule,
     AnalyticalCardModule,
-    MatMenuModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardMenuImports,
+    ...ZardTooltipImports,
     TranslateModule,
     OcapCoreModule,
     NgmSelectionModule,
-    
+
     PlaceholderAddComponent,
-    AnalyticalChartPlaceholderComponent,
+    AnalyticalChartPlaceholderComponent
   ],
   declarations: [WidgetAnalyticalCardComponent],
   exports: [WidgetAnalyticalCardComponent]

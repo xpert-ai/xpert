@@ -7,28 +7,18 @@ import {
   Component,
   Inject,
   OnInit,
-  TemplateRef,
-  ViewChild,
   computed,
   inject,
   model,
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatRadioModule } from '@angular/material/radio'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatSnackBar } from '@angular/material/snack-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
+
+import { Z_MODAL_DATA, ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardSliderComponent, ZardToastService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser'
-import { AccessEnum, ISemanticModel, Visibility } from '@metad/contracts'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NX_STORY_STORE, NxStoryService, NxStoryStore, StoryPoint, StoryWidget } from '@metad/story/core'
+import { AccessEnum, ISemanticModel, Visibility } from '@xpert-ai/contracts'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NX_STORY_STORE, NxStoryService, NxStoryStore, StoryPoint, StoryWidget } from '@xpert-ai/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 
@@ -38,16 +28,12 @@ import { firstValueFrom } from 'rxjs'
     CommonModule,
     FormsModule,
     DragDropModule,
-
-    MatRadioModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
-    MatSlideToggleModule,
-    MatSliderModule,
-
+    ...ZardFormImports,
+    ZardInputDirective,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardSliderComponent,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmCommonModule
   ],
@@ -60,7 +46,7 @@ export class StorySharesComponent implements OnInit {
   Visibility = Visibility
   AccessEnum = AccessEnum
 
-  private readonly _snackBar = inject(MatSnackBar)
+  private readonly toast = inject(ZardToastService)
 
   readonly visibilities = [Visibility.Public, Visibility.Private]
   _applicationBaseUrl = window.location.origin
@@ -96,9 +82,6 @@ export class StorySharesComponent implements OnInit {
   get isStory() {
     return !(this.data?.point || this.data?.widget)
   }
-
-  @ViewChild('copyMessage') copyMessage: TemplateRef<any>
-
   private readonly pages = this.storyService.displayPoints
   public readonly pagesSelectOptions = computed(() => {
     const pages = [
@@ -124,7 +107,7 @@ export class StorySharesComponent implements OnInit {
     @Inject(NX_STORY_STORE)
     private storyStore: NxStoryStore,
 
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data: {
       // story id
       id: string
@@ -161,11 +144,10 @@ export class StorySharesComponent implements OnInit {
     if (this.visibility() !== this.data.visibility) {
       // Check semantic model visibility first
       if (this.visibility() === Visibility.Public && this.data.models.some((m) => m.visibility !== Visibility.Public)) {
-        this._snackBar.open(
+        this.toast.error(
           this.getTranslation('Story.Shares.SemanticModelPublicFirst', {
             Default: 'Change semantic model to public visibility first!'
           }),
-          '',
           {
             duration: 5000
           }
@@ -178,7 +160,7 @@ export class StorySharesComponent implements OnInit {
         })
       )
       const changedText = this.getTranslation('Story.Shares.VisibilityChanged', { Default: 'Visibility changed' })
-      this._snackBar.open(changedText + '!', '', { duration: 2000 })
+      this.toast.success(changedText + '!', { duration: 2000 })
       this.storyService.updateStory({
         visibility: this.visibility()
       })
@@ -216,7 +198,9 @@ export class StorySharesComponent implements OnInit {
 
   copy(text: string) {
     this.clipboard.copy(text)
-    this._snackBar.openFromTemplate(this.copyMessage, { duration: 2000 })
+    this.toast.success(this.getTranslation('Story.Shares.CopyURLSuccess', { Default: 'Copy URL Success' }), {
+      duration: 2000
+    })
   }
 
   getTranslation(key: string, params?: any) {

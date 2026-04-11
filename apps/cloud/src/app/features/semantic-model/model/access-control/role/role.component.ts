@@ -3,9 +3,9 @@ import { Component, DestroyRef, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { IModelRole, MDX, RoleTypeEnum } from '@metad/contracts'
-import { SplitterType } from '@metad/ocap-angular/common'
-import { EntityCapacity } from '@metad/ocap-angular/entity'
+import { IModelRole, MDX, RoleTypeEnum } from '@xpert-ai/contracts'
+import { SplitterType } from '@xpert-ai/ocap-angular/common'
+import { EntityCapacity } from '@xpert-ai/ocap-angular/entity'
 import { combineLatestWith, distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, SemanticModelEntity, SemanticModelEntityType } from '../../types'
@@ -13,6 +13,7 @@ import { AccessControlStateService } from '../access-control.service'
 import { RoleStateService } from './role.service'
 
 @Component({
+  standalone: false,
   selector: 'pac-model-role',
   templateUrl: 'role.component.html',
   providers: [RoleStateService],
@@ -27,11 +28,10 @@ import { RoleStateService } from './role.service'
       .pac-model-access__cubes {
         overflow-y: auto;
       }
-      .mat-mdc-list {
+      .ngm-list {
         margin: 0 5px;
       }
-      .mdc-list-item {
-        --mdc-list-list-item-container-shape: 5px;
+      .ngm-list > li {
         &:hover {
           background-color: var(--ngm-color-primary-container-variant);
         }

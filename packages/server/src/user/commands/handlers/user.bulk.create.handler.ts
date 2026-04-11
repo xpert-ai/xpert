@@ -1,8 +1,8 @@
-import { IRole, IUser, mapTranslationLanguage } from '@metad/contracts'
-import { ConfigService } from '@metad/server-config'
+import { IRole, IUser, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { ConfigService } from '@xpert-ai/server-config'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { compact, uniq } from 'lodash'
+import { uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { In } from 'typeorm'
 import { RequestContext } from '../../../core'
@@ -26,11 +26,29 @@ export class UserBulkCreateHandler implements ICommandHandler<UserBulkCreateComm
 
 	public async execute(command: UserBulkCreateCommand): Promise<IUser[]> {
 		const { input } = command
+		const organizationId = RequestContext.getOrganizationId()
+		const normalizeRoleName = (value: unknown): string | null => {
+			if (typeof value === 'string') {
+				const normalized = value.trim()
+				return normalized || null
+			}
+
+			if (typeof value === 'number') {
+				const normalized = String(value).trim()
+				return normalized || null
+			}
+
+			return null
+		}
 
 		const users = []
 		if (input.length) {
 			let roles: IRole[] = []
-			const roleNames = compact(uniq(input.map((_) => _.roleName)))
+			const roleNames = uniq(
+				input
+					.map((user) => normalizeRoleName(user.roleName))
+					.filter((value): value is string => Boolean(value))
+			)
 			if (roleNames.length) {
 				roles = (
 					await this.roleService.findAll({
@@ -56,20 +74,22 @@ export class UserBulkCreateHandler implements ICommandHandler<UserBulkCreateComm
 			}
 
 			for await (const user of input) {
-				if (user.roleName) {
-					user.role = roles.find((item) => item.name === user.roleName)
+				const roleName = normalizeRoleName(user.roleName)
+				if (roleName) {
+					user.roleName = roleName
+					user.role = roles.find((item) => item.name === roleName)
 					if (!user.role) {
 						throw new BadRequestException(
 							(await this.i18n.translate('core.User.Error.RoleError', {
 								lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-							})) + user.roleName
+							})) + roleName
 						)
 					}
 				}
 				const nUser = await this.commandBus.execute(new UserCreateCommand(user))
-				await this.commandBus.execute(
-					new UserOrganizationCreateCommand(nUser, RequestContext.getOrganizationId())
-				)
+				if (organizationId) {
+					await this.commandBus.execute(new UserOrganizationCreateCommand(nUser, organizationId))
+				}
 				users.push(nUser)
 			}
 		}

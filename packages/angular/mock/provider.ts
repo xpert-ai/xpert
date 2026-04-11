@@ -1,4 +1,4 @@
-import { AgentType, DataSource, Type } from '@metad/ocap-core'
+import { AgentType, DataSource, Type } from '@xpert-ai/ocap-core'
 import {
   NgmDSCoreService,
   NgmOcapCoreService,
@@ -24,7 +24,7 @@ export function provideOcapMock() {
       useValue: {
         type: 'SQL',
         factory: async (): Promise<Type<DataSource>> => {
-          const { SQLDataSource } = await import('@metad/ocap-sql')
+          const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
           return SQLDataSource
         }
       },

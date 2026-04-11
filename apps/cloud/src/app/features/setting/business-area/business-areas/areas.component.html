@@ -29,19 +29,16 @@
 
 <ng-template #actionTempl let-item="raw">
     <div class="flex justify-start items-center gap-2">
-        <button mat-icon-button displayDensity="cosy" class="text-slate-500"
-            (click)="editBusinessArea(item)">
-            <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-text-tertiary hover:text-text-primary" (click)="editBusinessArea(item)">
+            <z-icon zType="edit"></z-icon>
         </button>
 
-        <button mat-icon-button displayDensity="cosy" class="text-slate-500"
-            (click)="addBusinessArea(item)">
-            <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-text-tertiary hover:text-text-primary" (click)="addBusinessArea(item)">
+            <z-icon zType="add"></z-icon>
         </button>
         
-        <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="text-slate-500"
-            (click)="deleteBusinessArea(item)">
-            <mat-icon fontSet="material-icons-outlined">remove</mat-icon>
+        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-tertiary hover:text-text-destructive" (click)="deleteBusinessArea(item)">
+            <z-icon zType="remove"></z-icon>
         </button>
     </div>
 </ng-template>

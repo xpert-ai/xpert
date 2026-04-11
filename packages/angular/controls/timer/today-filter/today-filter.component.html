@@ -2,53 +2,92 @@
   {{ 'Ngm.TimeFilter.Today' | translate: {Default: "Today"} }}
 </label>
 
-<ng-container [ngSwitch]="granularity">
-  <ng-container *ngSwitchCase="TimeGranularity.Year">
+@switch (granularity) {
+  @case (TimeGranularity.Year) {
     <ngm-yearpicker [formControl]="date">
-      <button ngmSuffix mat-icon-button class="ngm-actionable-opacity"
-        [matMenuTriggerFor]="granularityMenu"
-        (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon>more_vert</mat-icon>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        ngmSuffix
+        class="ngm-actionable-opacity"
+        z-menu
+        [zMenuTriggerFor]="granularityMenu"
+        (click)="$event.stopPropagation();$event.preventDefault();"
+        >
+        <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-yearpicker>
-  </ng-container>
-  <ng-container *ngSwitchCase="TimeGranularity.Quarter">
+  }
+  @case (TimeGranularity.Quarter) {
     <ngm-quarterpicker [formControl]="date">
-      <button ngmSuffix mat-icon-button class="ngm-actionable-opacity"
-        [matMenuTriggerFor]="granularityMenu"
-        (click)="$event.stopPropagation();$event.preventDefault();">
-          <mat-icon>more_vert</mat-icon>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        ngmSuffix
+        class="ngm-actionable-opacity"
+        z-menu
+        [zMenuTriggerFor]="granularityMenu"
+        (click)="$event.stopPropagation();$event.preventDefault();"
+        >
+        <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-quarterpicker>
-  </ng-container>
-  <ng-container *ngSwitchCase="TimeGranularity.Month">
+  }
+  @case (TimeGranularity.Month) {
     <ngm-monthpicker [formControl]="date">
-      <button ngmSuffix mat-icon-button class="ngm-actionable-opacity"
-        [matMenuTriggerFor]="granularityMenu"
-        (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon>more_vert</mat-icon>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        ngmSuffix
+        class="ngm-actionable-opacity"
+        z-menu
+        [zMenuTriggerFor]="granularityMenu"
+        (click)="$event.stopPropagation();$event.preventDefault();"
+        >
+        <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-monthpicker>
-  </ng-container>
-
-  <ng-container *ngSwitchDefault>
+  }
+  @default {
     <ngm-datepicker [formControl]="date">
-      <button ngmSuffix mat-icon-button class="ngm-actionable-opacity"
-        [matMenuTriggerFor]="granularityMenu"
-        (click)="$event.stopPropagation();$event.preventDefault();">
-          <mat-icon>more_vert</mat-icon>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        ngmSuffix
+        class="ngm-actionable-opacity"
+        z-menu
+        [zMenuTriggerFor]="granularityMenu"
+        (click)="$event.stopPropagation();$event.preventDefault();"
+        >
+        <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-datepicker>
-  </ng-container>
-</ng-container>
+  }
+}
 
-<mat-radio-group [(ngModel)]="granularity">
-  <mat-menu #granularityMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple *ngFor="let value of TIME_GRANULARITY_SEQUENCES[granularitySequence]"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="value">
-        {{ 'Ngm.TimeFilter.' + value | translate: {Default: value} }}
-      </mat-radio-button>
-    </button>
-  </mat-menu>
-</mat-radio-group>
+<z-radio-group [(ngModel)]="granularity">
+  <ng-template #granularityMenu>
+    <div z-menu-content class="ngm-formly ngm-density__compact">
+      @for (value of TIME_GRANULARITY_SEQUENCES[granularitySequence]; track value) {
+        <button
+          type="button"
+          z-menu-item
+          class="w-full"
+          (click)="$event.stopPropagation()"
+          >
+          <z-radio [value]="value">
+            {{ 'Ngm.TimeFilter.' + value | translate: {Default: value} }}
+          </z-radio>
+        </button>
+      }
+    </div>
+  </ng-template>
+</z-radio-group>

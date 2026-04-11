@@ -8,7 +8,7 @@ import {
 	Repository,
 	UpdateResult
 } from 'typeorm'
-import { IBasePerTenantEntityModel, ID, IPagination, IUser } from '@metad/contracts'
+import { IBasePerTenantEntityModel, ID, IPagination, IUser } from '@xpert-ai/contracts'
 import { RequestContext } from '../context'
 import { TenantBaseEntity, User } from '../entities/internal'
 import { CrudService } from './crud.service'

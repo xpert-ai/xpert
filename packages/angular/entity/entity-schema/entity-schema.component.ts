@@ -1,6 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ScrollingModule } from '@angular/cdk/scrolling'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { A11yModule } from '@angular/cdk/a11y'
 import { CommonModule } from '@angular/common'
 import {
@@ -15,21 +14,24 @@ import {
   input
 } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatTreeModule } from '@angular/material/tree'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMember } from '@metad/ocap-core'
+
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardTooltipImports,
+  ZardLoaderComponent,
+  ZardFlatTreeControl,
+  ZardTreeImports
+} from '@xpert-ai/headless-ui'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMember } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EntitySchemaDataSource, EntitySchemaFlatNode, EntitySchemaNode } from './data-source'
 import { EntityCapacity, EntitySchemaType } from './types'
-
 
 @Component({
   standalone: true,
@@ -37,20 +39,19 @@ import { EntityCapacity, EntitySchemaType } from './types'
     CommonModule,
     ReactiveFormsModule,
     A11yModule,
-    MatTreeModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    MatButtonModule,
+    ...ZardFormImports,
+    ZardInputDirective,
+    ZardIconComponent,
+    ZardButtonComponent,
     DragDropModule,
     ScrollingModule,
     TranslateModule,
-    MatCheckboxModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
-    
+    ZardCheckboxComponent,
+    ZardLoaderComponent,
+    ...ZardTreeImports,
+    ...ZardTooltipImports,
     NgmCommonModule,
-    OcapCoreModule,
+    OcapCoreModule
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-entity-schema',
@@ -61,15 +62,12 @@ export class NgmEntitySchemaComponent implements OnInit {
   EntitySchemaType = EntitySchemaType
   @HostBinding('class.ngm-entity-schema') _isEntitySchemaComponent = true
   private translateService = inject(TranslateService)
-  private _dsCoreService? = inject(NgmDSCoreService, {optional: true})
+  private _dsCoreService? = inject(NgmDSCoreService, { optional: true })
 
   @Input() dsCoreService: NgmDSCoreService
   @Input() appearance: NgmAppearance
   @Input() selectedHierarchy: string
-  @Input() capacities: EntityCapacity[] = [
-    EntityCapacity.Dimension,
-    EntityCapacity.Measure,
-  ]
+  @Input() capacities: EntityCapacity[] = [EntityCapacity.Dimension, EntityCapacity.Measure]
   readonly dragDisabled = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -89,15 +87,13 @@ export class NgmEntitySchemaComponent implements OnInit {
         const rootNode = new EntitySchemaFlatNode(
           {
             type: EntitySchemaType.Entity,
-            name: dataSettings.entitySet,
+            name: dataSettings.entitySet
             // caption: dataSettings.entitySet,
           },
           0,
           true
         )
-        this.dataSource.data = [
-          rootNode
-        ]
+        this.dataSource.data = [rootNode]
       }
     })
   }
@@ -106,13 +102,18 @@ export class NgmEntitySchemaComponent implements OnInit {
     if (this.dsCoreService) {
       this._dsCoreService = this.dsCoreService
     }
-    this.treeControl = new FlatTreeControl<EntitySchemaFlatNode>(this.getLevel, this.isExpandable)
-    this.dataSource = new EntitySchemaDataSource(this.treeControl, this._dsCoreService, this.translateService, this.capacities)
+    this.treeControl = new ZardFlatTreeControl<EntitySchemaFlatNode>(this.getLevel, this.isExpandable)
+    this.dataSource = new EntitySchemaDataSource(
+      this.treeControl,
+      this._dsCoreService,
+      this.translateService,
+      this.capacities
+    )
 
     this.dataSource.data = []
   }
 
-  treeControl: FlatTreeControl<EntitySchemaFlatNode>
+  treeControl: ZardFlatTreeControl<EntitySchemaFlatNode>
 
   dataSource: EntitySchemaDataSource
 
@@ -125,13 +126,15 @@ export class NgmEntitySchemaComponent implements OnInit {
   memberTooltip(node: EntitySchemaNode) {
     if (node?.type !== EntitySchemaType.Member) return null
     const member = (node.raw || node) as IDimensionMember
-    return DIMENSION_MEMBER_FIELDS.map(field => {
+    return DIMENSION_MEMBER_FIELDS.map((field) => {
       const value = member[field.key]
       if (value !== undefined && value !== null) {
         const displayValue = field.formatter ? field.formatter(value) : value
-        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, {Default: field.label})}: ${displayValue}`
+        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, { Default: field.label })}: ${displayValue}`
       }
       return null
-    }).filter(line => line !== null).join('\n')
+    })
+      .filter((line) => line !== null)
+      .join('\n')
   }
 }

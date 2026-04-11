@@ -1,40 +1,34 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, HostBinding, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core'
-import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MAT_DATE_FORMATS } from '@angular/material/core'
-import { MatDatepicker } from '@angular/material/datepicker'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
-import { DisplayDensity, NgmAppearance, NgmDSCoreService, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@metad/ocap-angular/core'
-import { TimeGranularity } from '@metad/ocap-core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
+import { DisplayDensity, NgmAppearance, NgmDSCoreService, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@xpert-ai/ocap-angular/core'
+import { TimeGranularity } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { getMonth, getYear, isDate, setMonth, setYear } from 'date-fns'
+import { isDate } from 'date-fns'
 import { filter } from 'rxjs/operators'
 import { NgmMemberDatepickerModule } from '../datepicker'
-
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-    MatRadioModule,
-    NgmMemberDatepickerModule,
-  ],
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardFormImports,
+    ...ZardMenuImports,
+    NgmMemberDatepickerModule
+],
   selector: 'ngm-today-filter',
   templateUrl: './today-filter.component.html',
   styleUrls: ['./today-filter.component.scss'],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => NgmTodayFilterComponent), // replace name as appropriate
+      useExisting: forwardRef(() => NgmTodayFilterComponent),
       multi: true
     }
   ]
@@ -61,36 +55,36 @@ export class NgmTodayFilterComponent implements OnInit, OnChanges, ControlValueA
   @Input() appearance: NgmAppearance
   @Input() displayDensity: DisplayDensity
 
-  date = new FormControl(new Date())
-  /**
-   * Invoked when the model has been changed
-   */
+  date = new FormControl<Date | null>(new Date())
   onChange: (_: any) => void = (_: any) => {}
-  /**
-   * Invoked when the model has been touched
-   */
   onTouched: () => void = () => {}
 
   ngOnChanges({ defaultValue }: SimpleChanges): void {
-    if (defaultValue && defaultValue.currentValue) {
+    if (defaultValue?.currentValue) {
       let value = this.coreService.execDateVariables(defaultValue.currentValue)
       value = Array.isArray(value) ? value[0] : value
-      this.date.setValue(value)
+      this.date.setValue(value, { emitEvent: false })
       this.dsCoreService.setToday(value)
       this.onChange(value)
     }
   }
 
   ngOnInit(): void {
-    this.date.valueChanges.pipe(filter((value) => value !== null)).subscribe((value) => {
-      this.dsCoreService.setToday(value)
-      this.onChange(value)
-    })
+    this.date.valueChanges
+      .pipe(
+        filter((value): value is Date => value !== null),
+        takeUntilDestroyed()
+      )
+      .subscribe((value) => {
+        this.dsCoreService.setToday(value)
+        this.onChange(value)
+        this.onTouched()
+      })
   }
 
   writeValue(obj: any): void {
     if (isDate(obj)) {
-      this.date.setValue(obj)
+      this.date.setValue(obj, { emitEvent: false })
     }
   }
   registerOnChange(fn: any): void {
@@ -106,40 +100,18 @@ export class NgmTodayFilterComponent implements OnInit, OnChanges, ControlValueA
 
 @Component({
   selector: 'ngm-quarter-filter',
-  template: `<mat-form-field [appearance]="appearance?.appearance" [displayDensity]="appearance?.displayDensity">
-    <mat-label>{{ 'Ngm.TimeFilter.TODAY' | translate: {Default: 'Today'} }}</mat-label>
-    <input matInput [matDatepicker]="dp" [formControl]="date" />
-    <mat-datepicker
-      #dp
-      startView="multi-year"
-      (yearSelected)="chosenYearHandler($event)"
-      (monthSelected)="chosenMonthHandler($event, dp)"
-    ></mat-datepicker>
-
-    <div matSuffix class="flex items-center">
-      <mat-datepicker-toggle class="ngm-actionable-opacity" [for]="dp"></mat-datepicker-toggle>
-      <ng-content></ng-content>
-    </div>
-  </mat-form-field> `,
+  template: `<z-form-field [appearance]="appearance?.appearance" [displayDensity]="appearance?.displayDensity">
+    <z-form-label>{{ 'Ngm.TimeFilter.TODAY' | translate: {Default: 'Today'} }}</z-form-label>
+    <ngm-quarterpicker [formControl]="date">
+      <span ngmSuffix class="flex items-center"><ng-content></ng-content></span>
+    </ngm-quarterpicker>
+  </z-form-field>`,
   styleUrls: ['./today-filter.component.scss'],
+  standalone: false,
   providers: [
     {
-      provide: MAT_DATE_FORMATS,
-      useValue: {
-        parse: {
-          dateInput: `yyyy'Q'Q`
-        },
-        display: {
-          dateInput: `yyyy'Q'Q`,
-          monthYearLabel: 'LLL y',
-          dateA11yLabel: 'MMMM d, y',
-          monthYearA11yLabel: 'MMMM y'
-        }
-      }
-    },
-    {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => NxQuarterFilterComponent), // replace name as appropriate
+      useExisting: forwardRef(() => NxQuarterFilterComponent),
       multi: true
     }
   ]
@@ -147,31 +119,19 @@ export class NgmTodayFilterComponent implements OnInit, OnChanges, ControlValueA
 export class NxQuarterFilterComponent implements ControlValueAccessor {
   @Input() appearance: NgmAppearance
 
-  date = new FormControl(new Date())
-
-  /**
-   * Invoked when the model has been changed
-   */
+  date = new FormControl<Date | null>(new Date())
   onChange: (_: any) => void = (_: any) => {}
-  /**
-   * Invoked when the model has been touched
-   */
   onTouched: () => void = () => {}
 
-  chosenYearHandler(event) {
-    const ctrlValue = this.date.value ?? new Date()
-    this.date.setValue(setYear(ctrlValue, getYear(event)))
-  }
-
-  chosenMonthHandler(event, datepicker: MatDatepicker<any>) {
-    const ctrlValue = this.date.value ?? new Date()
-    this.date.setValue(setMonth(ctrlValue, getMonth(event)))
-    datepicker.close()
-    this.onChange(this.date.value)
+  constructor() {
+    this.date.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.onChange(value)
+      this.onTouched()
+    })
   }
 
   writeValue(obj: any): void {
-    this.date.setValue(obj)
+    this.date.setValue(obj, { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -186,38 +146,15 @@ export class NxQuarterFilterComponent implements ControlValueAccessor {
 
 @Component({
   selector: 'ngm-month-filter',
-  template: `<input matInput [matDatepicker]="dp" [formControl]="date" />
-<mat-datepicker
-  #dp
-  startView="multi-year"
-  (yearSelected)="chosenYearHandler($event)"
-  (monthSelected)="chosenMonthHandler($event, dp)"
-></mat-datepicker>
-
-<div matSuffix class="abs flex items-center">
-  <mat-datepicker-toggle class="ngm-actionable-opacity" [for]="dp"/>
-  <ng-content></ng-content>
-</div>
-`,
+  template: `<ngm-monthpicker [formControl]="date">
+    <span ngmSuffix class="flex items-center"><ng-content></ng-content></span>
+  </ngm-monthpicker>`,
   styleUrls: ['./today-filter.component.scss'],
+  standalone: false,
   providers: [
     {
-      provide: MAT_DATE_FORMATS,
-      useValue: {
-        parse: {
-          dateInput: `yyyyMM`
-        },
-        display: {
-          dateInput: `yyyyMM`,
-          monthYearLabel: 'LLL y',
-          dateA11yLabel: 'MMMM d, y',
-          monthYearA11yLabel: 'MMMM y'
-        }
-      }
-    },
-    {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => NxMonthFilterComponent), // replace name as appropriate
+      useExisting: forwardRef(() => NxMonthFilterComponent),
       multi: true
     }
   ]
@@ -225,31 +162,19 @@ export class NxQuarterFilterComponent implements ControlValueAccessor {
 export class NxMonthFilterComponent implements ControlValueAccessor {
   @Input() appearance: NgmAppearance
 
-  date = new FormControl(new Date())
-
-  /**
-   * Invoked when the model has been changed
-   */
+  date = new FormControl<Date | null>(new Date())
   onChange: (_: any) => void = (_: any) => {}
-  /**
-   * Invoked when the model has been touched
-   */
   onTouched: () => void = () => {}
 
-  chosenYearHandler(event) {
-    const ctrlValue = this.date.value ?? new Date()
-    this.date.setValue(setYear(ctrlValue, getYear(event)))
-  }
-
-  chosenMonthHandler(event, datepicker: MatDatepicker<any>) {
-    const ctrlValue = this.date.value ?? new Date()
-    this.date.setValue(setMonth(ctrlValue, getMonth(event)))
-    datepicker.close()
-    this.onChange(this.date.value)
+  constructor() {
+    this.date.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.onChange(value)
+      this.onTouched()
+    })
   }
 
   writeValue(obj: any): void {
-    this.date.setValue(obj)
+    this.date.setValue(obj, { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -264,39 +189,18 @@ export class NxMonthFilterComponent implements ControlValueAccessor {
 
 @Component({
   selector: 'ngm-year-filter',
-  template: `<mat-form-field [appearance]="appearance?.appearance" [displayDensity]="appearance?.displayDensity">
-    <mat-label>{{ 'Ngm.TimeFilter.TODAY' | translate: {Default: 'Today'} }}</mat-label>
-    <input matInput [matDatepicker]="dp" [formControl]="date" />
-    <mat-datepicker
-      #dp
-      startView="multi-year"
-      (yearSelected)="chosenYearHandler($event, dp)"
-    ></mat-datepicker>
-
-    <div matSuffix class="flex items-center">
-      <mat-datepicker-toggle class="ngm-actionable-opacity" [for]="dp"></mat-datepicker-toggle>
-      <ng-content></ng-content>
-    </div>
-  </mat-form-field>`,
+  template: `<z-form-field [appearance]="appearance?.appearance" [displayDensity]="appearance?.displayDensity">
+    <z-form-label>{{ 'Ngm.TimeFilter.TODAY' | translate: {Default: 'Today'} }}</z-form-label>
+    <ngm-yearpicker [formControl]="date">
+      <span ngmSuffix class="flex items-center"><ng-content></ng-content></span>
+    </ngm-yearpicker>
+  </z-form-field>`,
   styleUrls: ['./today-filter.component.scss'],
+  standalone: false,
   providers: [
     {
-      provide: MAT_DATE_FORMATS,
-      useValue: {
-        parse: {
-          dateInput: `yyyy`
-        },
-        display: {
-          dateInput: `yyyy`,
-          monthYearLabel: 'LLL y',
-          dateA11yLabel: 'MMMM d, y',
-          monthYearA11yLabel: 'MMMM y'
-        }
-      }
-    },
-    {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => NxYearFilterComponent), // replace name as appropriate
+      useExisting: forwardRef(() => NxYearFilterComponent),
       multi: true
     }
   ]
@@ -304,26 +208,19 @@ export class NxMonthFilterComponent implements ControlValueAccessor {
 export class NxYearFilterComponent implements ControlValueAccessor {
   @Input() appearance: NgmAppearance
 
-  date = new FormControl(new Date())
-
-  /**
-   * Invoked when the model has been changed
-   */
+  date = new FormControl<Date | null>(new Date())
   onChange: (_: any) => void = (_: any) => {}
-  /**
-   * Invoked when the model has been touched
-   */
   onTouched: () => void = () => {}
 
-  chosenYearHandler(event, datepicker: MatDatepicker<any>) {
-    const ctrlValue = this.date.value ?? new Date()
-    this.date.setValue(setYear(ctrlValue, getYear(event)))
-    datepicker.close()
-    this.onChange(this.date.value)
+  constructor() {
+    this.date.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.onChange(value)
+      this.onTouched()
+    })
   }
 
   writeValue(obj: any): void {
-    this.date.setValue(obj)
+    this.date.setValue(obj, { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this.onChange = fn

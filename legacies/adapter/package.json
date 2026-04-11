@@ -1,0 +1,25 @@
+{
+  "name": "@xpert-ai/adapter",
+  "version": "3.8.5-beta.0",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "clickhouse": "^2.4.1",
+    "hive-driver": "^0.1.7",
+    "mssql": "11.0.1",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.3.1",
+    "pg": "^8.7.1",
+    "presto-client": "^0.12.2",
+    "@aws-sdk/client-redshift-data": "^3.335.0"
+  },
+  "devDependencies": {
+    "@types/mssql": "9.1.7",
+    "@types/mysql": "^2.15.20",
+    "@types/pg": "^8.6.2"
+  },
+  "peerDependencies": {
+    "@xpert-ai/contracts": "workspace:*",
+    "@xpert-ai/plugin-sdk": "workspace:*"
+  }
+}

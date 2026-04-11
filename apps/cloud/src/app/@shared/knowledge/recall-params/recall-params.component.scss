@@ -1,7 +1,8 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply flex flex-col;
 }
 
-.mat-mdc-slider {
+z-slider {
   @apply min-w-[200px] w-full;
 }

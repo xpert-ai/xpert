@@ -3,8 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import {
   ChatConversationService,
@@ -15,7 +13,7 @@ import {
 import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
-import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
+import { FileTypePipe, ListHeightStaggerAnimation } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniq } from 'lodash-es'
 import { ChatService } from '../../chat.service'
@@ -26,6 +24,8 @@ import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
 import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
 import { ChatCanvasKnowledgesComponent } from '../knowledges/knowledges.component'
 import { ChatCanvasWebTerminalComponent } from '../web-terminal/terminal.component'
+import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -35,8 +35,8 @@ import { ChatCanvasWebTerminalComponent } from '../web-terminal/terminal.compone
     RouterModule,
     CdkMenuModule,
     TranslateModule,
-    MatSliderModule,
-    MatTooltipModule,
+    ZardSliderComponent,
+    ...ZardTooltipImports,
     FileTypePipe,
     FileEditorComponent,
     CanvasHtmlEditorComponent,
@@ -74,12 +74,14 @@ export class ChatCanvasComputerComponent {
 
   readonly stepMessages = computed(() => {
     const conversation = this.chatService.conversation()
-    return conversation?.messages?.reduce((acc, message) => {
-      if (Array.isArray(message.content) && message.content.length > 0) {
-        acc.push(...message.content.filter((_) => _.type === 'component' && _.data?.category === 'Computer'))
-      }
-      return acc
-    }, []) ?? []
+    return (
+      conversation?.messages?.reduce((acc, message) => {
+        if (Array.isArray(message.content) && message.content.length > 0) {
+          acc.push(...message.content.filter((_) => _.type === 'component' && _.data?.category === 'Computer'))
+        }
+        return acc
+      }, []) ?? []
+    )
   })
   readonly stepCategories = computed(() => uniq(this.stepMessages().map((_) => _.category)))
   readonly stepTypes = computed(() => uniq(this.stepMessages().map((_) => _.type)))
@@ -92,28 +94,32 @@ export class ChatCanvasComputerComponent {
 
   readonly projectId = computed(() => this.chatService.project()?.id)
 
-  readonly features = computed(() => ['timeline' as TChatConversationOptions['features'][number], ...(this.chatService.conversation()?.options?.features ?? [])])
+  readonly features = computed(() => [
+    'timeline' as TChatConversationOptions['features'][number],
+    ...(this.chatService.conversation()?.options?.features ?? [])
+  ])
   readonly feature = signal<TChatConversationOptions['features'][number]>('timeline')
 
   constructor() {
-    effect(() => {
-      // If componentId is provided, find the step message by componentId
-      if (this.componentId()) {
-        const stepMessage = this.stepMessages()?.find((msg) => msg.id === this.componentId())
-        if (stepMessage) {
-          const index = this.stepMessages().indexOf(stepMessage)
-          this.stepIndex.set(index)
+    effect(
+      () => {
+        // If componentId is provided, find the step message by componentId
+        if (this.componentId()) {
+          const stepMessage = this.stepMessages()?.find((msg) => msg.id === this.componentId())
+          if (stepMessage) {
+            const index = this.stepMessages().indexOf(stepMessage)
+            this.stepIndex.set(index)
+          }
         }
       }
-    }, { allowSignalWrites: true })
-    
+    )
+
     effect(
       () => {
         if (this.stepMessageLength() && !this.pin()) {
           this.stepIndex.set(this.stepMessageLength() - 1)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -123,6 +129,10 @@ export class ChatCanvasComputerComponent {
 
   updateStepIndex(index: number) {
     this.stepIndex.set(index)
+  }
+
+  updateStepIndexFromSlider(value: ZardSliderValue) {
+    this.updateStepIndex(this.sliderValue(value))
   }
 
   prevStep() {
@@ -148,5 +158,9 @@ export class ChatCanvasComputerComponent {
         conversationId: this.homeService.conversation().id
       }
     })
+  }
+
+  private sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
   }
 }

@@ -12,21 +12,19 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
+
+import { ZardButtonComponent, ZardCheckboxComponent, ZardFormImports, ZardInputDirective, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
-import { BusinessAreasService, DataSourceService, ISemanticModel } from '@metad/cloud/state'
-import { nonBlank } from '@metad/core'
-import { NgmSelectionTableComponent, NgmTreeSelectComponent, SelectionTableColumn } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { AgentType, Catalog, isNil } from '@metad/ocap-core'
+import { BusinessAreasService, DataSourceService, ISemanticModel } from '@xpert-ai/cloud/state'
+import { nonBlank } from '@xpert-ai/core'
+import { NgmSelectionTableComponent, SelectionTableColumn } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { AgentType, Catalog, isNil } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, Subject, catchError, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { IDataSource, getErrorMessage } from '../../../@core'
+import { XpTreeSelectComponent } from '../../form-fields'
 
 @Component({
   standalone: true,
@@ -41,14 +39,14 @@ import { IDataSource, getErrorMessage } from '../../../@core'
     RouterModule,
     TranslateModule,
     DragDropModule,
-    MatFormFieldModule,
-    MatProgressBarModule,
-    MatButtonModule,
-    MatInputModule,
-    MatCheckboxModule,
+    ...ZardFormImports,
+    ZardProgressBarComponent,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ZardCheckboxComponent,
     DensityDirective,
     ButtonGroupDirective,
-    NgmTreeSelectComponent,
+    XpTreeSelectComponent,
     NgmSelectionTableComponent
   ],
   host: {

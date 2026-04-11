@@ -1,4 +1,4 @@
-import { AiModelTypeEnum, AIPermissionsEnum, IAiProviderEntity, ICopilotProvider, ICopilotProviderModel, ProviderModel, RolesEnum } from '@metad/contracts'
+import { AiModelTypeEnum, AIPermissionsEnum, IAiProviderEntity, ICopilotProvider, ICopilotProviderModel, ProviderModel, RolesEnum } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -8,7 +8,7 @@ import {
 	Permissions,
 	TransformInterceptor,
 	UUIDValidationPipe,
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Body, Controller, ForbiddenException, Get, Param, Post, Put, Delete, Query, UseInterceptors, UseGuards,Inject, BadRequestException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -20,7 +20,7 @@ import { CopilotProviderDto, CopilotProviderPublicDto } from './dto'
 import { CopilotProviderModel } from './models/copilot-provider-model.entity'
 import { CopilotProviderModelService } from './models/copilot-provider-model.service'
 import { CopilotProviderUpsertCommand } from './commands'
-import { ConfigService } from '@metad/server-config'
+import { ConfigService } from '@xpert-ai/server-config'
 import { CopilotProviderModelParameterRulesQuery } from './queries/model-parameter-rules.query'
 
 @ApiTags('CopilotProvider')

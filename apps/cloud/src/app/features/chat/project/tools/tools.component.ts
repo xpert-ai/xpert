@@ -1,10 +1,9 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
   getErrorMessage,
@@ -25,7 +24,7 @@ import {
   listAnimation,
   listEnterAnimation,
   ListSlideStaggerAnimation
-} from '@metad/core'
+} from '@xpert-ai/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
@@ -34,9 +33,10 @@ import { BehaviorSubject, EMPTY, startWith, switchMap } from 'rxjs'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
 import { CardCreateComponent } from '@cloud/app/@shared/card'
-import { debouncedSignal, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { debouncedSignal, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -44,13 +44,12 @@ import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     ReactiveFormsModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ContentLoaderModule,
     DynamicGridDirective,
     MCPMarketplaceComponent,
@@ -59,7 +58,7 @@ import { NgmHighlightDirective } from '@metad/ocap-angular/common'
     NgmI18nPipe,
     EmojiAvatarComponent,
     NgmHighlightDirective
-  ],
+],
   selector: 'chat-project-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',
@@ -137,7 +136,6 @@ export class ChatProjectToolsComponent {
     )
   })
 
-
   /**
    * Add toolset from workspace into project
    */
@@ -202,7 +200,7 @@ export class ChatProjectToolsComponent {
         disableClose: true,
         data: {
           providerName: provider.name,
-          workspaceId: this.workspace().id,
+          workspaceId: this.workspace().id
         }
       })
       .closed.subscribe((result) => {
@@ -219,7 +217,7 @@ export class ChatProjectToolsComponent {
         data: {
           providerName: toolset.type,
           workspaceId: this.workspace().id,
-          toolset,
+          toolset
         }
       })
       .closed.subscribe((result) => {

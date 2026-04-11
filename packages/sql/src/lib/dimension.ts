@@ -18,7 +18,7 @@ import {
   RuntimeLevelType,
   Schema,
   Table
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {t} from 'i18next'
 import { Cast } from './functions'
 import { AggregateFunctions, C_MEASURES_ROW_COUNT, CubeFactTable } from './types'

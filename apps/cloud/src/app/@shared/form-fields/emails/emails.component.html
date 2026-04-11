@@ -1,23 +1,14 @@
-<mat-form-field class="w-full" [appearance]="appearance">
-  <mat-label>{{ label }}</mat-label>
-
-  <mat-chip-grid #chipGrid [attr.aria-label]="label" multiple [formControl]="formControl">
-    <mat-chip-row
-      *ngFor="let keyword of keywords"
-      [value]="keyword"
-      [removable]="removable"
-      (removed)="removeKeyword(keyword)"
-    >{{keyword}}
-    <button *ngIf="removable" matChipRemove>
-      <mat-icon>cancel</mat-icon>
-    </button>
-  </mat-chip-row>
-  </mat-chip-grid>
-    
-  <input
-    [placeholder]="placeholder"
-    [matChipInputFor]="chipGrid"
-    [matChipInputAddOnBlur]="addOnBlur"
-    (matChipInputTokenEnd)="addKeywordFromInput($event)"
-    >
-</mat-form-field>
+<z-form-field class="w-full" [appearance]="appearance">
+  <z-form-label>{{ label }}</z-form-label>
+  <z-tag-select
+    mode="tags"
+    [value]="keywords"
+    [allowCreate]="true"
+    [enableSuggestions]="false"
+    [addOnBlur]="true"
+    [clearable]="true"
+    [tokenSeparators]="[',', ';', '\n']"
+    [placeholder]="placeholder ?? ('FORM.PLACEHOLDERS.EMAILS_EMPTY_HINT' | translate: { Default: 'Add emails' })"
+    (valueChange)="onValueChange($event)"
+  />
+</z-form-field>

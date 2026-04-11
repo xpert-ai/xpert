@@ -1,5 +1,5 @@
-import { IStory, IStoryPoint, IUser } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IStory, IStoryPoint, IUser } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { StoryPointPublicDTO } from '../../story-point/dto/public.dto'

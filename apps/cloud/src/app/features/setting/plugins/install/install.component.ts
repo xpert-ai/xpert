@@ -1,17 +1,17 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectHelpWebsite, injectToastr } from '@cloud/app/@core'
 import { PluginComponent, TPlugin } from '@cloud/app/@shared/plugins'
-import { injectPluginAPI } from '@metad/cloud/state'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { injectPluginAPI } from '@xpert-ai/cloud/state'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],
+  imports: [TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],
   selector: 'xp-settings-plugin-install',
   templateUrl: './install.component.html',
   styleUrls: ['./install.component.scss']
@@ -57,22 +57,20 @@ export class PluginInstallComponent {
           cancelled = true
         })
 
-        const encoded = encodeURIComponent(name)
-        fetch(`https://registry.npmjs.org/${encoded}`)
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (cancelled) return
-            const latest = data?.['dist-tags']?.latest
-            this.latestVersion.set(latest ?? null)
-          })
-          .catch(() => {
-            if (!cancelled) {
-              this.latestVersion.set(null)
-            }
-          })
-      },
-      { allowSignalWrites: true }
-    )
+      const encoded = encodeURIComponent(name)
+      fetch(`https://registry.npmjs.org/${encoded}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (cancelled) return
+          const latest = data?.['dist-tags']?.latest
+          this.latestVersion.set(latest ?? null)
+        })
+        .catch(() => {
+          if (!cancelled) {
+            this.latestVersion.set(null)
+          }
+        })
+    })
   }
 
   close() {
@@ -83,7 +81,7 @@ export class PluginInstallComponent {
     this.status.set('installing')
     this.error.set(null)
     this.pluginAPI
-      .create({
+      .install({
         pluginName: this.pluginName(),
         version: this.pluginVersion()
       })

@@ -1,9 +1,9 @@
-import { IIndicator, TimeGranularity } from '@metad/contracts'
-import { Trend } from '@metad/ocap-angular/indicator'
-import { DataSettings, Indicator } from '@metad/ocap-core'
+import { IIndicator, TimeGranularity } from '@xpert-ai/contracts'
+import { Trend } from '@xpert-ai/ocap-angular/indicator'
+import { DataSettings, Indicator } from '@xpert-ai/ocap-core'
 
-export { TrendColor, TrendReverseColor, Trend } from '@metad/ocap-angular/indicator'
-export { IndicatorTagEnum } from '@metad/ocap-core'
+export { TrendColor, TrendReverseColor, Trend } from '@xpert-ai/ocap-angular/indicator'
+export { IndicatorTagEnum } from '@xpert-ai/ocap-core'
 
 export interface IndicatorState extends Partial<Indicator>, Omit<IIndicator, 'type'> {
   initialized: boolean

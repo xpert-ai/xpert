@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DataSourceProtocolEnum, DataSourceSyntaxEnum, IDataSourceType } from '@metad/contracts';
-import { TenantBaseEntity } from '@metad/server-core';
+import { DataSourceProtocolEnum, DataSourceSyntaxEnum, IDataSourceType } from '@xpert-ai/contracts';
+import { TenantBaseEntity } from '@xpert-ai/server-core';
 import {
     IsJSON,
     IsOptional, IsString
@@ -31,13 +31,13 @@ export class DataSourceType extends TenantBaseEntity implements IDataSourceType 
     @ApiProperty({ type: () => String, enum: DataSourceSyntaxEnum })
     @IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	syntax?: DataSourceSyntaxEnum;
 
     @ApiProperty({ type: () => String, enum: DataSourceProtocolEnum })
     @IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	protocol?: DataSourceProtocolEnum;
     
     @ApiPropertyOptional({ type: () => Object })

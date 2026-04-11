@@ -3,9 +3,12 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
-import { KnowledgeRecallParamsComponent, KnowledgeSelectReferenceComponent, XpertKnowledgeCaseFormComponent } from '@cloud/app/@shared/knowledge'
+import {
+  KnowledgeRecallParamsComponent,
+  KnowledgeSelectReferenceComponent,
+  XpertKnowledgeCaseFormComponent
+} from '@cloud/app/@shared/knowledge'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectToastr,
@@ -21,9 +24,10 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { attrModel, linkedModel, TSelectOption } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { NgmSelectPanelComponent } from '@cloud/app/@shared/common'
-import { CapitalizePipe } from '@metad/core'
+import { CapitalizePipe } from '@xpert-ai/core'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-knowledge',
@@ -33,7 +37,7 @@ import { CapitalizePipe } from '@metad/core'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     CdkMenuModule,
     CapitalizePipe,
@@ -86,14 +90,18 @@ export class XpertWorkflowKnowledgeComponent extends XpertWorkflowBaseComponent 
 
   readonly knowledgebaseList = toSignal(this.studioService.knowledgebases$)
   readonly selectedKnowledgebases = computed(() => {
-    return this.knowledgebases()?.map((id) => ({
-      id,
-      kb: this.knowledgebaseList()?.find((_) => _.id === id)
-    })) ?? []
+    return (
+      this.knowledgebases()?.map((id) => ({
+        id,
+        kb: this.knowledgebaseList()?.find((_) => _.id === id)
+      })) ?? []
+    )
   })
 
   readonly metadataFields = computed(() => {
-    const schemas: KBMetadataFieldDef[][] = this.selectedKnowledgebases().map(({kb}) => kb).map((knowledgebase) => knowledgebase?.metadataSchema || [])
+    const schemas: KBMetadataFieldDef[][] = this.selectedKnowledgebases()
+      .map(({ kb }) => kb)
+      .map((knowledgebase) => knowledgebase?.metadataSchema || [])
     // 找出 schemas 之间的交集
     const schema: KBMetadataFieldDef[] = []
     if (schemas.length > 0) {
@@ -104,10 +112,10 @@ export class XpertWorkflowKnowledgeComponent extends XpertWorkflowBaseComponent 
         }
       })
     }
-    STANDARD_METADATA_FIELDS.forEach(({fields}) => {
+    STANDARD_METADATA_FIELDS.forEach(({ fields }) => {
       fields.forEach((field) => {
         if (!schema?.some((_) => _.key === field.key)) {
-            schema.push(field)
+          schema.push(field)
         }
       })
     })
@@ -117,17 +125,21 @@ export class XpertWorkflowKnowledgeComponent extends XpertWorkflowBaseComponent 
   readonly showOutput = signal<boolean>(true)
 
   readonly filterModeOptions: TSelectOption[] = [
-      {
-        value: 'disabled',
-        label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled', {Default: 'Disabled'}),
-        description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled_Description', {Default: 'No metadata filtering applied.'})
-      },
-      {
-        value: 'manual',
-        label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual', {Default: 'Manual'}),
-        description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual_Description', {Default: 'Manually configure metadata filtering options by user.'})
-      }
-    ]
+    {
+      value: 'disabled',
+      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled', { Default: 'Disabled' }),
+      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled_Description', {
+        Default: 'No metadata filtering applied.'
+      })
+    },
+    {
+      value: 'manual',
+      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual', { Default: 'Manual' }),
+      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual_Description', {
+        Default: 'Manually configure metadata filtering options by user.'
+      })
+    }
+  ]
 
   onFocus(event: Event) {}
 

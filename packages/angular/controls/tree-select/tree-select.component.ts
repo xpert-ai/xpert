@@ -1,28 +1,10 @@
 import { CommonModule } from '@angular/common'
-import {
-  Component,
-  computed,
-  effect,
-  EventEmitter,
-  forwardRef,
-  HostBinding,
-  inject,
-  Input,
-  Output,
-  signal,
-  SimpleChanges,
-  ViewContainerRef
-} from '@angular/core'
+import { Component, computed, effect, EventEmitter, forwardRef, HostBinding, inject, Input, Output, signal, SimpleChanges, ViewContainerRef } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatRadioModule } from '@angular/material/radio'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
+
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmAppearance, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -32,11 +14,12 @@ import {
   getEntityProperty,
   ISlicer,
   TreeNodeInterface
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BehaviorSubject, delayWhen, filter, firstValueFrom } from 'rxjs'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
 import { NgmValueHelpComponent } from '../value-help/value-help.component'
+import { ZardButtonComponent, ZardDialogService, ZardFormImports, ZardIconComponent, ZardLoaderComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 export interface MemberTreeSelectOptions extends TreeControlOptions {
   maxTagCount?: number
@@ -63,11 +46,11 @@ export interface MemberTreeSelectOptions extends TreeControlOptions {
   imports: [
     CommonModule,
     FormsModule,
-    MatProgressSpinnerModule,
-    MatMenuModule,
-    MatIconModule,
-    MatRadioModule,
-    MatButtonModule,
+    ZardLoaderComponent,
+    ...ZardMenuImports,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ...ZardFormImports,
 
     NgmCommonModule,
     OcapCoreModule,
@@ -78,7 +61,7 @@ export class NgmMemberTreeSelectComponent implements ControlValueAccessor {
   DisplayBehaviour = DisplayBehaviour
 
   private smartFilterService = inject(NgmSmartFilterService)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private _viewContainerRef = inject(ViewContainerRef)
 
   @Input() data: TreeNodeInterface<any>[]
@@ -162,7 +145,6 @@ export class NgmMemberTreeSelectComponent implements ControlValueAccessor {
         this.onChange?.(this.slicer())
       }
     })
-    // 在 effect 里设置 dataSettings 会触发后续的 allowSignalWrites 问题
     // effect(() => {
     //   if (this.dataSettings) {
     //     this.smartFilterService.dataSettings = this.dataSettings
@@ -177,7 +159,7 @@ export class NgmMemberTreeSelectComponent implements ControlValueAccessor {
           members: this.options.defaultMembers
         })
       }
-    }, {allowSignalWrites: true})
+    })
 
     effect(() => {
       if (this.dimension) {

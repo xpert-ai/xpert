@@ -1,12 +1,12 @@
 import { NgModule } from '@angular/core'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective, OcapCoreModule } from '@metad/ocap-angular/core'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { NgmBreadcrumbBarComponent } from './breadcrumb/breadcrumb.component'
 import { NgmHighlightDirective, NgmResizableDirective, ResizeObserverDirective } from './directives'
 import { NgmDisplayBehaviourComponent } from './display-behaviour'
 import { NgmInputModule } from './input/input.module'
 import { ResizerModule } from './resizer/resizer.module'
 import { NgmSearchComponent } from './search/search.component'
-import { NgmMatSelectComponent, NgmSelectComponent } from './select'
+import { NgmAdvancedSelectComponent, NgmSelectComponent } from './select'
 import { NgmSliderInputComponent } from './slider-input'
 import { SplitterModule } from './splitter/splitter.module'
 import { NgmSelectionTableComponent, NgmTableComponent, TableVirtualScrollModule } from './table'
@@ -20,7 +20,6 @@ import { NgmDrawerContainerComponent } from './drawer'
 import { NgmObjectNumberComponent } from './object-number/object-number.component'
 import { NgmSpinComponent } from './spin/spin.component'
 import { NgmCheckboxComponent } from './checkbox/checkbox.component'
-import { NgmSlideToggleComponent } from './slide-toggle/slide-toggle.component'
 import { NgmStepperComponent } from './stepper/stepper.component'
 import { NgmCopyComponent } from './copy/copy.component'
 import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.component'
@@ -37,7 +36,7 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmSearchComponent,
     TableVirtualScrollModule,
     NgmTreeSelectComponent,
-    NgmMatSelectComponent,
+    NgmAdvancedSelectComponent,
     NgmSelectComponent,
     NgmDisplayBehaviourComponent,
     NgmSliderInputComponent,
@@ -56,7 +55,6 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmObjectNumberComponent,
     NgmSpinComponent,
     NgmCheckboxComponent,
-    NgmSlideToggleComponent,
     NgmStepperComponent,
     NgmCopyComponent,
     NgmProgressSpinnerComponent,
@@ -72,7 +70,7 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmSearchComponent,
     TableVirtualScrollModule,
     NgmTreeSelectComponent,
-    NgmMatSelectComponent,
+    NgmAdvancedSelectComponent,
     NgmSelectComponent,
     NgmSliderInputComponent,
     NgmInputModule,
@@ -90,7 +88,6 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmObjectNumberComponent,
     NgmSpinComponent,
     NgmCheckboxComponent,
-    NgmSlideToggleComponent,
     NgmStepperComponent,
     NgmCopyComponent,
     NgmProgressSpinnerComponent,

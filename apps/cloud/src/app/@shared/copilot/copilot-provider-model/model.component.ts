@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -15,13 +15,18 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { KebabToCamelCasePipe } from '@metad/core'
-import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { KebabToCamelCasePipe } from '@xpert-ai/core'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { AiModelTypeEnum, getErrorMessage, ICopilotProvider, injectCopilotProviderService, ToastrService } from '../../../@core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import {
+  AiModelTypeEnum,
+  getErrorMessage,
+  ICopilotProvider,
+  injectCopilotProviderService,
+  ToastrService
+} from '../../../@core'
 import { CopilotCredentialFormComponent } from '../credential-form/form.component'
 
 @Component({
@@ -31,20 +36,18 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
   styleUrls: ['./model.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     DragDropModule,
     CdkListboxModule,
-    MatTooltipModule,
-    MatInputModule,
+    ...ZardTooltipImports,
+    ZardInputDirective,
     NgmI18nPipe,
     KebabToCamelCasePipe,
     NgmSpinComponent,
-
     CopilotCredentialFormComponent
-  ],
+]
 })
 export class CopilotProviderModelComponent {
   readonly #dialogRef = inject(DialogRef)
@@ -64,7 +67,6 @@ export class CopilotProviderModelComponent {
   // ViewChild
   readonly credentialForm = viewChild('credentialForm', { read: CopilotCredentialFormComponent })
 
-
   // Models
   readonly #model = myRxResource({
     request: () => {
@@ -73,9 +75,9 @@ export class CopilotProviderModelComponent {
         copilotProviderId: this.copilotProvider()?.id
       }
     },
-    loader: ({request}) => {
+    loader: ({ request }) => {
       return request.modelId ? this.#copilotProviderService.getModel(request.copilotProviderId, request.modelId) : null
-    },
+    }
   })
 
   readonly model = this.#model.value
@@ -89,7 +91,9 @@ export class CopilotProviderModelComponent {
   readonly modelSchema = computed(() => this.model_credential_schema()?.model)
 
   readonly label = computed(() => this.copilotProvider()?.provider?.label)
-  readonly icon = computed(() => this.copilotProvider()?.provider?.icon_large || this.copilotProvider()?.provider?.icon_small)
+  readonly icon = computed(
+    () => this.copilotProvider()?.provider?.icon_large || this.copilotProvider()?.provider?.icon_small
+  )
   readonly help = computed(() => this.copilotProvider()?.provider?.help)
   readonly backgroundColor = computed(() => this.copilotProvider()?.provider?.background)
 
@@ -106,24 +110,25 @@ export class CopilotProviderModelComponent {
     return this.credentialForm().invalid || !this.modelTypes()?.[0] || !this.modelName()
   }
 
-
   constructor() {
-    effect(() => {
-      const value = this.model()
-      if (value) {
-        this.modelName.set(value.modelName)
-        this.modelTypes.set([value.modelType])
-        this.credentials.set(value.modelProperties)
+    effect(
+      () => {
+        const value = this.model()
+        if (value) {
+          this.modelName.set(value.modelName)
+          this.modelTypes.set([value.modelType])
+          this.credentials.set(value.modelProperties)
 
-        // todo 未解决 cdkList 未及时响应 modelTypes 的值更新
-        this.#cdr.markForCheck()
-        setTimeout(() => {
-          this.#cdr.detectChanges()
-        }, 1000);
-      } else if (this.modelTypes().length === 0 && this.supported_model_types()) {
-        this.modelTypes.set([this.supported_model_types()[0]])
+          // todo 未解决 cdkList 未及时响应 modelTypes 的值更新
+          this.#cdr.markForCheck()
+          setTimeout(() => {
+            this.#cdr.detectChanges()
+          }, 1000)
+        } else if (this.modelTypes().length === 0 && this.supported_model_types()) {
+          this.modelTypes.set([this.supported_model_types()[0]])
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   delete() {
@@ -147,44 +152,48 @@ export class CopilotProviderModelComponent {
     }
     this.#loading.set(true)
     this.error.set('')
-    this.#copilotProviderService.createModel(this.copilotProvider().id, {
-      providerName: this.copilotProvider().providerName,
-      modelType: this.modelTypes()[0],
-      modelName: this.modelName(),
-      modelProperties: this.credentials()
-    }).subscribe({
-      next: (providerModel) => {
-        this.#loading.set(false)
-        this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
-        this.#dialogRef.close(providerModel)
-      },
-      error: (err) => {
-        this.#loading.set(false)
-        this.error.set(getErrorMessage(err))
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+    this.#copilotProviderService
+      .createModel(this.copilotProvider().id, {
+        providerName: this.copilotProvider().providerName,
+        modelType: this.modelTypes()[0],
+        modelName: this.modelName(),
+        modelProperties: this.credentials()
+      })
+      .subscribe({
+        next: (providerModel) => {
+          this.#loading.set(false)
+          this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
+          this.#dialogRef.close(providerModel)
+        },
+        error: (err) => {
+          this.#loading.set(false)
+          this.error.set(getErrorMessage(err))
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 
   updateModel() {
     this.#loading.set(true)
     this.error.set('')
-    this.#copilotProviderService.updateModel(this.copilotProvider().id, this.modelId(), {
-      modelType: this.modelTypes()[0],
-      modelName: this.modelName(),
-      modelProperties: this.credentials()
-    }).subscribe({
-      next: (providerModel) => {
-        this.#loading.set(false)
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
-        this.#dialogRef.close(providerModel)
-      },
-      error: (err) => {
-        this.#loading.set(false)
-        this.error.set(getErrorMessage(err))
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+    this.#copilotProviderService
+      .updateModel(this.copilotProvider().id, this.modelId(), {
+        modelType: this.modelTypes()[0],
+        modelName: this.modelName(),
+        modelProperties: this.credentials()
+      })
+      .subscribe({
+        next: (providerModel) => {
+          this.#loading.set(false)
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this.#dialogRef.close(providerModel)
+        },
+        error: (err) => {
+          this.#loading.set(false)
+          this.error.set(getErrorMessage(err))
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 
   close() {

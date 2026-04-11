@@ -1,5 +1,5 @@
-import { ICertification, IUser } from '@metad/contracts'
-import { TenantOrganizationBaseEntity, User } from '@metad/server-core'
+import { ICertification, IUser } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'

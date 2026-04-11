@@ -4,7 +4,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   input,
   model,
@@ -12,15 +11,19 @@ import {
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ThemePalette } from '@angular/material/core'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatListModule } from '@angular/material/list'
-import { MatRadioModule } from '@angular/material/radio'
-import { MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { attrModel, linkedModel, NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { ZardFormImports, ZardInputDirective, ZardSliderComponent } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmControlsModule } from '@xpert-ai/ocap-angular/controls'
+import {
+  attrModel,
+  linkedModel,
+  mergeSelectedValues,
+  NgmAppearance,
+  NgmDSCoreService,
+  OcapCoreModule,
+  NgmFieldColor
+} from '@xpert-ai/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -32,7 +35,7 @@ import {
   isEqual,
   isVariableProperty,
   pick
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   combineLatestWith,
   distinctUntilChanged,
@@ -57,26 +60,12 @@ export interface ParameterOptions {
   sliderMax?: number
   showThumbLabel?: boolean
   showTickMarks?: boolean
-  sliderColor?: ThemePalette
+  sliderColor?: NgmFieldColor
 }
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    CdkListboxModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatRadioModule,
-    MatListModule,
-    MatSliderModule,
-
-    OcapCoreModule,
-    NgmCommonModule,
-    NgmControlsModule
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardFormImports, ZardInputDirective, ZardSliderComponent, OcapCoreModule, NgmCommonModule, NgmControlsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-parameter',
   templateUrl: 'parameter.component.html',
@@ -153,6 +142,7 @@ export class NgmParameterComponent {
     distinctUntilChanged(),
     switchMap((availableMembers) => (availableMembers?.length ? of(availableMembers) : this.members$))
   )
+  readonly dimensionAvailableMembers = toSignal(this.availableMembers$, { initialValue: [] })
 
   readonly variableProperty = toSignal(this.parameter$.pipe(map((parameter) => isVariableProperty(parameter) ? parameter : null)))
 
@@ -187,6 +177,16 @@ export class NgmParameterComponent {
     }
     return availableMembers
   })
+  readonly selectedDimensionMembers = computed(() => {
+    const value = this.parameterValue()
+    if (Array.isArray(value)) {
+      return value
+    }
+    return value == null ? [] : [value]
+  })
+  readonly listboxAvailableMembers = computed(() =>
+    mergeSelectedValues(this.dimensionAvailableMembers(), this.selectedDimensionMembers(), this.compareWith)
+  )
 
   slicer = {}
 
@@ -202,8 +202,8 @@ export class NgmParameterComponent {
     this.updateParameterValue(slicer.members)
   }
 
-  onSlicerEnd(event: MatSliderDragEvent) {
-    this.updateParameterValue(event.value)
+  onSlicerEnd(value: ZardSliderValue) {
+    this.updateParameterValue(typeof value === 'number' ? value : value[0])
   }
 
   onBlur(event: FocusEvent) {

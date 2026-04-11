@@ -1,16 +1,23 @@
-import { StepperSelectionEvent } from '@angular/cdk/stepper'
 import { CommonModule } from '@angular/common'
 import { HttpEventType, HttpResponse } from '@angular/common/http'
 import { ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { NGM_WASM_AGENT_WORKER } from '@metad/ocap-angular/wasm-agent'
-import { TableEntity, isEqual, pick } from '@metad/ocap-core'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NGM_WASM_AGENT_WORKER } from '@xpert-ai/ocap-angular/wasm-agent'
+import { TableEntity, isEqual, pick } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmDndDirective } from '@metad/core'
+import { NgmDndDirective } from '@xpert-ai/core'
 import { IStorageFile, StorageFileService } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
+import {
+  Z_MODAL_DATA, 
+  ZardDialogRef, 
+  ZardProgressBarComponent,
+  ZardProgressCircleComponent,
+  ZardStepperImports,
+  type ZardStepperSelectionEvent
+} from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   Subscription,
@@ -30,12 +37,16 @@ import { SemanticModelService } from '../model.service'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
+    ...ZardStepperImports,
+    ZardProgressBarComponent,
+    ZardProgressCircleComponent,
     ButtonGroupDirective,
     AppearanceDirective,
     DensityDirective,
-    NgmDndDirective
+    NgmDndDirective,
+    NgmSelectComponent
   ],
   selector: 'pac-model-create-table',
   templateUrl: 'create-table.component.html',
@@ -77,8 +88,8 @@ export class ModelCreateTableComponent implements OnInit {
   progress: number
   error: string
   constructor(
-    public dialogRef: MatDialogRef<ModelCreateTableComponent>,
-    @Inject(MAT_DIALOG_DATA)
+    public dialogRef: ZardDialogRef<ModelCreateTableComponent>,
+    @Inject(Z_MODAL_DATA)
     private data: { model: TableEntity },
     private modelService: SemanticModelService,
     @Inject(NGM_WASM_AGENT_WORKER)
@@ -194,7 +205,7 @@ export class ModelCreateTableComponent implements OnInit {
     }
   }
 
-  onStepChange(event: StepperSelectionEvent) {
+  onStepChange(event: ZardStepperSelectionEvent) {
     this.previewAction$.next(event.selectedIndex === 1)
   }
 

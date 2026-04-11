@@ -1,13 +1,14 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormArray, FormControl } from '@angular/forms'
-import { NgmFormlyArrayComponent } from '@metad/formly/array'
-import { PropertyCapacity } from '@metad/ocap-angular/entity'
-import { ChartType, DataSettings, EntitySet, EntityType } from '@metad/ocap-core'
+import { NgmFormlyArrayComponent } from '@xpert-ai/formly/array'
+import { PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import { ChartType, DataSettings, EntitySet, EntityType } from '@xpert-ai/ocap-core'
 import { FieldType, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core'
 import { BehaviorSubject, Observable, map } from 'rxjs'
 
 @Component({
+  standalone: false,
   selector: 'ngm-formly-chart-property',
   templateUrl: './chart-property.component.html',
   styleUrls: ['./chart-property.component.scss']

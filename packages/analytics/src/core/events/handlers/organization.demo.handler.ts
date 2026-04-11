@@ -1,4 +1,4 @@
-import { CreationTable, DORIS_TYPE, STARROCKS_TYPE } from '@metad/adapter'
+import { CreationTable, DORIS_TYPE, STARROCKS_TYPE } from '@xpert-ai/adapter'
 import {
 	IBusinessArea,
 	IDataSource,
@@ -15,10 +15,10 @@ import {
 	ProjectStatusEnum,
 	StoryStatusEnum,
 	Visibility
-} from '@metad/contracts'
-import { pick, readYamlFile } from '@metad/server-common'
-import { ConfigService, getConnectionOptions } from '@metad/server-config'
-import { Organization, OrganizationDemoCommand, REDIS_CLIENT, RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { pick, readYamlFile } from '@xpert-ai/server-common'
+import { ConfigService, getConnectionOptions } from '@xpert-ai/server-config'
+import { Organization, OrganizationDemoCommand, REDIS_CLIENT, RequestContext } from '@xpert-ai/server-core'
 import { Inject, Logger } from '@nestjs/common'
 import { ConfigService as NestConfigService } from '@nestjs/config'
 import { CommandBus, CommandHandler, EventBus, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -336,8 +336,8 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		
 		response.data.pipe(writer)
 	  
-		return new Promise((resolve, reject) => {
-		  writer.on('finish', resolve)
+		return new Promise<void>((resolve, reject) => {
+		  writer.on('finish', () => resolve())
 		  writer.on('error', reject)
 		})
 	  }

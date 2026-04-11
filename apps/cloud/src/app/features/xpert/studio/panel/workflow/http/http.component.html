@@ -3,11 +3,11 @@
     <div class="flex h-6 items-center"><div class="system-sm-semibold-uppercase text-text-secondary">API</div></div>
     <div class="flex">
       <div class="flex">
-        <div class="cursor-pointer hover:bg-gray-50 flex h-7 items-center space-x-1 rounded-md px-2 text-gray-500"
+        <div class="cursor-pointer hover:bg-hover-bg flex h-7 items-center space-x-1 rounded-md px-2 text-text-tertiary"
           (click)="openAuth()">
           <i class="ri-settings-3-line"></i>
-          <div class="text-sm font-medium text-gray-500">
-            {{'PAC.KEY_WORDS.Authorization' | translate: {Default: 'Authorization'} }}<span class="uppercase ml-1 text-gray-700">{{authType()}}</span>
+          <div class="text-sm font-medium text-text-tertiary">
+            {{'PAC.KEY_WORDS.Authorization' | translate: {Default: 'Authorization'} }}<span class="uppercase ml-1 text-text-secondary">{{authType()}}</span>
           </div>
         </div>
       </div>
@@ -19,7 +19,7 @@
         [placeholder]="'PAC.Workflow.HttpMethod' | translate: {Default: 'Http Method'}"
         [(ngModel)]="method" 
       />
-      <div class="border-gray-100 bg-gray-100 w-0 grow rounded-lg border relative">
+      <div class="border-divider-regular bg-components-input-bg-normal w-0 grow rounded-lg border relative">
         <xpert-variable-input class="relative w-full min-h-[24px] text-sm px-2 py-1.5" 
           [variables]="variables()"
           [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
@@ -48,9 +48,9 @@
         </div>
       </div>
       @for (header of headers(); track i; let i = $index) {
-        <div class="h-min-7 group flex border-t border-gray-200">
+        <div class="h-min-7 group flex border-t border-divider-deep">
           <div class="shrink-0 border-r border-divider-regular w-1/2">
-            <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+            <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
               <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
                 [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
                 [variables]="variables()"
@@ -60,7 +60,7 @@
             </div>
           </div>
           <div class="w-1/2">
-            <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+            <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
               <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
                 [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
                 [variables]="variables()"
@@ -79,7 +79,6 @@
     </div>
   </div>
 </div>
-
 
 <div class="p-4">
   <div class="flex items-center justify-between">
@@ -101,9 +100,9 @@
         </div>
       </div>
       @for (param of params(); track i; let i = $index) {
-        <div class="h-min-7 group flex border-t border-gray-200">
+        <div class="h-min-7 group flex border-t border-divider-deep">
           <div class="shrink-0 border-r border-divider-regular w-1/2">
-            <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+            <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
               <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
                 [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
                 [variables]="variables()"  
@@ -113,7 +112,7 @@
             </div>
           </div>
           <div class="w-1/2">
-            <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+            <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
               <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
                 [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
                 [variables]="variables()"  
@@ -158,9 +157,9 @@
             </div>
           </div>
           @for (param of encodedForm(); track i; let i = $index) {
-            <div class="h-min-7 group flex border-t border-gray-200">
+            <div class="h-min-7 group flex border-t border-divider-deep">
               <div class="shrink-0 border-r border-divider-regular w-1/2">
-                <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+                <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
                   <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
                     [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
                     [variables]="variables()"  
@@ -170,7 +169,7 @@
                 </div>
               </div>
               <div class="w-1/2">
-                <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+                <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
                   <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
                     [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
                     [variables]="variables()"  
@@ -228,10 +227,10 @@
         <div class="space-y-3">
           <div class="space-y-1">
             <div class="flex h-[18px] items-center space-x-2">
-              <span class="text-[13px] font-medium text-gray-900">
+              <span class="text-[13px] font-medium text-text-primary">
                 {{ 'PAC.Workflow.ConnectionTimeout' | translate: {Default: 'Connection Timeout'} }}
               </span>
-              <span class="text-xs font-normal text-gray-500">
+              <span class="text-xs font-normal text-text-tertiary">
                 {{ 'PAC.Workflow.ConnectionTimeoutDesc' | translate: {Default: 'Enter connection timeout in seconds'} }}
               </span>
             </div>
@@ -247,10 +246,10 @@
           </div>
           <div class="space-y-1">
             <div class="flex h-[18px] items-center space-x-2">
-              <span class="text-[13px] font-medium text-gray-900">
+              <span class="text-[13px] font-medium text-text-primary">
                 {{ 'PAC.Workflow.ReadTimeout' | translate: {Default: 'Read Timeout'} }}
               </span>
-              <span class="text-xs font-normal text-gray-500">
+              <span class="text-xs font-normal text-text-tertiary">
                 {{ 'PAC.Workflow.ReadTimeoutDesc' | translate: {Default: 'Enter read timeout in seconds'} }}
               </span>
             </div>
@@ -266,10 +265,10 @@
           </div>
           <div class="space-y-1">
             <div class="flex h-[18px] items-center space-x-2">
-              <span class="text-[13px] font-medium text-gray-900">
+              <span class="text-[13px] font-medium text-text-primary">
                 {{ 'PAC.Workflow.WriteTimeout' | translate: {Default: 'Write Timeout'} }}
               </span>
-              <span class="text-xs font-normal text-gray-500">
+              <span class="text-xs font-normal text-text-tertiary">
                 {{ 'PAC.Workflow.WriteTimeoutDesc' | translate: {Default: 'Enter write timeout in seconds'} }}
               </span>
             </div>

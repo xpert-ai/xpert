@@ -1,22 +1,30 @@
 import { CdkDrag, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatExpansionModule } from '@angular/material/expansion'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatListModule } from '@angular/material/list'
-import { MatSelectModule } from '@angular/material/select'
-import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import {
+  ZardAccordionImports,
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardDrawerImports,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+import type { ZardSwitchChange } from '@xpert-ai/headless-ui'
 import { injectToastr } from '@cloud/app/@core'
-import { TMessageContentVirtualCube } from '@metad/contracts'
-import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel, myRxResource, NgmDSCoreService, NgmI18nPipe, OcapCoreModule } from '@metad/ocap-angular/core'
-import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
+import { TMessageContentVirtualCube } from '@xpert-ai/contracts'
+import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
+import {
+  attrModel,
+  linkedModel,
+  myRxResource,
+  NgmDSCoreService,
+  NgmI18nPipe,
+  OcapCoreModule
+} from '@xpert-ai/ocap-angular/core'
+import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   C_MEASURES,
@@ -26,7 +34,7 @@ import {
   Syntax,
   VirtualCube,
   VirtualCubeDimension
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { ModelDraftBaseComponent } from '../draft-base'
@@ -34,35 +42,32 @@ import { ModelStudioService } from '../model.service'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChecklistComponent } from '../../common'
 
-
 @Component({
   standalone: true,
   selector: 'xp-model-virtual-cube',
   templateUrl: 'virtual-cube.component.html',
   styleUrls: ['virtual-cube.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
-    MatTooltipModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSidenavModule,
-    MatFormFieldModule,
-    MatExpansionModule,
-    MatListModule,
-    MatSlideToggleModule,
-    MatInputModule,
+    ...ZardDrawerImports,
+    ...ZardTooltipImports,
+    ZardButtonComponent,
+    ZardDividerComponent,
+    ZardIconComponent,
+    ...ZardFormImports,
+    ...ZardAccordionImports,
+    ZardInputDirective,
     TranslateModule,
     OcapCoreModule,
     NgmEntitySchemaComponent,
     ResizerModule,
     NgmCommonModule,
     NgmCalculatedMeasureComponent,
-    ChecklistComponent
-  ],
+    ChecklistComponent,
+    NgmSelectComponent
+],
   providers: [NgmDSCoreService, ModelStudioService]
 })
 export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
@@ -143,7 +148,7 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
   //       }),
   //     )
   // })
- 
+
   // readonly entityType = computed(() => this.#entityType()?.entityType)
   // readonly error = computed(() => this.#entityType()?.error)
 
@@ -155,7 +160,7 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
   readonly _virtualCubeName = attrModel(this._virtualCube, 'name')
   readonly _caption = attrModel(this._virtualCube, 'caption')
   readonly _description = attrModel(this._virtualCube, 'description')
-  
+
   constructor() {
     super()
     effect(
@@ -163,16 +168,14 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
         if (this.#modelId()) {
           this.modelId.set(this.#modelId())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
     effect(
       () => {
         if (this.#cubeName()) {
           this.cubeName.set(this.#cubeName())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -190,7 +193,7 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
         ...vc,
         name: this.virtualCubeName(),
         caption: this.caption(),
-        description: this.description(),
+        description: this.description()
       }
     })
   }
@@ -203,7 +206,7 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
     return item.data?.type === 'Entity'
   }
 
-  changeIgnoreUnrelatedDimensions(event: MatSlideToggleChange, cube: CubeUsage) {
+  changeIgnoreUnrelatedDimensions(event: ZardSwitchChange, cube: CubeUsage) {
     this.virtualCube.update((vc) => {
       const updatedCubeUsages = vc.cubeUsages?.map((cu) => {
         if (cu.cubeName === cube.cubeName) {
@@ -255,7 +258,7 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
     }
   }
 
-  changeDimensionShared(event: MatSlideToggleChange, name: string) {
+  changeDimensionShared(event: ZardSwitchChange, name: string) {
     this.virtualCube.update((vc) => {
       const updatedDimensions = vc.virtualCubeDimensions?.map((dim) => {
         if (dim.name === name) {
@@ -365,7 +368,7 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
   }
 
   // openNeedSaveMessage() {
-  //   this.#snackBar.openFromComponent(NgmNotificationComponent, {
+  //   This notification now uses the shared toast service.
   //     data: {
   //       color: 'primary',
   //       message: this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSave', { Default: 'Please Save' }),

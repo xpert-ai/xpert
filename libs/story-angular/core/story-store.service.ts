@@ -1,5 +1,5 @@
 import { InjectionToken } from '@angular/core'
-import { ID } from '@metad/contracts'
+import { ID } from '@xpert-ai/contracts'
 import { Observable } from 'rxjs'
 import {
   Story,

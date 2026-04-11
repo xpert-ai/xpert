@@ -1,24 +1,19 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
   $accent: map.get($config, accent);
 
   .pac-widget-accounting-statement {
-
-    .mat-card-header-text {
-      color: mat.get-color-from-palette($foreground, secondary-text);
-    }
-
-    .mat-table {
+    table[z-table] {
       background: transparent;
 
-      .mat-cell, .mat-header-cell {
+      [z-table-cell], [z-table-head] {
         white-space: nowrap;
       }
       tr.pac-widget-accounting-statement__underline > td {
@@ -31,7 +26,7 @@
         }
 
         td.title {
-          color: mat.get-color-from-palette($foreground, secondary-text);
+          color: themeCompat.m2-get-color-from-palette($foreground, secondary-text);
         }
       }
     }
@@ -40,7 +35,7 @@
 
 @mixin density($config-or-theme) {
   .pac-widget-accounting-statement {
-    th.mat-header-cell, td.mat-cell, td.mat-footer-cell {
+    th[z-table-head], td[z-table-cell] {
       padding: 0 5px;
     }
   }

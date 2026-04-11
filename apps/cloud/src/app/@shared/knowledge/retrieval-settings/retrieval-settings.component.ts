@@ -1,31 +1,30 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { getErrorMessage, injectToastr, KnowledgebaseService } from '@cloud/app/@core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { AiModelTypeEnum, IKnowledgebase } from '../../../@core/types'
 import { CopilotModelSelectComponent } from '../../copilot'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     CdkMenuModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
+    ZardSwitchComponent,
     NgmCommonModule,
-    CopilotModelSelectComponent,
-  ],
+    CopilotModelSelectComponent
+],
   selector: 'xp-knowledge-retrieval-settings',
   templateUrl: 'retrieval-settings.component.html',
   styleUrls: ['retrieval-settings.component.scss'],
@@ -38,7 +37,7 @@ export class KnowledgeRetrievalSettingsComponent {
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly #toastrService = injectToastr()
-  
+
   // Inputs
   readonly savable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
@@ -57,7 +56,7 @@ export class KnowledgeRetrievalSettingsComponent {
     initialValue: false,
     compute: () => !isNil(this.score()),
     update: (value) => {
-      this.score.set(value ? this.score() ?? 0.5 : null)
+      this.score.set(value ? (this.score() ?? 0.5) : null)
     }
   })
   readonly rerankModel = attrModel(this.knowledgebase, 'rerankModel', null)

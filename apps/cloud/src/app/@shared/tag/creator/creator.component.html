@@ -1,10 +1,10 @@
-<h2 mat-dialog-title>{{'PAC.KEY_WORDS.Tag' | translate: {Default: 'Tag'} }}</h2>
+<h2 xpDialogTitle>{{'PAC.KEY_WORDS.Tag' | translate: {Default: 'Tag'} }}</h2>
 <div class="flex flex-col justify-start items-stretch px-8 py-4">
   <form [formGroup]="formGroup" class="flex flex-col gap-2">
   <div class="flex gap-4">
     <div class="flex flex-col justify-start items-start">
       <label class="">{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</label>
-      <input class="shrink-0 flex-1 px-2 py-2 rounded-lg border border-solid border-gray-200 text-base leading-5 text-gray-700 outline-none appearance-none placeholder:text-gray-300 caret-primary-600 focus:border-solid"
+      <input class="shrink-0 flex-1 px-2 py-2 rounded-lg border border-solid border-divider-deep text-base leading-5 text-text-primary outline-none appearance-none placeholder:text-components-input-text-placeholder caret-primary-600 focus:border-solid"
         formControlName="name"
         [placeholder]="'PAC.KEY_WORDS.Tag' | translate: {Default: 'Tag'}"
         >
@@ -12,7 +12,7 @@
 
     <div class="flex flex-col justify-start items-start">
       <label for="categories" class="">{{ 'PAC.KEY_WORDS.Category' | translate: {Default: 'Category'} }}</label>
-      <select id="categories" class="border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+      <select id="categories" class="bg-components-input-bg-normal border border-divider-deep text-text-primary text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 placeholder:text-components-input-text-placeholder"
         formControlName="category">
         @for (category of allCategories; track category) {
           <option [value]="category">
@@ -25,7 +25,7 @@
 
   <div class="w-full flex flex-col justify-start items-stretch">
     <label class="">{{ 'PAC.KEY_WORDS.Color' | translate: {Default: 'Color'} }}</label>
-    <input class="shrink-0 flex-1 px-2 py-2 rounded-lg border border-solid border-gray-200 text-base leading-5 text-gray-700 outline-none appearance-none placeholder:text-gray-300 caret-primary-600 focus:border-solid"
+    <input class="shrink-0 flex-1 px-2 py-2 rounded-lg border border-solid border-divider-deep text-base leading-5 text-text-primary outline-none appearance-none placeholder:text-components-input-text-placeholder caret-primary-600 focus:border-solid"
       type="text"
       formControlName="color"
       >
@@ -33,7 +33,7 @@
 
   <div class="flex flex-col justify-start items-start">
     <label class="">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</label>
-    <textarea class="shrink-0 w-full px-2 py-2 rounded-lg border border-dashed border-gray-200 text-base leading-5 text-gray-700 outline-none appearance-none  placeholder:text-gray-300 caret-primary-600 focus:border-solid"
+    <textarea class="shrink-0 w-full px-2 py-2 rounded-lg border border-dashed border-divider-deep text-base leading-5 text-text-primary outline-none appearance-none  placeholder:text-components-input-text-placeholder caret-primary-600 focus:border-solid"
       formControlName="description"
     >
     </textarea>
@@ -43,10 +43,10 @@
 
 <div class="flex justify-end p-4">
   <div ngmButtonGroup>
-    <button mat-flat-button mat-dialog-close cdkFocusInitial>
+    <button z-button zType="secondary" xpDialogClose cdkFocusInitial>
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button mat-raised-button color="accent" [disabled]="formGroup.invalid || formGroup.pristine" (click)="apply()">
+    <button z-button zType="default" [disabled]="formGroup.invalid || formGroup.pristine" (click)="apply()">
       <span>
         {{ 'PAC.ACTIONS.Create' | translate: { Default: 'Create' } }}
       </span>

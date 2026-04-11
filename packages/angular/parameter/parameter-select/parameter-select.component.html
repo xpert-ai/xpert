@@ -4,17 +4,16 @@
   [(ngModel)]="model"
 >
   <div ngmSuffix class="ngm-input__suffix flex items-center">
-    <button mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="paramMenu"
-      (click)="$event.stopPropagation(); $event.preventDefault()">
-      <mat-icon>alternate_email</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" [cdkMenuTriggerFor]="paramMenu" (click)="$event.stopPropagation(); $event.preventDefault()">
+      <z-icon zType="alternate_email"></z-icon>
     </button>
 
     <ng-content select="[ngmSuffix]"></ng-content>
   </div>
 
   <ng-template ngmOptionContent let-option>
-    <button mat-icon-button displayDensity="cosy" (click)="openEditParameter(option.name)">
-      <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="openEditParameter(option.name)">
+      <z-icon zType="edit"></z-icon>
     </button>
   </ng-template>
 </ngm-input>

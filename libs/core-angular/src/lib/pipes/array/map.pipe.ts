@@ -2,7 +2,8 @@ import { NgModule, Pipe, PipeTransform } from '@angular/core'
 import { isArray } from '../utils/utils'
 
 @Pipe({
-  name: 'map'
+  name: 'map',
+  standalone: false
 })
 export class MapPipe implements PipeTransform {
   transform(input: any, fn: (item: any) => any): any {

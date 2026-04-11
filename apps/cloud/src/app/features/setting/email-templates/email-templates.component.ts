@@ -1,49 +1,45 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { DisappearFadeOut, DynamicGridDirective } from '@metad/core'
-import { NgmSelectComponent, NgmTagsComponent } from '@metad/ocap-angular/common'
+import { DisappearFadeOut, DynamicGridDirective } from '@xpert-ai/core'
+import { NgmSelectComponent, NgmTagsComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, switchMap } from 'rxjs/operators'
 import { EmailTemplateNameEnum } from '../../../@core/types'
 import { EmailTemplateService, injectToastr, LanguagesService } from '../../../@core/services'
 import { groupBy } from 'lodash-es'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
-import { injectOrganization } from '@metad/cloud/state'
-import { LanguagesEnum } from '@metad/contracts'
+import { injectOrganization } from '@xpert-ai/cloud/state'
+import { LanguagesEnum } from '@xpert-ai/contracts'
 import { EmailTemplateComponent } from './template/template.component'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { CardCreateComponent } from '../../../@shared/card'
 import { LanguageSelectorComponent } from '../../../@shared/language'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-
-    MatIconModule,
-    MatButtonModule,
-
+    ZardIconComponent,
+    ZardButtonComponent,
     NgmSelectComponent,
     NgmTagsComponent,
     CardCreateComponent,
     DynamicGridDirective,
     ButtonGroupDirective,
-
     LanguageSelectorComponent,
     EmailTemplateComponent
-  ],
+],
   templateUrl: './email-templates.component.html',
   styleUrls: ['./email-templates.component.scss'],
   animations: [DisappearFadeOut]

@@ -1,10 +1,10 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { IUser, UsersService } from '@metad/cloud/state'
-import { linkedModel } from '@metad/core'
-import { isNil, omitBy } from '@metad/ocap-core'
+import { IUser, UsersService } from '@xpert-ai/cloud/state'
+import { linkedModel } from '@xpert-ai/core'
+import { isNil, omitBy } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IUserUpdateInput, LanguagesEnum, Store, ToastrService } from '../../../@core'
 import { CreatedByPipe } from '../../../@shared/pipes'
@@ -12,7 +12,7 @@ import { UserFormsModule } from '../../../@shared/user'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
+  imports: [FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
   selector: 'pac-account-profile',
   template: `<div class="flex flex-col items-center justify-start p-4">
     <pac-user-basic-info-form #form class="block max-w-full md:max-w-[600px] lg:max-w-[900px]" [(ngModel)]="user" />

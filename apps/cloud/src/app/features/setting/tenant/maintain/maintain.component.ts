@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TagCategoryEnum, TagService } from 'apps/cloud/src/app/@core'
@@ -7,7 +7,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, TagMaintainComponent],
+  imports: [TranslateModule, TagMaintainComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tenant-tag-maintain',
   templateUrl: './maintain.component.html',

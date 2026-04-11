@@ -1,7 +1,7 @@
-import { CollectionViewer, DataSource, SelectionChange } from '@angular/cdk/collections'
+import { CollectionViewer, DataSource } from '@angular/cdk/collections'
 import { FormControl } from '@angular/forms'
-import { FlatTreeControl } from '@angular/cdk/tree'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
+import { ZardFlatTreeControl, ZardTreeExpansionChange } from '@xpert-ai/headless-ui'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import {
   AggregationRole,
   C_MEASURES,
@@ -24,7 +24,7 @@ import {
   serializeUniqueName,
   TreeNodeInterface,
   VariableProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { flatMap, isEmpty } from 'lodash-es'
 import {
@@ -46,7 +46,6 @@ import {
   tap
 } from 'rxjs'
 import { EntityCapacity, EntitySchemaType } from './types'
-
 
 export interface EntitySchemaNode extends EntityProperty {
   type?: EntitySchemaType
@@ -104,7 +103,7 @@ export class EntitySchemaDataSource implements DataSource<EntitySchemaFlatNode> 
   private entityType: EntityType
 
   constructor(
-    private _treeControl: FlatTreeControl<EntitySchemaFlatNode>,
+    private _treeControl: ZardFlatTreeControl<EntitySchemaFlatNode>,
     private dsCoreService: NgmDSCoreService,
     private translateService: TranslateService,
     private capacities: EntityCapacity[]
@@ -112,11 +111,8 @@ export class EntitySchemaDataSource implements DataSource<EntitySchemaFlatNode> 
 
   connect(collectionViewer: CollectionViewer): Observable<EntitySchemaFlatNode[]> {
     this._treeControl.expansionModel.changed.subscribe((change) => {
-      if (
-        (change as SelectionChange<EntitySchemaFlatNode>).added ||
-        (change as SelectionChange<EntitySchemaFlatNode>).removed
-      ) {
-        this.handleTreeControl(change as SelectionChange<EntitySchemaFlatNode>)
+      if ((change as ZardTreeExpansionChange<EntitySchemaFlatNode>).added || (change as ZardTreeExpansionChange<EntitySchemaFlatNode>).removed) {
+        this.handleTreeControl(change as ZardTreeExpansionChange<EntitySchemaFlatNode>)
       }
     })
 
@@ -138,7 +134,7 @@ export class EntitySchemaDataSource implements DataSource<EntitySchemaFlatNode> 
   }
 
   /** Handle expand/collapse behaviors */
-  handleTreeControl(change: SelectionChange<EntitySchemaFlatNode>) {
+  handleTreeControl(change: ZardTreeExpansionChange<EntitySchemaFlatNode>) {
     if (change.added) {
       change.added.forEach((node) => this.toggleNode(node, true))
     }

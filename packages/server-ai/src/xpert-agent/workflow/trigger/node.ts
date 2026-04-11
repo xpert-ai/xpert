@@ -1,5 +1,5 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { channelName, IEnvironment, IWFNTrigger, IWorkflowNode, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { channelName, IEnvironment, IWFNTrigger, IWorkflowNode, TXpertGraph, TXpertTeamNode } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { AgentStateAnnotation } from '../../../shared'
 

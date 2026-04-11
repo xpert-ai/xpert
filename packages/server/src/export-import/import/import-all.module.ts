@@ -3,7 +3,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { RouterModule } from '@nestjs/core';
 import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { getConfig } from '@metad/server-config';
+import { getConfig } from '@xpert-ai/server-config';
 import { ImportAllController } from './import-all.controller';
 // import { ImportAllService } from './import-all.service';
 import { coreEntities } from './../../core/entities';

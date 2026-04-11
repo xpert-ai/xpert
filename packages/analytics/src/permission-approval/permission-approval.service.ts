@@ -7,8 +7,8 @@ import {
 	IPermissionApprovalUser,
 	IUser,
 	PermissionApprovalStatusTypesEnum
-} from '@metad/contracts'
-import { RequestContext, TenantAwareCrudService, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { RequestContext, TenantAwareCrudService, User } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Brackets, In, Repository } from 'typeorm'

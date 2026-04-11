@@ -1,16 +1,15 @@
 import { A11yModule, FocusOrigin } from '@angular/cdk/a11y'
 import { Overlay } from '@angular/cdk/overlay'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TWorkflowVarGroup } from '../../../@core/types'
 import { XpertVariableInputComponent } from '../../agent'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule, MatTooltipModule, XpertVariableInputComponent],
+  imports: [FormsModule, A11yModule, ...ZardTooltipImports, XpertVariableInputComponent],
   selector: 'xpert-env-input',
   templateUrl: './input.component.html',
   styleUrls: ['./input.component.scss'],

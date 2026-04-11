@@ -1,0 +1,57 @@
+@use './sass-utils';
+@use 'sass:list';
+@use 'sass:meta';
+
+$compat-token-prefix: null !default;
+$compat-token-slots: null !default;
+
+@function _normalize-prefix($prefix) {
+  @if meta.type-of($prefix) != 'list' {
+    @return #{$prefix};
+  }
+
+  $value: '';
+  @for $index from 1 through list.length($prefix) {
+    $token: list.nth($prefix, $index);
+    @if $index == 1 {
+      $value: #{$token};
+    } @else {
+      $value: #{$value}-#{$token};
+    }
+  }
+
+  @return $value;
+}
+
+@mixin create-token-values($prefix, $tokens) {
+  $prefix-name: _normalize-prefix($prefix);
+
+  @include sass-utils.current-selector-or-root() {
+    @each $token, $value in $tokens {
+      @if $value != null {
+        --#{$prefix-name}-#{$token}: #{$value};
+      }
+    }
+  }
+}
+
+@mixin use-tokens($prefix, $tokens) {
+  $previous-prefix: $compat-token-prefix;
+  $previous-slots: $compat-token-slots;
+
+  $compat-token-prefix: _normalize-prefix($prefix) !global;
+  $compat-token-slots: $tokens !global;
+
+  @content;
+
+  $compat-token-prefix: $previous-prefix !global;
+  $compat-token-slots: $previous-slots !global;
+}
+
+@function get-token-variable($token) {
+  @if $compat-token-prefix == null {
+    @error 'token-utils.get-token-variable() must be used inside token-utils.use-tokens().';
+  }
+
+  @return --#{$compat-token-prefix}-#{$token};
+}

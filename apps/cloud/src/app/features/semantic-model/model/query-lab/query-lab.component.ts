@@ -1,11 +1,9 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, Optional, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
-import { CommandDialogComponent } from '@metad/copilot-angular'
-import { IsDirty } from '@metad/core'
-import { cloneDeep } from '@metad/ocap-core'
+import { IsDirty } from '@xpert-ai/core'
+import { cloneDeep } from '@xpert-ai/ocap-core'
 import { ModelQuery, ModelQueryService, convertModelQueryResult } from 'apps/cloud/src/app/@core'
 import { orderBy } from 'lodash-es'
 import { distinctUntilChanged, map, switchMap } from 'rxjs'
@@ -16,7 +14,9 @@ import { ModelQueryState } from '../types'
 import { QueryLabService } from './query-lab.service'
 import { ModelComponent } from '../model.component'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-model-query-lab',
   templateUrl: 'query-lab.component.html',
@@ -27,7 +27,7 @@ import { ModelComponent } from '../model.component'
   providers: [QueryLabService]
 })
 export class QueryLabComponent extends TranslationBaseComponent implements IsDirty {
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
   readonly queryService = inject(ModelQueryService)
   readonly #model = inject(ModelComponent)
 
@@ -82,19 +82,6 @@ export class QueryLabComponent extends TranslationBaseComponent implements IsDir
   addQuery() {
     const key = this.queryLabService.newQuery('')
     this.router.navigate(['.', key], { relativeTo: this.route })
-  }
-
-  aiAddQuery() {
-    this.addQuery()
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['query']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   deleteQuery(key: string) {

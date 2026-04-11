@@ -2,22 +2,14 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatDialogModule } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatSelectModule } from '@angular/material/select'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { NgmSchemaFormComponent } from '@metad/story/designer'
+import { NgmCommonModule, ResizerModule } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardComboboxDeprecatedComponent, ZardDialogModule, ZardIconComponent, ZardInputDirective, ZardToggleGroupComponent, ZardToggleGroupItemComponent, ZardTooltipImports, provideZardIconAssets } from '@xpert-ai/headless-ui'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
+import { CHART_ICON_ASSETS } from './types'
 
 @NgModule({
   declarations: [PACFormlyChartTypeComponent],
@@ -26,22 +18,21 @@ import { PACFormlyChartTypeComponent } from './chart-type.component'
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatIconModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatMenuModule,
-    MatDialogModule,
-    MatInputModule,
-    MatCheckboxModule,
-    MatTooltipModule,
-    MatButtonToggleModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ZardComboboxDeprecatedComponent,
+    ZardDialogModule,
+    ZardInputDirective,
+    ZardCheckboxComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
+    ...ZardTooltipImports,
     MonacoEditorModule,
     TranslateModule,
     ButtonGroupDirective,
     DensityDirective,
     NgmCommonModule,
     ResizerModule,
-    NgmSchemaFormComponent,
 
     FormlyModule.forChild({
       types: [
@@ -52,6 +43,7 @@ import { PACFormlyChartTypeComponent } from './chart-type.component'
       ]
     })
   ],
+  providers: [provideZardIconAssets(CHART_ICON_ASSETS)],
   exports: [PACFormlyChartTypeComponent]
 })
 export class PACFormlyChartTypeModule {}

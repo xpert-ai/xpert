@@ -1,4 +1,4 @@
-import { AdvancedSlicerOperator } from '@metad/ocap-core'
+import { AdvancedSlicerOperator } from '@xpert-ai/ocap-core'
 import { DEPARTMENT_CUBE, DEPARTMENT_ENTITY_TYPE } from '../test/DATA'
 import { withCalculationMembers } from './calculation'
 import { OrderFlag } from './functions'

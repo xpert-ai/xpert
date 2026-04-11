@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router'
-
 import { MiscellaneousComponent } from './miscellaneous.component'
 import { NotFoundComponent } from '../../@shared'
 

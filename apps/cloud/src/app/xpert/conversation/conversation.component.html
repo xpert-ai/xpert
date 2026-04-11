@@ -62,7 +62,7 @@
               (click)="onChat(statement)"
             >
               <div
-                class="line-clamp-3 max-w-full text-balance font-light text-neutral-500 dark:text-neutral-500 break-word"
+                class="line-clamp-3 max-w-full text-balance font-light text-text-tertiary break-word"
                 [title]="statement"
               >
                 {{ statement }}
@@ -111,7 +111,7 @@
 
 @if (conversationStatus() === eExecutionStatusEnum.ERROR) {
   <div
-    class="w-full flex items-start gap-2 p-4 rounded-3xl text-orange-500 bg-orange-50 border border-solid border-orange-200"
+    class="w-full flex items-start gap-2 p-4 rounded-3xl text-text-warning bg-background-default-subtle border border-solid border-text-warning"
   >
     <div>
       <i class="ri-information-2-line text-xl"></i>

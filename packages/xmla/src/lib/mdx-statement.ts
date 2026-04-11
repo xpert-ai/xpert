@@ -13,7 +13,7 @@ import {
   isEmpty,
   measureFormatter,
   getMemberKey
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { addCalculatedMember, sortWithMembers, withCalculationMembers } from './calculation'
 import { MDXHierarchyFilter, MDXProperty } from './filter'
 import { BottomCount, CurrentMemberProperties, DimensionProperties, Filter, Order, OrderFlag, TopCount } from './functions'

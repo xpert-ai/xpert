@@ -1,5 +1,5 @@
 import { AbstractControl, ValidatorFn } from "@angular/forms";
-import { isNotEmpty } from "@metad/ocap-angular/core";
+import { isNotEmpty } from "@xpert-ai/ocap-angular/core";
 import { isEmpty } from "lodash-es";
 import { patterns } from "../../@shared/regex/regex-patterns.const";
 

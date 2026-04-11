@@ -1,11 +1,11 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use './dimension/dimension-theme' as dimension;
 
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -14,23 +14,19 @@
   @include dimension.color($config-or-theme);
   
   .pac-model-entity__cube {
-    .mat-expansion-panel-header-title,
-    .mat-expansion-panel-header-description {
+    [data-slot='accordion-title'],
+    [data-slot='accordion-description'] {
       margin-right: unset;
       white-space: nowrap;
     }
 
-    .mat-expansion-panel-header-description {
+    [data-slot='accordion-description'] {
       justify-content: flex-end;
     }
 
-    .mat-mdc-list-base .mat-mdc-list-item.mat-mdc-list-item-with-avatar,
-    .mat-mdc-list-base .mat-mdc-list-option.mat-mdc-list-item-with-avatar {
+    .ngm-list-item {
       height: 36px;
       font-size: 1rem;
-    }
-
-    .mat-mdc-list-text {
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;

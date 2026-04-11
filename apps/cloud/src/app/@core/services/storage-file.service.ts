@@ -1,7 +1,7 @@
 import { HttpClient, HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { IFileAsset, IStorageFile, TStorageFileAssetDestination } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state'
+import { IFileAsset, IStorageFile, TStorageFileAssetDestination } from '@xpert-ai/contracts'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { map } from 'rxjs'
 import { FileUploadService } from './file-upload.service'
 

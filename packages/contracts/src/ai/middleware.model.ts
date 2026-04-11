@@ -1,6 +1,6 @@
 import { IWorkflowNode, WorkflowNodeTypeEnum } from "./xpert-workflow.model"
 import { I18nObject, IconDefinition, letterStartSUID } from "../types"
-import { TXpertGraph, TXpertTeamNode } from "./xpert.model"
+import { TXpertFeatureKey, TXpertGraph, TXpertTeamNode } from "./xpert.model"
 import { JsonSchemaObjectType } from "./types"
 
 export interface IWFNMiddleware extends IWorkflowNode {
@@ -31,6 +31,7 @@ export type TAgentMiddlewareMeta = {
   icon?: IconDefinition
   description?: I18nObject
   configSchema?: JsonSchemaObjectType
+  features?: TXpertFeatureKey[]
 }
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]

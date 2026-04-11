@@ -10,7 +10,7 @@ export function redirectTo() {
   return '/chat'
 }
 
-const routes: Routes = [
+export const routes: Routes = [
   {
     path: '',
     component: FeaturesComponent,
@@ -27,14 +27,25 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Chat',
+          scopeContext: 'dual-scope'
+        }
+      },
+      {
+        path: 'project',
+        loadChildren: () => import('./chat/project/routes').then((m) => m.routes),
+        canActivate: [authGuard],
+        data: {
+          title: 'Project',
+          scopeContext: 'dual-scope'
         }
       },
       {
         path: 'explore',
-        loadChildren: () => import('./xpert/explore/routes').then(m => m.routes),
+        loadChildren: () => import('./explore/routes').then(m => m.routes),
         canActivate: [authGuard],
         data: {
           title: 'Explore Xperts',
+          scopeContext: 'dual-scope'
         }
       },
       {
@@ -55,6 +66,7 @@ const routes: Routes = [
         ],
         data: {
           title: 'Xpert Agent',
+          scopeContext: 'dual-scope'
         }
       },
 
@@ -64,36 +76,13 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Dashboard',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
-            redirectTo
-          }
-        },
-        loadChildren: () => import('./home/home.module').then((m) => m.HomeModule)
-      },
-      {
-        path: 'models',
-        loadChildren: () => import('./semantic-model/model.module').then((m) => m.SemanticModelModule),
-        canActivate: [authGuard, NgxPermissionsGuard],
-        data: {
-          title: 'Models',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.MODELS_EDIT],
-            redirectTo
-          }
-        }
-      },
-      {
-        path: 'project',
-        loadChildren: () => import('./project/project.module').then((m) => m.ProjectModule),
-        canActivate: [authGuard, NgxPermissionsGuard],
-        data: {
-          title: 'Project',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.STORIES_VIEW],
             redirectTo
           }
-        }
+        },
+        loadChildren: () => import('./home/home.module').then((m) => m.HomeModule)
       },
       {
         path: 'story',
@@ -101,18 +90,11 @@ const routes: Routes = [
         canActivate: [authGuard, NgxPermissionsGuard],
         data: {
           title: 'Story',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.STORIES_VIEW],
             redirectTo
           }
-        }
-      },
-      {
-        path: 'indicator',
-        loadChildren: () => import('./indicator/indicator.module').then((m) => m.PACIndicatorModule),
-        canActivate: [authGuard],
-        data: {
-          title: 'Indicator',
         }
       },
       // {
@@ -122,10 +104,11 @@ const routes: Routes = [
       // },
       {
         path: 'indicator-app',
-        loadChildren: () => import('@metad/cloud/indicator-market').then((m) => m.IndicatorMarketModule),
+        loadChildren: () => import('@xpert-ai/cloud/indicator-market').then((m) => m.IndicatorMarketModule),
         canActivate: [authGuard],
         data: {
           title: 'Indicator-app',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW],
             redirectTo
@@ -137,22 +120,20 @@ const routes: Routes = [
         loadChildren: () => import('./organization/organization.module').then((m) => m.OrganizationModule),
         data: {
           title: 'Organization',
-        }
-      },
-      {
-        path: 'chatbi',
-        loadChildren: () => import('./chatbi/routes').then(m => m.routes),
-        canActivate: [authGuard],
-        data: {
-          title: 'Chat-BI',
+          scopeContext: 'organization-only',
         }
       },
       {
         path: 'data',
-        loadChildren: () => import('./data-factory/routes').then(m => m.routes),
-        canActivate: [authGuard],
+        loadChildren: () => import('./data/routes').then((m) => m.routes),
+        canActivate: [authGuard, NgxPermissionsGuard],
         data: {
-          title: 'Data-Factory',
+          title: 'Data',
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [AnalyticsPermissionsEnum.MODELS_EDIT, AnalyticsPermissionsEnum.STORIES_EDIT],
+            redirectTo
+          }
         }
       },
       // Settings Routers
@@ -162,6 +143,7 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Settings',
+          scopeContext: 'dual-scope',
         }
       },
       {

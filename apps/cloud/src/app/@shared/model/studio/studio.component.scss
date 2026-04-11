@@ -1,5 +1,7 @@
-@use '../../../@theme/flow-common';
 
+
+@use '../../../@theme/flow-common';
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply relative block w-full h-full;
 }

@@ -4,9 +4,8 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { DataSourceService } from '@metad/cloud/state'
-import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { DataSourceService } from '@xpert-ai/cloud/state'
+import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
@@ -16,6 +15,7 @@ import { CardCreateComponent } from '../../../@shared/card'
 import { PACDataSourceCreationComponent } from './creation/creation.component'
 import { PACDataSourceEditComponent } from './edit/edit.component'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -35,7 +35,7 @@ export class PACDataSourcesComponent {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS
 
   private readonly dataSource = inject(DataSourceService)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
   readonly confirmDelete = injectConfirmDelete()
   readonly helpWebsite = injectHelpWebsite()

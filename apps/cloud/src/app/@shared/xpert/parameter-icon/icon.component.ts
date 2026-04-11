@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { XpertParameterTypeEnum } from '../../../@core'
@@ -11,7 +11,7 @@ import { XpertParameterTypeEnum } from '../../../@core'
   selector: 'xpert-parameter-icon',
   templateUrl: './icon.component.html',
   styleUrl: 'icon.component.scss',
-  imports: [CommonModule, FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertParameterIconComponent {

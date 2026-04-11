@@ -1,9 +1,10 @@
+@reference "../../../../../tailwind-workspace-reference.css";
 :host {
   display: flex;
   flex-direction: column;
 
   ::ng-deep {
-    .cdk-header-cell {
+    [z-table-head] {
       .searchable-icon {
         opacity: 0;
         transition: all 200ms;
@@ -17,7 +18,7 @@
       
       .searchable {
         @apply ml-2 ;
-        .mat-mdc-input-element {
+        [z-input] {
           width: 0;
           max-width: 0;
           overflow: hidden;
@@ -27,7 +28,7 @@
         &.searching {
           @apply rounded-md bg-black/10 dark:bg-white/10;
           
-          .mat-mdc-input-element {
+          [z-input] {
             width: 100px;
             max-width: unset;
             outline: none;
@@ -35,29 +36,17 @@
         }
       }
     }
-
-    .cdk-cell.mat-mdc-table-sticky {
-      @apply bg-components-panel-bg;
-    }
-
-    .mat-mdc-paginator-page-size-label {
-      @apply hidden;
-    }
   }
 }
 
-.searchable .mat-mdc-input-element {
+.searchable [z-input] {
   @apply bg-transparent;
 }
 
-.mat-mdc-cell, .mat-mdc-header-cell {
+[z-table-cell], [z-table-head] {
   white-space: nowrap;
 
   &.number {
     text-align: right;
   }
-}
-
-.mat-mdc-paginator {
-  border-top: 1px solid var(--mat-table-row-item-outline-color);
 }

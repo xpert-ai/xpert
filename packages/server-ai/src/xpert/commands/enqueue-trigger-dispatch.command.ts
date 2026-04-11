@@ -1,4 +1,4 @@
-import { STATE_VARIABLE_HUMAN } from '@metad/contracts'
+import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**

@@ -1,3 +1,4 @@
+import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
 import {
@@ -17,11 +18,8 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatListModule, MatSelectionListChange } from '@angular/material/list'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatRadioChange, MatRadioModule } from '@angular/material/radio'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayDensity, mergeSelectedValues, NgmAppearance, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -30,11 +28,12 @@ import {
   IMember,
   isEmpty,
   ISlicer
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BehaviorSubject } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, tap } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 export interface MemberListOptions extends ControlOptions {
   /**
@@ -42,7 +41,6 @@ export interface MemberListOptions extends ControlOptions {
    */
   hideSingleSelectionIndicator?: boolean
 }
-
 
 @Component({
   standalone: true,
@@ -61,9 +59,8 @@ export interface MemberListOptions extends ControlOptions {
   imports: [
     CommonModule,
     ScrollingModule,
-    MatListModule,
-    MatRadioModule,
-    MatProgressSpinnerModule,
+    CdkListboxModule,
+    ZardLoaderComponent,
     NgmCommonModule,
     OcapCoreModule,
   ]
@@ -112,10 +109,6 @@ export class NgmMemberListComponent implements OnChanges, ControlValueAccessor {
   }
 
   public readonly loading$ = this.smartFilterService.loading$
-  private readonly members$ = this.smartFilterService.selectOptions$
-  // Local orignal select options members
-  private _members = toSignal<IMember[], IMember[]>(this.members$, { initialValue: [] })
-
   // Select options filtered by search text
   public readonly selectOptions = toSignal(
     this.smartFilterService.selectOptions$.pipe(
@@ -151,6 +144,7 @@ export class NgmMemberListComponent implements OnChanges, ControlValueAccessor {
     ),
     { initialValue: [] }
   )
+  readonly listboxOptions = computed(() => mergeSelectedValues(this.selectOptions(), this.members ?? [], this.compareWith))
 
   onChange: (input: any) => void
   //
@@ -229,9 +223,13 @@ export class NgmMemberListComponent implements OnChanges, ControlValueAccessor {
     return a.value === b.value
   }
 
-  onSelectionChange(selection: MatSelectionListChange) {
-    const members = selection.source.selectedOptions.selected.map((item) => ({
-      ...item.value
+  trackByValue(index: number, item: IMember) {
+    return item?.value ?? item?.key ?? index
+  }
+
+  onSelectionChange(selection: ListboxValueChangeEvent<IMember>) {
+    const members = selection.value.map((item) => ({
+      ...item
     }))
 
     this.slicer$.next({
@@ -244,16 +242,5 @@ export class NgmMemberListComponent implements OnChanges, ControlValueAccessor {
 
   isSelected(option: IMember) {
     return this.members?.findIndex((member) => member.value === option.value) > -1
-  }
-
-  onRadioChange(event: MatRadioChange) {
-    const member = this._members().find((item) => item.value === event.value)
-
-    this.slicer$.next({
-      ...(this.slicer$.value ?? {}),
-      members: member ? [{ ...member }] : []
-    })
-
-    this.onChange?.(this.slicer$.value)
   }
 }

@@ -1,24 +1,23 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertToolset } from '../../../@core/types'
 import { AvatarComponent } from '../../files'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ButtonGroupDirective,
     DensityDirective,
     AvatarComponent
-  ],
+],
   selector: 'pac-toolset-card',
   templateUrl: 'toolset.component.html',
   styleUrls: ['toolset.component.scss']

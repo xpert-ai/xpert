@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import {
   derivedHelpUrl,
@@ -25,8 +23,8 @@ import {
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
-import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, myRxResource, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { CloseSvgComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, myRxResource, NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -36,7 +34,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-toolset',
   templateUrl: './toolset.component.html',
@@ -47,15 +45,15 @@ import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     CloseSvgComponent,
     EmojiAvatarComponent,
     XpertToolTestComponent,
     NgmDensityDirective,
     NgmSpinComponent,
     NgmI18nPipe,
-    XpertVariablesAssignerComponent
+    XpertVariablesAssignerComponent,
+    ZardSwitchComponent
   ]
 })
 export class XpertStudioPanelToolsetComponent {
@@ -89,15 +87,13 @@ export class XpertStudioPanelToolsetComponent {
   // Refresh toolset details
   readonly toolsetDetail = derivedAsync(() => {
     return this.toolsetId()
-      ? this.studioService.getToolset(this.toolsetId()).toolset$.pipe(
-          catchError((err) => of(null))
-        )
+      ? this.studioService.getToolset(this.toolsetId()).toolset$.pipe(catchError((err) => of(null)))
       : of(null)
   })
 
   readonly providerName = computed(() => this.toolset().type)
   readonly #provider = derivedToolProvider(this.providerName)
-  
+
   readonly provider = computed(() => this.#provider()?.provider)
   readonly needSandbox = computed(() => this.toolsetDetail()?.options?.needSandbox)
   readonly helpUrl = derivedHelpUrl(() => this.provider()?.help_url || '/docs/ai/tool/')
@@ -114,22 +110,24 @@ export class XpertStudioPanelToolsetComponent {
     return null
   })
 
-  readonly tools = computed(() => getEnabledTools(this.toolsetDetail())?.map((tool) => ({tool, label: getToolLabel(tool)})))
+  readonly tools = computed(() =>
+    getEnabledTools(this.toolsetDetail())?.map((tool) => ({ tool, label: getToolLabel(tool) }))
+  )
 
   readonly expandTools = signal<Record<string, boolean>>({})
 
-    readonly connections = toSignal(
-      this.studioService.savedEvent$.pipe(
-        filter((value) => value),
-        map(() => {
-          return this.studioService
-            .viewModel()
-            .connections.filter((c) => c.from.startsWith(this.key()) || c.to.startsWith(this.key()))
-            .map((c) => c.key)
-        }),
-        distinctUntilChanged(isEqual)
-      )
+  readonly connections = toSignal(
+    this.studioService.savedEvent$.pipe(
+      filter((value) => value),
+      map(() => {
+        return this.studioService
+          .viewModel()
+          .connections.filter((c) => c.from.startsWith(this.key()) || c.to.startsWith(this.key()))
+          .map((c) => c.key)
+      }),
+      distinctUntilChanged(isEqual)
     )
+  )
   readonly varOptions = computed<TXpertVariablesOptions>(() => {
     return {
       xpertId: this.xpertId(),
@@ -140,16 +138,17 @@ export class XpertStudioPanelToolsetComponent {
   })
 
   readonly #variables = myRxResource({
-    request: () => ({
-      xpertId: this.xpertId(),
-      type: 'output',
-      environmentId: this.studioService.environmentId(),
-      connections: this.connections()
-    } as TXpertVariablesOptions),
-      loader: ({ request }) => {
-        return request ? this.xpertAPI.getNodeVariables(request) : of(null)
-      }
-    })
+    request: () =>
+      ({
+        xpertId: this.xpertId(),
+        type: 'output',
+        environmentId: this.studioService.environmentId(),
+        connections: this.connections()
+      }) as TXpertVariablesOptions,
+    loader: ({ request }) => {
+      return request ? this.xpertAPI.getNodeVariables(request) : of(null)
+    }
+  })
   readonly variables = this.#variables.value
 
   readonly #loading = signal(false)
@@ -164,7 +163,7 @@ export class XpertStudioPanelToolsetComponent {
   refresh() {
     this.#loading.set(true)
     this.studioService.refreshToolset(this.toolsetId())
-    this.toolsetService.getOneById(this.toolsetId(), { }).subscribe({
+    this.toolsetService.getOneById(this.toolsetId(), {}).subscribe({
       next: (toolset) => {
         this.#loading.set(false)
         this.studioService.updateToolset(this.node().key, toolset)
@@ -266,7 +265,7 @@ export class XpertStudioPanelToolsetComponent {
   useToolset(toolset: IXpertToolset) {
     this.#loading.set(true)
     // Get the toolset details (with tools)
-    this.toolsetService.getOneById(toolset.id, { }).subscribe({
+    this.toolsetService.getOneById(toolset.id, {}).subscribe({
       next: (toolset) => {
         this.#loading.set(false)
         this.studioService.replaceToolset(this.toolset().key || this.toolset().id, toolset)

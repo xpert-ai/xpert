@@ -1,5 +1,5 @@
-import { IXpertTable } from '@metad/contracts'
-import { CrudController, TransformInterceptor } from '@metad/server-core'
+import { IXpertTable } from '@xpert-ai/contracts'
+import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'

@@ -10,14 +10,13 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
-import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@metad/cloud/state'
-import { nonBlank, nonNullable } from '@metad/core'
-import { NgmHierarchySelectComponent, NgmMatSelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
-import { ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
-import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
+import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@xpert-ai/cloud/state'
+import { nonBlank, nonNullable } from '@xpert-ai/core'
+import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent } from '@xpert-ai/ocap-angular/common'
+import { ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculatedMeasureComponent } from '@xpert-ai/ocap-angular/entity'
+import { NgmSelectionModule, SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import {
   ISlicer,
   Indicator,
@@ -27,9 +26,10 @@ import {
   getEntityMeasures,
   isEntityType,
   isSemanticCalendar
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
+import { format, parseISO } from 'date-fns'
 import { isEqual } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -47,16 +47,18 @@ import {
   tap
 } from 'rxjs'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatRadioModule } from '@angular/material/radio'
-import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatInputModule } from '@angular/material/input'
-import { MatSelectModule } from '@angular/material/select'
-import { MatCheckboxModule } from '@angular/material/checkbox'
+
+import {
+  ZardButtonComponent,
+  ZardDatePickerComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
-import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
+import { XpTreeSelectComponent } from '../../form-fields'
 
 @Component({
   standalone: true,
@@ -68,17 +70,15 @@ import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltipModule,
-    MatRadioModule,
-    MatFormFieldModule,
-    MatDatepickerModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    NgmMatSelectComponent,
-    NgmTreeSelectComponent,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ...ZardTooltipImports,
+    ...ZardFormImports,
+    ZardDatePickerComponent,
+    ZardInputDirective,
+    ZardCheckboxComponent,
+    NgmAdvancedSelectComponent,
+    XpTreeSelectComponent,
     TagEditorComponent,
     NgmHierarchySelectComponent,
     NgmCalculatedMeasureComponent,
@@ -89,18 +89,7 @@ import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
       provide: NG_VALUE_ACCESSOR,
       multi: true,
       useExisting: forwardRef(() => XpIndicatorRegisterFormComponent)
-    },
-    provideDateFnsAdapter({
-          parse: {
-            dateInput: 'yyyy-MM-dd'
-          },
-          display: {
-            dateInput: 'yyyy-MM-dd',
-            monthYearLabel: 'LLL y',
-            dateA11yLabel: 'MMMM d y',
-            monthYearA11yLabel: 'MMMM y'
-          }
-        })
+    }
   ]
 })
 export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
@@ -109,7 +98,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
   SlicersCapacity = SlicersCapacity
   eTagCategoryEnum = TagCategoryEnum
   AGGREGATORS = INDICATOR_AGGREGATORS
-  appearance: MatFormFieldAppearance = 'fill'
+  appearance: NgmFieldAppearance = 'fill'
 
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly wasmAgent = inject(WasmAgentService)
@@ -148,10 +137,11 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
       aggregator: new FormControl<string>(null),
       calendar: new FormControl<string>(null),
       dimensions: new FormControl<string[]>(null),
-      filters: new FormControl<ISlicer[]>(null),
+      filters: new FormControl<ISlicer[]>(null)
     }),
     tags: new FormControl<ITag[]>([])
   })
+  readonly validityControl = new FormControl<Date | null>(null)
 
   get id() {
     return this.formGroup.get('id').value
@@ -242,7 +232,9 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
   public readonly measures$ = this.entityType$.pipe(
     map(getEntityMeasures),
     // filter myself
-    map((measures) => measures.filter((item) => item.name !== this.indicator().code && item.name !== this.indicator().name)),
+    map((measures) =>
+      measures.filter((item) => item.name !== this.indicator().code && item.name !== this.indicator().name)
+    ),
     map((items) => items.map((item) => ({ key: item.name, caption: item.caption })))
   )
   public readonly dimensions$ = this.entityType$.pipe(
@@ -286,12 +278,34 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
     .subscribe((value) => this._onChange?.(value))
 
   constructor() {
+    this.formGroup
+      .get('validity')
+      .valueChanges.pipe(startWith(this.formGroup.get('validity').value), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((value) => {
+        if (!value) {
+          this.validityControl.setValue(null, { emitEvent: false })
+          return
+        }
+
+        const date = parseISO(value)
+        this.validityControl.setValue(Number.isNaN(date.getTime()) ? null : date, { emitEvent: false })
+      })
+
+    this.validityControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.formGroup.get('validity').setValue(value ? format(value, 'yyyy-MM-dd') : null)
+    })
+
     effect(
       () => {
         const indicator = this.indicator()
         const semanticModel = this.semanticModel()
         if (semanticModel && indicator) {
-          const _indicator = {...indicator, visible: false, name: indicator.name?.trim() || '', code: indicator.code?.trim() || ''}
+          const _indicator = {
+            ...indicator,
+            visible: false,
+            name: indicator.name?.trim() || '',
+            code: indicator.code?.trim() || ''
+          }
           const indicators = [...semanticModel.indicators]
           const index = indicators.findIndex((item) => item.id === _indicator.id)
           if (index >= 0) {
@@ -312,9 +326,8 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
           )
           this.dataSourceName$.next(dataSource.key)
         }
-      },
-      { allowSignalWrites: true }
-    )      
+      }
+    )
   }
 
   writeValue(obj: any): void {
@@ -337,5 +350,4 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
   toggleFormula() {
     this.showFormula.update((state) => !state)
   }
-
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import { ModelQuery } from './query.entity'
 

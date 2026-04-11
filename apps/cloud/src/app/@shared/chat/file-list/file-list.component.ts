@@ -1,11 +1,11 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FileTypePipe } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { FileTypePipe } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { cloneDeep, sortBy } from 'lodash-es'
 import { of } from 'rxjs'
@@ -34,7 +34,6 @@ export type TFileDirectoryItem = TFileDirectory & {
   templateUrl: `file-list.component.html`,
   styleUrl: `file-list.component.scss`,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     CdkMenuModule,
@@ -43,7 +42,7 @@ export type TFileDirectoryItem = TFileDirectory & {
     DateRelativePipe,
     FileTypePipe,
     FileIconComponent
-  ]
+]
 })
 export class ChatFileListComponent {
   readonly #conversation = inject(ChatConversationService)
@@ -91,7 +90,7 @@ export class ChatFileListComponent {
       if (this.files()) {
         this.fileList.set(this.files())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   preview(file: TFile) {

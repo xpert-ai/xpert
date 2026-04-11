@@ -1,4 +1,4 @@
-import { EntitySet } from '@metad/ocap-core'
+import { EntitySet } from '@xpert-ai/ocap-core'
 import { isEmpty, isNil, lowerCase } from 'lodash-es'
 
 declare var monaco: any
@@ -31,7 +31,6 @@ export function createTableSuggestions(model: any, position: any, entitySets: Ar
 
   return null
 }
-
 
 export function createFieldSuggestions(range, entitySets: Array<EntitySet>): any[] {
   const proposals = []

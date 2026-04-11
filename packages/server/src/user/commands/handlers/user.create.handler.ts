@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { IUser, mapTranslationLanguage } from '@metad/contracts';
-import { ConfigService } from '@metad/server-config';
+import { IUser, mapTranslationLanguage } from '@xpert-ai/contracts';
+import { ConfigService } from '@xpert-ai/server-config';
 import bcrypt from 'bcryptjs';
 import { UserCreateCommand } from '../user.create.command';
 import { UserService } from '../../user.service';
@@ -24,8 +24,13 @@ export class UserCreateHandler implements ICommandHandler<UserCreateCommand> {
 
 	public async execute(command: UserCreateCommand): Promise<IUser> {
 		const { input } = command;
+		const normalizedInput = {
+			...input,
+			email: input.email?.trim().toLowerCase(),
+			username: input.username?.trim().toLowerCase()
+		}
 
-		const exist = await this.userService.getIfExistsUser(input)
+		const exist = await this.userService.getIfExistsUser(normalizedInput)
 
 		if (exist) {
 			throw new BadRequestException(
@@ -38,12 +43,18 @@ export class UserCreateHandler implements ICommandHandler<UserCreateCommand> {
 			)
 		}
 
-		// Use default password if hash is not provided or empty
-		const password = input.hash && input.hash.trim() ? input.hash : '12345678'
+		// CSV parsing can coerce numeric passwords into numbers, so normalize before trimming.
+		const normalizedPassword =
+			typeof input.hash === 'string'
+				? input.hash.trim()
+				: typeof input.hash === 'number'
+					? String(input.hash).trim()
+					: ''
+		const password = normalizedPassword || '12345678'
 		const hash = await this.getPasswordHash(password)
 
 		return await this.userService.create({
-			...input,
+			...normalizedInput,
 			hash,
 			emailVerified: true,
 		});

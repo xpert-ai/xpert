@@ -1,13 +1,23 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, OnInit, computed, effect, inject, model, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostBinding,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  model,
+  signal
+} from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
-import { nonBlank, routeAnimations, LeanRightEaseInAnimation } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NX_STORY_STORE, NxStoryStore, Story, StoryModel } from '@metad/story/core'
-import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
+import { nonBlank, routeAnimations, LeanRightEaseInAnimation } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NX_STORY_STORE, NxStoryStore, Story, StoryModel } from '@xpert-ai/story/core'
+import { NxDesignerModule, NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CopyComponent } from '@cloud/app/@shared/common'
@@ -16,22 +26,16 @@ import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'
 import { debounceTime, distinctUntilChanged, filter, map, pairwise, startWith, switchMap } from 'rxjs/operators'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatIconModule } from '@angular/material/icon'
-import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTabsModule } from '@angular/material/tabs'
-import { AggregationRole, isEntitySet, markdownModelCube, PropertyAttributes } from '@metad/ocap-core'
-import { NgmOcapCoreService } from '@metad/ocap-angular/core'
+import { AggregationRole, isEntitySet, markdownModelCube, PropertyAttributes } from '@xpert-ai/ocap-core'
+import { NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
 import { AppService } from '../../../../app.service'
-import { injectCalculatedCommand } from '../copilot'
 import { ModelCubeStructureComponent } from './cube-structure/cube-structure.component'
 import { ModelEntityCalculationComponent } from './calculation/calculation.component'
 import { ModelEntityService } from './entity.service'
 import { ModelCubeFactComponent } from './fact/fact.component'
 import { SemanticModelService } from '../model.service'
 import { ModelComponent } from '../model.component'
-
-
+import { ZardDrawerImports, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-model-entity',
@@ -46,10 +50,10 @@ import { ModelComponent } from '../model.component'
     TranslateModule,
     CdkMenuModule,
     CopyComponent,
-    MatTooltipModule,
-    MatIconModule,
-    MatSidenavModule,
-    MatTabsModule,
+    ...ZardDrawerImports,
+    ...ZardTooltipImports,
+    ZardIconComponent,
+    ...ZardTabsImports,
     NgmCommonModule,
     NxDesignerModule,
     ModelCubeStructureComponent,
@@ -80,7 +84,7 @@ export class ModelEntityComponent implements OnInit {
   readonly detailsOpen = model(false)
   // Cube structure opened state
   readonly drawerOpened = model(true)
-  readonly modelSideMenuOpened= this.#model.sideMenuOpened
+  readonly modelSideMenuOpened = this.#model.sideMenuOpened
 
   public readonly entityId$ = this.route.paramMap.pipe(
     startWith(this.route.snapshot.paramMap),
@@ -110,18 +114,13 @@ export class ModelEntityComponent implements OnInit {
   readonly openedCalculation = signal<string>(null)
 
   // states
-  readonly llmContext = computed(() => markdownModelCube({
-    modelId: this.#model.model.id,
-    dataSource: this.#model.model.id,
-    cube: this.entityType()
-  }))
-
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  #calculatedMeasureCommand = injectCalculatedCommand()
+  readonly llmContext = computed(() =>
+    markdownModelCube({
+      modelId: this.#model.model.id,
+      dataSource: this.#model.model.id,
+      cube: this.entityType()
+    })
+  )
 
   /**
   |--------------------------------------------------------------------------
@@ -137,9 +136,9 @@ export class ModelEntityComponent implements OnInit {
           const parameters = state ? [...state] : []
           const index = parameters.findIndex((p) => p.__id__ === parameter.__id__)
           if (index > -1) {
-            parameters[index] = {...parameter}
+            parameters[index] = { ...parameter }
           } else {
-            parameters.push({...parameter})
+            parameters.push({ ...parameter })
           }
           return parameters
         })
@@ -147,7 +146,7 @@ export class ModelEntityComponent implements OnInit {
         // @todo
       }
     })
-  
+
   private entitySub = this.entityId$.pipe(takeUntilDestroyed()).subscribe((id) => {
     this.entityService.init(id)
     this.modelService.setCrrentEntity(id)
@@ -164,24 +163,31 @@ export class ModelEntityComponent implements OnInit {
         if (!prev || !isEntitySet(prev)) {
           this.#toastr.success(this.i18n()?.CubeCorrect || 'Cube correct!')
         }
-      } else if(curr) {
-        this.#toastr.danger(curr, '', {}, {
-          duration: 5 * 1000, // 5s
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom'
-        })
+      } else if (curr) {
+        this.#toastr.danger(
+          curr,
+          '',
+          {},
+          {
+            duration: 5 * 1000, // 5s
+            horizontalPosition: 'center',
+            verticalPosition: 'bottom'
+          }
+        )
       }
     })
-  
+
   constructor() {
     /**
      * When selected property first time to open the attributes panel
      */
-    effect(() => {
-      if (this.entityService.selectedProperty()) {
-        this.detailsOpen.set(true)
+    effect(
+      () => {
+        if (this.entityService.selectedProperty()) {
+          this.detailsOpen.set(true)
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   ngOnInit() {

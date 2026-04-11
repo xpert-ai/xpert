@@ -1,12 +1,12 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IKnowledgeDocument, KDocumentSourceType } from '../../../@core/types'
-import { NgmCommonModule } from "@metad/ocap-angular/common";
+import { NgmCommonModule } from "@xpert-ai/ocap-angular/common";
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmCommonModule],
+  imports: [TranslateModule, NgmCommonModule],
   selector: 'knowledge-doc-id',
   templateUrl: `doc.component.html`,
   styleUrl: `doc.component.scss`

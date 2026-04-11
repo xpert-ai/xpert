@@ -1,0 +1,107 @@
+<z-form-field class="w-full flex-1 group" [appearance]="appearance" [displayDensity]="displayDensity">
+  <z-form-label>{{ label }}</z-form-label>
+
+  <z-combobox-deprecated
+    zTriggerMode="input"
+    class="w-full"
+    [value]="comboboxValue()"
+    [options]="comboboxOptions()"
+    [placeholder]="placeholder || ''"
+    [disabled]="formControl.disabled"
+    [zSearchTerm]="searchTerm()"
+    [zDisplayWith]="displayWith"
+    [zClearable]="true"
+    [zSelectOnEnter]="!multiple"
+    (zSearchTermChange)="onSearchTermChange($event)"
+    (zValueChange)="onComboboxValueChange($event)"
+    (zBlur)="onTouched?.()"
+  >
+    <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+      @if (virtualScroll) {
+        <cdk-virtual-scroll-viewport
+          [itemSize]="virtualScrollItemSize"
+          minBufferPx="200"
+          maxBufferPx="400"
+          class="ngm-select-form-field__viewport"
+        >
+          <button
+            type="button"
+            role="option"
+            class="flex w-full items-center rounded-md px-2 py-1.5 text-left"
+            *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackBy; let i = index"
+            [class.bg-accent]="i === activeIndex"
+            [class.text-accent-foreground]="i === activeIndex"
+            (mousedown)="$event.preventDefault()"
+            (mouseenter)="setActiveIndex(i)"
+            (click)="multiple ? onSelect(!isSelect(option), option) : select(option)"
+          >
+            @if (multiple) {
+              <z-checkbox
+                [ngModel]="isSelect(option)"
+                (click)="$event.stopPropagation()"
+                (checkChange)="onSelect($event, option)"
+              >
+                <ngm-display-behaviour
+                  [option]="option.data"
+                  [displayBehaviour]="displayBehaviour"
+                  [highlight]="highlight()"
+                ></ngm-display-behaviour>
+              </z-checkbox>
+            } @else {
+              <ngm-display-behaviour
+                class="flex-1"
+                [option]="option.data"
+                [displayBehaviour]="displayBehaviour"
+                [highlight]="highlight()"
+              ></ngm-display-behaviour>
+            }
+          </button>
+        </cdk-virtual-scroll-viewport>
+      } @else {
+        @for (option of filteredComboboxOptions(); track option.id ?? option.value; let i = $index) {
+          <button
+            type="button"
+            role="option"
+            class="flex w-full items-center rounded-md px-2 py-1.5 text-left"
+            [class.bg-accent]="i === activeIndex"
+            [class.text-accent-foreground]="i === activeIndex"
+            (mousedown)="$event.preventDefault()"
+            (mouseenter)="setActiveIndex(i)"
+            (click)="multiple ? onSelect(!isSelect(option), option) : select(option)"
+          >
+            @if (multiple) {
+              <z-checkbox
+                [ngModel]="isSelect(option)"
+                (click)="$event.stopPropagation()"
+                (checkChange)="onSelect($event, option)"
+              >
+                <ngm-display-behaviour
+                  [option]="option.data"
+                  [displayBehaviour]="displayBehaviour"
+                  [highlight]="highlight()"
+                ></ngm-display-behaviour>
+              </z-checkbox>
+            } @else {
+              <ngm-display-behaviour
+                class="flex-1"
+                [option]="option.data"
+                [displayBehaviour]="displayBehaviour"
+                [highlight]="highlight()"
+              ></ngm-display-behaviour>
+            }
+          </button>
+        }
+      }
+    </ng-template>
+  </z-combobox-deprecated>
+
+  <div zFormSuffix class="flex items-center">
+    @if (loading()) {
+      <z-loader class="m-2" diameter="24" />
+    }
+  </div>
+
+  @if (formControl.invalid) {
+    <z-form-message zType="error">{{ getErrorMessage() }}</z-form-message>
+  }
+</z-form-field>

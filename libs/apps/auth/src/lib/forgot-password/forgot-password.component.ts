@@ -1,13 +1,14 @@
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, FormGroup, Validators } from '@angular/forms'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
+import { ZardToastService } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { PAC_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 import { PacAuthResult, PacAuthService } from '../services'
 
 @Component({
+  standalone: false,
   selector: 'pac-auth-forgot-password',
   templateUrl: 'forgot-password.component.html',
   styleUrls: ['forgot-password.component.scss']
@@ -16,7 +17,7 @@ export class ForgotPasswordComponent {
   private authService = inject(PacAuthService)
   protected options = inject(PAC_AUTH_OPTIONS)
   private translateService = inject(TranslateService)
-  private _snackBar = inject(MatSnackBar)
+  private readonly toast = inject(ZardToastService)
   private _cdr = inject(ChangeDetectorRef)
 
   strategy = this.getConfigValue('forms.login.strategy')
@@ -44,7 +45,7 @@ export class ForgotPasswordComponent {
           REQUEST_SUCCESS = value
         })
 
-      this._snackBar.open(REQUEST_SUCCESS, '', { duration: 2000 })
+      this.toast.success(REQUEST_SUCCESS, { duration: 2000 })
     } catch (err) {
       this.submitted = false
       this._cdr.detectChanges()
@@ -54,7 +55,7 @@ export class ForgotPasswordComponent {
         REQUEST_FAIL = value
       })
 
-      this._snackBar.open(REQUEST_FAIL, '', { duration: 2000 })
+      this.toast.error(REQUEST_FAIL, { duration: 2000 })
     }
   }
 

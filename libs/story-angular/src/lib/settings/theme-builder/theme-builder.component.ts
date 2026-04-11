@@ -1,43 +1,37 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatListModule } from '@angular/material/list'
-import { ButtonGroupDirective, NgmThemeService, ThemesEnum } from '@metad/ocap-angular/core'
-import { EditorThemeMap } from '@metad/ocap-angular/formula'
+
+import { ButtonGroupDirective, NgmThemeService, ThemesEnum } from '@xpert-ai/ocap-angular/core'
+import { EditorThemeMap } from '@xpert-ai/ocap-angular/formula'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     TranslateModule,
-    MatDialogModule,
-    MatListModule,
-    MatButtonModule,
-    MatIconModule,
+    ZardDialogModule,
+    ZardButtonComponent,
+    ZardIconComponent,
     MonacoEditorModule,
     ButtonGroupDirective
-  ],
+],
   selector: 'ngm-theme-builder',
   templateUrl: './theme-builder.component.html',
   styleUrls: ['./theme-builder.component.scss']
 })
 export class ThemeBuilderComponent {
 
-  public readonly data = inject(MAT_DIALOG_DATA)
+  public readonly data = inject(Z_MODAL_DATA)
   readonly themeService = inject(NgmThemeService)
 
   c_light = ThemesEnum.light
   c_dark = ThemesEnum.dark
-  // c_thin = 'thin'
 
   activeLink = ThemesEnum.light
 

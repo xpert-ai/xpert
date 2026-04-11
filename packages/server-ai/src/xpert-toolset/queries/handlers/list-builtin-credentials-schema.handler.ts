@@ -1,4 +1,4 @@
-import { CredentialsType, ToolProviderCredentials } from '@metad/contracts'
+import { CredentialsType, ToolProviderCredentials } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'

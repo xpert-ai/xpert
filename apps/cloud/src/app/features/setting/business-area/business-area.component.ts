@@ -1,19 +1,19 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, ElementRef, TemplateRef, ViewChild, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { BusinessAreasService } from '@metad/cloud/state'
-import { NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
+import { BusinessAreasService } from '@xpert-ai/cloud/state'
+import { NgmCommonModule, SplitterType } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subject, firstValueFrom } from 'rxjs'
 import { IBusinessArea, ToastrService, routeAnimations } from '../../../@core'
 import { AppService } from '../../../app.service'
 import { BusinessAreasComponent } from './business-areas/areas.component'
 import { SharedModule } from '../../../@shared/shared.module'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { ManageEntityBaseComponent } from '../../../@shared/directives'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-business-area',
@@ -22,20 +22,18 @@ import { ManageEntityBaseComponent } from '../../../@shared/directives'
   animations: [routeAnimations],
   imports: [
     SharedModule,
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     NgmCommonModule,
-
     BusinessAreasComponent
-  ]
+]
 })
 export class BusinessAreaComponent extends ManageEntityBaseComponent<IBusinessArea> {
   SplitterType = SplitterType
   
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
   readonly appService = inject(AppService)
   readonly businessAreasStore = inject(BusinessAreasService)
   readonly toastrService = inject(ToastrService)

@@ -1,8 +1,17 @@
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   @apply flex-1 flex flex-col overflow-hidden;
 }
 
-.mat-mdc-selection-list {
-  --mdc-list-list-item-one-line-container-height: theme(height.12);
-  --mdc-list-list-item-container-shape: theme(borderRadius.lg);
+.ngm-cdk-listbox {
+  @apply max-h-full overflow-y-auto;
+
+  .ngm-cdk-option {
+    @apply relative rounded-lg border border-transparent px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5;
+    min-height: theme('height.12');
+
+    &[aria-selected='true'] {
+      @apply border-primary-200 bg-black/10 text-primary-600 dark:bg-white/10;
+    }
+  }
 }

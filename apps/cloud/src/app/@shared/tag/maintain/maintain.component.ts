@@ -1,10 +1,9 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { MatInputModule } from '@angular/material/input'
+import { ZardDialogService, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -12,10 +11,9 @@ import { getErrorMessage, ITag, TagCategoryEnum, TagService, ToastrService } fro
 import { TagCreatorComponent } from '../creator/creator.component'
 import { TagComponent } from '../tag/tag.component'
 
-
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkListboxModule, MatInputModule, TagComponent],
+  imports: [FormsModule, TranslateModule, CdkListboxModule, ZardInputDirective, TagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-maintain',
   templateUrl: './maintain.component.html',
@@ -26,10 +24,13 @@ export class TagMaintainComponent {
   eNgxFloatUiPlacements = NgxFloatUiPlacements
 
   readonly tagService = inject(TagService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly #toastr = inject(ToastrService)
 
   readonly tenant = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
+  readonly readonly = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
 

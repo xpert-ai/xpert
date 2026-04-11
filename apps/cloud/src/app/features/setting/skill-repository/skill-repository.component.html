@@ -1,0 +1,14 @@
+<div class="relative flex h-full w-full flex-col gap-6 overflow-auto bg-gradient-to-br from-background-default-subtle via-components-panel-bg to-background-default-subtle p-6">
+  <header class="text-2xl font-bold text-text-primary">
+    {{ 'Pro.SkillRepositoryManagement' | translate: {Default: 'Skill Repository Management'} }}
+  </header>
+  <div class="w-full flex justify-end">
+    <button type="button" class="inline-flex items-center btn btn-large btn-primary"
+      (click)="openRegisterRepositoryModal()">
+      <i class="ri-add-line mr-1"></i>
+      {{ 'Pro.RegisterSkillRepository' | translate: {Default: 'Register Skill Repository'} }}
+    </button>
+  </div>
+
+  <xp-skill-repositories #repositories [(selectedRepositoryId)]="selectedRepositoryId" (selectedRepositoryIdChange)="showSelectedRepository.set(true)"/>
+</div>

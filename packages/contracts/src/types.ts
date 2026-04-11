@@ -192,7 +192,7 @@ export type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
  * |-----------|----------------------------------|-----------------|
  * | `image`  | Raster or Base64-encoded image    | `"https://cdn.example.com/logo.png"` or `"data:image/png;base64,..."` |
  * | `svg`    | Inline SVG markup                 | `"<svg xmlns='http://www.w3.org/2000/svg'><path d='M12 2l4 20H8z'/></svg>"` |
- * | `font`   | Font icon class name              | `"fa-solid fa-user"` or `"material-icons:home"` |
+ * | `font`   | Font icon class name              | `"fa-solid fa-user"` or `"ri-home-line"` |
  * | `emoji`  | Unicode emoji character           | `"🚀"` |
  * | `lottie` | Lottie animation JSON URL         | `"https://assets.lottiefiles.com/packages/lf20_abc123.json"` |
  * 

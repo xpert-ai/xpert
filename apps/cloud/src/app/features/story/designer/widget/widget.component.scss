@@ -1,18 +1,19 @@
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
   @apply flex flex-col;
 }
 
-.mat-input-element {
-  @apply w-12 text-xs bg-gray-200 text-gray-700 border-2 border-solid border-gray-200 rounded focus:outline-none focus:bg-white focus:border-slate-500 py-1 px-2;
+[z-input] {
+  @apply w-12 text-xs bg-components-list-option-active-bg text-text-secondary border-2 border-solid border-divider-deep rounded focus:outline-none focus:bg-components-input-bg-active focus:border-slate-500 py-1 px-2;
 }
 
 .pac-widget-designer__color {
   @apply relative;
 
-  .mat-input-element {
+  [z-input] {
     @apply pr-8 w-full;
   }
-  .mtx-colorpicker-toggle {
+  .ngm-color-input__trigger {
     @apply absolute right-0;
   }
 }
@@ -26,8 +27,10 @@
   }
 }
 
-.mat-mdc-select {
-  --mat-select-trigger-text-size: 10px;
-  --mat-select-trigger-text-line-height: 12px;
-  padding: 0 10px;
+.ngm-select-element {
+  [role='combobox'] {
+    font-size: 10px;
+    line-height: 12px;
+    padding: 0 10px;
+  }
 }

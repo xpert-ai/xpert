@@ -1,9 +1,12 @@
-import { IOrganization, RolesEnum } from '@metad/contracts';
+import { IOrganization, RolesEnum } from '@xpert-ai/contracts';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { getManager } from 'typeorm';
+import { RequestContext } from '../../../core';
 import { RoleService } from '../../../role/role.service';
 import { UserService } from '../../../user/user.service';
 import { UserOrganizationService } from '../../../user-organization/user-organization.services';
+import { EVENT_ORGANIZATION_CREATED, OrganizationCreatedEvent } from '../../events';
 import { OrganizationService } from '../../organization.service';
 import { OrganizationCreateCommand } from '../organization.create.command';
 import { Organization, UserOrganization } from './../../../core/entities/internal';
@@ -19,6 +22,7 @@ export class OrganizationCreateHandler
 		private readonly userOrganizationService: UserOrganizationService,
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
+		private readonly eventEmitter: EventEmitter2
 	) {}
 
 	public async execute(
@@ -68,13 +72,11 @@ export class OrganizationCreateHandler
 		// 4. Take each super admin user and add him/her to created organization
 		try {
 			for await (const superAdmin of superAdminUsers) {
-				const userOrganization = await this.userOrganizationService.create(
-					new UserOrganization({
-						organization: createdOrganization,
-						tenantId,
-						user: superAdmin
-					})
-				);
+				const userOrganization = await this.userOrganizationService.ensureMembership({
+					organizationId: createdOrganization.id,
+					tenantId,
+					userId: superAdmin.id
+				});
 				if (isImporting && userOrganizationSourceId) {
 					await this.commandBus.execute(
 						new ImportRecordUpdateOrCreateCommand({
@@ -121,6 +123,15 @@ export class OrganizationCreateHandler
 				})
 			);
 		}
+
+		this.eventEmitter.emit(
+			EVENT_ORGANIZATION_CREATED,
+			new OrganizationCreatedEvent(
+				organization.tenantId,
+				organization.id,
+				RequestContext.currentUserId() ?? superAdminUsers[0]?.id ?? null
+			)
+		);
 
 		return await this.organizationService.findOne(id);
 	}

@@ -8,12 +8,12 @@ import {
   SemanticModelServerService,
   convertIndicatorResult,
   convertNewSemanticModelResult
-} from '@metad/cloud/state'
-import { nonNullable } from '@metad/core'
-import { IBusinessAreaUser, IComment, IIndicatorApp, ISemanticModel, TimeGranularity } from '@metad/contracts'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { ComponentStore } from '@metad/store'
-import { StoryModel, convertStoryModel2DataSource } from '@metad/story/core'
+} from '@xpert-ai/cloud/state'
+import { nonNullable } from '@xpert-ai/core'
+import { IBusinessAreaUser, IComment, IIndicatorApp, ISemanticModel, TimeGranularity } from '@xpert-ai/contracts'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { ComponentStore } from '@xpert-ai/store'
+import { StoryModel, convertStoryModel2DataSource } from '@xpert-ai/story/core'
 import { EntityAdapter, EntityState, Update, createEntityAdapter } from '@ngrx/entity'
 import { assign, includes, indexOf, isEmpty, isEqual, sortBy, uniq } from 'lodash-es'
 import { BehaviorSubject, Observable, Subject, combineLatest, firstValueFrom } from 'rxjs'
@@ -35,6 +35,7 @@ export interface IndicatorStoreState extends EntityState<IndicatorState> {
   initialized: boolean
   dataSources: DataSources
   currentPage: number
+  tag: IndicatorTagEnum
 
   locale?: string
 

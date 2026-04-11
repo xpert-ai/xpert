@@ -1,6 +1,6 @@
-import { IIndicator, IndicatorDraftFields, TIndicator } from "@metad/contracts";
-import { pick } from "@metad/server-common";
-import { RequestContext } from "@metad/server-core";
+import { IIndicator, IndicatorDraftFields, TIndicator } from "@xpert-ai/contracts";
+import { pick } from "@xpert-ai/server-common";
+import { RequestContext } from "@xpert-ai/server-core";
 import { Indicator } from "./indicator.entity";
 
 export const JOB_EMBEDDING_INDICATORS = 'embedding-indicators'

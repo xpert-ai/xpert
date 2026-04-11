@@ -17,8 +17,8 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
 	ICustomSmtp,
 	ICustomSmtpFindInput
-} from '@metad/contracts';
-import { ISMTPConfig } from '@metad/server-common';
+} from '@xpert-ai/contracts';
+import { ISMTPConfig } from '@xpert-ai/server-common';
 import { UseValidationPipe, UUIDValidationPipe } from './../shared/pipes';
 import { TenantPermissionGuard } from './../shared/guards';
 import { CustomSmtp } from './custom-smtp.entity';

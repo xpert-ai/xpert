@@ -1,5 +1,6 @@
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
-  --mat-sidenav-container-divider-color: var(--ngm-color-outline-variant);
+  --z-drawer-border-color: var(--ngm-color-outline-variant);
 
   display: flex;
   flex-direction: row;
@@ -45,10 +46,10 @@
 
 :host::ng-deep {
   .ngm-calculated-measure__helpers {
-    .mat-mdc-tab-header {
-      --mdc-secondary-navigation-tab-container-height: 38px;
+    .z-tab-group__nav {
+      min-height: 38px;
     }
-    .mdc-tab {
+    .z-tab-group__trigger {
       @apply min-w-0 transition-all flex items-center;
 
       // 导航菜单间隔符
@@ -62,29 +63,29 @@
         @apply bg-gray-100 dark:bg-neutral-700;
       }
 
-      &:not(.mdc-tab--active) {
+      &:not([data-active="true"]) {
         @apply px-2;
       }
-      &.mdc-tab--active {
+      &[data-active="true"] {
         @apply px-10;
       }
     }
-    .mat-mdc-tab-body-wrapper {
+    .z-tab-group__content {
       flex: 1;
-      .mat-mdc-tab-body-content {
+      .z-tab-group__panel {
         display: flex;
       }
     }
   }
 }
 
-.mat-drawer-content {
+z-drawer-content {
   @apply relative overflow-hidden flex flex-col;
+}
 
-  .mat-toolbar {
-    height: 44px;
-    font-size: 1rem;
-  }
+.ngm-calculated-measure__toolbar {
+  height: 44px;
+  font-size: 1rem;
 }
 
 .ngm-calculated-measure__helpers {
@@ -98,7 +99,7 @@
 }
 
 #ngm-calculated-parameters {
-  .mat-mdc-list-item {
+  > li {
     .ngm-calculated-measure__parameter-edit {
       opacity: 0;
     }

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, output, input, effect } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -6,11 +6,9 @@ import { NgmSelectComponent } from '../../common'
 import { TEnvironmentVariable, VariableOperationEnum } from '../../../@core/types'
 import { VariableTypeOptions } from '../types'
 
-
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, NgmSelectComponent,
-  ],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, NgmSelectComponent],
   selector: 'xpert-env-variable-form',
   templateUrl: 'variable-form.component.html',
   styleUrls: ['variable-form.component.scss']
@@ -44,6 +42,6 @@ export class XpertEnvVariableFormComponent {
       if (this.variable()) {
         this.form.patchValue(this.variable() as any)
       }
-    }, { allowSignalWrites: true })
+    })
   }
 }

@@ -1,4 +1,4 @@
-import { IndicatorType } from '@metad/contracts'
+import { IndicatorType } from '@xpert-ai/contracts'
 import { Expose } from 'class-transformer'
 import { Indicator } from '../indicator.entity'
 

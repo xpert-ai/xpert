@@ -1,4 +1,4 @@
-import { RequestContext, TagService } from '@metad/server-core'
+import { RequestContext, TagService } from '@xpert-ai/server-core'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { assign } from 'lodash'

@@ -1,7 +1,7 @@
 // import { Component, OnInit, inject } from '@angular/core'
 // import { LANGUAGES, ROUTE_ANIMATIONS_ELEMENTS, Store } from '../../../@core/index'
 // import { toSignal } from '@angular/core/rxjs-interop'
-// import { ThemesEnum } from '@metad/core'
+// import { ThemesEnum } from '@xpert-ai/core'
 
 // @Component({
 //   selector: 'pac-general',
@@ -17,7 +17,6 @@
 //     { value: ThemesEnum.default, label: 'Default' },
 //     { value: ThemesEnum.dark, label: 'Dark' },
 //     // { value: 'cosmic', label: 'Cosmic' },
-//     // { value: ThemesEnum.thin, label: 'Thin' }
 //   ]
 //   languages = LANGUAGES
 

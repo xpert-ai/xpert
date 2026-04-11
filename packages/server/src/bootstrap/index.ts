@@ -1,4 +1,5 @@
 // import csurf from 'csurf';
+import { API_PRINCIPAL_USER_ID_HEADER } from '@xpert-ai/contracts'
 import { INestApplication, Logger as NestLogger, Type } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
@@ -10,11 +11,12 @@ import chalk from 'chalk'
 import { urlencoded, json } from 'express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { EntitySubscriberInterface } from 'typeorm'
-import { getConfig, setConfig, environment as env } from '@metad/server-config'
+import { getConfig, setConfig, environment as env } from '@xpert-ai/server-config'
 import { coreEntities } from '../core/entities'
 import { coreSubscribers } from './../core/entities/subscribers'
 import { AppService } from '../app.service'
 import { resolveNestLogLevels } from '../logger'
+import { collectPluginOrmMetadata, mergeEntityClasses, mergeSubscriberClasses } from '../plugin/plugin-orm-metadata'
 import { ServerAppModule } from '../server.module'
 import { AuthGuard } from './../shared/guards'
 
@@ -42,7 +44,7 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
 		allowedHeaders:
-			'Authorization, Language, Tenant-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe'
+			`Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}`
 	})
 
 	// TODO: enable csurf
@@ -93,7 +95,7 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 /**
  * Setting the global config must be done prior to loading the Bootstrap Module.
  */
-export async function registerPluginConfig(pluginConfig: Partial<any>) {
+export async function registerPluginConfig(pluginConfig: Partial<any> = {}) {
 	if (Object.keys(pluginConfig).length > 0) {
 		setConfig(pluginConfig)
 	}
@@ -101,10 +103,11 @@ export async function registerPluginConfig(pluginConfig: Partial<any>) {
 	console.log(chalk.green(`DB Config: ${JSON.stringify(getConfig().dbConnectionOptions)}`))
 
 	const entities = await registerAllEntities(pluginConfig)
+	const subscribers = await registerAllSubscribers(pluginConfig)
 	setConfig({
 		dbConnectionOptions: {
 			entities,
-			subscribers: coreSubscribers as Array<Type<EntitySubscriberInterface>>
+			subscribers
 		}
 	})
 
@@ -115,20 +118,21 @@ export async function registerPluginConfig(pluginConfig: Partial<any>) {
 /**
  * Returns an array of core entities and any additional entities defined in plugins.
  */
-export async function registerAllEntities(pluginConfig: Partial<any>) {
-	const allEntities = coreEntities as Array<Type<any>>
-	// const pluginEntities = getEntitiesFromPlugins(pluginConfig.plugins);
+export async function registerAllEntities(pluginConfig: Partial<any> = {}) {
+	const plugins = pluginConfig.plugins ?? getConfig().plugins
+	const { entities: pluginEntities } = collectPluginOrmMetadata(plugins)
 
-	// for (const pluginEntity of pluginEntities) {
-	// 	if (allEntities.find((e) => e.name === pluginEntity.name)) {
-	// 		throw new ConflictException({
-	// 			message: `error.${pluginEntity.name} conflict by default entities`
-	// 		});
-	// 	} else {
-	// 		allEntities.push(pluginEntity);
-	// 	}
-	// }
-	return allEntities
+	return mergeEntityClasses(coreEntities as Array<Type<any>>, pluginEntities)
+}
+
+export async function registerAllSubscribers(pluginConfig: Partial<any> = {}) {
+	const plugins = pluginConfig.plugins ?? getConfig().plugins
+	const { subscribers: pluginSubscribers } = collectPluginOrmMetadata(plugins)
+
+	return mergeSubscriberClasses(
+		coreSubscribers as Array<Type<EntitySubscriberInterface>>,
+		pluginSubscribers
+	)
 }
 
 export * from './cache'

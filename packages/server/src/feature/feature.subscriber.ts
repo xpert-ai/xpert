@@ -1,5 +1,5 @@
-import { FeatureStatusEnum } from '@metad/contracts'
-import { toggleFeatures } from '@metad/server-config'
+import { FeatureStatusEnum } from '@xpert-ai/contracts'
+import { toggleFeatures } from '@xpert-ai/server-config'
 import { isNil } from 'lodash'
 import { EntitySubscriberInterface, EventSubscriber } from 'typeorm'
 import { shuffle } from 'underscore'

@@ -1,16 +1,16 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IScreenshot, ScreenshotService } from 'apps/cloud/src/app/@core'
 import { firstValueFrom } from 'rxjs'
-import { MaterialModule } from '../../../../@shared/material.module'
+import { SharedUiModule } from '../../../../@shared/ui.module'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MaterialModule, AppearanceDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, SharedUiModule, AppearanceDirective],
   // changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-image-upload',
   templateUrl: './image-upload.component.html',
@@ -71,7 +71,7 @@ export class ImageUploadComponent implements ControlValueAccessor {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormlyModule, TranslateModule, ReactiveFormsModule, ImageUploadComponent],
+  imports: [FormlyModule, TranslateModule, ReactiveFormsModule, ImageUploadComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-image-upload',
   template: `<label class="ngm-input-label shrink-0">

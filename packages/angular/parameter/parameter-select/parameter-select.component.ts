@@ -3,15 +3,10 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, forwardRef, inject, input, Input, model, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatFormFieldAppearance } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@metad/ocap-angular/common'
-import { DisplayDensity, ISelectOption, OcapCoreModule } from '@metad/ocap-angular/core'
+
+import { ZardButtonComponent, ZardDialogService, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@xpert-ai/ocap-angular/common'
+import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -19,7 +14,7 @@ import {
   nonNullable,
   parameterFormatter,
   ParameterProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { firstValueFrom, map } from 'rxjs'
@@ -44,11 +39,10 @@ import { Dialog } from '@angular/cdk/dialog'
     ReactiveFormsModule,
     DragDropModule,
     CdkMenuModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDividerModule,
-    MatAutocompleteModule,
+    ZardInputDirective,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardDividerComponent,
     TranslateModule,
 
     OcapCoreModule,
@@ -59,11 +53,11 @@ import { Dialog } from '@angular/cdk/dialog'
 export class NgmParameterSelectComponent implements ControlValueAccessor {
   eCubeParameterEnum = CubeParameterEnum
 
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog, { optional: true })
   readonly #viewContainerRef = inject(ViewContainerRef)
 
-  @Input() appearance: MatFormFieldAppearance = 'fill'
+  @Input() appearance: NgmFieldAppearance = 'fill'
   @Input() label = 'Parameter'
   @Input() placeholder = '@'
 
@@ -96,8 +90,7 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
         if (nonNullable(this.model())) {
           this.onChange?.(this.model())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

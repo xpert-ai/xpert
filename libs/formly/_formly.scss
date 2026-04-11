@@ -1,49 +1,26 @@
+@reference "../../../tailwind-workspace-reference.css";
 .ngm-formly-accordion,
 .ngm-formly-expansion,
 .metad-formly-expansion {
-  .mat-expansion-panel-header-title {
+  [data-slot='accordion-title'] {
     @apply text-base;
   }
-  .mat-expansion-panel-header-description {
+  [data-slot='accordion-description'] {
     flex-grow: 1;
   }
 }
 
 .pac-formly-chart-type {
-  mat-select-trigger {
-    .mat-icon-no-color {
-      @apply text-gray-500;
-      svg {
-        g,
-        path {
-          fill: currentColor;
-        }
-      }
-    }
+  .pac-formly-chart-type__trigger {
   }
 }
 
 .pac-formly-chart-type__prefix {
-  .mat-icon-no-color {
-    @apply text-gray-600;
-    svg {
-      g,
-      path {
-        fill: currentColor;
-      }
-    }
-  }
 }
 
 .cdk-overlay-pane {
   .ngm-formly-chart-type__panel {
     @apply mt-2;
-  }
-
-  &.mat-mdc-select-panel-above {
-    .ngm-formly-chart-type__panel {
-      @apply mb-2;
-    }
   }
 }
 
@@ -56,16 +33,19 @@
 }
 
 .ngm-formly-tab-group {
-  .mat-tab-body-wrapper {
+  .z-tab-group {
+    flex: 1;
+  }
+
+  .z-tab-group__content {
     flex: 1;
   }
 }
 
 /* 为 pac-formly-select 扩大一些 select panel 组件高度 */
-.mat-select-panel-wrap {
-  .mat-select-panel {
-    max-height: 450px;
-  }
+.ngm-select__autocomplete-panel,
+.ngm-select-panel {
+  max-height: 450px;
 }
 
 .ngm-formly__row {
@@ -106,12 +86,15 @@
   @apply my-2;
 }
 
-.pac-formly-mat-toggle {
+.ngm-formly-toggle,
+.pac-formly-toggle {
   display: flex;
-  .mat-slide-toggle {
+  z-switch,
+  .z-switch {
     flex: 1;
   }
-  .mat-slide-toggle-label-before .mat-slide-toggle-label {
+  z-switch[data-label-position='before'],
+  .z-switch[data-label-position='before'] {
     justify-content: space-between;
   }
 }
@@ -123,14 +106,10 @@
 }
 
 .ngm-formly__select-option {
-  .mat-option-text {
+  .ngm-display-behaviour {
     display: inline-flex;
-    align-items: center;
-    .ngm-display-behaviour {
-      display: inline-flex;
-      flex: 1;
-      max-width: 100%;
-    }
+    flex: 1;
+    max-width: 100%;
   }
 
   &.ngm-formly__with-icon {
@@ -142,29 +121,29 @@
 
 /* 默认 field group 纵向排列 */
 formly-group {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    max-width: 100%;
-  }
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  max-width: 100%;
+}
 
-  .mat-mdc-menu-panel.ngm-formly {
-    .mat-menu-item {
-      .mat-radio-button {
-        max-width: 100%;
-        width: 100%;
-        .mat-radio-label-content {
-          flex: 1;
-          overflow: hidden;
-        }
+[z-menu-content].ngm-formly {
+  [z-menu-item] {
+    z-radio {
+      max-width: 100%;
+      width: 100%;
+      .z-radio__label {
+        flex: 1;
+        overflow: hidden;
       }
-      .mat-checkbox {
-        .mat-checkbox-layout {
-          width: 100%;
-        }
-        .mat-checkbox-label {
-          flex: 1;
-        }
+    }
+    z-checkbox {
+      max-width: 100%;
+      width: 100%;
+      .z-checkbox__label {
+        flex: 1;
+        overflow: hidden;
       }
     }
   }
+}

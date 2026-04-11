@@ -1,36 +1,31 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@metad/contracts'
-import { IfAnimations, OverlayAnimations } from '@metad/core'
+import { LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@xpert-ai/contracts'
+import { IfAnimations, OverlayAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { injectTranslate } from 'apps/cloud/src/app/@core'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
-import { NgmTooltipDirective } from '@metad/ocap-angular/core'
-import { isNil } from '@metad/copilot'
-
+import { NgmTooltipDirective } from '@xpert-ai/ocap-angular/core'
+import { isNil } from '@xpert-ai/copilot'
+import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-memory',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatSliderModule,
-    MatTooltipModule,
-    MatCheckboxModule,
-
+    ZardSliderComponent,
+    ...ZardTooltipImports,
+    ZardCheckboxComponent,
     NgmTooltipDirective,
     CopilotPromptEditorComponent,
     InDevelopmentComponent
-  ],
+],
   templateUrl: './memory.component.html',
   styleUrl: './memory.component.scss',
   animations: [...IfAnimations, ...OverlayAnimations]
@@ -83,15 +78,17 @@ export class XpertStudioFeaturesMemoryComponent {
   }
 
   constructor() {
-    effect(() => {
-      if (this.profile()?.enabled && isNil(this.profile().afterSeconds)) {
-        this.afterSeconds = 10
+    effect(
+      () => {
+        if (this.profile()?.enabled && isNil(this.profile().afterSeconds)) {
+          this.afterSeconds = 10
+        }
       }
-    }, { allowSignalWrites: true })
+    )
   }
 
   formatLabel(value: number): string {
-    return `${value}s`;
+    return `${value}s`
   }
 
   updateMemory(memory: Partial<TLongTermMemory>) {
@@ -100,13 +97,13 @@ export class XpertStudioFeaturesMemoryComponent {
         ...xpert,
         memory: {
           ...(xpert.memory ?? {}),
-          ...memory,
+          ...memory
         }
       }
     })
   }
 
-  updateProfile(value: Partial<TLongTermMemoryConfig> & {afterSeconds?: number}) {
+  updateProfile(value: Partial<TLongTermMemoryConfig> & { afterSeconds?: number }) {
     this.updateMemory({
       profile: {
         ...(this.profile() ?? {}),

@@ -1,9 +1,7 @@
 import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/layout'
 import { computed, inject, Inject, Injectable, Injector, Optional, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
-import { ID, IStoryTemplate, StoryTemplateType } from '@metad/contracts'
+import { ID, IStoryTemplate, StoryTemplateType } from '@xpert-ai/contracts'
 import {
   createSubStore,
   dirtyCheckWith,
@@ -14,10 +12,10 @@ import {
   nonNullable,
   NxCoreService,
   write
-} from '@metad/core'
-import { CdkConfirmUniqueComponent } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { EntitySelectDataType, EntitySelectResultType, NgmEntityDialogComponent } from '@metad/ocap-angular/entity'
+} from '@xpert-ai/core'
+import { CdkConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { EntitySelectDataType, EntitySelectResultType, NgmEntityDialogComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   assignDeepOmitBlank,
@@ -35,9 +33,10 @@ import {
   ParameterProperty,
   Property,
   Schema
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { createStore, Query, select, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
+import { ZardDialogService, ZardToastService } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { cloneDeep, findKey, includes, isEmpty, isEqual, negate, omit, some, sortBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -439,8 +438,8 @@ export class NxStoryService {
     @Inject(NX_STORY_STORE)
     private storyStore?: NxStoryStore,
     @Optional() protected logger?: NGXLogger,
-    @Optional() private _snackBar?: MatSnackBar,
-    @Optional() private _dialog?: MatDialog
+    @Optional() private toast?: ZardToastService,
+    @Optional() private _dialog?: ZardDialogService
   ) {}
 
   onSaved() {
@@ -494,7 +493,7 @@ export class NxStoryService {
         next: (result) => {
           if (result) {
             const successMessage = this.getTranslation('Story.Story.SaveSuccess', 'Save success')
-            this._snackBar.open(successMessage, '', {
+            this.toast?.success(successMessage, {
               duration: 2000
             })
           }
@@ -502,7 +501,8 @@ export class NxStoryService {
         },
         error: (error) => {
           const errorMessage = this.getTranslation('Story.Story.SaveFailed', 'Save failed')
-          this._snackBar.open(errorMessage, getErrorMessage(error.statusText), {
+          this.toast?.error(errorMessage, {
+            description: getErrorMessage(error.statusText),
             duration: 2000
           })
         }
@@ -897,7 +897,8 @@ export class NxStoryService {
                 this.#removeStoryPoint(state.key)
               },
               error: (error) => {
-                this._snackBar.open('删除失败', error.status, {
+                this.toast?.error('删除失败', {
+                  description: error.status,
                   duration: 2000
                 })
               }

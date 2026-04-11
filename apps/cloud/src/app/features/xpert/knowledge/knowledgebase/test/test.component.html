@@ -9,7 +9,7 @@
   </div>
 
   <div class="relative bg-gradient-to-r from-blue-500 to-orange-500 rounded-[12px] p-[2px] mb-4 shadow-xs">
-    <div class="relative rounded-t-xl bg-neutral-100 pt-1.5">
+    <div class="relative rounded-t-xl bg-components-input-bg-normal pt-1.5">
       <div class="flex h-8 items-center justify-between pb-1 pl-4 pr-1.5">
         <span class="text-[13px] font-semibold uppercase leading-4 text-text-secondary">
           {{ 'PAC.Knowledgebase.SourceText' | translate: {Default: 'Source text'} }}
@@ -18,6 +18,22 @@
           class="flex h-7 cursor-pointer items-center space-x-0.5 rounded-lg border-[0.5px] border-components-button-secondary-bg bg-components-button-secondary-bg px-1.5 shadow-xs backdrop-blur-[5px]
             hover:bg-components-button-secondary-bg-hover"
           [cdkMenuTriggerFor]="vectorMenu"
+          [cdkMenuPosition]="[
+            {
+              originX: 'end',
+              originY: 'bottom',
+              overlayX: 'end',
+              overlayY: 'top',
+              offsetY: 8
+            },
+            {
+              originX: 'end',
+              originY: 'top',
+              overlayX: 'end',
+              overlayY: 'bottom',
+              offsetY: -8
+            }
+          ]"
           #cdkMenu="cdkMenuTriggerFor"
         >
           <i class="ri-focus-mode mr-1"></i>
@@ -29,7 +45,7 @@
       </div>
     </div>
 
-    <div class="rounded-b-xl bg-white px-4 py-2 pb-11">
+    <div class="rounded-b-xl bg-components-card-bg px-4 py-2 pb-11">
       <textarea class="h-[160px] w-full resize-none border-none bg-transparent text-sm font-normal font-body text-text-secondary caret-[#295EFF]
         placeholder:text-sm placeholder:font-normal placeholder:text-components-input-text-placeholder focus-visible:outline-none"
         [placeholder]="'PAC.Knowledgebase.EnterQueryText' | translate: {Default: 'Please enter a text, a short declarative sentence is recommended.'}"
@@ -132,9 +148,8 @@
   }
 </div>
 
-
 <ng-template #vectorMenu>
-  <div class="bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3">
+  <div cdkMenu class="w-[min(720px,calc(100vw-32px))] bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3">
     <div class="flex shrink-0 justify-between pl-3 pb-1 pt-1">
       <div class="text-base font-semibold text-text-primary">
         <div>{{ 'PAC.Knowledgebase.RetrievalSetting' | translate: {Default: 'Retrieval Setting'} }}</div>

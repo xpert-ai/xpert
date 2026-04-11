@@ -1,9 +1,9 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { nonNullable } from '@metad/core'
-import { cloneDeep } from '@metad/ocap-core'
+import { nonNullable } from '@xpert-ai/core'
+import { cloneDeep } from '@xpert-ai/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
@@ -23,7 +23,7 @@ import { DesignerSchema, STORY_DESIGNER_FORM, STORY_DESIGNER_SCHEMA } from '../t
   selector: 'ngm-designer-form',
   templateUrl: 'designer-form.component.html',
   styleUrls: ['designer-form.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule]
+  imports: [FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule]
 })
 export class NgmDesignerFormComponent {
   readonly #logger = inject(NGXLogger)

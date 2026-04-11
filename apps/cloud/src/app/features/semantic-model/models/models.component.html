@@ -1,48 +1,46 @@
 <div class="flex justify-between items-center p-4">
   <div class="text-xl">
-    {{ 'PAC.KEY_WORDS.SEMANTIC_MODEL' | translate: {Default: "Semantic Models"} }}
+    {{ 'PAC.KEY_WORDS.SEMANTIC_MODEL' | translate: { Default: 'Semantic Models' } }}
   </div>
 
-  <input #fileUpload type="file" class="file-input"
-      (change)="onUpload($event)"
-      (click)="fileUpload.value=null;"
-    >
+  <input #fileUpload type="file" class="file-input" (change)="onUpload($event)" (click)="fileUpload.value = null" />
   <div ngmButtonGroup>
-    <button mat-button displayDensity="cosy"
-      [matTooltip]="'PAC.MODEL.UploadSemanticModel' | translate: {Default: 'Upload Semantic Model File'}"
-      matTooltipPosition="above"
+    <button
+      z-button
+      zType="ghost"
+      displayDensity="cosy"
+      [zTooltip]="'PAC.MODEL.UploadSemanticModel' | translate: { Default: 'Upload Semantic Model File' }"
+      zPosition="top"
       [disabled]="modelUploading()"
-      (click)="fileUpload.click()" >
+      (click)="fileUpload.click()"
+    >
       @if (modelUploading()) {
-        <ngm-spin class="inline-block"/>
-        {{ 'PAC.ACTIONS.Uploading' | translate: {Default: "Uploading"} }}...
+        <ngm-spin class="inline-block" />
+        {{ 'PAC.ACTIONS.Uploading' | translate: { Default: 'Uploading' } }}...
       } @else {
-        {{ 'PAC.ACTIONS.UPLOAD' | translate: {Default: "Upload"} }}
+        {{ 'PAC.ACTIONS.UPLOAD' | translate: { Default: 'Upload' } }}
       }
     </button>
-    <button mat-raised-button color="primary" displayDensity="cosy"
-      (click)="onNewModel()">
+    <button z-button zType="default" displayDensity="cosy" (click)="onNewModel()">
       <div class="flex items-center">
         <i class="ri-add-line text-lg mr-1"></i>
-        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }}
+        {{ 'PAC.ACTIONS.NEW' | translate: { Default: 'New' } }}
       </div>
     </button>
 
-    <button mat-icon-button displayDensity="cosy"
-      [cdkMenuTriggerFor]="menu"
-    >
-      <mat-icon>more_vert</mat-icon>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu">
+      <z-icon zType="more_vert"></z-icon>
     </button>
   </div>
 </div>
 
 <!-- <div>
-  <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple displayDensity="cosy" mat-stretch-tabs="false" mat-align-tabs="start">
-    <span mat-tab-link [active]="type === 'my'" (click)="type='my'">
+<nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple zSize="default" stretchTabs="false" alignTabs="start">
+    <span z-tab-link [active]="type === 'my'" (click)="type='my'">
       {{ 'PAC.MENU.MODEL.MY' | translate: {Default: "My"} }}
     </span>
 
-    <span mat-tab-link [active]="type === 'all'" *ngxPermissionsOnly="[AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT]"
+    <span z-tab-link [active]="type === 'all'" *ngxPermissionsOnly="[AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT]"
       (click)="type='all'">
       {{ 'PAC.MENU.MODEL.ALL' | translate: {Default: "All"} }}
     </span>
@@ -50,10 +48,11 @@
   
 </div> -->
 
-<ngm-tree-table class="w-full h-full"
+<ngm-tree-table
+  class="w-full h-full"
   [data]="models$ | async"
   [columns]="columns"
-  [nameLabel]=" 'PAC.MODEL.Name' | translate: {Default: 'Name'} "
+  [nameLabel]="'PAC.MODEL.Name' | translate: { Default: 'Name' }"
   [displayDensity]="DisplayDensity.cosy"
   [nameCellTemplate]="nameTempl"
   [initialLevel]="1000"
@@ -66,18 +65,20 @@
 }
 
 <ng-template #nameTempl let-key="key" let-name="name" let-item="raw">
-  <div class="group max-w-[300px] inline-flex justify-start items-center overflow-hidden whitespace-nowrap text-ellipsis">
+  <div
+    class="group max-w-[300px] inline-flex justify-start items-center overflow-hidden whitespace-nowrap text-ellipsis"
+  >
     @if (item.__isModel__) {
-      <a [routerLink]="['/models', key]" class="flex justify-start items-center hover:underline">
+      <a [routerLink]="['/data', 'models', key]" class="flex justify-start items-center hover:underline">
         <i class="ri-instance-line mr-1 text-lg text-text-secondary group-hover:text-text-primary"></i>
         @if (item.agentType === 'wasm') {
-          <mat-icon fontSet="material-icons-round" displayDensity="compact" class="shrink-0 text-emerald-600">memory</mat-icon>
+          <z-icon zSize="sm" class="shrink-0 text-emerald-600" zType="memory"></z-icon>
         }
-        <span class="text-ellipsis overflow-hidden">{{name}}</span>
+        <span class="text-ellipsis overflow-hidden">{{ name }}</span>
       </a>
     } @else {
       <span>
-        {{name}}
+        {{ name }}
       </span>
     }
   </div>
@@ -88,21 +89,24 @@
     <button cdkMenuItem color="primary" (click)="onNewModel(null, 'sql')">
       <div class="flex items-center">
         <i class="ri-add-line text-lg mr-1"></i>
-        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} SQL {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
+        {{ 'PAC.ACTIONS.NEW' | translate: { Default: 'New' } }} SQL
+        {{ 'PAC.KEY_WORDS.MODEL' | translate: { Default: 'Model' } }}
       </div>
     </button>
-  
+
     <button cdkMenuItem color="primary" (click)="onNewModel(null, 'mdx')">
       <div class="flex items-center">
         <i class="ri-add-line text-lg mr-1"></i>
-        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} MDX {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
+        {{ 'PAC.ACTIONS.NEW' | translate: { Default: 'New' } }} MDX
+        {{ 'PAC.KEY_WORDS.MODEL' | translate: { Default: 'Model' } }}
       </div>
     </button>
-  
+
     <button cdkMenuItem color="primary" (click)="onNewWASMModel()">
       <div class="flex items-center">
         <i class="ri-add-line text-lg mr-1"></i>
-        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} WASM {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
+        {{ 'PAC.ACTIONS.NEW' | translate: { Default: 'New' } }} WASM
+        {{ 'PAC.KEY_WORDS.MODEL' | translate: { Default: 'Model' } }}
       </div>
     </button>
   </div>
@@ -110,53 +114,74 @@
 
 <ng-template #actions let-item="raw" let-key="key">
   @if (item.__isModel__) {
-    <div class="pac__table-actions flex items-center gap-2" >
-      <button mat-icon-button displayDensity="cosy"
-        [matTooltip]="'PAC.ACTIONS.Edit' | translate: {Default: '✒️Edit'}"
-        matTooltipPosition="above"
-        [routerLink]="['/models', key]">
-        <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-      </button>      
-      <button mat-icon-button displayDensity="cosy"
-        [matTooltip]=" 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} "
-        matTooltipPosition="above"
-        (click)="onDownload(item.id)">
-        <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+    <div class="flex items-center gap-2">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
+        class="text-text-secondary hover:text-text-primary"
+        [zTooltip]="'PAC.ACTIONS.Edit' | translate: { Default: '✒️Edit' }"
+        zPosition="top"
+        [routerLink]="['/data', 'models', key]"
+      >
+        <z-icon zType="edit"></z-icon>
       </button>
-      <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg opacity-50 group-hover:opacity-100"
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
+        class="text-text-secondary hover:text-text-primary"
+        [zTooltip]="'PAC.ACTIONS.Download' | translate: { Default: 'Download' }"
+        zPosition="top"
+        (click)="onDownload(item.id)"
+      >
+        <z-icon zType="file_download"></z-icon>
+      </button>
+      <button
+        type="button"
+        class="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-50 group-hover:opacity-100"
         [cdkMenuTriggerFor]="moreActions"
-        [cdkMenuTriggerData]="{item: item}">
+        [cdkMenuTriggerData]="{ item: item }"
+      >
         <i class="ri-more-line"></i>
       </button>
     </div>
   } @else {
-    <div class="pac__table-actions flex items-center">
-      <button mat-icon-button displayDensity="cosy" 
-        [matTooltip]="'PAC.ACTIONS.CreateModel' | translate: {Default: 'Create Model'}"
-        matTooltipPosition="above"
+    <div class="flex items-center">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
+        [zTooltip]="'PAC.ACTIONS.CreateModel' | translate: { Default: 'Create Model' }"
+        zPosition="top"
         (click)="onNewModel(key)"
       >
-        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+        <z-icon zType="add"></z-icon>
       </button>
     </div>
   }
 </ng-template>
 
 <ng-template #descTempl let-item="raw">
-  <div class="max-w-xs truncate text-sm" [title]="item.description">{{item.description}}</div>
+  <div class="max-w-xs truncate text-sm" [title]="item.description">{{ item.description }}</div>
 </ng-template>
 
 <ng-template #moreActions let-item="item">
-  
   <div cdkMenu class="cdk-menu__medium">
-    <button cdkMenuItem (click)="moveToBusinessArea(item)" >
+    <button cdkMenuItem (click)="moveToBusinessArea(item)">
       <i class="ri-folder-transfer-line mr-1"></i>
-      {{ 'PAC.MODEL.MoveToBusinessArea' | translate: {Default: "Move to Business Area"} }}
+      {{ 'PAC.MODEL.MoveToBusinessArea' | translate: { Default: 'Move to Business Area' } }}
     </button>
 
     <button cdkMenuItem (click)="createStory(item)">
       <i class="ri-dashboard-line mr-1"></i>
-      {{ 'PAC.ACTIONS.CreateStory' | translate: {Default: "Create Story"} }}
+      {{ 'PAC.ACTIONS.CreateStory' | translate: { Default: 'Create Story' } }}
     </button>
   </div>
 </ng-template>

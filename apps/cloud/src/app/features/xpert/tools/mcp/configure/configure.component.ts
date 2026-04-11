@@ -14,9 +14,8 @@ import {
 } from '@angular/core'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { routeAnimations } from '@metad/core'
-import { isEqual, pick } from '@metad/ocap-core'
+import { routeAnimations } from '@xpert-ai/core'
+import { isEqual, pick } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ApiAuthType,
@@ -32,6 +31,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { combineLatestWith, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Samples } from '../types'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use XpertMCPManageComponent
@@ -45,10 +45,9 @@ import { Samples } from '../types'
     CdkMenuModule,
     CdkListboxModule,
     TranslateModule,
-    MatSlideToggleModule,
-
     EmojiAvatarComponent,
-    TagSelectComponent
+    TagSelectComponent,
+    ZardSwitchComponent
   ],
   selector: 'xpert-tool-mcp-configure',
   templateUrl: './configure.component.html',
@@ -158,8 +157,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
     effect(
       () => {
         this.loading() ? this.formGroup.disable() : this.formGroup.enable()
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -177,12 +175,11 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
               'tags',
               'privacyPolicy',
               'customDisclaimer'
-            ),
+            )
           } as any)
           this.#cdr.detectChanges()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 }

@@ -16,8 +16,7 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Router, RouterModule } from '@angular/router'
 import {
   Attachment_Type_Options,
@@ -29,8 +28,8 @@ import {
 } from '@cloud/app/@core'
 import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
 import { AppService } from '@cloud/app/app.service'
-import { FileTypePipe, OverlayAnimations } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { FileTypePipe, OverlayAnimations } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { ChatService } from '../chat.service'
@@ -53,8 +52,8 @@ import {
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
-    MatInputModule,
-    MatTooltipModule,
+    ZardInputDirective,
+    ...ZardTooltipImports,
     NgmCommonModule,
     DateRelativePipe,
     CopilotEnableModelComponent,
@@ -127,7 +126,7 @@ export class ChatInputComponent {
   })
   readonly contextUsagePercent = computed(() => Math.round(this.contextUsageRatio() * 100))
   readonly contextUsageRingStyle = computed(() => ({
-    background: `conic-gradient(currentColor ${this.contextUsageRatio() * 360}deg, rgba(148, 163, 184, 0.18) 0deg)`
+    background: `conic-gradient(currentColor ${this.contextUsageRatio() * 360}deg, color-mix(in oklab, var(--ring) 24%, transparent) 0deg)`
   }))
   readonly contextUsageTooltip = computed(() =>
     buildContextUsageTooltip({
@@ -179,9 +178,9 @@ export class ChatInputComponent {
       }
     })
 
-    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
-    effect(() => this.#audioRecorder.xpert.set(this.xpert()), { allowSignalWrites: true })
-    effect(() => this.promptControl.setValue(this.#audioRecorder.text()), { allowSignalWrites: true })
+    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()))
+    effect(() => this.#audioRecorder.xpert.set(this.xpert()))
+    effect(() => this.promptControl.setValue(this.#audioRecorder.text()))
   }
 
   send() {

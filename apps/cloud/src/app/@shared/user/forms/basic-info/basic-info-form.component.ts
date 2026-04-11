@@ -1,18 +1,19 @@
 import { DestroyRef, Component, ElementRef, EventEmitter, forwardRef, inject, Input, Output, ViewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { AuthService } from '@metad/cloud/state'
-import { ITag, IUser } from '@metad/contracts'
-import { FORMLY_W_FULL } from '@metad/formly'
-import { DisplayBehaviour } from '@metad/ocap-core'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
+import { AuthService } from '@xpert-ai/cloud/state'
+import { IRole, ITag, IUser } from '@xpert-ai/contracts'
+import { FORMLY_W_FULL } from '@xpert-ai/formly'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { timezones } from 'apps/cloud/src/app/@core/constants'
-import { firstValueFrom, map, startWith } from 'rxjs'
+import { firstValueFrom, map, ReplaySubject, startWith } from 'rxjs'
 import { LANGUAGES, RoleService, Store } from '../../../../@core'
 
 @Component({
+  standalone: false,
   selector: 'pac-user-basic-info-form',
   templateUrl: 'basic-info-form.component.html',
   styleUrls: ['basic-info-form.component.scss'],
@@ -49,14 +50,9 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
   @Input() public createdById: string
   @Input() public selectedTags: ITag[]
 
-  readonly roles$ = this.#roleService.getAll().pipe(
-    map(({ items }) =>
-      items.map(({ id, name }) => ({
-        key: id,
-        caption: name
-      }))
-    )
-  )
+  readonly roleOptions$ = new ReplaySubject<Array<{ key: string; caption: string }>>(1)
+  private roles: IRole[] = []
+  private roleOptionsCache: Array<{ key: string; caption: string }> = []
 
   // Fields for the form
   public form = new FormGroup({})
@@ -74,6 +70,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
       this.form.patchValue(obj)
       this.model = obj
     }
+    this.syncRoleOptions()
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -83,6 +80,17 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
 
   ngOnInit() {
     const TRANSLATES = this.#translate.instant('PAC.SHARED.USER_BASIC')
+
+    this.#roleService
+      .getAll()
+      .pipe(
+        map(({ items }) => items),
+        takeUntilDestroyed(this.#destroyRef)
+      )
+      .subscribe((roles) => {
+        this.roles = roles
+        this.syncRoleOptions()
+      })
 
     const password = this.password
       ? [
@@ -196,7 +204,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               disabled: !this.isSuperAdmin && !this.isAdmin,
               valueProp: 'id',
               labelProp: 'name',
-              options: this.roles$,
+              options: this.roleOptions$.asObservable(),
               appearance: 'fill',
               valueKey: 'key',
               displayBehaviour: DisplayBehaviour.descriptionOnly
@@ -261,6 +269,26 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
 
   onFormChange(model: any) {
     this.onChange?.(model)
+  }
+
+  private syncRoleOptions() {
+    const nextOptions = this.roles
+      .map(({ id, name }) => ({
+        key: id,
+        caption: name
+      }))
+
+    if (
+      nextOptions.length === this.roleOptionsCache.length &&
+      nextOptions.every((option, index) =>
+        option.key === this.roleOptionsCache[index]?.key && option.caption === this.roleOptionsCache[index]?.caption
+      )
+    ) {
+      return
+    }
+
+    this.roleOptionsCache = nextOptions
+    this.roleOptions$.next(nextOptions)
   }
 
   async registerUser(organizationId?: string, createdById?: string) {

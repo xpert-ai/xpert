@@ -6,7 +6,7 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
 import { XpertToolTestComponent } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, uniq } from 'lodash-es'
 import {
@@ -65,10 +65,11 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
     },
     request: () => ({
       provider: this.provider(),
-      options: this.options() ?? {}
+      options: this.options() ?? {},
+      xpertId: this.xpertId()
     }),
     loader: ({ request }) => {
-      return request.provider ? this.agentAPI.getAgentMiddleware(request.provider, request.options) : null
+      return request.provider ? this.agentAPI.getAgentMiddleware(request.provider, request.options, request.xpertId) : null
     }
   })
   readonly stateSchema = computed(() => this.#middlewareToolsRes.value()?.stateSchema)
@@ -180,7 +181,7 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
 
   middlewareToolTester(name: string) {
     return ({ parameters }: { tool: IXpertTool; parameters: Record<string, any> }) =>
-      this.agentAPI.testAgentMiddlewareTool(this.provider(), name, this.options(), parameters)
+      this.agentAPI.testAgentMiddlewareTool(this.provider(), name, this.options(), parameters, this.xpertId())
   }
 
   getToolParameters(name: string) {

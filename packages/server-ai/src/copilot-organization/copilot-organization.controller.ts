@@ -1,4 +1,4 @@
-import { ICopilotOrganization, IPagination, RolesEnum } from '@metad/contracts'
+import { ICopilotOrganization, IPagination, RolesEnum } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -7,7 +7,7 @@ import {
 	Roles,
 	TransformInterceptor,
 	UseValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Body, Controller, Get, Logger, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'

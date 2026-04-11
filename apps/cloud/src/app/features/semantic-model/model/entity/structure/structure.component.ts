@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragRelease, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,9 +13,9 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { NxCoreService, nonBlank } from '@metad/core'
-import { NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+import { NxCoreService, nonBlank } from '@xpert-ai/core'
+import { NgmCommonModule, SplitterType } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import {
   AggregationRole,
   Join,
@@ -28,7 +28,7 @@ import {
   getEntityDimensions,
   getEntityMeasures,
   pick
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService, uuid } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -49,7 +49,7 @@ import { newDimensionFromColumn } from '../types'
   selector: 'pac-model-structure',
   templateUrl: './structure.component.html',
   styleUrls: ['./structure.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, NgmCommonModule, ERComponent]
+  imports: [FormsModule, TranslateModule, NgmCommonModule, ERComponent]
 })
 export class ModelEntityStructureComponent extends TranslationBaseComponent {
   @HostBinding('class.pac-model-cube-structure') _isModelCubeStructure = true
@@ -160,8 +160,7 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
               )
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

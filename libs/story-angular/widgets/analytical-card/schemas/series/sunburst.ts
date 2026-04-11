@@ -1,4 +1,4 @@
-import { FORMLY_ROW } from '@metad/story/designer'
+import { FORMLY_ROW } from '@xpert-ai/story/designer'
 import { ItemStyle, ItemStyleAccordionWrappers } from '../common'
 import { Labels } from './label'
 import { CenterRadius } from './pie'

@@ -1,17 +1,16 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
-import { PAC_API_BASE_URL } from '@metad/cloud/auth'
-import { attrModel } from '@metad/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { PAC_API_BASE_URL } from '@xpert-ai/cloud/auth'
+import { attrModel } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -26,21 +25,21 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EMPTY, map, switchMap } from 'rxjs'
 import { ChatProjectMembersComponent } from '../members/members.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'chat-project-manage',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     CopilotModelSelectComponent,
     NgmSpinComponent,
     ChatProjectMembersComponent,
     IntegrationSelectComponent
-  ],
+],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss'
 })
@@ -128,7 +127,7 @@ export class ChatProjectManageComponent {
         next: () => {
           this.loading.set(false)
           this.#dialogRef.close()
-          this.#router.navigate(['/chat/p'])
+          this.#router.navigate(['/project'])
         },
         error: (err) => {
           this.loading.set(false)
@@ -155,7 +154,7 @@ export class ChatProjectManageComponent {
       return
     }
     this.loading.set(true)
-    this.projectsService.updateVCS(this.projectId(), {integrationId: this.integrationId()}).subscribe({
+    this.projectsService.updateVCS(this.projectId(), { integrationId: this.integrationId() }).subscribe({
       next: () => {
         this.loading.set(false)
         openLogin()

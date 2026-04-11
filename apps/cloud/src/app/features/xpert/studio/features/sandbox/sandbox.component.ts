@@ -1,19 +1,20 @@
-import { CommonModule } from '@angular/common'
-import { Component, effect, inject } from '@angular/core'
+
+import { Component, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TSandboxProvider } from '@cloud/app/@core'
-import { attrModel } from '@metad/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel } from '@xpert-ai/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent } from "@cloud/app/@shared/avatar";
 import { of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { linkedXpertFeaturesModel } from '../types'
+import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
 
 @Component({
   selector: 'xp-studio-features-sandbox',
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmI18nPipe, IconComponent],
+  imports: [TranslateModule, NgmI18nPipe, IconComponent, ExtensionHostOutletComponent],
   templateUrl: './sandbox.component.html',
   styleUrl: './sandbox.component.scss'
 })
@@ -24,6 +25,8 @@ export class XpertStudioFeaturesSandboxComponent {
   readonly sandbox = attrModel(this.features, 'sandbox')
   readonly enabled = attrModel(this.sandbox, 'enabled')
   readonly provider = attrModel(this.sandbox, 'provider')
+  readonly environmentId = this.apiService.environmentId
+  readonly showExtensionSidebar = signal(false)
 
   readonly providers = toSignal<TSandboxProvider[], TSandboxProvider[]>(
     toObservable(this.enabled).pipe(
@@ -43,8 +46,7 @@ export class XpertStudioFeaturesSandboxComponent {
         if (providers.length && (!current || !providers.some((item) => item.type === current))) {
           this.provider.set(providers[0].type)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

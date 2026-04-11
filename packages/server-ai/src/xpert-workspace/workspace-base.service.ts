@@ -1,5 +1,5 @@
-import { IUser } from '@metad/contracts'
-import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { IUser } from '@xpert-ai/contracts'
+import { PaginationParams, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FindOptionsWhere, IsNull, Not } from 'typeorm'

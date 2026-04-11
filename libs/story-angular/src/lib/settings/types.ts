@@ -1,6 +1,6 @@
-import { ComponentSettingsType } from '@metad/story/core'
-import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
-import { StoryFilterBarSchemaService } from '@metad/story/widgets/filter-bar'
+import { ComponentSettingsType } from '@xpert-ai/story/core'
+import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@xpert-ai/story/designer'
+import { StoryFilterBarSchemaService } from '@xpert-ai/story/widgets/filter-bar'
 import { FlexLayoutSchemaService, LinkedAnalysisSchemaService, StoryPointBuilderSchema } from './schemas'
 
 export function provideStorySettings() {

@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use 'libs/formly/formly-theme' as formly;
 @use 'libs/story-angular/responsive/responsive-theme' as responsive;
 @use 'libs/story-angular/story/story-theme' as story;
@@ -9,16 +9,16 @@
 @use 'packages/angular/theming' as ocap;
 
 
-$material-typeface: Lato, 'Noto Serif SC', monospace;
+$material-typeface: var(--font-xp-sans, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif);
 
 // Define a theme.
-$primary: mat.define-palette(mat.$blue-palette, 500);
-$accent: mat.define-palette(mat.$amber-palette, A700, A400, A200);
+$primary: themeCompat.m2-define-palette(themeCompat.$m2-blue-palette, 500);
+$accent: themeCompat.m2-define-palette(themeCompat.$m2-amber-palette, A700, A400, A200);
 
 $light-secondary-text: rgba(white, 0.7);
 $light-disabled-text: rgba(white, 0.5);
 $light-dividers: rgba(white, 0.12);
-$grey-palette: mat.$blue-grey-palette;
+$grey-palette: themeCompat.$m2-blue-grey-palette;
 
 $background: (
   status-bar: #151a30,
@@ -56,7 +56,7 @@ $foreground: (
 );
 
 $dark-theme: map.deep-merge(
-  mat.define-dark-theme((
+  themeCompat.m2-define-dark-theme((
     color: (
       primary: $primary,
       accent: $accent,
@@ -70,21 +70,21 @@ $dark-theme: map.deep-merge(
   )
 );
 
-$custom-typography: mat.define-typography-config(
+$custom-typography: themeCompat.m2-define-typography-config(
   $font-family: $material-typeface
 );
 
-.dark, .ngm-story__device.ngm-theme-dark.dark {
-  --ngm-color-primary: #{mat.get-color-from-palette($primary)};
-  --ngm-color-on-primary-container: #{darken(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container: #{lighten(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container-variant: #{color.change(mat.get-color-from-palette($primary), $alpha: 0.1)};
-  --ngm-color-secondary: #{mat.get-color-from-palette($accent)};
-  --ngm-color-secondary-container: #{lighten(mat.get-color-from-palette($accent), 30%)};
+[data-theme='dark'] {
+  --ngm-color-primary: #{themeCompat.m2-get-color-from-palette($primary)};
+  --ngm-color-on-primary-container: #{darken(themeCompat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container: #{lighten(themeCompat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container-variant: #{color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1)};
+  --ngm-color-secondary: #{themeCompat.m2-get-color-from-palette($accent)};
+  --ngm-color-secondary-container: #{lighten(themeCompat.m2-get-color-from-palette($accent), 30%)};
   --ngm-color-outline: #{map.get($foreground, divider)};
 
   // Include all theme styles for the mat components.
-  @include mat.all-component-colors($dark-theme);
+  @include themeCompat.all-component-colors($dark-theme);
   @include formly.color($dark-theme);
   @include responsive.color($dark-theme);
   @include story.color($dark-theme);

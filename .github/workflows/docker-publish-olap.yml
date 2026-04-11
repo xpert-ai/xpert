@@ -1,0 +1,163 @@
+name: Publish OLAP Docker image
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  decide:
+    name: Check whether OLAP should publish
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.determine.outputs.should_build }}
+      reason: ${{ steps.determine.outputs.reason }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Determine whether OLAP changed
+        id: determine
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -euo pipefail
+
+          HEAD_SHA="$(git rev-parse HEAD)"
+
+          has_olap_changes() {
+            local base_ref="$1"
+            local head_ref="$2"
+
+            git diff --name-only "$base_ref" "$head_ref" | grep -E '^(\\.deploy/olap/|packages/olap/)' >/dev/null
+          }
+
+          range_has_force_flag() {
+            local range_spec="$1"
+
+            git log --format=%B "$range_spec" | grep -F '[build olap]' >/dev/null
+          }
+
+          should_build=false
+          reason='No OLAP changes detected'
+
+          if [[ "$REF_TYPE" == 'branch' ]]; then
+            if [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != '0000000000000000000000000000000000000000' ]]; then
+              if has_olap_changes "$BEFORE_SHA" "$HEAD_SHA"; then
+                should_build=true
+                reason="OLAP files changed between $BEFORE_SHA and $HEAD_SHA"
+              elif range_has_force_flag "$BEFORE_SHA..$HEAD_SHA"; then
+                should_build=true
+                reason='Detected [build olap] in pushed commit messages'
+              else
+                reason="No OLAP changes between $BEFORE_SHA and $HEAD_SHA"
+              fi
+            else
+              if git diff-tree --no-commit-id --name-only -r "$HEAD_SHA" | grep -E '^(\\.deploy/olap/|packages/olap/)' >/dev/null; then
+                should_build=true
+                reason="OLAP files changed in initial push at $HEAD_SHA"
+              elif git show -s --format=%B "$HEAD_SHA" | grep -F '[build olap]' >/dev/null; then
+                should_build=true
+                reason='Detected [build olap] in initial push commit message'
+              else
+                reason="Initial push at $HEAD_SHA did not touch OLAP"
+              fi
+            fi
+          else
+            previous_tag="$(git describe --tags --abbrev=0 "${HEAD_SHA}^" 2>/dev/null || true)"
+
+            if [[ -z "$previous_tag" ]]; then
+              should_build=true
+              reason="No previous tag found before $REF_NAME"
+            elif has_olap_changes "$previous_tag" "$HEAD_SHA"; then
+              should_build=true
+              reason="OLAP files changed since tag $previous_tag"
+            elif range_has_force_flag "$previous_tag..$HEAD_SHA"; then
+              should_build=true
+              reason="Detected [build olap] since tag $previous_tag"
+            else
+              reason="No OLAP changes since tag $previous_tag"
+            fi
+          fi
+
+          echo "should_build=$should_build" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+
+      - name: Report decision
+        run: echo "${{ steps.determine.outputs.reason }}"
+
+  publish:
+    name: Publish xpert-olap
+    needs: decide
+    if: github.repository == 'xpert-ai/xpert' && github.event_name == 'push' && needs.decide.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DOCKER_TARGET: ${{ github.ref == 'refs/heads/develop' && 'candidate' || 'production' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Compute image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/xpert-olap
+            metadc/xpert-olap
+            registry.cn-hangzhou.aliyuncs.com/metad/xpert-olap
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=develop-candidate,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=sha-${{ github.sha }},enable=${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ github.ref_name }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .deploy/olap/Dockerfile
+          target: ${{ env.DOCKER_TARGET }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-to: type=inline

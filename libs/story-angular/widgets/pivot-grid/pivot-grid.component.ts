@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, Input, OnInit, Optional } from '@angular/core'
-import { AbstractStoryWidget, IStoryWidget, Semantic, WidgetService } from '@metad/core'
-import { getEntityProperty, getPropertyName, isDimension, RecursiveHierarchyType } from '@metad/ocap-core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+import { AbstractStoryWidget, IStoryWidget, Semantic, WidgetService } from '@xpert-ai/core'
+import { getEntityProperty, getPropertyName, isDimension, RecursiveHierarchyType } from '@xpert-ai/ocap-core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { Parser } from 'expr-eval'
 import { IColumnSelectionEventArgs } from 'igniteui-angular'
 import { assign, isArray, isEmpty, isEqual, isNil, merge } from 'lodash-es'
@@ -19,11 +19,12 @@ import {
 } from 'rxjs'
 import { PivotGridDataService } from './pivot-grid-data.service'
 import { NxSmartGridOptions, PivotGridColumn, PIVOT_GRID_MENUS, WidgetDesignerType } from './types'
-import { NgmAppearance } from '@metad/ocap-angular/core'
+import { NgmAppearance } from '@xpert-ai/ocap-angular/core'
 import { TreeGridGroupingPipe } from './tree-grid-grouping.pipe'
 
 @UntilDestroy()
 @Component({
+  standalone: false,
   selector: 'pac-widget-pivot-grid',
   templateUrl: './pivot-grid.component.html',
   styleUrls: ['./pivot-grid.component.scss'],

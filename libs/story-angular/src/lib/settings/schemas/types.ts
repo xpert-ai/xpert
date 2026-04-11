@@ -1,4 +1,4 @@
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { GridType } from 'angular-gridster2'
 
 export function gridsterOptions(className: string, I18NGridOptions) {
@@ -14,9 +14,7 @@ export function gridsterOptions(className: string, I18NGridOptions) {
           {
             value: GridType.Fit,
             label: I18NGridOptions?.Type_FittoScreen ?? 'Fit to Screen',
-            icon: 'fit_screen',
-            fontSet: 'material-icons-outlined'
-          },
+            icon: 'fit_screen' },
           // 解决不了 ScrollVertical 滚动与全屏的问题
           // {
           //   value: GridType.ScrollVertical,
@@ -84,8 +82,7 @@ export function gridsterOptions(className: string, I18NGridOptions) {
         min: 1,
         max: 100,
         thumbLabel: true,
-        autoScale: true,
-      }
+        autoScale: true }
     },
     {
       className,
@@ -98,8 +95,7 @@ export function gridsterOptions(className: string, I18NGridOptions) {
         min: 1,
         max: 100,
         thumbLabel: true,
-        autoScale: true,
-      }
+        autoScale: true }
     },
     {
       className,
@@ -112,8 +108,7 @@ export function gridsterOptions(className: string, I18NGridOptions) {
         min: 1,
         max: 100,
         thumbLabel: true,
-        autoScale: true,
-      }
+        autoScale: true }
     },
     {
       className,
@@ -159,8 +154,7 @@ export function gridsterOptions(className: string, I18NGridOptions) {
         min: 1,
         max: 100,
         thumbLabel: true,
-        autoScale: true,
-      }
+        autoScale: true }
     },
     {
       className,
@@ -212,8 +206,7 @@ export function gridsterOptions(className: string, I18NGridOptions) {
         label: I18NGridOptions?.DefaultLayerIndex ?? 'Default Layer Index',
         placeholder: 'defaultLayerIndex',
         type: 'number',
-        thumbLabel: true,
-      }
+        thumbLabel: true }
     },
     {
       className,
@@ -224,8 +217,7 @@ export function gridsterOptions(className: string, I18NGridOptions) {
         label: I18NGridOptions?.MaxLayerIndex ?? 'Max Layer Index',
         placeholder: 'maxLayerIndex',
         type: 'number',
-        thumbLabel: true,
-      }
+        thumbLabel: true }
     },
     {
       className,
@@ -236,8 +228,7 @@ export function gridsterOptions(className: string, I18NGridOptions) {
         label: I18NGridOptions?.BaseLayerIndex ?? 'Base Layer Index',
         placeholder: 'baseLayerIndex',
         type: 'number',
-        thumbLabel: true,
-      }
+        thumbLabel: true }
     },
 
     // {

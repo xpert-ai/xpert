@@ -1,7 +1,8 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply block relative overflow-hidden;
 }
 
 .type-radio.active {
-  @apply bg-white;
+  @apply bg-components-card-bg;
 }

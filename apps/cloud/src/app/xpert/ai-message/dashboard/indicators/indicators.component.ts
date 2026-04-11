@@ -1,36 +1,43 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, ViewContainerRef } from '@angular/core'
+
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  ViewContainerRef
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { XpertOcapService } from '@cloud/app/xpert/ocap.service'
-import { IIndicator } from '@metad/contracts'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmIndicatorComponent, NgmIndicatorExplorerComponent } from '@metad/ocap-angular/indicator'
-import { DataSettings, IndicatorTagEnum, IndicatorType, TimeGranularity } from '@metad/ocap-core'
+import { IIndicator } from '@xpert-ai/contracts'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmIndicatorComponent, NgmIndicatorExplorerComponent } from '@xpert-ai/ocap-angular/indicator'
+import { DataSettings, IndicatorTagEnum, IndicatorType, TimeGranularity } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { isEqual } from 'lodash-es'
 import { combineLatest, map, of } from 'rxjs'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
-
+    ...ZardTooltipImports,
     NgmIndicatorComponent,
-    NgmIndicatorExplorerComponent,
-  ],
+    NgmIndicatorExplorerComponent
+],
   selector: 'chat-component-indicators',
   templateUrl: './indicators.component.html',
   styleUrl: 'indicators.component.scss',
@@ -46,7 +53,9 @@ export class ChatComponentIndicatorsComponent {
 
   // Inputs
   readonly indicators =
-    input<Array<Pick<DataSettings, 'dataSource'> & Pick<DataSettings, 'entitySet'> & { id: string; indicatorCode: string }>>()
+    input<
+      Array<Pick<DataSettings, 'dataSource'> & Pick<DataSettings, 'entitySet'> & { id: string; indicatorCode: string }>
+    >()
 
   // States
   // Collect dataSources of indicators
@@ -67,36 +76,74 @@ export class ChatComponentIndicatorsComponent {
     return of(null)
   })
 
-  // Processing indicators: If it is a measurement, add a temporary equivalent indicator
-  readonly _indicators = computed(() => {
-    const indicators = this.indicators()
-    if (indicators && this.dataSources()) {
-      return indicators.map((indicator) => {
-        const dataSource = this.dataSources()[indicator.dataSource]
-        if (dataSource) {
-          const _indicator = dataSource.getIndicator(indicator.indicatorCode)
-          if (!_indicator) {
-            dataSource.upsertIndicator({
+  readonly temporaryIndicatorRequests = computed(
+    () => {
+      const indicators = this.indicators()
+      const dataSources = this.dataSources()
+
+      if (!indicators?.length || !dataSources) {
+        return []
+      }
+
+      return indicators.flatMap((indicator) => {
+        const dataSource = dataSources[indicator.dataSource]
+        if (!dataSource) {
+          return []
+        }
+
+        const temporaryCode = getTemporaryIndicatorCode(indicator.indicatorCode)
+        const existingIndicator = dataSource.getIndicator(indicator.indicatorCode, indicator.entitySet)
+        const existingTemporaryIndicator = dataSource.getIndicator(temporaryCode, indicator.entitySet)
+
+        if (existingIndicator || existingTemporaryIndicator) {
+          return []
+        }
+
+        return [
+          {
+            dataSource: indicator.dataSource,
+            indicator: {
               name: indicator.indicatorCode,
-              code: `Measure_${indicator.indicatorCode}`,
+              code: temporaryCode,
               entity: indicator.entitySet,
               type: IndicatorType.BASIC,
               measure: indicator.indicatorCode,
               visible: true
-            })
+            }
+          }
+        ]
+      })
+    },
+    { equal: isEqual }
+  )
+
+  // Processing indicators: If it is a measurement, add a temporary equivalent indicator
+  readonly _indicators = computed(
+    () => {
+      const indicators = this.indicators()
+      const dataSources = this.dataSources()
+      if (indicators && dataSources) {
+        return indicators.map((indicator) => {
+          const dataSource = dataSources[indicator.dataSource]
+          if (dataSource) {
+            const existingIndicator = dataSource.getIndicator(indicator.indicatorCode, indicator.entitySet)
+            if (existingIndicator) {
+              return indicator
+            }
 
             return {
               ...indicator,
-              indicatorCode: `Measure_${indicator.indicatorCode}`
+              indicatorCode: getTemporaryIndicatorCode(indicator.indicatorCode)
             }
           }
-        }
 
-        return indicator
-      })
-    }
-    return indicators
-  })
+          return indicator
+        })
+      }
+      return indicators
+    },
+    { equal: isEqual }
+  )
   readonly pageSize = signal(5)
   readonly pageNo = signal(0)
 
@@ -104,14 +151,24 @@ export class ChatComponentIndicatorsComponent {
     return this._indicators()?.slice(0, (this.pageNo() + 1) * this.pageSize())
   })
 
-  readonly hasMore = computed(() => this._indicators().length > (this.pageNo() + 1) * this.pageSize())
+  readonly hasMore = computed(() => (this._indicators()?.length ?? 0) > (this.pageNo() + 1) * this.pageSize())
 
   readonly indicatorExplorer = signal<string>(null)
   readonly indicatorTagType = signal<IndicatorTagEnum>(IndicatorTagEnum.MOM)
 
   constructor() {
-    // effect(() => {
-    // })
+    effect(() => {
+      const requests = this.temporaryIndicatorRequests()
+      const dataSources = this.dataSources()
+
+      if (!requests.length || !dataSources) {
+        return
+      }
+
+      requests.forEach(({ dataSource: dataSourceName, indicator }) => {
+        dataSources[dataSourceName]?.upsertIndicator(indicator)
+      })
+    })
   }
 
   toggleIndicatorTagType() {
@@ -137,17 +194,23 @@ export class ChatComponentIndicatorsComponent {
   }
 
   editIndicator(id: string) {
-    this.#dialog.open<IIndicator>(XpIndicatorFormComponent, {
-      viewContainerRef: this.viewContainerRef,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-        id
-      }
-    }).closed.subscribe((result) => {
-      if (result) {
-        this.xpertOcapService.refreshModel(result.modelId, true)
-      }
-    })
+    this.#dialog
+      .open<IIndicator>(XpIndicatorFormComponent, {
+        viewContainerRef: this.viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          id
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          this.xpertOcapService.refreshModel(result.modelId, true)
+        }
+      })
   }
+}
+
+function getTemporaryIndicatorCode(indicatorCode: string) {
+  return `Measure_${indicatorCode}`
 }

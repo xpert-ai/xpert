@@ -1,4 +1,4 @@
-import { FormlyMatSliderModule } from './slider.module';
+import { FormlySliderModule } from './slider.module';
 import { FormlySliderFieldConfig } from './slider.type';
 
-export { FormlyMatSliderModule, FormlySliderFieldConfig };
+export { FormlySliderModule, FormlySliderFieldConfig };

@@ -30,8 +30,8 @@
         <div class="grid w-full grid-cols-4 gap-1">
           @for (item of sourceStrategies(); track item.source.key) {
             <div
-              class="flex cursor-pointer items-center gap-2 rounded-xl border p-3 shadow-sm bg-components-card-bg ring-[0.5px] ring-inset hover:border-gray-200"
-              [class.border-gray-100]="item.strategy"
+              class="flex cursor-pointer items-center gap-2 rounded-xl border p-3 shadow-sm bg-components-card-bg ring-[0.5px] ring-inset hover:border-divider-deep"
+              [class.border-divider-regular]="item.strategy"
               [class.ring-gray-50]="item.strategy"
               [class.border-yellow-400]="!item.strategy"
               [class.ring-yellow-400]="!item.strategy"
@@ -53,7 +53,7 @@
               } @else {
                 <div
                   class="system-sm-medium truncate grow text-text-tertiary italic"
-                  matTooltip="{{
+                  zTooltip="{{
                     item.source.entity.provider +
                       ' ' +
                       ('PAC.Knowledgebase.PluginNotFound' | translate: { Default: 'plugin not found' })
@@ -152,7 +152,7 @@
                         {{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Error' } }}
                       </div>
                       <markdown
-                        class="ngm-copilot-markdown block overflow-x-hidden text-sm text-zinc-500"
+                        class="ngm-copilot-markdown block overflow-x-hidden text-sm text-text-tertiary"
                         [disableSanitizer]="true"
                         lineNumbers
                         [start]="5"
@@ -250,7 +250,7 @@
                     ></path>
                   </svg>
 
-                  <p class="text-xs text-gray-500">
+                  <p class="text-xs text-text-tertiary">
                     <span class="truncate">{{ doc.metadata.source || 'WEB PAGE' }}</span> ·
                     {{ doc.metadata.characters || 0 }}
                     {{ 'PAC.KEY_WORDS.Characters' | translate: { Default: 'Characters' } }}

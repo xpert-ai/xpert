@@ -1,4 +1,4 @@
-import { FileStorageOption, FileSystem, UploadedFile } from '@metad/contracts'
+import { FileStorageOption, FileSystem, UploadedFile } from '@xpert-ai/contracts'
 
 export interface IFileStorageProvider {
   readonly name: string

@@ -1,8 +1,7 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatTabsModule } from '@angular/material/tabs'
+import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { Store, routeAnimations } from '../../../@core'
@@ -17,14 +16,13 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
-    MatTabsModule,
-    MatDividerModule,
+    ...ZardTabsImports,
+    ZardDividerComponent,
     TranslateModule,
     RouterModule,
     UserPipe,
     UserAvatarEditorComponent
-  ]
+]
 })
 export class PACAccountComponent {
   private readonly store = inject(Store)

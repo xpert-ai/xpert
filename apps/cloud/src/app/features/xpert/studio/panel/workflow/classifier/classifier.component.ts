@@ -1,10 +1,9 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -16,6 +15,7 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-classifier',
@@ -24,14 +24,13 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     CopilotModelSelectComponent,
     StateVariableSelectComponent,
     CopilotPromptEditorComponent
-  ],
+],
   host: {
     tabindex: '-1'
   }
@@ -81,7 +80,7 @@ export class XpertWorkflowClassifierComponent extends XpertWorkflowBaseComponent
 
   readonly expandAdvanced = signal(false)
   readonly expandOutputVariables = signal(false)
-  
+
   updateClass(i: number, value: string) {
     this.classes.update((classes) => {
       classes[i] = {

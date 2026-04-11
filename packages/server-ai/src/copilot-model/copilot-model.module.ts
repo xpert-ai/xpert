@@ -1,4 +1,4 @@
-import { TenantModule, UserModule } from '@metad/server-core'
+import { TenantModule, UserModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'

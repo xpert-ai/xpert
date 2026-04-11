@@ -14,12 +14,10 @@ import {
 } from '@angular/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet'
-import { CommentsService, Store, ToastrService } from '@metad/cloud/state'
-import { BusinessAreaRole, IBusinessAreaUser, IComment } from '@metad/contracts'
-import { NgmCopilotService } from '@metad/copilot-angular'
-import { convertTableToCSV, nonNullable } from '@metad/core'
-import { DisplayDensity, NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@metad/ocap-angular/core'
+import { CommentsService, Store, ToastrService } from '@xpert-ai/cloud/state'
+import { BusinessAreaRole, IBusinessAreaUser, IComment } from '@xpert-ai/contracts'
+import { convertTableToCSV, nonNullable } from '@xpert-ai/core'
+import { DisplayDensity, NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@xpert-ai/ocap-angular/core'
 import {
   C_MEASURES,
   calcOffsetRange,
@@ -54,12 +52,13 @@ import {
   ReferenceLineValueType,
   slicerAsString,
   TimeRangeType
-} from '@metad/ocap-core'
-import { ExplainComponent } from '@metad/story/story'
+} from '@xpert-ai/ocap-core'
+import { ExplainComponent } from '@xpert-ai/story/story'
 import { TranslateService } from '@ngx-translate/core'
 import { graphic } from 'echarts/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { Z_SHEET_DATA, ZardSheetRef } from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   combineLatest,
@@ -79,6 +78,7 @@ import { IndicatorsStore } from '../services/store'
 import { IndicatorState, Trend, TrendColor, TrendReverseColor } from '../types'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-indicator-detail',
   templateUrl: 'indicator-detail.component.html',
@@ -94,11 +94,10 @@ export class IndicatorDetailComponent {
   private store = inject(IndicatorsStore)
   private indicatoryMarketComponent = inject(IndicatoryMarketComponent)
   readonly #logger = inject(NGXLogger)
-  private data? = inject<{ id: string }>(MAT_BOTTOM_SHEET_DATA, { optional: true })
-  private _bottomSheetRef? = inject<MatBottomSheetRef<IndicatorDetailComponent>>(MatBottomSheetRef, { optional: true })
+  private data? = inject<{ id: string }>(Z_SHEET_DATA, { optional: true })
+  private _bottomSheetRef? = inject<ZardSheetRef<IndicatorDetailComponent>>(ZardSheetRef, { optional: true })
   private _cdr = inject(ChangeDetectorRef)
   private toastrService = inject(ToastrService)
-  private copilotService = inject(NgmCopilotService)
   private dsCoreService = inject(NgmDSCoreService)
   private commentsService = inject(CommentsService)
   readonly #translate = inject(TranslateService)
@@ -604,7 +603,6 @@ export class IndicatorDetailComponent {
   readonly indicator = toSignal(this.indicator$)
   readonly indicatorMeasureName = computed(() => getIndicatorMeasureName(this.indicator() as Indicator))
   readonly favour = computed(() => this.store.favorites()?.includes(this.indicator()?.id))
-  readonly copilotEnabled = toSignal(this.copilotService.enabled$)
 
   readonly entityType = toSignal(this.entityType$)
 
@@ -674,7 +672,7 @@ export class IndicatorDetailComponent {
   }
 
   onClose(event) {
-    this._bottomSheetRef.dismiss()
+    this._bottomSheetRef?.close()
     event.preventDefault()
   }
 

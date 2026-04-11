@@ -13,10 +13,12 @@
 </div>
 
 <div class="tag-list flex-1 flex flex-col overflow-hidden">
-  <div class="px-4 pt-4">
-    <button type="button" class="btn btn-large btn-primary px-5 py-2.5 text-center me-2 mb-2"
-      (click)="createTag()">{{'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}</button>
-  </div>
+  @if (!readonly()) {
+    <div class="px-4 pt-4">
+      <button type="button" class="btn btn-large btn-primary px-5 py-2.5 text-center me-2 mb-2"
+        (click)="createTag()">{{'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}</button>
+    </div>
+  }
   
   <div class="m-4 border border-solid border-divider-regular rounded-xl overflow-auto">
     <table class="table-fixed">
@@ -28,7 +30,9 @@
           <th class="w-40 shrink-0">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
           <th class="w-40 shrink-0">{{ 'PAC.KEY_WORDS.Icon' | translate: {Default: 'Icon'} }}</th>
           <th class="w-40 shrink-0">{{ 'PAC.KEY_WORDS.Color' | translate: {Default: 'Color'} }}</th>
-          <th>{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
+          @if (!readonly()) {
+            <th>{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
+          }
         </tr>
       </thead>
       <tbody>
@@ -39,33 +43,39 @@
             </td>
             <td>{{tag.category}}</td>
             <td class="w-40 shrink-0">
-              <input class="p-1" matInput
+              <input class="p-1" z-input
                 [(ngModel)]="tag.label"
+                [disabled]="readonly()"
                 (blur)="onLabel(tag)">
             </td>
             <td class="w-40 shrink-0">
-              <input class="p-1" matInput
+              <input class="p-1" z-input
                 [(ngModel)]="tag.description"
+                [disabled]="readonly()"
                 (blur)="onDescripton(tag)">
             </td>
             <td class="w-40 shrink-0">
-              <input matInput class="p-1"
+              <input z-input class="p-1"
                 [(ngModel)]="tag.icon"
+                [disabled]="readonly()"
                 (blur)="onIcon(tag)">
             </td>
             <td class="w-40 shrink-0">
-              <input matInput class="p-1"
+              <input z-input class="p-1"
                 [(ngModel)]="tag.color"
+                [disabled]="readonly()"
                 (blur)="onColor(tag)"></td>
-            <td>
-              @if (tenant() || tag.organizationId) {
+            @if (!readonly()) {
+              <td>
+                @if (tenant() || tag.organizationId) {
                 <button class="btn flex justify-center items-center w-8 h-8 p-1 rounded-lg hover:bg-hover-bg cursor-pointer active:scale-98 transition-transform
                   pressable btn-danger"
                   (click)="deleteTag(tag)">
                   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="remixicon w-4 h-4"><path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path></svg>
                 </button>
-              }
-            </td>
+                }
+              </td>
+            }
           </tr>
         }
       </tbody>

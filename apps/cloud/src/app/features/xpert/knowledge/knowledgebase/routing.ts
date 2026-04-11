@@ -9,6 +9,7 @@ import { KnowledgeDocumentPipelineComponent } from './documents/pipeline/pipelin
 import { KnowledgebasePipelinesComponent } from './pipelines/pipelines.component'
 import { KnowledgeDocumentSettingsComponent } from './documents/settings/settings.component'
 import { KnowledgebasePipelineComponent } from './pipeline/pipeline.component'
+import { ExtensionHostViewPageComponent } from 'apps/cloud/src/app/@shared/view-extension'
 
 export default [
   {
@@ -52,6 +53,14 @@ export default [
       {
         path: 'test',
         component: KnowledgeTestComponent
+      },
+      {
+        path: 'view/:viewKey',
+        component: ExtensionHostViewPageComponent,
+        data: {
+          hostType: 'knowledgebase',
+          slot: 'detail.main_tabs'
+        }
       },
       {
         path: 'xpert/:id',

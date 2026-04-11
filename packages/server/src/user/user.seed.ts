@@ -1,6 +1,6 @@
 import { Connection } from 'typeorm';
 import bcrypt from 'bcryptjs';
-import { environment as env } from '@metad/server-config';
+import { environment as env } from '@xpert-ai/server-config';
 import faker from 'faker';
 import {
 	IDefaultUser,
@@ -11,7 +11,7 @@ import {
 	ITenant,
 	IUser,
 	DEFAULT_TENANT
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import chalk from 'chalk';
 import { User } from './user.entity';
 import { generateRandomPassword, getUserDummyImage, Role } from '../core';
@@ -134,6 +134,9 @@ export const createDefaultUsers = async (
 	};
 };
 
+/**
+ * @deprecated Random user seeding is not used by the current seed flow. Avoid adding new callers here.
+ */
 export const createRandomUsers = async (
 	connection: Connection,
 	tenants: ITenant[],
@@ -154,33 +157,7 @@ export const createRandomUsers = async (
 			organizationPerTenant //Because we want to seed at least one admin per organization
 		);
 
-		const _employeeUsers: Promise<IUser[]> = seedRandomUsers(
-			connection,
-			RolesEnum.EMPLOYEE,
-			tenant,
-			employeesPerOrganization * organizationPerTenant
-		);
-
-		const _candidateUsers: Promise<IUser[]> = seedRandomUsers(
-			connection,
-			RolesEnum.CANDIDATE,
-			tenant,
-			candidatesPerOrganization * organizationPerTenant
-		);
-
-		const _managerUsers: Promise<IUser[]> = seedRandomUsers(
-			connection,
-			RolesEnum.MANAGER,
-			tenant,
-			managersPerOrganization * organizationPerTenant
-		);
-
-		const _dataEntryUsers: Promise<IUser[]> = seedRandomUsers(
-			connection,
-			RolesEnum.DATA_ENTRY,
-			tenant,
-			dataEntriesPerOrganization * organizationPerTenant
-		);
+		
 
 		const _viewerUsers: Promise<IUser[]> = seedRandomUsers(
 			connection,
@@ -191,40 +168,25 @@ export const createRandomUsers = async (
 
 		const [
 			promiseAdminUsers,
-			promiseEmployeeUsers,
-			promiseCandidateUsers,
-			promiseManagerUsers,
-			promiseDataEntryUsers,
 			promiseViewerUsers
 		] = await Promise.all([
 			_adminUsers,
-			_employeeUsers,
-			_candidateUsers,
-			_managerUsers,
-			_dataEntryUsers,
 			_viewerUsers
 		]);
 
 		const adminUsers = await insertUsers(connection, [
 			...promiseAdminUsers
 		]);
-		const employeeUsers = await insertUsers(connection, [
-			...promiseEmployeeUsers
-		]);
-		const candidateUsers = await insertUsers(connection, [
-			...promiseCandidateUsers
-		]);
+
 
 		await insertUsers(connection, [
-			...promiseManagerUsers,
-			...promiseDataEntryUsers,
 			...promiseViewerUsers
 		]);
 
 		randomTenantUsers.set(tenant, {
 			adminUsers,
-			employeeUsers,
-			candidateUsers
+			employeeUsers: [],
+			candidateUsers: []
 		});
 	}
 
@@ -286,7 +248,7 @@ const seedDefaultEmployeeUsers = async (
 ): Promise<IUser[]> => {
 	const employeeRole = await connection.manager.findOneBy(Role, {
 		tenant,
-		name: RolesEnum.EMPLOYEE
+		name: RolesEnum.VIEWER
 	});
 
 	const defaultUsers: Promise<IUser>[] = [];
@@ -326,7 +288,7 @@ const seedDefaultCandidateUsers = async (
 ): Promise<IUser[]> => {
 	const candidateRole = await connection.manager.findOneBy(Role, {
 		tenant,
-		name: RolesEnum.CANDIDATE
+		name: RolesEnum.VIEWER
 	});
 	// const defaultCandidates = DEFAULT_CANDIDATES;
 	const defaultCandidateUsers: Promise<IUser>[] = [];

@@ -1,8 +1,8 @@
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject, input } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { IXpertTask } from '@metad/contracts'
+import { IXpertTask } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
@@ -11,7 +11,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
   selector: 'xpert-task-form',
   templateUrl: './task-form.component.html',
   styleUrl: `./task-form.component.scss`,
-  imports: [CommonModule, ReactiveFormsModule, TextFieldModule, TranslateModule],
+  imports: [ReactiveFormsModule, TextFieldModule, TranslateModule],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertTaskFormComponent {
@@ -34,6 +34,6 @@ export class XpertTaskFormComponent {
         this.formGroup.patchValue(this.task())
         this.formGroup.markAsPristine()
       }
-    }, { allowSignalWrites: true })
+    })
   }
 }

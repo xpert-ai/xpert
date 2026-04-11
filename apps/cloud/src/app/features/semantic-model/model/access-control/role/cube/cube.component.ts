@@ -1,17 +1,14 @@
 import { CdkDrag, CdkDragDrop } from '@angular/cdk/drag-drop'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { MatButtonToggleChange } from '@angular/material/button-toggle'
-import { MatRadioChange } from '@angular/material/radio'
-import { MatSlideToggleChange } from '@angular/material/slide-toggle'
 import { ActivatedRoute, Router } from '@angular/router'
-import { MDX } from '@metad/contracts'
-import { nonBlank } from '@metad/core'
-import { injectCopilotCommand } from '@metad/copilot-angular'
-import { EntitySchemaType } from '@metad/ocap-angular/entity'
-import { AggregationRole, C_MEASURES, EntityType, getEntityHierarchy } from '@metad/ocap-core'
+import { MDX } from '@xpert-ai/contracts'
+import { nonBlank } from '@xpert-ai/core'
+import { EntitySchemaType } from '@xpert-ai/ocap-angular/entity'
+import { AggregationRole, C_MEASURES, EntityType, getEntityHierarchy } from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
+import type { ZardRadioGroupChange, ZardSwitchChange, ZardToggleGroupChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../../../model.service'
 import { RoleComponent } from '../role.component'
 import { CubeStateService } from './cube.service'
@@ -21,6 +18,7 @@ import { CubeStateService } from './cube.service'
  * https://stackblitz.com/edit/angular-cdk-nested-drag-drop-tree-structure?file=src%2Fapp%2Fapp.component.html
  */
 @Component({
+  standalone: false,
   selector: 'pac-model-access-cube',
   templateUrl: 'cube.component.html',
   styleUrls: ['cube.component.scss'],
@@ -69,26 +67,6 @@ export class CubeComponent {
 
   /**
   |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #Command = injectCopilotCommand({
-    name: 'role',
-    description: this.#translate.instant('PAC.MODEL.Copilot.Examples.CreateNewRole', {
-      Default: 'Describe the role you want to create'
-    }),
-    systemPrompt: async () => `Create or edit a role. 如何未提供 cube 信息，请先选择一个 cube`,
-    actions: [
-      // injectMakeCopilotActionable({
-      //   name: 'select_cube',
-      //   description: 'Select a cube',
-      //   argumentAnnotations: [],
-      //   implementation: async () => {}
-      // })
-    ]
-  })
-  /**
-  |--------------------------------------------------------------------------
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
@@ -119,7 +97,7 @@ export class CubeComponent {
     return item.hierarchy
   }
 
-  changeCubeAccess(event: MatRadioChange) {
+  changeCubeAccess(event: ZardRadioGroupChange<MDX.Access>) {
     this.#cubeState.patchState({
       access: event.value
     })
@@ -143,18 +121,18 @@ export class CubeComponent {
     }
   }
 
-  changeRollupPolicy(event: MatButtonToggleChange, hierarchy: string) {
+  changeRollupPolicy(event: ZardToggleGroupChange, hierarchy: string) {
     this.#cubeState.updateHierarchy({
       hierarchy,
       entity: {
-        rollupPolicy: event.value
+        rollupPolicy: event.value as MDX.RollupPolicy
       }
     })
   }
 
-  changeHierarchyAccess(event: MatButtonToggleChange, hierarchy: string) {
+  changeHierarchyAccess(event: ZardToggleGroupChange, hierarchy: string) {
     const entity = {
-      access: event.value
+      access: event.value as MDX.Access
     } as MDX.HierarchyGrant
 
     if (entity.access !== MDX.Access.custom) {
@@ -259,7 +237,7 @@ export class CubeComponent {
     })
   }
 
-  changeMemberAccess(event: MatSlideToggleChange, hierarchy: string, member: string) {
+  changeMemberAccess(event: ZardSwitchChange, hierarchy: string, member: string) {
     this.#cubeState.updateMember({
       hierarchy,
       member,

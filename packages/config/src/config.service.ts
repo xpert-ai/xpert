@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 import { DynamicModule, Injectable, Type, Logger } from '@nestjs/common';
-import { IPluginConfig, IApiServerOptions, IAssetOptions } from '@metad/server-common';
+import { IPluginConfig, IApiServerOptions, IAssetOptions } from '@xpert-ai/server-common';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { getConfig } from './config-manager';
 import { IEnvironment } from './environments/ienvironment';

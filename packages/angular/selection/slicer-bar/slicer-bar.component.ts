@@ -1,6 +1,6 @@
+import { DIALOG_DATA } from '@angular/cdk/dialog'
 import { Component, EventEmitter, HostBinding, Inject, Input, OnInit, Optional, Output } from '@angular/core'
 import { FormControl } from '@angular/forms'
-import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 import {
   DataSettings,
   DisplayBehaviour,
@@ -10,16 +10,16 @@ import {
   getEntityDimensions,
   getPropertyName,
   nonNullable
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BehaviorSubject, filter, map } from 'rxjs'
 import { BaseSlicersComponent } from '../base-slicers'
 import { SlicersCapacity } from '../types'
 
-
 @Component({
   selector: 'ngm-slicer-bar',
   templateUrl: 'slicer-bar.component.html',
-  styleUrls: ['slicer-bar.component.scss']
+  styleUrls: ['slicer-bar.component.scss'],
+  standalone: false
 })
 export class SlicerBarComponent extends BaseSlicersComponent implements OnInit {
   DisplayBehaviour = DisplayBehaviour
@@ -61,7 +61,7 @@ export class SlicerBarComponent extends BaseSlicersComponent implements OnInit {
 
   constructor(
     @Optional()
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(DIALOG_DATA)
     public data?: {
       dataSettings: DataSettings
       value: ISlicer[]

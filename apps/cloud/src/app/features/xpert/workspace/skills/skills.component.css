@@ -1,0 +1,5 @@
+@reference "../../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply relative flex grow flex-col px-12 pb-4 min-h-0 overflow-hidden;
+}

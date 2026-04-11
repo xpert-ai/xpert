@@ -2,6 +2,7 @@ import { animate, style, transition, trigger } from '@angular/animations'
 import { CdkDragEnd } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   Component,
   ElementRef,
@@ -19,17 +20,15 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
-import { StoriesService, convertNewSemanticModelResult } from '@metad/cloud/state'
-import { CopilotChatMessage } from '@metad/copilot'
-import { CommandDialogComponent } from '@metad/copilot-angular'
-import { IsNilPipe } from '@metad/core'
-import { NgmConfirmUniqueComponent, NgmInputComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { CHARTS, cloneDeep, DeepPartial, omit } from '@metad/ocap-core'
-import { NgmConfirmCodeEditorComponent } from '@metad/ocap-angular/editor'
-import { PreferencesComponent, QuerySettingComponent, ThemeBuilderComponent } from '@metad/story'
+import { StoriesService, convertNewSemanticModelResult } from '@xpert-ai/cloud/state'
+import { CopilotChatMessage } from '@xpert-ai/copilot'
+import { IsNilPipe } from '@xpert-ai/core'
+import { NgmConfirmUniqueComponent, NgmInputComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { CHARTS, cloneDeep, DeepPartial, omit } from '@xpert-ai/ocap-core'
+import { NgmConfirmCodeEditorComponent } from '@xpert-ai/ocap-angular/editor'
+import { PreferencesComponent, QuerySettingComponent, ThemeBuilderComponent } from '@xpert-ai/story'
 import {
   EmulatedDevice,
   NxStoryService,
@@ -39,8 +38,8 @@ import {
   StoryWidget,
   StoryWidgetComponentProvider,
   WidgetComponentType
-} from '@metad/story/core'
-import { StorySharesComponent } from '@metad/story/story'
+} from '@xpert-ai/story/core'
+import { StorySharesComponent } from '@xpert-ai/story/story'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { map } from 'rxjs/operators'
@@ -51,18 +50,20 @@ import { StoryDetailsComponent } from '../story-details/story-details.component'
 import { DeviceOrientation, DeviceZooms, EmulatedDevices, StoryScales, downloadStory } from '../types'
 import { StoryToolbarService } from './toolbar.service'
 import { COMPONENTS, PAGES } from './types'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { ProjectFilesDialogComponent } from '../../../@shared/project'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-    MaterialModule,
+    SharedUiModule,
     CdkMenuModule,
     TranslateModule,
     FormsModule,
     IsNilPipe,
+    ZardLoaderComponent,
     AppearanceDirective,
     DensityDirective,
     StoryDesignerComponent,
@@ -123,7 +124,7 @@ export class StoryToolbarComponent implements OnInit {
   readonly #translate = inject(TranslateService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private _viewContainerRef = inject(ViewContainerRef)
   private _widgetComponents?: Array<StoryWidgetComponentProvider> = inject(STORY_WIDGET_COMPONENT, { optional: true })
 
@@ -647,31 +648,18 @@ export class StoryToolbarComponent implements OnInit {
     this.showDetails.set('newPages')
   }
 
-  aiChatStory() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['story', 'page', 'widget', 'style']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
-  }
-
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKeydown(event: KeyboardEvent) {
+  onEscapeKeydown(event: Event) {
     this.toggleFullscreen(false)
   }
 
   @HostListener('document:keydown.alt', ['$event'])
-  onSpaceKeydown(event: KeyboardEvent) {
+  onSpaceKeydown(event: Event) {
     this.storyService.patchState({ isPanMode: true })
   }
 
   @HostListener('document:keyup.alt', ['$event'])
-  onSpaceKeyUp(event: KeyboardEvent) {
+  onSpaceKeyUp(event: Event) {
     this.storyService.patchState({ isPanMode: false })
   }
 }

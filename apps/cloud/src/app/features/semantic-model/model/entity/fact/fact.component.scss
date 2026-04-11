@@ -1,9 +1,10 @@
+@reference "../../../../../../styles/tailwind-reference.css";
 :host {
   @apply relative flex flex-col overflow-y-auto;
 }
 
 .pac-cube-structure-drop {
-  @apply rounded-xl m-1 border border-dashed border-slate-200 p-4 dark:border-neutral-800;
+  @apply rounded-xl m-1 border border-dashed border-divider-deep p-4 dark:border-neutral-800;
 }
 
 .pac-data-type-tag {
@@ -12,15 +13,12 @@
 }
 
 :host::ng-deep {
-  .mat-mdc-checkbox {
+  z-checkbox {
     @apply overflow-hidden;
-    
-    .mat-internal-form-field {
-      width: 100%;
-    }
 
-    .mdc-form-field > label {
+    .z-checkbox__label {
       flex: 1;
+      overflow: hidden;
     }
   }
 }

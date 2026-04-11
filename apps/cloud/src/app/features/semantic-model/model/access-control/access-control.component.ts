@@ -1,26 +1,15 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
-import { Component, TemplateRef, ViewChild, computed, inject } from '@angular/core'
+import { CdkListboxModule } from '@angular/cdk/listbox'
+
+import { Component, TemplateRef, ViewChild, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import {
-  AbstractControl,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
-  Validators
-} from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatListModule } from '@angular/material/list'
+import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms'
+
 import { ActivatedRoute, Router } from '@angular/router'
-import { IModelRole } from '@metad/contracts'
-import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { CommandDialogComponent, injectCopilotCommand } from '@metad/copilot-angular'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
-import { cloneDeep } from '@metad/ocap-core'
+import { IModelRole } from '@xpert-ai/contracts'
+import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
+import { buildListboxOptions, ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { cloneDeep } from '@xpert-ai/ocap-core'
 import { uuid } from 'apps/cloud/src/app/@core'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, map } from 'rxjs'
@@ -28,8 +17,10 @@ import { SemanticModelService } from '../model.service'
 import { AccessControlStateService } from './access-control.service'
 import { ModelComponent } from '../model.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 
 @Component({
+  standalone: false,
   selector: 'pac-model-access-control',
   templateUrl: 'access-control.component.html',
   providers: [AccessControlStateService],
@@ -50,7 +41,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 export class AccessControlComponent extends TranslationBaseComponent {
   readonly #accessControlState = inject(AccessControlStateService)
   readonly #logger = inject(NGXLogger)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #modelService = inject(SemanticModelService)
@@ -76,7 +67,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
     return this.#accessControlState.roles
   }
 
-  #newDialogRef: MatDialogRef<any, any>
+  #newDialogRef: ZardDialogRef<any, any>
 
   /**
   |--------------------------------------------------------------------------
@@ -93,62 +84,6 @@ export class AccessControlComponent extends TranslationBaseComponent {
       )
     )
   )
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #roleCommand = injectCopilotCommand({
-    name: 'role',
-    description: this.translateService.instant('PAC.MODEL.Copilot.Examples.CreateNewRole', {
-      Default: 'Describe the role you want to create'
-    }),
-    systemPrompt: async () => `Create or edit a role. 如何未提供 cube 信息，请先选择一个 cube`,
-    actions: [
-      // injectMakeCopilotActionable({
-      //   name: 'select_cube',
-      //   description: 'Select a cube',
-      //   argumentAnnotations: [],
-      //   implementation: async () => {
-      //     const result = await firstValueFrom(
-      //       this.#dialog.open(CubeSelectorComponent, { data: this.cubes() }).afterClosed()
-      //     )
-      //     if (result) {
-      //       const entityType = await firstValueFrom(this.#modelService.selectEntityType(result[0]))
-      //       return {
-      //         id: nanoid(),
-      //         name: 'select_cube',
-      //         role: 'function',
-      //         content: `${calcEntityTypePrompt(entityType)}`
-      //       }
-      //     }
-      //   }
-      // }),
-      // injectMakeCopilotActionable({
-      //   name: 'new-role',
-      //   description: 'Create a new role',
-      //   argumentAnnotations: [
-      //     {
-      //       name: 'role',
-      //       type: 'object',
-      //       description: 'Role defination',
-      //       properties: zodToAnnotations(RoleSchema),
-      //       required: true
-      //     }
-      //   ],
-      //   implementation: async (role: any) => {
-      //     role.key = nanoid()
-      //     this.#logger.debug(`The new role in function call is:`, role)
-      //     this.#accessControlState.addRole(role)
-
-      //     // Navigate to the new role
-      //     this.#router.navigate([role.key], { relativeTo: this.#route })
-
-      //     return `创建成功`
-      //   }
-      // })
-    ]
-  })
 
   trackByKey(index: number, item: IModelRole) {
     return item.key
@@ -170,19 +105,6 @@ export class AccessControlComponent extends TranslationBaseComponent {
     this.creatFormGroup.reset()
     this.#newDialogRef?.close()
     this.#newDialogRef = null
-  }
-
-  aiCreate() {
-    this.#dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['role',]
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   remove(role: IModelRole) {
@@ -223,55 +145,72 @@ export class AccessControlComponent extends TranslationBaseComponent {
 @Component({
   standalone: true,
   selector: 'pac-cube-selector',
-  template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <span style="pointer-events: none;">{{ '选择数据集' }}</span>
     </header>
 
-    <div mat-dialog-content class="flex-1">
+    <div xpDialogContent class="flex-1">
       <ngm-search class="m-2" [formControl]="search"></ngm-search>
 
-      <mat-selection-list [(ngModel)]="value" [multiple]="false" class="overflow-auto">
+      <ul
+        class="ngm-cdk-listbox overflow-auto"
+        cdkListbox
+        [cdkListboxValue]="value()"
+        (cdkListboxValueChange)="value.set([...$event.value])"
+      >
         @for (item of options(); track item.key) {
-        <mat-list-option [value]="item.key">
-          <ngm-display-behaviour [option]="item" [highlight]="search.value"></ngm-display-behaviour>
-        </mat-list-option>
+        <li class="ngm-cdk-option" [cdkOption]="item.value ?? item.key">
+          <ngm-display-behaviour [option]="toDisplayOption(item)" [highlight]="search.value"></ngm-display-behaviour>
+        </li>
         }
-      </mat-selection-list>
+      </ul>
     </div>
 
-    <div mat-dialog-actions align="end">
+    <div xpDialogActions align="end">
       <div ngmButtonGroup>
-        <button mat-button mat-dialog-close cdkFocusInitial>Cancel</button>
-        <button mat-raised-button color="accent" (click)="onApply()">Apply</button>
+        <button z-button zType="ghost" xpDialogClose cdkFocusInitial>Cancel</button>
+        <button z-button zType="default" (click)="onApply()">Apply</button>
       </div>
     </div>`,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatListModule,
+    CdkListboxModule,
+    ZardDialogModule,
+    ZardButtonComponent,
     NgmSearchComponent,
     NgmDisplayBehaviourComponent,
     ButtonGroupDirective
-  ]
+]
 })
 export class CubeSelectorComponent {
-  readonly #dialogRef = inject(MatDialogRef)
-  readonly data = inject<ISelectOption[]>(MAT_DIALOG_DATA)
+  readonly #dialogRef = inject(ZardDialogRef)
+  readonly data = inject<ISelectOption[]>(Z_MODAL_DATA)
 
   readonly search = new FormControl('')
   readonly searchText = toSignal(this.search.valueChanges, { initialValue: '' })
+  readonly value = model<string[]>([])
   readonly options = computed(() => {
     const text = this.searchText()?.toLowerCase()
-    return text ? this.data.filter((item) => item.caption.includes(text)) : this.data
+    const options = (text ? this.data.filter((item) => item.caption?.toLowerCase().includes(text)) : this.data).map(
+      (item) => ({
+        ...item,
+        value: item.value ?? item.key
+      })
+    )
+    return buildListboxOptions(options, this.value())
   })
 
-  value = []
-
   onApply() {
-    this.#dialogRef.close(this.value)
+    this.#dialogRef.close(this.value())
+  }
+
+  toDisplayOption(item: { key?: string; value: unknown; label?: unknown }) {
+    return {
+      key: item.key ?? `${item.value ?? ''}`,
+      value: item.value,
+      caption: typeof item.label === 'string' ? item.label : `${item.value ?? ''}`
+    }
   }
 }

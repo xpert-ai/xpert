@@ -3,7 +3,7 @@ import { PermissionApprovalService } from '../../permission-approval.service';
 import { PermissionApproval } from '../../permission-approval.entity';
 import { PermissionApprovalAdminCommand } from '../permission-approval.admin.command';
 import { BusinessAreaMyCommand } from '../../../business-area';
-import { BusinessAreaRole } from '@metad/contracts';
+import { BusinessAreaRole } from '@xpert-ai/contracts';
 
 @CommandHandler(PermissionApprovalAdminCommand)
 export class PermissionApprovalAdminHandler

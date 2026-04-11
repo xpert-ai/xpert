@@ -1,9 +1,9 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { I18nObject, IconDefinition, injectHelpWebsite } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 export type TPlugin = {
@@ -27,12 +27,11 @@ export type TPlugin = {
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     NgmI18nPipe,
-    IconComponent,
-  ],
+    IconComponent
+],
   selector: 'xp-plugin',
   templateUrl: './plugin.component.html',
   styleUrls: ['./plugin.component.scss'],

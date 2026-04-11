@@ -1,7 +1,9 @@
-@import './features/home/_home';
-@import './features/project/_project.component';
-@import './features/_features.component';
-@import './@shared/components';
+@use "sass:meta";
+@reference "tailwindcss";
+@include meta.load-css('features/home/_home');
+@include meta.load-css('features/project/_project.component');
+@include meta.load-css('features/_features.component');
+@include meta.load-css('@shared/components');
 
 .pac-page-header {
   @apply flex flex-col justify-start items-stretch gap-2 px-4 pt-4;
@@ -18,29 +20,25 @@
 .pac-page-body-toolbar {
   @apply flex justify-between items-center;
 }
-.pac-tab-nav-bar.mat-mdc-tab-header {
-  --mdc-secondary-navigation-tab-container-height: 38px;
+.pac-tab-nav-bar.z-tab-nav-bar {
+  min-height: 38px;
 
   .pac-tab-close {
     @apply opacity-0 invisible absolute -right-6;
   }
-  .mdc-tab.mdc-tab--active {
+  .z-tab-link[data-active='true'] {
     .pac-tab-close {
       @apply opacity-100 visible;
     }
   }
 }
-// .mat-mdc-card.mdc-card {
-//   @apply rounded-xl shadow-none border border-neutral-200 dark:border-neutral-800;
-// }
-
-.cdk-overlay-container .mat-mdc-dialog-container.mdc-dialog .mdc-dialog__content.pac-dialog-content {
+.cdk-overlay-container .pac-dialog-content {
   @apply p-0;
 }
 
 .ngm-table {
-  border-color: var(--mat-divider-color);
+  border-color: var(--border);
 }
 .pac-table-container {
-  border-color: var(--mat-divider-color);
+  border-color: var(--border);
 }

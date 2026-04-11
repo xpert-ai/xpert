@@ -1,26 +1,25 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { assign, cloneDeep } from '@metad/ocap-core'
-import { PreferencesSchema, StoryPreferencesFields } from '@metad/story'
-import { NxStoryService, StoryPreferences } from '@metad/story/core'
-import { FORMLY_W_1_2 } from '@metad/story/designer'
+import { assign, cloneDeep } from '@xpert-ai/ocap-core'
+import { PreferencesSchema, StoryPreferencesFields } from '@xpert-ai/story'
+import { NxStoryService, StoryPreferences } from '@xpert-ai/story/core'
+import { FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { FormlyFieldConfig, FormlyFormOptions, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { combineLatest, debounceTime, map, startWith } from 'rxjs'
-import { MatTabsModule } from '@angular/material/tabs'
+import { ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTabsModule,
-    FormlyModule,
-  ],
+    ...ZardTabsImports,
+    FormlyModule
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-story-designer',
   templateUrl: './story-designer.component.html',

@@ -1,7 +1,6 @@
 import { Component, input } from '@angular/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-
 
 @Component({
   standalone: true,

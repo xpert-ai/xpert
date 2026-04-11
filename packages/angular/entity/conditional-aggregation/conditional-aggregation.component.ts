@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, forwardRef, inject, input, OnInit } from '@angular/core'
 import {
   ControlValueAccessor,
@@ -9,10 +9,9 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmParameterSelectComponent } from '@metad/ocap-angular/parameter'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmParameterSelectComponent } from '@xpert-ai/ocap-angular/parameter'
 import {
   AggregationCompareOperations,
   AggregationOperation,
@@ -26,13 +25,13 @@ import {
   negate,
   Property,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { sortBy } from 'lodash-es'
 import { PropertyCapacity } from '../types'
 import { NgmMeasureSelectComponent } from '../measure-select/measure-select.component'
 import { NgmPropertyArrayComponent } from '../property-array/property-array.component'
-
+import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -47,16 +46,15 @@ import { NgmPropertyArrayComponent } from '../property-array/property-array.comp
     }
   ],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     TranslateModule,
     NgmCommonModule,
     NgmParameterSelectComponent,
     NgmMeasureSelectComponent,
     NgmPropertyArrayComponent
-  ]
+]
 })
 export class NgmConditionalAggregationComponent implements ControlValueAccessor, OnInit {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
@@ -66,9 +64,26 @@ export class NgmConditionalAggregationComponent implements ControlValueAccessor,
   private formBuilder = inject(FormBuilder)
   readonly #translate = inject(TranslateService)
 
-  OPERATIONS = AggregationOperations.map((operation) => ({...operation, label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {Default: operation.label}) }))
-  COMPARES = [{value: null, label: ''}, ...AggregationCompareOperations.map((operation) => ({...operation, label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {Default: operation.label}) }))]
-  HAS_VALUE_OPERATIONS = [AggregationOperation.TOP_COUNT, AggregationOperation.TOP_PERCENT, AggregationOperation.TOP_SUM]
+  OPERATIONS = AggregationOperations.map((operation) => ({
+    ...operation,
+    label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {
+      Default: operation.label
+    })
+  }))
+  COMPARES = [
+    { value: null, label: '' },
+    ...AggregationCompareOperations.map((operation) => ({
+      ...operation,
+      label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {
+        Default: operation.label
+      })
+    }))
+  ]
+  HAS_VALUE_OPERATIONS = [
+    AggregationOperation.TOP_COUNT,
+    AggregationOperation.TOP_PERCENT,
+    AggregationOperation.TOP_SUM
+  ]
   COMPARE_VALUE_OPERATIONS = [AggregationOperation.SUM, AggregationOperation.COUNT]
   COMPARE_NO_VALUE = [null, 'empty', 'not_empty']
 
@@ -88,9 +103,9 @@ export class NgmConditionalAggregationComponent implements ControlValueAccessor,
     return this.formGroup?.value?.operation
   }
 
-  filterMeasure: (measure: PropertyMeasure) => boolean = (measure) => isNil(this.formGroup?.value?.name) ? true :
-    measure.name !== this.formGroup.value.name
-  
+  filterMeasure: (measure: PropertyMeasure) => boolean = (measure) =>
+    isNil(this.formGroup?.value?.name) ? true : measure.name !== this.formGroup.value.name
+
   private _onChange: any
   private _onTouched: any
 

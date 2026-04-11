@@ -1,0 +1,15 @@
+{
+  "name": "@xpert-ai/copilot",
+  "version": "3.8.5-beta.0",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "docs": "pnpm typedoc --out ./.docs"
+  },
+  "dependencies": {
+    "@xpert-ai/contracts": "workspace:*"
+  },
+  "peerDependencies": {
+    "nanoid": "^4.0.2",
+    "ollama": "^0.5.6"
+  }
+}

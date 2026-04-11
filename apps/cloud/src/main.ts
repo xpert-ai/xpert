@@ -1,21 +1,15 @@
 import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 import * as Sentry from "@sentry/angular";
-import { BrowserTracing } from "@sentry/tracing";
 import 'hammerjs';
-
 import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 import { enableAkitaProdMode, persistState, akitaConfig } from '@datorama/akita';
 
-
 // Sentry.init({
 //   dsn: "https://ceec859e3292454e86c5fe2fc2685c57@o4504752442507264.ingest.sentry.io/4504752446636032",
 //   integrations: [
-//     new BrowserTracing({
-//       tracePropagationTargets: ["localhost", "https://app.mtda.cloud/"],
-//       routingInstrumentation: Sentry.routingInstrumentation,
-//     }),
+//     Sentry.browserTracingIntegration(),
 //   ],
 
 //   // Set tracesSampleRate to 1.0 to capture 100%
@@ -30,7 +24,7 @@ if (environment.production) {
 }
 
 persistState({
-	key: '_pangolinStore'
+	key: '_xpertStore'
 });
 
 akitaConfig({

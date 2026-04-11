@@ -1,0 +1,319 @@
+<div class="h-full flex flex-col gap-4 py-4 overflow-hidden">
+  <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+    <div>
+      <div class="text-2xl font-semibold text-text-primary">
+        {{ 'PAC.Skill.InstalledSkills' | translate: { Default: 'Installed Skills' } }}
+      </div>
+      <div class="mt-1 text-sm text-text-tertiary">
+        {{
+          'PAC.Skill.WorkspaceSkillsWorkbenchDesc'
+            | translate
+              : {
+                  Default:
+                    'Browse installed skills, inspect their file trees, and edit supported files directly in this workspace.'
+                }
+        }}
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="btn btn-primary btn-large" (click)="openUploadDialog()">
+        <i class="ri-upload-2-line mr-1"></i>
+        <div>{{ 'PAC.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}</div>
+      </button>
+      <button type="button" class="btn btn-secondary btn-large" (click)="registerFromRepository()">
+        <i class="ri-git-repository-line mr-1"></i>
+        {{ 'PAC.Skill.RegisterFromRepository' | translate: { Default: 'Register from Repository' } }}
+      </button>
+      <button type="button" class="btn btn-secondary btn-large w-10 p-0" [cdkMenuTriggerFor]="moreMenu">
+        <i class="ri-more-line"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="lg:hidden flex flex-wrap gap-2">
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
+      [class]="mobilePane() === 'skills' ? 'bg-components-card-bg text-text-primary shadow-sm' : 'text-text-secondary hover:bg-hover-bg'"
+      (click)="mobilePane.set('skills')"
+    >
+      <i class="ri-stack-line"></i>
+      {{ 'PAC.Skill.SkillsPane' | translate: { Default: 'Skills' } }}
+    </button>
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
+      [class]="mobilePane() === 'tree' ? 'bg-components-card-bg text-text-primary shadow-sm' : 'text-text-secondary hover:bg-hover-bg'"
+      (click)="mobilePane.set('tree')"
+    >
+      <i class="ri-git-branch-line"></i>
+      {{ 'PAC.Skill.TreePane' | translate: { Default: 'Tree' } }}
+    </button>
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
+      [class]="mobilePane() === 'file' ? 'bg-components-card-bg text-text-primary shadow-sm' : 'text-text-secondary hover:bg-hover-bg'"
+      (click)="mobilePane.set('file')"
+    >
+      <i class="ri-file-code-line"></i>
+      {{ 'PAC.Skill.FilePane' | translate: { Default: 'File' } }}
+    </button>
+  </div>
+
+  <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+    <section
+      class="relative min-h-[320px] flex-col overflow-hidden rounded-3xl border border-divider-regular bg-gradient-to-br from-background-default-subtle via-components-panel-bg to-background-default-subtle lg:flex"
+      [class.hidden]="mobilePane() !== 'skills'"
+    >
+      <div class="flex items-start justify-between gap-3 px-4 pt-4">
+        <div>
+          <div class="text-sm font-semibold text-text-primary">
+            {{ 'PAC.Skill.SkillLibrary' | translate: { Default: 'Skill Library' } }}
+          </div>
+          <div class="text-xs text-text-tertiary">
+            {{ filteredSkills().length }}
+            {{ 'PAC.Skill.SkillsInstalledCount' | translate: { Default: 'installed skills' } }}
+          </div>
+        </div>
+
+        <label
+          class="inline-flex items-center gap-2 rounded-lg border border-divider-regular bg-background-default-subtle px-2 py-1 text-xs text-text-secondary"
+        >
+          <input
+            type="checkbox"
+            class="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+            [checked]="allSelected()"
+            [indeterminate]="partialSelected()"
+            (change)="toggleSelectAll($event)"
+          />
+          {{ 'PAC.Skill.SelectAll' | translate: { Default: 'Select all' } }}
+        </label>
+      </div>
+
+      <div class="px-4 pb-4">
+        <div class="relative">
+          <input
+            type="text"
+            class="w-full rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-2.5 pr-10 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            [placeholder]="
+              'PAC.Skill.SearchInstalledSkillPlaceholder'
+                | translate: { Default: 'Search by name, summary, author, provider or tag' }
+            "
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event)"
+          />
+          @if (search()) {
+            <button
+              type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-tertiary hover:bg-hover-bg"
+              (click)="search.set('')"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-auto px-4 pb-4">
+        @if (filteredSkills().length) {
+          <div class="flex flex-col gap-3">
+            @for (skill of filteredSkills(); track skill.id) {
+              <article
+                class="group/skill relative overflow-hidden rounded-2xl border bg-background-default px-4 py-4 transition"
+                [class]="
+                  activeSkillId() === skill.id
+                    ? 'border-components-input-border-active bg-hover-bg shadow-sm'
+                    : 'border-divider-regular hover:border-components-input-border-hover hover:bg-background-default-subtle/60'
+                "
+              >
+                <div
+                  class="pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-components-list-option-active-bg transition-opacity duration-200 group-hover/skill:opacity-100"
+                  [class.opacity-0]="activeSkillId() !== skill.id"
+                  [class.opacity-100]="activeSkillId() === skill.id"
+                ></div>
+
+                <div class="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    class="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring"
+                    [checked]="!!skill.id && selectedSkillIds().has(skill.id)"
+                    (click)="$event.stopPropagation()"
+                    (change)="toggleSkillSelection(skill.id, $event)"
+                  />
+
+                  <button
+                    type="button"
+                    class="min-w-0 flex-1 rounded-xl text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    [attr.aria-current]="activeSkillId() === skill.id ? 'true' : null"
+                    (click)="activateSkill(skill)"
+                  >
+                    <div class="flex items-start gap-3">
+                      <div
+                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 group-hover/skill:border-ring group-hover/skill:bg-components-list-option-active-bg group-hover/skill:text-text-primary"
+                        [class]="
+                          activeSkillId() === skill.id
+                            ? 'border-components-input-border-active bg-components-list-option-active-bg text-text-primary'
+                            : 'border-divider-regular bg-components-panel-bg text-text-secondary'
+                        "
+                      >
+                        <xp-icon [icon]="getSkillIcon(skill)" [size]="24" />
+                      </div>
+
+                      <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <div class="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
+                            {{ (skill.metadata?.displayName | i18n) || skill.name || skill.metadata?.name || '-' }}
+                          </div>
+                          @if (activeSkillId() === skill.id) {
+                            <span
+                              class="inline-flex items-center gap-1 rounded-full border border-ring bg-components-list-option-active-bg px-2 py-0.5 text-[11px] font-medium text-text-primary"
+                            >
+                              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-text-accent"></span>
+                              {{ 'PAC.Skill.Previewing' | translate: { Default: 'Previewing' } }}
+                            </span>
+                          }
+                          <span
+                            class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] text-text-secondary"
+                          >
+                            <i class="ri-star-line"></i>
+                            {{ formatStat(skill.skillIndex?.stats?.stars) }}
+                          </span>
+                        </div>
+
+                        <div class="mt-1 line-clamp-2 text-xs text-text-tertiary">
+                          {{ (skill.metadata?.summary | i18n) || (skill.metadata?.description | i18n) || '-' }}
+                        </div>
+
+                        <div class="mt-3 flex flex-wrap gap-2 text-[11px]">
+                          <span
+                            class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-text-secondary"
+                          >
+                            {{ providerLabel(skill) }}
+                          </span>
+                          <span
+                            class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-text-secondary"
+                          >
+                            {{ publisherLabel(skill) }}
+                          </span>
+                          <span
+                            class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-text-secondary"
+                          >
+                            {{
+                              skill.visibility || ('PAC.Skill.PrivateVisibility' | translate: { Default: 'private' })
+                            }}
+                          </span>
+                        </div>
+
+                        <div class="mt-2 truncate font-mono text-[11px] text-text-tertiary">
+                          {{ repositoryLabel(skill) }}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-ghost h-8 w-8 shrink-0 rounded-lg hover:text-text-destructive"
+                    (click)="deleteSkill(skill)"
+                  >
+                    <i class="ri-delete-bin-line"></i>
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <div
+            class="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle/60 px-6 py-8 text-center"
+          >
+            <div class="text-lg font-semibold text-text-primary">
+              {{ 'PAC.Skill.NoSkills' | translate: { Default: 'No skills installed yet.' } }}
+            </div>
+            <div class="text-sm text-text-tertiary">
+              {{
+                'PAC.Skill.NoSkillsWorkbenchHint'
+                  | translate
+                    : {
+                        Default: 'Upload a skill or register one from a repository to start browsing its files here.'
+                      }
+              }}
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <div class="min-h-0 lg:block" [class.hidden]="mobilePane() === 'skills'">
+      @if (mobilePane() === 'tree') {
+        <div class="mb-2 lg:hidden">
+          <button type="button" class="btn btn-ghost btn-small" (click)="mobilePane.set('skills')">
+            <i class="ri-arrow-left-line mr-1"></i>
+            {{ 'PAC.Skill.BackToSkills' | translate: { Default: 'Back to skills' } }}
+          </button>
+        </div>
+      }
+
+      <pac-file-workbench
+        class="min-h-0 h-full"
+        treeSize="sm"
+        [rootId]="activeSkillId()"
+        [rootLabel]="activeSkill() ? displayName(activeSkill()) : null"
+        [filesLoader]="loadActiveSkillFiles"
+        [fileLoader]="loadActiveSkillFile"
+        [fileSaver]="saveActiveSkillFile"
+        [mobilePane]="workbenchPane()"
+        (mobilePaneChange)="setWorkbenchPane($event)"
+      />
+    </div>
+  </div>
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute inset-0 z-50 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm" />
+}
+
+<ng-template #moreMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem>
+      <i class="ri-file-list-3-line mr-1"></i>
+      {{ 'PAC.Skill.BulkImport' | translate: { Default: 'Bulk Import' } }}
+    </div>
+    <button
+      cdkMenuItem
+      type="button"
+      class="flex items-center w-full px-1 py-1 text-left danger disabled:opacity-50"
+      [disabled]="!hasSelection()"
+      (click)="deleteSelectedSkills()"
+    >
+      <i class="ri-delete-bin-line mr-1"></i>
+      {{ 'PAC.Skill.DeleteSelected' | translate: { Default: 'Delete Selected' } }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #registerRepositoryDialog>
+  <div class="relative flex h-full max-h-[80vh] w-full flex-col overflow-hidden">
+    <div class="sticky top-0 z-20 flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
+      <div class="text-lg font-semibold text-text-primary">
+        {{ 'PAC.Skill.RegisterSkillRepositoryTitle' | translate: { Default: 'Register a skill repository' } }}
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost flex h-8 w-8 items-center justify-center rounded-full"
+        (click)="closeRegisterDialog()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="flex flex-col overflow-auto px-6 py-4">
+      <xp-skill-repositories class="mb-4" [readonly]="true" [(selectedRepository)]="selectedRepository" />
+      <xp-skill-indexes [selectedRepository]="selectedRepository()" (installing)="onInstalling($event)" />
+    </div>
+    @if (registering()) {
+      <ngm-spin
+        class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm"
+      />
+    }
+  </div>
+</ng-template>

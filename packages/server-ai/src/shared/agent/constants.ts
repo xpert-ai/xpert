@@ -1,4 +1,4 @@
-import { XpertParameterTypeEnum } from '@metad/contracts'
+import { XpertParameterTypeEnum } from '@xpert-ai/contracts'
 
 export const CONFIG_KEY_CREDENTIALS = 'xp:credentials'
 

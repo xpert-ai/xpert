@@ -4,7 +4,7 @@ import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
-import { PlaceholderAddComponent } from '@metad/story/story'
+import { PlaceholderAddComponent } from '@xpert-ai/story/story'
 import { EditorModule } from '@tinymce/tinymce-angular'
 import { NxWidgetDocumentComponent } from './document.component'
 

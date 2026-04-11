@@ -1,14 +1,15 @@
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply block overflow-hidden;
 
   ::ng-deep {
     .ngm-analytical-grid {
-      .mat-mdc-paginator {
+      z-paginator {
         @apply opacity-20;
       }
 
       &:hover {
-        .mat-mdc-paginator {
+        z-paginator {
           @apply opacity-100;
         }
       }

@@ -1,5 +1,5 @@
-import { AggregationRole, EntityType, measureFormatter, PivotColumn, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@metad/ocap-core'
-import { serializeUniqueName } from '@metad/ocap-sql'
+import { AggregationRole, EntityType, measureFormatter, PivotColumn, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@xpert-ai/ocap-core'
+import { serializeUniqueName } from '@xpert-ai/ocap-sql'
 import { uuid } from '../../../@core'
 
 export function serializePropertyUniqueName(property: PropertyLevel, dialect: string) {
@@ -16,8 +16,6 @@ export function serializePropertyUniqueName(property: PropertyLevel, dialect: st
       return property.name
   }
 }
-
-
 
 // convert to Postgres default ISO 8601 format
 function formatDate(date: string) {
@@ -38,7 +36,6 @@ function arrayToList(useSpace: boolean, array, formatter) {
 
   return sql
 }
-
 
 // Ported from PostgreSQL 9.2.4 source code in src/interfaces/libpq/fe-exec.c
 export function quoteLiteral(value: any) {

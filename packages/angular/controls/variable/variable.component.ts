@@ -1,14 +1,14 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, forwardRef, inject, input, model } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { DataSettings, getMemberKey, IMember, isArray, ISlicer, VariableProperty } from '@metad/ocap-core'
+
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, getMemberKey, IMember, isArray, ISlicer, VariableProperty } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSmartFilterService } from '../smart-filter.service'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -28,15 +28,14 @@ import { NgmSmartFilterService } from '../smart-filter.service'
     }
   ],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ReactiveFormsModule,
-    MatIconModule,
-    MatButtonModule,
+    ZardIconComponent,
+    ZardButtonComponent,
     OcapCoreModule,
     NgmCommonModule
-  ]
+]
 })
 export class NgmVariableComponent implements ControlValueAccessor {
   private smartFilterService = inject(NgmSmartFilterService)
@@ -77,8 +76,7 @@ export class NgmVariableComponent implements ControlValueAccessor {
     effect(
       () => {
         this.smartFilterService.dataSettings = this.dataSettings()
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -91,8 +89,7 @@ export class NgmVariableComponent implements ControlValueAccessor {
             }
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

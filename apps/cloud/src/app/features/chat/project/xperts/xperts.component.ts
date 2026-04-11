@@ -3,7 +3,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ConnectedPosition, Overlay, OverlayPositionBuilder } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -18,13 +18,12 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { AIPermissionsEnum, getErrorMessage, injectProjectService, injectToastr, IXpert } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertCardComponent } from '@cloud/app/@shared/xpert'
-import { linkedModel, OverlayAnimations } from '@metad/core'
-import { NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { linkedModel, OverlayAnimations } from '@xpert-ai/core'
+import { NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService } from 'ngx-permissions'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -32,11 +31,11 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { combineLatestWith, debounceTime, map, of, pipe, startWith } from 'rxjs'
 import { ChatHomeService } from '../../home.service'
 import { ChatProjectComponent } from '../project.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
@@ -44,12 +43,12 @@ import { ChatProjectComponent } from '../project.component'
     CdkListboxModule,
     CdkMenuModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
     NgmSearchComponent,
     XpertCardComponent
-  ],
+],
   selector: 'pac-chat-project-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',
@@ -78,7 +77,7 @@ export class ChatProjectXpertsComponent {
 
   readonly #xperts = derivedAsync(() => {
     const projectId = this.projectId()
-    return projectId ? this.projectService.getXperts(projectId, {relations: ['createdBy']}) : of(null)
+    return projectId ? this.projectService.getXperts(projectId, { relations: ['createdBy'] }) : of(null)
   })
 
   readonly xperts = linkedModel({
@@ -112,7 +111,12 @@ export class ChatProjectXpertsComponent {
       ),
       map(([[xperts], text]) => {
         return text
-          ? xperts?.filter((_) => _.name.toLowerCase().includes(text) || _.title?.toLowerCase().includes(text) || _.description?.toLowerCase().includes(text))
+          ? xperts?.filter(
+              (_) =>
+                _.name.toLowerCase().includes(text) ||
+                _.title?.toLowerCase().includes(text) ||
+                _.description?.toLowerCase().includes(text)
+            )
           : xperts
       })
     )
@@ -185,8 +189,7 @@ export class ChatProjectXpertsComponent {
           this.overlayRef()?.detach()
           this.element.set(null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -199,7 +202,7 @@ export class ChatProjectXpertsComponent {
   }
 
   selectXpert(xpert: IXpert) {
-    this.#router.navigate(['/chat/p', this.projectId(), 'x', xpert.slug])
+    this.#router.navigate(['/project', this.projectId(), 'x', xpert.slug])
     // this.chatService.conversationId.set(null)
   }
 

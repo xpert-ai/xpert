@@ -1,19 +1,30 @@
-<div class="pac-indicator-market__drawer max-w-full w-full sm:w-[400px] h-full relative flex flex-col justify-start items-stretch">
+<div class="pac-indicator-market__drawer bg-sidebar max-w-full w-full sm:w-[400px] h-full relative flex flex-col justify-start items-stretch">
   <div class="pac-indicator-market_-toolbar flex justify-between items-center">
-    <input matInput class="pac-indicator-market__date-picker font-semibold text-base outline-none bg-transparent focus:rounded-lg focus:bg-gray-500 focus:bg-opacity-25"
-      [matDatepicker]="picker"
-      [formControl]="dateControl"
-      (click)="picker.open()"
-    >
-    <mat-datepicker #picker
-      startView="multi-year"
-      (yearSelected)="chosenYearHandler($event, picker)"
-      (monthSelected)="chosenMonthHandler($event, picker)"
-      >
-    </mat-datepicker>
+    @switch (timeGranularity()) {
+      @case (TIME_GRANULARITY.Year) {
+        <div class="pac-indicator-market__date-picker">
+          <z-year-picker [formControl]="dateControl" zFormat="yyyy" />
+        </div>
+      }
+      @case (TIME_GRANULARITY.Quarter) {
+        <div class="pac-indicator-market__date-picker">
+          <z-quarter-picker [formControl]="dateControl" />
+        </div>
+      }
+      @case (TIME_GRANULARITY.Month) {
+        <div class="pac-indicator-market__date-picker">
+          <z-month-picker [formControl]="dateControl" zFormat="yyyyMM" />
+        </div>
+      }
+      @default {
+        <div class="pac-indicator-market__date-picker">
+          <z-date-picker [formControl]="dateControl" />
+        </div>
+      }
+    }
   
     <div class="flex justify-end items-center">
-      <div class="pac-indicator__tag px-2 rounded-lg uppercase cursor-pointer bg-gray-100 hover:bg-gray-200" (click)="toggleTag($event)">
+      <div class="pac-indicator__tag px-2 rounded-lg uppercase cursor-pointer bg-components-card-bg hover:bg-gray-200" (click)="toggleTag($event)">
         {{ 'IndicatorApp.TagEnum.' + tagType() | translate: {Default: IndicatorTagEnum[tagType()]} }}
       </div>
 
@@ -29,7 +40,7 @@
   <cdk-virtual-scroll-viewport itemSize="70" [minBufferPx]="10 * 70" [maxBufferPx]="20 * 70" class="pac-indicator-market__infinite-container flex-1">
 
     <div class="w-full flex mb-2">
-      <div class="pac-indicator-market__search-input flex items-center flex-1 p-1 space-x-1 rounded-lg bg-gray-300 bg-opacity-25 dark:bg-opacity-10">
+      <div class="pac-indicator-market__search-input flex items-center flex-1 p-1 space-x-1 rounded-lg bg-components-card-bg bg-opacity-25 dark:bg-opacity-10">
         <i class="ri-search-2-line h-6 w-6 flex justify-center items-center opacity-30"></i>
         <input #searchInput class="outline-none bg-transparent flex-1" type="text" [placeholder]=" ('IndicatorApp.IndicatorNameOrCode' | translate: {Default: 'Indicator name or code'})+'...'"
           (keyup)="onSearch($event)"
@@ -37,18 +48,24 @@
         >
       </div>
 
-      <button mat-button class="pac-indicator-market__search-done rounded-lg mx-1"
-        (click)="onSearchDone()">
+      <button z-button zType="ghost" class="pac-indicator-market__search-done rounded-lg mx-1" (click)="onSearchDone()">
         {{ 'IndicatorApp.Done' | translate: {Default: 'Done'} }}
       </button>
     </div>
 
-    <mat-list class="pac-indicator-list" cdkDropList (cdkDropListDropped)="dropOrder($event)">
+    <div class="pac-indicator-list" cdkDropList (cdkDropListDropped)="dropOrder($event)">
       <ng-container *cdkVirtualFor="let item of indicators$ | async; trackBy: trackById; templateCacheSize: 0">
-        <mat-list-item matRipple [class.selected]="selected$() === item.id"
+        <div
+          class="pac-indicator-list__item relative flex min-h-[70px] cursor-pointer select-none items-center rounded-xl px-4 py-3 transition-all outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 active:scale-[0.99] active:bg-black/10 data-[selected=true]:bg-black/5 dark:hover:bg-white/10 dark:active:bg-white/15 dark:data-[selected=true]:bg-white/10"
+          role="button"
+          tabindex="0"
+          [attr.aria-selected]="selected$() === item.id"
+          [attr.data-selected]="selected$() === item.id"
           (click)="click(item)"
+          (keydown.enter)="onItemKeydown($event, item)"
+          (keydown.space)="onItemKeydown($event, item)"
           cdkDrag [cdkDragStartDelay]="200"
-          >
+        >
 
           <ngm-indicator [dataSettings]="item.dataSettings" [indicatorCode]="item.code" [lookBack]="lookBack()" 
             [tagType]="tagType()"
@@ -57,16 +74,16 @@
             (dataChange)="onIndicatorChange($event)"
           > 
             @if (item.favour) {
-              <mat-icon action class="shrink-0" color="accent" displayDensity="compact">star</mat-icon>
+              <z-icon action class="shrink-0" color="accent" zSize="sm" zType="star"></z-icon>
             }
           </ngm-indicator>
 
           <!-- <pac-indicator-item class="flex-1 overflow-hidden" [indicator]="item" [tag]="tagType()"/> -->
           <div class="pac-indicator__placeholder" *cdkDragPlaceholder></div>
-        </mat-list-item>
-        <mat-divider></mat-divider>
+        </div>
+        <z-divider class="mx-2 border-black/5 dark:border-white/5"></z-divider>
       </ng-container>
-    </mat-list>
+    </div>
   </cdk-virtual-scroll-viewport>
 
   @if (isEmpty()) {
@@ -90,38 +107,40 @@
 <ng-template #options>
   <div cdkMenu class="cdk-menu__medium pac-indicator-app__options flex flex-col gap-2">
     <label>{{ 'IndicatorApp.TimeGranularity' | translate: {Default: 'Time Granularity'} }}</label>
-    <mat-button-toggle-group ngmAppearance="hero" color="accent" displayDensity="cosy"
+    <z-toggle-group ngmAppearance="hero" color="accent" displayDensity="cosy"
       [ngModel]="timeGranularity()" (ngModelChange)="onTimeGranularity($event)" (click)="$event.stopPropagation()">
-      <mat-button-toggle [value]="TIME_GRANULARITY.Year">
+      <z-toggle-group-item [value]="TIME_GRANULARITY.Year">
         {{ 'IndicatorApp.DatePicker.Year' | translate: {Default: 'Year'} }}
-      </mat-button-toggle>
-      <mat-button-toggle [value]="TIME_GRANULARITY.Quarter">
+      </z-toggle-group-item>
+      <z-toggle-group-item [value]="TIME_GRANULARITY.Quarter">
         {{ 'IndicatorApp.DatePicker.Quarter' | translate: {Default: 'Quarter'} }}
-      </mat-button-toggle>
-      <mat-button-toggle [value]="TIME_GRANULARITY.Month">
+      </z-toggle-group-item>
+      <z-toggle-group-item [value]="TIME_GRANULARITY.Month">
         {{ 'IndicatorApp.DatePicker.Month' | translate: {Default: 'Month'} }}
-      </mat-button-toggle>
-      <mat-button-toggle [value]="TIME_GRANULARITY.Day">
+      </z-toggle-group-item>
+      <z-toggle-group-item [value]="TIME_GRANULARITY.Day">
         {{ 'IndicatorApp.DatePicker.Day' | translate: {Default: 'Day'} }}
-      </mat-button-toggle>
-    </mat-button-toggle-group>
+      </z-toggle-group-item>
+    </z-toggle-group>
 
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
 
     <label>{{ 'IndicatorApp.LookbackPeriods' | translate: {Default: 'Lookback Periods'} }}</label>
-    <mat-slider class="w-full" discrete color="accent"
+    <z-slider class="w-full"
       step="1"
       min="0"
       [max]="lookbackLimit()"
+      [showValueLabel]="true"
       (click)="$event.stopPropagation()"
+      [ngModel]="lookBack()"
+      (ngModelChange)="onLookback($event)"
     >
-      <input matSliderThumb [ngModel]="lookBack()" (valueChange)="onLookback($event)">
-    </mat-slider>
+    </z-slider>
 
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
 
-    <button cdkMenuItem mat-button disableRipple (click)="refresh()">
-      <mat-icon>refresh</mat-icon>
+    <button z-button zType="ghost" cdkMenuItem (click)="refresh()">
+      <z-icon zType="refresh"></z-icon>
       <span>
         {{ 'IndicatorApp.Refresh' | translate: {Default: 'Refresh'} }}
       </span>

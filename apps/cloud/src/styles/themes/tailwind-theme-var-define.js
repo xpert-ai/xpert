@@ -25,6 +25,8 @@ const vars = {
   'text-logo-text': 'var(--color-text-logo-text)',
   'text-empty-state-icon': 'var(--color-text-empty-state-icon)',
   'text-inverted': 'var(--color-text-inverted)',
+  'fg-primary': 'var(--color-fg-primary)',
+  'fg-secondary': 'var(--color-fg-secondary)',
 
   'divider-subtle': 'var(--color-divider-subtle)',
   'divider-regular': 'var(--color-divider-regular)',
@@ -57,6 +59,7 @@ const vars = {
   'components-button-primary-bg': 'var(--color-components-button-primary-bg)',
   'components-button-secondary-bg': 'var(--color-components-button-secondary-bg)',
   'components-button-secondary-bg-hover': 'var(--color-components-button-secondary-bg-hover)',
+  'components-input-bg-disabled': 'var(--color-components-input-bg-disabled)',
   'components-dropzone-bg': 'var(--color-components-dropzone-bg)',
   'components-input-bg': 'var(--color-components-input-bg)',
   'components-input-bg-normal': 'var(--color-components-input-bg-normal)',
@@ -64,6 +67,8 @@ const vars = {
   'components-input-bg-active': 'var(--color-components-input-bg-active)',
   'components-input-border-hover': 'var(--color-components-input-border-hover)',
   'components-input-border-active': 'var(--color-components-input-border-active)',
+  'components-input-text-filled': 'var(--color-components-input-text-filled)',
+  'components-input-text-filled-disabled': 'var(--color-components-input-text-filled-disabled)',
   'components-input-text-placeholder': 'var(--color-components-input-text-placeholder)',
   'components-list-option-bg': 'var(--color-components-list-option-bg)',
   'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)',
@@ -74,7 +79,14 @@ const vars = {
   'components-checkbox-bg': 'var(--color-components-checkbox-bg)',
   'components-option-card-option-selected-border': 'var(--color-components-option-card-option-selected-border)',
   'button-ghost-hover': 'var(--color-hover-bg)',
-  'surface-container-bg': 'var(--ngm-color-surface-container)'
+  'button-ghost-active': 'var(--color-button-ghost-active)',
+  'background-default-subtle': 'var(--color-background-default-subtle)',
+  'surface-l1': 'var(--color-surface-l1)',
+  'surface-neutral': 'var(--color-surface-neutral)',
+  'border-l2': 'var(--color-border-l2)',
+  'input-border': 'var(--color-input-border)',
+  'surface-container-bg': 'var(--ngm-color-surface-container)',
+  'background-body': 'var(--color-background-body)',
 }
 
 module.exports = vars

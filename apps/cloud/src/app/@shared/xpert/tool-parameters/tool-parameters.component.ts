@@ -1,8 +1,8 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { IXpertTool, JsonSchemaObjectType, TToolParameter, TWorkflowVarGroup } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -17,13 +17,12 @@ import { JSONSchemaFormComponent } from '../../forms'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     NgmI18nPipe,
     JSONSchemaFormComponent,
     XpertVariableInputComponent
-  ],
+],
   selector: 'xp-tool-parameters-form',
   templateUrl: 'tool-parameters.component.html',
   styleUrls: ['tool-parameters.component.scss'],

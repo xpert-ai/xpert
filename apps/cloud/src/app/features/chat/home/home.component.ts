@@ -2,34 +2,72 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, HostListener, inject, signal, ViewChild, ViewContainerRef } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  HostListener,
+  inject,
+  signal,
+  ViewChild,
+  ViewContainerRef
+} from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { ActivatedRoute, Router, RouterModule, RouterOutlet } from '@angular/router'
-import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { ActivatedRoute, NavigationEnd, Router, RouterModule, RouterOutlet } from '@angular/router'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar/emoji-avatar/avatar.component'
 import { groupConversations } from '@cloud/app/xpert/types'
-import { IChatConversation, injectUserPreferences, IXpertProject, IXpertTask, PaginationParams, PersistState } from '@metad/cloud/state'
-import { OverlayAnimations, routeAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import {
+  IChatConversation,
+  injectUserPreferences,
+  IXpertProject,
+  IXpertTask,
+  PaginationParams,
+  PersistState
+} from '@xpert-ai/cloud/state'
+import { OverlayAnimations, routeAnimations } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, startWith } from 'rxjs/operators'
+import { firstValueFrom } from 'rxjs'
+import { filter, map, startWith } from 'rxjs/operators'
 import {
+  AiFeatureEnum,
+  AssistantBindingService,
+  AssistantCode,
   ChatConversationService,
   getErrorMessage,
   injectProjectService,
   injectToastr,
-  OrderTypeEnum
+  OrderTypeEnum,
+  Store
 } from '../../../@core'
 import { AppService } from '../../../app.service'
+import { environment } from '@cloud/environments/environment'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
+import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
-import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
+import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/task-dialog.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  hasAssistantBindingSource,
+  hasCompleteAssistantBinding,
+  sanitizeAssistantFrameUrl
+} from '../../assistant/assistant-chatkit.runtime'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
+type TAgentLink = {
+  key: string
+  defaultLabel: string
+  featureKey: AiFeatureEnum
+  iconClass: string
+  link: string
+  external?: boolean
+}
 
 @Component({
   standalone: true,
@@ -40,7 +78,7 @@ type TMenuOverlayType = 'history' | 'project' | 'task'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
     NgmI18nPipe
@@ -51,6 +89,7 @@ type TMenuOverlayType = 'history' | 'project' | 'task'
   animations: [routeAnimations, OverlayAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
+    ClawXpertFacade,
     ChatHomeService,
     {
       provide: XpertHomeService,
@@ -66,6 +105,7 @@ export class ChatHomeComponent {
 
   readonly homeService = inject(ChatHomeService)
   readonly appService = inject(AppService)
+  readonly clawxpertFacade = inject(ClawXpertFacade)
   readonly route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly logger = inject(NGXLogger)
@@ -73,9 +113,11 @@ export class ChatHomeComponent {
   readonly #vcr = inject(ViewContainerRef)
   readonly #toastr = injectToastr()
   readonly #preferences = injectUserPreferences()
+  readonly #store = inject(Store)
+  readonly #assistantBindingService = inject(AssistantBindingService)
 
   // Signals
-  readonly currentPage = signal<{type?: 'project' | 'conversation', id?: string}>({})
+  readonly currentPage = signal<{ type?: 'project' | 'conversation'; id?: string }>({})
 
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
@@ -83,8 +125,29 @@ export class ChatHomeComponent {
   readonly conversationId = this.homeService.conversationId
 
   readonly xpert = this.homeService.xpert
+  readonly currentUrl = toSignal(
+    this.#router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => normalizeChatRoute(this.#router.url))
+    ),
+    { initialValue: normalizeChatRoute(this.#router.url) }
+  )
+  readonly isCommonAssistantRoute = computed(() => {
+    const url = this.currentUrl()
+    return (
+      url === '/chat' ||
+      url === '/chat/x/welcome' ||
+      url.startsWith('/chat/x/welcome/') ||
+      url === '/chat/x/common' ||
+      url.startsWith('/chat/x/common/')
+    )
+  })
+  readonly showLegacyHistory = computed(() => !this.isCommonAssistantRoute())
 
   readonly chatSidebar = attrModel(this.#preferences, 'chatSidebar')
+  readonly featureOrganizations = toSignal(this.#store.featureOrganizations$.pipe(startWith([])))
+  readonly featureTenant = toSignal(this.#store.featureTenant$.pipe(startWith([])))
   readonly sidebarState = linkedModel<PersistState['preferences']['chatSidebar']>({
     initialValue: 'expanded',
     compute: () => this.chatSidebar() || 'expanded',
@@ -92,9 +155,61 @@ export class ChatHomeComponent {
       this.chatSidebar.set(state)
     }
   })
-  
+  readonly clawxpertEnabled = computed(() => {
+    this.featureOrganizations()
+    this.featureTenant()
+
+    return (
+      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
+      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
+    )
+  })
+  readonly clawxpertCardTitle = computed(() => {
+    return (
+      this.clawxpertFacade.currentXpert()?.title ||
+      this.clawxpertFacade.currentXpert()?.name ||
+      this.clawxpertFacade.definition.defaultLabel
+    )
+  })
+  readonly clawxpertCardLink = computed(() =>
+    this.clawxpertFacade.viewState() === 'ready' ? '/chat/clawxpert/c' : '/chat/clawxpert'
+  )
+  readonly clawxpertCardActive = computed(() => isClawXpertRoute(this.currentUrl()))
+
   readonly menuOverlay = signal<TMenuOverlayType>(null)
   private leaveTimer = null
+  readonly allAgentLinks: TAgentLink[] = [
+    {
+      key: 'chatbi',
+      defaultLabel: 'ChatBI',
+      featureKey: AiFeatureEnum.FEATURE_XPERT_CHATBI,
+      iconClass: 'ri-line-chart-line',
+      link: '/chat/chatbi'
+    },
+    {
+      key: 'codexpert',
+      defaultLabel: 'CodeXpert',
+      featureKey: AiFeatureEnum.FEATURE_XPERT_CODEXPERT,
+      iconClass: 'ri-code-box-line',
+      link: 'https://code.xpertai.cn/',
+      external: true
+    },
+    {
+      key: 'deep-research',
+      defaultLabel: 'DeepResearch',
+      featureKey: AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH,
+      iconClass: 'ri-binoculars-line',
+      link: 'https://research.xpertai.cn/',
+      external: true
+    }
+  ]
+  readonly agentLinks = computed(() => {
+    if (!this.clawxpertEnabled() && !this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)) {
+      return []
+    }
+
+    return this.allAgentLinks.filter(({ featureKey }) => this.#store.hasFeatureEnabled(featureKey))
+  })
 
   // Projects
   readonly projectSercice = injectProjectService()
@@ -109,6 +224,7 @@ export class ChatHomeComponent {
     compute: () => this.#projects()?.projects,
     update: (projects) => {}
   })
+  readonly previewProjects = computed(() => this.projects()?.slice(0, 5))
   readonly projectLoading = linkedModel({
     initialValue: false,
     compute: () => this.#projects()?.loading,
@@ -121,20 +237,19 @@ export class ChatHomeComponent {
   // Conversations
   readonly conversationService = inject(ChatConversationService)
   readonly #conversations = myRxResource({
-    request: () => ({
+    request: () =>
+      ({
         select: ['id', 'threadId', 'title', 'options', 'updatedAt', 'from', 'projectId', 'taskId'],
         order: { updatedAt: OrderTypeEnum.DESC },
         take: 20,
         where: {
-          from: { '$in': ['platform', 'job']},
-          projectId: {'$isNull': true}
+          from: { $in: ['platform', 'job'] },
+          projectId: { $isNull: true }
         },
         relations: ['xpert', 'project']
-      } as PaginationParams<IChatConversation>),
-    loader: ({request}) => {
-      return this.conversationService
-      .getMyInOrg(request)
-      .pipe(map(({ items }) => items))
+      }) as PaginationParams<IChatConversation>,
+    loader: ({ request }) => {
+      return this.conversationService.getMyInOrg(request).pipe(map(({ items }) => items))
     }
   })
 
@@ -143,13 +258,22 @@ export class ChatHomeComponent {
     compute: () => this.#conversations.value(),
     update: (conversations) => {}
   })
-  readonly taskConversations = computed(() => this.#conversations.value()?.filter((conv) => conv.taskId).slice(0, 10))
+  readonly taskConversations = computed(() =>
+    this.#conversations
+      .value()
+      ?.filter((conv) => conv.taskId)
+      .slice(0, 10)
+  )
 
-  readonly groups = computed(() => {
+  readonly allHistoryGroups = computed(() => {
     const conversations = this.conversations()
     return conversations ? groupConversations(conversations) : []
   })
-  readonly historyExpanded = signal(false)
+  readonly previewHistoryGroups = computed(() => {
+    const conversations = this.conversations()?.slice(0, 5)
+    return conversations ? groupConversations(conversations) : []
+  })
+  readonly historyExpanded = signal(true)
   readonly editingConversation = signal<string>(null)
   readonly editingTitle = signal<string>(null)
   readonly convLoading = linkedModel({
@@ -160,6 +284,37 @@ export class ChatHomeComponent {
 
   // Composition state for input method
   readonly isComposing = signal(false)
+
+  constructor() {
+    effect(() => {
+      if (!this.isCommonAssistantRoute()) {
+        return
+      }
+
+      this.currentPage.set({ type: 'conversation' })
+
+      if (this.homeService.conversationId()) {
+        this.homeService.conversationId.set(null)
+      }
+
+      if (this.homeService.conversation()) {
+        this.homeService.conversation.set(null)
+      }
+    })
+
+    effect(() => {
+      const conversation = this.homeService.conversation()
+      if (!conversation?.id || conversation.projectId || !['platform', 'job'].includes(conversation.from)) {
+        return
+      }
+
+      this.conversations.update((items) => {
+        const next = (items ?? []).filter((item) => item.id !== conversation.id)
+        next.unshift(conversation)
+        return next.slice(0, 20)
+      })
+    })
+  }
 
   toggleSidebar() {
     this.sidebarState.update((state) => (state === 'expanded' ? 'closed' : 'expanded'))
@@ -180,18 +335,33 @@ export class ChatHomeComponent {
   }
 
   // Start a new conversation from sidebar and clear active chat context.
-  newConversation() {
+  async newConversation() {
     this.homeService.conversationId.set(null)
     this.homeService.conversation.set(null)
     this.currentPage.set({ type: 'conversation' })
 
-    const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
-    if (typeof activeComponent?.newConv === 'function') {
-      activeComponent.newConv()
+    if (await this.isCommonAssistantReady()) {
+      const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
+
+      if (normalizeChatRoute(this.#router.url) === '/chat/x/common' && typeof activeComponent?.newConv === 'function') {
+        activeComponent.newConv()
+        return
+      }
+
+      await this.#router.navigate(['/chat/x/common'])
       return
     }
 
-    this.#router.navigate(['/chat'])
+    await this.#router.navigate(['/chat/x/welcome'])
+  }
+
+  openClawXpertCard() {
+    void this.#router.navigateByUrl(this.clawxpertCardLink())
+  }
+
+  openClawXpertSettings(event?: Event) {
+    event?.stopPropagation()
+    void this.#router.navigateByUrl('/chat/clawxpert')
   }
 
   newProject() {
@@ -200,7 +370,7 @@ export class ChatHomeComponent {
       next: (project) => {
         this.projectLoading.set(false)
         this.projects.update((items) => [project, ...(items ?? [])])
-        this.#router.navigate(['/chat/p', project.id])
+        this.#router.navigate(['/project', project.id])
       },
       error: (err) => {
         this.projectLoading.set(false)
@@ -319,8 +489,33 @@ export class ChatHomeComponent {
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-      event.preventDefault(); // Prevent the default action
-      this.openConversations(); // Execute the openConversations method
+      event.preventDefault() // Prevent the default action
+      this.openConversations() // Execute the openConversations method
     }
   }
+
+  private async isCommonAssistantReady() {
+    try {
+      const config = await firstValueFrom(this.#assistantBindingService.getEffective(AssistantCode.CHAT_COMMON))
+      const frameUrl = sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL)
+
+      return !!(config && hasAssistantBindingSource(config) && config.enabled && hasCompleteAssistantBinding(config, frameUrl))
+    } catch (error) {
+      this.logger.debug('Failed to resolve common assistant binding', error)
+      return false
+    }
+  }
+}
+
+function normalizeChatRoute(url: string) {
+  const [pathname] = (url || '/chat').split('?')
+  if (!pathname || pathname === '/') {
+    return '/chat'
+  }
+
+  return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+}
+
+function isClawXpertRoute(url: string) {
+  return /^\/chat\/clawxpert(?:\/|$)/.test(normalizeChatRoute(url))
 }

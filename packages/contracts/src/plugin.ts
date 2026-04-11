@@ -23,6 +23,11 @@ export const PLUGIN_CONFIGURATION_STATUS = {
   INVALID: 'invalid'
 } as const
 
+export const PLUGIN_LOAD_STATUS = {
+  LOADED: 'loaded',
+  FAILED: 'failed'
+} as const
+
 /**
  * Classifies plugin scope and governance.
  * - `system`: built-in/platform-managed plugin that users cannot install/uninstall from org APIs.
@@ -31,6 +36,15 @@ export const PLUGIN_CONFIGURATION_STATUS = {
 export type PluginLevel = (typeof PLUGIN_LEVEL)[keyof typeof PLUGIN_LEVEL]
 export type PluginSource = (typeof PLUGIN_SOURCE)[keyof typeof PLUGIN_SOURCE]
 export type PluginConfigurationStatus = (typeof PLUGIN_CONFIGURATION_STATUS)[keyof typeof PLUGIN_CONFIGURATION_STATUS]
+export type PluginLoadStatus = (typeof PLUGIN_LOAD_STATUS)[keyof typeof PLUGIN_LOAD_STATUS]
+export type PluginScopeRelation = 'none' | 'overrides-global' | 'shadowed-by-organization'
+export interface PluginCodeSourceConfig {
+  workspacePath?: string
+}
+
+export interface PluginSourceConfig extends PluginCodeSourceConfig {
+  [key: string]: unknown
+}
 
 export interface PluginMeta {
   name: PluginName
@@ -64,10 +78,33 @@ export interface IPlugin extends IBasePerTenantAndOrganizationEntityModel {
   packageName: string
   version?: string
   source?: PluginSource
+  sourceConfig?: PluginSourceConfig | null
   level?: PluginLevel
   config: Record<string, any>
   configurationStatus?: PluginConfigurationStatus | null
   configurationError?: string | null
+}
+
+export interface IPluginInstallInput {
+  pluginName: PluginName
+  version?: string
+  source?: PluginSource
+  config?: Record<string, any>
+  sourceConfig?: PluginSourceConfig
+}
+
+export interface IPluginInstallResult {
+  success: boolean
+  name: PluginName
+  packageName: string
+  organizationId: string
+  currentVersion?: string
+}
+
+export interface IPluginUpdateResult extends IPluginInstallResult {
+  latestVersion?: string
+  updated: boolean
+  previousVersion?: string
 }
 
 export interface IPluginDescriptor {
@@ -81,11 +118,17 @@ export interface IPluginDescriptor {
   isGlobal: boolean
   level: PluginLevel
   canConfigure?: boolean
+  canRefresh?: boolean
+  canUninstall?: boolean
   canUpdate?: boolean
   hasUpdate?: boolean
   configSchema?: JsonSchemaObjectType
   configurationStatus?: PluginConfigurationStatus | null
   configurationError?: string | null
+  loadStatus?: PluginLoadStatus | null
+  loadError?: string | null
+  effectiveInCurrentScope: boolean
+  scopeRelation?: PluginScopeRelation
 }
 
 export interface IPluginConfiguration<TConfig extends Record<string, any> = Record<string, any>> {

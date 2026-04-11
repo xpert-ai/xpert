@@ -31,8 +31,7 @@ export abstract class ManageEntityBaseComponent<
             this.openedLinks.set([...links, this.currentLink()])
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

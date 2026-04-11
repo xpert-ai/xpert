@@ -1,18 +1,18 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
-import { LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile } from '@metad/contracts'
-import { NgmDndDirective, OverlayAnimation1 } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile } from '@xpert-ai/contracts'
+import { NgmDndDirective, OverlayAnimation1 } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, NgmDndDirective, NgmSpinComponent],
+  imports: [FormsModule, TranslateModule, CdkMenuModule, NgmDndDirective, NgmSpinComponent],
   selector: 'xpert-memory-bulk-import',
   templateUrl: './bulk-import.component.html',
   styleUrl: './bulk-import.component.scss',

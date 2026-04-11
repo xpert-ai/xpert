@@ -1,57 +1,74 @@
-<mat-form-field fxFlex="100" [appearance]="appearance">
-  <mat-label>Select</mat-label>
-  <mat-select [formControl]="formControl">
-    <mat-option *ngFor="let property of dimensions$ | async" [value]="property.__id__">
-        <button *ngIf="property.role === AggregationRole.hierarchy" mat-icon-button displayDensity="compact" disabled></button>
-        {{property.caption || property.name}}
-    </mat-option>
-  </mat-select>
+<z-form-field fxFlex="100" [appearance]="appearance">
+  <z-form-label>Select</z-form-label>
+  <ngm-select
+    [formControl]="formControl"
+    [selectOptions]="(dimensions$ | async)?.map(property => ({ value: property.__id__, label: property.caption || property.name }))">
+  </ngm-select>
 
-  <div matSuffix>
-    <button mat-icon-button  [matMenuTriggerFor]="operatorMenu"
-        (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon>drag_handle</mat-icon>
+  <div zFormSuffix>
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      z-menu
+      [zMenuTriggerFor]="operatorMenu"
+      (click)="$event.stopPropagation();$event.preventDefault();"
+    >
+        <z-icon zType="drag_handle"></z-icon>
     </button>
 
-    <button mat-icon-button matSuffix [matMenuTriggerFor]="slicerMenu"
-        (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon>more_vert</mat-icon>
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      zFormSuffix
+      z-menu
+      [zMenuTriggerFor]="slicerMenu"
+      (click)="$event.stopPropagation();$event.preventDefault();"
+    >
+        <z-icon zType="more_vert"></z-icon>
     </button>
 
     <ng-content></ng-content>
   </div>
   
-</mat-form-field>
+</z-form-field>
 
-<mat-menu #operatorMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item disableRipple >
-      <mat-icon>dvr</mat-icon>
+<ng-template #operatorMenu>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item>
+      <z-icon zType="dvr"></z-icon>
       <span>Equal</span>
     </button>
-    <button mat-menu-item disableRipple >
-        <mat-icon>chevron_left</mat-icon>
+    <button type="button" z-menu-item>
+        <z-icon zType="chevron_left"></z-icon>
         <span>Less than</span>
     </button>
 
-    <button mat-menu-item disableRipple >
-        <mat-icon>first_page</mat-icon>
+    <button type="button" z-menu-item>
+        <z-icon zType="first_page"></z-icon>
         <span>Less Equal</span>
     </button>
 
-    <button mat-menu-item disableRipple >
-        <mat-icon>chevron_right</mat-icon>
+    <button type="button" z-menu-item>
+        <z-icon zType="chevron_right"></z-icon>
         <span>Greater than</span>
     </button>
     
-    <button mat-menu-item disableRipple >
-        <mat-icon>last_page</mat-icon>
+    <button type="button" z-menu-item>
+        <z-icon zType="last_page"></z-icon>
         <span>Greater Equal</span>
     </button>
-</mat-menu>
+  </div>
+</ng-template>
 
-<mat-menu #slicerMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item disableRipple >
-      <mat-icon>dvr</mat-icon>
+<ng-template #slicerMenu>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item>
+      <z-icon zType="dvr"></z-icon>
       <span>显示为...</span>
     </button>
-</mat-menu>
+  </div>
+</ng-template>

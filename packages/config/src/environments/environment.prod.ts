@@ -1,6 +1,6 @@
 import 'dotenv/config'
 
-import { FileStorageProviderEnum, VectorTypeEnum } from '@metad/contracts'
+import { FileStorageProviderEnum, VectorTypeEnum } from '@xpert-ai/contracts'
 import { IEnvironment, IPACFeatures, LogLevel } from './ienvironment'
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
@@ -21,7 +21,7 @@ export const prodEnvironment: IEnvironment = {
   pro: process.env.PRO === 'true',
 
   secretsEncryptionKey: process.env.SECRETS_ENCRYPTION_KEY || 'default_secrets_encryption_key',
-  EXPRESS_SESSION_SECRET: 'pangolin',
+  EXPRESS_SESSION_SECRET: 'xpert',
   USER_PASSWORD_BCRYPT_SALT_ROUNDS: 12,
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,

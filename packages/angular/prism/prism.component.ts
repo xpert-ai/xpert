@@ -1,10 +1,10 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, input, numberAttribute, signal } from '@angular/core'
-import { NgmCopyComponent } from '@metad/ocap-angular/common'
+import { NgmCopyComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, NgmCopyComponent],
+  imports: [NgmCopyComponent],
   selector: 'ngm-prism-highlight',
   template: `<pre class="m-0 overflow-auto"><code [innerHTML]="highlightedCode()" class="m-0"></code></pre>
 <ngm-copy class="absolute right-1 top-1 text-lg !text-white rounded-md w-6 h-6 flex justify-center items-center bg-white/30 backdrop-blur-sm" [content]="code()" />
@@ -51,7 +51,6 @@ export class NgmPrismHighlightComponent {
           this.language()
         )
       )
-    },
-    { allowSignalWrites: true }
+    }
   )
 }

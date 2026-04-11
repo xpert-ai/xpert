@@ -8,8 +8,8 @@ import {
 	ITag,
 	IUser,
 	ProjectStatusEnum
-} from '@metad/contracts'
-import { StorageFile, Tag, TenantOrganizationBaseEntity, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { StorageFile, Tag, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsDateString, IsOptional, IsString } from 'class-validator'
 import {
@@ -40,7 +40,7 @@ export class Project extends TenantOrganizationBaseEntity implements IProject {
 	description?: string
 
 	@ApiProperty({ type: () => String, enum: ProjectStatusEnum })
-	@Column({ nullable: true, default: ProjectStatusEnum.Progressing })
+	@Column({ type: 'varchar', nullable: true, default: ProjectStatusEnum.Progressing })
 	status?: ProjectStatusEnum
 
 	// Soft Delete

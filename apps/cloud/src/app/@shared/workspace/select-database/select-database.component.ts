@@ -1,9 +1,10 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { injectXpertTableAPI } from '@cloud/app/@core'
-import { IXpertTable } from '@metad/contracts'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { IXpertTable } from '@xpert-ai/contracts'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 
 export type SelectDatabaseOrder = 'createdAt' | 'updatedAt' | 'name'
 
@@ -29,47 +30,47 @@ export interface SelectDatabaseFilterOption<T extends string = string> {
 const DEFAULT_NAV_ITEMS: SelectDatabaseNavItem[] = [
   {
     value: 'all',
-    label: '全部数据库',
+    label: 'All Databases',
     icon: 'ri-database-2-line'
   },
   {
     value: 'workspace',
-    label: '资源库数据库',
+    label: 'Workspace Databases',
     icon: 'ri-archive-stack-line',
-    description: '来自当前工作区的数据库'
+    description: 'Databases from the current workspace'
   }
 ]
 
 const DEFAULT_OWNER_OPTIONS: SelectDatabaseFilterOption[] = [
   {
     value: 'all',
-    label: '所有人'
+    label: 'Everyone'
   },
   {
     value: 'me',
-    label: '我创建的'
+    label: 'Created by me'
   }
 ]
 
 const DEFAULT_ORDER_OPTIONS: SelectDatabaseFilterOption<SelectDatabaseOrder>[] = [
   {
     value: 'createdAt',
-    label: '创建时间'
+    label: 'Created time'
   },
   {
     value: 'updatedAt',
-    label: '更新时间'
+    label: 'Updated time'
   },
   {
     value: 'name',
-    label: '名称'
+    label: 'Name'
   }
 ]
 
 @Component({
   selector: 'xp-workspace-select-database',
   standalone: true,
-  imports: [CommonModule],
+  imports: [TranslateModule],
   templateUrl: './select-database.component.html',
   styleUrls: ['./select-database.component.scss']
 })
@@ -118,11 +119,11 @@ export class WorkspaceSelectDatabaseComponent {
     return items
   })
 
-  readonly title = input('选择数据库')
-  readonly description = input('选择需要连接的数据库资源')
+  readonly title = input('Select Database')
+  readonly description = input('Select a database resource to connect')
   readonly loading = computed(() => this.tablesLoading())
   readonly hasMore = input(false)
-  readonly emptyHint = input('没有更多了')
+  readonly emptyHint = input('No more items')
   readonly ownerOptions = input<SelectDatabaseFilterOption[]>(DEFAULT_OWNER_OPTIONS)
   readonly orderOptions = input<SelectDatabaseFilterOption<SelectDatabaseOrder>[]>(DEFAULT_ORDER_OPTIONS)
 
@@ -194,8 +195,7 @@ export class WorkspaceSelectDatabaseComponent {
         }
 
         this.filterChanged.emit(this.filters())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

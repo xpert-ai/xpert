@@ -1,13 +1,10 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatListModule } from '@angular/material/list'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+
 import { XpIndicatorRegisterFormComponent } from '@cloud/app/@shared/indicator'
 import {
   IIndicator,
@@ -15,29 +12,28 @@ import {
   IndicatorsService,
   NgmSemanticModel,
   SemanticModelServerService
-} from '@metad/cloud/state'
-import { AppearanceDirective, ButtonGroupDirective, ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { Indicator, assign, isNil, omitBy } from '@metad/ocap-core'
+} from '@xpert-ai/cloud/state'
+import { AppearanceDirective, ButtonGroupDirective, ISelectOption, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { Indicator, assign, isNil, omitBy } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService, getErrorMessage, registerModel } from 'apps/cloud/src/app/@core'
 import { combineLatest, firstValueFrom } from 'rxjs'
+import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
-    MatListModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatButtonModule,
+    ZardIconComponent,
+    ZardLoaderComponent,
+    ZardButtonComponent,
     TranslateModule,
     AppearanceDirective,
     ButtonGroupDirective,
     XpIndicatorRegisterFormComponent
-  ],
+],
   selector: 'pac-indicator-import',
   templateUrl: 'indicator-import.component.html',
   styleUrls: ['indicator-import.component.scss']

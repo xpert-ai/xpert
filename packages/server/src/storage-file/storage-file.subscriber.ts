@@ -1,5 +1,5 @@
 import { EntitySubscriberInterface, EventSubscriber, LoadEvent, RemoveEvent } from 'typeorm'
-import { IStorageFile } from '@metad/contracts'
+import { IStorageFile } from '@xpert-ai/contracts'
 import { StorageFile } from './storage-file.entity'
 import { FileStorage } from '../file/file-storage/file-storage'
 

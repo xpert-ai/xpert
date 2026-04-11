@@ -2,11 +2,9 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, ElementRef, HostListener, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import {
   EnvironmentService,
@@ -24,9 +22,9 @@ import {
   XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
-import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@metad/core'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSlideToggleComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@xpert-ai/core'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -36,36 +34,35 @@ import { TagSelectComponent } from '../../tag'
 import { XpertToolNameInputComponent } from '../../xpert'
 import { MCPServerFormComponent } from '../server/server.component'
 import { MCPToolsetToolTestComponent } from '../tool-test'
-
-export type TXpertMCPManageComponentRet = {
-  saved?: boolean;
-  deleted?: boolean;
-  toolset?: Partial<IXpertToolset>
-} | undefined
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+export type TXpertMCPManageComponentRet =
+  | {
+      saved?: boolean
+      deleted?: boolean
+      toolset?: Partial<IXpertToolset>
+    }
+  | undefined
 
 @Component({
   selector: 'xpert-mcp-manage',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-    MatTooltipModule,
-    MatSlideToggleModule,
-
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     NgmSpinComponent,
-    NgmSlideToggleComponent,
     NgmDensityDirective,
     TagSelectComponent,
     MCPServerFormComponent,
     MCPToolsetToolTestComponent,
-    XpertToolNameInputComponent
-  ],
+    XpertToolNameInputComponent,
+    ZardSwitchComponent
+],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
   animations: [ListSlideStaggerAnimation]
@@ -89,17 +86,20 @@ export class XpertMCPManageComponent {
   readonly toolsetId = signal(this.#data.toolsetId)
   readonly #loading = signal(false)
 
-  readonly #toolset = derivedAsync<{toolset: IXpertToolset; loading: boolean;}>(() =>
-    this.toolsetId() ? this.toolsetService.getOneById(this.toolsetId(), { relations: ['tools'] }).pipe(
-      map((toolset) => {
-        const positions = toolset.options?.toolPositions
-        toolset.tools = positions && toolset.tools
-          ? toolset.tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
-          : toolset.tools
-        return {toolset, loading: false}
-      }),
-      startWith({toolset: null, loading: true})
-    ) : of(null)
+  readonly #toolset = derivedAsync<{ toolset: IXpertToolset; loading: boolean }>(() =>
+    this.toolsetId()
+      ? this.toolsetService.getOneById(this.toolsetId(), { relations: ['tools'] }).pipe(
+          map((toolset) => {
+            const positions = toolset.options?.toolPositions
+            toolset.tools =
+              positions && toolset.tools
+                ? toolset.tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
+                : toolset.tools
+            return { toolset, loading: false }
+          }),
+          startWith({ toolset: null, loading: true })
+        )
+      : of(null)
   )
   readonly environment = derivedAsync<IEnvironment>(() =>
     this.workspaceId() ? this.environmentService.getDefaultByWorkspace(this.workspaceId()) : of(null)
@@ -169,11 +169,15 @@ export class XpertMCPManageComponent {
     initialValue: null,
     compute: () => this.toolset()?.options?.toolPositions,
     update: (value) => {
-      this.toolset.update((state) => ({ ...(state ?? {}), options: { ...(state?.options ?? {}), toolPositions: value } }))
+      this.toolset.update((state) => ({
+        ...(state ?? {}),
+        options: { ...(state?.options ?? {}), toolPositions: value }
+      }))
     }
   })
 
-  readonly mcpServer = computed(() => {
+  readonly mcpServer = computed(
+    () => {
       if (!this.toolset()?.schema) {
         return {
           type: MCPServerType.SSE
@@ -194,7 +198,7 @@ export class XpertMCPManageComponent {
 
   readonly tool = linkedModel({
     initialValue: null,
-    compute: () => this.selectedTool() ? this.toolset()?.tools?.find((_) => _.name === this.selectedTool()) : null,
+    compute: () => (this.selectedTool() ? this.toolset()?.tools?.find((_) => _.name === this.selectedTool()) : null),
     update: (tool) => {
       this.toolset.update((state) => {
         const tools = [...(state.tools ?? [])]
@@ -213,7 +217,7 @@ export class XpertMCPManageComponent {
   constructor() {
     // effect(() => {
     //   console.log(this.toolsDirty(), this.dirty())
-    // }, { allowSignalWrites: true })
+    // })
   }
 
   selectTool(tool: IXpertTool) {
@@ -317,7 +321,7 @@ export class XpertMCPManageComponent {
           this.dirty.set(false)
           this.toolsDirty.set(false)
           this.saved.set(true)
-        });
+        })
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))
@@ -327,11 +331,11 @@ export class XpertMCPManageComponent {
   }
 
   createToolset() {
-    return this.toolsetService.create({ 
-      ...this.toolset(), 
+    return this.toolsetService.create({
+      ...this.toolset(),
       workspaceId: this.workspaceId(),
       category: XpertToolsetCategoryEnum.MCP,
-      type: this.mcpServer()?.type,
+      type: this.mcpServer()?.type
     })
   }
 
@@ -365,7 +369,7 @@ export class XpertMCPManageComponent {
     ).subscribe({
       next: () => {
         this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
-        this.#dialogRef.close({deleted: true})
+        this.#dialogRef.close({ deleted: true })
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))
@@ -374,11 +378,11 @@ export class XpertMCPManageComponent {
   }
 
   close() {
-    this.#dialogRef.close({saved: this.saved(), toolset: this.toolset()})
+    this.#dialogRef.close({ saved: this.saved(), toolset: this.toolset() })
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscKeydownHandler(event: KeyboardEvent) {
+  onEscKeydownHandler(event: Event) {
     const element = this.elementRef.nativeElement as HTMLElement
     if (document.activeElement && element.contains(document.activeElement)) {
       this.close()

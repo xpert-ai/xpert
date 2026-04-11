@@ -1,9 +1,9 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Input, forwardRef, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { ChartType, cloneDeep } from '@metad/ocap-core'
-import { AccordionWrappers } from '@metad/story/designer'
+import { ChartType, cloneDeep } from '@xpert-ai/ocap-core'
+import { AccordionWrappers } from '@xpert-ai/story/designer'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
@@ -12,7 +12,7 @@ import { chartSettingsFieldGroup } from '../analytical-card.schema'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
   selector: 'ngm-chart-settings',
   templateUrl: 'chart-settings.component.html',
   styleUrls: ['chart-settings.component.scss'],

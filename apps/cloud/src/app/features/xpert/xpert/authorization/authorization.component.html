@@ -1,67 +1,434 @@
-<div class="max-w-2xl mx-auto py-8 h-full flex flex-col justify-start">
-  <div class="sticky top-0 px-6 py-4 flex items-center h-14 mb-4 bg-white text-lg font-medium text-gray-900 z-20">
-    <div class="shrink-0">{{'PAC.Xpert.XpertManagers' | translate: {Default: 'Xpert Managers'} }}</div>
-    <div class="grow flex justify-end">
+<div class="relative flex h-full flex-col bg-components-panel-bg">
+  <div class="border-b border-divider-regular px-4 py-4 sm:px-6">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <div class="text-lg font-semibold text-text-primary">
+          {{ 'PAC.Xpert.XpertUserGroups' | translate: { Default: 'Xpert User Groups' } }}
+        </div>
+        <div class="mt-1 text-sm text-text-tertiary">
+          {{
+            'PAC.UserGroup.RuntimeAccessHint'
+              | translate: { Default: 'Published xperts can only be used by members of the selected organization groups.' }
+          }}
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3 text-sm text-text-primary">
+        {{ xpert()?.title || xpert()?.name }}
+      </div>
     </div>
   </div>
 
-  <div class="px-4 sm:px-8 pt-2 relative">
-    <div class="flex flex-col">
-      <div class="flex items-center mb-4 p-3 bg-gray-50 rounded-2xl">
-        <div class="grow mx-2">{{ xpert()?.title || xpert()?.name }}</div>
+  <div class="grid flex-1 gap-4 overflow-hidden px-4 py-4 sm:px-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
+    <section
+      class="flex min-h-[20rem] flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg"
+    >
+      <div class="border-b border-divider-regular px-5 py-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-lg font-semibold text-text-primary">
+              {{ 'PAC.UserGroup.SelectedGroups' | translate: { Default: 'Selected Groups' } }}
+            </div>
+            <div class="mt-1 text-sm text-text-tertiary">
+              {{
+                'PAC.UserGroup.SelectedGroupsHint'
+                  | translate
+                    : {
+                        Default: 'Choose which organization groups are allowed to access this xpert after publication.'
+                      }
+              }}
+            </div>
+          </div>
 
-        <div
-          class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-gray-200 text-[13px] font-medium text-primary-600 bg-white shadow-xs rounded-lg cursor-pointer"
-          (click)="openAddUser()"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="currentColor"
-            class="w-4 h-4 mr-2"
+          <button
+            type="button"
+            class="rounded-xl border border-divider-regular px-3 py-2 text-sm font-medium text-text-primary transition hover:bg-hover-bg"
+            [disabled]="isBusy() || (isTenantXpert() && !selectedOrganization())"
+            (click)="openGroupsSettings()"
           >
-            <path
-              d="M14 14.252V16.3414C13.3744 16.1203 12.7013 16 12 16C8.68629 16 6 18.6863 6 22H4C4 17.5817 7.58172 14 12 14C12.6906 14 13.3608 14.0875 14 14.252ZM12 13C8.685 13 6 10.315 6 7C6 3.685 8.685 1 12 1C15.315 1 18 3.685 18 7C18 10.315 15.315 13 12 13ZM12 11C14.21 11 16 9.21 16 7C16 4.79 14.21 3 12 3C9.79 3 8 4.79 8 7C8 9.21 9.79 11 12 11ZM18 17V14H20V17H23V19H20V22H18V19H15V17H18Z"
-            ></path></svg
-          >{{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
+            {{ 'PAC.UserGroup.ManageGroups' | translate: { Default: 'Manage Groups' } }}
+          </button>
         </div>
-      </div>
-    </div>
-    <div class="overflow-visible lg:overflow-visible">
-      <div class="flex items-center py-[7px] border-b border-gray-200 min-w-[480px]">
-        <div class="grow px-3 text-sm font-medium text-gray-500">{{ 'PAC.KEY_WORDS.User' | translate: {Default: 'User'} }}</div>
-        <div class="shrink-0 w-24 px-3 text-sm font-medium text-gray-500">{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</div>
-      </div>
-      <div class="min-w-[480px] relative">
-        @for (item of members(); track item) {
-          <div class="group flex items-center border-b p-2 border-gray-100 hover:bg-hover-bg">
-            <pac-user-profile-inline class="grow" [user]="item.user" [isMe]="me().id === item.user.id" />
-          
-            <div class="shrink-0 w-24 px-3 flex items-center">
-              @if (item.type === 'workspace') {
-                <div class="p-2 text-xl text-text-secondary" [matTooltip]="'PAC.Xpert.WorkspaceMember' | translate: {Default: 'Workspace Member'}"
-                  matTooltipPosition="after"
+
+        @if (isTenantXpert()) {
+          <div class="mt-4 rounded-2xl border border-divider-regular bg-components-panel-bg p-4">
+            <div class="text-xs uppercase tracking-wide text-text-tertiary">
+              {{ 'ORGANIZATION' | translate: { Default: 'Organization' } }}
+            </div>
+            <div class="mt-2 text-sm leading-6 text-text-tertiary">
+              {{
+                'PAC.UserGroup.AuthorizationByOrganizationHint'
+                  | translate
+                    : {
+                        Default:
+                          'Tenant xperts are authorized per organization. Choose one organization, then configure which of its groups can access this xpert.'
+                      }
+              }}
+            </div>
+
+            <div class="mt-4 flex flex-col gap-3">
+              <select
+                class="w-full rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary-500"
+                [disabled]="isBusy() || !organizationOptions().length"
+                [value]="selectedOrganizationId() ?? ''"
+                (change)="changeOrganization($any($event.target).value)"
+              >
+                @if (!organizationOptions().length) {
+                  <option value="">
+                    {{
+                      'PAC.UserGroup.NoOrganizationsAvailable'
+                        | translate: { Default: 'No organizations available for authorization.' }
+                    }}
+                  </option>
+                }
+
+                @for (organization of organizationOptions(); track organization.id) {
+                  <option [value]="organization.id">{{ organizationLabel(organization) }}</option>
+                }
+              </select>
+
+              @if (selectedOrganization()) {
+                <div
+                  class="inline-flex w-fit items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary"
                 >
-                  <i class="ri-user-settings-line"></i>
+                  <span class="text-xs uppercase tracking-wide text-text-tertiary">
+                    {{ 'PAC.UserGroup.SelectedOrganization' | translate: { Default: 'Selected Organization' } }}
+                  </span>
+                  <span class="font-medium">{{ organizationLabel(selectedOrganization()) }}</span>
                 </div>
-              }
-              @else {
-                <button type="button" class="btn btn-secondary btn-danger pressable px-2 py-1 text-sm opacity-0 group-hover:opacity-100"
-                  (click)="removeManager(item.user)">
-                  {{'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}
-                </button>
               }
             </div>
           </div>
+        } @else if (selectedOrganization()) {
+          <div class="mt-4 rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-4">
+            <div class="text-xs uppercase tracking-wide text-text-tertiary">
+              {{ 'ORGANIZATION' | translate: { Default: 'Organization' } }}
+            </div>
+            <div class="mt-2 text-sm font-medium text-text-primary">
+              {{ organizationLabel(selectedOrganization()) }}
+            </div>
+          </div>
+        }
+
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-4">
+            <div class="text-xs uppercase tracking-wide text-text-tertiary">
+              {{ 'PAC.UserGroup.Title' | translate: { Default: 'User Groups' } }}
+            </div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ selectedGroupCount() }}</div>
+          </div>
+
+          <div class="rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-4">
+            <div class="text-xs uppercase tracking-wide text-text-tertiary">
+              {{ 'PAC.UserGroup.Members' | translate: { Default: 'Members' } }}
+            </div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ selectedMemberCount() }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
+        <div class="rounded-2xl border border-divider-regular bg-components-panel-bg p-4">
+          <div class="text-sm font-medium text-text-primary">
+            {{ 'PAC.UserGroup.AccessRule' | translate: { Default: 'Access Rule' } }}
+          </div>
+          <div class="mt-2 text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.UserGroup.AccessRuleHint'
+                | translate
+                  : {
+                      Default:
+                        'If no group is selected, organization users cannot use this published xpert at runtime. Tenant-level xperts remain available to their creator.'
+                    }
+            }}
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-divider-regular bg-components-panel-bg p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-medium text-text-primary">
+                {{ 'PAC.UserGroup.SelectedGroups' | translate: { Default: 'Selected Groups' } }}
+              </div>
+              <div class="mt-1 text-xs text-text-tertiary">
+                {{ selectedGroupCount() }} {{ 'PAC.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="rounded-xl border border-divider-regular px-3 py-2 text-xs font-medium text-text-tertiary transition hover:bg-hover-bg"
+              [disabled]="!selectedGroupCount() || isBusy() || !targetOrganizationId()"
+              (click)="clearSelection()"
+            >
+              {{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+            </button>
+          </div>
+
+          @if (selectedGroups().length) {
+            <div class="mt-4 flex flex-wrap gap-2">
+              @for (group of selectedGroups(); track group.id) {
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary transition hover:bg-hover-bg"
+                  [disabled]="isBusy() || !targetOrganizationId()"
+                  (click)="toggleGroup(group.id, false)"
+                >
+                  <span
+                    class="flex h-6 w-6 items-center justify-center rounded-full border border-divider-regular bg-components-panel-bg text-[11px] font-semibold text-text-primary"
+                  >
+                    {{ groupInitials(group) }}
+                  </span>
+                  <span class="max-w-[10rem] truncate">{{ group.name }}</span>
+                </button>
+              }
+            </div>
+          } @else {
+            <div
+              class="mt-4 rounded-2xl border border-dashed border-divider-regular px-4 py-5 text-sm text-text-tertiary"
+            >
+              @if (targetOrganizationId()) {
+                {{
+                  'PAC.UserGroup.EmptySelectionHint'
+                    | translate: { Default: 'Select one or more groups from the right panel to allow runtime access.' }
+                }}
+              } @else {
+                {{
+                  'PAC.UserGroup.SelectOrganizationFirstHint'
+                    | translate: { Default: 'Select an organization first to configure which groups can access this xpert.' }
+                }}
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="border-t border-divider-regular px-5 py-4">
+        <div class="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            class="rounded-xl border border-divider-regular px-4 py-2 text-sm font-medium text-text-tertiary transition hover:bg-hover-bg"
+            [disabled]="!hasChanges() || isBusy() || !targetOrganizationId()"
+            (click)="resetSelection()"
+          >
+            {{ 'PAC.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
+          </button>
+
+          <button
+            type="button"
+            class="rounded-xl border border-primary-500 bg-primary-500 px-5 py-2.5 text-sm font-medium text-primary-50 transition hover:opacity-90"
+            [disabled]="!hasChanges() || isBusy() || !targetOrganizationId()"
+            (click)="save()"
+          >
+            {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="flex min-h-[20rem] flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg"
+    >
+      <div class="border-b border-divider-regular px-5 py-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-lg font-semibold text-text-primary">
+              {{ 'PAC.UserGroup.Title' | translate: { Default: 'User Groups' } }}
+            </div>
+            <div class="mt-1 text-sm text-text-tertiary">
+              {{
+                'PAC.UserGroup.GroupPickerHint'
+                  | translate
+                    : { Default: 'Search and select the organization groups that should be allowed to use this xpert.' }
+              }}
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            @if (selectedOrganization()) {
+              <div
+                class="rounded-full border border-divider-regular bg-components-panel-bg px-3 py-1 text-xs text-text-tertiary"
+              >
+                {{ organizationLabel(selectedOrganization()) }}
+              </div>
+            }
+            <div
+              class="rounded-full border border-divider-regular bg-components-panel-bg px-3 py-1 text-xs text-text-tertiary"
+            >
+              {{ filteredGroups().length }} {{ 'PAC.KEY_WORDS.Users' | translate: { Default: 'items' } }}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-col gap-3 lg:flex-row">
+          <input
+            type="text"
+            class="w-full rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary-500"
+            [value]="query()"
+            [placeholder]="'PAC.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
+            [disabled]="!targetOrganizationId()"
+            (input)="updateQuery($any($event.target).value)"
+          />
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-xl border border-divider-regular px-3 py-2 text-sm font-medium text-text-primary transition hover:bg-hover-bg"
+              [disabled]="!canSelectVisibleGroups() || isBusy() || !targetOrganizationId()"
+              (click)="selectVisibleGroups()"
+            >
+              {{ 'PAC.UserGroup.SelectVisible' | translate: { Default: 'Select Visible' } }}
+            </button>
+            <button
+              type="button"
+              class="rounded-xl border border-divider-regular px-3 py-2 text-sm font-medium text-text-tertiary transition hover:bg-hover-bg"
+              [disabled]="!selectedGroupCount() || isBusy() || !targetOrganizationId()"
+              (click)="clearSelection()"
+            >
+              {{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-1 flex-col overflow-y-auto p-5">
+        @if (isTenantXpert() && !hasAvailableOrganizations()) {
+          <div
+            class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
+          >
+            <div class="text-base font-semibold text-text-primary">
+              {{
+                'PAC.UserGroup.NoOrganizationsAvailable'
+                  | translate: { Default: 'No organizations available for authorization.' }
+              }}
+            </div>
+            <div class="mt-2 max-w-lg text-sm text-text-tertiary">
+              {{
+                'PAC.UserGroup.NoOrganizationsAvailableHint'
+                  | translate
+                    : {
+                        Default:
+                          'You need access to at least one organization before you can bind organization groups to this tenant xpert.'
+                      }
+              }}
+            </div>
+          </div>
+        } @else if (!targetOrganizationId()) {
+          <div
+            class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
+          >
+            <div class="text-base font-semibold text-text-primary">
+              {{
+                'PAC.UserGroup.SelectOrganizationFirst'
+                  | translate: { Default: 'Select an organization to continue.' }
+              }}
+            </div>
+            <div class="mt-2 text-sm text-text-tertiary">
+              {{
+                'PAC.UserGroup.SelectOrganizationFirstHint'
+                  | translate: { Default: 'Select an organization first to configure which groups can access this xpert.' }
+              }}
+            </div>
+          </div>
+        } @else if (!availableGroups().length) {
+          <div
+            class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
+          >
+            <div class="text-base font-semibold text-text-primary">
+              {{ 'PAC.UserGroup.Empty' | translate: { Default: 'No user groups yet.' } }}
+            </div>
+            <div class="mt-2 max-w-lg text-sm text-text-tertiary">
+              {{
+                'PAC.UserGroup.EmptyGroupsHint'
+                  | translate
+                    : { Default: 'Create organization groups first, then return here to bind them to this xpert.' }
+              }}
+            </div>
+            <button
+              type="button"
+              class="mt-5 rounded-xl border border-primary-500 bg-primary-500 px-4 py-2 text-sm font-medium text-primary-50 transition hover:opacity-90"
+              [disabled]="isBusy() || (isTenantXpert() && !selectedOrganization())"
+              (click)="openGroupsSettings()"
+            >
+              {{ 'PAC.UserGroup.ManageGroups' | translate: { Default: 'Manage Groups' } }}
+            </button>
+          </div>
+        } @else if (!filteredGroups().length) {
+          <div
+            class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
+          >
+            <div class="text-base font-semibold text-text-primary">
+              {{ 'PAC.UserGroup.NoMatchingGroups' | translate: { Default: 'No matching groups.' } }}
+            </div>
+            <div class="mt-2 text-sm text-text-tertiary">
+              {{ 'PAC.UserGroup.NoMatchingMembersHint' | translate: { Default: 'Try another search keyword.' } }}
+            </div>
+          </div>
+        } @else {
+          <div class="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+            @for (group of filteredGroups(); track group.id) {
+              <button
+                type="button"
+                class="rounded-2xl border p-4 text-left transition"
+                [class.border-primary-500]="isSelected(group.id)"
+                [class.bg-hover-bg]="isSelected(group.id)"
+                [class.border-divider-regular]="!isSelected(group.id)"
+                [class.hover:bg-hover-bg]="!isSelected(group.id)"
+                [disabled]="isBusy() || !targetOrganizationId()"
+                (click)="toggleGroup(group.id, !isSelected(group.id))"
+              >
+                <div class="flex items-start gap-3">
+                  <div
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-divider-regular bg-components-panel-bg text-sm font-semibold text-text-primary"
+                  >
+                    {{ groupInitials(group) }}
+                  </div>
+
+                  <div class="min-w-0 grow">
+                    <div class="flex items-center gap-2">
+                      <div class="truncate text-sm font-semibold text-text-primary">{{ group.name }}</div>
+                      @if (isSelected(group.id)) {
+                        <div
+                          class="rounded-full border border-primary-500 px-2 py-0.5 text-[11px] font-medium text-primary-600"
+                        >
+                          {{ 'PAC.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
+                        </div>
+                      }
+                    </div>
+
+                    <div class="mt-1 line-clamp-2 text-xs text-text-tertiary">
+                      @if (group.description?.trim()) {
+                        {{ group.description }}
+                      } @else {
+                        {{
+                          'PAC.UserGroup.MemberCount'
+                            | translate: { Default: groupMemberCount(group) + ' members', count: groupMemberCount(group) }
+                        }}
+                      }
+                    </div>
+                  </div>
+
+                  <div
+                    class="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+                    [class.border-primary-500]="isSelected(group.id)"
+                    [class.border-divider-regular]="!isSelected(group.id)"
+                  >
+                    @if (isSelected(group.id)) {
+                      <span class="h-2.5 w-2.5 rounded-full bg-primary-500"></span>
+                    }
+                  </div>
+                </div>
+              </button>
+            }
+          </div>
         }
       </div>
-    </div>
-
-    @if (loading()) {
-      <ngm-spin class="absolute left-0 top-0 w-full h-full" />
-    }
+    </section>
   </div>
-  
+
+  @if (isBusy()) {
+    <div class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/60 backdrop-blur-[1px]">
+      <ngm-spin />
+    </div>
+  }
 </div>

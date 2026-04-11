@@ -1,6 +1,6 @@
 <div class="mb-3 flex justify-between items-center">
-  <div class="h-[41px] flex items-center text-lg font-semibold text-gray-900">
-    {{ 'PAC.Xpert.Logs' | translate: { Default: 'Logs' } }}
+  <div class="h-[41px] flex items-center text-lg font-semibold text-text-primary">
+    {{ 'PAC.Xpert.Logs' | translate: {Default: 'Logs'} }}
   </div>
 </div>
 
@@ -14,40 +14,41 @@
   />
 </div>
 
-<div class="w-full relative overflow-auto flex-1" waIntersectionObserver waIntersectionThreshold="0.5">
-  <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+<div class="w-full relative overflow-auto flex-1"
+  waIntersectionObserver
+  waIntersectionThreshold="0.5">
+  <table class="table-fixed w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
+    <thead class="text-xs text-text-secondary uppercase bg-background-default-subtle dark:bg-gray-700 dark:text-text-quaternary">
       <tr>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-80 truncate">
-          {{ 'PAC.KEY_WORDS.Title' | translate: { Default: 'Title' } }}
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-80 truncate">
+          {{ 'PAC.KEY_WORDS.Title' | translate: {Default: 'Title'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.KEY_WORDS.CreatedBy' | translate: { Default: 'Created By' } }}
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3">
+          {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.Xpert.ChatFrom' | translate: { Default: 'Chat From' } }}
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3">
+          {{ 'PAC.Xpert.ChatFrom' | translate: {Default: 'Chat From'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.KEY_WORDS.EndUser' | translate: { Default: 'End User' } }}
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3">
+          {{ 'PAC.KEY_WORDS.EndUser' | translate: {Default: 'End User'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
-          {{ 'PAC.KEY_WORDS.MessageCount' | translate: { Default: 'Message Count' } }}
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-32">
+          {{ 'PAC.KEY_WORDS.MessageCount' | translate: {Default: 'Message Count'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
-          {{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-32">
+          {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: { Default: 'Updated At' } }}
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3">
+          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-28">
-          {{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-28">
+          {{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}
         </th>
       </tr>
     </thead>
     <tbody>
       @for (conv of conversations(); track conv.id) {
-        <tr
-          class="row cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+        <tr class="row cursor-pointer bg-components-card-bg border-b border-divider-regular"
           [class.selected]="preview() === conv.id"
           (click)="togglePreview(conv.id)"
         >
@@ -79,18 +80,16 @@
               @case ('error') {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
                   <div
-                    class="w-2 h-2 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"
+                    class="w-2 h-2 border border-solid rounded-[3px] bg-text-destructive border-text-destructive shadow-sm"
                   ></div>
-                  <span class="text-red-600">
+                  <span class="text-text-destructive">
                     {{ 'PAC.Xpert.Failure' | translate: { Default: 'Failure' } }}
                   </span>
                 </div>
               }
               @case ('interrupted') {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-                  <div
-                    class="w-2 h-2 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"
-                  ></div>
+                  <div class="w-2 h-2 border border-solid rounded-[3px] bg-background-default-subtle border-divider-deep shadow-sm"></div>
                   <span class="">
                     {{ 'PAC.Xpert.Interrupted' | translate: { Default: 'Interrupted' } }}
                   </span>
@@ -111,7 +110,7 @@
           <td class="px-4 py-2">{{ conv.updatedAt | relative }}</td>
           <td class="px-4 py-2">
             <button
-              class="text-xs font-medium px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              class="text-xs font-medium px-2 py-1 rounded border border-divider-deep hover:bg-hover-bg disabled:opacity-40 disabled:cursor-not-allowed"
               [disabled]="conv.status !== 'busy'"
               (click)="cancelConversation($event, conv)"
             >
@@ -130,9 +129,7 @@
   }
 
   @if (!done()) {
-    <button
-      (waIntersectionObservee)="onIntersection()"
-      class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
+    <button (waIntersectionObservee)="onIntersection()" class="w-full flex justify-center p-2 cursor-pointer hover:bg-hover-bg"
       [disabled]="loading()"
       (click)="onIntersection()"
     >
@@ -152,9 +149,7 @@
       />
     }
 
-    <xp-chat-conversation-preview
-      #prev
-      class="h-full w-[420px] rounded-2xl shadow-lg overflow-auto border border-gray-100 bg-components-panel-bg-blur"
+    <xp-chat-conversation-preview #prev class="h-full w-[420px] rounded-2xl shadow-lg overflow-auto border border-divider-regular bg-components-panel-bg-blur"
       readonly
       [conversationId]="preview()"
       (close)="preview.set(null)"
@@ -162,3 +157,4 @@
     />
   </div>
 }
+

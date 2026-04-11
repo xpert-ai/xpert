@@ -1,5 +1,5 @@
-import { IEnvironment, IUser, IXpertWorkspace, TXpertWorkspaceSettings, TXpertWorkspaceStatus } from '@metad/contracts'
-import { TenantOrganizationBaseEntity, User } from '@metad/server-core'
+import { IEnvironment, IUser, IXpertWorkspace, TXpertWorkspaceSettings, TXpertWorkspaceStatus } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
@@ -21,7 +21,7 @@ export class XpertWorkspace extends TenantOrganizationBaseEntity implements IXpe
     @ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status: TXpertWorkspaceStatus
 
 	@ApiPropertyOptional({ type: () => Object })

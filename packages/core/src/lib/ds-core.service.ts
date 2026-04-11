@@ -1,4 +1,4 @@
-import { ComponentStore } from '@metad/store'
+import { ComponentStore } from '@xpert-ai/store'
 import { combineLatest, filter, firstValueFrom, map, Observable, shareReplay, switchMap } from 'rxjs'
 import { Agent, AgentType, OcapCache } from './agent'
 import { DataSource, DataSourceFactory, DataSourceOptions } from './data-source'

@@ -1,5 +1,5 @@
-import { LongTermMemoryTypeEnum } from '@metad/contracts'
-import { runWithRequestContext } from '@metad/server-core'
+import { LongTermMemoryTypeEnum } from '@xpert-ai/contracts'
+import { runWithRequestContext } from '@xpert-ai/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'

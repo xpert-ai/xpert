@@ -1,5 +1,5 @@
-import { TEnvironmentVariable } from '@metad/contracts'
-import { omit } from '@metad/server-common'
+import { TEnvironmentVariable } from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { Expose, Transform } from 'class-transformer'
 import { Environment } from '../environment.entity'
 

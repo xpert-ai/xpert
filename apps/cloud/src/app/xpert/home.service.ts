@@ -1,5 +1,5 @@
 import { computed, effect, inject, Injectable, model, signal } from '@angular/core'
-import { SemanticModelServerService } from '@metad/cloud/state'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
 import { Observable, shareReplay } from 'rxjs'
 import {
   ChatConversationService,
@@ -79,8 +79,7 @@ export class XpertHomeService {
           })
         }
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   /**

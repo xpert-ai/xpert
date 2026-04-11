@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/formly/src",
   "prefix": "metad-cloud",
+  "implicitDependencies": ["!story-angular"],
   "tags": [],
   "projectType": "library",
   "targets": {

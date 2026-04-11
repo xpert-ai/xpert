@@ -5,7 +5,7 @@ import {
 	IEmailTemplateSaveInput,
 	IPagination,
 	LanguagesEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import {
 	Body,
 	Controller,

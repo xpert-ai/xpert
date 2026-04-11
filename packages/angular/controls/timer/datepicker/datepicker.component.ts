@@ -1,8 +1,7 @@
 import { Component, computed, effect, forwardRef, inject, input, Input, model, OnInit, output } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatFormFieldAppearance } from '@angular/material/form-field'
-import { DisplayDensity, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@metad/ocap-angular/core'
+import { DisplayDensity, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -19,7 +18,7 @@ import {
   Semantics,
   mapSemanticTimeGranularity,
   getEntityHierarchy,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { isEqual } from 'lodash-es'
 import {
   catchError,
@@ -33,11 +32,11 @@ import {
 } from 'rxjs'
 import { NgmSmartFilterService } from '../../smart-filter.service'
 
-
 @Component({
   selector: 'ngm-member-datepicker',
   templateUrl: './datepicker.component.html',
   styleUrls: ['./datepicker.component.scss'],
+  standalone: false,
   host: {
     class: 'ngm-member-datepicker'
   },
@@ -60,7 +59,7 @@ export class NgmMemberDatepickerComponent implements OnInit, ControlValueAccesso
 
   @Input() label: string
   @Input() placeholder: string
-  @Input() appearance: MatFormFieldAppearance
+  @Input() appearance: NgmFieldAppearance
   @Input() displayDensity: DisplayDensity
 
   // @Input() dataSettings: DataSettings
@@ -237,20 +236,20 @@ export class NgmMemberDatepickerComponent implements OnInit, ControlValueAccesso
           this.granularity.set(mapSemanticTimeGranularity(level.semantics?.semantic))
         }
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.defaultValue()) {
         const value = this.coreService.execDateVariables(this.defaultValue())
         this.date = Array.isArray(value) ? value : [value]
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.dataSettings()) {
         this.dataService.dataSettings = this.dataSettings()
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.dimension()) {
@@ -259,7 +258,7 @@ export class NgmMemberDatepickerComponent implements OnInit, ControlValueAccesso
           dimension: this.dimension()
         }
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   ngOnInit() {

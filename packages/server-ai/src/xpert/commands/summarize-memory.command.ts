@@ -1,4 +1,4 @@
-import { LongTermMemoryTypeEnum } from '@metad/contracts';
+import { LongTermMemoryTypeEnum } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs'
 
 /**

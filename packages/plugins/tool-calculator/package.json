@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-tool-calculator",
-  "version": "0.0.1",
+  "version": "0.0.2-beta.0",
   "xpert": {
     "plugin": {
       "level": "organization"
@@ -8,5 +8,8 @@
   },
   "dependencies": {},
   "main": "./index.cjs",
-  "module": "./index.js"
+  "module": "./index.js",
+  "peerDependencies": {
+    "@xpert-ai/plugin-sdk": "workspace:*"
+  }
 }

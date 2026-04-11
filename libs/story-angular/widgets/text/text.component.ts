@@ -1,9 +1,9 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, ElementRef, HostBinding, HostListener, ViewChild, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { PropertyMeasure, QueryReturn, formatting, getEntityProperty, indicatorFormatter } from '@metad/ocap-core'
+import { PropertyMeasure, QueryReturn, formatting, getEntityProperty, indicatorFormatter } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { AbstractStoryWidget, Intent, WidgetMenu, WidgetMenuType, replaceParameters } from '@metad/core'
+import { AbstractStoryWidget, Intent, WidgetMenu, WidgetMenuType, replaceParameters } from '@xpert-ai/core'
 import { Observable, debounceTime, map, tap } from 'rxjs'
 import { TextDataService } from './text-data.service'
 
@@ -14,7 +14,7 @@ export interface TextWidgetOptions {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   selector: 'ngm-story-widget-text',
   templateUrl: './text.component.html',
   styleUrls: ['./text.component.scss'],
@@ -122,7 +122,7 @@ export class NxWidgetTextComponent extends AbstractStoryWidget<TextWidgetOptions
       if (this.preview() || !this.editable) {
         this.dataService.setMeasures(this.measures())
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.textSpan()) {

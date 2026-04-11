@@ -1,5 +1,5 @@
 import './polyfills';
-// import { installPlugins } from '@metad/server-core';
+// import { installPlugins } from '@xpert-ai/server-core';
 import { bootstrap } from './bootstrap/index'
 import { prepare } from './core/prepare'
 

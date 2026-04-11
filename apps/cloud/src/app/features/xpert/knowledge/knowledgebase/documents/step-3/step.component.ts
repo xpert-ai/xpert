@@ -1,13 +1,11 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
@@ -25,6 +23,7 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
+import { ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -32,16 +31,15 @@ import { KnowledgeDocumentsComponent } from '../documents.component'
   templateUrl: './step.component.html',
   styleUrls: ['./step.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
     ContentLoaderModule,
-    MatTooltipModule,
-    MatProgressBarModule,
+    ZardProgressBarComponent,
+    ...ZardTooltipImports,
     KnowledgeDocIdComponent
-  ]
+]
 })
 export class KnowledgeDocumentCreateStep3Component {
   eKDocumentSourceType = KDocumentSourceType
@@ -110,8 +108,7 @@ export class KnowledgeDocumentCreateStep3Component {
             this.#task.reload()
           }, 2000)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

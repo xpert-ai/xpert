@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { Dimension, nonNullable } from '@metad/ocap-core'
+import { Dimension, nonNullable } from '@xpert-ai/ocap-core'
 import {
   AccordionWrappers,
   DataSettingsSchemaService,
@@ -8,12 +8,12 @@ import {
   FORMLY_W_FULL,
   SchemaState,
   dateFilterOptions
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { isEqual } from 'lodash-es'
 import { Observable, combineLatest } from 'rxjs'
 import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { CascadingEffect } from './types'
-import { PropertyCapacity } from '@metad/ocap-angular/entity'
+import { PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 
 @Injectable()
 export class StoryFilterBarSchemaService<T extends SchemaState = SchemaState> extends DataSettingsSchemaService<T> {

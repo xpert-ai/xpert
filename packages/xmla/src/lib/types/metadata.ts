@@ -1,4 +1,4 @@
-import { IDimensionMember, Property, PropertyHierarchy, PropertyLevel } from '@metad/ocap-core'
+import { IDimensionMember, Property, PropertyHierarchy, PropertyLevel } from '@xpert-ai/ocap-core'
 import { lowerCase, lowerFirst, upperFirst } from 'lodash'
 import { DIMENSION_TYPE, XmlaMember } from './rowset'
 
@@ -12,7 +12,7 @@ export interface MDXCube {
 }
 
 /**
- * 增加 XMLA 相关的 Dimension 属性，继承自 @metad/ocap-core 中的 {@link Property}
+ * 增加 XMLA 相关的 Dimension 属性，继承自 @xpert-ai/ocap-core 中的 {@link Property}
  * 
  * ```xml
  * <xsd:complexType name="row">

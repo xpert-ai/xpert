@@ -1,15 +1,15 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { OverlayAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { OverlayAnimations } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  ApiKeyBindingType,
   derivedHelpUrl,
   getErrorMessage,
   injectApiBaseUrl,
@@ -20,19 +20,19 @@ import {
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../develop'
 import { XpertComponent } from '../xpert.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent
-  ],
+],
   selector: 'xpert-api',
   templateUrl: './api.component.html',
   styleUrl: 'api.component.scss',
@@ -48,7 +48,7 @@ export class XpertAPIComponent {
   readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(Dialog)
   readonly apiBaseUrl = injectApiBaseUrl()
-  readonly apiReferenceUrl = derivedHelpUrl(() => `/api-reference/aiv1`)
+  readonly apiReferenceUrl = derivedHelpUrl(() => `/api-reference/aiv1/post-apiaiv1kb`)
 
   readonly xpert = this.xpertComponent.latestXpert
 
@@ -90,12 +90,14 @@ export class XpertAPIComponent {
     this.#dialog
       .open(XpertDevelopApiKeyComponent, {
         data: {
-          type: 'xpert',
+          type: ApiKeyBindingType.ASSISTANT,
           id: this.xpert().id
         }
       })
       .closed.subscribe({
-        next: () => {}
+        next: () => {
+          //
+        }
       })
   }
 }

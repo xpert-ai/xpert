@@ -16,22 +16,22 @@ import {
   TemplateRef,
   NgZone,
 } from '@angular/core';
-
 import { CountdownConfig, CountdownStatus, CountdownEvent, CountdownEventAction, CountdownItem } from './interfaces';
 import { CountdownTimer } from './countdown.timer';
 import { CountdownGlobalConfig } from './countdown.config';
 
 /**
- * @deprecated use `@metad/ocap-angular/common`
+ * @deprecated use `@xpert-ai/ocap-angular/common`
  */
 @Component({
   selector: 'countdown',
+  standalone: false,
   template: `
-    <ng-container *ngIf="!render">
+    @if (!render) {
       <span [innerHTML]="i.text"></span>
-    </ng-container>
+    }
     <ng-container *ngTemplateOutlet="render; context: { $implicit: i }"></ng-container>
-  `,
+    `,
   host: { '[class.count-down]': 'true' },
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,

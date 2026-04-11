@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { BaseDesignerSchemaService } from '@metad/story/designer'
+import { BaseDesignerSchemaService } from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 
 @Injectable()

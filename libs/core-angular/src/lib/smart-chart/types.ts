@@ -1,4 +1,4 @@
-import { ISlicer } from "@metad/ocap-core"
+import { ISlicer } from "@xpert-ai/ocap-core"
 
 /**
  * @deprecated

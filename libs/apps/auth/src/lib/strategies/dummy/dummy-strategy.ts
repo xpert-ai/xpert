@@ -1,13 +1,10 @@
 import { Injectable } from '@angular/core';
-
 import { Observable, of as observableOf } from 'rxjs';
 import { delay } from 'rxjs/operators';
-
 import { NbAuthStrategy } from '../auth-strategy';
 import { NbAuthResult } from '../../services/auth-result';
 import { NbDummyAuthStrategyOptions, dummyStrategyOptions } from './dummy-strategy-options';
 import { PacAuthStrategyClass } from '../../auth.options';
-
 
 /**
  * Dummy auth strategy. Could be useful for auth setup when backend is not available yet.
@@ -106,7 +103,6 @@ export class NbDummyAuthStrategy extends NbAuthStrategy {
         [err.message],
       );
     }
-
 
   }
 }

@@ -15,7 +15,7 @@ import * as path from 'path'
 import moment from 'moment'
 // import * as sharp from 'sharp'; It's a bug in install sharp in docker image
 import * as fs from 'fs'
-import { IScreenshot, UploadedFile } from '@metad/contracts'
+import { IScreenshot, UploadedFile } from '@xpert-ai/contracts'
 import { Screenshot } from './screenshot.entity'
 import {
 	CrudController,
@@ -25,7 +25,7 @@ import {
 	UUIDValidationPipe,
 	UploadedFileStorage,
 	tempFile
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { ScreenshotService } from './screenshot.service'
 
 @ApiTags('Screenshot')

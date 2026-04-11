@@ -1,8 +1,8 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { SlashSvgComponent } from '@metad/ocap-angular/common'
-import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { SlashSvgComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { agentLabel, BIInterruptMessageType, TInterruptCommand, TInterruptMessage, TSensitiveOperation, TToolCall } from '../../../@core'
 import { XpertAgentIdentityComponent } from '../agent-identity/agent-identity.component'
@@ -14,14 +14,13 @@ import { XpertAgentInterruptComponent } from '../interrupt/interrupt.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     SlashSvgComponent,
     NgmI18nPipe,
     XpertAgentIdentityComponent,
     XpertAgentInterruptComponent
-  ],
+],
   selector: 'xp-xpert-agent-operation',
   templateUrl: 'operation.component.html',
   styleUrls: ['operation.component.scss']
@@ -69,8 +68,7 @@ export class XpertAgentOperationComponent {
             this.agentKey.set(this.operation().tasks[0].agent?.key || null)
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

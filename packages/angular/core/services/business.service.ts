@@ -1,5 +1,5 @@
 import { Injectable, Optional } from '@angular/core'
-import { SmartBusinessService } from '@metad/ocap-core'
+import { SmartBusinessService } from '@xpert-ai/ocap-core'
 import { NgmDSCoreService } from '../core.service'
 import { NgmSmartFilterBarService } from './smart-filter-bar.service'
 

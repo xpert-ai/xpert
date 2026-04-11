@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -10,12 +10,11 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { injectConfirmDelete } from '@metad/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -40,18 +39,15 @@ import { XpertStudioConfigureODataComponent } from '../odata'
 import { XpertStudioConfigureToolComponent } from '../openapi/'
 import { XpertToolsetToolTestComponent } from '../tool-test/'
 import { XpertConfigureToolComponent } from './types'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmI18nPipe,
     NgmDensityDirective,
@@ -61,8 +57,9 @@ import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
     XpertStudioConfigureMCPComponent,
     XpertToolsetToolTestComponent,
     XpertToolNameInputComponent,
-    MCPServerFormComponent
-  ],
+    MCPServerFormComponent,
+    ZardSwitchComponent
+],
   selector: 'pac-xpert-api-tool',
   templateUrl: './api-tool.component.html',
   styleUrl: 'api-tool.component.scss',
@@ -100,17 +97,24 @@ export class XpertStudioAPIToolComponent {
   readonly testResult = signal(null)
 
   readonly tools = computed(() => {
-    return this.toolset()?.tools ? this.toolset().tools.filter((_) => !_.deletedAt).sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1)) : []
+    return this.toolset()?.tools
+      ? this.toolset()
+          .tools.filter((_) => !_.deletedAt)
+          .sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1))
+      : []
   })
 
-  readonly mcpServer = computed(() => {
-    if (!this.toolset()?.schema) {
-      return null
-    }
-    const schema = JSON.parse(this.toolset().schema) as TMCPSchema
+  readonly mcpServer = computed(
+    () => {
+      if (!this.toolset()?.schema) {
+        return null
+      }
+      const schema = JSON.parse(this.toolset().schema) as TMCPSchema
 
-    return schema.mcpServers?.['']
-  }, { equal: isEqual })
+      return schema.mcpServers?.['']
+    },
+    { equal: isEqual }
+  )
 
   readonly toolsDirty = signal(false)
   readonly isDirty = computed(() => {
@@ -314,19 +318,21 @@ export class XpertStudioAPIToolComponent {
 
   deleteToolset() {
     const toolset = this.toolset()
-    this.confirmDelete({
-      value: toolset.name,
-      information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
-    }, this.toolsetService.delete(toolset.id))
-      .subscribe({
-        next: () => {
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
-          this.close()
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+    this.confirmDelete(
+      {
+        value: toolset.name,
+        information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
+      },
+      this.toolsetService.delete(toolset.id)
+    ).subscribe({
+      next: () => {
+        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
+        this.close()
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 
   close() {
@@ -342,7 +348,7 @@ export class XpertStudioAPIToolComponent {
     this.toolset.update((toolset) => {
       return {
         ...toolset,
-        schema: JSON.stringify({mcpServers: {'': event}})
+        schema: JSON.stringify({ mcpServers: { '': event } })
       }
     })
     // Mark basic info as dirty

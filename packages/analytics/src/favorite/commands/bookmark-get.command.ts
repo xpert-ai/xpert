@@ -1,4 +1,4 @@
-import { BusinessType } from '@metad/contracts'
+import { BusinessType } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class BookmarkGetCommand implements ICommand {

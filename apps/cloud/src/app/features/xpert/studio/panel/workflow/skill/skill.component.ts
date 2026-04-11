@@ -1,10 +1,10 @@
 import { Clipboard, ClipboardModule } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNSkill,
@@ -19,7 +19,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./skill.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ClipboardModule, CdkMenuModule, TranslateModule]
+  imports: [FormsModule, ClipboardModule, CdkMenuModule, TranslateModule]
 })
 export class XpertWorkflowSkillComponent extends XpertWorkflowBaseComponent {
 
