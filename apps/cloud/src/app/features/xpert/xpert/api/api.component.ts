@@ -48,7 +48,7 @@ export class XpertAPIComponent {
   readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(Dialog)
   readonly apiBaseUrl = injectApiBaseUrl()
-  readonly apiReferenceUrl = derivedHelpUrl(() => `/api-reference/aiv1`)
+  readonly apiReferenceUrl = derivedHelpUrl(() => `/api-reference/aiv1/post-apiaiv1kb`)
 
   readonly xpert = this.xpertComponent.latestXpert
 
