@@ -679,7 +679,8 @@
       "Loading": "加载中",
       "Enabled": "启用",
       "NoTools": "无工具",
-      "Reset": "重置"
+      "Reset": "重置",
+      "NoFields": "暂无字段"
     },
     "Assistant": {
       "SettingsEyebrow": "统一助手配置",
@@ -701,9 +702,6 @@
       "Enabled": "启用",
       "AssistantId": "助手 ID / Xpert ID",
       "AssistantIdPlaceholder": "按名称或 ID 搜索可访问的 Xpert",
-      "RuntimeFrameUrl": "ChatKit Frame URL",
-      "FrameUrlMissing": "未配置部署变量",
-      "RuntimeFrameUrlDesc": "ChatKit frame 由部署配置提供，并在所有助手页面间共享。",
       "FrameUrl": "Frame URL",
       "RuntimeFrameUrl": "ChatKit 嵌入框架 URL",
       "FrameUrlMissing": "部署变量未配置",

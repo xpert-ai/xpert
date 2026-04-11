@@ -566,7 +566,9 @@ export class ClawXpertToolPreferencesComponent {
           ...collectMiddlewareNodes(draft).map((node) => {
             const middleware = node.entity as IWFNMiddleware
             const meta = middlewareMetaMap.get(middleware.provider)
-            return this.#xpertAgentService.getAgentMiddleware(middleware.provider, middleware.options ?? {}).pipe(
+            return this.#xpertAgentService
+              .getAgentMiddleware(middleware.provider, middleware.options ?? {}, this.facade.xpertId())
+              .pipe(
               take(1),
               map((response) => buildMiddlewarePreferenceState(node.key, middleware, meta, response.tools ?? [])),
               catchError((error) =>

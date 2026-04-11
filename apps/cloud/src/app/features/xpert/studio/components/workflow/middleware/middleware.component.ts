@@ -65,15 +65,17 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
   readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta?.name === this.provider())?.meta)
   readonly #providerName = computed(() => this.providerMeta()?.name)
   readonly #options = computed(() => this.middlewareEntity()?.options ?? {}, { equal: isEqual })
+  readonly #xpertId = computed(() => this.studioService.viewModel()?.team?.id)
   readonly #toolsRes = myRxResource({
     options: { debounceTime: 500 },
     request: () => ({
       provider: this.#providerName(),
-      options: this.#options()
+      options: this.#options(),
+      xpertId: this.#xpertId()
     }),
     loader: ({ request }) => {
       return request.provider
-        ? this.agentAPI.getAgentMiddleware(request.provider, request.options).pipe(map((res) => res.tools))
+        ? this.agentAPI.getAgentMiddleware(request.provider, request.options, request.xpertId).pipe(map((res) => res.tools))
         : null
     }
   })
