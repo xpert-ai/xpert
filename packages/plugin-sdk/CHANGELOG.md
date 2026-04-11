@@ -1,5 +1,14 @@
 # @xpert-ai/plugin-sdk
 
+## 3.9.0-beta.2
+
+### Patch Changes
+
+- Updates
+- Updated dependencies
+  - @xpert-ai/contracts@3.9.0-beta.2
+  - @xpert-ai/ocap-core@3.9.0-beta.2
+
 ## 3.9.0-beta.1
 
 ### Patch Changes
