@@ -349,7 +349,23 @@ export function appendMessageContent(
     }
 
     const lastContent = chunks[chunks.length - 1]
-    if (isTextContent(lastContent) && !lastContent.id && !content.id) {
+
+    // When the incoming chunk has an id (streamId), search backward for an existing
+    // chunk with the same id so that interleaved concurrent streams (A→B→A) are
+    // merged into the correct segment rather than appended as new fragments.
+    if (!!content.id) {
+      const existingIndex = chunks.findLastIndex(
+        (c) => isTextContent(c) && (c as TMessageContentText).id === content.id
+      )
+      if (existingIndex > -1) {
+        const existing = chunks[existingIndex] as TMessageContentText
+        const merged = { ...existing, text: `${existing.text}${content.text}` } as TMessageContentText
+        const nextChunks = [...chunks]
+        nextChunks[existingIndex] = merged
+        aiMessage.content = nextChunks
+        return
+      }
+    } else if (isTextContent(lastContent) && joinHint === 'none') {
       const mergedLastContent = {
         ...lastContent,
         text: `${lastContent.text}${content.text}`
