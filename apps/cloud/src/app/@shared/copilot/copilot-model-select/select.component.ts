@@ -15,11 +15,11 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { debouncedSignal, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
+import { debouncedSignal, myRxResource, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { distinctUntilChanged, map } from 'rxjs'
+import { distinctUntilChanged, map, of } from 'rxjs'
 import {
   AiModelTypeEnum,
   CopilotServerService,
@@ -35,6 +35,7 @@ import {
 } from '../../../@core'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
 
 @Component({
   standalone: true,
@@ -48,7 +49,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmI18nPipe,
     NgmHighlightDirective,
-    ModelParameterInputComponent
+    ModelParameterInputComponent,
+    ZardAlertComponent
   ],
   selector: 'copilot-model-select',
   templateUrl: 'select.component.html',
@@ -161,9 +163,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     return this.copilotWithModels()?.find((_) => _.id === this.copilotId())
   })
 
-  readonly provider = computed(
-    () => this.copilots()?.find((_) => _.id === this.copilotId())?.modelProvider?.providerName
-  )
   readonly providerId = computed(() => this.copilots()?.find((_) => _.id === this.copilotId())?.modelProvider?.id)
 
   readonly model = computed(() => this._copilotModel()?.model)
@@ -174,14 +173,23 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     )
   )
 
-  readonly modelParameterRules = derivedAsync(() => {
-    const provider = this.provider()
-    const model = this.model()
-    if (provider && model) {
-      return this.copilotProviderService.getModelParameterRules(this.providerId(), this.modelType(), this.model())
-    }
-    return null
+  readonly #modelParameterRules = myRxResource({
+    request: () => ({
+      providerId: this.providerId(),
+      modelType: this.modelType(),
+      model: this.model()
+    }),
+    loader: ({ request }) =>
+      request.providerId && request.modelType && request.model
+        ? this.copilotProviderService.getModelParameterRules(request.providerId, request.modelType, request.model)
+        : of([])
   })
+  readonly modelParameterRulesError = computed(() =>
+    this.#modelParameterRules.status() === 'error' ? this.#modelParameterRules.error() : null
+  )
+  readonly modelParameterRules = computed(() =>
+    this.modelParameterRulesError() ? [] : (this.#modelParameterRules.value() ?? [])
+  )
 
   readonly isInherit = computed(() => !this.__copilotModel())
   readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
@@ -231,6 +239,10 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
       setTimeout(() => {
         this.#cdr.detectChanges()
       }, 600)
+    })
+
+    effect(() => {
+      console.log(this.modelParameterRules())
     })
   }
 

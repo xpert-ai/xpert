@@ -1,6 +1,7 @@
-import { AIModelProviderRegistry, IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
+import { AIModelProviderNotFoundException, AIModelProviderRegistry, IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
 import { ConfigService } from '@metad/server-config'
 import { Injectable, Inject } from '@nestjs/common'
+import { t } from 'i18next'
 import * as path from 'path'
 import { ModelProvider } from './ai-provider'
 import { AIProviderRegistry } from './registry'
@@ -37,7 +38,9 @@ export class AIProvidersService {
 			}
 		}
 		if (!provider && throwError) {
-			throw new Error(`AI Model Provider strategy not found for provider: ${name}`)
+			throw new AIModelProviderNotFoundException(
+					t('server-ai:Error.AIModelProviderNotFound', { name })
+				  )
 		}
 		return provider
 	}
@@ -57,7 +60,7 @@ export class AIProvidersService {
 
 	async providerCredentialsValidate(provider: string, credentials: Record<string, any>): Promise<Record<string, any>> {
 		// Get the provider instance
-		const modelProviderInstance = this.getProvider(provider)
+		const modelProviderInstance = this.getProvider(provider, true)
 
 		// Get the provider schema
 		const providerSchema = modelProviderInstance.getProviderSchema()

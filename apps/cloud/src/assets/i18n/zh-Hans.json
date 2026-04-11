@@ -2606,6 +2606,7 @@
       "Chat": "对话",
       "SelectModel": "选择模型",
       "Parameters": "参数",
+      "LoadModelParameterRulesFailed": "加载模型参数失败",
       "Role_primary": "主",
       "Role_secondary": "次",
       "Role_embedding": "嵌入",

@@ -228,6 +228,15 @@
   }
 </div>
 
+@if (modelParameterRulesError()) {
+  <z-alert
+    class="mt-2"
+    zType="destructive"
+    [zTitle]="'PAC.Copilot.LoadModelParameterRulesFailed' | translate: { Default: 'Failed to load model parameters' }"
+    [zDescription]="modelParameterRulesError()"
+  />
+}
+
 <ng-template #parametersMenu>
   <div
     #menu="cdkMenu"
