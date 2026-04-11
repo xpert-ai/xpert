@@ -93,7 +93,13 @@ jest.mock('@metad/ocap-angular/core', () => {
     }
   }
 
-  function attrModel(source: { (): Record<string, unknown>; update: (updater: (state: Record<string, unknown>) => Record<string, unknown>) => void }, key: string) {
+  function attrModel(
+    source: {
+      (): Record<string, unknown>
+      update: (updater: (state: Record<string, unknown>) => Record<string, unknown>) => void
+    },
+    key: string
+  ) {
     const model = signal(source()[key] ?? null)
     const originalSet = model.set.bind(model)
 
@@ -357,6 +363,25 @@ describe('ChatHomeComponent', () => {
 
     expect(fixture.nativeElement.querySelector('[data-clawxpert-title]').textContent).toContain('扣子')
     expect(fixture.nativeElement.querySelector('[data-clawxpert-status]').textContent).toContain(
+      'PAC.Chat.ClawXpert.SidebarStatusBusy'
+    )
+  })
+
+  it('keeps the ClawXpert avatar and compact status visible when the sidebar is collapsed', async () => {
+    clawxpertFacade.currentXpert.set({ title: '扣子', name: 'ClawXpert Internal' })
+    clawxpertFacade.viewState.set('ready')
+    clawxpertFacade.sidebarStatus.set('busy')
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    fixture.componentInstance.sidebarState.set('closed')
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-card]').getAttribute('data-state')).toBe('closed')
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-avatar]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-status-compact]').textContent).toContain(
       'PAC.Chat.ClawXpert.SidebarStatusBusy'
     )
   })

@@ -2815,6 +2815,10 @@
       "ClawXpert": {
         "Title": "ClawXpert",
         "Shell": "ClawXpert 面板",
+        "SidebarStatusBusy": "忙碌中",
+        "SidebarStatusIdle": "空闲",
+        "SidebarStatusSetup": "前往设置",
+        "SidebarSettings": "ClawXpert 设置",
         "Change": "更换 ClawXpert",
         "Clear": "清除 ClawXpert",
         "MoreActions": "更多操作",
