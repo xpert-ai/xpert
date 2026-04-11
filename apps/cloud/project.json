@@ -93,7 +93,7 @@
           },
           {
             "glob": "**/*.json",
-            "input": "packages/echarts/src/i18n/",
+            "input": "legacies/echarts/src/i18n/",
             "output": "./assets/locales/echarts/"
           },
           {

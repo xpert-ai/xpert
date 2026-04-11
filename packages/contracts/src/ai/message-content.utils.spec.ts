@@ -89,6 +89,24 @@ describe('message-content.utils', () => {
     expect(chunks[2].text).toBe('summary')
   })
 
+  it('merges text chunks without ids when previous context indicates the same stream', () => {
+    const message = { id: 'm1', role: 'ai', content: '' } as CopilotChatMessage
+
+    appendMessageContent(message, { type: 'text', text: 'hello' } as any, {
+      source: 'chat_stream',
+      streamId: 'stream-a'
+    })
+    appendMessageContent(message, { type: 'text', text: ' world' } as any, {
+      previous: { source: 'chat_stream', streamId: 'stream-a' },
+      source: 'chat_stream',
+      streamId: 'stream-a'
+    })
+
+    const chunks = message.content as any[]
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0].text).toBe('hello world')
+  })
+
   it('aggregates plain text output consistently with join hints', () => {
     let output = ''
     let lastContext: TMessageAppendContext | null = null

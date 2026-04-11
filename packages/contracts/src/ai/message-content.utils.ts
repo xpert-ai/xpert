@@ -160,6 +160,41 @@ function ensureArrayContent(content: CopilotChatMessage['content']): TMessageCon
   return []
 }
 
+function findLastTextChunkIndexById(chunks: TMessageContentComplex[], id: string): number {
+  for (let index = chunks.length - 1; index >= 0; index -= 1) {
+    const chunk = chunks[index]
+    if (isTextContent(chunk) && chunk.id === id) {
+      return index
+    }
+  }
+
+  return -1
+}
+
+function getContentChunkSeparator(
+  previous: TMessageContentComplex | null | undefined,
+  nextText: string,
+  joinHint?: TMessageJoinHint
+): string {
+  if (!nextText || /^\s/.test(nextText)) {
+    return ''
+  }
+
+  if (joinHint) {
+    return mapJoinHint(joinHint)
+  }
+
+  if (!isTextContent(previous) || endsWithCodeFence(previous.text)) {
+    return ''
+  }
+
+  if (previous.text && !/[\s\n]$/.test(previous.text)) {
+    return '\n'
+  }
+
+  return ''
+}
+
 function stringifySingle(content: TMessageContentComplex): string {
   if (content.type === 'text') {
     return content.text
@@ -303,12 +338,16 @@ export function appendMessageContent(
   context?: TAppendMessageContentOptions
 ) {
   aiMessage.status = 'answering'
-  const { previous: _previous, ...contextWithoutPrevious } = context ?? {}
-  const resolvedContext = {
+  const { previous = null, ...contextWithoutPrevious } = context ?? {}
+  const appendContext = {
     ...inferMessageAppendContext(incoming),
     ...contextWithoutPrevious
   } as TMessageAppendContext
-  const content = normalizeIncomingContent(incoming, resolvedContext)
+  const joinHint =
+    appendContext.joinHint ??
+    (shouldJoinWithoutSeparator(previous, appendContext) ? ('none' as const) : undefined)
+  const messageContext = joinHint ? { ...appendContext, joinHint } : appendContext
+  const content = normalizeIncomingContent(incoming, appendContext)
 
   if (isReasoningContent(content)) {
     const reasoning = aiMessage.reasoning ?? []
@@ -354,9 +393,7 @@ export function appendMessageContent(
     // chunk with the same id so that interleaved concurrent streams (A→B→A) are
     // merged into the correct segment rather than appended as new fragments.
     if (!!content.id) {
-      const existingIndex = chunks.findLastIndex(
-        (c) => isTextContent(c) && (c as TMessageContentText).id === content.id
-      )
+      const existingIndex = findLastTextChunkIndexById(chunks, content.id)
       if (existingIndex > -1) {
         const existing = chunks[existingIndex] as TMessageContentText
         const merged = { ...existing, text: `${existing.text}${content.text}` } as TMessageContentText
@@ -365,7 +402,7 @@ export function appendMessageContent(
         aiMessage.content = nextChunks
         return
       }
-    } else if (isTextContent(lastContent) && joinHint === 'none') {
+    } else if (isTextContent(lastContent) && messageContext.joinHint === 'none') {
       const mergedLastContent = {
         ...lastContent,
         text: `${lastContent.text}${content.text}`
@@ -374,7 +411,13 @@ export function appendMessageContent(
       return
     }
 
-    aiMessage.content = [...chunks, content]
+    const separator = getContentChunkSeparator(lastContent, content.text, messageContext.joinHint)
+    const appended = {
+      ...content,
+      text: separator + content.text
+    } as TMessageContentText
+
+    aiMessage.content = [...chunks, appended]
     return
   }
 
