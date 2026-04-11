@@ -50,12 +50,13 @@ jest.mock('./plugin-instance.entity', () => ({
 
 const { installOrganizationPlugins, stageWorkspacePlugin } = require('./organization-plugin.store')
 const { loadPlugin } = require('./plugin-loader')
-const { loaded, collectProvidersWithMetadata, registerPluginsAsync } = require('./plugin.helper')
+const { loaded, loadFailures, collectProvidersWithMetadata, registerPluginsAsync } = require('./plugin.helper')
 
 describe('plugin helper registerPluginsAsync', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 		loaded.length = 0
+		loadFailures.length = 0
 	})
 
 	it('restages code plugins from their workspace path before loading them', async () => {
@@ -189,6 +190,64 @@ describe('plugin helper registerPluginsAsync', () => {
 				source: 'code'
 			})
 		])
+	})
+
+	it('appends stageWorkspacePlugin errors to subsequent load failures', async () => {
+		const stageError = new Error('workspacePath must be an absolute path')
+		const loadError = new Error('Cannot find module ./dist/index.js')
+		const logger = {
+			error: jest.fn()
+		}
+		const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+
+		;(stageWorkspacePlugin as jest.Mock).mockImplementationOnce(() => {
+			throw stageError
+		})
+		;(loadPlugin as jest.Mock).mockRejectedValueOnce(loadError)
+
+		try {
+			await expect(
+				registerPluginsAsync(
+					{
+						organizationId: 'org-1',
+						plugins: [
+							{
+								name: '@xpert-ai/plugin-code-demo',
+								source: 'code',
+								sourceConfig: {
+									workspacePath: '/tmp/workspaces/plugin-code-demo'
+								}
+							}
+						],
+						configs: {
+							'@xpert-ai/plugin-code-demo': {}
+						}
+					},
+					logger as any
+				)
+			).resolves.toEqual(
+				expect.objectContaining({
+					errors: [
+						expect.objectContaining({
+							error:
+								'Cannot find module ./dist/index.js | stageWorkspacePlugin failed earlier: workspacePath must be an absolute path'
+						})
+					]
+				})
+			)
+
+			expect(loadFailures).toEqual([
+				expect.objectContaining({
+					organizationId: 'org-1',
+					pluginName: '@xpert-ai/plugin-code-demo',
+					packageName: '@xpert-ai/plugin-code-demo',
+					error:
+						'Cannot find module ./dist/index.js | stageWorkspacePlugin failed earlier: workspacePath must be an absolute path'
+				})
+			])
+		} finally {
+			consoleErrorSpy.mockRestore()
+		}
 	})
 
 	it('collects providers only from modules added after the module snapshot', () => {

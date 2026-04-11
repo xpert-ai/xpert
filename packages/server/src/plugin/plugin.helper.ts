@@ -11,6 +11,7 @@ import { MODULE_METADATA } from '@nestjs/common/constants'
 import { ModuleRef, NestContainer } from '@nestjs/core'
 import { PluginLevel, PluginSourceConfig } from '@metad/contracts'
 import {
+	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
 	ORGANIZATION_METADATA_KEY,
 	PLUGIN_METADATA,
@@ -174,6 +175,14 @@ function hasPluginName(name: string | undefined | null): name is string {
 	return typeof name === 'string' && !!name
 }
 
+function appendStageWorkspacePluginError(message: string, stageError?: string) {
+	if (!stageError || message.includes(stageError)) {
+		return message
+	}
+
+	return `${message} | stageWorkspacePlugin failed earlier: ${stageError}`
+}
+
 export function upsertPluginLoadFailure(failure: PluginLoadFailureRecord) {
 	const pluginName = normalizePluginName(failure.pluginName)
 	const packageName = failure.packageName ? normalizePluginName(failure.packageName) : pluginName
@@ -322,6 +331,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 		source?: LoadedPluginRecord['source']
 		level?: PluginLevel
 		sourceConfig?: PluginSourceConfig | null
+		stageError?: string
 	}> = opts.plugins?.length
 		? opts.plugins
 		: opts.discovery || opts.organizationId
@@ -356,8 +366,12 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				manifestName: opts.manifestName
 			})
 		} catch (error) {
+			plugin.stageError = getErrorMessage(error)
 			console.error(error)
-			logger.error(`Failed to stage workspace plugin ${plugin.name} for organization ${organizationId}:`, error instanceof Error ? error.stack : error)
+			logger.error(
+				`Failed to stage workspace plugin ${plugin.name} for organization ${organizationId}: ${plugin.stageError}`,
+				error instanceof Error ? error.stack : error
+			)
 		}
 	}
 
@@ -371,7 +385,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 	const modules: DynamicModule[] = []
 	const errors: PluginLoadFailureRecord[] = []
 
-	for (const { name, runtimeName, level, source, sourceConfig } of pluginNames) {
+	for (const { name, runtimeName, level, source, sourceConfig, stageError } of pluginNames) {
 		try {
 			const pluginPathName = runtimeName ?? name
 			const pluginBaseDir = opts.organizationId
@@ -415,7 +429,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				baseDir: pluginBaseDir
 			})
 		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error)
+			const message = appendStageWorkspacePluginError(getErrorMessage(error), stageError)
 			const stack = error instanceof Error ? error.stack : undefined
 			const failure = {
 				organizationId,
