@@ -103,12 +103,6 @@ export async function bootstrap(options: { title: string; version: string }) {
 	await serverService.seedDBIfEmpty()
 	const analyticsService = app.select(AnalyticsModule).get(AnalyticsService)
 	await analyticsService.seedDBIfEmpty()
-	// Webhook for lark
-	// const larkService = app.select(IntegrationLarkModule).get(LarkService)
-	// app.use('/api/lark/webhook/:id', larkService.webhookEventMiddleware)
-
-	// const subscriptionService = app.select(ServerAppModule).get(SubscriptionService)
-	// subscriptionService.setupJobs()
 
 	/**
 	 * Dependency injection with class-validator
@@ -226,18 +220,13 @@ export async function preBootstrapPlugins() {
 			configs: persistedGlobalGroup?.configs ?? {}
 		}
 	]
-
 	const modules: DynamicModule[] = []
 	for await (const group of groups) {
-		const mergedPlugins = group.plugins
 		try {
-			const { modules: orgModules } = await registerPluginsAsync({
-				organizationId: group.organizationId,
-				plugins: mergedPlugins,
-				configs: group.configs
-			})
+			const { modules: orgModules } = await registerPluginsAsync(group, new NestLogger('BootstrapPlugins'))
 			modules.push(...orgModules)
 		} catch (error) {
+			console.error(error)
 			NestLogger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`)
 		}
 	}

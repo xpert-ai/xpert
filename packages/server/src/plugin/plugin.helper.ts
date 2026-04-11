@@ -305,7 +305,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
  * @param opts
  * @returns
  */
-export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) {
+export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, logger: Logger,) {
 	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 	const baseDirRoot =
 		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, opts) : process.cwd())
@@ -333,6 +333,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 				}))
 			: []
 
+	// Stage code plugins first to ensure their workspace paths are persisted and available for loading, and also to allow them to be included in the manifest for non-code plugin installs.
 	for (const plugin of pluginNames) {
 		if (plugin.source !== 'code') {
 			continue
@@ -345,14 +346,19 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 			continue
 		}
 
-		stageWorkspacePlugin({
-			organizationId,
-			pluginName: plugin.runtimeName ?? plugin.name,
-			expectedPackageName: normalizePluginName(plugin.name),
-			workspacePath,
-			rootDir: opts.rootDir,
-			manifestName: opts.manifestName
-		})
+		try {
+			stageWorkspacePlugin({
+				organizationId,
+				pluginName: plugin.runtimeName ?? plugin.name,
+				expectedPackageName: normalizePluginName(plugin.name),
+				workspacePath,
+				rootDir: opts.rootDir,
+				manifestName: opts.manifestName
+			})
+		} catch (error) {
+			console.error(error)
+			logger.error(`Failed to stage workspace plugin ${plugin.name} for organization ${organizationId}:`, error instanceof Error ? error.stack : error)
+		}
 	}
 
 	// 1) install into organization workspace (and update manifest)

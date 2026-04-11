@@ -177,7 +177,7 @@ export class PluginManagementService {
 				],
 				configs: { [packageName]: body.config },
 				baseDir: organizationBaseDir
-			})
+			}, this.logger)
 
 			if (errors.length) {
 				throw new BadRequestException(errors[0].error)
