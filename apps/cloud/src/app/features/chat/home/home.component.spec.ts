@@ -5,7 +5,7 @@ import { provideRouter, Router } from '@angular/router'
 import { provideNoopAnimations } from '@angular/platform-browser/animations'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
-import { Observable, of } from 'rxjs'
+import { Observable, of, throwError } from 'rxjs'
 import { ChatHomeComponent } from './home.component'
 import { ChatHomeService } from '../home.service'
 import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
@@ -177,8 +177,7 @@ jest.mock('../clawxpert/clawxpert.facade', () => ({
 }))
 
 jest.mock('../../../@core', () => {
-  const { of } = jest.requireActual('rxjs')
-
+  class AssistantBindingService {}
   class ChatConversationService {}
   class Store {}
 
@@ -189,6 +188,10 @@ jest.mock('../../../@core', () => {
       FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
       FEATURE_XPERT_CODEXPERT: 'FEATURE_XPERT_CODEXPERT',
       FEATURE_XPERT_DEEP_RESEARCH: 'FEATURE_XPERT_DEEP_RESEARCH'
+    },
+    AssistantBindingService,
+    AssistantCode: {
+      CHAT_COMMON: 'chat_common'
     },
     ChatConversationService,
     Store,
@@ -210,7 +213,8 @@ jest.mock('@cloud/app/@shared/chat/task-dialog/task-dialog.component', () => ({
   XpertTaskDialogComponent: class XpertTaskDialogComponent {}
 }))
 
-const { ChatConversationService, Store } = jest.requireMock('../../../@core') as {
+const { AssistantBindingService, ChatConversationService, Store } = jest.requireMock('../../../@core') as {
+  AssistantBindingService: new (...args: never[]) => unknown
   ChatConversationService: new (...args: any[]) => unknown
   Store: new (...args: any[]) => unknown
 }
@@ -237,6 +241,9 @@ describe('ChatHomeComponent', () => {
   let conversationService: {
     getMyInOrg: jest.Mock
     delete: jest.Mock
+  }
+  let assistantBindingService: {
+    getEffective: jest.Mock
   }
   let store: {
     featureOrganizations$: Observable<unknown[]>
@@ -272,6 +279,9 @@ describe('ChatHomeComponent', () => {
     conversationService = {
       getMyInOrg: jest.fn(() => of({ items: [], total: 0 })),
       delete: jest.fn(() => of({}))
+    }
+    assistantBindingService = {
+      getEffective: jest.fn(() => of(null))
     }
     store = {
       featureOrganizations$: of([]),
@@ -315,6 +325,8 @@ describe('ChatHomeComponent', () => {
       imports: [TranslateModule.forRoot(), ChatHomeComponent],
       providers: [
         provideRouter([
+          { path: 'chat/x/common', component: DummyComponent },
+          { path: 'chat/x/welcome', component: DummyComponent },
           { path: 'chat/clawxpert', component: DummyComponent },
           { path: 'chat/clawxpert/c', component: DummyComponent },
           { path: 'chat/tasks', component: DummyComponent },
@@ -324,6 +336,10 @@ describe('ChatHomeComponent', () => {
         {
           provide: ChatConversationService,
           useValue: conversationService
+        },
+        {
+          provide: AssistantBindingService,
+          useValue: assistantBindingService
         },
         {
           provide: Store,
@@ -443,5 +459,93 @@ describe('ChatHomeComponent', () => {
     fixture.nativeElement.querySelector('[data-clawxpert-open]').click()
 
     expect(navigateSpy).toHaveBeenCalledWith('/chat/clawxpert')
+  })
+
+  it('routes new chat to common when the common assistant is ready', async () => {
+    assistantBindingService.getEffective.mockReturnValue(
+      of({
+        sourceScope: 'organization',
+        enabled: true,
+        assistantId: 'assistant-1'
+      })
+    )
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+
+    await fixture.componentInstance.newConversation()
+
+    expect(assistantBindingService.getEffective).toHaveBeenCalledWith('chat_common')
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x/common'])
+  })
+
+  it('routes new chat to welcome when the common assistant is unavailable', async () => {
+    assistantBindingService.getEffective.mockReturnValue(
+      of({
+        sourceScope: 'none',
+        enabled: true,
+        assistantId: 'assistant-1'
+      })
+    )
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+
+    await fixture.componentInstance.newConversation()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x/welcome'])
+  })
+
+  it('resets the current common conversation in place when already on the common route', async () => {
+    assistantBindingService.getEffective.mockReturnValue(
+      of({
+        sourceScope: 'organization',
+        enabled: true,
+        assistantId: 'assistant-1'
+      })
+    )
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+    const newConv = jest.fn()
+
+    fixture.detectChanges()
+    Object.defineProperty(fixture.componentInstance, 'chatOutlet', {
+      configurable: true,
+      value: {
+        component: {
+          newConv
+        }
+      }
+    })
+
+    await router.navigateByUrl('/chat/x/common')
+    await fixture.whenStable()
+
+    await fixture.componentInstance.newConversation()
+
+    expect(newConv).toHaveBeenCalled()
+    expect(navigateSpy).not.toHaveBeenCalled()
+  })
+
+  it('falls back to welcome when resolving the common assistant fails', async () => {
+    assistantBindingService.getEffective.mockReturnValue(throwError(() => new Error('load failed')))
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+
+    await fixture.componentInstance.newConversation()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x/welcome'])
   })
 })

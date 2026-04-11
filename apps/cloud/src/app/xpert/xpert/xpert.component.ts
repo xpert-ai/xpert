@@ -81,9 +81,18 @@ export class XpertChatAppComponent {
   readonly conversationId = this.chatService.conversationId
   readonly messages = this.chatService.messages
 
-  readonly xpert = derivedAsync(() => {
+  readonly routeXpert = derivedAsync(() => {
     const slug = this.paramRole()
     return slug && slug !== 'common' ? this.homeService.getXpert(slug) : null
+  })
+  readonly xpert = computed(() => {
+    const routeXpert = this.routeXpert()
+
+    if (routeXpert) {
+      return routeXpert
+    }
+
+    return this.paramRole() === 'common' || !!this.conversationId() ? this.chatService.xpert() : null
   })
 
   readonly features = computed(() => this.xpert()?.features)
@@ -132,6 +141,7 @@ export class XpertChatAppComponent {
     effect(
       () => {
         this.chatService.xpert.set(this.xpert())
+        // this.homeService.xpert.set(this.xpert())
       }
     )
 

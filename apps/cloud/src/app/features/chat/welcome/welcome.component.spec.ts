@@ -41,35 +41,11 @@ jest.mock('../xperts/xperts.component', () => {
 
 jest.mock('apps/cloud/src/app/@core', () => {
   return {
-    AssistantCode: {
-      CHAT_COMMON: 'chat_common',
-      XPERT_SHARED: 'xpert_shared',
-      CHATBI: 'chatbi',
-      CLAWXPERT: 'clawxpert'
-    },
-    AiFeatureEnum: {
-      FEATURE_XPERT: 'FEATURE_XPERT',
-      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
-      FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
-    },
     RolesEnum: {
       SUPER_ADMIN: 'SUPER_ADMIN',
       ADMIN: 'ADMIN'
     },
     Store: class Store {}
-  }
-})
-
-jest.mock('../../assistant/assistant-chatkit.runtime', () => {
-  const { signal } = jest.requireActual('@angular/core')
-
-  const runtimeState = {
-    status: signal('ready')
-  }
-
-  return {
-    injectAssistantChatkitRuntime: jest.fn(() => runtimeState),
-    __runtimeState: runtimeState
   }
 })
 
@@ -79,9 +55,6 @@ const { RolesEnum, Store } = jest.requireMock('apps/cloud/src/app/@core') as {
     ADMIN: string
   }
   Store: new (...args: unknown[]) => unknown
-}
-const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as {
-  status: ReturnType<typeof import('@angular/core').signal<string>>
 }
 const { ChatCommonWelcomeComponent } = require('./welcome.component') as {
   ChatCommonWelcomeComponent: typeof import('./welcome.component').ChatCommonWelcomeComponent
@@ -98,7 +71,6 @@ describe('ChatCommonWelcomeComponent', () => {
 
   beforeEach(() => {
     clearChatCommonPendingInput()
-    runtimeState.status.set('ready')
     user$ = new BehaviorSubject(null)
 
     TestBed.resetTestingModule()
@@ -151,24 +123,11 @@ describe('ChatCommonWelcomeComponent', () => {
     expect(consumeChatCommonPendingInput()).toBeNull()
   })
 
-  it('hides the common assistant card when the assistant is ready', () => {
-    runtimeState.status.set('ready')
-
+  it('always renders the composer without assistant runtime gating', () => {
     const fixture = TestBed.createComponent(ChatCommonWelcomeComponent)
     fixture.detectChanges()
 
-    expect(fixture.componentInstance.showAssistantCard()).toBe(false)
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Assistant.ChatCommon.Label')
-  })
-
-  it('shows the common assistant card when the assistant is not ready', () => {
-    runtimeState.status.set('missing')
-
-    const fixture = TestBed.createComponent(ChatCommonWelcomeComponent)
-    fixture.detectChanges()
-
-    expect(fixture.componentInstance.showAssistantCard()).toBe(true)
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.ChatCommon.Label')
+    expect(fixture.nativeElement.querySelector('textarea')).not.toBeNull()
   })
 
   it('shows the change settings action beside the composer title for admins only', () => {

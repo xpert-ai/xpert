@@ -33,9 +33,12 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { firstValueFrom } from 'rxjs'
 import { filter, map, startWith } from 'rxjs/operators'
 import {
   AiFeatureEnum,
+  AssistantBindingService,
+  AssistantCode,
   ChatConversationService,
   getErrorMessage,
   injectProjectService,
@@ -44,11 +47,17 @@ import {
   Store
 } from '../../../@core'
 import { AppService } from '../../../app.service'
+import { environment } from '@cloud/environments/environment'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
 import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
 import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/task-dialog.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  hasAssistantBindingSource,
+  hasCompleteAssistantBinding,
+  sanitizeAssistantFrameUrl
+} from '../../assistant/assistant-chatkit.runtime'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
 type TAgentLink = {
@@ -105,6 +114,7 @@ export class ChatHomeComponent {
   readonly #toastr = injectToastr()
   readonly #preferences = injectUserPreferences()
   readonly #store = inject(Store)
+  readonly #assistantBindingService = inject(AssistantBindingService)
 
   // Signals
   readonly currentPage = signal<{ type?: 'project' | 'conversation'; id?: string }>({})
@@ -325,18 +335,24 @@ export class ChatHomeComponent {
   }
 
   // Start a new conversation from sidebar and clear active chat context.
-  newConversation() {
+  async newConversation() {
     this.homeService.conversationId.set(null)
     this.homeService.conversation.set(null)
     this.currentPage.set({ type: 'conversation' })
 
-    const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
-    if (typeof activeComponent?.newConv === 'function') {
-      activeComponent.newConv()
+    if (await this.isCommonAssistantReady()) {
+      const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
+
+      if (normalizeChatRoute(this.#router.url) === '/chat/x/common' && typeof activeComponent?.newConv === 'function') {
+        activeComponent.newConv()
+        return
+      }
+
+      await this.#router.navigate(['/chat/x/common'])
       return
     }
 
-    this.#router.navigate(['/chat/x/welcome'])
+    await this.#router.navigate(['/chat/x/welcome'])
   }
 
   openClawXpertCard() {
@@ -475,6 +491,18 @@ export class ChatHomeComponent {
     if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
       event.preventDefault() // Prevent the default action
       this.openConversations() // Execute the openConversations method
+    }
+  }
+
+  private async isCommonAssistantReady() {
+    try {
+      const config = await firstValueFrom(this.#assistantBindingService.getEffective(AssistantCode.CHAT_COMMON))
+      const frameUrl = sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL)
+
+      return !!(config && hasAssistantBindingSource(config) && config.enabled && hasCompleteAssistantBinding(config, frameUrl))
+    } catch (error) {
+      this.logger.debug('Failed to resolve common assistant binding', error)
+      return false
     }
   }
 }
