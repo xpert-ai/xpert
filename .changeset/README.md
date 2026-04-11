@@ -2,28 +2,19 @@
 
 This repository uses [Changesets](https://github.com/changesets/changesets) to manage npm package releases.
 
-Current release automation scope:
-
-- CI only publishes `@xpert-ai/ocap-core`
-- changeset entries that target other packages are blocked by `pnpm release:verify`
-
 Create a release note with:
 
 ```bash
 pnpm changeset
 ```
 
-Use this frontmatter when releasing the current automated npm package:
+Use standard Changesets frontmatter for any publishable workspace library, for example:
 
 ```md
 ---
-'@xpert-ai/ocap-core': patch
+'@xpert-ai/plugin-sdk': patch
+'@xpert-ai/contracts': patch
 ---
 
 Describe the user-facing change here.
 ```
-
-If release automation is expanded to more packages later, update:
-
-- `tools/release/verify-core-only-changeset.mjs`
-- `tools/release/publish-npm-packages.mjs`
