@@ -5,7 +5,7 @@ import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { CommonModule } from '@angular/common'
 
-import { NgmTableComponent } from '@metad/ocap-angular/common'
+import { NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'

@@ -2,7 +2,7 @@ import { ToolCall } from '@langchain/core/messages/tool'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { interrupt, Runtime } from '@langchain/langgraph'
 import { AIMessage, isAIMessage, ToolMessage } from '@langchain/core/messages'
-import { TAgentMiddlewareMeta } from '@metad/contracts'
+import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   AgentBuiltInState,

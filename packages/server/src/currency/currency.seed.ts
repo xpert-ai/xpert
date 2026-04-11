@@ -1,5 +1,5 @@
 import { Connection } from 'typeorm';
-import { ICurrency, DEFAULT_CURRENCIES } from '@metad/contracts';
+import { ICurrency, DEFAULT_CURRENCIES } from '@xpert-ai/contracts';
 import { Currency } from './currency.entity';
 
 export const createCurrencies = async (

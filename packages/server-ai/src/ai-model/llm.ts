@@ -1,6 +1,6 @@
-import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilot, ILLMUsage, ModelPropertyKey, ParameterRule, ParameterType, PriceType, TTokenUsage } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilot, ILLMUsage, ModelPropertyKey, ParameterRule, ParameterType, PriceType, TTokenUsage } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
-import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
+import { calcTokenUsage, sumTokenUsage } from '@xpert-ai/copilot'
 import { AIModel } from './ai-model'
 import { CommonParameterRules, TChatModelOptions } from './types/types'
 

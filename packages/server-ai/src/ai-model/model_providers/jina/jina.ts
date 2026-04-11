@@ -3,7 +3,7 @@
 import { Injectable, Module } from '@nestjs/common'
 import { ModelProvider } from '../../ai-provider'
 import { toCredentialKwargs, JinaCredentials } from './types'
-import { AiModelTypeEnum } from '@metad/contracts'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { CredentialsValidateFailedError } from '../errors'
 import { PROVIDE_AI_MODEL_TEXT_EMBEDDING } from '../../types/types'
 import { JinaTextEmbeddingModel } from './text-embedding/text-embedding'

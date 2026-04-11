@@ -15,8 +15,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { KnowledgeLocalFileComponent } from '@cloud/app/@shared/knowledge'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
-import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel, myRxResource, omitBlank } from '@metad/ocap-angular/core'
+import { NgmCheckboxComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel, myRxResource, omitBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   channelName,
@@ -31,7 +31,7 @@ import {
   KnowledgeFileUploader,
   XpertAgentService
 } from 'apps/cloud/src/app/@core'
-import { nonNullable } from '@metad/core'
+import { nonNullable } from '@xpert-ai/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { SelectionModel } from '@angular/cdk/collections'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'

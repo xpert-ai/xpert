@@ -5,7 +5,7 @@ import {
 	ValidatorConstraintInterface
 } from "class-validator";
 import { isEmpty } from "underscore";
-import { ID, ITenant } from "@metad/contracts";
+import { ID, ITenant } from "@xpert-ai/contracts";
 import { RequestContext } from "../../../core/context";
 
 /**

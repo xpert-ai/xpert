@@ -1,4 +1,4 @@
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
         getUser: jest.fn()
@@ -42,7 +42,7 @@ jest.mock('./dto', () => ({
     }
 }))
 
-import { TFile } from '@metad/contracts'
+import { TFile } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import { Repository } from 'typeorm'

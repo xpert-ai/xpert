@@ -4,12 +4,12 @@
  * - Local code plugins with a persisted workspace path should be restaged before load so restarts do not depend on stale copies.
  * - Non-code plugins continue to install through the organization plugin store and keep load-failure tracking centralized here.
  */
-import { isNotEmpty } from '@metad/server-common'
-import { getConfig } from '@metad/server-config'
+import { isNotEmpty } from '@xpert-ai/server-common'
+import { getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Type, Logger } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
 import { ModuleRef, NestContainer } from '@nestjs/core'
-import { PluginLevel, PluginSourceConfig } from '@metad/contracts'
+import { PluginLevel, PluginSourceConfig } from '@xpert-ai/contracts'
 import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,

@@ -1,4 +1,4 @@
-import { ITryRequest } from '@metad/server-core'
+import { ITryRequest } from '@xpert-ai/server-core'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'

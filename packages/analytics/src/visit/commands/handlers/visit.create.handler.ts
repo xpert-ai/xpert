@@ -1,5 +1,5 @@
-import { VisitEntityEnum } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { VisitEntityEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'

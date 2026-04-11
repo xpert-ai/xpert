@@ -1,4 +1,4 @@
-import { ISkillPackage } from '@metad/contracts'
+import { ISkillPackage } from '@xpert-ai/contracts'
 import { Query } from '@nestjs/cqrs'
 
 export class ListWorkspaceSkillsQuery extends Query<ISkillPackage[]> {

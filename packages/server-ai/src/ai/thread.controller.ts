@@ -7,8 +7,8 @@ import {
 	IUser,
 	IXpertAgentExecution,
 	USAGE_HOUR_FORMAT
-} from '@metad/contracts'
-import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import {
 	Body,
 	Controller,

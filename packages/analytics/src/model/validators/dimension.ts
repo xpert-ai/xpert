@@ -1,5 +1,5 @@
-import { ChecklistItem, RuleValidator } from '@metad/contracts'
-import { Cube, DimensionType, PropertyDimension, Schema } from '@metad/ocap-core'
+import { ChecklistItem, RuleValidator } from '@xpert-ai/contracts'
+import { Cube, DimensionType, PropertyDimension, Schema } from '@xpert-ai/ocap-core'
 import { HierarchyValidator } from './hierarchy'
 
 export class DimensionValidator implements RuleValidator {

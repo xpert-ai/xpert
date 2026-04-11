@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core'
-import { NxCoreService } from '@metad/core'
-import { ID, NxStoryService, Story, StoryWidget } from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+import { NxCoreService } from '@xpert-ai/core'
+import { ID, NxStoryService, Story, StoryWidget } from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { BehaviorSubject, Observable } from 'rxjs'
 
 @Component({

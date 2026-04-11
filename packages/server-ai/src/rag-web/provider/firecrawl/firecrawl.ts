@@ -1,5 +1,5 @@
 // import { FireCrawlLoader } from '@langchain/community/document_loaders/web/firecrawl'
-import { IIntegration, TRagWebOptions } from '@metad/contracts'
+import { IIntegration, TRagWebOptions } from '@xpert-ai/contracts'
 
 export const load = async (webOptions: TRagWebOptions, integration: IIntegration) => {
 	const params = webOptions.params ?? {}

@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
-import { IUserGroup, PaginationParams } from '@metad/contracts'
-import { toParams } from '@metad/core'
+import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { IUserGroup, PaginationParams } from '@xpert-ai/contracts'
+import { toParams } from '@xpert-ai/core'
 
 const API_USER_GROUP = API_PREFIX + '/user-groups'
 

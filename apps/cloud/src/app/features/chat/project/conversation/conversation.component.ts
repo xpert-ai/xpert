@@ -13,7 +13,7 @@ import {
   XpertHomeService,
   XpertOcapService
 } from '@cloud/app/xpert'
-import { provideOcapCore } from '@metad/ocap-angular/core'
+import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import { ChatProjectService } from '../chat-project.service'

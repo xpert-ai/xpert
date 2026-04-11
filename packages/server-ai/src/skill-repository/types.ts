@@ -1,4 +1,4 @@
-import { WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER, WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME } from '@metad/contracts'
+import { WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER, WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME } from '@xpert-ai/contracts'
 import { VolumeClient } from '../shared/volume/volume'
 import { getWorkspaceRoot } from "../xpert-workspace";
 import { join } from 'path'

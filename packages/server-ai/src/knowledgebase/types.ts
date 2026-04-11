@@ -1,4 +1,4 @@
-import { TWFCase, WorkflowComparisonOperator, WorkflowLogicalOperator } from '@metad/contracts'
+import { TWFCase, WorkflowComparisonOperator, WorkflowLogicalOperator } from '@xpert-ai/contracts'
 import { Raw } from 'typeorm'
 
 

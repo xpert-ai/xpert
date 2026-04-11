@@ -1,4 +1,4 @@
-import { IFileAsset } from '@metad/contracts'
+import { IFileAsset } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { UploadFileCommand } from '../../upload-file.command'
 import { UploadFileService } from '../../upload-file.service'

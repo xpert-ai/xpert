@@ -1,4 +1,4 @@
-import { CrudController, TransformInterceptor, UUIDValidationPipe } from '@metad/server-core'
+import { CrudController, TransformInterceptor, UUIDValidationPipe } from '@xpert-ai/server-core'
 import { Controller, Get, Param, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

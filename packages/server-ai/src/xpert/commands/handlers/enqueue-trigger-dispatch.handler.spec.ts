@@ -1,4 +1,4 @@
-import { STATE_VARIABLE_HUMAN } from '@metad/contracts'
+import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE } from '@xpert-ai/plugin-sdk'
 import { XpertEnqueueTriggerDispatchCommand } from '../enqueue-trigger-dispatch.command'
 import { XpertEnqueueTriggerDispatchHandler } from './enqueue-trigger-dispatch.handler'

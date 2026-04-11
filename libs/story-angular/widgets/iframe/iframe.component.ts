@@ -1,5 +1,5 @@
 import { Component } from '@angular/core'
-import { AbstractStoryWidget } from '@metad/core'
+import { AbstractStoryWidget } from '@xpert-ai/core'
 import { map, startWith, tap } from 'rxjs/operators'
 
 export interface IframeWidgetOptions {

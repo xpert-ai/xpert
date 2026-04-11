@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { RouterModule } from '@angular/router'
 import { TFile, TMessageComponent } from '@cloud/app/@core'
 import { ChatFilesDialogComponent } from '@cloud/app/@shared/chat'
-import { ArraySlicePipe, FileTypePipe } from '@metad/core'
+import { ArraySlicePipe, FileTypePipe } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertHomeService } from '../../home.service'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'

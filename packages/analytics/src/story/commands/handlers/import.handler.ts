@@ -1,5 +1,5 @@
-import { IStory, StoryStatusEnum } from '@metad/contracts'
-import { pick } from '@metad/server-common'
+import { IStory, StoryStatusEnum } from '@xpert-ai/contracts'
+import { pick } from '@xpert-ai/server-common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { StoryPointService } from '../../../story-point'
 import { StoryWidgetService } from '../../../story-widget'

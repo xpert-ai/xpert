@@ -3,7 +3,7 @@ import {
 	PluginServicePermissionHandler,
 	registerPluginServicePermissionHandler,
 	resolvePermissionOperations
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	ANALYTICS_PERMISSION_SERVICE_TOKEN,
 	AnalyticsPermissionOperation,

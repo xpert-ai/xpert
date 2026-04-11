@@ -1,4 +1,4 @@
-import { CopilotDefaultOptions } from '@metad/copilot'
+import { CopilotDefaultOptions } from '@xpert-ai/copilot'
 import { z } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 

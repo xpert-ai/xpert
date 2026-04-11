@@ -1,4 +1,4 @@
-import { IIntegration, IntegrationFeatureEnum, ITag, TAvatar } from '@metad/contracts'
+import { IIntegration, IntegrationFeatureEnum, ITag, TAvatar } from '@xpert-ai/contracts'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'

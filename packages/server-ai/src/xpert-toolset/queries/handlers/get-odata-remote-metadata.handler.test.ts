@@ -1,5 +1,5 @@
-import { ApiAuthType } from '@metad/contracts'
-import { ConfigService } from '@metad/server-config'
+import { ApiAuthType } from '@xpert-ai/contracts'
+import { ConfigService } from '@xpert-ai/server-config'
 import { QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
 import * as dotenv from 'dotenv'

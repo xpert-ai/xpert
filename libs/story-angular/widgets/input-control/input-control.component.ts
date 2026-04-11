@@ -8,11 +8,11 @@ import {
   StoryWidgetStyling,
   WidgetMenuType,
   nonBlank
-} from '@metad/core'
-import { NgmMemberTreeComponent } from '@metad/ocap-angular/controls'
-import { NgmDSCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+} from '@xpert-ai/core'
+import { NgmMemberTreeComponent } from '@xpert-ai/ocap-angular/controls'
+import { NgmDSCoreService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import {
   AggregationRole,
   DataSettings,
@@ -35,8 +35,8 @@ import {
   isEntityType,
   isMeasureControlProperty,
   isParameterProperty
-} from '@metad/ocap-core'
-import { FilterControlType, NxStoryService } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { FilterControlType, NxStoryService } from '@xpert-ai/story/core'
 import { NGXLogger } from 'ngx-logger'
 import { combineLatest, firstValueFrom, timer } from 'rxjs'
 import {

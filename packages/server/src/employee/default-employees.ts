@@ -1,4 +1,4 @@
-import { LanguagesEnum } from '@metad/contracts';
+import { LanguagesEnum } from '@xpert-ai/contracts';
 
 export const DEFAULT_EMPLOYEES: any = [
 	{

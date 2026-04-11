@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ColorPalettes } from '@metad/core'
-import { PropertyCapacity } from '@metad/ocap-angular/entity'
+import { ColorPalettes } from '@xpert-ai/core'
+import { PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import {
   ChartAnnotation,
   ChartOptions,
@@ -12,7 +12,7 @@ import {
   isMeasure,
   omit,
   SelectionPresentationVariant
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   AccordionWrappers,
   DataSettingsSchemaService,
@@ -24,7 +24,7 @@ import {
   PresentationVariantExpansion,
   SchemaState,
   SelectionVariantExpansion
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { TranslateService } from '@ngx-translate/core'
 import { isEmpty, isEqual } from 'lodash-es'
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs'

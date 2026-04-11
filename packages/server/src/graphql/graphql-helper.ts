@@ -1,9 +1,9 @@
-import { API_PRINCIPAL_USER_ID_HEADER } from '@metad/contracts';
-import { isNotEmpty } from '@metad/server-common';
+import { API_PRINCIPAL_USER_ID_HEADER } from '@xpert-ai/contracts';
+import { isNotEmpty } from '@xpert-ai/server-common';
 import { GqlModuleOptions, GraphQLTypesLoader } from '@nestjs/graphql';
 import { buildSchema, extendSchema, printSchema } from 'graphql';
 import path from 'path';
-import { ConfigService } from '@metad/server-config';
+import { ConfigService } from '@xpert-ai/server-config';
 
 export async function createGraphqlModuleOptions(
 	configService: ConfigService,

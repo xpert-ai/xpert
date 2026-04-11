@@ -39,8 +39,8 @@ import {
   OcapCoreModule,
   NgmFieldAppearance,
   NgmFieldColor
-} from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { isEqual } from 'lodash-es'
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 

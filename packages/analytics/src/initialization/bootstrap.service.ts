@@ -4,7 +4,7 @@ import {
 	runWithRequestContext,
 	UserOrganizationService,
 	UserService
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -32,7 +32,7 @@ import {
 	OrgGenerateDemoOptions,
 	OrganizationDemoNetworkEnum,
 	RolesEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 
 @Injectable()
 export class AnalyticsBootstrapService {

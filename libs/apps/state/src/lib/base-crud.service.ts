@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { inject } from '@angular/core'
-import { PaginationParams } from '@metad/contracts'
-import { toParams } from '@metad/core'
+import { PaginationParams } from '@xpert-ai/contracts'
+import { toParams } from '@xpert-ai/core'
 import { Store } from './store.service'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
 

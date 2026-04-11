@@ -1,5 +1,5 @@
-import { AnalyticsPermissionsEnum, BusinessAreaRole, IBusinessAreaUser } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { AnalyticsPermissionsEnum, BusinessAreaRole, IBusinessAreaUser } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { BusinessAreaUserService } from '../../../business-area-user/index'
 import { BusinessArea } from '../../business-area.entity'

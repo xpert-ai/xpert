@@ -1,4 +1,4 @@
-import { assignDeepOmitBlank, omit, pick } from "@metad/ocap-core";
+import { assignDeepOmitBlank, omit, pick } from "@xpert-ai/ocap-core";
 import { EChartsOptions } from "./types";
 
 // eslint-disable-next-line no-var

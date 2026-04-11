@@ -5,7 +5,7 @@ import {
   XpertViewActionResult,
   XpertViewDataResult,
   XpertViewQuery
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 
 export interface IXpertViewExtensionProvider {
   supports(context: XpertResolvedViewHostContext): Promise<boolean> | boolean

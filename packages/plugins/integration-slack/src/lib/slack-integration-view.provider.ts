@@ -6,7 +6,7 @@ import type {
   XpertViewActionResult,
   XpertViewDataResult,
   XpertViewQuery
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { IXpertViewExtensionProvider, ViewExtensionProvider } from '@xpert-ai/plugin-sdk'
 import {

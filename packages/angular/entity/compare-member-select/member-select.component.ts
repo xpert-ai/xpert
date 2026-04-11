@@ -20,8 +20,8 @@ import {
   Validators
 } from '@angular/forms'
 import { ZardDialogService, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
-import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import {
   AggregationRole,
   CompareToEnum,
@@ -32,10 +32,10 @@ import {
   FilterSelectionType,
   getEntityProperty,
   isSemanticCalendar
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, firstValueFrom, startWith } from 'rxjs'
-import { NgmFieldAppearance } from "@metad/ocap-angular/core";
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
 
 @Component({
   standalone: true,

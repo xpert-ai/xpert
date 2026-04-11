@@ -1,8 +1,8 @@
 
 import { booleanAttribute, Component, computed, effect, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { SlashSvgComponent } from '@metad/ocap-angular/common'
-import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { SlashSvgComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { agentLabel, BIInterruptMessageType, TInterruptCommand, TInterruptMessage, TSensitiveOperation, TToolCall } from '../../../@core'
 import { XpertAgentIdentityComponent } from '../agent-identity/agent-identity.component'

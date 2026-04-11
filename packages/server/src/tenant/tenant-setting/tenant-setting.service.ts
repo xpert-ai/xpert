@@ -1,4 +1,4 @@
-import { ITenantSetting } from '@metad/contracts';
+import { ITenantSetting } from '@xpert-ai/contracts';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, In, Repository } from 'typeorm';

@@ -1,5 +1,5 @@
-import { mapTranslationLanguage } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { mapTranslationLanguage } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'

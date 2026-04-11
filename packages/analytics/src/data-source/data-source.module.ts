@@ -1,5 +1,5 @@
-import { XpertToolsetModule } from '@metad/server-ai'
-import { SharedModule, TenantModule, UserModule } from '@metad/server-core'
+import { XpertToolsetModule } from '@xpert-ai/server-ai'
+import { SharedModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'

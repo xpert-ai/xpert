@@ -1,5 +1,5 @@
-import { AiFeatureEnum, IFeatureCreateInput } from '@metad/contracts'
-import { toggleFeatures } from '@metad/server-config'
+import { AiFeatureEnum, IFeatureCreateInput } from '@xpert-ai/contracts'
+import { toggleFeatures } from '@xpert-ai/server-config'
 
 const features = toggleFeatures
 

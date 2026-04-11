@@ -1,4 +1,4 @@
-import { makeChartEnum } from '@metad/core'
+import { makeChartEnum } from '@xpert-ai/core'
 import {
   ChartAnnotation,
   ChartMeasureSchema,
@@ -13,7 +13,7 @@ import {
   getChartType,
   omit,
   tryFixDimension
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { z } from 'zod'
 
 const ChartTypes = makeChartEnum()

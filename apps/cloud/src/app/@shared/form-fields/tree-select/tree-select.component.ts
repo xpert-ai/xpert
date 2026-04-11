@@ -15,8 +15,8 @@ import {
   ZardTreeFlattener,
   ZardTreeImports
 } from '@xpert-ai/headless-ui'
-import { DisplayDensity, NgmFieldAppearance, NgmFieldColor, NgmFloatLabel } from '@metad/ocap-angular/core'
-import { DisplayBehaviour, TreeNodeInterface } from '@metad/ocap-core'
+import { DisplayDensity, NgmFieldAppearance, NgmFieldColor, NgmFloatLabel } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   displayTreeSelectText,

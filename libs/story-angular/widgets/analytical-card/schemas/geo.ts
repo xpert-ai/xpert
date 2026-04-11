@@ -1,4 +1,4 @@
-import { FORMLY_ROW } from '@metad/story/designer'
+import { FORMLY_ROW } from '@xpert-ai/story/designer'
 import { ItemStyle } from './common'
 
 export function GeoCapacity(className: string, I18N) {

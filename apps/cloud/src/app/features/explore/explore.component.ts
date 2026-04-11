@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IXpertWorkspace, XpertWorkspaceService } from '@cloud/app/@core'
-import { linkedModel } from '@metad/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/ocap-angular/core'
 import { ZardTabsImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'

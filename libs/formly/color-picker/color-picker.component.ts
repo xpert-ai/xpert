@@ -2,8 +2,8 @@
 import { ChangeDetectionStrategy, Component, HostBinding } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { FieldType } from '@ngx-formly/core'
-import { ColorInputFormat, NgmColorInputComponent } from '@metad/components/form-field'
-import { DensityDirective } from '@metad/ocap-angular/core'
+import { ColorInputFormat, NgmColorInputComponent } from '@xpert-ai/components/form-field'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   standalone: true,

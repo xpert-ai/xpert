@@ -1,5 +1,5 @@
 import { StateGraphArgs } from '@langchain/langgraph/web'
-import { AgentState, createCopilotAgentState } from '@metad/copilot'
+import { AgentState, createCopilotAgentState } from '@xpert-ai/copilot'
 
 export interface WidgetAgentState extends AgentState {
   tool_call_id: string

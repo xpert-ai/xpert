@@ -4,7 +4,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { Component, HostBinding, inject, signal } from '@angular/core'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { assign } from '@metad/ocap-core'
+import { assign } from '@xpert-ai/ocap-core'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 

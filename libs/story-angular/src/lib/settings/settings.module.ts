@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { PreferencesComponent } from './preferences/preferences.component'

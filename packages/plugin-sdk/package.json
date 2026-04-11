@@ -19,8 +19,8 @@
   },
   "peerDependencies": {
     "@langchain/core": "*",
-    "@metad/contracts": "*",
-    "@metad/ocap-core": "*",
+    "@xpert-ai/contracts": "workspace:*",
+    "@xpert-ai/ocap-core": "workspace:*",
     "@nestjs/common": "*",
     "@nestjs/core": "*",
     "@nestjs/cqrs": "*",

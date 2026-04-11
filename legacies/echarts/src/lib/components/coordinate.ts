@@ -1,4 +1,4 @@
-import { ChartMeasureRoleType, ChartOrient, getChartCategory, getChartCategory2, getEntityHierarchy } from "@metad/ocap-core"
+import { ChartMeasureRoleType, ChartOrient, getChartCategory, getChartCategory2, getEntityHierarchy } from "@xpert-ai/ocap-core"
 import { axisOrient, getCategoryAxis, getMeasureAxis, getValueAxis } from "./axis"
 import { AxisEnum, EChartsContext } from "../types"
 import { getAxisDataZooms } from "./data-zoom"

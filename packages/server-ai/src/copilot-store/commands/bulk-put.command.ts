@@ -1,5 +1,5 @@
 import { Embeddings } from '@langchain/core/embeddings'
-import { LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile } from '@metad/contracts'
+import { LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**

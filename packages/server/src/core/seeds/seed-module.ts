@@ -2,7 +2,7 @@ import yargs from 'yargs';
 import chalk from 'chalk';
 
 import { NestFactory } from '@nestjs/core';
-import { IPluginConfig } from '@metad/server-common';
+import { IPluginConfig } from '@xpert-ai/server-common';
 import { registerPluginConfig } from './../../bootstrap';
 import { SeedDataService } from './seed-data.service';
 import { SeederModule } from './seeder.module';

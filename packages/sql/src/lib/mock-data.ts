@@ -14,7 +14,7 @@ import {
   PropertyDimension,
   Schema,
   Semantics
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { compileDimensionSchema } from './dimension'
 import { serializeUniqueName } from './utils'
 

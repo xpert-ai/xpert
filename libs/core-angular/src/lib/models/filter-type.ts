@@ -1,4 +1,4 @@
-import { DataSettings, Dimension, ISlicer, RecursiveHierarchyType, TimeGranularity } from '@metad/ocap-core'
+import { DataSettings, Dimension, ISlicer, RecursiveHierarchyType, TimeGranularity } from '@xpert-ai/ocap-core'
 import { TypeAhead } from './control-type'
 import { SmartEntityDataOptions } from './smart-entity'
 

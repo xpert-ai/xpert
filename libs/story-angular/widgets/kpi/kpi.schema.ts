@@ -1,13 +1,13 @@
 import { Injectable, inject } from '@angular/core'
-import { PropertyCapacity } from '@metad/ocap-angular/entity'
-import { NxStoryService } from '@metad/story/core'
+import { PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import { NxStoryService } from '@xpert-ai/story/core'
 import {
   AccordionWrappers,
   DataSettingsSchemaService,
   FORMLY_W_1_2,
   IntentNavigation,
   SelectionVariantExpansion
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 
 @Injectable()

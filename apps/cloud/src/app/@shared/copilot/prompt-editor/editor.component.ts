@@ -24,7 +24,7 @@ import {
 import { FormsModule } from '@angular/forms'
 import { Dialog } from '@angular/cdk/dialog'
 import { TranslateModule } from '@ngx-translate/core'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { switchMap, tap } from 'rxjs/operators'
 import { timer } from 'rxjs'
 import { MonacoEditorModule } from 'ngx-monaco-editor'

@@ -9,7 +9,7 @@ import {
   Property,
   QueryReturn,
   nonNullable
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 
 type CallbackDataParams = Record<string, any>
 

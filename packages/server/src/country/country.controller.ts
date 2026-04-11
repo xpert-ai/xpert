@@ -1,6 +1,6 @@
 import { Controller, Get, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { IPagination } from '@metad/contracts';
+import { IPagination } from '@xpert-ai/contracts';
 import { Public } from './../shared/decorators';
 import { Country } from './country.entity';
 import { CountryService } from './country.service';

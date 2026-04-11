@@ -18,10 +18,10 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { Router } from '@angular/router'
-import { Store } from '@metad/cloud/state'
-import { NgmDSCoreService, NgmLanguageEnum } from '@metad/ocap-angular/core'
-import { TimeGranularity } from '@metad/ocap-core'
-import { ComponentStore } from '@metad/store'
+import { Store } from '@xpert-ai/cloud/state'
+import { NgmDSCoreService, NgmLanguageEnum } from '@xpert-ai/ocap-angular/core'
+import { TimeGranularity } from '@xpert-ai/ocap-core'
+import { ComponentStore } from '@xpert-ai/store'
 import { ZardSheetRef, ZardSheetService } from '@xpert-ai/headless-ui'
 import { includes, some } from 'lodash-es'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
@@ -31,7 +31,7 @@ import { distinctUntilChanged, map, shareReplay, switchMap, tap } from 'rxjs/ope
 import { IndicatorDetailComponent } from './indicator-detail/indicator-detail.component'
 import { IndicatorsStore } from './services/store'
 import { IndicatorState, IndicatorTagEnum, LookbackLimit } from './types'
-import { TIndicatorItemData } from '@metad/ocap-angular/indicator'
+import { TIndicatorItemData } from '@xpert-ai/ocap-angular/indicator'
 
 @Component({
   standalone: false,

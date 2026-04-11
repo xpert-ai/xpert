@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService } from '@metad/cloud/state'
+import { OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Observable, tap } from 'rxjs'
 import { API_XPERT_TOOL } from '../constants/app.constants'

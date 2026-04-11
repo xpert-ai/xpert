@@ -1,4 +1,4 @@
-import { IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { CommandBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
 import * as dotenv from 'dotenv'

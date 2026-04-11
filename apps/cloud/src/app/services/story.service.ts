@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { omit } from '@metad/ocap-core'
-import { ComponentStore } from '@metad/store'
+import { omit } from '@xpert-ai/ocap-core'
+import { ComponentStore } from '@xpert-ai/store'
 import {
   API_SUBSCRIPTION,
   C_API_STORY,
@@ -10,7 +10,7 @@ import {
   convertStory,
   convertStoryPoint,
   convertStoryWidget
-} from '@metad/cloud/state'
+} from '@xpert-ai/cloud/state'
 import {
   NxStoryStore,
   Story,
@@ -20,7 +20,7 @@ import {
   StorySubscription,
   StoryWidget,
   StoryWidgetKey
-} from '@metad/story/core'
+} from '@xpert-ai/story/core'
 import { Observable, of } from 'rxjs'
 import { map, shareReplay } from 'rxjs/operators'
 import { PACNotificationDestinationsService } from '../@core'

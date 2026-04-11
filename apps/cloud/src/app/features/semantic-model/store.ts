@@ -1,3 +1,3 @@
 export {
   dirtyCheckWith, write, createSubStore
-} from '@metad/core'
+} from '@xpert-ai/core'

@@ -6,8 +6,8 @@ import {
   LanguagesEnum,
   PermissionsEnum,
   RolesEnum
-} from '@metad/contracts'
-import type { IApiPrincipal, RequestScopeLevel } from '@metad/contracts'
+} from '@xpert-ai/contracts'
+import type { IApiPrincipal, RequestScopeLevel } from '@xpert-ai/contracts'
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { AsyncLocalStorage } from 'node:async_hooks'

@@ -1,4 +1,4 @@
-import { IDocumentProcessorProvider, IIntegration, IKnowledgeDocument } from '@metad/contracts'
+import { IDocumentProcessorProvider, IIntegration, IKnowledgeDocument } from '@xpert-ai/contracts'
 import { Permissions, XpFileSystem } from '../../core/index'
 import { ChunkMetadata } from '../types'
 

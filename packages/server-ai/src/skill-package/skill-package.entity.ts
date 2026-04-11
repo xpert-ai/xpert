@@ -1,4 +1,4 @@
-import { ISkillPackage, SkillMetadata, TSkillPackage } from '@metad/contracts'
+import { ISkillPackage, SkillMetadata, TSkillPackage } from '@xpert-ai/contracts'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 import { SkillRepositoryIndex } from '../core/entities/internal'

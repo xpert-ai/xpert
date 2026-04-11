@@ -1,5 +1,5 @@
-import { IXpertAgent, RolesEnum, TaskFrequency, TScheduleOptions, ScheduleTaskStatus } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { IXpertAgent, RolesEnum, TaskFrequency, TScheduleOptions, ScheduleTaskStatus } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'

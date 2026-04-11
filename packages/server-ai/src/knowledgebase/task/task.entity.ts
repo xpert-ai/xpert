@@ -1,5 +1,5 @@
-import { IChatConversation, IKnowledgebase, IKnowledgebaseTask, IKnowledgeDocument, IXpertAgentExecution, TaskStep } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IChatConversation, IKnowledgebase, IKnowledgebaseTask, IKnowledgeDocument, IXpertAgentExecution, TaskStep } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsObject, IsOptional, IsString } from 'class-validator'

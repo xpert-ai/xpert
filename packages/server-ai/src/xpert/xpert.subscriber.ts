@@ -1,7 +1,7 @@
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent } from 'typeorm'
 import { Xpert } from './xpert.entity'
-import { convertToUrlPath } from '@metad/contracts'
+import { convertToUrlPath } from '@xpert-ai/contracts'
 
 @EventSubscriber()
 export class XpertSubscriber implements EntitySubscriberInterface<Xpert> {

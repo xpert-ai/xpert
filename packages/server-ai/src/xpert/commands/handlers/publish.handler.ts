@@ -10,9 +10,9 @@ import {
     TXpertTeamDraft,
     TXpertTeamNode,
     WorkflowNodeTypeEnum
-} from '@metad/contracts'
-import { omit, pick } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { omit, pick } from '@xpert-ai/server-common'
+import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'

@@ -1,4 +1,4 @@
-import { AgentType, ChartOrient, OrderDirection, SemanticModel, Syntax } from '@metad/ocap-core'
+import { AgentType, ChartOrient, OrderDirection, SemanticModel, Syntax } from '@xpert-ai/ocap-core'
 
 export const DUCKDB_UNEMPLOYMENT_MODEL: SemanticModel = {
   name: 'UnemploymentModel',

@@ -1,4 +1,4 @@
-import { IKnowledgebase } from '@metad/contracts';
+import { IKnowledgebase } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class KnowledgebaseClearCommand implements ICommand {

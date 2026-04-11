@@ -1,8 +1,8 @@
 
 import { ChangeDetectionStrategy, Component, Type } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSliderInputComponent } from '@metad/ocap-angular/common'
-import { NgmFieldColor } from '@metad/ocap-angular/core'
+import { NgmSliderInputComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmFieldColor } from '@xpert-ai/ocap-angular/core'
 import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core'
 
 interface SliderProps extends FormlyFieldProps {

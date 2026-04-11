@@ -1,4 +1,4 @@
-import { IStorageFile } from '@metad/contracts'
+import { IStorageFile } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import * as fsp from 'fs/promises'

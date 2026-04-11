@@ -1,4 +1,4 @@
-import { IFeature, IPagination } from '@metad/contracts'
+import { IFeature, IPagination } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import chalk from 'chalk'

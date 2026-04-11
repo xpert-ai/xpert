@@ -1,4 +1,4 @@
-import { FilteringLogic, FilterOperator, IAdvancedFilter } from '@metad/ocap-core'
+import { FilteringLogic, FilterOperator, IAdvancedFilter } from '@xpert-ai/ocap-core'
 import { CUBE_SALESORDER, ENTITY_TYPE_SALESORDER } from './mock-data'
 import { compileFilters, compileMembers, compileSlicer } from './sql-filter'
 

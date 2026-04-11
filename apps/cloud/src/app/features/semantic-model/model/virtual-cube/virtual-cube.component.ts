@@ -4,10 +4,10 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, Validators } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
-import { calcEntityTypePrompt, nonBlank } from '@metad/core'
-import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
+import { calcEntityTypePrompt, nonBlank } from '@xpert-ai/core'
+import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   C_MEASURES,
@@ -16,7 +16,7 @@ import {
   Syntax,
   VirtualCube,
   VirtualCubeDimension
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'

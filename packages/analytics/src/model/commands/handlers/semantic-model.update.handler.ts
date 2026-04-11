@@ -1,5 +1,5 @@
-import { ISemanticModel } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { ISemanticModel } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs'
 import { pick } from 'lodash'
 import { SemanticModel } from '../../model.entity'

@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { HiddenLLM, MeasureExpressionAccordion, MODEL_TYPE } from '@cloud/app/@shared/model'
-import { nonBlank, PropertyMeasure } from '@metad/ocap-core'
-import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { nonBlank, PropertyMeasure } from '@xpert-ai/ocap-core'
+import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@xpert-ai/story/designer'
 import { combineLatest, filter, map, switchMap } from 'rxjs'
 import { CubeSchemaService } from './cube.schema'
 

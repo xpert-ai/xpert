@@ -1,4 +1,4 @@
-import { IListQueryInput, IPermissionApprovalFindInput } from '@metad/contracts';
+import { IListQueryInput, IPermissionApprovalFindInput } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class PermissionApprovalPolicyGetCommand implements ICommand {

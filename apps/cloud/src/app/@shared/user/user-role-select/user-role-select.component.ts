@@ -8,8 +8,8 @@ import {
   ZardLoaderComponent,
   ZardTagSelectComponent
 } from '@xpert-ai/headless-ui'
-import { UsersService } from '@metad/cloud/state'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import { UsersService } from '@xpert-ai/cloud/state'
+import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounce, distinctUntilChanged, map, of, startWith, switchMap, tap, timer } from 'rxjs'
 import { IUser } from '../../../@core'

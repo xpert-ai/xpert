@@ -1,5 +1,5 @@
-import { AggregationRole, EntityType, measureFormatter, PivotColumn, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@metad/ocap-core'
-import { serializeUniqueName } from '@metad/ocap-sql'
+import { AggregationRole, EntityType, measureFormatter, PivotColumn, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@xpert-ai/ocap-core'
+import { serializeUniqueName } from '@xpert-ai/ocap-sql'
 import { uuid } from '../../../@core'
 
 export function serializePropertyUniqueName(property: PropertyLevel, dialect: string) {

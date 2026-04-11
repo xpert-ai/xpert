@@ -23,8 +23,8 @@ import {
   injectConfirmOptions,
   NgmCommonModule,
   SplitterType
-} from '@metad/ocap-angular/common'
-import { NgmCalculationEditorComponent, NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
+} from '@xpert-ai/ocap-angular/common'
+import { NgmCalculationEditorComponent, NgmEntityPropertyComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   CalculatedMember,
@@ -41,7 +41,7 @@ import {
   getEntityVariables,
   isEntityType,
   isVisible
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { DeepPartial, injectToastr, uuid } from '@cloud/app/@core'
 import { NGXLogger } from 'ngx-logger'
@@ -60,7 +60,7 @@ import { ModelEntityService } from '../entity.service'
 import { CubeEventType } from '../types'
 import { CubeVariableFormComponent } from '@cloud/app/@shared/model'
 
-import { SQLTableSchema } from '@metad/ocap-sql'
+import { SQLTableSchema } from '@xpert-ai/ocap-sql'
 import {
   CreateEntityDialogRetType,
   ModelCreateEntityComponent,
@@ -68,7 +68,7 @@ import {
 } from '../../create-entity/create-entity.component'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import { ModelEntityComponent } from '../entity.component'
 import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**

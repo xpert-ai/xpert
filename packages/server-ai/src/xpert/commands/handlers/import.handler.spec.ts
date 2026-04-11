@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 
-jest.mock('@metad/contracts', () => ({
+jest.mock('@xpert-ai/contracts', () => ({
   LongTermMemoryTypeEnum: {
     QA: 'qa'
   },
@@ -61,7 +61,7 @@ jest.mock('../../xpert.service', () => ({
   XpertService: class XpertService {}
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
   RequestContext: {
     getLanguageCode: jest.fn().mockReturnValue('en')
   }

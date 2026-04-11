@@ -1,5 +1,5 @@
 import { AsyncDuckDB, AsyncDuckDBConnection, ConsoleLogger, DuckDBBundles, DuckDBDataProtocol, LogLevel, selectBundle } from '@duckdb/duckdb-wasm'
-import { Agent, AgentStatusEnum, AgentType, DataSourceOptions, isEqual, pick, SemanticModel, TableColumnType, TableEntity } from '@metad/ocap-core'
+import { Agent, AgentStatusEnum, AgentType, DataSourceOptions, isEqual, pick, SemanticModel, TableColumnType, TableEntity } from '@xpert-ai/ocap-core'
 import { DataType, Bool, Utf8, Float64, Int32, Date_, DateUnit, Table } from 'apache-arrow'
 import { BehaviorSubject, filter, firstValueFrom, map, Observable, ReplaySubject, Subject } from 'rxjs'
 

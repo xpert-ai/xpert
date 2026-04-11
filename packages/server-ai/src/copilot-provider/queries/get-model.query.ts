@@ -1,4 +1,4 @@
-import { AiModelTypeEnum } from '@metad/contracts'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 /**

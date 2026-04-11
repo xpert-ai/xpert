@@ -1,4 +1,4 @@
-import { ChartTypeEnum as NxChartType } from '@metad/ocap-core'
+import { ChartTypeEnum as NxChartType } from '@xpert-ai/ocap-core'
 
 const chartIconUrl = (name: string) => `/assets/icons/${name}.svg`
 

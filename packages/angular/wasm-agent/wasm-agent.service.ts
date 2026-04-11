@@ -1,5 +1,5 @@
 import { Inject, Injectable, InjectionToken, OnDestroy } from '@angular/core'
-import { Agent, AgentStatus, AgentStatusEnum, AgentType, DataSourceOptions, SemanticModel } from '@metad/ocap-core'
+import { Agent, AgentStatus, AgentStatusEnum, AgentType, DataSourceOptions, SemanticModel } from '@xpert-ai/ocap-core'
 import { BehaviorSubject, filter, Observable, ReplaySubject, switchMap, takeUntil } from 'rxjs'
 
 export const NGM_WASM_AGENT_WORKER = new InjectionToken<string>('NgmWASMAgentWorkerUrl')
@@ -56,7 +56,7 @@ export class WasmAgentService implements Agent, OnDestroy {
 
   async getWASMAgent() {
     if (!this.agent) {
-      const { DuckdbWasmAgent } = await import('@metad/ocap-duckdb')
+      const { DuckdbWasmAgent } = await import('@xpert-ai/ocap-duckdb')
       this.agent = new DuckdbWasmAgent([], this.workerUrl)
     }
 

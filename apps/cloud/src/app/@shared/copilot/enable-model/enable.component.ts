@@ -1,7 +1,7 @@
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
-import { TranslatePipe } from '@metad/core'
+import { TranslatePipe } from '@xpert-ai/core'
 import { AiProviderRole, injectCopilotServer } from '../../../@core'
 
 /**

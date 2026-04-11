@@ -10,8 +10,8 @@ import {
   DataSettingsSchema,
   tryFixDimension,
   VarianceMeasureProperty
-} from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { NGXLogger } from 'ngx-logger'

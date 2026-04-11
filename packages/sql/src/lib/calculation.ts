@@ -11,7 +11,7 @@ import {
   Property,
   PropertyMeasure,
   RestrictedMeasureProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { CubeContext } from './cube'
 import { Aggregate, And, Parentheses } from './functions'
 import { compileSlicer } from './sql-filter'

@@ -18,11 +18,11 @@ import {
   EntitySet,
   DataSettings,
   isNil,
-} from '@metad/ocap-core'
-import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+} from '@xpert-ai/ocap-core'
+import { NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import { firstValueFrom } from 'rxjs'
-import { NgmPropertySelectComponent, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { ISelectOption, KEYS } from '@metad/ocap-angular/core'
+import { NgmPropertySelectComponent, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import { ISelectOption, KEYS } from '@xpert-ai/ocap-angular/core'
 
 /**
  * @hidden

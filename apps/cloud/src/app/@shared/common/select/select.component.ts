@@ -3,7 +3,7 @@ import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, contentChild, inject, input, model, TemplateRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import {
   buildListboxOptions,
   debouncedSignal,
@@ -12,7 +12,7 @@ import {
   NgmDensityDirective,
   NgmI18nPipe,
   TSelectOption
-} from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 

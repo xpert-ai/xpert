@@ -13,7 +13,7 @@ import {
     TChatRequest,
     TXpertTeamDraft,
     xpertLabel
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
     CrudController,
     OptionParams,
@@ -28,7 +28,7 @@ import {
     Public,
     TimeZone,
     UserService
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -53,13 +53,13 @@ import {
     BadRequestException
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { UploadedFile } from '@metad/contracts'
-import { FileStorage, UploadedFileStorage } from '@metad/server-core'
+import { UploadedFile } from '@xpert-ai/contracts'
+import { FileStorage, UploadedFileStorage } from '@xpert-ai/server-core'
 import path from 'path'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
-import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@metad/server-common'
+import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'

@@ -17,8 +17,8 @@ import {
     TXpertParameter,
     WorkflowNodeTypeEnum,
     XpertParameterTypeEnum
-} from '@metad/contracts'
-import { omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'

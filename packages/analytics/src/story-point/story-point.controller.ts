@@ -1,5 +1,5 @@
-import { IPagination, ISecretToken, IStoryPoint } from '@metad/contracts'
-import { CrudController, PaginationParams, ParseJsonPipe, Public, SecretTokenGetCommand, UUIDValidationPipe } from '@metad/server-core'
+import { IPagination, ISecretToken, IStoryPoint } from '@xpert-ai/contracts'
+import { CrudController, PaginationParams, ParseJsonPipe, Public, SecretTokenGetCommand, UUIDValidationPipe } from '@xpert-ai/server-core'
 import {
 	ClassSerializerInterceptor,
 	Controller,

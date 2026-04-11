@@ -1,4 +1,4 @@
-import { ApiToolBundle, ApiProviderSchemaType, ToolParameterType } from '@metad/contracts'
+import { ApiToolBundle, ApiProviderSchemaType, ToolParameterType } from '@xpert-ai/contracts'
 import type { OperationObject, ParameterObject, RequestBody } from "openapi-typescript/src/types";
 import * as fs from 'fs';
 import * as path from 'path';

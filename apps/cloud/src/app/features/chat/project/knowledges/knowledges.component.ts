@@ -20,7 +20,7 @@ import {
   listAnimation,
   listEnterAnimation,
   ListSlideStaggerAnimation
-} from '@metad/core'
+} from '@xpert-ai/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'

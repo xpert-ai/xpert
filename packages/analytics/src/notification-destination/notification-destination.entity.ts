@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { INotificationDestination, ISubscription } from '@metad/contracts';
-import { TenantOrganizationBaseEntity } from '@metad/server-core';
+import { INotificationDestination, ISubscription } from '@xpert-ai/contracts';
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core';
 import { IsJSON, IsOptional, IsString } from 'class-validator';
 import { Subscription } from '../subscription/subscription.entity';
 import {

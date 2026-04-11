@@ -19,7 +19,7 @@ import {
   isNil,
   ChartMeasure,
   getDimensionMemberCaption,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { parse, format, isDate } from 'date-fns'
 import { HeatmapChart } from 'echarts/charts'
 import { use } from 'echarts/core'

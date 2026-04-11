@@ -1,5 +1,5 @@
-import { Cube, PropertyDimension, PropertyHierarchy } from '@metad/ocap-core'
-import { SchemaState } from '@metad/story/designer'
+import { Cube, PropertyDimension, PropertyHierarchy } from '@xpert-ai/ocap-core'
+import { SchemaState } from '@xpert-ai/story/designer'
 
 export interface EntitySchemaState<T> extends SchemaState {
   entity: string

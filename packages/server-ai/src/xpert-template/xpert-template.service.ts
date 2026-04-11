@@ -9,10 +9,10 @@ import {
 	IXpertMCPTemplate,
 	LanguagesEnum,
 	TKnowledgePipelineTemplate
-} from '@metad/contracts'
-import { getErrorMessage, omit, yaml } from '@metad/server-common'
-import { ConfigService } from '@metad/server-config'
-import { PaginationParams, TenantAwareCrudService } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage, omit, yaml } from '@xpert-ai/server-common'
+import { ConfigService } from '@xpert-ai/server-config'
+import { PaginationParams, TenantAwareCrudService } from '@xpert-ai/server-core'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'

@@ -6,9 +6,9 @@ import {
 	LanguagesEnum,
 	ScheduleTaskStatus,
 	TScheduleOptions,
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { RequestContext, TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { RequestContext, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Expose, Transform } from 'class-transformer'
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator'

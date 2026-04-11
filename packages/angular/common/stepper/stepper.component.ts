@@ -2,8 +2,8 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { TI18N } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { TI18N } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 

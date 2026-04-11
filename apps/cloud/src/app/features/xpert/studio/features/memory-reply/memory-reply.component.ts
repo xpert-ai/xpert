@@ -1,7 +1,7 @@
 
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, OverlayAnimations } from '@metad/core'
+import { attrModel, OverlayAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { AiModelTypeEnum } from '@cloud/app/@core'

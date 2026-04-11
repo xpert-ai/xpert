@@ -1,6 +1,6 @@
 import { BadRequestException, createParamDecorator, ExecutionContext } from '@nestjs/common'
 import { FileStorage } from './file-storage'
-import { UploadedFile } from '@metad/contracts'
+import { UploadedFile } from '@xpert-ai/contracts'
 
 export const UploadedFileStorage = createParamDecorator((data: string, ctx: ExecutionContext): UploadedFile => {
 	try {

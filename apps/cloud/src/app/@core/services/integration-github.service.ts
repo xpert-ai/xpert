@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, Repository, TRepositoryReturn } from '@metad/cloud/state'
+import { API_PREFIX, Repository, TRepositoryReturn } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 
 const API_INTEGRATION = API_PREFIX + '/github'

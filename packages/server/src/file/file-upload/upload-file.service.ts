@@ -1,5 +1,5 @@
-import { IFileAsset, IFileAssetDestination, IStorageFile, IUploadFileTarget } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { IFileAsset, IFileAssetDestination, IStorageFile, IUploadFileTarget } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { FileUploadTargetRegistry, TFileUploadContext } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
 import fsPromises from 'fs/promises'

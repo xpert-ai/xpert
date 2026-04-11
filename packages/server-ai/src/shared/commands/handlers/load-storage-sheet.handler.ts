@@ -1,7 +1,7 @@
-import { FileStorage, GetStorageFileQuery, StorageFile } from '@metad/server-core'
+import { FileStorage, GetStorageFileQuery, StorageFile } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { loadCsvWithAutoEncoding, loadExcel } from '@metad/server-common'
+import { loadCsvWithAutoEncoding, loadExcel } from '@xpert-ai/server-common'
 import { LoadStorageSheetCommand } from '../load-storage-sheet.command'
 
 @CommandHandler(LoadStorageSheetCommand)

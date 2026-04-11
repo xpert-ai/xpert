@@ -1,4 +1,4 @@
-import { ISemanticModelQueryLog } from '@metad/contracts'
+import { ISemanticModelQueryLog } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**

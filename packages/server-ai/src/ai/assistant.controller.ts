@@ -1,6 +1,6 @@
 import { Assistant } from '@langchain/langgraph-sdk'
-import { ICopilotModel, IXpert, ModelPropertyKey } from '@metad/contracts'
-import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@metad/server-core'
+import { ICopilotModel, IXpert, ModelPropertyKey } from '@xpert-ai/contracts'
+import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Logger, Param, Post, UseGuards, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { normalizeContextSize } from '@xpert-ai/plugin-sdk'

@@ -1,5 +1,5 @@
 import type { ZardTableSortDirection } from '@xpert-ai/headless-ui'
-import { AnalyticsMeasure, Dimension, IMember, Measure, Property } from '@metad/ocap-core'
+import { AnalyticsMeasure, Dimension, IMember, Measure, Property } from '@xpert-ai/ocap-core'
 import { Parser } from 'expr-eval'
 
 export type SemanticExpression = {

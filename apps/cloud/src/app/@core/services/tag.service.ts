@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { ITag, OrganizationBaseCrudService, TagCategoryEnum } from '@metad/cloud/state'
+import { ITag, OrganizationBaseCrudService, TagCategoryEnum } from '@xpert-ai/cloud/state'
 import { BehaviorSubject, Observable } from 'rxjs'
 import { map, shareReplay, switchMap } from 'rxjs/operators'
 import { API_TAG } from '../constants/app.constants'

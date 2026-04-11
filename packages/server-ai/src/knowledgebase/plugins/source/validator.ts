@@ -1,5 +1,5 @@
-import { ChecklistItem, IWFNSource, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { GetIntegrationQuery } from '@metad/server-core'
+import { ChecklistItem, IWFNSource, TXpertTeamNode, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { GetIntegrationQuery } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { OnEvent } from '@nestjs/event-emitter'

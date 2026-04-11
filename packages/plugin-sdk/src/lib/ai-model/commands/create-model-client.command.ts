@@ -1,7 +1,7 @@
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { ICopilotModel, ILLMUsage } from '@metad/contracts'
+import { ICopilotModel, ILLMUsage } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { IRerank } from '../types'
 

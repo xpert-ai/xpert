@@ -9,10 +9,10 @@ import {
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule
 } from '@angular/forms'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ComponentStyling } from '@metad/story/core'
+import { ComponentStyling } from '@xpert-ai/story/core'
 import { debounceTime, distinctUntilChanged, firstValueFrom, map } from 'rxjs'
 import { IScreenshot, ScreenshotService, ToastrService, listAnimation } from '../../../../@core'
 import { SharedUiModule } from '../../../../@shared/ui.module'
@@ -21,8 +21,8 @@ import { ColorInputComponent } from '../color-input/color-input.component'
 import { ImageUploadComponent } from '../image-upload/image-upload.component'
 import { ClipboardModule } from '@angular/cdk/clipboard'
 import { sortBy } from 'lodash-es'
-import { NgmInputComponent, NgmSliderInputComponent } from '@metad/ocap-angular/common'
-import { BackdropFilterEnum, FilterEnum } from '@metad/core'
+import { NgmInputComponent, NgmSliderInputComponent } from '@xpert-ai/ocap-angular/common'
+import { BackdropFilterEnum, FilterEnum } from '@xpert-ai/core'
 import { DesignerTextComponent } from '../text/text.component'
 
 @Component({

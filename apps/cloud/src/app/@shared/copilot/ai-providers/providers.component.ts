@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Dialog, DialogRef, DIALOG_DATA } from '@angular/cdk/dialog'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import {
   getErrorMessage,

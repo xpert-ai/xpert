@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { BusinessType, IFavorite } from '@metad/contracts'
+import { BusinessType, IFavorite } from '@xpert-ai/contracts'
 import { map, switchMap } from 'rxjs/operators'
 import { C_URI_API_FAVORITES } from './constants'
 import { OrganizationBaseService } from './organization-base.service'

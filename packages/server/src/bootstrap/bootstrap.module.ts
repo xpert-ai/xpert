@@ -4,7 +4,7 @@ import {
 	NestModule,
 	OnApplicationShutdown
 } from '@nestjs/common';
-import { ConfigModule, getConfig } from '@metad/server-config';
+import { ConfigModule, getConfig } from '@xpert-ai/server-config';
 import { ServerAppModule } from './../server.module';
 import { Logger, LoggerModule, providePinoLoggerModule } from '../logger';
 import { provideCacheModule } from './cache';

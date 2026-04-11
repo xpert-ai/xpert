@@ -10,8 +10,8 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { EntriesPipe, routeAnimations } from '@metad/core'
-import { pick } from '@metad/ocap-core'
+import { EntriesPipe, routeAnimations } from '@xpert-ai/core'
+import { pick } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ApiAuthType,
@@ -29,7 +29,7 @@ import { combineLatestWith, distinctUntilChanged, filter, map, of, switchMap } f
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Samples } from '../types'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Dialog } from '@angular/cdk/dialog'

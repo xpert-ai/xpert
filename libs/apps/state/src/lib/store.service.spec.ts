@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
-import { RequestScopeLevel } from '@metad/contracts'
+import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { AppQuery, AppStore, PersistQuery, PersistStore, Store } from './store.service'
 
 describe('Store', () => {

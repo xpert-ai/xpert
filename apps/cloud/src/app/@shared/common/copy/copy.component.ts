@@ -1,7 +1,7 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 
 import { Component, HostListener, inject, input, numberAttribute, signal } from '@angular/core'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { timer } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 

@@ -1,5 +1,5 @@
 import { mapChatMessagesToStoredMessages } from '@langchain/core/messages'
-import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
+import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
 import { Controller, Get, Logger, Param, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

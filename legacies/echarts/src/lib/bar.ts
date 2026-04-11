@@ -1,4 +1,4 @@
-import { ChartAnnotation, ChartSettings, EntityType, QueryReturn } from '@metad/ocap-core'
+import { ChartAnnotation, ChartSettings, EntityType, QueryReturn } from '@xpert-ai/ocap-core'
 import { BarChart } from 'echarts/charts'
 import { use } from 'echarts/core'
 import { cartesian } from './cartesian'

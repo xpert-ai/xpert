@@ -1,4 +1,4 @@
-import { AccordionWrappers, FORMLY_ROW, FORMLY_W_FULL } from '@metad/story/designer'
+import { AccordionWrappers, FORMLY_ROW, FORMLY_W_FULL } from '@xpert-ai/story/designer'
 import { TextStyles } from './common'
 
 export function TooltipCapacity(className: string, I18N) {

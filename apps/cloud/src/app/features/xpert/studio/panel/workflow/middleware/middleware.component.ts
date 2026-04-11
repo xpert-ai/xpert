@@ -6,7 +6,7 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
 import { XpertToolTestComponent } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, uniq } from 'lodash-es'
 import {

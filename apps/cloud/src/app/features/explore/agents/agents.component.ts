@@ -17,7 +17,7 @@ import {
   XpertTypeEnum
 } from '@cloud/app/@core'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { ExploreAgentInstallComponent } from './install/install.component'
 import { ExploreXpertCardComponent } from './xpert-card.component'
 

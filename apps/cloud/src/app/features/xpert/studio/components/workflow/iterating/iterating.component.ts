@@ -7,7 +7,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from '@cloud/app/@core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'

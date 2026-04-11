@@ -1,4 +1,4 @@
-import { IChatConversation } from '@metad/contracts'
+import { IChatConversation } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { FindOptionsWhere } from 'typeorm'
 import { FindChatConversationQuery } from '../../../chat-conversation'

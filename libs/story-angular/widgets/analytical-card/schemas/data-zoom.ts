@@ -1,5 +1,5 @@
-import { ChartDataZoomType } from '@metad/ocap-core'
-import { AccordionWrappers, FORMLY_ROW } from '@metad/story/designer'
+import { ChartDataZoomType } from '@xpert-ai/ocap-core'
+import { AccordionWrappers, FORMLY_ROW } from '@xpert-ai/story/designer'
 import { Positions, WidthHeight } from './common'
 
 export function DataZoomCapacity(className: string, I18N?) {

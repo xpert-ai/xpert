@@ -1,6 +1,6 @@
 
 import { Component } from '@angular/core'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   standalone: true,

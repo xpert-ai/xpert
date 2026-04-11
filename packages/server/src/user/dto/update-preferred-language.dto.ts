@@ -1,4 +1,4 @@
-import { LanguagesEnum } from "@metad/contracts";
+import { LanguagesEnum } from "@xpert-ai/contracts";
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsEnum } from "class-validator";
 

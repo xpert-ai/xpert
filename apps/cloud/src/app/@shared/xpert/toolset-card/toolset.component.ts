@@ -1,7 +1,7 @@
 
 import { booleanAttribute, Component, computed, input } from '@angular/core'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite, IXpertToolset, XpertToolsetCategoryEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'

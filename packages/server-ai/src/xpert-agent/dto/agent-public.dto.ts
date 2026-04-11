@@ -1,6 +1,6 @@
 import { Exclude, Expose } from 'class-transformer'
 import { XpertAgentIdentiDto } from './agent-identi.dto'
-import { TXpertParameter } from '@metad/contracts'
+import { TXpertParameter } from '@xpert-ai/contracts'
 
 @Exclude()
 export class XpertAgentPublicDTO extends XpertAgentIdentiDto {

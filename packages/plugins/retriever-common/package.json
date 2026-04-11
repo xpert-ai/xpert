@@ -11,7 +11,7 @@
   "module": "./index.js",
   "peerDependencies": {
     "@nestjs/common": ">=10",
-    "@metad/contracts": "*",
-    "@xpert-ai/plugin-sdk": "^3.8.4"
+    "@xpert-ai/contracts": "workspace:*",
+    "@xpert-ai/plugin-sdk": "workspace:*"
   }
 }

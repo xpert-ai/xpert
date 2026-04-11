@@ -1,9 +1,9 @@
 
 import { Component, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core'
-import { NxCoreService } from '@metad/core'
-import { NgmDSCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { TimeGranularity } from '@metad/ocap-core'
-import { NxStoryService, Story, StoryWidget } from '@metad/story/core'
+import { NxCoreService } from '@xpert-ai/core'
+import { NgmDSCoreService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { TimeGranularity } from '@xpert-ai/ocap-core'
+import { NxStoryService, Story, StoryWidget } from '@xpert-ai/story/core'
 import { NxStoryPointService } from '../story-point.service'
 import { NxStoryModule } from '../story.module'
 

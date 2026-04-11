@@ -10,8 +10,8 @@ import {
   OCAP_DATASOURCE_TOKEN,
   OCAP_MODEL_TOKEN,
   OcapCoreModule
-} from '@metad/ocap-angular/core'
-import { AgentType, C_MEASURES, DataSource, Type } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/core'
+import { AgentType, C_MEASURES, DataSource, Type } from '@xpert-ai/ocap-core'
 import { Meta, StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { provideTranslate } from '../mock'
 import { CUBE_SALES_ORDER, MockAgent } from '../mock/agent-mock.service'
@@ -100,7 +100,7 @@ export default {
           useValue: {
             type: 'SQL',
             factory: async (): Promise<Type<DataSource>> => {
-              const { SQLDataSource } = await import('@metad/ocap-sql')
+              const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
               return SQLDataSource
             }
           },

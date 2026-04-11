@@ -1,4 +1,4 @@
-import { IXpertAgentExecution } from '@metad/contracts'
+import { IXpertAgentExecution } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { XpertAgentExecutionService } from '../../agent-execution.service'
 import { FindAgentExecutionsQuery } from '../find.query'

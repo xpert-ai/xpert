@@ -1,4 +1,4 @@
-import { IPagination, PermissionsEnum } from '@metad/contracts'
+import { IPagination, PermissionsEnum } from '@xpert-ai/contracts'
 import {
 	Body,
 	Controller,

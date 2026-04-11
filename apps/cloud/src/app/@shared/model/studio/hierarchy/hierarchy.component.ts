@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, model, output } f
 import { FormsModule } from '@angular/forms'
 import { suuid } from '@cloud/app/@core/types'
 import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
-import { nonNullable, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@metad/ocap-core'
+import { nonNullable, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CubeStudioComponent } from '../studio.component'
 import { CubeStudioDimensionSettingsComponent } from './settings/settings.component'

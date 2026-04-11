@@ -8,7 +8,7 @@ import {
   OrderDirection,
   SemanticModel,
   Syntax
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 
 export const DUCKDB_COVID19_DAILY_MODEL: SemanticModel = {
   name: 'Covid19',

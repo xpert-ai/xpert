@@ -6,9 +6,9 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, model, signal } fro
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, ISelectOption, mergeSelectedValues } from '@metad/ocap-angular/core'
-import { DSCoreService, nonNullable } from '@metad/ocap-core'
+import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, ISelectOption, mergeSelectedValues } from '@xpert-ai/ocap-angular/core'
+import { DSCoreService, nonNullable } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, combineLatestWith, distinctUntilChanged, filter, map, of, startWith, switchMap, tap } from 'rxjs'

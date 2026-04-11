@@ -19,8 +19,8 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { EntriesPipe, routeAnimations } from '@metad/core'
-import { pick } from '@metad/ocap-core'
+import { EntriesPipe, routeAnimations } from '@xpert-ai/core'
+import { pick } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ApiAuthType,
@@ -35,10 +35,10 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { Samples } from '../types'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'

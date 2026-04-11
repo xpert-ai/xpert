@@ -1,10 +1,10 @@
 import { Component, forwardRef, Input } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormArray, FormControl, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { AggregationRole, Dimension, EntitySet, getEntityDimensionAndHierarchies, ISlicer } from '@metad/ocap-core'
+import { AggregationRole, Dimension, EntitySet, getEntityDimensionAndHierarchies, ISlicer } from '@xpert-ai/ocap-core'
 import { isEqual } from 'lodash-es'
 import { BehaviorSubject, distinctUntilChanged, map, shareReplay, withLatestFrom } from 'rxjs'
-import { NgmFieldAppearance } from "@metad/ocap-angular/core";
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
 
 @Component({
   selector: 'ngm-slicer-select',

@@ -1,5 +1,5 @@
-import { IChatMessageFeedback } from '@metad/contracts'
-import { FindOptionsWhere } from '@metad/server-core'
+import { IChatMessageFeedback } from '@xpert-ai/contracts'
+import { FindOptionsWhere } from '@xpert-ai/server-core'
 import { IQuery } from '@nestjs/cqrs'
 
 /**

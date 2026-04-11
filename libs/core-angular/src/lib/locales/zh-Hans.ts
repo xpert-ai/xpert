@@ -1,4 +1,4 @@
-import { DateVariableEnum } from "@metad/ocap-angular/core";
+import { DateVariableEnum } from "@xpert-ai/ocap-angular/core";
 
 /**
  * 中文 shortNumber 基础配置

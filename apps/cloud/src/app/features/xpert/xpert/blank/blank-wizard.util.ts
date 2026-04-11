@@ -1,4 +1,4 @@
-import { XpertTypeEnum } from '@metad/contracts'
+import { XpertTypeEnum } from '@xpert-ai/contracts'
 
 export const BLANK_XPERT_WORKFLOW_MODE = 'workflow' as const
 

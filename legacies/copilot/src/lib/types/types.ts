@@ -1,11 +1,11 @@
 import type { BaseMessage, FunctionCall, MessageContent, OpenAIToolCall } from '@langchain/core/messages'
-import { XpertAgentExecutionStatusEnum } from '@metad/contracts'
-import type { ChatMessageStatusEnum, CopilotBaseMessage, ICopilot } from '@metad/contracts'
+import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import type { ChatMessageStatusEnum, CopilotBaseMessage, ICopilot } from '@xpert-ai/contracts'
 
 export const DefaultModel = 'gpt-3.5-turbo'
 export const DefaultBusinessRole = 'default'
-export { AiProviderRole, XpertAgentExecutionStatusEnum } from '@metad/contracts'
-export type { CopilotBaseMessage, ICopilot } from '@metad/contracts'
+export { AiProviderRole, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+export type { CopilotBaseMessage, ICopilot } from '@xpert-ai/contracts'
 
 
 export interface BusinessOperation {

@@ -1,4 +1,4 @@
-import { IntegrationService } from '@metad/server-core';
+import { IntegrationService } from '@xpert-ai/server-core';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { XpertProjectService } from '../project.service';
 

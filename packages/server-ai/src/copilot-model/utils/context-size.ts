@@ -1,4 +1,4 @@
-import { ICopilotModel, ModelPropertyKey } from '@metad/contracts'
+import { ICopilotModel, ModelPropertyKey } from '@xpert-ai/contracts'
 import { normalizeContextSize } from '@xpert-ai/plugin-sdk'
 import { ModelProvider } from '../../ai-model'
 

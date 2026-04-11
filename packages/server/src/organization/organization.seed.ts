@@ -14,7 +14,7 @@ import {
 	IOrganization,
 	ITenant,
 	DEFAULT_DATE_FORMATS
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 
 export const getDefaultOrganization = async (
 	connection: Connection,

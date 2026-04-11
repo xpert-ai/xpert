@@ -5,8 +5,8 @@ import { Component, computed, HostListener, inject, model, signal, ViewContainer
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel, nonBlank } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel, nonBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -39,7 +39,7 @@ import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
-import { OverlayAnimations } from '@metad/core'
+import { OverlayAnimations } from '@xpert-ai/core'
 
 @Component({
   selector: 'xpert-studio-header',

@@ -1,4 +1,4 @@
-import { loadYamlFile } from '@metad/server-core'
+import { loadYamlFile } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import * as path from 'path'
 

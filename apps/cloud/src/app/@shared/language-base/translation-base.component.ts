@@ -1,4 +1,4 @@
-// import { ComponentStore } from '@metad/store'
+// import { ComponentStore } from '@xpert-ai/store'
 // import { TranslateService } from '@ngx-translate/core'
 
 // /**

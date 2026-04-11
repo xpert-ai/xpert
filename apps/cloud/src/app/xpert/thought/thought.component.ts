@@ -14,7 +14,7 @@ import { CopyComponent } from '@cloud/app/@shared/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { TCopilotChatMessage } from '../types'
-import { listEnterAnimation } from '@metad/core'
+import { listEnterAnimation } from '@xpert-ai/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({

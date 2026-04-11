@@ -6,7 +6,7 @@ import {
   OrganizationBaseCrudService,
   PaginationParams,
   TSkillSourceMeta
-} from '@metad/cloud/state'
+} from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { shareReplay, switchMap } from 'rxjs'
 

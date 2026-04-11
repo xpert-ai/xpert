@@ -1,5 +1,5 @@
 import { tool } from '@langchain/core/tools'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'

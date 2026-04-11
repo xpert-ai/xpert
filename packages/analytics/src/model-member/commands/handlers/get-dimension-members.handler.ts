@@ -5,8 +5,8 @@ import {
 	getEntityProperty,
 	IDimensionMember,
 	isEntityType
-} from '@metad/ocap-core'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/ocap-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { firstValueFrom } from 'rxjs'

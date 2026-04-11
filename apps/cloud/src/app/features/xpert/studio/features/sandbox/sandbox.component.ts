@@ -2,8 +2,8 @@
 import { Component, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TSandboxProvider } from '@cloud/app/@core'
-import { attrModel } from '@metad/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel } from '@xpert-ai/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent } from "@cloud/app/@shared/avatar";
 import { of, switchMap } from 'rxjs'

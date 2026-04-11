@@ -8,7 +8,7 @@ import {
 	getToolCallIdFromConfig,
 	mapTranslationLanguage,
 	STATE_VARIABLE_SYS
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { t } from 'i18next'
 import z from 'zod'

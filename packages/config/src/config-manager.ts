@@ -1,4 +1,4 @@
-import { deepMerge, IPluginConfig } from '@metad/server-common';
+import { deepMerge, IPluginConfig } from '@xpert-ai/server-common';
 import { defaultConfiguration } from './default-configuration';
 
 let defaultConfig: IPluginConfig = defaultConfiguration;

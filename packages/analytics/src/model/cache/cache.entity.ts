@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { ISemanticModel, ISemanticModelCache } from '@metad/contracts'
-import { TenantBaseEntity } from '@metad/server-core'
+import { ISemanticModel, ISemanticModelCache } from '@xpert-ai/contracts'
+import { TenantBaseEntity } from '@xpert-ai/server-core'
 import { IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm'
 import { SemanticModel } from '../model.entity'

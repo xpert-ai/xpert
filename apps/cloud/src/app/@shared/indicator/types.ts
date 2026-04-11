@@ -1,6 +1,6 @@
 import { inject } from "@angular/core"
-import { convertNewSemanticModelResult, IIndicator, SemanticModelServerService } from "@metad/cloud/state"
-import { omitBlank } from "@metad/ocap-angular/core"
+import { convertNewSemanticModelResult, IIndicator, SemanticModelServerService } from "@xpert-ai/cloud/state"
+import { omitBlank } from "@xpert-ai/ocap-angular/core"
 import { pick } from "lodash-es"
 import { map } from "rxjs/operators"
 

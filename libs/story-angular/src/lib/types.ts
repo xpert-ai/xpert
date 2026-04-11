@@ -1,4 +1,4 @@
-import { EmulatedDevice } from '@metad/story/core'
+import { EmulatedDevice } from '@xpert-ai/story/core'
 
 export const StoryScales = [
   {

@@ -1,4 +1,4 @@
-import { CrudController, TransformInterceptor } from '@metad/server-core'
+import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
 import {
 	CallHandler,
 	CanActivate,

@@ -1,4 +1,4 @@
-import { I18nObject } from '@metad/contracts'
+import { I18nObject } from '@xpert-ai/contracts'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { IsOptional, IsString, ValidateNested } from 'class-validator'
 import { RequestContext } from '@xpert-ai/plugin-sdk'

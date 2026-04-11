@@ -4,7 +4,7 @@ import {
 	IOrganizationContact,
 	IUser,
 	IRole
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDate, IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import {

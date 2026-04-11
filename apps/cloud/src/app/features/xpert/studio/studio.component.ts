@@ -36,9 +36,9 @@ import {
   FSelectionChangeEvent,
   FZoomDirective
 } from '@foblex/flow'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayBehaviour, isEqual } from '@metad/ocap-core'
-import { effectAction } from '@metad/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour, isEqual } from '@xpert-ai/ocap-core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NGXLogger } from 'ngx-logger'

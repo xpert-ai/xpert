@@ -1,4 +1,4 @@
-import { IInviteResendInput, LanguagesEnum } from '@metad/contracts';
+import { IInviteResendInput, LanguagesEnum } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class InviteResendCommand implements ICommand {

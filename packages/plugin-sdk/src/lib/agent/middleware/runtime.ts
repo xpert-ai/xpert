@@ -5,7 +5,7 @@ import type {
   StreamMode,
 } from "@langchain/langgraph";
 import type { BaseMessage } from "@langchain/core/messages";
-import { TSandboxConfigurable } from "@metad/contracts";
+import { TSandboxConfigurable } from "@xpert-ai/contracts";
 
 
 /**

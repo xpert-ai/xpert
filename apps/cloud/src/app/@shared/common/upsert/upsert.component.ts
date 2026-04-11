@@ -1,5 +1,5 @@
 import { inject, signal } from '@angular/core'
-import { CrudService } from '@metad/cloud/state'
+import { CrudService } from '@xpert-ai/cloud/state'
 import { omit } from 'lodash-es'
 import { EMPTY } from 'rxjs'
 import { catchError, tap } from 'rxjs/operators'

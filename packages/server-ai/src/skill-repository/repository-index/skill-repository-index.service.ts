@@ -1,5 +1,5 @@
-import { getErrorMessage } from '@metad/server-common'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'

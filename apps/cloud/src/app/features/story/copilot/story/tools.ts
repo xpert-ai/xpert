@@ -1,9 +1,9 @@
 import { Signal, inject } from '@angular/core'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { nanoid } from '@metad/copilot'
-import { CalculationSchema, DataSettingsSchema } from '@metad/core'
-import { CalculatedProperty, CalculationType, DataSettings } from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+import { nanoid } from '@xpert-ai/copilot'
+import { CalculationSchema, DataSettingsSchema } from '@xpert-ai/core'
+import { CalculatedProperty, CalculationType, DataSettings } from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { NGXLogger } from 'ngx-logger'
 import { z } from 'zod'
 

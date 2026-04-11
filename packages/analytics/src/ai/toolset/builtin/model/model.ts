@@ -1,5 +1,5 @@
-import { isEnableTool, IXpertToolset, TStateVariable, TToolCredentials } from '@metad/contracts'
-import { BuiltinTool, BuiltinToolset, TBuiltinToolsetParams } from '@metad/server-ai'
+import { isEnableTool, IXpertToolset, TStateVariable, TToolCredentials } from '@xpert-ai/contracts'
+import { BuiltinTool, BuiltinToolset, TBuiltinToolsetParams } from '@xpert-ai/server-ai'
 import { Logger } from '@nestjs/common'
 import { GetBIContextQuery } from '../../../queries'
 import { TBIContext } from '../../../types'

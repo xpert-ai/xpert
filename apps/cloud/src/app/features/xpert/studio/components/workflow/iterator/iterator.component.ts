@@ -3,7 +3,7 @@ import { IWFNIterating, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } fr
 import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-node-workflow-iterator',

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { EntityCapacity } from '@metad/ocap-angular/entity'
-import { DataSettingsSchemaService, SchemaState } from '@metad/story/designer'
+import { EntityCapacity } from '@xpert-ai/ocap-angular/entity'
+import { DataSettingsSchemaService, SchemaState } from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 
 @Injectable()

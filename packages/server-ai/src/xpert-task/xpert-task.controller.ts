@@ -1,6 +1,6 @@
-import { LanguagesEnum, ScheduleTaskStatus } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { CrudController, PaginationParams, ParseJsonPipe, RequestContext, TimeZone, TransformInterceptor } from '@metad/server-core'
+import { LanguagesEnum, ScheduleTaskStatus } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { CrudController, PaginationParams, ParseJsonPipe, RequestContext, TimeZone, TransformInterceptor } from '@xpert-ai/server-core'
 import {
 	BadRequestException,
 	Body,

@@ -2,9 +2,9 @@ import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { Job, Queue } from 'bull'
-import { EVENT_ORGANIZATION_CREATED, EVENT_TENANT_CREATED, OrganizationCreatedEvent, TenantCreatedEvent } from '@metad/server-core'
-import { EVENT_USER_ORGANIZATION_CREATED, UserOrganizationCreatedEvent } from '@metad/server-core'
-import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from '@metad/server-core'
+import { EVENT_ORGANIZATION_CREATED, EVENT_TENANT_CREATED, OrganizationCreatedEvent, TenantCreatedEvent } from '@xpert-ai/server-core'
+import { EVENT_USER_ORGANIZATION_CREATED, UserOrganizationCreatedEvent } from '@xpert-ai/server-core'
+import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from '@xpert-ai/server-core'
 import {
 	AI_BOOTSTRAP_QUEUE,
 	AI_ORGANIZATION_BOOTSTRAP_JOB,

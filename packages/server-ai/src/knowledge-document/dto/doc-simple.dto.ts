@@ -1,5 +1,5 @@
-import { DocumentSourceProviderCategoryEnum, DocumentTypeEnum, IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum, KDocumentSourceType } from '@metad/contracts'
-import { DeepPartial } from '@metad/server-common'
+import { DocumentSourceProviderCategoryEnum, DocumentTypeEnum, IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum, KDocumentSourceType } from '@xpert-ai/contracts'
+import { DeepPartial } from '@xpert-ai/server-common'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
 

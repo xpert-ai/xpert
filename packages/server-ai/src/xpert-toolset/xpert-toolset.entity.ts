@@ -1,5 +1,5 @@
-import { ITag, IXpertTool, IXpertToolset, TAvatar, TToolCredentials, TXpertToolsetOptions, XpertToolsetCategoryEnum } from '@metad/contracts'
-import { Tag } from '@metad/server-core'
+import { ITag, IXpertTool, IXpertToolset, TAvatar, TToolCredentials, TXpertToolsetOptions, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { Tag } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Exclude } from 'class-transformer'

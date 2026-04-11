@@ -1,4 +1,4 @@
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent } from 'typeorm'
 import { CopilotModel } from './copilot-model.entity'
 

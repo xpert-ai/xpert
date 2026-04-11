@@ -17,10 +17,10 @@ import {
   Store,
   TMessageComponent,
   TMessageComponentStep
-} from '@metad/cloud/state'
-import { listEnterAnimation } from '@metad/core'
-import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { DisplayDensity, linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
+} from '@xpert-ai/cloud/state'
+import { listEnterAnimation } from '@xpert-ai/core'
+import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
+import { DisplayDensity, linkedModel, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import {
   AggregationRole,
   CalculationType,
@@ -28,10 +28,10 @@ import {
   Indicator,
   mapIndicatorToMeasures,
   tryFixMeasureName
-} from '@metad/ocap-core'
-import { StoryExplorerComponent } from '@metad/story'
-import { ExplainComponent } from '@metad/story/story'
-import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
+} from '@xpert-ai/ocap-core'
+import { StoryExplorerComponent } from '@xpert-ai/story'
+import { ExplainComponent } from '@xpert-ai/story/story'
+import { NxWidgetKpiComponent } from '@xpert-ai/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { isEqual } from 'lodash-es'
@@ -40,7 +40,7 @@ import { XpertOcapService } from '../../ocap.service'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
 import { ChatService } from '../../chat.service'
-import { AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
+import { AnalyticalGridModule } from '@xpert-ai/ocap-angular/analytical-grid'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**

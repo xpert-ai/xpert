@@ -1,4 +1,4 @@
-import { ISkillRepository, ISkillRepositoryIndex, ISkillRepositoryIndexPublisher, ISkillRepositoryIndexStats } from '@metad/contracts'
+import { ISkillRepository, ISkillRepositoryIndex, ISkillRepositoryIndexPublisher, ISkillRepositoryIndexStats } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { IsArray, IsDateString, IsObject, IsOptional, IsString, IsUUID } from 'class-validator'

@@ -1,8 +1,8 @@
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmRemoteSelectComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmRemoteSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, CredentialsType, ToolProviderCredentials } from 'apps/cloud/src/app/@core'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'

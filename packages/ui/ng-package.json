@@ -3,6 +3,8 @@
   "dest": "../../dist/packages/ui",
   "assets": ["README.md", "components.json", "styles.css", "src/styles.css"],
   "allowedNonPeerDependencies": [
+    "@ng-icons/core",
+    "@ng-icons/lucide",
     "class-variance-authority",
     "clsx",
     "lucide-angular",

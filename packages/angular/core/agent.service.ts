@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@angular/core'
-import { Agent, AgentStatus, AgentStatusEnum, AgentType, DSCacheService } from '@metad/ocap-core'
+import { Agent, AgentStatus, AgentStatusEnum, AgentType, DSCacheService } from '@xpert-ai/ocap-core'
 import { EMPTY, merge, Observable, Subject } from 'rxjs'
 import { OCAP_AGENT_TOKEN } from './types'
 

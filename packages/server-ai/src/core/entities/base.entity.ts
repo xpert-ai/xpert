@@ -4,8 +4,8 @@ import { IsDateString, IsOptional, IsString } from 'class-validator';
 import {
 	IBasePerWorkspaceEntityModel,
 	IXpertWorkspace
-} from '@metad/contracts';
-import { TenantOrganizationBaseEntity } from '@metad/server-core';
+} from '@xpert-ai/contracts';
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core';
 import { XpertWorkspace } from '../../xpert-workspace/workspace.entity';
 
 export abstract class WorkspaceBaseEntity

@@ -1,5 +1,5 @@
 import { CompiledStateGraph } from '@langchain/langgraph'
-import { IXpertAgent } from '@metad/contracts'
+import { IXpertAgent } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { CompileGraphCommand } from '../../../xpert-agent/commands'

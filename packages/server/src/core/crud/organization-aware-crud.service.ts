@@ -1,5 +1,5 @@
 import { DeepPartial, FindManyOptions, FindOneOptions, IsNull, Repository, UpdateResult } from 'typeorm'
-import { IBasePerTenantAndOrganizationEntityModel, ID, IUser } from '@metad/contracts'
+import { IBasePerTenantAndOrganizationEntityModel, ID, IUser } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { RequestContext } from '../context'
 import { TenantOrganizationBaseEntity, User } from '../entities/internal'

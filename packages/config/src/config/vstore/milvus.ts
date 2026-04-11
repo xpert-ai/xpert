@@ -1,4 +1,4 @@
-import { IMilvusConfig } from '@metad/server-common';
+import { IMilvusConfig } from '@xpert-ai/server-common';
 import { registerAs } from '@nestjs/config';
 
 /**

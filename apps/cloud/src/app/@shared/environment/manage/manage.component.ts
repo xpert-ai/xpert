@@ -15,9 +15,9 @@ import {
   OrderTypeEnum,
   TEnvironmentVariable
 } from '@cloud/app/@core'
-import { linkedModel } from '@metad/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { BehaviorSubject, Observable, pipe } from 'rxjs'

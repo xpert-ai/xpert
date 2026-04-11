@@ -5,7 +5,7 @@ import {
 	IContact,
 	IEmployee,
 	IOrganizationContact
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import {
 	Employee,
 	OrganizationContact,

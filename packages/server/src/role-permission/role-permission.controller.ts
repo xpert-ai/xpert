@@ -3,7 +3,7 @@ import {
 	IRolePermission,
 	IRolePermissionCreateInput,
 	PermissionsEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import {
 	Body,
 	Controller,

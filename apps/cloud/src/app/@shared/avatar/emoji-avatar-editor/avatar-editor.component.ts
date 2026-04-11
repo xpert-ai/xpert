@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, model, signal } fro
 
 import { PickerComponent } from '@ctrl/ngx-emoji-mart'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
-import { AppearanceDirective, ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective, ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'

@@ -65,7 +65,7 @@ import {
   isPropertyLevel,
   isDimension,
   ISlicer
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { cloneDeep, includes, isEmpty, isEqual, isNil, isString, negate, pick, uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
 import {
@@ -78,15 +78,15 @@ import {
   debounceTime,
   switchMap
 } from 'rxjs/operators'
-import { getEntityMeasures, PropertyAttributes } from '@metad/ocap-core'
-import { DisplayDensity, mergeSelectedValues, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import { getEntityMeasures, PropertyAttributes } from '@xpert-ai/ocap-core'
+import { DisplayDensity, mergeSelectedValues, NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { ControlOptions, NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
 import { ZardBadgeComponent, ZardButtonComponent, ZardCheckboxComponent, ZardComboboxDeprecatedComponent, ZardComboboxDeprecatedGroup, ZardComboboxDeprecatedOption, ZardDialogService, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import { Dialog } from '@angular/cdk/dialog'
 import { PropertyCapacity } from '../types'
 import { NgmEntityPropertyComponent, propertyIcon } from '../property/property.component'

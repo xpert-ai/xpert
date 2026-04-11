@@ -22,7 +22,7 @@ import {
 	IUserLoginInput,
 	IAuthResponse,
 	LanguagesEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { AuthService } from './auth.service';
 import { User as IUser, User } from '../user/user.entity';
 import { AuthRegisterCommand, AuthTrialCommand } from './commands';

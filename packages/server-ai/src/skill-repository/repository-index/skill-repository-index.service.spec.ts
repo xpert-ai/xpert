@@ -1,8 +1,8 @@
-jest.mock('@metad/server-common', () => ({
+jest.mock('@xpert-ai/server-common', () => ({
 	getErrorMessage: (error: Error) => error?.message ?? String(error)
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
 	TenantOrganizationAwareCrudService: class TenantOrganizationAwareCrudService<T> {
 		protected repository: any
 

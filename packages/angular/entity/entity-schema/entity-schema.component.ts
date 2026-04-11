@@ -26,9 +26,9 @@ import {
   ZardFlatTreeControl,
   ZardTreeImports
 } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMember } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMember } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EntitySchemaDataSource, EntitySchemaFlatNode, EntitySchemaNode } from './data-source'
 import { EntityCapacity, EntitySchemaType } from './types'

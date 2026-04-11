@@ -1,5 +1,5 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-import { ChatMessageEventTypeEnum, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { ToolParameterValidationError } from '../../shared/tools/errors'
 import { CreateXpertTaskCommand, DeleteXpertTaskCommand, QueryXpertTaskCommand } from '../commands'
 import { SchedulerAgentMiddleware } from './scheduler.middleware'

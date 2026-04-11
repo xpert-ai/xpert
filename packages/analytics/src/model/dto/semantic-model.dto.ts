@@ -1,5 +1,5 @@
-import { IDataSource, IIndicator, ISemanticModelPreferences, IUser, SemanticModelStatusEnum } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IDataSource, IIndicator, ISemanticModelPreferences, IUser, SemanticModelStatusEnum } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { DataSourcePublicDTO } from '../../data-source/dto'

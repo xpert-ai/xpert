@@ -1,4 +1,4 @@
-import { XpertToolsetService } from '@metad/server-ai'
+import { XpertToolsetService } from '@xpert-ai/server-ai'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'
 import { QuerySqlCommand } from '../query-sql.command'

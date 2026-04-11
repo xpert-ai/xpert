@@ -27,11 +27,11 @@ import {
   Store,
   TIndicatorDraft,
   TMessageContentIndicator
-} from '@metad/cloud/state'
-import { saveAsYaml } from '@metad/core'
-import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { injectConfirmDelete, NgmResizableDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource, NgmDSCoreService, PERIODS } from '@metad/ocap-angular/core'
+} from '@xpert-ai/cloud/state'
+import { saveAsYaml } from '@xpert-ai/core'
+import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
+import { injectConfirmDelete, NgmResizableDirective, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, myRxResource, NgmDSCoreService, PERIODS } from '@xpert-ai/ocap-angular/core'
 import {
   C_MEASURES,
   calcOffsetRange,
@@ -45,8 +45,8 @@ import {
   IFilter,
   Indicator,
   TimeRangeType
-} from '@metad/ocap-core'
-import { ExplainComponent } from '@metad/story/story'
+} from '@xpert-ai/ocap-core'
+import { ExplainComponent } from '@xpert-ai/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { CdkMenuModule } from '@angular/cdk/menu'

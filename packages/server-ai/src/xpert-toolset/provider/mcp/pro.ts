@@ -1,4 +1,4 @@
-import { IXpertToolset, TMCPSchema } from "@metad/contracts";
+import { IXpertToolset, TMCPSchema } from "@xpert-ai/contracts";
 import { CommandBus } from '@nestjs/cqrs'
 
 export async function createProMCPClient(

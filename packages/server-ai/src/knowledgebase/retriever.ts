@@ -11,8 +11,8 @@ import {
 	TKBRecallParams,
 	TKBRetrievalSettings,
 	TWFCase
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'

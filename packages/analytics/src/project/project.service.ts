@@ -1,5 +1,5 @@
-import { IStorageFile, IUser } from '@metad/contracts'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { IStorageFile, IUser } from '@xpert-ai/contracts'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

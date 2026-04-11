@@ -1,6 +1,6 @@
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from "@metad/formly"
-import { AggregationRole, DisplayBehaviour, Schema, Semantics } from "@metad/ocap-core"
-import { AccordionWrappers, TAccordionWrapperExpansion } from "@metad/story/designer"
+import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from "@xpert-ai/formly"
+import { AggregationRole, DisplayBehaviour, Schema, Semantics } from "@xpert-ai/ocap-core"
+import { AccordionWrappers, TAccordionWrapperExpansion } from "@xpert-ai/story/designer"
 import { FormlyFieldConfig } from "@ngx-formly/core"
 import { format } from 'date-fns'
 import { map, startWith, tap } from 'rxjs'

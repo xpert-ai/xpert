@@ -20,12 +20,12 @@ import {
   ZardYearPickerComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { FavoritesService, IndicatorsService } from '@metad/cloud/state'
-import { ReversePipe } from '@metad/core'
-import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { AppearanceDirective, OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
-import { NgmIndicatorComponent } from '@metad/ocap-angular/indicator'
+import { FavoritesService, IndicatorsService } from '@xpert-ai/cloud/state'
+import { ReversePipe } from '@xpert-ai/core'
+import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
+import { NgmControlsModule } from '@xpert-ai/ocap-angular/controls'
+import { AppearanceDirective, OcapCoreModule, provideOcapCore } from '@xpert-ai/ocap-angular/core'
+import { NgmIndicatorComponent } from '@xpert-ai/ocap-angular/indicator'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { LoggerModule } from 'ngx-logger'

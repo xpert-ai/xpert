@@ -1,4 +1,4 @@
-import { OrganizationModule, RedisModule, TenantModule } from '@metad/server-core'
+import { OrganizationModule, RedisModule, TenantModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AgentModule } from './agent/index'

@@ -1,4 +1,4 @@
-import { REDIS_CLIENT } from '@metad/server-core'
+import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import {
 	Inject,
 	Injectable,

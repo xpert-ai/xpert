@@ -1,5 +1,5 @@
 import { Annotation, END } from '@langchain/langgraph'
-import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { channelName, IXpert, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'

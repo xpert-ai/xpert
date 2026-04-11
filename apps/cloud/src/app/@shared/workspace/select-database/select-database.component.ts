@@ -2,8 +2,8 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { injectXpertTableAPI } from '@cloud/app/@core'
-import { IXpertTable } from '@metad/contracts'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { IXpertTable } from '@xpert-ai/contracts'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 export type SelectDatabaseOrder = 'createdAt' | 'updatedAt' | 'name'

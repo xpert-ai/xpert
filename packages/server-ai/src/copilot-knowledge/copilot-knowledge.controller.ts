@@ -1,8 +1,8 @@
-import { IPagination, IXpert } from '@metad/contracts'
+import { IPagination, IXpert } from '@xpert-ai/contracts'
 import { Body, Controller, Get, HttpStatus, Logger, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor, UseValidationPipe } from '@metad/server-core'
+import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor, UseValidationPipe } from '@xpert-ai/server-core'
 import { CopilotKnowledge } from './copilot-knowledge.entity'
 import { CopilotKnowledgeService } from './copilot-knowledge.service'
 

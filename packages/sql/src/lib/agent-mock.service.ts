@@ -1,4 +1,4 @@
-// import { Agent, AgentStatusEnum, AgentType, AggregationRole, DataSourceOptions, Semantics } from '@metad/ocap-core'
+// import { Agent, AgentStatusEnum, AgentType, AggregationRole, DataSourceOptions, Semantics } from '@xpert-ai/ocap-core'
 // import { randFloat, randProductAdjective, randProductCategory } from '@ngneat/falso'
 // import { Observable, of } from 'rxjs'
 

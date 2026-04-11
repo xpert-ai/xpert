@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, ISkillPackage } from '@metad/cloud/state'
+import { API_PREFIX, ISkillPackage } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
-import { toParams } from '@metad/core'
+import { toParams } from '@xpert-ai/core'
 import { IShareSkillPackageInput, TFile, TFileDirectory } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 

@@ -1,4 +1,4 @@
-import { LongTermMemoryTypeEnum } from '@metad/contracts'
+import { LongTermMemoryTypeEnum } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'

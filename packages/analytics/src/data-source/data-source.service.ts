@@ -1,5 +1,5 @@
-import { DataSourceProtocolEnum, IDataSource, IDSSchema, mapTranslationLanguage } from '@metad/contracts'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { DataSourceProtocolEnum, IDataSource, IDSSchema, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { QueryBus } from '@nestjs/cqrs'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'

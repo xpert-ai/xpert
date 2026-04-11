@@ -1,5 +1,5 @@
 import { Document } from '@langchain/core/documents'
-import { IIntegration, KDocumentWebTypeEnum, TKDocumentWebSchema, TRagWebOptions } from '@metad/contracts'
+import { IIntegration, KDocumentWebTypeEnum, TKDocumentWebSchema, TRagWebOptions } from '@xpert-ai/contracts'
 
 import FireCrawl from './firecrawl/schema'
 import Playwright from './playwright/schema'

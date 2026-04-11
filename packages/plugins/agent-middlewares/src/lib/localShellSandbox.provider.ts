@@ -16,7 +16,7 @@ import {
   SandboxProviderCreateOptions,
   SandboxProviderStrategy
 } from '@xpert-ai/plugin-sdk'
-import { TSandboxProviderMeta } from '@metad/contracts'
+import { TSandboxProviderMeta } from '@xpert-ai/contracts'
 
 const LOCAL_SHELL_SANDBOX_PROVIDER = 'local-shell-sandbox'
 const LOCAL_SHELL_SANDBOX_ICON = `<?xml version="1.0" encoding="utf-8"?>

@@ -1,4 +1,4 @@
-import { AccordionWrappers, FORMLY_ROW, FORMLY_W_FULL } from '@metad/story/designer'
+import { AccordionWrappers, FORMLY_ROW, FORMLY_W_FULL } from '@xpert-ai/story/designer'
 import { ItemStyleAccordionWrappers, Levels, Positions, SeriesCommon, UniversalTransition } from '../common'
 import { LabelAccordionWrappers, Labels } from './label'
 

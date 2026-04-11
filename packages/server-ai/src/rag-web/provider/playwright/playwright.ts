@@ -1,4 +1,4 @@
-import { TRagWebOptions } from '@metad/contracts'
+import { TRagWebOptions } from '@xpert-ai/contracts'
 import { Browser, Page, Response } from 'playwright'
 import TurndownService = require('turndown')
 import { CustomPlaywrightWebBaseLoader } from './loader'

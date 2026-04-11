@@ -1,4 +1,4 @@
-import { AiProviderRole, ICopilot } from '@metad/contracts'
+import { AiProviderRole, ICopilot } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { CopilotGetChatQuery } from '../get-chat-copilot.query'
 import { CopilotService } from '../../copilot.service'

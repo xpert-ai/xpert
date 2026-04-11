@@ -2,11 +2,11 @@
 import { Component, computed, effect, forwardRef, inject, input, Input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { nonNullable, PropertyDimension } from '@metad/ocap-core'
+import { nonNullable, PropertyDimension } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, startWith } from 'rxjs'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
-import { NgmFieldAppearance } from "@metad/ocap-angular/core";
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
 import { ZardComboboxDeprecatedComponent, ZardComboboxDeprecatedGroup, ZardComboboxDeprecatedOption, ZardFormImports } from '@xpert-ai/headless-ui'
 
 /**

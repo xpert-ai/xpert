@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { BusinessAreaRole, IBusinessAreaUser, IBusinessAreaUserCreateInput } from '@metad/contracts'
+import { BusinessAreaRole, IBusinessAreaUser, IBusinessAreaUserCreateInput } from '@xpert-ai/contracts'
 import { firstValueFrom, map } from 'rxjs'
 import { C_API_BUSINESS_AREA_USER } from './constants'
 

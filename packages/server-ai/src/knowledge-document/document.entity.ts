@@ -15,8 +15,8 @@ import {
 	DocumentSourceProviderCategoryEnum,
 	DocumentTypeEnum,
 	KnowledgeDocumentMetadata,
-} from '@metad/contracts'
-import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'

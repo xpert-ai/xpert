@@ -1,4 +1,4 @@
-import { StorageFileCreateCommand, StorageFileService } from '@metad/server-core'
+import { StorageFileCreateCommand, StorageFileService } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 

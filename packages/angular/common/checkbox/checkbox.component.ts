@@ -1,7 +1,7 @@
 
 import { booleanAttribute, Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
 let checkboxId = 0

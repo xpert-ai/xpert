@@ -4,7 +4,7 @@ import {
 	CopilotModule,
 	MCPModule,
 	XpertToolsetModule
-} from '@metad/server-ai'
+} from '@xpert-ai/server-ai'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ANALYTICS_PERMISSION_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'

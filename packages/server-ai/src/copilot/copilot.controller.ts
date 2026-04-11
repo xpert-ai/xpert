@@ -5,9 +5,9 @@ import {
 	IAiProviderEntity,
 	ICopilot,
 	ICopilotModel
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { ConfigService } from '@metad/server-config'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { ConfigService } from '@xpert-ai/server-config'
 import {
 	CrudController,
 	PaginationParams,
@@ -16,7 +16,7 @@ import {
 	Permissions,
 	RequestContext,
 	TransformInterceptor
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	Body,
 	Controller,

@@ -1,4 +1,4 @@
-import type { IIntegration, IPagination } from '@metad/contracts'
+import type { IIntegration, IPagination } from '@xpert-ai/contracts'
 
 /**
  * Base Permission type

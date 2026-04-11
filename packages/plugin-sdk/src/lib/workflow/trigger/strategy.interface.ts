@@ -1,4 +1,4 @@
-import { TWorkflowTriggerMeta, TXpertTeamNode } from '@metad/contracts'
+import { TWorkflowTriggerMeta, TXpertTeamNode } from '@xpert-ai/contracts'
 
 export type TWorkflowTriggerBootstrapMode = 'replay_publish' | 'skip'
 

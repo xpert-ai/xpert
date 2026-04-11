@@ -1,7 +1,7 @@
 import { Type } from '@angular/core'
-import { WidgetStylingSchema } from '@metad/story'
-import { ComponentSettingsType, WidgetComponentType } from '@metad/story/core'
-import { DesignerSchema, NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
+import { WidgetStylingSchema } from '@xpert-ai/story'
+import { ComponentSettingsType, WidgetComponentType } from '@xpert-ai/story/core'
+import { DesignerSchema, NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@xpert-ai/story/designer'
 import { PageDesignerComponent, StoryDesignerComponent, WidgetDesignerComponent } from './designer/index'
 
 export const STORY_DESIGNER_COMPONENTS = [
@@ -30,7 +30,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.AnalyticalCard,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { AnalyticalCardSchemaService } = await import('@metad/story/widgets/analytical-card')
+        const { AnalyticalCardSchemaService } = await import('@xpert-ai/story/widgets/analytical-card')
         return AnalyticalCardSchemaService
       }
     },
@@ -51,7 +51,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: 'ChartOptions',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { ChartOptionsSchemaService } = await import('@metad/story/widgets/analytical-card')
+        const { ChartOptionsSchemaService } = await import('@xpert-ai/story/widgets/analytical-card')
         return ChartOptionsSchemaService
       }
     },
@@ -63,7 +63,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: 'MeasureReferenceLine',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { ReferenceLineSchemaService } = await import('@metad/story/widgets/analytical-card')
+        const { ReferenceLineSchemaService } = await import('@xpert-ai/story/widgets/analytical-card')
         return ReferenceLineSchemaService
       }
     },
@@ -75,7 +75,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: 'MeasureChartOptions',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { MeasureChartOptionsSchemaService } = await import('@metad/story/widgets/analytical-card')
+        const { MeasureChartOptionsSchemaService } = await import('@xpert-ai/story/widgets/analytical-card')
         return MeasureChartOptionsSchemaService
       }
     },
@@ -87,7 +87,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: 'DimensionChartOptions',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { DimensionChartOptionsSchemaService } = await import('@metad/story/widgets/analytical-card')
+        const { DimensionChartOptionsSchemaService } = await import('@xpert-ai/story/widgets/analytical-card')
         return DimensionChartOptionsSchemaService
       }
     },
@@ -101,7 +101,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.AnalyticalGrid,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { AnalyticalGridSchemaService } = await import('@metad/story/widgets/analytical-grid')
+        const { AnalyticalGridSchemaService } = await import('@xpert-ai/story/widgets/analytical-grid')
         return AnalyticalGridSchemaService
       }
     },
@@ -113,7 +113,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.AnalyticalGrid + '/Style',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { AnalyticalGridStylingSchema } = await import('@metad/story/widgets/analytical-grid')
+        const { AnalyticalGridStylingSchema } = await import('@xpert-ai/story/widgets/analytical-grid')
         return AnalyticalGridStylingSchema
       }
     },
@@ -125,7 +125,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.AnalyticalGrid + '/Column',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { AnalyticalGridColumnSchemaService } = await import('@metad/story/widgets/analytical-grid')
+        const { AnalyticalGridColumnSchemaService } = await import('@xpert-ai/story/widgets/analytical-grid')
         return AnalyticalGridColumnSchemaService
       }
     },
@@ -139,7 +139,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: ComponentSettingsType.StoryFilterBar,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { StoryFilterBarSchemaService } = await import('@metad/story/widgets/filter-bar')
+        const { StoryFilterBarSchemaService } = await import('@xpert-ai/story/widgets/filter-bar')
         return StoryFilterBarSchemaService
       }
     },
@@ -151,7 +151,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: ComponentSettingsType.FilterBarField,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { FilterBarFieldSchemaService } = await import('@metad/story/widgets/filter-bar')
+        const { FilterBarFieldSchemaService } = await import('@xpert-ai/story/widgets/filter-bar')
         return FilterBarFieldSchemaService
       }
     },
@@ -163,7 +163,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: ComponentSettingsType.FilterBarField + '/Date',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { FilterBarDateSchemaService } = await import('@metad/story/widgets/filter-bar')
+        const { FilterBarDateSchemaService } = await import('@xpert-ai/story/widgets/filter-bar')
         return FilterBarDateSchemaService
       }
     },
@@ -186,7 +186,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.InputControl,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { InputControlSchemaService } = await import('@metad/story/widgets/input-control')
+        const { InputControlSchemaService } = await import('@xpert-ai/story/widgets/input-control')
         return InputControlSchemaService
       }
     },
@@ -209,7 +209,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.KpiCard,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { KpiSchemaService } = await import('@metad/story/widgets/kpi')
+        const { KpiSchemaService } = await import('@xpert-ai/story/widgets/kpi')
         return KpiSchemaService
       }
     },
@@ -221,7 +221,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.KpiCard + '/Style',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { KpiStylingSchema } = await import('@metad/story/widgets/kpi')
+        const { KpiStylingSchema } = await import('@xpert-ai/story/widgets/kpi')
         return KpiStylingSchema
       }
     },
@@ -235,7 +235,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: 'TabGroup',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { TabGroupSchemaService } = await import('@metad/story/widgets/tab-group')
+        const { TabGroupSchemaService } = await import('@xpert-ai/story/widgets/tab-group')
         return TabGroupSchemaService
       }
     },
@@ -258,7 +258,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.Iframe,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { IFrameSchemaService } = await import('@metad/story/widgets/iframe')
+        const { IFrameSchemaService } = await import('@xpert-ai/story/widgets/iframe')
         return IFrameSchemaService
       }
     },
@@ -281,7 +281,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       component: NxComponentSettingsComponent,
 
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { DocumentSchemaService } = await import('@metad/story/widgets/document')
+        const { DocumentSchemaService } = await import('@xpert-ai/story/widgets/document')
         return DocumentSchemaService
       }
     },
@@ -304,7 +304,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
         const { AccountingStatementSchemaService } = await import(
-          '@metad/story/widgets/financial/accounting-statement'
+          '@xpert-ai/story/widgets/financial/accounting-statement'
         )
         return AccountingStatementSchemaService
       }
@@ -327,7 +327,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: 'IndicatorCard',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { IndicatorCardSchemaService } = await import('@metad/story/widgets/indicator-card')
+        const { IndicatorCardSchemaService } = await import('@xpert-ai/story/widgets/indicator-card')
         return IndicatorCardSchemaService
       }
     },
@@ -349,7 +349,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: 'Swiper',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { SwiperSchemaService } = await import('@metad/story/widgets/swiper')
+        const { SwiperSchemaService } = await import('@xpert-ai/story/widgets/swiper')
         return SwiperSchemaService
       }
     },
@@ -361,7 +361,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: 'Swiper/Style',
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { SlideStylingSchema } = await import('@metad/story/widgets/swiper')
+        const { SlideStylingSchema } = await import('@xpert-ai/story/widgets/swiper')
         return SlideStylingSchema
       }
     },
@@ -374,7 +374,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.Text,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { TextSchemaService } = await import('@metad/story/widgets/text')
+        const { TextSchemaService } = await import('@xpert-ai/story/widgets/text')
         return TextSchemaService
       }
     },
@@ -395,7 +395,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.Image,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { ImageSchemaService } = await import('@metad/story/widgets/image')
+        const { ImageSchemaService } = await import('@xpert-ai/story/widgets/image')
         return ImageSchemaService
       }
     },
@@ -416,7 +416,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.Video,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { ImageSchemaService } = await import('@metad/story/widgets/video')
+        const { ImageSchemaService } = await import('@xpert-ai/story/widgets/video')
         return ImageSchemaService
       }
     },
@@ -438,7 +438,7 @@ export const STORY_DESIGNER_COMPONENTS = [
       type: WidgetComponentType.Today,
       component: NxComponentSettingsComponent,
       factory: async (): Promise<Type<DesignerSchema<unknown>>> => {
-        const { TodaySchemaService } = await import('@metad/story/widgets/today')
+        const { TodaySchemaService } = await import('@xpert-ai/story/widgets/today')
         return TodaySchemaService
       }
     },

@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ICustomSmtp, ICustomSmtpFindInput } from '@metad/contracts';
+import { ICustomSmtp, ICustomSmtpFindInput } from '@xpert-ai/contracts';
 import { firstValueFrom } from 'rxjs';
-import { API_PREFIX } from '@metad/cloud/state';
-import { toParams } from '@metad/ocap-angular/core';
+import { API_PREFIX } from '@xpert-ai/cloud/state';
+import { toParams } from '@xpert-ai/ocap-angular/core';
 
 @Injectable({
 	providedIn: 'root'

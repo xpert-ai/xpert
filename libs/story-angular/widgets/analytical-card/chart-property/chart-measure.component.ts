@@ -1,8 +1,8 @@
 
 import { Component, effect, forwardRef, inject, input, model, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { ChartType } from '@metad/ocap-core'
-import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@metad/story/designer'
+import { ChartType } from '@xpert-ai/ocap-core'
+import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@xpert-ai/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
 import { MeasureChartOptionsSchemaService } from '../analytical-card.schema'
 

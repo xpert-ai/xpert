@@ -1,4 +1,4 @@
-import { DocumentSourceProviderCategoryEnum, DocumentTypeEnum, IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum, KDocumentSourceType } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, DocumentTypeEnum, IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum, KDocumentSourceType } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
 

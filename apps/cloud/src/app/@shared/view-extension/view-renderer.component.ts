@@ -11,12 +11,12 @@ import {
   XpertViewActionDefinition,
   XpertViewDataResult,
   XpertViewQuery
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
 import { Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage } from '@cloud/app/@core/types'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { StatsViewRendererComponent } from './renderers/stats-view-renderer.component'
 import { TableViewRendererComponent } from './renderers/table-view-renderer.component'
 import { ListViewRendererComponent } from './renderers/list-view-renderer.component'

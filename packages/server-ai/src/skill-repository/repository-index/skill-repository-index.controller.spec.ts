@@ -2,7 +2,7 @@ jest.mock('./skill-repository-index.service', () => ({
 	SkillRepositoryIndexService: class SkillRepositoryIndexService {}
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
 	CrudController: class CrudController {
 		constructor() {}
 	},

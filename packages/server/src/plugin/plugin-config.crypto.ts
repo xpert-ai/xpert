@@ -1,4 +1,4 @@
-import { environment } from '@metad/server-config'
+import { environment } from '@xpert-ai/server-config'
 import { decryptSecret, encryptSecret } from '../core/utils/crypto'
 
 const ENCRYPTED_CONFIG_KEY = '__xpert_plugin_encrypted__'

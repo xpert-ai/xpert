@@ -1,4 +1,4 @@
-import { IRole, IUserUpdateInput } from "@metad/contracts";
+import { IRole, IUserUpdateInput } from "@xpert-ai/contracts";
 import { ApiProperty } from "@nestjs/swagger";
 import { IsObject, IsOptional } from "class-validator";
 import { CreateUserDTO } from "./create-user.dto";

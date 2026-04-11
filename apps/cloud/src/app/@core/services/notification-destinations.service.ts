@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_NOTIFICATION_DESTINATION } from '@metad/cloud/state'
+import { API_NOTIFICATION_DESTINATION } from '@xpert-ai/cloud/state'
 import { INotificationDestination } from '../types'
 
 export const IMG_ROOT = 'assets/images/destinations'

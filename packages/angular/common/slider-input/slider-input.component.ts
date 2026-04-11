@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, HostBinding, Input, OnChanges, forw
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSliderComponent } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
-import { NgmFieldColor } from '@metad/ocap-angular/core'
+import { NgmFieldColor } from '@xpert-ai/ocap-angular/core'
 
 /**
  * @deprecated use headless components instead

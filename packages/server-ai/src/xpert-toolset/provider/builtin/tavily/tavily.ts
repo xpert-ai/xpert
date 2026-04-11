@@ -1,5 +1,5 @@
-import { isToolEnabled, IXpertToolset, TToolCredentials } from '@metad/contracts'
-import { getErrorMessage, omit } from '@metad/server-common'
+import { isToolEnabled, IXpertToolset, TToolCredentials } from '@xpert-ai/contracts'
+import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { ToolProviderCredentialValidationError } from '../../../errors'
 import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { TavilyCrawl } from './tools/tavily-crawl'

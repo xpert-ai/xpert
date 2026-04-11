@@ -2,7 +2,7 @@ jest.mock('./bootstrap.service', () => ({
   ServerAIBootstrapService: class ServerAIBootstrapService {}
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
   EVENT_ORGANIZATION_CREATED: 'organization.created',
   EVENT_TENANT_CREATED: 'tenant.created',
   EVENT_USER_ORGANIZATION_CREATED: 'user.organization.created',

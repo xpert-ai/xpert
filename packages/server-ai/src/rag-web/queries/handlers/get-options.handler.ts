@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { GetRagWebOptionsQuery } from '../get-options.query'
-import { TKDocumentWebSchema } from '@metad/contracts'
+import { TKDocumentWebSchema } from '@xpert-ai/contracts'
 import { Providers } from '../../provider'
 
 @QueryHandler(GetRagWebOptionsQuery)

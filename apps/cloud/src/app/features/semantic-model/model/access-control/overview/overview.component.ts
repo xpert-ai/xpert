@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core'
 import { FormControl } from '@angular/forms'
-import { IUser, RoleTypeEnum } from '@metad/contracts'
+import { IUser, RoleTypeEnum } from '@xpert-ai/contracts'
 import { BehaviorSubject } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith } from 'rxjs/operators'
 import { AccessControlStateService } from '../access-control.service'

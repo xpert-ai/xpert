@@ -22,9 +22,9 @@ import {
   XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
-import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@metad/core'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@xpert-ai/core'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'

@@ -10,7 +10,7 @@ import {
   model
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { TSelectOption, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { TSelectOption, NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'

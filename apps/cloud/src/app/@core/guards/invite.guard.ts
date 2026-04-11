@@ -1,6 +1,6 @@
 import { inject } from '@angular/core'
 import { ActivatedRouteSnapshot, Router } from '@angular/router'
-import { PermissionsEnum } from '@metad/contracts'
+import { PermissionsEnum } from '@xpert-ai/contracts'
 import { combineLatest } from 'rxjs'
 import { first, map, tap } from 'rxjs/operators'
 import { Store } from './../services/store.service'

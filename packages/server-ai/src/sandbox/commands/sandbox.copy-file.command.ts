@@ -1,5 +1,5 @@
 import { Command } from '@nestjs/cqrs'
-import type { TSandboxConfigurable } from '@metad/contracts'
+import type { TSandboxConfigurable } from '@xpert-ai/contracts'
 
 export type SandboxCopyFileStatus = 'skipped' | 'success'
 

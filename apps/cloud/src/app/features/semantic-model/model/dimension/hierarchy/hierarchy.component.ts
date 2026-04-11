@@ -13,15 +13,15 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute } from '@angular/router'
-import { nonNullable } from '@metad/core'
-import { NgmCommonModule, ResizerModule, SplitterModule, SplitterType } from '@metad/ocap-angular/common'
-import { debouncedSignal, OcapCoreModule } from '@metad/ocap-angular/core'
+import { nonNullable } from '@xpert-ai/core'
+import { NgmCommonModule, ResizerModule, SplitterModule, SplitterType } from '@xpert-ai/ocap-angular/common'
+import { debouncedSignal, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   EntityCapacity,
   EntitySchemaNode,
   EntitySchemaType,
   NgmEntitySchemaComponent
-} from '@metad/ocap-angular/entity'
+} from '@xpert-ai/ocap-angular/entity'
 import {
   C_MEASURES,
   Dimension,
@@ -30,14 +30,14 @@ import {
   PropertyLevel,
   QueryOptions,
   Table
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   C_MEASURES_ROW_COUNT,
   serializeMeasureName,
   serializeMemberCaption,
   serializeUniqueName
-} from '@metad/ocap-sql'
-import { NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/ocap-sql'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgmError, ToastrService, uuid } from 'apps/cloud/src/app/@core'

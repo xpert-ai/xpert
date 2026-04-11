@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
-import { REDIS_CLIENT } from '@metad/server-core'
+import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import { randomUUID } from 'crypto'
 import { Observable } from 'rxjs'

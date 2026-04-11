@@ -1,4 +1,4 @@
-import { IWFNIterating, XpertParameterTypeEnum } from '@metad/contracts'
+import { IWFNIterating, XpertParameterTypeEnum } from '@xpert-ai/contracts'
 
 export const STATE_VARIABLE_ITERATING_OUTPUT = 'output'
 export const STATE_VARIABLE_ITERATING_OUTPUT_STR = 'output_str'

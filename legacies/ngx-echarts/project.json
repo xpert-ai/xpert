@@ -1,7 +1,7 @@
 {
   "name": "ngx-echarts",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/ngx-echarts/src",
+  "sourceRoot": "legacies/ngx-echarts/src",
   "prefix": "metad-ocap",
   "tags": [],
   "projectType": "library",
@@ -12,14 +12,14 @@
         "{workspaceRoot}/dist/{projectRoot}"
       ],
       "options": {
-        "project": "packages/ngx-echarts/ng-package.json"
+        "project": "legacies/ngx-echarts/ng-package.json"
       },
       "configurations": {
         "production": {
-          "tsConfig": "packages/ngx-echarts/tsconfig.lib.prod.json"
+          "tsConfig": "legacies/ngx-echarts/tsconfig.lib.prod.json"
         },
         "development": {
-          "tsConfig": "packages/ngx-echarts/tsconfig.lib.json"
+          "tsConfig": "legacies/ngx-echarts/tsconfig.lib.json"
         }
       },
       "defaultConfiguration": "production"
@@ -30,7 +30,7 @@
         "{workspaceRoot}/coverage/{projectRoot}"
       ],
       "options": {
-        "jestConfig": "packages/ngx-echarts/jest.config.ts"
+        "jestConfig": "legacies/ngx-echarts/jest.config.ts"
       }
     },
     "lint": {
@@ -40,8 +40,8 @@
       ],
       "options": {
         "lintFilePatterns": [
-          "packages/ngx-echarts/**/*.ts",
-          "packages/ngx-echarts/**/*.html"
+          "legacies/ngx-echarts/**/*.ts",
+          "legacies/ngx-echarts/**/*.html"
         ]
       }
     }

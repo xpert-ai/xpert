@@ -26,7 +26,7 @@ import {
   XpertParameterTypeEnum
 } from 'apps/cloud/src/app/@core'
 import { expandVariablesWithItems, TStateVariableType } from 'apps/cloud/src/app/@shared/agent/types'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'

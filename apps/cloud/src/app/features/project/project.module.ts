@@ -1,15 +1,15 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { NgModule } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { NgmDialogComponent } from '@metad/components/dialog'
+import { NgmDialogComponent } from '@xpert-ai/components/dialog'
 import {
   NgmCommonModule,
   NgmTableComponent,
   ResizerModule,
   TreeTableModule
-} from '@metad/ocap-angular/common'
-import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
-import { NxStorySettingsModule, provideStorySettings } from '@metad/story'
+} from '@xpert-ai/ocap-angular/common'
+import { OcapCoreModule, provideOcapCore } from '@xpert-ai/ocap-angular/core'
+import { NxStorySettingsModule, provideStorySettings } from '@xpert-ai/story'
 import { TINYMCE_SCRIPT_SRC } from '@tinymce/tinymce-angular'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'

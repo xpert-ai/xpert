@@ -7,7 +7,7 @@ import {
   Property,
   PropertyAttributes,
   PropertyHierarchy
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { isEmpty, isNil, lowerCase } from 'lodash-es'
 import { FUNCTIONS, SUFFIX_FUNCTIONS } from '../reference'
 import { C_MDX_FIELD_NAME_REGEX } from '../types'

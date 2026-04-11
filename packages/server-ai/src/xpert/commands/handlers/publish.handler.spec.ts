@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
   RequestContext: {
     currentUserId: jest.fn(),
     getLanguageCode: jest.fn().mockReturnValue('en')
@@ -19,7 +19,7 @@ jest.mock('../../types', () => ({
   EventName_XpertPublished: 'xpert.published'
 }))
 
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { XpertPublishCommand } from '../publish.command'
 import { XpertPublishHandler } from './publish.handler'
 

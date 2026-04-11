@@ -1,7 +1,7 @@
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIModelEntity, AiModelTypeEnum, IAiProviderEntity, ICopilotModel, ProviderModel } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, IAiProviderEntity, ICopilotModel, ProviderModel } from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import { join } from 'path'
 import { loadYamlFile } from '../core'

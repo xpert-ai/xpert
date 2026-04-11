@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 
-import { ComponentCoreModule } from '@metad/components/core'
-import { DensityDirective } from '@metad/ocap-angular/core'
-import { NgmSelectionModule } from '@metad/ocap-angular/selection'
-import { PlaceholderAddComponent } from '@metad/story/story'
+import { ComponentCoreModule } from '@xpert-ai/components/core'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmSelectionModule } from '@xpert-ai/ocap-angular/selection'
+import { PlaceholderAddComponent } from '@xpert-ai/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { AccountingStatementComponent } from './accounting-statement.component'
 import {

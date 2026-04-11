@@ -5,10 +5,10 @@ import {
 	TChatMessageStep,
 	TProgramToolMessage,
 	TToolCall
-} from '@metad/contracts'
-import { getPythonErrorMessage, shortuuid, urlJoin } from '@metad/server-common'
-import { environment } from '@metad/server-config'
-import { DeployWebappCommand, RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getPythonErrorMessage, shortuuid, urlJoin } from '@xpert-ai/server-common'
+import { environment } from '@xpert-ai/server-config'
+import { DeployWebappCommand, RequestContext } from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
 import axios from 'axios'
 import { EventSource } from 'eventsource'

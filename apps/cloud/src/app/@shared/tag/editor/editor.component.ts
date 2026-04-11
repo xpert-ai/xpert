@@ -18,7 +18,7 @@ import {
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
 import { SharedUiModule } from '../../ui.module'
-import { NgmFieldColor } from '@metad/ocap-angular/core'
+import { NgmFieldColor } from '@xpert-ai/ocap-angular/core'
 
 function isTag(value: unknown): value is ITag {
   return !!value && typeof value === 'object' && ('id' in value || 'name' in value || 'category' in value)

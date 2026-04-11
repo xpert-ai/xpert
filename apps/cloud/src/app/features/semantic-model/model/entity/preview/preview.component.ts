@@ -3,12 +3,12 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, ViewChild } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { nonNullable } from '@metad/core'
-import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { DisplayDensity, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
-import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
+import { nonNullable } from '@xpert-ai/core'
+import { AnalyticalGridComponent, AnalyticalGridModule } from '@xpert-ai/ocap-angular/analytical-grid'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmControlsModule } from '@xpert-ai/ocap-angular/controls'
+import { DisplayDensity, linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityModule, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import {
   C_MEASURES,
   DataSettings,
@@ -23,7 +23,7 @@ import {
   Syntax,
   AggregationRole,
   ParameterProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { differenceBy, isEmpty } from 'lodash-es'
@@ -36,9 +36,9 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { getErrorMessage } from '@cloud/app/@core'
 
 import { Dialog } from '@angular/cdk/dialog'
-import { ExplainComponent } from '@metad/story/story'
-import { NgmPresentationComponent } from '@metad/ocap-angular/selection'
-import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
+import { ExplainComponent } from '@xpert-ai/story/story'
+import { NgmPresentationComponent } from '@xpert-ai/ocap-angular/selection'
+import { NgmParameterComponent } from '@xpert-ai/ocap-angular/parameter'
 import { ZardAccordionImports, ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,

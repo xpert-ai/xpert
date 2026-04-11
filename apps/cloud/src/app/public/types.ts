@@ -7,7 +7,7 @@ import {
   ReferenceLineAggregation,
   ReferenceLineType,
   ReferenceLineValueType
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 
 export const MAP_CARDS = [
   {

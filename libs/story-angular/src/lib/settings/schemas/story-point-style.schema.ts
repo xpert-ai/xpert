@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { StoryPoint } from '@metad/story/core'
-import { BaseDesignerSchemaService, BaseSchemaState, FORMLY_W_1_2, StylingCssSchema } from '@metad/story/designer'
+import { StoryPoint } from '@xpert-ai/story/core'
+import { BaseDesignerSchemaService, BaseSchemaState, FORMLY_W_1_2, StylingCssSchema } from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 
 @Injectable()

@@ -104,7 +104,7 @@ export const routes: Routes = [
       // },
       {
         path: 'indicator-app',
-        loadChildren: () => import('@metad/cloud/indicator-market').then((m) => m.IndicatorMarketModule),
+        loadChildren: () => import('@xpert-ai/cloud/indicator-market').then((m) => m.IndicatorMarketModule),
         canActivate: [authGuard],
         data: {
           title: 'Indicator-app',

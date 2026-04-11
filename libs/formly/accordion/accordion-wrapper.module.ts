@@ -10,7 +10,7 @@ import {
   ZardSwitchComponent
 } from '@xpert-ai/headless-ui'
 import { FormlyModule } from '@ngx-formly/core'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmFormlyAccordionComponent } from './accordion-wrapper.component'
 

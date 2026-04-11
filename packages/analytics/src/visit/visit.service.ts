@@ -1,5 +1,5 @@
-import { AnalyticsPermissionsEnum, IEntityVisits, VisitEntityEnum, VisitTypeEnum } from '@metad/contracts'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { AnalyticsPermissionsEnum, IEntityVisits, VisitEntityEnum, VisitTypeEnum } from '@xpert-ai/contracts'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { subDays } from 'date-fns'

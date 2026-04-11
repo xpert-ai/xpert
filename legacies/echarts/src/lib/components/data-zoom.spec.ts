@@ -1,4 +1,4 @@
-import { ChartDataZoomType } from '@metad/ocap-core'
+import { ChartDataZoomType } from '@xpert-ai/ocap-core'
 import { AxisEnum } from '../types'
 import { getAxisDataZooms } from './data-zoom'
 

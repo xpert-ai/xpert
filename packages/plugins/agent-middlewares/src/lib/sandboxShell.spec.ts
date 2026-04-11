@@ -1,4 +1,4 @@
-import { WorkflowNodeTypeEnum } from '@metad/contracts'
+import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { DEFAULT_SANDBOX_SHELL_TIMEOUT_MS, ExecuteResponse } from '@xpert-ai/plugin-sdk'
 import { SandboxShellMiddleware } from './sandboxShell'
 

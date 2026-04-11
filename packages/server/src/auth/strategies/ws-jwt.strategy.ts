@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
-import { IRolePermission, IUser } from '@metad/contracts'
+import { IRolePermission, IUser } from '@xpert-ai/contracts'
 import { AuthService } from '../auth.service'
 
 type JwtPayload = {

@@ -1,5 +1,5 @@
 import { Injectable, Optional } from '@angular/core'
-import { NgmDSCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
+import { NgmDSCoreService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
 import {
   compact,
   Indicator,
@@ -7,11 +7,11 @@ import {
   isEmpty,
   PeriodFunctions,
   SmartIndicatorDataService,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BehaviorSubject, combineLatest, of } from 'rxjs'
 import { combineLatestWith, filter, map, switchMap, tap } from 'rxjs/operators'
 import { IndicatorOption } from './types'
-import { nonNullable } from '@metad/core'
+import { nonNullable } from '@xpert-ai/core'
 
 export interface IndicatorCardDataOptions extends IndicatorBusinessState {
   indicators: Array<IndicatorOption>

@@ -1,4 +1,4 @@
-// import { Agent, AgentStatus, AgentType, DataSourceOptions, DSCacheService, isEntitySet, isEntityType } from '@metad/ocap-core'
+// import { Agent, AgentStatus, AgentType, DataSourceOptions, DSCacheService, isEntitySet, isEntityType } from '@xpert-ai/ocap-core'
 // import { EMPTY, firstValueFrom, Observable, skip } from 'rxjs'
 // import { MockAgent } from './agent-mock.service'
 // import { SQLDataSource } from './data-source'

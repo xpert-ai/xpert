@@ -1,5 +1,5 @@
-import { IWFNTrigger, IXpert, TXpertGraph, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { IWFNTrigger, IXpert, TXpertGraph, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { HandoffMessage, IWorkflowTriggerStrategy, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'

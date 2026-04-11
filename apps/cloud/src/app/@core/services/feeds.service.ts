@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { OrganizationBaseService } from '@metad/cloud/state'
+import { OrganizationBaseService } from '@xpert-ai/cloud/state'
 import { map, switchMap } from 'rxjs/operators'
 import { API_FEEDS } from '../constants/app.constants'
 

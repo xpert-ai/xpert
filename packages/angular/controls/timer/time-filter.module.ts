@@ -15,7 +15,7 @@ import {
   ZardMenuImports,
   ZardTableImports 
 } from '@xpert-ai/headless-ui'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   NgmDatepickerComponent,

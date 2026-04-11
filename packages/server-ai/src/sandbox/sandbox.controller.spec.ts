@@ -4,12 +4,12 @@ import { EventEmitter } from 'events'
 import type { Response } from 'express'
 import type { I18nService } from 'nestjs-i18n'
 import { firstValueFrom, toArray } from 'rxjs'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import type { ChatConversationService } from '../chat-conversation'
 import { SandboxAcquireBackendCommand } from './commands'
 import { SandboxController } from './sandbox.controller'
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     GetDefaultTenantQuery: class GetDefaultTenantQuery {},
     Public: () => () => undefined,
     RequestContext: {

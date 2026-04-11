@@ -1,5 +1,5 @@
-import { ICopilotModel, IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TAgentOutputVariable, TAgentPromptTemplate, TAvatar, TXpertAgentOptions, TXpertParameter } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ICopilotModel, IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TAgentOutputVariable, TAgentPromptTemplate, TAvatar, TXpertAgentOptions, TXpertParameter } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToOne, RelationId } from 'typeorm'

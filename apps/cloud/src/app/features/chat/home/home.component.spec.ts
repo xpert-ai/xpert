@@ -24,7 +24,7 @@ const mockToastr = {
   error: jest.fn()
 }
 
-jest.mock('@metad/cloud/state', () => {
+jest.mock('@xpert-ai/cloud/state', () => {
   const { signal } = jest.requireActual('@angular/core')
 
   return {
@@ -50,7 +50,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 })
 
-jest.mock('@metad/core', () => {
+jest.mock('@xpert-ai/core', () => {
   const { trigger } = jest.requireActual('@angular/animations')
 
   return {
@@ -59,13 +59,13 @@ jest.mock('@metad/core', () => {
   }
 })
 
-jest.mock('@metad/ocap-core', () => ({
+jest.mock('@xpert-ai/ocap-core', () => ({
   DisplayBehaviour: {
     Auto: 'auto'
   }
 }))
 
-jest.mock('@metad/ocap-angular/common', () => {
+jest.mock('@xpert-ai/ocap-angular/common', () => {
   const { Component } = jest.requireActual('@angular/core')
 
   @Component({
@@ -80,7 +80,7 @@ jest.mock('@metad/ocap-angular/common', () => {
   }
 })
 
-jest.mock('@metad/ocap-angular/core', () => {
+jest.mock('@xpert-ai/ocap-angular/core', () => {
   const { Pipe, effect, signal } = jest.requireActual('@angular/core')
 
   @Pipe({

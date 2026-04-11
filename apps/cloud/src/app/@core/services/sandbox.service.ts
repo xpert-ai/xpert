@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX } from '@metad/cloud/state'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { EventSourceMessage } from '@microsoft/fetch-event-source'
 import { Observable } from 'rxjs'
 import { injectFetchEventSource } from './fetch-event-source'

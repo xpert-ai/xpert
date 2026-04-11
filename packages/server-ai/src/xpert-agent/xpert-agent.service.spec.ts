@@ -1,4 +1,4 @@
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     TenantOrganizationAwareCrudService: class {
         protected repository
 

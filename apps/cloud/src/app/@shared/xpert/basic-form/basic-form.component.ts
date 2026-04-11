@@ -15,7 +15,7 @@ import {
   XpertAPIService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { nonBlank } from '@metad/copilot'
+import { nonBlank } from '@xpert-ai/copilot'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { debounceTime, filter, switchMap } from 'rxjs/operators'
 import { BehaviorSubject } from 'rxjs'

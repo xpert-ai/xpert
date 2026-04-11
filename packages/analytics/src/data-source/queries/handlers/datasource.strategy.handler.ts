@@ -1,4 +1,4 @@
-import { AdapterBaseOptions, createQueryRunnerByType1 } from '@metad/adapter'
+import { AdapterBaseOptions, createQueryRunnerByType1 } from '@xpert-ai/adapter'
 import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { DataSourceStrategyRegistry, DBQueryRunner } from '@xpert-ai/plugin-sdk'

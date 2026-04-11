@@ -2,7 +2,7 @@ import {
 	PermissionsEnum,
 	IRolePermission,
 	RolesEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { Column, Entity, Index, ManyToOne, RelationId } from 'typeorm';

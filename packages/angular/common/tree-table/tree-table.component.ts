@@ -1,8 +1,8 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { Component, Input, OnChanges, OnInit, signal, SimpleChanges, TemplateRef } from '@angular/core'
 import { ZardFlatTreeControl, ZardTreeFlatDataSource, ZardTreeFlattener } from '@xpert-ai/headless-ui'
-import { DisplayDensity } from '@metad/ocap-angular/core'
-import { FlatTreeNode, Property, TreeNodeInterface } from '@metad/ocap-core'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { FlatTreeNode, Property, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import { displayDensityToTableSize, parseTableWidthToPx } from '../table/table.utils'
 
 export type TreeTableColumn = Property & {

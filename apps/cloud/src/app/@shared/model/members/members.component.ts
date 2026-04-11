@@ -12,10 +12,10 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ChatDashboardMessageType, TMessageContentCube, TMessageContentMembers } from '@metad/cloud/state'
-import { OverlayAnimation1 } from '@metad/core'
-import { attrModel, linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
+import { ChatDashboardMessageType, TMessageContentCube, TMessageContentMembers } from '@xpert-ai/cloud/state'
+import { OverlayAnimation1 } from '@xpert-ai/core'
+import { attrModel, linkedModel, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   CalculationProperty,
   DeepPartial,
@@ -23,13 +23,13 @@ import {
   isParameterProperty,
   ParameterProperty,
   Syntax
-} from '@metad/ocap-core'
-import { getSemanticModelKey } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { ModelMemberEditComponent } from './edit/edit.component'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import { ModelCubeComponent } from '../cube/cube.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 

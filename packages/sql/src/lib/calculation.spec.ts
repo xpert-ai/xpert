@@ -1,4 +1,4 @@
-import { CalculatedProperty, CalculationType, RestrictedMeasureProperty } from '@metad/ocap-core'
+import { CalculatedProperty, CalculationType, RestrictedMeasureProperty } from '@xpert-ai/ocap-core'
 import { serializeCalculationProperty, serializeRestrictedMeasure } from './calculation'
 import { CubeContext } from './cube'
 import { CUBE_SALESORDER, ENTITY_TYPE_SALESORDER } from './mock-data'

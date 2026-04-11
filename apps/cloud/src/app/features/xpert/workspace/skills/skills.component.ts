@@ -11,9 +11,9 @@ import {
   FileWorkbenchFileSaver
 } from '@cloud/app/@shared/files'
 import { XpertSkillIndexesComponent, XpertSkillRepositoriesComponent } from '@cloud/app/@shared/skills'
-import { OverlayAnimation1 } from '@metad/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { OverlayAnimation1 } from '@xpert-ai/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, forkJoin } from 'rxjs'
 import {

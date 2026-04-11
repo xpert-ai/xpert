@@ -22,7 +22,7 @@
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
-          "@metad/contracts",
+          "@xpert-ai/contracts",
           "@xpert-ai/plugin-sdk"
         ]
       }

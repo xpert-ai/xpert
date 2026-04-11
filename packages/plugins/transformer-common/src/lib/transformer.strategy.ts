@@ -3,7 +3,7 @@ import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
-import { IconType, IKnowledgeDocument, KBDocumentCategoryEnum } from '@metad/contracts'
+import { IconType, IKnowledgeDocument, KBDocumentCategoryEnum } from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import {
   ChunkMetadata,

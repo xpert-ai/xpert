@@ -1,5 +1,5 @@
-import { mapTranslationLanguage, USAGE_HOUR_FORMAT } from '@metad/contracts'
-import { InvalidConfigurationException, RequestContext } from '@metad/server-core'
+import { mapTranslationLanguage, USAGE_HOUR_FORMAT } from '@xpert-ai/contracts'
+import { InvalidConfigurationException, RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'

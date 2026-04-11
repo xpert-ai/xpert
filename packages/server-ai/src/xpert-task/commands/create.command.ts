@@ -1,4 +1,4 @@
-import { IXpertTask } from '@metad/contracts'
+import { IXpertTask } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { CronCallback } from 'cron'
 

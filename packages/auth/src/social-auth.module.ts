@@ -1,5 +1,5 @@
 import { DynamicModule, Module, Provider } from '@nestjs/common';
-import { ConfigModule } from '@metad/server-config';
+import { ConfigModule } from '@xpert-ai/server-config';
 import { AuthGuards, Controllers, Strategies } from './internal';
 import { SocialAuthService } from './social-auth.service';
 

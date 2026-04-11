@@ -1,4 +1,4 @@
-import { IKnowledgeDocument } from '@metad/contracts';
+import { IKnowledgeDocument } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 /**

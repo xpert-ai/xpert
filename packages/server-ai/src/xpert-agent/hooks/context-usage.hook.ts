@@ -7,7 +7,7 @@ import {
 	IXpertAgentExecution,
 	TThreadContextUsageEvent,
 	TTokenUsage
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { AfterModelHandler } from '@xpert-ai/plugin-sdk'
 import { AIMessage, BaseMessage, isAIMessage } from '@langchain/core/messages'
 

@@ -1,7 +1,7 @@
-import { omit, pick } from '@metad/ocap-core'
-import { StoriesService } from '@metad/cloud/state'
-import { saveAsYaml } from '@metad/core'
-import { EmulatedDevice } from '@metad/story/core'
+import { omit, pick } from '@xpert-ai/ocap-core'
+import { StoriesService } from '@xpert-ai/cloud/state'
+import { saveAsYaml } from '@xpert-ai/core'
+import { EmulatedDevice } from '@xpert-ai/story/core'
 import { firstValueFrom } from 'rxjs'
 
 export const StoryScales = [

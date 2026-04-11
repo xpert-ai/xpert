@@ -1,5 +1,5 @@
-import { ICopilotProviderModel } from '@metad/contracts'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { ICopilotProviderModel } from '@xpert-ai/contracts'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

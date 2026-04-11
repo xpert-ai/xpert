@@ -1,4 +1,4 @@
-import { IXpertToolset } from "@metad/contracts"
+import { IXpertToolset } from "@xpert-ai/contracts"
 import { ODataToolset } from './odata-toolset'
 
 describe('OData Toolset for TripPinRESTier', () => {

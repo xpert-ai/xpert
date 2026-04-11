@@ -17,10 +17,10 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl } from '@angular/forms'
-import { AbstractStoryWidget, ControlType } from '@metad/core'
-import { SmartFilterOptions } from '@metad/ocap-angular/controls'
-import { NgmAppearance, NgmSmartBusinessService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { NgmAdvancedFilterComponent } from '@metad/ocap-angular/selection'
+import { AbstractStoryWidget, ControlType } from '@xpert-ai/core'
+import { SmartFilterOptions } from '@xpert-ai/ocap-angular/controls'
+import { NgmAppearance, NgmSmartBusinessService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { NgmAdvancedFilterComponent } from '@xpert-ai/ocap-angular/selection'
 import {
   cloneDeep,
   DataSettings,
@@ -35,9 +35,9 @@ import {
   Syntax,
   TimeGranularity,
   VariableProperty
-} from '@metad/ocap-core'
-import { ComponentSettingsType, FilterControlType } from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/ocap-core'
+import { ComponentSettingsType, FilterControlType } from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { assign, compact, isEqual, merge, omit, pick } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, Observable } from 'rxjs'

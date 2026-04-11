@@ -1,5 +1,5 @@
 import { Document } from '@langchain/core/documents'
-import { ICopilotModel } from '@metad/contracts'
+import { ICopilotModel } from '@xpert-ai/contracts'
 import { AIModel } from '../ai-model'
 import { TChatModelOptions } from './model'
 

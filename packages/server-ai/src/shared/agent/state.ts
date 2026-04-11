@@ -18,8 +18,8 @@ import {
 	TXpertTeamNode,
 	VariableOperationEnum,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
-import { isFunction } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { isFunction } from '@xpert-ai/server-common'
 import { Subscriber } from 'rxjs'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Runnable, RunnableToolLike } from '@langchain/core/runnables'

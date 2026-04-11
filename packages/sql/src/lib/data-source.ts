@@ -19,7 +19,7 @@ import {
   PropertyHierarchy,
   QueryReturn,
   uuid,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { t } from 'i18next'
 import { catchError, combineLatest, distinctUntilChanged, filter, from, map, Observable, shareReplay, switchMap } from 'rxjs'
 import { compileCubeSchema } from './cube'

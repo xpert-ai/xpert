@@ -1,5 +1,5 @@
-import { IIntegration } from '@metad/contracts'
-import { omit } from '@metad/server-common'
+import { IIntegration } from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { IntegrationService } from '../../integration.service'
 import { IntegrationUpsertCommand } from '../upsert.command'

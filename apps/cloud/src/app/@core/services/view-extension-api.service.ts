@@ -1,12 +1,12 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX } from '@metad/cloud/state'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import {
   XpertExtensionViewManifest,
   XpertViewActionResult,
   XpertViewDataResult,
   XpertViewQuery
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { injectApiBaseUrl } from '../providers'
 
 @Injectable({ providedIn: 'root' })

@@ -1,4 +1,4 @@
-import { CopilotCommand } from "@metad/copilot";
+import { CopilotCommand } from "@xpert-ai/copilot";
 import { editGridWidgetCommand } from "./chat";
 
 export const GridCommand = {

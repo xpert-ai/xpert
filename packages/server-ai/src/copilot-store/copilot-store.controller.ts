@@ -1,4 +1,4 @@
-import { CrudController, TransformInterceptor } from '@metad/server-core'
+import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
 import { Controller, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

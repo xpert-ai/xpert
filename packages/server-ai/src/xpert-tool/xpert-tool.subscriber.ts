@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
-import { validateToolName } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+import { validateToolName } from '@xpert-ai/server-common'
+import { RequestContext } from '@xpert-ai/server-core'
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent } from 'typeorm'
 import { XpertTool } from './xpert-tool.entity'
 

@@ -1,4 +1,4 @@
-import { IApprovalPolicy, IPagination } from '@metad/contracts';
+import { IApprovalPolicy, IPagination } from '@xpert-ai/contracts';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ApprovalPolicyService } from '../../approval-policy.service';
 import { PermissionApprovalPolicyGetCommand } from '../request-approval-policy.get.command';

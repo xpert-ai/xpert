@@ -1,4 +1,4 @@
-import { NxStoryService } from '@metad/story/core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { map } from 'rxjs/operators'
 import { BackgroundProperties, Borders, BoxShadow, FORMLY_ROW, FontCss, Layout, Size } from './types'
 

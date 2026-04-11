@@ -1,6 +1,6 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { IDocumentUnderstandingProvider, IKnowledgeDocument } from '@metad/contracts'
+import { IDocumentUnderstandingProvider, IKnowledgeDocument } from '@xpert-ai/contracts'
 import { Permissions, XpFileSystem } from '../../core/index'
 import { ChunkMetadata } from '../types'
 

@@ -2,15 +2,15 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { NgmColorsComponent } from '@metad/components/form-field'
+import { NgmColorsComponent } from '@xpert-ai/components/form-field'
 import {
   NgmChromaticInterpolateGroup,
   NxChromaticPreviewComponent,
   getScaleChromaticInterpolates
-} from '@metad/components/palette'
-import { ColorPalettes, NxCoreService } from '@metad/core'
-import { AppearanceDirective, DensityDirective, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
+} from '@xpert-ai/components/palette'
+import { ColorPalettes, NxCoreService } from '@xpert-ai/core'
+import { AppearanceDirective, DensityDirective, NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityModule, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   CalculationProperty,
@@ -23,8 +23,8 @@ import {
   getEntityProperty,
   isEqual,
   pick
-} from '@metad/ocap-core'
-import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/ocap-core'
+import { NxDesignerModule, NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
 import { BehaviorSubject, distinctUntilChanged, from, map } from 'rxjs'

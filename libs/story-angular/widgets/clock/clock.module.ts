@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { ModuleWithProviders, NgModule } from '@angular/core'
-import { NxCoreModule } from '@metad/core'
-import { InputControlSchemaService } from '@metad/story/widgets/input-control'
-import { STORY_WIDGET_COMPONENT } from '@metad/story/core'
-import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
+import { NxCoreModule } from '@xpert-ai/core'
+import { InputControlSchemaService } from '@xpert-ai/story/widgets/input-control'
+import { STORY_WIDGET_COMPONENT } from '@xpert-ai/story/core'
+import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@xpert-ai/story/designer'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { NxWidgetClockComponent } from './clock.component'
 

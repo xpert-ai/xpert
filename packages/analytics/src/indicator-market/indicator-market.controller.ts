@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { CrudController } from '@metad/server-core'
+import { CrudController } from '@xpert-ai/server-core'
 import { IndicatorMarket } from './indicator-market.entity'
 import { IndicatorMarketService } from './indicator-market.service'
 

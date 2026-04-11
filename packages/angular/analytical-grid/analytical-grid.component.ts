@@ -28,7 +28,7 @@ import {
   ZardTreeFlatDataSource,
   ZardTreeFlattener
 } from '@xpert-ai/headless-ui'
-import { csvDownload, DisplayDensity, mergeSelectedValues, NgmAppearance } from '@metad/ocap-angular/core'
+import { csvDownload, DisplayDensity, mergeSelectedValues, NgmAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   AggregationRole,
   assign,
@@ -69,8 +69,8 @@ import {
   TreeNodeInterface,
   uniqBy,
   wrapBrackets
-} from '@metad/ocap-core'
-import { SlicersCapacity } from '@metad/ocap-angular/selection'
+} from '@xpert-ai/ocap-core'
+import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
 import { TranslateService } from '@ngx-translate/core'
 import { maxBy, minBy, orderBy, unionBy } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'

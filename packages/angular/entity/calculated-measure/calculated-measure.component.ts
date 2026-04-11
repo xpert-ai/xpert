@@ -16,11 +16,11 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
-import { MDXReference, NgmMDXEditorComponent } from '@metad/ocap-angular/mdx'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { NgmBaseEditorDirective } from '@xpert-ai/ocap-angular/formula'
+import { MDXReference, NgmMDXEditorComponent } from '@xpert-ai/ocap-angular/mdx'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import {
   C_MEASURES,
   DataSettings,
@@ -31,7 +31,7 @@ import {
   getEntityParameters,
   isIndicatorMeasureProperty,
   isPropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { negate, sortBy } from 'lodash-es'
 import { MarkdownModule } from 'ngx-markdown'

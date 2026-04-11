@@ -1,5 +1,5 @@
-import { IXpertTemplate } from '@metad/contracts'
-import { TenantBaseEntity } from '@metad/server-core'
+import { IXpertTemplate } from '@xpert-ai/contracts'
+import { TenantBaseEntity } from '@xpert-ai/server-core'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { IsNumber, IsString } from 'class-validator'
 import { Column, Entity } from 'typeorm'

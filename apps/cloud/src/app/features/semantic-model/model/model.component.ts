@@ -16,23 +16,23 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { nonBlank } from '@metad/core'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { nonBlank } from '@xpert-ai/core'
 import {
   NgmCommonModule,
   NgmConfirmDeleteService,
   NgmConfirmUniqueComponent,
   ResizerModule,
   SplitterModule
-} from '@metad/ocap-angular/common'
-import { DBTable, PropertyAttributes, TableEntity, VirtualCube, pick } from '@metad/ocap-core'
-import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/ocap-angular/common'
+import { DBTable, PropertyAttributes, TableEntity, VirtualCube, pick } from '@xpert-ai/ocap-core'
+import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
+import { OcapCoreModule, provideOcapCore } from '@xpert-ai/ocap-angular/core'
 
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'

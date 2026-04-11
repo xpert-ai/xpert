@@ -10,7 +10,7 @@ import {
 	IInviteResendInput,
 	IOrganizationContact,
 	IOrganizationContactAcceptInviteInput
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { firstValueFrom } from 'rxjs';
 import { API_PREFIX } from './constants';
 

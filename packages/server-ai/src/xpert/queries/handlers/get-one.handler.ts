@@ -1,4 +1,4 @@
-import { IXpert } from '@metad/contracts'
+import { IXpert } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { XpertService } from '../../xpert.service'
 import { FindXpertQuery } from '../get-one.query'

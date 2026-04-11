@@ -1,6 +1,6 @@
 import { CommandBus, EventsHandler, IEventHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { TenantCreatedEvent, TenantService } from '@metad/server-core'
+import { TenantCreatedEvent, TenantService } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import { DataSourceTypeService } from '../../../data-source-type/index'
 import { SemanticModelService } from '../../../model/index'

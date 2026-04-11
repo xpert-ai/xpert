@@ -1,4 +1,4 @@
-import { IPagination, ITag } from '@metad/contracts'
+import { IPagination, ITag } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindManyOptions, Repository } from 'typeorm'

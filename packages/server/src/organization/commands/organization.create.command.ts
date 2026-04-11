@@ -1,4 +1,4 @@
-import { IOrganizationCreateInput } from '@metad/contracts';
+import { IOrganizationCreateInput } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class OrganizationCreateCommand implements ICommand {

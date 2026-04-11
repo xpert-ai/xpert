@@ -1,5 +1,5 @@
-import { ChecklistItem, RuleValidator } from '@metad/contracts'
-import { CalculatedMember, Schema } from '@metad/ocap-core'
+import { ChecklistItem, RuleValidator } from '@xpert-ai/contracts'
+import { CalculatedMember, Schema } from '@xpert-ai/ocap-core'
 
 export class CalculatedMeasureValidator implements RuleValidator {
     async validate(measure: CalculatedMember, params: { schema: Schema; cubeName: string }): Promise<ChecklistItem[]> {

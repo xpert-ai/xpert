@@ -12,7 +12,7 @@ import {
   omitBlank,
   Property,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   _formatDimensionValue,
   echartsFormatNumber,

@@ -15,8 +15,8 @@ import {
   XpertTaskService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, myRxResource } from '@metad/ocap-angular/core'
+import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { of } from 'rxjs'

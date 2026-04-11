@@ -1,4 +1,4 @@
-import { DataSourceAgent, DSCacheService, NxDSCoreModule, NxDSCoreService } from '@metad/ds-core'
+import { DataSourceAgent, DSCacheService, NxDSCoreModule, NxDSCoreService } from '@xpert-ai/ds-core'
 import { ENTITY_TYPE } from '../test/DATA'
 import { MDXDialect } from './types'
 

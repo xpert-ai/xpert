@@ -1,4 +1,4 @@
-import { TSummaryJob } from '@metad/contracts'
+import { TSummaryJob } from '@xpert-ai/contracts'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ChatMessageService } from '../../chat-message.service'
 import { ChatMessageUpdateJobCommand } from '../update-job.command'

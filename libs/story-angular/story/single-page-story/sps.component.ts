@@ -14,9 +14,9 @@ import {
   viewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { NgmTransformScaleDirective } from '@metad/core'
-import { NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { NxStoryService, Story } from '@metad/story/core'
+import { NgmTransformScaleDirective } from '@xpert-ai/core'
+import { NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { NxStoryService, Story } from '@xpert-ai/story/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { NxStoryPointService } from '../story-point.service'

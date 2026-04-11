@@ -11,13 +11,13 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
 import { filter, map } from 'rxjs';
-import { IRole, IUser, RolesEnum } from '@metad/contracts';
+import { IRole, IUser, RolesEnum } from '@xpert-ai/contracts';
 import { RoleService, Store } from './../../../../../@core/services';
 
 import { TranslateModule } from '@ngx-translate/core';
-import { NgmSelectComponent } from '@metad/ocap-angular/common';
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NgmFieldAppearance } from "@metad/ocap-angular/core";
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
 import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({

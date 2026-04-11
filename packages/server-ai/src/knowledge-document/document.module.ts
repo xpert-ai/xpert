@@ -1,4 +1,4 @@
-import { IntegrationModule, StorageFileModule, TenantModule, UserModule } from '@metad/server-core'
+import { IntegrationModule, StorageFileModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'

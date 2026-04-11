@@ -5,7 +5,7 @@ import {
 	IFeatureOrganizationUpdateInput,
 	IFeatureOrganizationFindInput,
 	IPagination
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { chunk } from 'lodash-es';
 import { BehaviorSubject, EMPTY, from, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';

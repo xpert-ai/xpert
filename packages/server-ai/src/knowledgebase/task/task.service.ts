@@ -1,5 +1,5 @@
-import { IKnowledgebaseTask, IKnowledgeDocument, TaskStep } from '@metad/contracts'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { IKnowledgebaseTask, IKnowledgeDocument, TaskStep } from '@xpert-ai/contracts'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'

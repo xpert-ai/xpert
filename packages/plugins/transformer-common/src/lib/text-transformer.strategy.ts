@@ -1,4 +1,4 @@
-import { IconType, IKnowledgeDocument } from '@metad/contracts'
+import { IconType, IKnowledgeDocument } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   ChunkMetadata,

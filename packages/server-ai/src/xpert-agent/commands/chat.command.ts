@@ -6,7 +6,7 @@ import {
     TXpertChatInterruptPatch,
     TXpertChatResumeDecision,
     TXpertChatState
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { TXpertAgentRuntimeOptions } from '../agent'
 

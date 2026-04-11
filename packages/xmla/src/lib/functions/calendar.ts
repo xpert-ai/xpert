@@ -9,7 +9,7 @@ import {
   getHierarchySemanticLevel,
   getTimeYearLevel,
   measureFormatter
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { Aggregate, CoalesceEmpty, CurrentMember, ParallelPeriod, Periodstodate, PrevMember, Tuple } from './common'
 
 export function CURRENT(name: string, property: PropertyMeasure) {

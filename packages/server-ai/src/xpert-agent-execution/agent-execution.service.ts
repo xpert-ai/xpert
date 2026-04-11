@@ -1,4 +1,4 @@
-import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { PaginationParams, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

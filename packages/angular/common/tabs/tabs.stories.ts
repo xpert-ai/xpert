@@ -1,5 +1,5 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { Meta, StoryObj, moduleMetadata } from '@storybook/angular'
 import {
   ZardButtonComponent,

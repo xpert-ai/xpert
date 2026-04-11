@@ -1,4 +1,4 @@
-import { TSandboxConfigurable } from '@metad/contracts'
+import { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { SandboxAcquireBackendCommand } from '../acquire-backend.command'

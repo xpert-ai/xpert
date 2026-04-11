@@ -1,4 +1,4 @@
-import { API_PRINCIPAL_USER_ID_HEADER, UserType } from '@metad/contracts'
+import { API_PRINCIPAL_USER_ID_HEADER, UserType } from '@xpert-ai/contracts'
 import {
 	buildApiKeyPrincipal,
 	resolveApiKeyRequestedOrganizationId,

@@ -1,8 +1,8 @@
 import { Component, Input, OnInit } from '@angular/core'
 import { FormControl, FormGroup } from '@angular/forms'
-import { AggregationRole, EntitySet, getEntityDimensions, OrderDirection } from '@metad/ocap-core'
+import { AggregationRole, EntitySet, getEntityDimensions, OrderDirection } from '@xpert-ai/ocap-core'
 import { BehaviorSubject, map } from 'rxjs'
-import { NgmFieldAppearance } from "@metad/ocap-angular/core";
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
 
 @Component({
   selector: 'ngm-sort-by',

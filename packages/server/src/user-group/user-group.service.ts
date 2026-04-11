@@ -1,4 +1,4 @@
-import { IUserGroup, PermissionsEnum } from '@metad/contracts'
+import { IUserGroup, PermissionsEnum } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DeepPartial, FindManyOptions, FindOneOptions, FindOptionsWhere, In, Repository } from 'typeorm'

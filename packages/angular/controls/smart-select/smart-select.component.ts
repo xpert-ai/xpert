@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, EventEmitter, forwardRef, inject, input, Input, Output } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { NgmAdvancedSelectComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective, NgmAppearance } from '@metad/ocap-angular/core'
+import { NgmAdvancedSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, DensityDirective, NgmAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -15,7 +15,7 @@ import {
   isEqual,
   ISlicer,
   isNil
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   BehaviorSubject,
   combineLatest,

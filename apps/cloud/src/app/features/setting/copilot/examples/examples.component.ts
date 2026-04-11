@@ -2,15 +2,15 @@ import { Component, TemplateRef, computed, effect, inject, model, signal, viewCh
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { saveAsYaml, uploadYamlFile } from '@metad/core'
+import { saveAsYaml, uploadYamlFile } from '@xpert-ai/core'
 import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   NgmCommonModule,
   NgmConfirmDeleteService,
   NgmConfirmOptionsComponent,
   TableColumn
-} from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -25,7 +25,7 @@ import {
   ToastrService,
   getErrorMessage
 } from '../../../../@core'
-import { FORMLY_W_1_2 } from '@metad/story/designer'
+import { FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui'

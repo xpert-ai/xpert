@@ -4,9 +4,9 @@ import { ChangeDetectionStrategy, Component, HostBinding, Input, forwardRef, inj
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { AbstractControl, ControlValueAccessor, FormBuilder, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { DataSettings, Dimension, EntityType, Measure, isEmpty } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, Dimension, EntityType, Measure, isEmpty } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter } from 'rxjs/operators'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'

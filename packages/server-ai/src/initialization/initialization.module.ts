@@ -1,4 +1,4 @@
-import { OrganizationModule, UserModule, UserOrganizationModule } from '@metad/server-core'
+import { OrganizationModule, UserModule, UserOrganizationModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { Module } from '@nestjs/common'
 import { XpertModule } from '../xpert'

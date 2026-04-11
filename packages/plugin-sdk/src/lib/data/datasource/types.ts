@@ -1,7 +1,7 @@
 import * as _axios from 'axios'
 import { Readable } from 'stream'
-import { IColumnDef, IDSSchema, IDSTable } from '@metad/contracts'
-export { IColumnDef, IDSSchema, IDSTable } from '@metad/contracts'
+import { IColumnDef, IDSSchema, IDSTable } from '@xpert-ai/contracts'
+export { IColumnDef, IDSSchema, IDSTable } from '@xpert-ai/contracts'
 const axios = _axios.default
 
 /**

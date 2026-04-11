@@ -1,4 +1,4 @@
-import { IKnowledgebase, IUser, KBMetadataFieldDef, KnowledgebasePermission, TAvatar } from '@metad/contracts'
+import { IKnowledgebase, IUser, KBMetadataFieldDef, KnowledgebasePermission, TAvatar } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 @Exclude()

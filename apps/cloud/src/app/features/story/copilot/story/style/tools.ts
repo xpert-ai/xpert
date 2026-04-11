@@ -1,7 +1,7 @@
 import { inject } from '@angular/core'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { EmulatedDevice, NxStoryService, StoryPreferences } from '@metad/story/core'
-import { EmulatedDeviceSchema, StoryStyleSchema, WidgetsLayoutSchema } from '@metad/story/story'
+import { EmulatedDevice, NxStoryService, StoryPreferences } from '@xpert-ai/story/core'
+import { EmulatedDeviceSchema, StoryStyleSchema, WidgetsLayoutSchema } from '@xpert-ai/story/story'
 import { NGXLogger } from 'ngx-logger'
 import { z } from 'zod'
 

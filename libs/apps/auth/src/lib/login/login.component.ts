@@ -10,7 +10,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { CookieService } from 'ngx-cookie-service'
 import { firstValueFrom } from 'rxjs'
 import { PAC_API_BASE_URL, PAC_AUTH_OPTIONS } from '../auth.options'

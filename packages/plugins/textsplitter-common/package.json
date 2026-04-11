@@ -11,7 +11,7 @@
   "module": "./index.js",
   "peerDependencies": {
     "@nestjs/common": ">=10",
-    "@xpert-ai/plugin-sdk": "^3.8.0",
+    "@xpert-ai/plugin-sdk": "workspace:*",
     "@langchain/textsplitters": "*"
   }
 }

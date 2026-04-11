@@ -1,6 +1,6 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { getCurrentTaskInput } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, TAgentRunnableConfigurable, TMessageComponent } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, TAgentRunnableConfigurable, TMessageComponent } from '@xpert-ai/contracts'
 import {
 	AnalyticsAnnotation,
 	AnalyticsBusinessService,
@@ -17,8 +17,8 @@ import {
 	tryFixSlicer,
 	tryFixVariableSlicer,
 	workOutTimeRangeSlicers
-} from '@metad/ocap-core'
-import { isEmpty, omit } from '@metad/server-common'
+} from '@xpert-ai/ocap-core'
+import { isEmpty, omit } from '@xpert-ai/server-common'
 import { Subject, takeUntil } from 'rxjs'
 import { fixMeasure } from '../../../types'
 import { BIVariableEnum, mapTimeSlicer } from '../../bi-toolset'

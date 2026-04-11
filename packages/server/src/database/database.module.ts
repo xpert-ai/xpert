@@ -1,5 +1,5 @@
-import { DEFAULT_DB_CONNECTION } from '@metad/server-common'
-import { ConfigModule, ConfigService } from '@metad/server-config'
+import { DEFAULT_DB_CONNECTION } from '@xpert-ai/server-common'
+import { ConfigModule, ConfigService } from '@xpert-ai/server-config'
 import { Global, Logger, Module, OnApplicationShutdown } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'

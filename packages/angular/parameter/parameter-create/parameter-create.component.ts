@@ -21,15 +21,15 @@ import {
   ZardInputDirective,
   ZardCheckboxComponent
 } from '@xpert-ai/headless-ui'
-import { NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
-import { NgmControlsModule, TreeControlOptions } from '@metad/ocap-angular/controls'
+import { NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmControlsModule, TreeControlOptions } from '@xpert-ai/ocap-angular/controls'
 import {
   DisplayDensity,
   EntityUpdateEvent,
   NgmOcapCoreService,
   OcapCoreModule,
   NgmFieldAppearance
-} from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -42,7 +42,7 @@ import {
   isNil,
   ParameterProperty,
   suuid
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs'
 

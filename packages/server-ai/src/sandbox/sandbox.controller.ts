@@ -1,5 +1,5 @@
-import { keepAlive, takeUntilClose } from '@metad/server-common'
-import { environment } from '@metad/server-config'
+import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
+import { environment } from '@xpert-ai/server-config'
 import {
     GetDefaultTenantQuery,
     Public,
@@ -7,7 +7,7 @@ import {
     TransformInterceptor,
     UploadFileCommand,
     getFileAssetDestination
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
     Body,
     Controller,

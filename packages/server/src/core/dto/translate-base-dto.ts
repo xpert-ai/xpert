@@ -1,4 +1,4 @@
-import { LanguagesEnum, TranslatePropertyInput } from '@metad/contracts';
+import { LanguagesEnum, TranslatePropertyInput } from '@xpert-ai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';

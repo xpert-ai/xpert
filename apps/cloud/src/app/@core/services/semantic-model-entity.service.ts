@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX, TScheduleOptions } from '@metad/cloud/state'
+import { API_PREFIX, TScheduleOptions } from '@xpert-ai/cloud/state'
 import { ISemanticModelEntity } from '../types'
 
 export const C_API_SEMANTIC_MODEL_ENTITY = API_PREFIX + '/semantic-model-entity'

@@ -1,4 +1,4 @@
-import { TToolCredentials } from '@metad/contracts'
+import { TToolCredentials } from '@xpert-ai/contracts'
 
 export type EmailToolCredentials = TToolCredentials & {
 	email_account: string

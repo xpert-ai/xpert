@@ -1,5 +1,5 @@
-import { IPagination } from '@metad/contracts'
-import { CrudController, PaginationParams, ParseJsonPipe, TimeZone, UUIDValidationPipe } from '@metad/server-core'
+import { IPagination } from '@xpert-ai/contracts'
+import { CrudController, PaginationParams, ParseJsonPipe, TimeZone, UUIDValidationPipe } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, HttpStatus, Param, Post, Put, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { SemanticModelEntity } from './entity.entity'

@@ -2,9 +2,9 @@ import { CallbackManagerForChainRun } from '@langchain/core/callbacks/manager'
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig } from '@langchain/core/runnables'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { AsyncBatchedStore, BaseStore } from '@langchain/langgraph'
-import { IXpertAgent } from '@metad/contracts'
+import { IXpertAgent } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
-import { STATE_VARIABLE_HUMAN, TChatRequestHuman, TXpertChatState } from '@metad/contracts'
+import { STATE_VARIABLE_HUMAN, TChatRequestHuman, TXpertChatState } from '@xpert-ai/contracts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface RunnableCallableArgs extends Partial<any> {

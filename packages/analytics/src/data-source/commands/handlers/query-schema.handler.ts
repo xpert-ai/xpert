@@ -1,5 +1,5 @@
-import { IDSTable } from '@metad/contracts'
-import { XpertToolsetService } from '@metad/server-ai'
+import { IDSTable } from '@xpert-ai/contracts'
+import { XpertToolsetService } from '@xpert-ai/server-ai'
 import { NotFoundException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'

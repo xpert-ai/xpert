@@ -1,5 +1,5 @@
-import { RolesEnum } from '@metad/contracts'
-import { CrudController, RoleGuard, Roles } from '@metad/server-core'
+import { RolesEnum } from '@xpert-ai/contracts'
+import { CrudController, RoleGuard, Roles } from '@xpert-ai/server-core'
 import { Controller, Post, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

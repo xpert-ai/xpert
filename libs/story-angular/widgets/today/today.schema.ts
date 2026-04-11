@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { FORMLY_ROW, DataSettingsSchemaService, FORMLY_W_1_2, dateFilterOptions } from '@metad/story/designer'
+import { FORMLY_ROW, DataSettingsSchemaService, FORMLY_W_1_2, dateFilterOptions } from '@xpert-ai/story/designer'
 import { combineLatest } from 'rxjs'
 import { map } from 'rxjs/operators'
 

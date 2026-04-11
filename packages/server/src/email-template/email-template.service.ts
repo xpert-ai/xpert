@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository, SelectQueryBuilder, WhereExpression, WhereExpressionBuilder } from 'typeorm';
-import { IEmailTemplate, IPagination } from '@metad/contracts';
+import { IEmailTemplate, IPagination } from '@xpert-ai/contracts';
 import { OnEvent } from '@nestjs/event-emitter'
 import chalk from 'chalk'
 import { CrudService, PaginationParams } from './../core/crud';
@@ -10,7 +10,7 @@ import { RequestContext } from './../core/context';
 import { EVENT_TENANT_CREATED, TenantCreatedEvent } from '../tenant/events';
 import { TenantService } from '../tenant';
 import { createDefaultEmailTemplates } from './email-template.seed';
-import { isNotEmpty } from '@metad/server-common';
+import { isNotEmpty } from '@xpert-ai/server-common';
 import { BaseQueryDTO } from '../core/dto';
 
 @Injectable()

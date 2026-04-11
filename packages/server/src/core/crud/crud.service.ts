@@ -1,5 +1,5 @@
-import { ID, IPagination } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { ID, IPagination } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import {
 	DeepPartial,

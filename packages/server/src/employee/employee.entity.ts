@@ -4,7 +4,7 @@ import {
 	PayPeriodEnum,
 	ITag,
 	IUser,
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
 	IsDate,

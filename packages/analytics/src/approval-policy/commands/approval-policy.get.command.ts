@@ -1,4 +1,4 @@
-import { PaginationParams } from '@metad/server-core';
+import { PaginationParams } from '@xpert-ai/server-core';
 import { ICommand } from '@nestjs/cqrs';
 import { ApprovalPolicy } from '../approval-policy.entity';
 

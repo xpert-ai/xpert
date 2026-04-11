@@ -11,7 +11,7 @@ import {
   assignDeepOmitBlank,
   getDimensionMemberCaption,
   PieVariant,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { trellisCoordinates, gatherCoordinates } from './coordinates'
 import { getEChartsTooltip } from './components/tooltip'
 import { CoordinateContext, EChartsContext, EChartsOptions, ICoordinate } from './types'

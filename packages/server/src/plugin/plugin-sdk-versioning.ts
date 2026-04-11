@@ -1,4 +1,4 @@
-import type { PluginSourceConfig } from '@metad/contracts'
+import type { PluginSourceConfig } from '@xpert-ai/contracts'
 import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'

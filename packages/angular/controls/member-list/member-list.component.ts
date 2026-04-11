@@ -18,8 +18,8 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayDensity, mergeSelectedValues, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayDensity, mergeSelectedValues, NgmAppearance, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -28,7 +28,7 @@ import {
   IMember,
   isEmpty,
   ISlicer
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BehaviorSubject } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, tap } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'

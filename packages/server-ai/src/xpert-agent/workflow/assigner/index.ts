@@ -9,7 +9,7 @@
 // 	TXpertTeamNode,
 // 	workflowNodeIdentifier,
 // 	WorkflowNodeTypeEnum
-// } from '@metad/contracts'
+// } from '@xpert-ai/contracts'
 // import { CommandBus, QueryBus } from '@nestjs/cqrs'
 // import { get } from 'lodash'
 // import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'

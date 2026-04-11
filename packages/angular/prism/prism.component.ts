@@ -1,6 +1,6 @@
 
 import { Component, effect, input, numberAttribute, signal } from '@angular/core'
-import { NgmCopyComponent } from '@metad/ocap-angular/common'
+import { NgmCopyComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
   standalone: true,

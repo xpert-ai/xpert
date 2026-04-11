@@ -1,4 +1,4 @@
-import { IVisit } from '@metad/contracts'
+import { IVisit } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class VisitCreateCommand implements ICommand {

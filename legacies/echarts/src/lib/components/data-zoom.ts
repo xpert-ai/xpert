@@ -1,4 +1,4 @@
-import { ChartDataZoomType, ChartProperty, omitBlank, PropertyHierarchy } from '@metad/ocap-core'
+import { ChartDataZoomType, ChartProperty, omitBlank, PropertyHierarchy } from '@xpert-ai/ocap-core'
 import { AxisEnum } from '../types'
 import { mergeChartOptions } from '../utils'
 

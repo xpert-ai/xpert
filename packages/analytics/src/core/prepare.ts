@@ -1,18 +1,18 @@
-import { IFeatureCreateInput } from '@metad/contracts'
+import { IFeatureCreateInput } from '@xpert-ai/contracts'
 import {
 	DEFAULT_ROLE_PERMISSIONS as AI_DEFAULT_ROLE_PERMISSIONS,
 	AiSubscribers,
 	ALL_AI_ENTITIES,
 	DEFAULT_FEATURES as SERVER_AI_DEFAULT_FEATURES
-} from '@metad/server-ai'
-import { setConfig } from '@metad/server-config'
+} from '@xpert-ai/server-ai'
+import { setConfig } from '@xpert-ai/server-config'
 import {
 	coreEntities,
 	coreSubscribers,
 	DEFAULT_FEATURES as SERVER_DEFAULT_FEATURES,
 	setDefaultFeatures,
 	setDefaultRolePermissions
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Type } from '@nestjs/common'
 import { ALL_ENTITIES } from './entities/index'
 import { coreSubscribers as analyticsSubscribers } from './entities/subscribers'

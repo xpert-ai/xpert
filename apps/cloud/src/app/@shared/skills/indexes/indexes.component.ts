@@ -9,7 +9,7 @@ import {
   ISkillRepositoryIndex,
   SkillRepositoryIndexService
 } from '@cloud/app/@core'
-import { debouncedSignal } from '@metad/ocap-angular/core'
+import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({

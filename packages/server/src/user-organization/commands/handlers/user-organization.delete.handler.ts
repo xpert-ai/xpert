@@ -5,7 +5,7 @@ import { UserService } from '../../../user/user.service';
 import { UserOrganizationService } from '../../user-organization.services';
 import { DeleteResult } from 'typeorm';
 import { RoleService } from '../../../role/role.service';
-import { RolesEnum, LanguagesEnum, IUser } from '@metad/contracts';
+import { RolesEnum, LanguagesEnum, IUser } from '@xpert-ai/contracts';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { EventEmitter2 } from '@nestjs/event-emitter';

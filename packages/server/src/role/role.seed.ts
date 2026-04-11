@@ -1,4 +1,4 @@
-import { IRole, ITenant, RolesEnum } from '@metad/contracts';
+import { IRole, ITenant, RolesEnum } from '@xpert-ai/contracts';
 import { Connection } from 'typeorm';
 import { defaultRoles } from './default-role';
 import { Role } from './role.entity';

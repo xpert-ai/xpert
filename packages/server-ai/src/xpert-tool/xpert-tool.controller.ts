@@ -1,11 +1,11 @@
-import { IXpertTool } from '@metad/contracts'
+import { IXpertTool } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
 	TransformInterceptor,
 	UUIDValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Body, Controller, Get, Logger, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

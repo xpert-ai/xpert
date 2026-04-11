@@ -1,4 +1,4 @@
-import { TenantOrganizationBaseDTO } from "@metad/server-core";
+import { TenantOrganizationBaseDTO } from "@xpert-ai/server-core";
 import { PickType } from "@nestjs/swagger";
 
 /**

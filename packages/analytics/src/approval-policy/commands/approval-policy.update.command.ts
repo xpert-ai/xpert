@@ -1,4 +1,4 @@
-import { IApprovalPolicy, IApprovalPolicyUpdateInput } from '@metad/contracts';
+import { IApprovalPolicy, IApprovalPolicyUpdateInput } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class ApprovalPolicyUpdateCommand implements ICommand {

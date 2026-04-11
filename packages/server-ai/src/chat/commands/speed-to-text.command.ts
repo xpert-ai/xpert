@@ -1,4 +1,4 @@
-import { UploadedFile } from '@metad/contracts'
+import { UploadedFile } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class SpeechToTextCommand implements ICommand {

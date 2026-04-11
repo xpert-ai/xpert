@@ -29,7 +29,7 @@ import {
   convertSlicerToDimension,
   CubeParameterEnum,
   getMemberKey
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { t } from 'i18next'
 import { MDXHierarchyFilter, MDXProperty } from './filter'
 import {

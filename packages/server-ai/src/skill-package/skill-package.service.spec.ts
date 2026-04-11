@@ -1,4 +1,4 @@
-jest.mock('@metad/server-common', () => ({
+jest.mock('@xpert-ai/server-common', () => ({
 	getErrorMessage: (error: Error) => error?.message ?? String(error)
 }))
 

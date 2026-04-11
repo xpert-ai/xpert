@@ -6,9 +6,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { SlicersCapacity } from '@metad/ocap-angular/selection'
-import { TimeGranularity } from '@metad/ocap-core'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
+import { TimeGranularity } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatMessageStepCategory,

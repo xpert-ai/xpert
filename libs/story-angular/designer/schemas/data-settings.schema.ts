@@ -1,9 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { nonNullable } from '@metad/core'
-import { ISelectOption, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { PropertyCapacity } from '@metad/ocap-angular/entity'
-import { SlicersCapacity } from '@metad/ocap-angular/selection'
+import { nonNullable } from '@xpert-ai/core'
+import { ISelectOption, NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
+import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
 import {
   CalculationProperty,
   CalculationType,
@@ -15,8 +15,8 @@ import {
   getEntityDimensions,
   getEntityMeasures,
   isVisible
-} from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { isEqual, isNil, negate, pick, sortBy } from 'lodash-es'
 import { Observable, combineLatest, of } from 'rxjs'
@@ -157,7 +157,7 @@ export abstract class DataSettingsSchemaService<
     switchMap(([entitySet, dataSource]) =>
       dataSource
         .selectIndicators(entitySet)
-        // @TODO remove when fixed in @metad/ocap-core pachage
+        // @TODO remove when fixed in @xpert-ai/ocap-core pachage
         .pipe(map((indicators) => indicators?.filter((item) => item.entity === entitySet)))
     ),
     shareReplay(1)

@@ -1,4 +1,4 @@
-import { CHARTS, DimensionSchema, MeasureSchema } from '@metad/ocap-core'
+import { CHARTS, DimensionSchema, MeasureSchema } from '@xpert-ai/ocap-core'
 import { z } from 'zod'
 
 export function makeChartRulesPrompt() {

@@ -1,4 +1,4 @@
-import { StorySubscription } from '@metad/story/core'
+import { StorySubscription } from '@xpert-ai/story/core'
 import { ISubscription } from '../@core'
 
 export function convertStorySubscriptionResult(result: ISubscription): StorySubscription {

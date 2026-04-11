@@ -1,9 +1,9 @@
 
 import { Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { parseYAML } from '@metad/core'
-import { injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { parseYAML } from '@xpert-ai/core'
+import { injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { switchMap } from 'rxjs/operators'

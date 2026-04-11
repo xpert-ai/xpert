@@ -1,5 +1,5 @@
 {
-  "name": "@metad/adapter",
+  "name": "@xpert-ai/adapter",
   "version": "3.8.4",
   "license": "AGPL-3.0",
   "dependencies": {
@@ -19,7 +19,7 @@
     "@types/pg": "^8.6.2"
   },
   "peerDependencies": {
-    "@metad/contracts": "*",
-    "@xpert-ai/plugin-sdk": "^3.8.0"
+    "@xpert-ai/contracts": "workspace:*",
+    "@xpert-ai/plugin-sdk": "workspace:*"
   }
 }

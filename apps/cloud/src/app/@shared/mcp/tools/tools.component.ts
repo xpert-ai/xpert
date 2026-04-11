@@ -3,7 +3,7 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from '@cloud/app/@core/types'
 import { XpertToolNameInputComponent } from '@cloud/app/@shared/xpert'

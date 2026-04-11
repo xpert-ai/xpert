@@ -1,7 +1,7 @@
 import { Entity, Column, AfterLoad } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { ICustomSmtp } from '@metad/contracts';
-import { ISMTPConfig } from '@metad/server-common';
+import { ICustomSmtp } from '@xpert-ai/contracts';
+import { ISMTPConfig } from '@xpert-ai/server-common';
 import { Exclude, Expose } from 'class-transformer';
 import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { TenantOrganizationBaseEntity } from '../core/entities/internal';

@@ -5,7 +5,7 @@ import {
 	IXpertAgent,
 	TXpertGraph,
 	WorkflowNodeTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	AgentMiddleware,
 	AgentMiddlewareRegistry,

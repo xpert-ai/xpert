@@ -1,4 +1,4 @@
-import { ICopilotProvider } from '@metad/contracts'
+import { ICopilotProvider } from '@xpert-ai/contracts'
 import { Expose, Exclude, Transform } from 'class-transformer'
 import { CopilotProviderPublicDto } from '../../copilot-provider/dto'
 

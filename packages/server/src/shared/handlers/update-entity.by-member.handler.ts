@@ -1,4 +1,4 @@
-import { IEditEntityByMemberInput } from '@metad/contracts';
+import { IEditEntityByMemberInput } from '@xpert-ai/contracts';
 import { In } from 'typeorm';
 import { CrudService } from '../../core/crud';
 

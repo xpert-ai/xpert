@@ -1,4 +1,4 @@
-import { IApiKey } from '@metad/contracts'
+import { IApiKey } from '@xpert-ai/contracts'
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 

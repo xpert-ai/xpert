@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
-import { isNil } from '@metad/ocap-core'
-import { DataSourceTypesService } from '@metad/cloud/state'
+import { isNil } from '@xpert-ai/ocap-core'
+import { DataSourceTypesService } from '@xpert-ai/cloud/state'
 import { TenantService, ToastrService } from '../../../../@core'
 
 interface ItemData {

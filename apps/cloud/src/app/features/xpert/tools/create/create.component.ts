@@ -4,7 +4,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@metad/core'
+import { routeAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,

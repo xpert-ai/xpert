@@ -1,5 +1,5 @@
-import { BusinessAreaRole } from '@metad/contracts'
-import { CrudController, RequestContext, UUIDValidationPipe } from '@metad/server-core'
+import { BusinessAreaRole } from '@xpert-ai/contracts'
+import { CrudController, RequestContext, UUIDValidationPipe } from '@xpert-ai/server-core'
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

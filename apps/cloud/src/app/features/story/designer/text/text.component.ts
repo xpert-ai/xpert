@@ -1,9 +1,9 @@
 
 import { ChangeDetectionStrategy, Component, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormBuilder, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { NgmInputComponent, NgmSelectComponent, NgmSliderInputComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { ComponentStyling } from '@metad/story/core'
+import { NgmInputComponent, NgmSelectComponent, NgmSliderInputComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { ComponentStyling } from '@xpert-ai/story/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ColorInputComponent } from '../color-input/color-input.component'

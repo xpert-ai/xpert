@@ -1,6 +1,6 @@
-import { STATE_VARIABLE_HUMAN, TChatFrom } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { UserService } from '@metad/server-core'
+import { STATE_VARIABLE_HUMAN, TChatFrom } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { UserService } from '@xpert-ai/server-core'
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {

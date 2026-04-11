@@ -4,7 +4,7 @@ import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ZardButtonComponent, ZardDialogModule, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmConfirmDeleteComponent } from './confirm-delete/confirm-delete.component'
 import { NgmCountdownConfirmationComponent } from './countdown/countdown.component'

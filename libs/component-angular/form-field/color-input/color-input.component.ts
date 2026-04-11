@@ -2,7 +2,7 @@
 import { ChangeDetectionStrategy, Component, Input, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { DensityDirective } from '@metad/ocap-angular/core'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 export type ColorInputFormat = 'hex' | 'rgba' | 'hsla' | 'hsva' | 'cmyk'

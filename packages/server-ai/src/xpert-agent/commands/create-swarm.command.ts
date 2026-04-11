@@ -1,4 +1,4 @@
-import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { TAgentSubgraphParams } from '../agent'

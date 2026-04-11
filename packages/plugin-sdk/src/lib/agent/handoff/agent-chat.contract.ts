@@ -1,4 +1,4 @@
-import { TChatOptions, TChatRequest } from '@metad/contracts'
+import { TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { defineAgentMessageType } from './message-type'
 
 export const AGENT_CHAT_DISPATCH_MESSAGE_TYPE = defineAgentMessageType('chat_dispatch', 1)

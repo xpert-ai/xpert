@@ -6,7 +6,7 @@ import {
 	TChatConversationStatus,
 	TChatFrom,
 	TSensitiveOperation
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 @Exclude()

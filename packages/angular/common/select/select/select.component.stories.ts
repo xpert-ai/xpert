@@ -1,8 +1,8 @@
 import { provideHttpClient } from '@angular/common/http'
 
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { provideTranslate } from '@metad/ocap-angular/mock'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { Meta, StoryObj, applicationConfig, argsToTemplate, moduleMetadata } from '@storybook/angular'
 import { NgmSelectModule } from '../select.module'
 import { NgmSelectComponent } from './select.component'

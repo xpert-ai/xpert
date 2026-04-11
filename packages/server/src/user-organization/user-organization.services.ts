@@ -1,4 +1,4 @@
-import { IUser, IUserOrganization, IUserOrganizationPreferences, RolesEnum } from '@metad/contracts';
+import { IUser, IUserOrganization, IUserOrganizationPreferences, RolesEnum } from '@xpert-ai/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

@@ -1,5 +1,5 @@
 import { AIModelProviderNotFoundException, AIModelProviderRegistry, IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
-import { ConfigService } from '@metad/server-config'
+import { ConfigService } from '@xpert-ai/server-config'
 import { Injectable, Inject } from '@nestjs/common'
 import { t } from 'i18next'
 import * as path from 'path'

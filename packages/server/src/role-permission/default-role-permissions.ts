@@ -1,4 +1,4 @@
-import { PermissionsEnum, RolesEnum } from '@metad/contracts'
+import { PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 
 const SUPER_ADMIN_PLATFORM_PERMISSIONS = [
 	PermissionsEnum.PROFILE_EDIT,

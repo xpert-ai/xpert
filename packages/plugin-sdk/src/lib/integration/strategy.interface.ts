@@ -1,4 +1,4 @@
-import { IIntegration, TIntegrationProvider } from '@metad/contracts'
+import { IIntegration, TIntegrationProvider } from '@xpert-ai/contracts'
 
 export type TIntegrationStrategyParams = {
   query: string

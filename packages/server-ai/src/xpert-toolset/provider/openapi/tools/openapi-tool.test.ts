@@ -1,4 +1,4 @@
-import { ApiAuthType, ApiToolBundle, IXpertTool } from '@metad/contracts'
+import { ApiAuthType, ApiToolBundle, IXpertTool } from '@xpert-ai/contracts'
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
 import * as fs from 'fs'

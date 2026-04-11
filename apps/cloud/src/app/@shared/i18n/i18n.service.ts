@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { TranslateService } from '@ngx-translate/core'
 import i18next from 'i18next'
 import { map } from 'rxjs/operators'

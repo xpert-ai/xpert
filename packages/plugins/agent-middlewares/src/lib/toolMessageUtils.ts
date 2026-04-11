@@ -4,7 +4,7 @@ import {
   ChatMessageStepCategory,
   TChatMessageStep,
   TProgramToolMessage
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { ExecuteResponse, SandboxBackendProtocol, SandboxExecutionOptions } from '@xpert-ai/plugin-sdk'
 import ShortUniqueId from 'short-unique-id'
 

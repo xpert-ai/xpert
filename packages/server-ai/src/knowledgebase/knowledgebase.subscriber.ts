@@ -1,5 +1,5 @@
 import { EntitySubscriberInterface, EventSubscriber, RemoveEvent } from "typeorm";
-import { IKnowledgebase } from "@metad/contracts";
+import { IKnowledgebase } from "@xpert-ai/contracts";
 import { Knowledgebase } from "./knowledgebase.entity";
 import { CommandBus } from "@nestjs/cqrs";
 import { KnowledgebaseClearCommand } from "./commands";

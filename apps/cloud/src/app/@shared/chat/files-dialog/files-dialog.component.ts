@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FileTypePipe } from '@metad/core'
+import { FileTypePipe } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { DateRelativePipe, injectToastr, TFile } from '../../../@core'
 

@@ -1,4 +1,4 @@
-import { INotificationDestination, INotificationDestinationType } from '@metad/contracts'
+import { INotificationDestination, INotificationDestinationType } from '@xpert-ai/contracts'
 import * as _axios  from 'axios'
 
 const axios  =_axios.default

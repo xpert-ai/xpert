@@ -1,4 +1,4 @@
-import { StorageFileService } from '@metad/server-core'
+import { StorageFileService } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { ChatConversationService } from '../../conversation.service'

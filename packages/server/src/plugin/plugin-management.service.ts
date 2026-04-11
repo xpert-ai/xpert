@@ -8,7 +8,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } f
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApplicationConfig } from '@nestjs/core'
 import { t } from 'i18next'
-import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL } from '@metad/contracts'
+import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL } from '@xpert-ai/contracts'
 import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,

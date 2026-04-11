@@ -1,4 +1,4 @@
-import { IPermissionApproval } from '@metad/contracts'
+import { IPermissionApproval } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 import { FindManyOptions } from 'typeorm'
 

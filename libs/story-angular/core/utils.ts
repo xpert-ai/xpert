@@ -1,5 +1,5 @@
-import { ISemanticModel } from '@metad/contracts'
-import { AgentType, DataSourceOptions, isEmpty, isNil, nonNullable, Syntax } from '@metad/ocap-core'
+import { ISemanticModel } from '@xpert-ai/contracts'
+import { AgentType, DataSourceOptions, isEmpty, isNil, nonNullable, Syntax } from '@xpert-ai/ocap-core'
 import { combineLatest, firstValueFrom, tap } from 'rxjs'
 import { NxStoryStore } from './story-store.service'
 import { ComponentStyling, StoryModel } from './types'

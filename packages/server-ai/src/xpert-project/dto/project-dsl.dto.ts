@@ -1,4 +1,4 @@
-import { ICopilotModel, IKnowledgebase, IXpertProject, IXpertProjectTask, IXpertToolset, TAvatar, TXpertProjectSettings } from '@metad/contracts'
+import { ICopilotModel, IKnowledgebase, IXpertProject, IXpertProjectTask, IXpertToolset, TAvatar, TXpertProjectSettings } from '@xpert-ai/contracts'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { CopilotModelDslDTO, KnowledgebaseDslDTO, XpertDraftDslDTO, XpertToolsetDslDTO } from '../../xpert/dto'
 import { XpertProjectTaskDto } from './project-task.dto'

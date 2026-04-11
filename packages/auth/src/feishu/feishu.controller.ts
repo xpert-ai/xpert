@@ -1,4 +1,4 @@
-import { ConfigService, IEnvironment } from '@metad/server-config'
+import { ConfigService, IEnvironment } from '@xpert-ai/server-config'
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 import { Public } from '../public.decorator'

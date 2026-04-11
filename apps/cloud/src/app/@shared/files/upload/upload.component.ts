@@ -1,8 +1,8 @@
 
 import { Component, booleanAttribute, input, output } from '@angular/core'
 
-import { NgmDndDirective } from '@metad/core'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { NgmDndDirective } from '@xpert-ai/core'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardIconComponent, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 

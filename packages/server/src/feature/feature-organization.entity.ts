@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm';
-import { IFeature, IFeatureOrganization } from '@metad/contracts';
+import { IFeature, IFeatureOrganization } from '@xpert-ai/contracts';
 import { IsString } from 'class-validator';
 import {
 	Feature,

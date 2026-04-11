@@ -1,4 +1,4 @@
-import { IUserPasswordInput } from '@metad/contracts'
+import { IUserPasswordInput } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsNotEmpty, MinLength } from 'class-validator'
 

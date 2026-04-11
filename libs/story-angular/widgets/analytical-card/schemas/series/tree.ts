@@ -1,5 +1,5 @@
 import { Positions, UniversalTransition } from '../common'
-import { FORMLY_ROW } from '@metad/story/designer'
+import { FORMLY_ROW } from '@xpert-ai/story/designer'
 
 export function TreeCapacity(className, I18N?) {
   const keyShow = '__showSeriesAttributes__'
