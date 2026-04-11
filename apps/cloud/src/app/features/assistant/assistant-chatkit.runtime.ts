@@ -53,6 +53,10 @@ type AssistantRuntimeInput = {
   onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
 
+type AssistantBindingRuntimeInput = {
+  assistantCode: Signal<AssistantCode | null>
+}
+
 type AssistantHostedRuntimeInput = {
   identity: Signal<string | null>
   assistantId: Signal<string | null>
@@ -73,6 +77,43 @@ type AssistantHostedRuntimeInput = {
 }
 
 export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
+  const bindingRuntime = injectAssistantBindingRuntimeState({
+    assistantCode: input.assistantCode
+  })
+  const { config, hasSource, isConfigured, loading, refresh, status } = bindingRuntime
+  const frameUrl = computed(() => sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL))
+
+  const control = injectHostedAssistantChatkitControl({
+    identity: computed(() => (status() === 'ready' ? input.assistantCode() : null)),
+    assistantId: computed(() => config()?.assistantId ?? null),
+    frameUrl,
+    requestContext: input.requestContext,
+    history: input.history,
+    initialThread: input.initialThread,
+    titleKey: input.titleKey,
+    titleDefault: input.titleDefault,
+    onReady: input.onReady,
+    onEffect: input.onEffect,
+    onLog: input.onLog,
+    onResponseStart: input.onResponseStart,
+    onResponseEnd: input.onResponseEnd,
+    onThreadChange: input.onThreadChange,
+    onThreadLoadStart: input.onThreadLoadStart,
+    onThreadLoadEnd: input.onThreadLoadEnd
+  })
+
+  return {
+    config,
+    control,
+    hasSource,
+    isConfigured,
+    loading,
+    refresh,
+    status
+  }
+}
+
+export function injectAssistantBindingRuntimeState(input: AssistantBindingRuntimeInput) {
   const assistantBindingService = inject(AssistantBindingService)
   const translate = inject(TranslateService)
   const toastr = inject(ToastrService)
@@ -156,28 +197,8 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     return 'ready'
   })
 
-  const control = injectHostedAssistantChatkitControl({
-    identity: computed(() => (status() === 'ready' ? input.assistantCode() : null)),
-    assistantId: computed(() => config()?.assistantId ?? null),
-    frameUrl,
-    requestContext: input.requestContext,
-    history: input.history,
-    initialThread: input.initialThread,
-    titleKey: input.titleKey,
-    titleDefault: input.titleDefault,
-    onReady: input.onReady,
-    onEffect: input.onEffect,
-    onLog: input.onLog,
-    onResponseStart: input.onResponseStart,
-    onResponseEnd: input.onResponseEnd,
-    onThreadChange: input.onThreadChange,
-    onThreadLoadStart: input.onThreadLoadStart,
-    onThreadLoadEnd: input.onThreadLoadEnd
-  })
-
   return {
     config,
-    control,
     hasSource,
     isConfigured,
     loading,
