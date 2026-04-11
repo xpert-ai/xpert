@@ -1,6 +1,7 @@
 {
   "name": "@xpert-ai/plugin-retriever-common",
   "version": "0.0.2-beta.1",
+  "private": true,
   "xpert": {
     "plugin": {
       "level": "system"

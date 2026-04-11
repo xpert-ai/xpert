@@ -1,6 +1,7 @@
 {
   "name": "@xpert-ai/components",
   "version": "2.1.0",
+  "private": true,
   "peerDependencies": {
     "@angular/common": "^21.0.0",
     "@angular/core": "^21.0.0"
