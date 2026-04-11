@@ -44,6 +44,7 @@
     "@xpert-ai/ocap-xmla": "3.9.0-beta.0"
   },
   "changesets": [
-    "many-jars-allow"
+    "many-jars-allow",
+    "tough-pandas-turn"
   ]
 }

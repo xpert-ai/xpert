@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/server-core",
-  "version": "3.9.0-beta.1",
+  "version": "3.9.0-beta.2",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {
