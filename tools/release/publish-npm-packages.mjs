@@ -10,10 +10,8 @@ import { spawnSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
-import devkit from '@nx/devkit'
 
 const workspaceRoot = process.cwd()
-const { readCachedProjectGraph } = devkit
 
 function formatCommand(command, args) {
   return [command, ...args].join(' ')
@@ -64,12 +62,19 @@ function getHeadChangedFiles() {
   )
 }
 
-function resolvePackageRoot(project) {
-  const projectRoot = normalizeRelativePath(project.data.root)
-  const buildTarget = project.data.targets?.build
+function getChangedManifestPaths(headChangedFiles) {
+  return [...headChangedFiles]
+    .filter((filePath) => filePath.endsWith('/package.json'))
+    .filter((filePath) => filePath !== 'package.json')
+    .sort((left, right) => left.localeCompare(right))
+}
+
+function resolvePackageRoot(projectRoot, projectConfig, sourceManifest) {
+  const buildTarget = projectConfig.targets?.build
   const buildOutputPath = buildTarget?.options?.outputPath
   const pathTemplates = [
-    project.data.targets?.['nx-release-publish']?.options?.packageRoot,
+    sourceManifest.publishConfig?.directory,
+    projectConfig.targets?.['nx-release-publish']?.options?.packageRoot,
     buildOutputPath,
     ...(buildTarget?.outputs ?? [])
   ]
@@ -95,67 +100,88 @@ function resolvePackageRoot(project) {
   return null
 }
 
-async function getReleasePackages() {
-  const graph = readCachedProjectGraph()
+function getInternalDependencyProjectNames(packageManifest, packageNameToProject) {
   const candidates = new Map()
-  const projectNames = Object.keys(graph.nodes).sort((left, right) => left.localeCompare(right))
 
-  for (const projectName of projectNames) {
-    const project = graph.nodes[projectName]
+  for (const dependencyType of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+    const dependencies = packageManifest[dependencyType] ?? {}
 
-    if (project.data.projectType !== 'library') {
-      continue
+    for (const dependencyName of Object.keys(dependencies)) {
+      const dependencyProjectName = packageNameToProject.get(dependencyName)
+      if (dependencyProjectName) {
+        candidates.set(dependencyProjectName, true)
+      }
     }
+  }
 
-    const sourcePackageJson = normalizeRelativePath(path.posix.join(project.data.root, 'package.json'))
+  return [...candidates.keys()].sort((left, right) => left.localeCompare(right))
+}
+
+async function getReleasePackages(headChangedFiles) {
+  const changedManifestPaths = getChangedManifestPaths(headChangedFiles)
+  const candidates = new Map()
+
+  for (const sourcePackageJson of changedManifestPaths) {
+    const projectRoot = normalizeRelativePath(path.posix.dirname(sourcePackageJson))
     let sourceManifest
+    let projectConfig
 
     try {
       sourceManifest = await readJson(sourcePackageJson)
+      projectConfig = await readJson(path.posix.join(projectRoot, 'project.json'))
     } catch {
       continue
     }
 
-    if (!sourceManifest.name || !sourceManifest.version || sourceManifest.private) {
+    if (
+      !projectConfig.name ||
+      projectConfig.projectType !== 'library' ||
+      !sourceManifest.name ||
+      !sourceManifest.version ||
+      sourceManifest.private
+    ) {
       continue
     }
 
-    const packageRoot = resolvePackageRoot(project)
+    const packageRoot = resolvePackageRoot(projectRoot, projectConfig, sourceManifest)
     if (!packageRoot) {
       continue
     }
 
-    candidates.set(projectName, {
-      projectName,
+    candidates.set(projectConfig.name, {
+      projectName: projectConfig.name,
       packageName: sourceManifest.name,
       sourcePackageJson,
       packageRoot,
-      access: sourceManifest.publishConfig?.access ?? 'public'
+      access: sourceManifest.publishConfig?.access ?? 'public',
+      sourceManifest
     })
   }
 
   const orderedPackages = []
   const visiting = new Set()
   const visited = new Set()
+  const projectNames = [...candidates.keys()].sort((left, right) => left.localeCompare(right))
+  const packageNameToProject = new Map(
+    [...candidates.values()].map((pkg) => [pkg.packageName, pkg.projectName])
+  )
 
   function visit(projectName) {
-    if (visited.has(projectName) || visiting.has(projectName) || !candidates.has(projectName)) {
+    const pkg = candidates.get(projectName)
+
+    if (visited.has(projectName) || visiting.has(projectName) || !pkg) {
       return
     }
 
     visiting.add(projectName)
 
-    const dependencies = [...(graph.dependencies[projectName] ?? [])]
-      .map((dependency) => dependency.target)
-      .sort((left, right) => left.localeCompare(right))
-
-    for (const dependencyProjectName of dependencies) {
+    for (const dependencyProjectName of getInternalDependencyProjectNames(pkg.sourceManifest, packageNameToProject)) {
       visit(dependencyProjectName)
     }
 
     visiting.delete(projectName)
     visited.add(projectName)
-    orderedPackages.push(candidates.get(projectName))
+    orderedPackages.push(pkg)
   }
 
   for (const projectName of projectNames) {
@@ -251,7 +277,7 @@ async function publishPackage(pkg, version) {
 
 async function main() {
   const headChangedFiles = getHeadChangedFiles()
-  const releasePackages = await getReleasePackages()
+  const releasePackages = await getReleasePackages(headChangedFiles)
   const createdTags = []
   const publishedPackages = []
   const skippedPackages = []
