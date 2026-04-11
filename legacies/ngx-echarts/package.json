@@ -1,6 +1,7 @@
 {
   "name": "ngx-echarts",
   "version": "15.0.0",
+  "private": true,
   "author": "Xie, Ziyu",
   "license": "AGPL-3.0",
   "keywords": [

@@ -17,6 +17,12 @@ import { getPackages } from '@manypkg/get-packages'
 
 const workspaceRoot = process.cwd()
 const dependencySections = ['dependencies', 'peerDependencies', 'optionalDependencies']
+const releaseManagedPackageNames = new Set([
+  '@xpert-ai/plugin-sdk',
+  '@xpert-ai/contracts',
+  '@xpert-ai/ocap-core',
+  '@xpert-ai/store',
+])
 const args = parseArgs(process.argv.slice(2))
 
 async function main() {
@@ -162,6 +168,10 @@ function isPublishablePackage(pkg) {
     return false
   }
 
+  if (!releaseManagedPackageNames.has(pkg.name)) {
+    return false
+  }
+
   if (pkg.project?.projectType && pkg.project.projectType !== 'library') {
     return false
   }
@@ -171,7 +181,21 @@ function isPublishablePackage(pkg) {
     return false
   }
 
+  if (!hasExplicitPublishRoot(pkg)) {
+    return false
+  }
+
   return true
+}
+
+function hasExplicitPublishRoot(pkg) {
+  const publishDirectory = pkg.packageJson.publishConfig?.directory
+  if (typeof publishDirectory === 'string' && publishDirectory.trim() !== '') {
+    return true
+  }
+
+  const releasePackageRoot = pkg.project?.targets?.['nx-release-publish']?.options?.packageRoot
+  return typeof releasePackageRoot === 'string' && releasePackageRoot.trim() !== ''
 }
 
 function matchesFilter(pkg, filters) {
