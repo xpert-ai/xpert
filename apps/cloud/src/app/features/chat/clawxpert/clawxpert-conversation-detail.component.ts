@@ -73,7 +73,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
             </div>
 
             <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div class="min-h-0 flex-1 p-2">
+              <div class="min-h-0 flex-1 p-2 pr-0">
                 @if (contextLoading() && !resolvedConversationId()) {
                   <div class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
                     {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace…' } }}

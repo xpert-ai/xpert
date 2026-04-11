@@ -1,5 +1,5 @@
 <article
-  [class]="articleClass()"
+  [class]="'relative group ' + articleClass()"
   [attr.role]="isMine() ? 'button' : null"
   [attr.tabindex]="isMine() ? '0' : null"
   (click)="handleCardClick()"
@@ -63,9 +63,9 @@
       {{ description() }}
     </div>
 
-    <div class="absolute bottom-0 left-0 w-full">
+    <div class="absolute bottom-0 left-0 w-full p-4 flex justify-between cursor-none bg-white/10 dark:bg-black/10 translate-y-2 opacity-0 backdrop-blur-lg group-hover:translate-y-0 group-hover:opacity-100 transition-all">
       @if (isMine()) {
-        <div class="mt-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
+        <div class="flex-1 flex flex-col px-4 py-4 text-sm text-text-secondary">
           <div class="flex items-center justify-between gap-3">
             <span class="text-text-tertiary">
               {{ 'PAC.Explore.Creator' | translate: { Default: 'Creator' } }}
@@ -80,12 +80,12 @@
           <div class="text-xs text-text-quaternary">
             {{ displayDate() | date: 'yyyy-MM-dd' }}
           </div>
-          <button z-button zType="secondary" type="button" zSize="sm" class="shrink-0 cursor-pointer rounded-lg" (click)="handleActionClick($event)">
+          <button z-button zType="secondary" type="button" zSize="sm" class="shrink-0 cursor-pointer" (click)="handleActionClick($event)">
             {{ 'PAC.Explore.OpenWorkspaceAgents' | translate: { Default: 'Open Workspace Agents' } }}
           </button>
         </div>
       } @else {
-        <div class="mt-auto rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
+        <div class="flex-1 mt-auto text-sm text-text-secondary">
           <div class="flex items-center justify-between gap-3">
             <div class="text-text-tertiary">
               {{ 'PAC.Explore.TemplateReady' | translate: { Default: 'Ready to Install in a Workspace' } }}
