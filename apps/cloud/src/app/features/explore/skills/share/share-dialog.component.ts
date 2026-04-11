@@ -144,17 +144,17 @@ type ExploreSkillShareDialogData = {
 
         <div class="flex justify-end gap-3 pt-2">
           <button type="button" class="btn btn-secondary btn-medium" [disabled]="submitting()" (click)="close()">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: '取消' } }}
+            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button type="submit" class="btn btn-primary btn-medium min-w-[132px]" [disabled]="submitting()">
             @if (submitting()) {
               <ngm-spin size="small" class="mr-1" />
-              {{ 'PAC.ACTIONS.Saving' | translate: { Default: '保存中' } }}
+              {{ 'PAC.ACTIONS.Saving' | translate: { Default: 'Saving...' } }}
             } @else {
               {{
                 skill.publishAt
                   ? ('PAC.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
-                  : ('PAC.Explore.ShareSkill' | translate: { Default: 'Share Now' })
+                  : ('PAC.Explore.ShareSkill' | translate: { Default: 'Share' })
               }}
             }
           </button>

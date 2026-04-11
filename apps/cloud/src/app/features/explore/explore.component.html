@@ -14,7 +14,7 @@
               "
               (click)="setMode('square')"
             >
-              {{ 'PAC.Explore.Square' | translate: { Default: '广场' } }}
+              {{ 'PAC.Explore.Square' | translate: { Default: 'Square' } }}
             </button>
             <button
               type="button"
@@ -26,19 +26,19 @@
               "
               (click)="setMode('mine')"
             >
-              {{ 'PAC.Explore.Mine' | translate: { Default: '我的' } }}
+              {{ 'PAC.Explore.Mine' | translate: { Default: 'Mine' } }}
             </button>
           </div>
 
           <nav z-tab-nav-bar class="border-0 m-0" zSize="lg" [tabPanel]="tabPanel" stretchTabs="false" alignTabs="start" disableRipple>
             <button z-tab-link type="button" [active]="tab() === 'skills'" (click)="setTab('skills')">
-              {{ 'PAC.Explore.Skills' | translate: { Default: '技能' } }}
+              {{ 'PAC.Explore.Skills' | translate: { Default: 'Skills' } }}
             </button>
             <button z-tab-link type="button" [active]="tab() === 'agents'" (click)="setTab('agents')">
-              {{ 'PAC.Explore.Agents' | translate: { Default: '智能体' } }}
+              {{ 'PAC.Explore.Agents' | translate: { Default: 'Agents' } }}
             </button>
             <!-- <button z-tab-link type="button" [active]="tab() === 'inspirations'" (click)="setTab('inspirations')">
-              {{ 'PAC.Explore.Inspirations' | translate: { Default: '灵感市集' } }}
+              {{ 'PAC.Explore.Inspirations' | translate: { Default: 'Inspirations' } }}
             </button> -->
           </nav>
         </div>
@@ -48,7 +48,7 @@
         <i class="ri-search-2-line absolute left-3 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
         <input
           class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal py-2 pl-10 pr-10 text-sm text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
-          [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: '请输入关键词' }"
+          [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="search"
         />
         @if (search()) {
@@ -81,7 +81,7 @@
     @if (loadingDefaultWorkspace()) {
       <section class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg px-6 py-10">
         <div class="text-sm text-text-tertiary">
-          {{ 'PAC.Explore.LoadingMineWorkspace' | translate: { Default: '正在加载你的默认工作区...' } }}
+          {{ 'PAC.Explore.LoadingMineWorkspace' | translate: { Default: 'Loading your default workspace...' } }}
         </div>
       </section>
     } @else if (!defaultWorkspace()) {
@@ -91,23 +91,24 @@
             <i class="ri-briefcase-3-line"></i>
           </div>
           <h2 class="mt-6 text-2xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.NoDefaultWorkspaceTitle' | translate: { Default: '暂未找到默认工作区' } }}
+            {{ 'PAC.Explore.NoDefaultWorkspaceTitle' | translate: { Default: 'No Default Workspace Found Yet' } }}
           </h2>
           <p class="mt-3 text-base leading-7 text-text-tertiary">
             {{
               'PAC.Explore.NoDefaultWorkspaceDescription'
                 | translate
                   : {
-                      Default: '“我的” 内容会从当前用户的默认工作区读取。当前账号还没有可用的默认工作区，请先进入工作区完成初始化。'
+                      Default:
+                        "Content under \"Mine\" is loaded from the current user's default workspace. No default workspace is available for this account yet, so please open a workspace and finish initialization first."
                     }
             }}
           </p>
           <div class="mt-6 flex flex-wrap justify-center gap-3">
             <a class="btn btn-primary btn-medium" routerLink="/xpert/w">
-              {{ 'PAC.Explore.OpenWorkspace' | translate: { Default: '打开工作区' } }}
+              {{ 'PAC.Explore.OpenWorkspace' | translate: { Default: 'Open Workspace' } }}
             </a>
             <button type="button" class="btn btn-secondary btn-medium" (click)="resetToSquare()">
-              {{ 'PAC.Explore.BackToSquare' | translate: { Default: '返回广场' } }}
+              {{ 'PAC.Explore.BackToSquare' | translate: { Default: 'Back to Square' } }}
             </button>
           </div>
         </div>
@@ -117,7 +118,7 @@
         <div class="flex flex-col gap-4 rounded-[28px] border border-divider-regular bg-components-card-bg px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs font-semibold text-text-secondary">
-              {{ 'PAC.Explore.MineWorkspace' | translate: { Default: '我的默认工作区' } }}
+              {{ 'PAC.Explore.MineWorkspace' | translate: { Default: 'My Default Workspace' } }}
             </div>
             <h2 class="mt-3 text-2xl font-semibold text-text-primary">
               {{ defaultWorkspace()?.name }}
@@ -127,7 +128,8 @@
                 'PAC.Explore.MineWorkspaceHint'
                   | translate
                     : {
-                        Default: '当前展示该默认工作区中的技能、智能体与灵感资产，便于你快速回看和继续使用。'
+                        Default:
+                          'This view shows the skills, agents, and inspiration assets in your default workspace so you can quickly revisit and reuse them.'
                       }
               }}
             </p>
@@ -135,10 +137,10 @@
 
           <div class="flex flex-wrap gap-3">
             <a class="btn btn-secondary btn-medium" [routerLink]="['/xpert/w', defaultWorkspace()?.id]">
-              {{ 'PAC.Explore.OpenCurrentWorkspace' | translate: { Default: '打开当前工作区' } }}
+              {{ 'PAC.Explore.OpenCurrentWorkspace' | translate: { Default: 'Open Current Workspace' } }}
             </a>
             <button type="button" class="btn btn-secondary btn-medium" (click)="resetToSquare()">
-              {{ 'PAC.Explore.BackToSquare' | translate: { Default: '返回广场' } }}
+              {{ 'PAC.Explore.BackToSquare' | translate: { Default: 'Back to Square' } }}
             </button>
           </div>
         </div>

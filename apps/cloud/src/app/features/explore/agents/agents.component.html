@@ -29,28 +29,36 @@
         </div>
         @if (mode() === 'mine') {
           <h3 class="mt-4 text-xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.NoMyAgents' | translate: { Default: '当前默认工作区还没有智能体' } }}
+            {{ 'PAC.Explore.NoMyAgents' | translate: { Default: 'No Agents in the Default Workspace Yet' } }}
           </h3>
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
             {{
               'PAC.Explore.NoMyAgentsHint'
                 | translate
                   : {
-                      Default: '可以先从广场安装智能体模板，或者进入默认工作区创建新的智能体。'
+                      Default:
+                        'Install an agent template from the square first, or open the default workspace to create a new agent.'
                     }
             }}
           </p>
           <div class="mt-6 flex justify-center">
             <button type="button" class="btn btn-secondary btn-medium" (click)="openMineWorkspace()">
-              {{ 'PAC.Explore.OpenWorkspaceAgents' | translate: { Default: '打开工作区智能体' } }}
+              {{ 'PAC.Explore.OpenWorkspaceAgents' | translate: { Default: 'Open Workspace Agents' } }}
             </button>
           </div>
         } @else {
           <h3 class="mt-4 text-xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.NoAgents' | translate: { Default: '未找到匹配的智能体模板' } }}
+            {{ 'PAC.Explore.NoAgents' | translate: { Default: 'No Matching Agent Templates Found' } }}
           </h3>
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
-            {{ 'PAC.Explore.NoAgentsHint' | translate: { Default: '可以尝试调整关键词，查看更多企业内可复用的智能体与项目模板。' } }}
+            {{
+              'PAC.Explore.NoAgentsHint'
+                | translate
+                  : {
+                      Default:
+                        'Try adjusting the keywords to browse more reusable agents and project templates from your organization.'
+                    }
+            }}
           </p>
         }
       </div>

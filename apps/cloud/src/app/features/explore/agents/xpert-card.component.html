@@ -42,7 +42,7 @@
             {{ ('PAC.Explore.AgentType.' + typeLabel()) | translate: { Default: typeLabel() } }}
           </span>
           <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-secondary">
-            {{ 'PAC.Explore.InMyWorkspace' | translate: { Default: '已在工作区中' } }}
+            {{ 'PAC.Explore.InMyWorkspace' | translate: { Default: 'In Workspace' } }}
           </span>
         } @else if (category()) {
           <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-secondary">
@@ -68,7 +68,7 @@
         <div class="mt-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
           <div class="flex items-center justify-between gap-3">
             <span class="text-text-tertiary">
-              {{ 'PAC.Explore.Creator' | translate: { Default: '创建者' } }}
+              {{ 'PAC.Explore.Creator' | translate: { Default: 'Creator' } }}
             </span>
             <span class="truncate text-right text-text-primary">
               {{ creator() }}
@@ -81,14 +81,14 @@
             {{ displayDate() | date: 'yyyy-MM-dd' }}
           </div>
           <button z-button zType="secondary" type="button" zSize="sm" class="shrink-0 cursor-pointer rounded-lg" (click)="handleActionClick($event)">
-            {{ 'PAC.Explore.OpenWorkspaceAgents' | translate: { Default: '打开工作区智能体' } }}
+            {{ 'PAC.Explore.OpenWorkspaceAgents' | translate: { Default: 'Open Workspace Agents' } }}
           </button>
         </div>
       } @else {
         <div class="mt-auto rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
           <div class="flex items-center justify-between gap-3">
             <div class="text-text-tertiary">
-              {{ 'PAC.Explore.TemplateReady' | translate: { Default: '可直接用于工作区安装' } }}
+              {{ 'PAC.Explore.TemplateReady' | translate: { Default: 'Ready to Install in a Workspace' } }}
             </div>
             <button z-button type="button" zSize="sm" class="shrink-0 cursor-pointer rounded-lg" (click)="handleActionClick($event)">
               @if (templateItem()?.type === 'project') {
