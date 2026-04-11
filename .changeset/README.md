@@ -18,3 +18,6 @@ Use standard Changesets frontmatter for any publishable workspace library, for e
 
 Describe the user-facing change here.
 ```
+
+When a package is published from build output rather than its source folder, define
+`publishConfig.directory` in that package's `package.json`.

@@ -9,6 +9,10 @@
   "bugs": {
     "url": "https://github.com/xpert-ai/xpert/issues"
   },
+  "publishConfig": {
+    "access": "public",
+    "directory": "dist"
+  },
   "scripts": {
     "docs": "pnpm typedoc --out ./.docs"
   },
