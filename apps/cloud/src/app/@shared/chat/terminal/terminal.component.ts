@@ -55,12 +55,12 @@ type TerminalLine = {
       @if (mode() === 'interactive') {
         <div #container class="flex min-h-0 flex-1 flex-col overflow-auto px-4 py-4">
           @if (history().length) {
-            <div class="space-y-2">
+            <div class="">
               @for (line of history(); track $index) {
                 @switch (line.type) {
                   @case ('input') {
-                    <div class="flex items-start gap-2 text-sm">
-                      <span class="shrink-0 font-mono text-text-primary">xpert@sandbox $</span>
+                    <div class="flex items-start gap-2 text-sm mt-2">
+                      <span class="shrink-0 font-mono text-text-success select-none">xpert@sandbox $</span>
                       <span class="min-w-0 whitespace-pre-wrap break-all font-mono text-text-primary">{{ line.text }}</span>
                     </div>
                   }
