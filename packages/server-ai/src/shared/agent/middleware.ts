@@ -63,6 +63,7 @@ export async function getAgentMiddlewares(
 
 		const middleware = await strategy.createMiddleware(entity.options, {
 			...context,
+			xpertFeatures: context.xpertFeatures ?? null,
 			node: middlewareNode.entity as IWFNMiddleware
 		})
 		if (middleware?.tools?.length) {

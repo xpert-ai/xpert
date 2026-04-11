@@ -147,7 +147,8 @@ export class XpertAuthoringService {
             label: meta.label,
             description: meta.description,
             icon: meta.icon,
-            configSchema: meta.configSchema
+            configSchema: meta.configSchema,
+            features: meta.features
         }))
 
         return this.buildCatalogResult(items, {

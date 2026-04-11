@@ -65,10 +65,11 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
     },
     request: () => ({
       provider: this.provider(),
-      options: this.options() ?? {}
+      options: this.options() ?? {},
+      xpertId: this.xpertId()
     }),
     loader: ({ request }) => {
-      return request.provider ? this.agentAPI.getAgentMiddleware(request.provider, request.options) : null
+      return request.provider ? this.agentAPI.getAgentMiddleware(request.provider, request.options, request.xpertId) : null
     }
   })
   readonly stateSchema = computed(() => this.#middlewareToolsRes.value()?.stateSchema)
@@ -180,7 +181,7 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
 
   middlewareToolTester(name: string) {
     return ({ parameters }: { tool: IXpertTool; parameters: Record<string, any> }) =>
-      this.agentAPI.testAgentMiddlewareTool(this.provider(), name, this.options(), parameters)
+      this.agentAPI.testAgentMiddlewareTool(this.provider(), name, this.options(), parameters, this.xpertId())
   }
 
   getToolParameters(name: string) {

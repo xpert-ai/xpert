@@ -81,7 +81,7 @@ export class XpertAgentController extends CrudController<XpertAgent> {
     }
 
     @Post('middlewares/:provider/tools')
-    async getMiddlewareTools(@Param('provider') provider: string, @Body() body: any) {
+    async getMiddlewareTools(@Param('provider') provider: string, @Body() body: { xpertId?: string; options?: any }) {
         try {
             return await this.service.getMiddlewareTools(provider, body)
         } catch (err) {
@@ -93,7 +93,7 @@ export class XpertAgentController extends CrudController<XpertAgent> {
     async testMiddlewareTool(
         @Param('provider') provider: string,
         @Param('toolName') toolName: string,
-        @Body() body: { options?: any; parameters?: Record<string, any> }
+        @Body() body: { xpertId?: string; options?: any; parameters?: Record<string, any> }
     ) {
         try {
             return await this.service.testMiddlewareTool(provider, toolName, body)

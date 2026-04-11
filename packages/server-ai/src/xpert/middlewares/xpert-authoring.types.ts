@@ -62,6 +62,7 @@ export type AgentMiddlewareCatalogItem = {
     description?: I18nObject
     icon?: TAgentMiddlewareMeta['icon']
     configSchema?: TAgentMiddlewareMeta['configSchema']
+    features?: TAgentMiddlewareMeta['features']
 }
 
 export type ToolsetCatalogItem = {

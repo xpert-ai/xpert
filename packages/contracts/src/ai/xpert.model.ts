@@ -80,6 +80,8 @@ export type TXpertFeatures = {
   sandbox?: TXpertSandboxFeature
 }
 
+export type TXpertFeatureKey = keyof TXpertFeatures
+
 export type TXpert = {
   /**
    * Unique slug identifier, generated from name

@@ -339,6 +339,7 @@ describe('XpertAuthoringService', () => {
                                 type: 'svg',
                                 value: '<svg />'
                             },
+                            features: ['sandbox'],
                             configSchema: {
                                 type: 'object',
                                 properties: {}
@@ -363,7 +364,8 @@ describe('XpertAuthoringService', () => {
             workspaceId: 'workspace-1',
             items: [
                 expect.objectContaining({
-                    name: 'XpertAuthoringMiddleware'
+                    name: 'XpertAuthoringMiddleware',
+                    features: ['sandbox']
                 })
             ]
         })

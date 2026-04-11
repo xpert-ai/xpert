@@ -16,6 +16,7 @@ import {
 import { isAbsolute, resolve } from 'node:path'
 import { z } from 'zod/v3'
 import { getToolCallId, withToolMessage } from './toolMessageUtils'
+import { assertSandboxFeatureEnabled } from './xpertFeatureGate'
 
 const SANDBOX_FILE_MIDDLEWARE_NAME = 'SandboxFile'
 
@@ -120,6 +121,7 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
       en_US: 'Adds file operation tools (read, glob, grep, write, edit, multi-edit, list-dir) via the sandbox backend.',
       zh_Hans: '添加通过沙箱后端进行文件操作的工具（读取、glob、grep、写入、编辑、多编辑、列出目录）。'
     },
+    features: ['sandbox'],
     configSchema: {
       type: 'object',
       properties: {}
@@ -128,8 +130,10 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
 
   createMiddleware(
     _options: unknown,
-    _context: IAgentMiddlewareContext
+    context: IAgentMiddlewareContext
   ): PromiseOrValue<AgentMiddleware> {
+    assertSandboxFeatureEnabled(context, SANDBOX_FILE_MIDDLEWARE_NAME)
+
     const readTool = tool(
       async ({ file_path, offset, limit, mode, indentation }, config) => {
         const backend = getBackend(config)
