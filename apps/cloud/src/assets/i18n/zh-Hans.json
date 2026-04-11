@@ -2848,6 +2848,8 @@
         "OverviewEmptyDesc": "先绑定一个已发布的 Xpert。完成后，这里会成为你的 ClawXpert 概览与入口面板。",
         "OverviewReadyDesc": "在这里维护 SOUL.md 和 USER.md，作为当前 ClawXpert 绑定的长期上下文。",
         "GoToChat": "去对话",
+        "ContinueChat": "继续对话",
+        "NewConversation": "新建会话",
         "CopilotModelDesc": "无需离开当前页面，就可以切换当前已绑定 ClawXpert Xpert 使用的模型。",
         "CopilotModelSaving": "正在保存模型选择…",
         "CopilotModelSelected": "模型：{{model}}",
@@ -3009,7 +3011,8 @@
         "ThreadArtifactsTitle": "产物占位区",
         "ThreadArtifactsDesc": "线程关联文件、生成产物和结构化输出会在线程检查器扩展后接入这里。",
         "ThreadNotesTitle": "备注占位区",
-        "ThreadNotesDesc": "线程摘要、操作备注和额外上下文片段暂时先以占位形式保留。"
+        "ThreadNotesDesc": "线程摘要、操作备注和额外上下文片段暂时先以占位形式保留。",
+        "ConversationPreferenceSaveFailed": "保存 ClawXpert 会话偏好失败。"
       }
     },
     "ChatBI": {

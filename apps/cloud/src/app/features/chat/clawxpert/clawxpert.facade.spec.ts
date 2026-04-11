@@ -6,6 +6,7 @@ jest.mock('../../../@core', () => ({
     CLAWXPERT: 'clawxpert'
   },
   AssistantBindingService: class AssistantBindingService {},
+  ChatConversationService: class ChatConversationService {},
   EnvironmentService: class EnvironmentService {},
   Store: class Store {},
   ToastrService: class ToastrService {},
@@ -69,6 +70,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { of, Subject, throwError } from 'rxjs'
 import {
   AssistantBindingService,
+  ChatConversationService,
   EnvironmentService,
   IAssistantBinding,
   IChatConversation,
@@ -138,6 +140,18 @@ function createConversation(id: string, overrides?: Partial<IChatConversation>):
     status: 'idle',
     ...overrides
   } as IChatConversation
+}
+
+function createConversationPreferences(overrides?: { defaultThreadId?: string | null; lastThreadId?: string | null }) {
+  return {
+    version: 1 as const,
+    ...(Object.prototype.hasOwnProperty.call(overrides ?? {}, 'defaultThreadId')
+      ? { defaultThreadId: overrides?.defaultThreadId ?? null }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(overrides ?? {}, 'lastThreadId')
+      ? { lastThreadId: overrides?.lastThreadId ?? null }
+      : {})
+  }
 }
 
 function createToolPreferences() {
@@ -246,6 +260,10 @@ describe('ClawXpertFacade', () => {
     getTriggerProviders: jest.Mock
     saveDraft: jest.Mock
   }
+  let conversationService: {
+    findAllByXpert: jest.Mock
+    getByThreadId: jest.Mock
+  }
   let environmentService: {
     getDefaultByWorkspace: jest.Mock
   }
@@ -285,6 +303,10 @@ describe('ClawXpertFacade', () => {
       getTeam: jest.fn((id: string) => of(createTeam(id))),
       getTriggerProviders: jest.fn(() => of([])),
       saveDraft: jest.fn((id: string, draft: TXpertTeamDraft) => of({ ...draft, team: { ...draft.team, id } }))
+    }
+    conversationService = {
+      findAllByXpert: jest.fn(() => of({ items: [], total: 0 })),
+      getByThreadId: jest.fn(() => of(null))
     }
     environmentService = {
       getDefaultByWorkspace: jest.fn(() => of(null))
@@ -329,6 +351,10 @@ describe('ClawXpertFacade', () => {
         {
           provide: XpertAPIService,
           useValue: xpertService
+        },
+        {
+          provide: ChatConversationService,
+          useValue: conversationService
         },
         {
           provide: XpertTaskService,
@@ -946,6 +972,173 @@ describe('ClawXpertFacade', () => {
       })
     )
     expect(facade.userPreference()?.toolPreferences).toEqual(createToolPreferences())
+  })
+
+  it('loads conversation preferences with the user preference payload', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          defaultThreadId: 'thread-main',
+          lastThreadId: 'thread-last'
+        })
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(facade.defaultThreadId()).toBe('thread-main')
+    expect(facade.lastThreadId()).toBe('thread-last')
+  })
+
+  it('restores the saved main conversation before any fallback', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          defaultThreadId: 'thread-main',
+          lastThreadId: 'thread-last'
+        })
+      })
+    )
+    conversationService.getByThreadId.mockReturnValue(
+      of(createConversation('conversation-main', { threadId: 'thread-main', xpertId: 'xpert-threads' }))
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.ensureConversationEntry({
+      focusComposer: jest.fn()
+    } as any)
+
+    expect(conversationService.getByThreadId).toHaveBeenCalledWith('thread-main')
+    expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-main'])
+  })
+
+  it('clears an invalid main conversation and falls back to the last thread', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          defaultThreadId: 'thread-main',
+          lastThreadId: 'thread-last'
+        })
+      })
+    )
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          lastThreadId: 'thread-last'
+        })
+      })
+    )
+    conversationService.getByThreadId
+      .mockReturnValueOnce(of(null))
+      .mockReturnValueOnce(of(createConversation('conversation-last', { threadId: 'thread-last', xpertId: 'xpert-threads' })))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.ensureConversationEntry({
+      focusComposer: jest.fn()
+    } as any)
+
+    expect(assistantBindingService.upsertPreference).toHaveBeenCalledWith('clawxpert', {
+      scope: 'user',
+      conversationPreferences: createConversationPreferences({
+        defaultThreadId: null,
+        lastThreadId: 'thread-last'
+      })
+    })
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-last'])
+  })
+
+  it('falls back to the latest updated conversation when no saved thread exists', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+    conversationService.findAllByXpert.mockReturnValue(
+      of({
+        items: [createConversation('conversation-latest', { threadId: 'thread-latest', xpertId: 'xpert-threads' })],
+        total: 1
+      })
+    )
+    conversationService.getByThreadId.mockReturnValue(
+      of(createConversation('conversation-latest', { threadId: 'thread-latest', xpertId: 'xpert-threads' }))
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.ensureConversationEntry({
+      focusComposer: jest.fn()
+    } as any)
+
+    expect(conversationService.findAllByXpert).toHaveBeenCalledWith('xpert-threads', {
+      take: 1,
+      order: {
+        updatedAt: 'DESC'
+      }
+    })
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-latest'])
+  })
+
+  it('suppresses auto resume for explicit new conversations and focuses the composer instead', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.startConversation()
+
+    const focusComposer = jest.fn()
+    await facade.ensureConversationEntry({
+      focusComposer
+    } as any)
+
+    expect(focusComposer).toHaveBeenCalled()
+    expect(conversationService.getByThreadId).not.toHaveBeenCalled()
+    expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
+  })
+
+  it('clears saved conversation pointers when rebinding to a different ClawXpert', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-old')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-old', 'Old Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          defaultThreadId: 'thread-old',
+          lastThreadId: 'thread-old'
+        })
+      })
+    )
+    assistantBindingService.upsert.mockReturnValue(of(createBinding('xpert-new')))
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        conversationPreferences: null
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.savePreference('xpert-new')
+
+    expect(assistantBindingService.upsertPreference).toHaveBeenCalledWith('clawxpert', {
+      scope: 'user',
+      conversationPreferences: null
+    })
+    expect(facade.conversationPreferences()).toBeNull()
   })
 
   it('prefers title before name when resolving the current xpert label', async () => {

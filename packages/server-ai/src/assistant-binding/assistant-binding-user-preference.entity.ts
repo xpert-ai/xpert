@@ -1,5 +1,6 @@
 import {
   IAssistantBinding,
+  IAssistantBindingConversationPreferences,
   IAssistantBindingToolPreferences,
   IAssistantBindingUserPreference,
   IUser
@@ -74,4 +75,9 @@ export class AssistantBindingUserPreference
   @IsOptional()
   @Column({ type: 'json', nullable: true })
   toolPreferences?: IAssistantBindingToolPreferences | null
+
+  @ApiPropertyOptional({ type: () => Object })
+  @IsOptional()
+  @Column({ type: 'json', nullable: true })
+  conversationPreferences?: IAssistantBindingConversationPreferences | null
 }

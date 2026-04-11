@@ -3,6 +3,7 @@ import {
   AssistantBindingSourceScope,
   AssistantCode,
   IAssistantBinding,
+  IAssistantBindingConversationPreferences,
   IAssistantBindingSkillPreference,
   IAssistantBindingMiddlewarePreference,
   IAssistantBindingToolPreferences,
@@ -386,6 +387,9 @@ export class AssistantBindingService
       if (hasOwnPreferenceField(input, 'toolPreferences')) {
         existing.toolPreferences = normalizeToolPreferencesValue(input.toolPreferences)
       }
+      if (hasOwnPreferenceField(input, 'conversationPreferences')) {
+        existing.conversationPreferences = normalizeConversationPreferencesValue(input.conversationPreferences)
+      }
       existing.updatedBy = currentUserId ? ({ id: currentUserId } as any) : existing.updatedBy
       return this.preferenceRepository.save(existing)
     }
@@ -403,6 +407,9 @@ export class AssistantBindingService
       profile: hasOwnPreferenceField(input, 'profile') ? normalizeMarkdownValue(input.profile) : undefined,
       toolPreferences: hasOwnPreferenceField(input, 'toolPreferences')
         ? normalizeToolPreferencesValue(input.toolPreferences)
+        : undefined,
+      conversationPreferences: hasOwnPreferenceField(input, 'conversationPreferences')
+        ? normalizeConversationPreferencesValue(input.conversationPreferences)
         : undefined,
       createdBy: currentUserId ? ({ id: currentUserId } as any) : undefined,
       updatedBy: currentUserId ? ({ id: currentUserId } as any) : undefined
@@ -881,4 +888,34 @@ function normalizeDisabledTools(value?: string[] | null) {
         .filter((item): item is string => !!item)
     )
   )
+}
+
+function normalizeConversationPreferencesValue(
+  value?: IAssistantBindingConversationPreferences | null
+): IAssistantBindingConversationPreferences | null {
+  if (!value) {
+    return null
+  }
+
+  const defaultThreadId = normalizePreferenceThreadId(value.defaultThreadId)
+  const lastThreadId = normalizePreferenceThreadId(value.lastThreadId)
+
+  if (defaultThreadId == null && lastThreadId == null) {
+    return null
+  }
+
+  return {
+    version: 1,
+    ...(defaultThreadId !== undefined ? { defaultThreadId } : {}),
+    ...(lastThreadId !== undefined ? { lastThreadId } : {})
+  }
+}
+
+function normalizePreferenceThreadId(value?: string | null): string | null | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  const normalized = value?.trim()
+  return normalized || null
 }

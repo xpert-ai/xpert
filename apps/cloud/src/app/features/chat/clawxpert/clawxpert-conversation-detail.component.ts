@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatKit } from '@xpert-ai/chatkit-angular'
+import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
@@ -247,6 +247,10 @@ import { ClawXpertFacade } from './clawxpert.facade'
 export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
   readonly #conversationService = inject(ChatConversationService)
+  #lastSyncedChatkitThread: { control: ChatKitControl | null; threadId: string | null | undefined } = {
+    control: null,
+    threadId: undefined
+  }
 
   readonly facade = inject(ClawXpertFacade)
   readonly control = injectHostedAssistantChatkitControl({
@@ -318,6 +322,61 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       })
     })
 
+    effect((onCleanup) => {
+      const control = this.control()
+      const threadId = this.facade.threadId()
+      const viewState = this.facade.viewState()
+      this.facade.suppressAutoResume()
+
+      if (!control || threadId || viewState !== 'ready') {
+        return
+      }
+
+      let cancelled = false
+      const timer = setTimeout(() => {
+        if (cancelled) {
+          return
+        }
+
+        void this.facade.ensureConversationEntry(control)
+      })
+
+      onCleanup(() => {
+        cancelled = true
+        clearTimeout(timer)
+      })
+    })
+
+    effect((onCleanup) => {
+      const control = this.control()
+      const threadId = this.facade.threadId()
+      const viewState = this.facade.viewState()
+
+      if (!control || viewState !== 'ready') {
+        this.#lastSyncedChatkitThread = {
+          control: null,
+          threadId: undefined
+        }
+        return
+      }
+
+      if (this.#lastSyncedChatkitThread.control === control && this.#lastSyncedChatkitThread.threadId === threadId) {
+        return
+      }
+
+      this.#lastSyncedChatkitThread = {
+        control,
+        threadId
+      }
+
+      let cancelled = false
+      void this.syncChatkitThread(control, threadId, () => cancelled)
+
+      onCleanup(() => {
+        cancelled = true
+      })
+    })
+
     effect(
       (onCleanup) => {
         const threadId = this.facade.threadId()
@@ -342,8 +401,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         onCleanup(() => {
           cancelled = true
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
@@ -373,11 +431,32 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     )
   }
 
+  private async syncChatkitThread(control: ChatKitControl, threadId: string | null, isCancelled: () => boolean) {
+    await this.waitForChatkitMount(control, isCancelled)
+    if (isCancelled()) {
+      return
+    }
+
+    await control.setThreadId(threadId)
+  }
+
+  private async waitForChatkitMount(control: ChatKitControl, isCancelled: () => boolean) {
+    for (let index = 0; index < 12; index++) {
+      if (control.element || isCancelled()) {
+        return
+      }
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 16))
+    }
+  }
+
   private async resolveConversationContext(threadId: string, isCancelled: () => boolean) {
     let conversationId: string | null = null
 
     try {
-      const thread = await firstValueFrom(this.#threadService.getThread(threadId))
+      const thread = (await firstValueFrom(this.#threadService.getThread(threadId))) as {
+        metadata?: { id?: string }
+      } | null
       if (isCancelled() || this.facade.threadId() !== threadId) {
         return
       }
@@ -395,7 +474,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       if (conversationId) {
         this.resolvedConversationId.set(conversationId)
 
-        const conversation = await firstValueFrom(this.#conversationService.getById(conversationId))
+        const conversation = (await firstValueFrom(
+          this.#conversationService.getById(conversationId)
+        )) as IChatConversation | null
         if (isCancelled() || this.facade.threadId() !== threadId) {
           return
         }
@@ -407,7 +488,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         return
       }
 
-      const conversation = await firstValueFrom(this.#conversationService.getByThreadId(threadId))
+      const conversation = (await firstValueFrom(this.#conversationService.getByThreadId(threadId))) as
+        | IChatConversation
+        | null
       if (isCancelled() || this.facade.threadId() !== threadId) {
         return
       }

@@ -132,9 +132,11 @@ describe('ClawXpertConversationDetailComponent', () => {
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
+    suppressAutoResume: ReturnType<typeof signal<boolean>>
     pendingConversationStartId: ReturnType<typeof signal<number>>
     onChatThreadChange: jest.Mock
     beginPendingConversation: jest.Mock
+    ensureConversationEntry: jest.Mock
     navigateToOverview: jest.Mock
     setActiveConversation: jest.Mock
     patchActiveConversationStatus: jest.Mock
@@ -158,9 +160,11 @@ describe('ClawXpertConversationDetailComponent', () => {
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
+      suppressAutoResume: signal(false),
       pendingConversationStartId: signal(0),
       onChatThreadChange: jest.fn(),
       beginPendingConversation: jest.fn(),
+      ensureConversationEntry: jest.fn(),
       navigateToOverview: jest.fn(),
       setActiveConversation: jest.fn(),
       patchActiveConversationStatus: jest.fn()
@@ -220,9 +224,6 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
-    await settle(fixture)
-
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1')
@@ -254,6 +255,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
+    fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
+    await settle(fixture)
+
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[0rem_minmax(0,1fr)]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('rounded-none')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-0')
@@ -279,9 +283,6 @@ describe('ClawXpertConversationDetailComponent', () => {
     conversationService.getByThreadId.mockReturnValue(of(null))
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settle(fixture)
-
-    fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DetailPanelEmptyTitle')
@@ -317,9 +318,6 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
-    await settle(fixture)
-
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
@@ -342,6 +340,12 @@ describe('ClawXpertConversationDetailComponent', () => {
   })
 
   it('updates the shared sidebar status when a response starts and ends', async () => {
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined)
+      })
+    )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -355,5 +359,43 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(1, 'busy')
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
+  })
+
+  it('asks the facade to resolve the preferred conversation entry when the route has no thread id', async () => {
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        focusComposer: jest.fn()
+      })
+    )
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(facade.ensureConversationEntry).toHaveBeenCalled()
+  })
+
+  it('syncs the resumed thread into the chatkit control when the route thread changes', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(setThreadId).toHaveBeenCalledWith(null)
+
+    facade.threadId.set('thread-2')
+    await settle(fixture)
+
+    expect(setThreadId).toHaveBeenLastCalledWith('thread-2')
   })
 })

@@ -266,7 +266,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
               }
             </div>
 
-            <div class="grid gap-2" [class.grid-cols-2]="facade.hasPersistedDraft()">
+            <div class="grid grid-cols-1 gap-2" [class.grid-cols-2]="facade.hasPersistedDraft()">
               <button
                 z-button
                 zType="default"
@@ -274,9 +274,9 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                 type="button"
                 class="w-full"
                 [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert()"
-                (click)="startConversation()"
+                (click)="goToChat()"
               >
-                <z-icon zType="chat"></z-icon>
+                <z-icon zType="message-circle-more"></z-icon>
                 {{ 'PAC.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
               </button>
 
@@ -491,8 +491,8 @@ export class ClawXpertOverviewComponent {
     }
   ])
 
-  startConversation() {
-    void this.facade.startConversation()
+  goToChat() {
+    void this.facade.continueConversation()
   }
 
   publishXpert() {

@@ -385,6 +385,8 @@
         "OverviewEmptyDesc": "Bind one published Xpert first. Once ready, this panel becomes the overview and entry point for your ClawXpert workspace.",
         "OverviewReadyDesc": "Use the markdown workspace to maintain SOUL.md and USER.md for this ClawXpert binding.",
         "GoToChat": "Go to chat",
+        "ContinueChat": "Continue chat",
+        "NewConversation": "New conversation",
         "CopilotModelDesc": "Switch the model used by the bound ClawXpert xpert without leaving this page.",
         "CopilotModelSaving": "Saving model selection…",
         "CopilotModelSelected": "Model: {{model}}",
@@ -503,7 +505,8 @@
         "ThreadArtifactsTitle": "Artifacts placeholder",
         "ThreadArtifactsDesc": "Thread-linked files, generated artifacts, and structured outputs can be connected here when the thread inspector expands.",
         "ThreadNotesTitle": "Notes placeholder",
-        "ThreadNotesDesc": "Thread summaries, operator notes, and extra context snippets are intentionally left as placeholders for now."
+        "ThreadNotesDesc": "Thread summaries, operator notes, and extra context snippets are intentionally left as placeholders for now.",
+        "ConversationPreferenceSaveFailed": "Failed to save the ClawXpert conversation preferences."
       }
     },
     "Copilot": {
