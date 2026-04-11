@@ -66,7 +66,6 @@
     "bootstrap": "pnpm install && pnpm nx build server && pnpm nx build plugin-sdk",
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm install --lockfile-only --ignore-scripts",
-    "release:verify": "node tools/release/verify-core-only-changeset.mjs",
     "release:publish": "node tools/release/publish-npm-packages.mjs",
     "b:docs": "concurrently \"pnpm -C ./packages/store docs\" \"pnpm -C ./packages/core docs\" \"pnpm -C ./packages/xmla docs\" \"pnpm -C ./packages/sql docs\" \"pnpm -C ./packages/echarts docs\" \"pnpm -C ./packages/duckdb docs\" \"pnpm -C ./legacies/copilot docs\"",
     "b:stats": "pnpm nx build cloud --stats-json",

@@ -2,24 +2,18 @@
  * Why this exists:
  * Changesets versions source manifests, but npm publishing must happen from
  * built dist outputs. The release workflow also runs on every push to main, so
- * publishing must be safe to skip unless the current commit is a version bump.
+ * publishing must be safe to skip unless the current commit versions a
+ * publishable workspace library.
  */
 
 import { spawnSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
+import devkit from '@nx/devkit'
 
 const workspaceRoot = process.cwd()
-const releasePackages = [
-  {
-    projectName: 'core',
-    packageName: '@xpert-ai/ocap-core',
-    sourcePackageJson: 'packages/core/package.json',
-    packageRoot: 'dist/packages/core',
-    access: 'public'
-  }
-]
+const { readCachedProjectGraph } = devkit
 
 function formatCommand(command, args) {
   return [command, ...args].join(' ')
@@ -55,6 +49,10 @@ async function readJson(relativePath) {
   return JSON.parse(await readFile(path.join(workspaceRoot, relativePath), 'utf8'))
 }
 
+function normalizeRelativePath(filePath) {
+  return filePath.replaceAll('\\', '/')
+}
+
 function getHeadChangedFiles() {
   const result = run('git', ['show', '--name-only', '--pretty=format:', 'HEAD'], { capture: true })
 
@@ -64,6 +62,107 @@ function getHeadChangedFiles() {
       .map((line) => line.trim())
       .filter(Boolean)
   )
+}
+
+function resolvePackageRoot(project) {
+  const projectRoot = normalizeRelativePath(project.data.root)
+  const buildTarget = project.data.targets?.build
+  const buildOutputPath = buildTarget?.options?.outputPath
+  const pathTemplates = [
+    project.data.targets?.['nx-release-publish']?.options?.packageRoot,
+    buildOutputPath,
+    ...(buildTarget?.outputs ?? [])
+  ]
+
+  for (const template of pathTemplates) {
+    if (typeof template !== 'string' || !template.trim()) {
+      continue
+    }
+
+    const resolvedPath = template
+      .replaceAll('{workspaceRoot}/', '')
+      .replaceAll('{workspaceRoot}', '')
+      .replaceAll('{projectRoot}', projectRoot)
+      .replaceAll('{options.outputPath}', buildOutputPath ?? '')
+
+    if (!resolvedPath || resolvedPath.includes('{')) {
+      continue
+    }
+
+    return normalizeRelativePath(resolvedPath)
+  }
+
+  return null
+}
+
+async function getReleasePackages() {
+  const graph = readCachedProjectGraph()
+  const candidates = new Map()
+  const projectNames = Object.keys(graph.nodes).sort((left, right) => left.localeCompare(right))
+
+  for (const projectName of projectNames) {
+    const project = graph.nodes[projectName]
+
+    if (project.data.projectType !== 'library') {
+      continue
+    }
+
+    const sourcePackageJson = normalizeRelativePath(path.posix.join(project.data.root, 'package.json'))
+    let sourceManifest
+
+    try {
+      sourceManifest = await readJson(sourcePackageJson)
+    } catch {
+      continue
+    }
+
+    if (!sourceManifest.name || !sourceManifest.version || sourceManifest.private) {
+      continue
+    }
+
+    const packageRoot = resolvePackageRoot(project)
+    if (!packageRoot) {
+      continue
+    }
+
+    candidates.set(projectName, {
+      projectName,
+      packageName: sourceManifest.name,
+      sourcePackageJson,
+      packageRoot,
+      access: sourceManifest.publishConfig?.access ?? 'public'
+    })
+  }
+
+  const orderedPackages = []
+  const visiting = new Set()
+  const visited = new Set()
+
+  function visit(projectName) {
+    if (visited.has(projectName) || visiting.has(projectName) || !candidates.has(projectName)) {
+      return
+    }
+
+    visiting.add(projectName)
+
+    const dependencies = [...(graph.dependencies[projectName] ?? [])]
+      .map((dependency) => dependency.target)
+      .sort((left, right) => left.localeCompare(right))
+
+    for (const dependencyProjectName of dependencies) {
+      visit(dependencyProjectName)
+    }
+
+    visiting.delete(projectName)
+    visited.add(projectName)
+    orderedPackages.push(candidates.get(projectName))
+  }
+
+  for (const projectName of projectNames) {
+    visit(projectName)
+  }
+
+  return orderedPackages
 }
 
 function resolveDistTag(version) {
@@ -152,6 +251,7 @@ async function publishPackage(pkg, version) {
 
 async function main() {
   const headChangedFiles = getHeadChangedFiles()
+  const releasePackages = await getReleasePackages()
   const createdTags = []
   const publishedPackages = []
   const skippedPackages = []
