@@ -10,6 +10,7 @@ import { LLMToolSelectorNameMiddleware } from './llmToolSelector';
 import { LocalShellSandboxProvider } from './localShellSandbox.provider';
 import { StructuredOutputMiddleware } from './structuredOutput';
 import { SandboxShellMiddleware } from './sandboxShell';
+import { SandboxFileMiddleware } from './sandboxFile';
 
 @XpertServerPlugin({
 	/**
@@ -25,6 +26,7 @@ import { SandboxShellMiddleware } from './sandboxShell';
 		ClientToolMiddleware,
 		ClientEffectMiddleware,
 		SandboxShellMiddleware,
+		SandboxFileMiddleware,
 		LocalShellSandboxProvider,
 		StructuredOutputMiddleware,
     ],
