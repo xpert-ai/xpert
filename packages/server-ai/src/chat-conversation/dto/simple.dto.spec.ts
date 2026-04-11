@@ -1,4 +1,4 @@
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
   UserPublicDTO: class UserPublicDTO {
     constructor(value?: Record<string, unknown>) {
       Object.assign(this, value)

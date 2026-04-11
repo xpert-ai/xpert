@@ -27,7 +27,7 @@ jest.mock('../../../@core/providers/ocap', () => ({
   provideOcap: jest.fn(() => [])
 }))
 
-jest.mock('@metad/ocap-angular/core', () => ({
+jest.mock('@xpert-ai/ocap-angular/core', () => ({
   provideOcapCore: jest.fn(() => [])
 }))
 
