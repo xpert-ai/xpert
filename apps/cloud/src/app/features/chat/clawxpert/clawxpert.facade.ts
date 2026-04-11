@@ -12,6 +12,7 @@ import {
   AssistantBindingService,
   AssistantCode,
   IAssistantBinding,
+  IChatConversation,
   IAssistantBindingSkillPreference,
   IEnvironment,
   ICopilotModel,
@@ -30,13 +31,14 @@ import {
   XpertTaskService,
   getErrorMessage
 } from '../../../@core'
-import { CHAT_WORKFLOW_TRIGGER_PROVIDER, WorkflowTriggerProviderOption } from '../../../@shared/workflow'
 import { sanitizeAssistantFrameUrl } from '../../assistant/assistant-chatkit.runtime'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
 import {
   buildEditableXpertDraft,
+  CHAT_WORKFLOW_TRIGGER_PROVIDER,
   readTriggerEditorItemsFromDraft,
   upsertTriggerEditorItemsIntoDraft,
+  WorkflowTriggerProviderOption,
   XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING,
   XpertDraftTriggerEditorItem
 } from '../../xpert/draft/index'
@@ -47,6 +49,8 @@ export type ClawXpertDailyConversation = {
   date: string
   count: number
 }
+
+export type ClawXpertSidebarStatus = 'setup' | 'idle' | 'busy'
 
 type ClawXpertTaskSummary = {
   items: IXpertTask[]
@@ -130,6 +134,7 @@ export class ClawXpertFacade {
   readonly showWizard = signal(false)
   readonly pendingConversationStartId = signal(0)
   readonly taskRefreshTick = signal(0)
+  readonly activeConversation = signal<IChatConversation | null>(null)
   readonly errorMessage = signal<string | null>(null)
   readonly triggerDraftErrorMessage = signal<string | null>(null)
   readonly hasLoadedXperts = signal(false)
@@ -163,6 +168,7 @@ export class ClawXpertFacade {
   readonly currentWorkspaceId = computed(() => {
     return this.triggerDraftSource()?.workspaceId ?? this.currentXpert()?.workspaceId ?? null
   })
+  readonly currentXpertAvatar = computed(() => this.currentXpert()?.avatar ?? null)
   readonly currentXpertLabel = computed(() => {
     return this.getXpertLabel(this.currentXpert() ?? this.resolvedPreference())
   })
@@ -188,6 +194,18 @@ export class ClawXpertFacade {
       return 'wizard'
     }
     return 'ready'
+  })
+  readonly isConversationRoute = computed(() => isClawXpertConversationPath(this.currentUrl()))
+  readonly sidebarStatus = computed<ClawXpertSidebarStatus>(() => {
+    if (this.viewState() !== 'ready') {
+      return 'setup'
+    }
+
+    if (!this.isConversationRoute()) {
+      return 'idle'
+    }
+
+    return this.activeConversation()?.status === 'busy' ? 'busy' : 'idle'
   })
   readonly boundDays = computed(() => calculateBoundDays(this.preference()?.createdAt))
   readonly conversationCount = toSignal(
@@ -311,6 +329,7 @@ export class ClawXpertFacade {
         this.loadingTriggerDraft.set(false)
         this.savingTriggerDraft.set(false)
         this.publishingXpert.set(false)
+        this.activeConversation.set(null)
         this.triggerDraftErrorMessage.set(null)
         this.triggerDraftSource.set(null)
         this.triggerDraft.set(null)
@@ -806,6 +825,16 @@ export class ClawXpertFacade {
     }
   }
 
+  setActiveConversation(conversation: IChatConversation | null) {
+    this.activeConversation.set(conversation ? ({ ...conversation } as IChatConversation) : null)
+  }
+
+  patchActiveConversationStatus(status: 'busy' | 'idle') {
+    this.activeConversation.update((conversation) =>
+      conversation ? ({ ...conversation, status } as IChatConversation) : conversation
+    )
+  }
+
   getXpertLabel(xpert: Partial<IXpert> | Partial<IAssistantBinding> | null | undefined) {
     if (!xpert) {
       return ''
@@ -1262,6 +1291,10 @@ function isToolPreferencesEmpty(preferences?: IAssistantBindingToolPreferences |
 function parseClawXpertThreadId(url: string) {
   const match = normalizeClawXpertPath(url).match(/^\/chat\/clawxpert\/c\/([^/]+)$/)
   return match?.[1] ? decodeURIComponent(match[1]) : null
+}
+
+function isClawXpertConversationPath(url: string) {
+  return /^\/chat\/clawxpert\/c(?:\/|$)/.test(normalizeClawXpertPath(url))
 }
 
 function calculateBoundDays(createdAt?: Date | string | null) {

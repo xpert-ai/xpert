@@ -9,7 +9,7 @@ import { WorkflowTriggerProviderOption } from './types'
 
 @Component({
   standalone: true,
-  selector: 'xpert-workflow-trigger-config-card',
+  selector: 'xp-workflow-trigger-config-card',
   imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, JSONSchemaFormComponent],
   template: `
     @if (appearance() === 'card') {

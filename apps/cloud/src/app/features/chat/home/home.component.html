@@ -13,6 +13,73 @@
     (click)="toggleSidebar()"
   >
     <div class="grow overflow-auto">
+      @if (sidebarState() === 'expanded' && clawxpertEnabled()) {
+        <div
+          data-sidebar="group"
+          class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
+          (click)="$event.stopPropagation()"
+        >
+          <div
+            data-clawxpert-card
+            class="flex items-center gap-2 rounded-2xl border border-border px-3 py-3 transition-[border-color,background-color,box-shadow]"
+            [class]="
+              clawxpertCardActive()
+                ? 'bg-components-card-bg'
+                : 'bg-background-default-subtle hover:bg-components-card-bg'
+            "
+          >
+            <button
+              data-clawxpert-open
+              type="button"
+              class="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer"
+              (click)="openClawXpertCard()"
+            >
+              <div class="relative shrink-0">
+                <emoji-avatar
+                  class="block h-12 w-12 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle shadow-sm"
+                  [avatar]="clawxpertFacade.currentXpertAvatar()"
+                  [alt]="clawxpertCardTitle()"
+                  [fallbackLabel]="clawxpertCardTitle()"
+                />
+                <span
+                  class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-components-card-bg bg-primary"
+                  [class.animate-pulse]="clawxpertFacade.sidebarStatus() === 'busy'"
+                ></span>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div data-clawxpert-title class="truncate text-base font-semibold text-text-primary">
+                  {{ clawxpertCardTitle() }}
+                </div>
+                <div data-clawxpert-status class="mt-1 truncate text-sm text-text-secondary">
+                  @switch (clawxpertFacade.sidebarStatus()) {
+                    @case ('busy') {
+                      {{ 'PAC.Chat.ClawXpert.SidebarStatusBusy' | translate: { Default: 'Busy' } }}
+                    }
+                    @case ('idle') {
+                      {{ 'PAC.Chat.ClawXpert.SidebarStatusIdle' | translate: { Default: 'Idle' } }}
+                    }
+                    @default {
+                      {{ 'PAC.Chat.ClawXpert.SidebarStatusSetup' | translate: { Default: 'Go to setup' } }}
+                    }
+                  }
+                </div>
+              </div>
+            </button>
+
+            <button
+              data-clawxpert-settings
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-button-ghost-hover hover:text-text-primary cursor-pointer"
+              type="button"
+              [attr.aria-label]="'PAC.Chat.ClawXpert.SidebarSettings' | translate: { Default: 'ClawXpert settings' }"
+              (click)="openClawXpertSettings($event)"
+            >
+              <i class="ri-equalizer-2-line text-lg"></i>
+            </button>
+          </div>
+        </div>
+      }
+
       <div
         data-sidebar="group"
         class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"

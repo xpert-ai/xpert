@@ -16,7 +16,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, RouterOutlet } from '@angular/router'
-import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar/emoji-avatar/avatar.component'
 import { groupConversations } from '@cloud/app/xpert/types'
 import {
   IChatConversation,
@@ -45,8 +45,9 @@ import {
 } from '../../../@core'
 import { AppService } from '../../../app.service'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
+import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
-import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
+import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/task-dialog.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
@@ -79,6 +80,7 @@ type TAgentLink = {
   animations: [routeAnimations, OverlayAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
+    ClawXpertFacade,
     ChatHomeService,
     {
       provide: XpertHomeService,
@@ -94,6 +96,7 @@ export class ChatHomeComponent {
 
   readonly homeService = inject(ChatHomeService)
   readonly appService = inject(AppService)
+  readonly clawxpertFacade = inject(ClawXpertFacade)
   readonly route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly logger = inject(NGXLogger)
@@ -142,17 +145,30 @@ export class ChatHomeComponent {
       this.chatSidebar.set(state)
     }
   })
+  readonly clawxpertEnabled = computed(() => {
+    this.featureOrganizations()
+    this.featureTenant()
+
+    return (
+      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
+      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
+    )
+  })
+  readonly clawxpertCardTitle = computed(() => {
+    return (
+      this.clawxpertFacade.currentXpert()?.title ||
+      this.clawxpertFacade.currentXpert()?.name ||
+      this.clawxpertFacade.definition.defaultLabel
+    )
+  })
+  readonly clawxpertCardLink = computed(() =>
+    this.clawxpertFacade.viewState() === 'ready' ? '/chat/clawxpert/c' : '/chat/clawxpert'
+  )
+  readonly clawxpertCardActive = computed(() => isClawXpertRoute(this.currentUrl()))
 
   readonly menuOverlay = signal<TMenuOverlayType>(null)
   private leaveTimer = null
   readonly allAgentLinks: TAgentLink[] = [
-    {
-      key: 'clawxpert',
-      defaultLabel: 'ClawXpert',
-      featureKey: AiFeatureEnum.FEATURE_XPERT_CLAWXPERT,
-      iconClass: 'ri-user-star-line',
-      link: '/chat/clawxpert'
-    },
     {
       key: 'chatbi',
       defaultLabel: 'ChatBI',
@@ -178,10 +194,7 @@ export class ChatHomeComponent {
     }
   ]
   readonly agentLinks = computed(() => {
-    this.featureOrganizations()
-    this.featureTenant()
-
-    if (!this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)) {
+    if (!this.clawxpertEnabled() && !this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)) {
       return []
     }
 
@@ -326,6 +339,15 @@ export class ChatHomeComponent {
     this.#router.navigate(['/chat/x/welcome'])
   }
 
+  openClawXpertCard() {
+    void this.#router.navigateByUrl(this.clawxpertCardLink())
+  }
+
+  openClawXpertSettings(event?: Event) {
+    event?.stopPropagation()
+    void this.#router.navigateByUrl('/chat/clawxpert')
+  }
+
   newProject() {
     this.projectLoading.set(true)
     this.projectSercice.create({ name: 'New Project' }).subscribe({
@@ -464,4 +486,8 @@ function normalizeChatRoute(url: string) {
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+}
+
+function isClawXpertRoute(url: string) {
+  return /^\/chat\/clawxpert(?:\/|$)/.test(normalizeChatRoute(url))
 }

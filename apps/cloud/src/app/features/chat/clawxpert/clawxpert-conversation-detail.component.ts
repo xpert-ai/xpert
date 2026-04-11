@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import { ChatSharedTerminalComponent } from '../../../@shared/chat'
+import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage } from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
@@ -244,7 +244,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
     </div>
   `
 })
-export class ClawXpertConversationDetailComponent {
+export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
   readonly #conversationService = inject(ChatConversationService)
 
@@ -264,9 +264,15 @@ export class ClawXpertConversationDetailComponent {
     },
     onThreadLoadEnd: ({ threadId }) => {
       this.facade.onChatThreadChange(threadId)
+    },
+    onResponseStart: () => {
+      this.facade.patchActiveConversationStatus('busy')
+    },
+    onResponseEnd: () => {
+      this.facade.patchActiveConversationStatus('idle')
     }
   })
-  readonly activePanel = signal<'files' | 'terminal' | null>(null)
+  readonly activePanel = signal<'files' | 'terminal' | null>('files')
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
   readonly contextLoading = signal(false)
@@ -320,6 +326,7 @@ export class ClawXpertConversationDetailComponent {
           this.contextError.set(null)
           this.resolvedConversationId.set(null)
           this.resolvedConversation.set(null)
+          this.facade.setActiveConversation(null)
           return
         }
 
@@ -328,6 +335,7 @@ export class ClawXpertConversationDetailComponent {
         this.contextError.set(null)
         this.resolvedConversationId.set(null)
         this.resolvedConversation.set(null)
+        this.facade.setActiveConversation(null)
 
         void this.resolveConversationContext(threadId, () => cancelled)
 
@@ -337,6 +345,10 @@ export class ClawXpertConversationDetailComponent {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  ngOnDestroy() {
+    this.facade.setActiveConversation(null)
   }
 
   goToOverview() {
@@ -390,6 +402,7 @@ export class ClawXpertConversationDetailComponent {
 
         this.resolvedConversationId.set(conversation?.id ?? conversationId)
         this.resolvedConversation.set(conversation ?? null)
+        this.facade.setActiveConversation(conversation ?? null)
         this.contextError.set(null)
         return
       }
@@ -401,12 +414,14 @@ export class ClawXpertConversationDetailComponent {
 
       this.resolvedConversationId.set(conversation?.id ?? null)
       this.resolvedConversation.set(conversation ?? null)
+      this.facade.setActiveConversation(conversation ?? null)
       this.contextError.set(null)
     } catch (error) {
       if (isCancelled() || this.facade.threadId() !== threadId) {
         return
       }
 
+      this.facade.setActiveConversation(null)
       this.contextError.set(getErrorMessage(error) || 'Failed to resolve the current conversation context.')
     } finally {
       if (!isCancelled() && this.facade.threadId() === threadId) {

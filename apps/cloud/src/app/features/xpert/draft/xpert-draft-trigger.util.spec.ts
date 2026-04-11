@@ -1,5 +1,5 @@
 import { TXpertTeamDraft, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { WorkflowTriggerProviderOption } from '../../../@shared/workflow/trigger-config/types'
+import { WorkflowTriggerProviderOption } from './workflow-trigger-provider-option'
 import {
   readTriggerEditorItemsFromDraft,
   upsertTriggerEditorItemsIntoDraft,

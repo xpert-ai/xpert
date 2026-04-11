@@ -1,10 +1,105 @@
+jest.mock('../../../@core', () => ({
+  AssistantCode: {
+    CLAWXPERT: 'clawxpert'
+  },
+  AiThreadService: class AiThreadService {},
+  ChatConversationService: class ChatConversationService {},
+  getErrorMessage: (error: any) => error?.message ?? ''
+}))
+
+jest.mock('@xpert-ai/headless-ui', () => {
+  const { Component, Directive, Input } = jest.requireActual('@angular/core')
+
+  @Directive({
+    standalone: true,
+    selector: '[z-button]'
+  })
+  class ZardButtonComponent {
+    @Input() zType?: string
+    @Input() displayDensity?: string
+    @Input() zSize?: string
+  }
+
+  @Component({
+    standalone: true,
+    selector: 'z-icon',
+    template: ''
+  })
+  class ZardIconComponent {
+    @Input() zType?: string
+  }
+
+  return {
+    ZardButtonComponent,
+    ZardIconComponent
+  }
+})
+
+jest.mock('@xpert-ai/chatkit-angular', () => {
+  const { Component, Input } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'xpert-chatkit',
+    template: ''
+  })
+  class ChatKit {
+    @Input() control?: unknown
+  }
+
+  return {
+    ChatKit
+  }
+})
+
+jest.mock('./clawxpert-conversation-files.component', () => {
+  const { Component, Input } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'pac-clawxpert-conversation-files',
+    template: ''
+  })
+  class ClawXpertConversationFilesComponent {
+    @Input() conversationId?: string | null
+    @Input() mode?: 'readonly' | 'editable'
+  }
+
+  return {
+    ClawXpertConversationFilesComponent
+  }
+})
+
+jest.mock('../../../@shared/chat/terminal/terminal.component', () => {
+  const { Component, Input } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'xp-chat-shared-terminal',
+    template: ''
+  })
+  class ChatSharedTerminalComponent {
+    @Input() mode?: 'interactive' | 'replay'
+    @Input() conversationId?: string | null
+    @Input() projectId?: string | null
+  }
+
+  return {
+    ChatSharedTerminalComponent
+  }
+})
+
+jest.mock('./clawxpert.facade', () => ({
+  ClawXpertFacade: class ClawXpertFacade {}
+}))
+
 import { Component, Input, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation } from '../../../@core'
-import { ChatSharedTerminalComponent } from '../../../@shared/chat'
+import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
 import { ClawXpertFacade } from './clawxpert.facade'
@@ -17,25 +112,16 @@ jest.mock('../../assistant/assistant-chatkit.runtime', () => {
   }
 })
 
-@Component({
-  standalone: true,
-  selector: 'pac-clawxpert-conversation-files',
-  template: ''
-})
-class MockClawXpertConversationFilesComponent {
-  @Input() conversationId?: string | null
-  @Input() mode?: 'readonly' | 'editable'
+const runtimeModule = jest.requireMock('../../assistant/assistant-chatkit.runtime') as {
+  injectHostedAssistantChatkitControl: jest.Mock
 }
 
-@Component({
-  standalone: true,
-  selector: 'chat-shared-terminal',
-  template: ''
-})
-class MockChatSharedTerminalComponent {
-  @Input() mode?: 'interactive' | 'replay'
-  @Input() conversationId?: string | null
-  @Input() projectId?: string | null
+async function settle(fixture: { detectChanges: () => void; whenStable: () => Promise<unknown> }) {
+  fixture.detectChanges()
+  await fixture.whenStable()
+  await Promise.resolve()
+  await Promise.resolve()
+  fixture.detectChanges()
 }
 
 describe('ClawXpertConversationDetailComponent', () => {
@@ -50,6 +136,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     onChatThreadChange: jest.Mock
     beginPendingConversation: jest.Mock
     navigateToOverview: jest.Mock
+    setActiveConversation: jest.Mock
+    patchActiveConversationStatus: jest.Mock
   }
   let aiThreadService: {
     getThread: jest.Mock
@@ -73,7 +161,9 @@ describe('ClawXpertConversationDetailComponent', () => {
       pendingConversationStartId: signal(0),
       onChatThreadChange: jest.fn(),
       beginPendingConversation: jest.fn(),
-      navigateToOverview: jest.fn()
+      navigateToOverview: jest.fn(),
+      setActiveConversation: jest.fn(),
+      patchActiveConversationStatus: jest.fn()
     }
     aiThreadService = {
       getThread: jest.fn(() =>
@@ -102,14 +192,6 @@ describe('ClawXpertConversationDetailComponent', () => {
     }
 
     TestBed.resetTestingModule()
-    TestBed.overrideComponent(ClawXpertConversationDetailComponent, {
-      remove: {
-        imports: [ClawXpertConversationFilesComponent, ChatSharedTerminalComponent]
-      },
-      add: {
-        imports: [MockClawXpertConversationFilesComponent, MockChatSharedTerminalComponent]
-      }
-    })
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ClawXpertConversationDetailComponent],
       providers: [
@@ -136,58 +218,55 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   it('toggles the files panel and resolves the current conversation context from the thread', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+    await settle(fixture)
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
-    fixture.detectChanges()
+    await settle(fixture)
 
-    const filesPanel = fixture.debugElement.query(By.directive(MockClawXpertConversationFilesComponent))
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1')
+    expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
     expect(filesPanel).not.toBeNull()
-    expect((filesPanel.componentInstance as MockClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
     fixture.detectChanges()
 
-    expect(fixture.debugElement.query(By.directive(MockClawXpertConversationFilesComponent))).toBeNull()
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
   })
 
   it('renders the terminal panel with the resolved conversation and project context', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+    await settle(fixture)
 
     fixture.nativeElement.querySelector('[data-panel-button="terminal"]').click()
-    fixture.detectChanges()
+    await settle(fixture)
 
-    const terminal = fixture.debugElement.query(By.directive(MockChatSharedTerminalComponent))
+    const terminal = fixture.debugElement.query(By.directive(ChatSharedTerminalComponent))
     expect(terminal).not.toBeNull()
-    expect((terminal.componentInstance as MockChatSharedTerminalComponent).mode).toBe('interactive')
-    expect((terminal.componentInstance as MockChatSharedTerminalComponent).conversationId).toBe('conversation-1')
-    expect((terminal.componentInstance as MockChatSharedTerminalComponent).projectId).toBe('project-1')
+    expect((terminal.componentInstance as ChatSharedTerminalComponent).mode).toBe('interactive')
+    expect((terminal.componentInstance as ChatSharedTerminalComponent).conversationId).toBe('conversation-1')
+    expect((terminal.componentInstance as ChatSharedTerminalComponent).projectId).toBe('project-1')
   })
 
   it('transitions the layout into a main workspace with a right-side chat dialog when a panel opens', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+    await settle(fixture)
 
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[0rem_minmax(0,1fr)]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('rounded-none')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-0')
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
-    fixture.detectChanges()
+    await settle(fixture)
+
+    const chatShell = fixture.nativeElement.querySelectorAll('section')[1]?.querySelector('div') as HTMLElement | null
 
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('rounded-[2rem]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
+    expect(chatShell?.className).toContain('rounded-3xl')
   })
 
   it('shows the empty detail-panel state when no thread conversation can be resolved', async () => {
@@ -200,15 +279,13 @@ describe('ClawXpertConversationDetailComponent', () => {
     conversationService.getByThreadId.mockReturnValue(of(null))
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+    await settle(fixture)
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
-    fixture.detectChanges()
+    await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DetailPanelEmptyTitle')
-    expect(fixture.debugElement.query(By.directive(MockClawXpertConversationFilesComponent))).toBeNull()
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
   })
 
   it('falls back to resolving the conversation by thread id when thread metadata does not include conversation id', async () => {
@@ -220,34 +297,63 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+    await settle(fixture)
 
     fixture.nativeElement.querySelector('[data-panel-button="terminal"]').click()
-    fixture.detectChanges()
+    await settle(fixture)
 
-    const terminal = fixture.debugElement.query(By.directive(MockChatSharedTerminalComponent))
+    const terminal = fixture.debugElement.query(By.directive(ChatSharedTerminalComponent))
     expect(conversationService.getByThreadId).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).not.toHaveBeenCalled()
+    expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
     expect(terminal).not.toBeNull()
-    expect((terminal.componentInstance as MockChatSharedTerminalComponent).conversationId).toBe('conversation-1')
-    expect((terminal.componentInstance as MockChatSharedTerminalComponent).projectId).toBe('project-1')
+    expect((terminal.componentInstance as ChatSharedTerminalComponent).conversationId).toBe('conversation-1')
+    expect((terminal.componentInstance as ChatSharedTerminalComponent).projectId).toBe('project-1')
   })
 
   it('keeps the panel available when metadata has conversation id but conversation detail lookup fails', async () => {
     conversationService.getById.mockReturnValue(of(null))
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+    await settle(fixture)
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
-    fixture.detectChanges()
+    await settle(fixture)
 
-    const filesPanel = fixture.debugElement.query(By.directive(MockClawXpertConversationFilesComponent))
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
-    expect((filesPanel.componentInstance as MockClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+  })
+
+  it('clears the shared active conversation when the thread is reset or the component is destroyed', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    facade.setActiveConversation.mockClear()
+    facade.threadId.set(null)
+    await settle(fixture)
+
+    expect(facade.setActiveConversation).toHaveBeenCalledWith(null)
+
+    facade.setActiveConversation.mockClear()
+    fixture.destroy()
+
+    expect(facade.setActiveConversation).toHaveBeenCalledWith(null)
+  })
+
+  it('updates the shared sidebar status when a response starts and ends', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const runtimeInput = runtimeModule.injectHostedAssistantChatkitControl.mock.calls.at(-1)?.[0] as {
+      onResponseStart?: () => void
+      onResponseEnd?: () => void
+    }
+
+    runtimeInput.onResponseStart?.()
+    runtimeInput.onResponseEnd?.()
+
+    expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(1, 'busy')
+    expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
   })
 })
