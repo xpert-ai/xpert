@@ -29,9 +29,38 @@ jest.mock('@xpert-ai/headless-ui', () => {
     @Input() zType?: string
   }
 
+  @Directive({
+    standalone: true,
+    selector: '[z-tab-nav-bar]'
+  })
+  class ZardTabNavBarDirective {
+    @Input() tabPanel?: unknown
+    @Input() color?: string
+    @Input() alignTabs?: string
+    @Input() stretchTabs?: string | boolean
+    @Input() disableRipple?: boolean
+    @Input() zSize?: string
+  }
+
+  @Directive({
+    standalone: true,
+    selector: '[z-tab-link]'
+  })
+  class ZardTabLinkDirective {
+    @Input() active?: boolean
+  }
+
+  @Component({
+    standalone: true,
+    selector: 'z-tab-nav-panel',
+    template: '<ng-content />'
+  })
+  class ZardTabNavPanelComponent {}
+
   return {
     ZardButtonComponent,
-    ZardIconComponent
+    ZardIconComponent,
+    ZardTabsImports: [ZardTabNavBarDirective, ZardTabLinkDirective, ZardTabNavPanelComponent]
   }
 })
 
@@ -123,6 +152,9 @@ type MockChatKitEvent = {
 }
 
 type MockChatKitRuntimeInput = {
+  onThreadChange?: (event: { threadId: string | null }) => void
+  onThreadLoadStart?: (event: { threadId: string | null }) => void
+  onThreadLoadEnd?: (event: { threadId: string | null }) => void
   onEffect?: (event: MockChatKitEvent) => void
   onLog?: (event: MockChatKitEvent) => void
   onResponseStart?: () => void
@@ -412,6 +444,31 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(setThreadId).toHaveBeenLastCalledWith('thread-2')
+  })
+
+  it('does not push a chatkit-originated new thread id back into the control', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    setThreadId.mockClear()
+
+    const runtimeInput = getRuntimeInput()
+    runtimeInput.onThreadChange?.({ threadId: 'thread-new' })
+    facade.threadId.set('thread-new')
+    await settle(fixture)
+
+    expect(facade.onChatThreadChange).toHaveBeenCalledWith('thread-new')
+    expect(setThreadId).not.toHaveBeenCalledWith('thread-new')
   })
 
   it('passes the file list reload key to the files panel and refreshes it after relevant log events', async () => {

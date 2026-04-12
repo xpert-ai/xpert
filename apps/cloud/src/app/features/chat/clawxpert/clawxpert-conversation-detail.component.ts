@@ -224,6 +224,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     control: null,
     threadId: undefined
   }
+  #lastReportedChatkitThread: { control: ChatKitControl | null; threadId: string | null | undefined } = {
+    control: null,
+    threadId: undefined
+  }
 
   readonly facade = inject(ClawXpertFacade)
   readonly control = injectHostedAssistantChatkitControl({
@@ -234,13 +238,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
-      this.facade.onChatThreadChange(threadId)
+      this.handleChatkitThreadEvent(threadId)
     },
     onThreadLoadStart: ({ threadId }) => {
-      this.facade.onChatThreadChange(threadId)
+      this.handleChatkitThreadEvent(threadId)
     },
     onThreadLoadEnd: ({ threadId }) => {
-      this.facade.onChatThreadChange(threadId)
+      this.handleChatkitThreadEvent(threadId)
     },
     onEffect: (event) => {
       if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
@@ -341,6 +345,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           control: null,
           threadId: undefined
         }
+        this.#lastReportedChatkitThread = {
+          control: null,
+          threadId: undefined
+        }
         return
       }
 
@@ -415,9 +423,21 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#workspaceFileRefreshTimer = null
   }
 
+  private handleChatkitThreadEvent(threadId: string | null) {
+    this.#lastReportedChatkitThread = {
+      control: this.control(),
+      threadId
+    }
+    this.facade.onChatThreadChange(threadId)
+  }
+
   private async syncChatkitThread(control: ChatKitControl, threadId: string | null, isCancelled: () => boolean) {
     await this.waitForChatkitMount(control, isCancelled)
     if (isCancelled()) {
+      return
+    }
+
+    if (this.#lastReportedChatkitThread.control === control && this.#lastReportedChatkitThread.threadId === threadId) {
       return
     }
 

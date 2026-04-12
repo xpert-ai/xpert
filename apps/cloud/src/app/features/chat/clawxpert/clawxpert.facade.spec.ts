@@ -1111,6 +1111,64 @@ describe('ClawXpertFacade', () => {
     expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
   })
 
+  it('suppresses auto resume when chatkit resets an active thread to start a new conversation', async () => {
+    router.url = '/chat/clawxpert/c/thread-active'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          defaultThreadId: 'thread-main',
+          lastThreadId: 'thread-last'
+        })
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    facade.onChatThreadChange(null)
+    await flushPromises()
+
+    expect(facade.suppressAutoResume()).toBe(true)
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c'])
+
+    router.navigate.mockClear()
+    router.url = '/chat/clawxpert/c'
+    router.events.next(new NavigationEnd(1, router.url, router.url))
+    await flushPromises()
+
+    const focusComposer = jest.fn()
+    await facade.ensureConversationEntry({
+      focusComposer
+    } as any)
+
+    expect(focusComposer).toHaveBeenCalled()
+    expect(router.navigate).not.toHaveBeenCalled()
+    expect(conversationService.getByThreadId).not.toHaveBeenCalled()
+    expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
+  })
+
+  it('navigates to the new chatkit thread after a blank conversation is created', async () => {
+    router.url = '/chat/clawxpert/c/thread-active'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    facade.onChatThreadChange(null)
+    await flushPromises()
+
+    router.navigate.mockClear()
+
+    facade.onChatThreadChange('thread-new')
+    await flushPromises()
+
+    expect(facade.suppressAutoResume()).toBe(false)
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-new'])
+  })
+
   it('clears saved conversation pointers when rebinding to a different ClawXpert', async () => {
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-old')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-old', 'Old Xpert')]))

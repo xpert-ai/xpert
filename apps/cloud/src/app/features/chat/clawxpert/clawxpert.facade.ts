@@ -994,6 +994,12 @@ export class ClawXpertFacade {
       return
     }
 
+    // Treat a chatkit-driven reset from an active thread as an explicit
+    // "start a new conversation" action so we do not auto-resume preferences.
+    if (this.threadId()) {
+      this.suppressAutoResume.set(true)
+    }
+
     void this.navigateToChat()
   }
 
