@@ -4,7 +4,11 @@ import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'path'
-import { assertInstalledPluginSdkCompatibility, ensureHostPluginSdkLink } from './plugin-sdk-versioning'
+import {
+	assertInstalledPluginSdkCompatibility,
+	ensureHostContractsLink,
+	ensureHostPluginSdkLink
+} from './plugin-sdk-versioning'
 import { PluginLoadError } from './errors'
 
 export interface PluginLoadOptions {
@@ -130,6 +134,7 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 	}
 
 	ensureHostPluginSdkLink(opts.basedir)
+	ensureHostContractsLink(opts.basedir)
 	assertInstalledPluginSdkCompatibility(modName, opts.basedir)
 	const m = await loadModule(modName, opts)
 	const plugin = (m?.default ?? m) as XpertPlugin
@@ -147,7 +152,7 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 
 function getPreferredWorkspaceTsEntry(opts: PluginLoadOptions) {
 	const workspacePath = normalizeWorkspacePath(opts.workspacePath)
-	if (opts.source !== 'code' || !workspacePath) {
+	if (opts.source !== 'code' || !workspacePath || isWorkspaceTsEntryEsm(workspacePath)) {
 		return null
 	}
 
@@ -161,6 +166,22 @@ function normalizeWorkspacePath(workspacePath?: string) {
 
 function getWorkspaceTsEntryPath(workspacePath: string) {
 	return resolve(workspacePath, 'src/index.ts')
+}
+
+function isWorkspaceTsEntryEsm(workspacePath: string) {
+	const packageJsonPath = resolve(workspacePath, 'package.json')
+	if (!existsSync(packageJsonPath)) {
+		return false
+	}
+
+	try {
+		const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { type?: string }
+		// ESM workspaces commonly use `.js` source specifiers and `import.meta`, which cannot be
+		// synchronously loaded through the CJS ts-node path below. Fall back to the staged package entry.
+		return packageJson.type === 'module'
+	} catch {
+		return false
+	}
 }
 
 function loadTsEntry(cjsRequire: NodeRequire, tsEntry: string) {

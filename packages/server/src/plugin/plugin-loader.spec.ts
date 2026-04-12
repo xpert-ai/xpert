@@ -4,16 +4,19 @@ import { tmpdir } from 'os'
 
 jest.mock('./plugin-sdk-versioning', () => ({
 	assertInstalledPluginSdkCompatibility: jest.fn(),
+	ensureHostContractsLink: jest.fn(),
 	ensureHostPluginSdkLink: jest.fn()
 }))
 
 const { loadPlugin } = require('./plugin-loader')
+const pluginSdkVersioning = require('./plugin-sdk-versioning')
 
 describe('plugin loader', () => {
 	let rootDir: string
 
 	beforeEach(() => {
 		rootDir = mkdtempSync(join(tmpdir(), 'xpert-plugin-loader-'))
+		jest.clearAllMocks()
 		jest.spyOn(console, 'warn').mockImplementation(() => undefined)
 		jest.spyOn(console, 'error').mockImplementation(() => undefined)
 	})
@@ -94,6 +97,55 @@ describe('plugin loader', () => {
 		})
 
 		expect(plugin.meta.name).toBe('@xpert-ai/plugin-uploaded-demo')
+		expect(pluginSdkVersioning.ensureHostPluginSdkLink).toHaveBeenCalledWith(basedir)
+		expect(pluginSdkVersioning.ensureHostContractsLink).toHaveBeenCalledWith(basedir)
+	})
+
+	it('skips TS source loading for local ESM workspaces and falls back to the staged package entry', async () => {
+		const basedir = createPluginBaseDir(rootDir, '@xpert-ai/plugin-esm-demo')
+		const pluginDir = join(basedir, 'node_modules', '@xpert-ai', 'plugin-esm-demo')
+		const workspaceDir = join(rootDir, 'workspaces', 'plugin-esm-demo')
+
+		mkdirSync(join(pluginDir, 'dist'), { recursive: true })
+		mkdirSync(join(workspaceDir, 'src'), { recursive: true })
+		writeFileSync(
+			join(pluginDir, 'package.json'),
+			JSON.stringify({
+				name: '@xpert-ai/plugin-esm-demo',
+				version: '1.0.0',
+				type: 'module',
+				main: './dist/index.cjs',
+				xpert: { plugin: { level: 'organization' } }
+			})
+		)
+		writeFileSync(
+			join(pluginDir, 'dist', 'index.cjs'),
+			[
+				'const plugin = {',
+				"  meta: { name: '@xpert-ai/plugin-esm-demo', version: '1.0.0', level: 'organization', category: 'integration', displayName: 'Staged ESM', description: 'Staged ESM', author: 'Test' },",
+				'  register() {',
+				'    return { module: class RuntimePluginModule {} }',
+				'  }',
+				'}',
+				'module.exports = plugin'
+			].join('\n')
+		)
+		writeFileSync(
+			join(workspaceDir, 'package.json'),
+			JSON.stringify({
+				name: '@xpert-ai/plugin-esm-demo',
+				type: 'module'
+			})
+		)
+		writeFileSync(join(workspaceDir, 'src', 'index.ts'), "throw new Error('workspace source should not be executed')")
+
+		const plugin = await loadPlugin('@xpert-ai/plugin-esm-demo', {
+			basedir,
+			source: 'code',
+			workspacePath: workspaceDir
+		})
+
+		expect(plugin.meta.displayName).toBe('Staged ESM')
 	})
 })
 

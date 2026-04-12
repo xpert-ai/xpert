@@ -1083,6 +1083,7 @@
       "InputLocalPluginName": "例如：@xpert-ai/plugin-lark",
       "LocalWorkspacePath": "工作区路径",
       "InputLocalWorkspacePath": "例如：/Users/.../xpert-plugins/xpertai/integrations/lark",
+      "LocalWorkspacePathHint": "请先将插件的工作空间路径添加到 PLUGIN_WORKSPACE_ROOTS 环境变量。",
       "NpmPackageName": "NPM 包名称",
       "InputPackageName": "例如：@scope/xpert-plugin",
       "NpmPackageVersion": "包版本",
