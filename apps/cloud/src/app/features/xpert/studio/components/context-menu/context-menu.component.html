@@ -61,6 +61,25 @@
     <div
       cdkMenuItem
       class="!pr-1 text-text-secondary hover:text-text-primary"
+      [cdkMenuTriggerFor]="middlewaresMenu"
+      [cdkMenuPosition]="[
+        {
+          originX: 'end',
+          originY: 'top',
+          overlayX: 'start',
+          overlayY: 'top',
+          offsetX: 10
+        }
+      ]"
+    >
+      <i class="ri-stack-line mr-1"></i>
+      <span class="grow">{{ 'PAC.Xpert.AddMiddleware' | translate: { Default: 'Add Middleware' } }}</span>
+      <i class="ri-arrow-drop-right-fill ml-4"></i>
+    </div>
+
+    <div
+      cdkMenuItem
+      class="!pr-1 text-text-secondary hover:text-text-primary"
       [cdkMenuTriggerFor]="workflowMenu"
       [cdkMenuTriggerData]="{ fromNode: fromNode }"
       [cdkMenuPosition]="[
@@ -176,15 +195,6 @@
       <div class="text-text-primary grow">
         {{ 'PAC.Workflow.Trigger' | translate: { Default: 'Trigger' } }}
       </div>
-      <i class="ri-arrow-drop-right-fill"></i>
-    </div>
-    <div
-      cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-      [cdkMenuTriggerFor]="middlewaresMenu"
-    >
-      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.MIDDLEWARE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary grow">{{ 'PAC.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' } }}</div>
       <i class="ri-arrow-drop-right-fill"></i>
     </div>
     <div
@@ -597,9 +607,13 @@
     @for (middleware of filteredAgentMiddlewares(); track middleware.meta?.name) {
       <div
         cdkMenuItem
-        class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+        class="group/item flex items-center gap-2 px-4 w-full min-h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
         [cdkMenuItemDisabled]="!middleware.meta?.name"
-        (click)="addMiddleware(middleware.meta?.name)"
+        (click)="addMiddleware(middleware.meta?.name); closeMiddlewareDetail()"
+        (mouseenter)="openMiddlewareDetail(middleware, overlayTrigger)"
+        (mouseleave)="closeMiddlewareDetail()"
+        cdkOverlayOrigin
+        #overlayTrigger="cdkOverlayOrigin"
       >
         @if (!middleware.meta?.name) {
           <div class="text-text-destructive">
@@ -608,14 +622,100 @@
         } @else {
           @if (middleware.meta.icon) {
             <xp-icon [icon]="middleware.meta.icon" class="w-6 h-6 shrink-0 mr-2" />
+          } @else {
+            <div
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-components-panel-bg text-text-tertiary"
+            >
+              <i class="ri-stack-line text-sm"></i>
+            </div>
           }
           @if (middleware.meta.label | i18n; as label) {
-            <div class="text-text-primary" [ngmHighlight]="searchMiddlewares()" [content]="label">
+            <div class="grow text-text-primary" [ngmHighlight]="searchMiddlewares()" [content]="label">
               {{ label }}
             </div>
           }
+          <i class="ri-arrow-right-s-line ml-auto text-text-quaternary opacity-0 group-hover/item:opacity-100"></i>
         }
       </div>
     }
   </div>
+</ng-template>
+
+<ng-template
+  cdkConnectedOverlay
+  cdkConnectedOverlayGrowAfterOpen
+  [cdkConnectedOverlayOrigin]="middlewareDetailTrigger()"
+  [cdkConnectedOverlayOpen]="middlewareDetailOpen()"
+  [cdkConnectedOverlayOffsetX]="10"
+  [cdkConnectedOverlayPositions]="[
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'start',
+      overlayY: 'top'
+    }
+  ]"
+  [cdkConnectedOverlayPush]="true"
+>
+  @if (middlewareDetail(); as middleware) {
+    <div class="middleware-tip-card pointer-events-none w-96 bg-components-card-bg">
+      <div class="flex items-start gap-3">
+        @if (middleware.meta.icon) {
+          <xp-icon
+            [icon]="middleware.meta.icon"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-components-panel-bg"
+          />
+        } @else {
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-components-panel-bg text-text-tertiary"
+          >
+            <i class="ri-stack-line text-lg"></i>
+          </div>
+        }
+
+        <div class="min-w-0 flex-1">
+          <div class="text-base font-semibold text-text-primary">
+            {{ middleware.meta.label | i18n }}
+          </div>
+          <div
+            class="mt-1 inline-flex max-w-full items-center rounded-md border border-divider-regular bg-background-default-subtle px-2 py-1 text-xs font-mono text-text-secondary"
+          >
+            {{ middleware.meta.name }}
+          </div>
+        </div>
+      </div>
+
+      @if (middleware.meta.description) {
+        <div class="mt-4 text-sm leading-6 text-text-secondary">
+          {{ middleware.meta.description | i18n }}
+        </div>
+      }
+
+      <div class="mt-4 rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-3">
+        <div class="text-xs font-medium uppercase tracking-[0.08em] text-text-tertiary">
+          {{ 'PAC.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' } }}
+        </div>
+
+        @if (middlewareConfigPreview(middleware).length) {
+          <div class="mt-3 flex flex-wrap gap-2">
+            @for (config of middlewareConfigPreview(middleware); track config.key) {
+              <div class="rounded-full border border-divider-regular bg-components-card-bg px-2.5 py-1 text-xs text-text-primary">
+                {{ config.title | i18n }}
+              </div>
+            }
+
+            @if (middlewareRemainingConfigCount(middleware)) {
+              <div class="rounded-full border border-divider-regular bg-components-card-bg px-2.5 py-1 text-xs text-text-secondary">
+                +{{ middlewareRemainingConfigCount(middleware) }}
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="mt-2 text-sm text-text-secondary">
+            {{ 'PAC.Xpert.NoConfigurationRequired' | translate: { Default: 'No configuration required' } }}
+          </div>
+        }
+      </div>
+    </div>
+  }
 </ng-template>
