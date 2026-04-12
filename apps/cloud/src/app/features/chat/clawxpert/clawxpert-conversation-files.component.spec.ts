@@ -17,6 +17,7 @@ class MockFileWorkbenchComponent {
   @Input() filesLoader?: unknown
   @Input() fileLoader?: unknown
   @Input() fileSaver?: unknown
+  @Input() reloadKey?: number
   @Input() treeSize?: 'sm' | 'default' | 'lg'
 }
 
@@ -70,6 +71,7 @@ describe('ClawXpertConversationFilesComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationFilesComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     fixture.componentRef.setInput('mode', 'editable')
+    fixture.componentRef.setInput('reloadKey', 3)
     fixture.detectChanges()
 
     const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent)).componentInstance as MockFileWorkbenchComponent
@@ -77,5 +79,6 @@ describe('ClawXpertConversationFilesComponent', () => {
     expect(typeof workbench.filesLoader).toBe('function')
     expect(typeof workbench.fileLoader).toBe('function')
     expect(typeof workbench.fileSaver).toBe('function')
+    expect(workbench.reloadKey).toBe(3)
   })
 })

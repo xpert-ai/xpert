@@ -63,6 +63,7 @@ jest.mock('./clawxpert-conversation-files.component', () => {
   class ClawXpertConversationFilesComponent {
     @Input() conversationId?: string | null
     @Input() mode?: 'readonly' | 'editable'
+    @Input() reloadKey?: number
   }
 
   return {
@@ -116,12 +117,28 @@ const runtimeModule = jest.requireMock('../../assistant/assistant-chatkit.runtim
   injectHostedAssistantChatkitControl: jest.Mock
 }
 
+type MockChatKitEvent = {
+  name: string
+  data?: object
+}
+
+type MockChatKitRuntimeInput = {
+  onEffect?: (event: MockChatKitEvent) => void
+  onLog?: (event: MockChatKitEvent) => void
+  onResponseStart?: () => void
+  onResponseEnd?: () => void
+}
+
 async function settle(fixture: { detectChanges: () => void; whenStable: () => Promise<unknown> }) {
   fixture.detectChanges()
   await fixture.whenStable()
   await Promise.resolve()
   await Promise.resolve()
   fixture.detectChanges()
+}
+
+function getRuntimeInput() {
+  return runtimeModule.injectHostedAssistantChatkitControl.mock.calls.at(-1)?.[0] as MockChatKitRuntimeInput
 }
 
 describe('ClawXpertConversationDetailComponent', () => {
@@ -216,6 +233,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   })
 
   afterEach(() => {
+    jest.useRealTimers()
     TestBed.resetTestingModule()
     jest.clearAllMocks()
   })
@@ -349,10 +367,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    const runtimeInput = runtimeModule.injectHostedAssistantChatkitControl.mock.calls.at(-1)?.[0] as {
-      onResponseStart?: () => void
-      onResponseEnd?: () => void
-    }
+    const runtimeInput = getRuntimeInput()
 
     runtimeInput.onResponseStart?.()
     runtimeInput.onResponseEnd?.()
@@ -397,5 +412,145 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(setThreadId).toHaveBeenLastCalledWith('thread-2')
+  })
+
+  it('passes the file list reload key to the files panel and refreshes it after relevant log events', async () => {
+    jest.useFakeTimers()
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const runtimeInput = getRuntimeInput()
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+
+    runtimeInput.onLog?.({
+      name: 'tool_log',
+      data: {
+        payload: {
+          item: {
+            tool: 'sandbox_edit_file'
+          }
+        }
+      }
+    })
+    fixture.detectChanges()
+
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+
+    jest.advanceTimersByTime(299)
+    fixture.detectChanges()
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+
+    jest.advanceTimersByTime(1)
+    fixture.detectChanges()
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
+  })
+
+  it('debounces multiple relevant log events into a single file list refresh', async () => {
+    jest.useFakeTimers()
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const runtimeInput = getRuntimeInput()
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+
+    runtimeInput.onLog?.({
+      name: 'tool_log',
+      data: {
+        detail: {
+          tool: 'sandbox_write_file'
+        }
+      }
+    })
+    jest.advanceTimersByTime(200)
+
+    runtimeInput.onLog?.({
+      name: 'tool_log',
+      data: {
+        detail: {
+          tool: 'sandbox_shell'
+        }
+      }
+    })
+    fixture.detectChanges()
+
+    jest.advanceTimersByTime(299)
+    fixture.detectChanges()
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+
+    jest.advanceTimersByTime(1)
+    fixture.detectChanges()
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
+  })
+
+  it('ignores unrelated log events, read-only file tools, and empty effect allowlists', async () => {
+    jest.useFakeTimers()
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const runtimeInput = getRuntimeInput()
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+
+    runtimeInput.onLog?.({
+      name: 'tool_log',
+      data: {
+        detail: {
+          tool: 'sandbox_read_file'
+        }
+      }
+    })
+    runtimeInput.onLog?.({
+      name: 'tool_log',
+      data: {
+        detail: {
+          tool: 'sandbox_glob'
+        }
+      }
+    })
+    runtimeInput.onLog?.({
+      name: 'tool_log',
+      data: {
+        detail: {
+          tool: 'not_a_workspace_tool'
+        }
+      }
+    })
+    runtimeInput.onEffect?.({
+      name: 'refresh_workspace_files',
+      data: {
+        scope: 'workspace'
+      }
+    })
+
+    jest.advanceTimersByTime(300)
+    fixture.detectChanges()
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+  })
+
+  it('refreshes the file list for legacy Bash execute log events', async () => {
+    jest.useFakeTimers()
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const runtimeInput = getRuntimeInput()
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+
+    runtimeInput.onLog?.({
+      name: 'tool_log',
+      data: {
+        message: {
+          toolset: 'Bash',
+          tool: 'execute'
+        }
+      }
+    })
+
+    jest.advanceTimersByTime(300)
+    fixture.detectChanges()
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
   })
 })

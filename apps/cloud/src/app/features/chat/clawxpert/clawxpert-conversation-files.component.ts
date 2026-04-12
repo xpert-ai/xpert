@@ -22,6 +22,7 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
       [filesLoader]="loadConversationFiles"
       [fileLoader]="loadConversationFile"
       [fileSaver]="mode() === 'editable' ? saveConversationFile : null"
+      [reloadKey]="reloadKey()"
       [treeSize]="'sm'"
     />
   `,
@@ -35,6 +36,7 @@ export class ClawXpertConversationFilesComponent {
 
   readonly conversationId = input<string | null | undefined>(null)
   readonly mode = input<ClawXpertConversationFilesMode>('editable')
+  readonly reloadKey = input<number>(0)
 
   readonly loadConversationFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const conversationId = this.conversationId()

@@ -9,6 +9,12 @@ import { AssistantCode, AiThreadService, ChatConversationService, IChatConversat
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertFacade } from './clawxpert.facade'
+import {
+  shouldRefreshWorkspaceFilesFromEffectEvent,
+  shouldRefreshWorkspaceFilesFromLogEvent
+} from './clawxpert-workspace-file-refresh.utils'
+
+const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 
 @Component({
   standalone: true,
@@ -51,6 +57,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
                 <button
                   z-tab-link
                   type="button"
+                  data-panel-button="files"
                   class="flex items-center gap-2"
                   [active]="activePanel() === 'files'"
                   (click)="selectPanel('files')"
@@ -62,6 +69,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
                 <button
                   z-tab-link
                   type="button"
+                  data-panel-button="terminal"
                   class="flex items-center gap-2"
                   [active]="activePanel() === 'terminal'"
                   (click)="selectPanel('terminal')"
@@ -123,6 +131,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
                         class="h-full"
                         [conversationId]="resolvedConversationId()"
                         [mode]="'editable'"
+                        [reloadKey]="fileListReloadKey()"
                       />
                     } @else {
                       <xp-chat-shared-terminal
@@ -210,6 +219,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
 export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
   readonly #conversationService = inject(ChatConversationService)
+  #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #lastSyncedChatkitThread: { control: ChatKitControl | null; threadId: string | null | undefined } = {
     control: null,
     threadId: undefined
@@ -232,6 +242,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     onThreadLoadEnd: ({ threadId }) => {
       this.facade.onChatThreadChange(threadId)
     },
+    onEffect: (event) => {
+      if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
+        this.scheduleWorkspaceFileListRefresh()
+      }
+    },
+    onLog: (event) => {
+      if (shouldRefreshWorkspaceFilesFromLogEvent(event)) {
+        this.scheduleWorkspaceFileListRefresh()
+      }
+    },
     onResponseStart: () => {
       this.facade.patchActiveConversationStatus('busy')
     },
@@ -239,7 +259,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.facade.patchActiveConversationStatus('idle')
     }
   })
-  readonly activePanel = signal<'files' | 'terminal'>('files')
+  readonly activePanel = signal<'files' | 'terminal' | null>('files')
+  readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
   readonly contextLoading = signal(false)
@@ -369,11 +390,29 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.clearScheduledWorkspaceFileListRefresh()
     this.facade.setActiveConversation(null)
   }
 
   selectPanel(panel: 'files' | 'terminal') {
-    this.activePanel.set(panel)
+    this.activePanel.update((activePanel) => (activePanel === panel ? null : panel))
+  }
+
+  private scheduleWorkspaceFileListRefresh() {
+    this.clearScheduledWorkspaceFileListRefresh()
+    this.#workspaceFileRefreshTimer = setTimeout(() => {
+      this.#workspaceFileRefreshTimer = null
+      this.fileListReloadKey.update((value) => value + 1)
+    }, WORKSPACE_FILE_REFRESH_DEBOUNCE_MS)
+  }
+
+  private clearScheduledWorkspaceFileListRefresh() {
+    if (!this.#workspaceFileRefreshTimer) {
+      return
+    }
+
+    clearTimeout(this.#workspaceFileRefreshTimer)
+    this.#workspaceFileRefreshTimer = null
   }
 
   private async syncChatkitThread(control: ChatKitControl, threadId: string | null, isCancelled: () => boolean) {
