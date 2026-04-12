@@ -27,10 +27,9 @@ jest.mock('../chat-conversation', () => ({
 
 jest.mock('../shared', () => ({
     VolumeClient: {
-        getWorkspacePath: jest.fn().mockResolvedValue('/workspace/thread-1')
+        getSharedWorkspacePath: jest.fn().mockResolvedValue('/workspace/user-1')
     },
-    getMediaTypeWithCharset: jest.fn(),
-    getWorkspace: jest.fn(() => '')
+    getMediaTypeWithCharset: jest.fn()
 }))
 
 describe('SandboxController', () => {
@@ -106,6 +105,7 @@ describe('SandboxController', () => {
             expect.objectContaining({
                 params: expect.objectContaining({
                     provider: 'local-shell-sandbox',
+                    workingDirectory: '/workspace/user-1',
                     workFor: {
                         type: 'project',
                         id: 'project-1'

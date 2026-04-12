@@ -86,7 +86,7 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 	}
 	const target = resolveFromBase(modName)
 	let errorMessage = ''
-	const preferredTsEntry = getPreferredWorkspaceTsEntry(opts)
+	const preferredTsEntry = getPreferredCodeTsEntry(modName, opts)
 
 	if (!production && preferredTsEntry) {
 		try {
@@ -160,12 +160,40 @@ function getPreferredWorkspaceTsEntry(opts: PluginLoadOptions) {
 	return existsSync(tsEntry) ? tsEntry : null
 }
 
+function getPreferredCodeTsEntry(modName: string, opts: PluginLoadOptions) {
+	if (opts.source !== 'code') {
+		return null
+	}
+
+	const stagedEntry = getStagedPluginTsEntryPath(modName, opts.basedir)
+	if (stagedEntry) {
+		return stagedEntry
+	}
+
+	// Fallback only when there is no staged plugin basedir to load from.
+	return opts.basedir ? null : getPreferredWorkspaceTsEntry(opts)
+}
+
 function normalizeWorkspacePath(workspacePath?: string) {
 	return typeof workspacePath === 'string' && workspacePath.trim().length > 0 ? workspacePath.trim() : null
 }
 
 function getWorkspaceTsEntryPath(workspacePath: string) {
 	return resolve(workspacePath, 'src/index.ts')
+}
+
+function getStagedPluginTsEntryPath(modName: string, basedir?: string) {
+	if (!basedir) {
+		return null
+	}
+
+	const packageRoot = resolve(basedir, 'node_modules', ...modName.split('/'))
+	if (isWorkspaceTsEntryEsm(packageRoot)) {
+		return null
+	}
+
+	const tsEntry = getWorkspaceTsEntryPath(packageRoot)
+	return existsSync(tsEntry) ? tsEntry : null
 }
 
 function isWorkspaceTsEntryEsm(workspacePath: string) {

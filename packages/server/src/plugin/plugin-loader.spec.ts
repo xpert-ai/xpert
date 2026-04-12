@@ -26,11 +26,12 @@ describe('plugin loader', () => {
 		rmSync(rootDir, { recursive: true, force: true })
 	})
 
-	it('prefers staged src/index.ts for local code plugins with a workspacePath', async () => {
+	it('prefers staged src/index.ts over the original workspace source for local code plugins', async () => {
 		const basedir = createPluginBaseDir(rootDir, '@xpert-ai/plugin-code-demo')
 		const pluginDir = join(basedir, 'node_modules', '@xpert-ai', 'plugin-code-demo')
 		const workspaceDir = join(rootDir, 'workspaces', 'plugin-code-demo')
 
+		mkdirSync(join(pluginDir, 'src'), { recursive: true })
 		mkdirSync(join(workspaceDir, 'src'), { recursive: true })
 		writeFileSync(
 			join(pluginDir, 'package.json'),
@@ -43,16 +44,20 @@ describe('plugin loader', () => {
 		)
 		writeFileSync(join(pluginDir, 'index.cjs'), "throw new Error('stub should not be executed')")
 		writeFileSync(
-			join(workspaceDir, 'src', 'index.ts'),
+			join(pluginDir, 'src', 'index.ts'),
 			[
 				'const plugin = {',
-				"  meta: { name: '@xpert-ai/plugin-code-demo', version: '1.0.0', level: 'organization', category: 'integration', displayName: 'Demo', description: 'Demo', author: 'Test' },",
+				"  meta: { name: '@xpert-ai/plugin-code-demo', version: '1.0.0', level: 'organization', category: 'integration', displayName: 'Staged Source', description: 'Staged Source', author: 'Test' },",
 				'  register() {',
 				'    return { module: class RuntimePluginModule {} }',
 				'  }',
 				'}',
 				'module.exports = plugin'
 			].join('\n')
+		)
+		writeFileSync(
+			join(workspaceDir, 'src', 'index.ts'),
+			"throw new Error('workspace source should not be executed')"
 		)
 
 		const plugin = await loadPlugin('@xpert-ai/plugin-code-demo', {
@@ -62,6 +67,7 @@ describe('plugin loader', () => {
 		})
 
 		expect(plugin.meta.name).toBe('@xpert-ai/plugin-code-demo')
+		expect(plugin.meta.displayName).toBe('Staged Source')
 		expect(console.warn).not.toHaveBeenCalled()
 	})
 

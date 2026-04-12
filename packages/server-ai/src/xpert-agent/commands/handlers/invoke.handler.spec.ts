@@ -44,6 +44,8 @@ jest.mock('../../../shared', () => ({
     VolumeClient: class VolumeClient {
         static getWorkspacePath = jest.fn()
         static getWorkspaceUrl = jest.fn()
+        static getSharedWorkspacePath = jest.fn()
+        static getSharedWorkspaceUrl = jest.fn()
 
         getVolumePath(workspace?: string) {
             return workspace ? `/volume/${workspace}` : '/volume'
@@ -65,6 +67,7 @@ import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
 import { VolumeClient, ExecutionCancelService } from '../../../shared'
+import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 
 describe('XpertAgentInvokeHandler', () => {
     let commandBus: { execute: jest.Mock }
@@ -117,8 +120,8 @@ describe('XpertAgentInvokeHandler', () => {
             timeZone: 'Asia/Shanghai',
             preferredLanguage: 'en-US'
         } as any)
-        jest.spyOn(VolumeClient, 'getWorkspacePath').mockResolvedValue('/tmp/workspace')
-        jest.spyOn(VolumeClient, 'getWorkspaceUrl').mockReturnValue('/workspace/')
+        jest.spyOn(VolumeClient, 'getSharedWorkspacePath').mockResolvedValue('/tmp/workspace')
+        jest.spyOn(VolumeClient, 'getSharedWorkspaceUrl').mockReturnValue('/workspace')
     })
 
     afterEach(() => {
@@ -176,9 +179,15 @@ describe('XpertAgentInvokeHandler', () => {
                 soul: '# Rules',
                 profile: '# Profile',
                 language: 'en-US',
-                user_email: 'user@example.com'
+                user_email: 'user@example.com',
+                thread_id: 'thread-1',
+                workspace_path: '/tmp/workspace',
+                workspace_url: '/workspace',
+                volume: '/tmp/workspace'
             })
         })
+        expect(VolumeClient.getSharedWorkspacePath).toHaveBeenCalledWith('tenant-1', undefined, 'user-1')
+        expect(VolumeClient.getSharedWorkspaceUrl).toHaveBeenCalledWith(undefined, 'user-1')
     })
 
     it('merges soul and profile into resume command updates', async () => {
@@ -234,7 +243,11 @@ describe('XpertAgentInvokeHandler', () => {
                 sys: expect.objectContaining({
                     soul: '# Rules',
                     profile: '# Profile',
-                    language: 'en-US'
+                    language: 'en-US',
+                    thread_id: 'thread-1',
+                    workspace_path: '/tmp/workspace',
+                    workspace_url: '/workspace',
+                    volume: '/tmp/workspace'
                 })
             }
         })
@@ -320,10 +333,80 @@ describe('XpertAgentInvokeHandler', () => {
                 sys: expect.objectContaining({
                     soul: '# Rules',
                     profile: '# Profile',
-                    language: 'en-US'
+                    language: 'en-US',
+                    thread_id: 'thread-1',
+                    workspace_path: '/tmp/workspace',
+                    workspace_url: '/workspace',
+                    volume: '/tmp/workspace'
                 })
             }
         })
+    })
+
+    it('uses the shared workspace root as sandbox working directory', async () => {
+        const graph = createGraph()
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof SandboxAcquireBackendCommand) {
+                return {
+                    provider: 'local-shell-sandbox',
+                    workingDirectory: '/tmp/workspace'
+                }
+            }
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Original prompt'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {
+                        sandbox: {
+                            enabled: true,
+                            provider: 'local-shell-sandbox'
+                        }
+                    }
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    provider: 'local-shell-sandbox',
+                    tenantId: 'tenant-1',
+                    workingDirectory: '/tmp/workspace',
+                    workFor: {
+                        type: 'user',
+                        id: 'user-1'
+                    }
+                })
+            })
+        )
     })
 })
 
