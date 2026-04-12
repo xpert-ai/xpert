@@ -8,7 +8,8 @@ const WORKSPACE_FILE_REFRESH_LOG_TOOL_NAMES = new Set([
   'sandbox_write_file',
   'sandbox_append_file',
   'sandbox_edit_file',
-  'sandbox_multi_edit_file'
+  'sandbox_multi_edit_file',
+  'write_memory'
 ])
 const WORKSPACE_FILE_REFRESH_LEGACY_FILE_TOOL_SUFFIXES = new Set([
   'create_file',
