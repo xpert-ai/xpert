@@ -34,7 +34,8 @@ describe('Store', () => {
     store = TestBed.inject(Store)
   })
 
-  it('clears persisted organization scope on logout', () => {
+  it('clears runtime scope on logout but can restore remembered scope for the same user', () => {
+    store.userId = 'user-1'
     store.organizationId = 'org-1'
 
     expect(store.activeScope).toEqual({
@@ -49,5 +50,14 @@ describe('Store', () => {
     expect(store.activeScope).toEqual({
       level: RequestScopeLevel.TENANT
     })
+
+    store.userId = 'user-1'
+    store.restoreRememberedScope('user-1')
+
+    expect(store.activeScope).toEqual({
+      level: RequestScopeLevel.ORGANIZATION,
+      organizationId: 'org-1'
+    })
+    expect(store.lastOrganizationId).toBe('org-1')
   })
 })

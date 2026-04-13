@@ -1,4 +1,4 @@
-import { IXpert, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, IXpert, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import {
   BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BLANK_WORKFLOW_NODE_ORDER,
@@ -181,6 +181,65 @@ describe('blank draft util', () => {
     expect(skillsMiddlewareNode!.position.y).toBeGreaterThan(primaryAgentNode.position.y)
     expect(middlewareNodes[0].position.y).toBeGreaterThan(primaryAgentNode.position.y)
     expect(draft.team.agent.options.middlewares.order).toEqual(middlewareNodes.map((node) => node.key))
+  })
+
+  it('should seed ai-model-select middleware options from the selected primary model', async () => {
+    const defaultCopilotModel = {
+      copilotId: 'copilot-qwen',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'qwen3.6-plus'
+    }
+    const draft = await buildBlankXpertDraft(
+      createXpert(),
+      {
+        middlewares: ['SummarizationMiddleware', 'audit']
+      },
+      {
+        defaultCopilotModel,
+        middlewareDefinitions: [
+          {
+            name: 'SummarizationMiddleware',
+            configSchema: {
+              type: 'object',
+              properties: {
+                model: {
+                  type: 'object',
+                  'x-ui': {
+                    component: 'ai-model-select',
+                    inputs: {
+                      modelType: AiModelTypeEnum.LLM
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            name: 'audit',
+            configSchema: {
+              type: 'object',
+              properties: {
+                enabled: {
+                  type: 'boolean'
+                }
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    const middlewareNodes = draft.nodes.filter(
+      (node): node is (typeof draft.nodes)[number] =>
+        node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE
+    )
+    const summarizationNode = middlewareNodes.find(
+      (node) => (node.entity as any).provider === 'SummarizationMiddleware'
+    )
+    const auditNode = middlewareNodes.find((node) => (node.entity as any).provider === 'audit')
+
+    expect((summarizationNode?.entity as any)?.options?.model).toEqual(defaultCopilotModel)
+    expect((auditNode?.entity as any)?.options?.model).toBeUndefined()
   })
 
   it('should create a knowledge pipeline draft with a default knowledge base node', async () => {

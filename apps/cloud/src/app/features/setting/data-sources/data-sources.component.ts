@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, inject, signal } from '@angular/core'
+import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { DataSourceService } from '@xpert-ai/cloud/state'
@@ -37,6 +37,7 @@ export class PACDataSourcesComponent {
   private readonly dataSource = inject(DataSourceService)
   private readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
+  readonly #viewContainerRef = inject(ViewContainerRef)
   readonly confirmDelete = injectConfirmDelete()
   readonly helpWebsite = injectHelpWebsite()
 
@@ -80,6 +81,7 @@ export class PACDataSourcesComponent {
         data: {
           id: dataSource.id
         },
+        viewContainerRef: this.#viewContainerRef,
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet'
       })
