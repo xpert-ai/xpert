@@ -201,15 +201,12 @@ export class FeaturesComponent implements OnInit {
     const id = this.#store.userId
     if (!id) return
     const cachedUser = this.#store.user
-    const hasHydratedUser =
-      !!cachedUser &&
-      !!cachedUser.tenant &&
-      Array.isArray(cachedUser.organizations)
+    const hasHydratedUser = this.#usersService.hasHydratedCurrentUser(id, cachedUser)
 
-    this.user =
-      hasHydratedUser
-        ? cachedUser
-        : await this.#usersService.getMe()
+    this.user = hasHydratedUser ? cachedUser : await this.#usersService.resolveCurrentUser(id, cachedUser)
+    if (!this.user) {
+      return
+    }
 
     //When a new user registers & logs in for the first time, he/she does not have tenantId.
     //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.

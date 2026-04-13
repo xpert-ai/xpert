@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IUser, IUserFindInput, IUserMeFeatures, IUserPasswordInput, IUserUpdateInput } from '@metad/contracts'
+import { IUser, IUserFindInput, IUserMeFeatures, IUserOrganization, IUserPasswordInput, IUserUpdateInput } from '@metad/contracts'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from './constants'
 
@@ -16,8 +16,62 @@ export class UsersService {
     return firstValueFrom(this.http.get<IUser>(`${this.API_URL}/me`))
   }
 
+  getMeOrganizations(): Promise<IUserOrganization[]> {
+    return firstValueFrom(this.http.get<IUserOrganization[]>(`${this.API_URL}/me/organizations`))
+  }
+
   getMeFeatures(): Promise<IUserMeFeatures> {
     return firstValueFrom(this.http.get<IUserMeFeatures>(`${this.API_URL}/me/features`))
+  }
+
+  hasHydratedCurrentUser(userId: IUser['id'] | null | undefined, cachedUser?: IUser | null): cachedUser is IUser {
+    return (
+      !!userId &&
+      !!cachedUser &&
+      cachedUser.id === userId &&
+      !!cachedUser.tenant &&
+      Array.isArray(cachedUser.organizations) &&
+      cachedUser.organizations.length > 0
+    )
+  }
+
+  getCachedMeOrganizations(userId: IUser['id'] | null | undefined, cachedUser?: IUser | null) {
+    if (
+      !userId ||
+      !cachedUser ||
+      cachedUser.id !== userId ||
+      !Array.isArray(cachedUser.organizations) ||
+      cachedUser.organizations.length === 0
+    ) {
+      return null
+    }
+
+    return cachedUser.organizations
+  }
+
+  mergeMeOrganizations(user: IUser, organizations?: IUserOrganization[] | null): IUser {
+    return {
+      ...user,
+      organizations: organizations ?? user.organizations ?? []
+    }
+  }
+
+  async resolveCurrentUser(userId: IUser['id'] | null | undefined, cachedUser?: IUser | null): Promise<IUser | null> {
+    if (!userId) {
+      return null
+    }
+
+    if (this.hasHydratedCurrentUser(userId, cachedUser)) {
+      return cachedUser
+    }
+
+    const cachedOrganizations = this.getCachedMeOrganizations(userId, cachedUser)
+    const [user, organizations] = await Promise.all([
+      this.getMe(),
+      cachedOrganizations ? Promise.resolve(cachedOrganizations) : this.getMeOrganizations()
+    ])
+
+    return this.mergeMeOrganizations(user, organizations)
   }
 
   mergeMeFeatures(user: IUser, features: IUserMeFeatures): IUser {

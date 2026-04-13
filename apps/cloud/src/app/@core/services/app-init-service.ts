@@ -31,7 +31,10 @@ export class AppInitService {
     try {
       const id = this.store.userId
       if (id) {
-        this.user = await this.usersService.getMe()
+        this.user = await this.usersService.resolveCurrentUser(id, this.store.user)
+        if (!this.user) {
+          return
+        }
 
         //When a new user registers & logs in for the first time, he/she does not have tenantId.
         //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.
