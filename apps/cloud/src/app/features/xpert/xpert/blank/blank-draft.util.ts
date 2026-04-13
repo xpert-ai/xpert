@@ -1,4 +1,5 @@
 import {
+  AiModelTypeEnum,
   createAgentConnections,
   createXpertNodes,
   genJSONParseKey,
@@ -25,7 +26,9 @@ import {
   IWFNTemplate,
   IWFNTrigger,
   IWFNUnderstanding,
+  ICopilotModel,
   IXpert,
+  JsonSchemaObjectType,
   TXpertTeamConnection,
   TXpertTeamDraft,
   TXpertTeamNode,
@@ -121,6 +124,16 @@ export type BlankKnowledgeSelectionGraph = {
   connections: TXpertTeamConnection[]
 }
 
+export type BlankMiddlewareDefinition = {
+  name: string
+  configSchema?: JsonSchemaObjectType
+}
+
+export type BlankXpertDraftBuildOptions = {
+  defaultCopilotModel?: ICopilotModel | null
+  middlewareDefinitions?: BlankMiddlewareDefinition[]
+}
+
 export function normalizeBlankWizardSelections(
   selections?: XpertBlankWizardSelections
 ): Required<XpertBlankWizardSelections> {
@@ -163,7 +176,8 @@ export function normalizeWorkflowBlankWizardSelections(
 
 export async function buildBlankXpertDraft(
   xpert: IXpert,
-  selections?: XpertBlankWizardSelections
+  selections?: XpertBlankWizardSelections,
+  options?: BlankXpertDraftBuildOptions
 ): Promise<TXpertTeamDraft> {
   const normalized = normalizeBlankWizardSelections(selections)
   const { agents, ...team } = xpert
@@ -183,7 +197,10 @@ export async function buildBlankXpertDraft(
     middlewareNodes,
     nodes: selectionNodes,
     connections: selectionConnections
-  } = buildBlankXpertSelectionGraph(primaryAgentNode, normalized)
+  } = buildBlankXpertSelectionGraph(primaryAgentNode, normalized, {
+    defaultCopilotModel: options?.defaultCopilotModel ?? xpert.agent?.copilotModel ?? xpert.copilotModel ?? null,
+    middlewareDefinitions: options?.middlewareDefinitions
+  })
 
   nodes.push(...selectionNodes)
   connections.push(...selectionConnections)
@@ -243,11 +260,18 @@ export async function buildBlankKnowledgeDraft(
 
 export function buildBlankXpertSelectionGraph(
   agentNode: TXpertTeamNode<'agent'>,
-  selections?: XpertBlankWizardSelections
+  selections?: XpertBlankWizardSelections,
+  options?: BlankXpertDraftBuildOptions
 ): BlankXpertSelectionGraph {
   const normalized = normalizeBlankWizardSelections(selections)
   const triggerNodes = createTriggerNodes(agentNode, normalized.triggers)
-  const middlewareNodes = createMiddlewareNodes(agentNode, normalized.middlewares, normalized.skills)
+  const middlewareNodes = createMiddlewareNodes(
+    agentNode,
+    normalized.middlewares,
+    normalized.skills,
+    options?.middlewareDefinitions ?? [],
+    options?.defaultCopilotModel ?? null
+  )
   const nodes = [...triggerNodes, ...middlewareNodes]
   const connections = [
     ...triggerNodes.map((node) => createConnection('edge', node.key, agentNode.key)),
@@ -706,12 +730,19 @@ function createWorkflowAnswerNode(): TXpertTeamNode<'workflow'> {
 function createMiddlewareNodes(
   agentNode: TXpertTeamNode<'agent'>,
   middlewares: string[],
-  skills: string[]
+  skills: string[],
+  middlewareDefinitions: BlankMiddlewareDefinition[],
+  defaultCopilotModel: ICopilotModel | null
 ): TXpertTeamNode<'workflow'>[] {
+  const definitions = new Map(middlewareDefinitions.map((definition) => [definition.name, definition]))
+
   return middlewares.map((provider, index) => {
     const key = genXpertMiddlewareKey()
-    const options =
+    const middlewareOptions = mergeOptionObjects(
+      createDefaultMiddlewareOptions(definitions.get(provider)?.configSchema, defaultCopilotModel),
       provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER && skills.length ? { skills: [...skills] } : undefined
+    )
+
     return {
       type: 'workflow',
       key,
@@ -725,7 +756,7 @@ function createMiddlewareNodes(
         key,
         title: provider,
         provider,
-        ...(options ? { options } : {})
+        ...(middlewareOptions ? { options: middlewareOptions } : {})
       } as IWFNMiddleware
     }
   })
@@ -789,4 +820,116 @@ export function normalizeBlankMiddlewareSelections(middlewares?: string[] | null
 
 function uniqueStrings(values?: string[]) {
   return Array.from(new Set((values ?? []).map((value) => value?.trim()).filter((value): value is string => !!value)))
+}
+
+function createDefaultMiddlewareOptions(
+  configSchema: JsonSchemaObjectType | undefined,
+  defaultCopilotModel: ICopilotModel | null
+): Record<string, unknown> | undefined {
+  if (!isValidDefaultLlmModel(defaultCopilotModel) || !configSchema?.properties) {
+    return undefined
+  }
+
+  const modelPaths = collectDefaultModelPaths(configSchema)
+  if (!modelPaths.length) {
+    return undefined
+  }
+
+  const options: Record<string, unknown> = {}
+  for (const path of modelPaths) {
+    setNestedValue(options, path, structuredClone(defaultCopilotModel))
+  }
+
+  return Object.keys(options).length ? options : undefined
+}
+
+function collectDefaultModelPaths(schema: JsonSchemaObjectType, path: string[] = []): string[][] {
+  return Object.entries(schema.properties ?? {}).flatMap(([key, property]) => {
+    if (!isPlainObject(property)) {
+      return []
+    }
+
+    const nextPath = [...path, key]
+    if (isLlmModelSelectField(property)) {
+      return [nextPath]
+    }
+
+    if (isJsonSchemaObject(property)) {
+      return collectDefaultModelPaths(property, nextPath)
+    }
+
+    return []
+  })
+}
+
+function isLlmModelSelectField(value: Record<string, unknown>) {
+  const ui = isPlainObject(value['x-ui']) ? value['x-ui'] : null
+  if (!ui || ui['component'] !== 'ai-model-select') {
+    return false
+  }
+
+  const inputs = isPlainObject(ui['inputs']) ? ui['inputs'] : null
+  if (!inputs) {
+    return true
+  }
+
+  const modelType = inputs['modelType']
+  return typeof modelType !== 'string' || modelType === AiModelTypeEnum.LLM
+}
+
+function isValidDefaultLlmModel(value: ICopilotModel | null | undefined): value is ICopilotModel {
+  return (
+    !!value?.copilotId?.trim() &&
+    !!value?.model?.trim() &&
+    (value.modelType ?? AiModelTypeEnum.LLM) === AiModelTypeEnum.LLM
+  )
+}
+
+function mergeOptionObjects(
+  base: Record<string, unknown> | undefined,
+  override: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined {
+  if (!base) {
+    return override ? { ...override } : undefined
+  }
+
+  if (!override) {
+    return { ...base }
+  }
+
+  const result: Record<string, unknown> = { ...base }
+  for (const [key, value] of Object.entries(override)) {
+    const current = result[key]
+    result[key] =
+      isPlainObject(current) && isPlainObject(value)
+        ? (mergeOptionObjects(current, value) ?? {})
+        : Array.isArray(value)
+          ? [...value]
+          : value
+  }
+
+  return result
+}
+
+function setNestedValue(target: Record<string, unknown>, path: string[], value: unknown) {
+  let current = target
+
+  path.forEach((segment, index) => {
+    if (index === path.length - 1) {
+      current[segment] = value
+      return
+    }
+
+    const next = isPlainObject(current[segment]) ? current[segment] : {}
+    current[segment] = next
+    current = next
+  })
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isJsonSchemaObject(value: Record<string, unknown>): value is JsonSchemaObjectType {
+  return value['type'] === 'object' && isPlainObject(value['properties'])
 }
