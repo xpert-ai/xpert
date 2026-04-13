@@ -45,7 +45,9 @@
           "params": "forward"
         }
       ],
-      "options": {}
+      "options": {
+        "packageRoot": "dist/packages/core"
+      }
     },
     "lint": {
       "executor": "@nx/eslint:lint",

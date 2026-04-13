@@ -189,13 +189,7 @@ function isPublishablePackage(pkg) {
 }
 
 function hasExplicitPublishRoot(pkg) {
-  const publishDirectory = pkg.packageJson.publishConfig?.directory
-  if (typeof publishDirectory === 'string' && publishDirectory.trim() !== '') {
-    return true
-  }
-
-  const releasePackageRoot = pkg.project?.targets?.['nx-release-publish']?.options?.packageRoot
-  return typeof releasePackageRoot === 'string' && releasePackageRoot.trim() !== ''
+  return getConfiguredPublishRoot(pkg) !== null
 }
 
 function matchesFilter(pkg, filters) {
@@ -292,14 +286,9 @@ async function buildPackageIfNeeded(pkg) {
 }
 
 async function resolvePublishRoot(pkg) {
-  const publishDirectory = pkg.packageJson.publishConfig?.directory
-  if (typeof publishDirectory === 'string' && publishDirectory.trim() !== '') {
-    return path.resolve(pkg.dir, publishDirectory)
-  }
-
-  const releasePackageRoot = pkg.project?.targets?.['nx-release-publish']?.options?.packageRoot
-  if (typeof releasePackageRoot === 'string' && releasePackageRoot.trim() !== '') {
-    return resolveFromWorkspaceTemplate(releasePackageRoot, pkg)
+  const configuredPublishRoot = getConfiguredPublishRoot(pkg)
+  if (configuredPublishRoot) {
+    return configuredPublishRoot
   }
 
   const buildOptions = pkg.project?.targets?.build?.options ?? {}
@@ -314,6 +303,23 @@ async function resolvePublishRoot(pkg) {
   }
 
   return pkg.dir
+}
+
+function getConfiguredPublishRoot(pkg) {
+  const releasePackageRoot = pkg.project?.targets?.['nx-release-publish']?.options?.packageRoot
+  if (typeof releasePackageRoot === 'string' && releasePackageRoot.trim() !== '') {
+    return resolveFromWorkspaceTemplate(releasePackageRoot, pkg)
+  }
+
+  // Keep publishConfig.directory as a compatibility fallback only.
+  // pnpm also consumes this field for workspace links, so packageRoot should
+  // be the preferred source of truth for release automation.
+  const publishDirectory = pkg.packageJson.publishConfig?.directory
+  if (typeof publishDirectory === 'string' && publishDirectory.trim() !== '') {
+    return path.resolve(pkg.dir, publishDirectory)
+  }
+
+  return null
 }
 
 async function resolveNgPackagrDest(projectOption) {

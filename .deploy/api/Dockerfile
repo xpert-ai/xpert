@@ -86,11 +86,16 @@ RUN npm install pm2 -g
 RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 COPY --chown=node:node wait ./
-# COPY dist and dependencies
+# Keep production workspace layout aligned with pnpm lockfile links.
+# Some packages publish from nested dist dirs, so pnpm links workspace deps to
+# those publish roots instead of the package root when publishConfig.directory is set.
 COPY --chown=node:node --from=build /srv/xpert/dist/legacies ./legacies
 COPY --chown=node:node --from=build /srv/xpert/dist/packages ./packages
-COPY --chown=node:node --from=build /srv/xpert/packages/contracts/dist ./packages/contracts
-COPY --chown=node:node --from=build /srv/xpert/packages/plugin-sdk/dist ./packages/plugin-sdk
+COPY --chown=node:node --from=build /srv/xpert/dist/packages ./dist/packages
+COPY --chown=node:node --from=build /srv/xpert/packages/contracts/package.json ./packages/contracts/package.json
+COPY --chown=node:node --from=build /srv/xpert/packages/contracts/dist ./packages/contracts/dist
+COPY --chown=node:node --from=build /srv/xpert/packages/plugin-sdk/package.json ./packages/plugin-sdk/package.json
+COPY --chown=node:node --from=build /srv/xpert/packages/plugin-sdk/dist ./packages/plugin-sdk/dist
 COPY --chown=node:node --from=build /srv/xpert/dist/apps/api .
 COPY --chown=node:node --from=build /srv/xpert/tsconfig.base.json ./
 COPY --chown=node:node --from=build /srv/xpert/pnpm-lock.yaml ./
