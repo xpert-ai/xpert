@@ -31,6 +31,11 @@ export type ActiveScope =
 	| { level: RequestScopeLevel.TENANT }
 	| { level: RequestScopeLevel.ORGANIZATION; organizationId: string }
 
+export interface RememberedUserScope {
+	level: RequestScopeLevel
+	organizationId?: string | null
+}
+
 export interface AppState {
 	user: IUser;
 	userRolePermissions: IRolePermission[];
@@ -50,6 +55,7 @@ export interface PersistState {
 	organizationId?: string;
 	activeScopeLevel?: RequestScopeLevel;
 	lastOrganizationId?: string;
+	rememberedScopes?: Record<string, RememberedUserScope>;
 	lastTenantCompatibleRoute?: string;
 	lastOrganizationCompatibleRoute?: string;
 	workspaceId?: string;
@@ -322,13 +328,18 @@ export class Store {
 	}
 
 	set organizationId(id: IOrganization['id'] | null) {
-		this.persistStore.update({
+		this.persistStore.update((state) => ({
+			...state,
 			organizationId: id,
 			activeScopeLevel: id
 				? RequestScopeLevel.ORGANIZATION
 				: RequestScopeLevel.TENANT,
-			lastOrganizationId: id || this.lastOrganizationId
-		});
+			lastOrganizationId: id || this.lastOrganizationId,
+			rememberedScopes: updateRememberedScopes(state.rememberedScopes, state.userId, {
+				level: id ? RequestScopeLevel.ORGANIZATION : RequestScopeLevel.TENANT,
+				organizationId: id || this.lastOrganizationId
+			})
+		}));
 	}
 
 	get activeScope(): ActiveScope {
@@ -614,7 +625,11 @@ export class Store {
 			...state,
 			activeScopeLevel: RequestScopeLevel.TENANT,
 			organizationId: null,
-			lastOrganizationId: currentOrganizationId || state.lastOrganizationId || null
+			lastOrganizationId: currentOrganizationId || state.lastOrganizationId || null,
+			rememberedScopes: updateRememberedScopes(state.rememberedScopes, state.userId, {
+				level: RequestScopeLevel.TENANT,
+				organizationId: currentOrganizationId || state.lastOrganizationId || null
+			})
 		}));
 		this.appStore.update({
 			selectedOrganization: null
@@ -631,12 +646,40 @@ export class Store {
 			...state,
 			activeScopeLevel: RequestScopeLevel.ORGANIZATION,
 			organizationId: organization.id,
-			lastOrganizationId: organization.id
+			lastOrganizationId: organization.id,
+			rememberedScopes: updateRememberedScopes(state.rememberedScopes, state.userId, {
+				level: RequestScopeLevel.ORGANIZATION,
+				organizationId: organization.id
+			})
 		}));
 		this.appStore.update({
 			selectedOrganization: organization
 		});
 		this.loadPermissions();
+	}
+
+	restoreRememberedScope(userId: string | null | undefined) {
+		if (!userId) {
+			return
+		}
+
+		const rememberedScope = this.persistQuery.getValue().rememberedScopes?.[userId]
+		if (!rememberedScope) {
+			return
+		}
+
+		this.persistStore.update((state) => ({
+			...state,
+			activeScopeLevel: rememberedScope.level,
+			organizationId:
+				rememberedScope.level === RequestScopeLevel.ORGANIZATION
+					? rememberedScope.organizationId ?? null
+					: null,
+			lastOrganizationId:
+				rememberedScope.organizationId ??
+				state.lastOrganizationId ??
+				null
+		}))
 	}
 
 	setLastCompatibleRoute(level: RequestScopeLevel, route: string | null) {
@@ -769,6 +812,21 @@ export function injectWorkspace() {
 export function injectWorkspaceId() {
 	const store = inject(Store)
 	return toSignal(store.workspaceId$)
+}
+
+function updateRememberedScopes(
+	rememberedScopes: PersistState['rememberedScopes'],
+	userId: string | null | undefined,
+	scope: RememberedUserScope
+) {
+	if (!userId) {
+		return rememberedScopes ?? {}
+	}
+
+	return {
+		...(rememberedScopes ?? {}),
+		[userId]: scope
+	}
 }
 
 function resolveActiveScopeFromPersistState(

@@ -32,6 +32,10 @@ jest.mock('./email-verification/email-verification.entity', () => ({
 	EmailVerification: class EmailVerification {}
 }))
 
+jest.mock('../feature/feature-organization.entity', () => ({
+	FeatureOrganization: class FeatureOrganization {}
+}))
+
 jest.mock('./dto', () => ({
 	UserPublicDTO: class UserPublicDTO {
 		constructor(input?: Record<string, unknown>) {
@@ -69,6 +73,9 @@ describe('UserService', () => {
 		delete: jest.fn()
 	}
 	const emailVerificationRepository = {}
+	const featureOrganizationRepository = {
+		find: jest.fn()
+	}
 	const userOrganizationService = {
 		findAll: jest.fn(),
 		delete: jest.fn()
@@ -86,9 +93,81 @@ describe('UserService', () => {
 		service = new UserService(
 			userRepository as any,
 			emailVerificationRepository as any,
+			featureOrganizationRepository as any,
 			userOrganizationService as any,
 			eventEmitter as any
 		)
+	})
+
+	it('loads current user core data for /me without organizations', async () => {
+		const user = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			role: {
+				name: RolesEnum.ADMIN,
+				rolePermissions: []
+			},
+			tenant: {
+				id: 'tenant-1'
+			}
+		}
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+
+		const result = await service.findCurrentUser('user-1')
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: ['employee', 'role', 'role.rolePermissions', 'tenant']
+		})
+		expect(result).toBe(user)
+		expect(userOrganizationService.findAll).not.toHaveBeenCalled()
+	})
+
+	it('loads slim current user organizations separately', async () => {
+		const organizations = [
+			{
+				id: 'membership-1',
+				userId: 'user-1',
+				organizationId: 'org-1',
+				isDefault: true,
+				isActive: true,
+				organization: {
+					id: 'org-1',
+					name: 'Org One',
+					isActive: true
+				}
+			}
+		]
+
+		userOrganizationService.findAll.mockResolvedValue({
+			items: organizations,
+			total: organizations.length
+		})
+
+		const result = await service.findCurrentUserOrganizations('user-1')
+
+		expect(userOrganizationService.findAll).toHaveBeenCalledWith({
+			where: {
+				userId: 'user-1',
+				isActive: true
+			},
+			relations: ['organization'],
+			select: expect.objectContaining({
+				id: true,
+				userId: true,
+				organizationId: true,
+				isDefault: true,
+				isActive: true,
+				organization: expect.objectContaining({
+					id: true,
+					name: true,
+					officialName: true,
+					imageUrl: true,
+					isActive: true
+				})
+			})
+		})
+		expect(result).toEqual(organizations)
 	})
 
 	it('removes user organizations through the service and emits deletion events before soft deleting the user', async () => {

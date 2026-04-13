@@ -1,23 +1,45 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult, IsNull } from 'typeorm'
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult, IsNull, FindOptionsSelect } from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@xpert-ai/server-config'
 import { nanoid } from 'nanoid'
 import { User } from './user.entity'
 import { TenantAwareCrudService } from './../core/crud'
-import { ID, IUser, IUserMeFeatures, IUserMeOrganizationFeatures, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@xpert-ai/contracts'
+import { ID, IUser, IUserMeFeatures, IUserMeOrganizationFeatures, IUserOrganization, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
+import { UserOrganization } from '../user-organization/user-organization.entity'
 import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from './events'
 import { FeatureOrganization } from '../feature/feature-organization.entity'
 
 const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
-const CURRENT_USER_RELATIONS = ['employee', 'organizations', 'organizations.organization', 'role', 'role.rolePermissions', 'tenant'] as const
+const CURRENT_USER_CORE_RELATIONS = ['employee', 'role', 'role.rolePermissions', 'tenant'] as const
 const AUTHENTICATED_USER_RELATIONS = ['role', 'employee'] as const
+const CURRENT_USER_ORGANIZATION_SELECT: FindOptionsSelect<UserOrganization> = {
+	id: true,
+	userId: true,
+	organizationId: true,
+	isDefault: true,
+	isActive: true,
+	organization: {
+		id: true,
+		name: true,
+		officialName: true,
+		imageUrl: true,
+		isActive: true,
+		defaultValueDateType: true,
+		timeZone: true,
+		currency: true,
+		allowManualTime: true,
+		allowModifyTime: true,
+		allowDeleteTime: true,
+		futureDateAllowed: true
+	}
+} as const
 
 function normalizeEmail(email?: string | null) {
 	return email?.trim().toLowerCase() || null
@@ -45,8 +67,21 @@ export class UserService extends TenantAwareCrudService<User> {
 
 	async findCurrentUser(id: string): Promise<User> {
 		return this.findOne(id, {
-			relations: [...CURRENT_USER_RELATIONS]
+			relations: [...CURRENT_USER_CORE_RELATIONS]
 		})
+	}
+
+	async findCurrentUserOrganizations(id: string): Promise<IUserOrganization[]> {
+		const { items } = await this.userOrganizationService.findAll({
+			where: {
+				userId: id,
+				isActive: true
+			},
+			relations: ['organization'],
+			select: CURRENT_USER_ORGANIZATION_SELECT
+		})
+
+		return items
 	}
 
 	async getCurrentUserFeatures(id: string): Promise<IUserMeFeatures> {
