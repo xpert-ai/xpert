@@ -1,5 +1,5 @@
-import { ICustomSmtpCreateInput } from '@metad/contracts'
-import { parseToBoolean } from '@metad/server-common'
+import { ICustomSmtpCreateInput } from '@xpert-ai/contracts'
+import { parseToBoolean } from '@xpert-ai/server-common'
 import { ApiProperty, IntersectionType, PickType } from '@nestjs/swagger'
 import { Transform, TransformFnParams } from 'class-transformer'
 import { IsNotEmpty, IsString } from 'class-validator'

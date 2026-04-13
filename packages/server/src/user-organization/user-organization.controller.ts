@@ -17,7 +17,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CrudController } from './../core/crud';
-import { IUserOrganization, IUserOrganizationCreateInput, LanguagesEnum, IPagination, PermissionsEnum } from '@metad/contracts';
+import { IUserOrganization, IUserOrganizationCreateInput, LanguagesEnum, IPagination, PermissionsEnum } from '@xpert-ai/contracts';
 import { UserOrganizationService } from './user-organization.services';
 import { UserOrganization } from './user-organization.entity';
 import { CommandBus } from '@nestjs/cqrs';

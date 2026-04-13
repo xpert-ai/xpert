@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-sdk",
-  "version": "3.9.0-beta.0",
+  "version": "3.9.0-beta.2",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -12,15 +12,16 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "directory": "dist"
   },
   "dependencies": {
     "js-tiktoken": "^1.0.21"
   },
   "peerDependencies": {
     "@langchain/core": "*",
-    "@metad/contracts": "*",
-    "@metad/ocap-core": "*",
+    "@xpert-ai/contracts": "workspace:*",
+    "@xpert-ai/ocap-core": "workspace:*",
     "@nestjs/common": "*",
     "@nestjs/core": "*",
     "@nestjs/cqrs": "*",
@@ -30,11 +31,8 @@
     "i18next": "*",
     "json-schema": "*",
     "jsonwebtoken": "*",
-    "fs": "*",
-    "path": "*",
     "passport-jwt": "*",
     "rxjs": "*",
-    "stream": "*",
     "yaml": "*",
     "zod": "*"
   }

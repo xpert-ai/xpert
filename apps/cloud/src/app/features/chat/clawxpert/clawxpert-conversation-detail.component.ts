@@ -1,14 +1,20 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatKit } from '@xpert-ai/chatkit-angular'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
+import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import { ChatSharedTerminalComponent } from '../../../@shared/chat'
+import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage } from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertFacade } from './clawxpert.facade'
+import {
+  shouldRefreshWorkspaceFilesFromEffectEvent,
+  shouldRefreshWorkspaceFilesFromLogEvent
+} from './clawxpert-workspace-file-refresh.utils'
+
+const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 
 @Component({
   standalone: true,
@@ -19,6 +25,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
     ChatKit,
     ZardButtonComponent,
     ZardIconComponent,
+    ...ZardTabsImports,
     ClawXpertConversationFilesComponent,
     ChatSharedTerminalComponent
   ],
@@ -27,110 +34,117 @@ import { ClawXpertFacade } from './clawxpert.facade'
       <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
         @if (showDetailPanel()) {
           <div class="flex h-full min-h-0 flex-col overflow-hidden">
-            <div class="flex flex-wrap items-start justify-between gap-3 border-b border-divider-regular p-4">
+            <div class="flex flex-col items-stretch justify-start border-b border-divider-regular px-5 pt-4">
               <div>
                 <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-                  @if (activePanel() === 'files') {
-                    {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
-                  } @else {
-                    {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
-                  }
+                  {{ 'PAC.Chat.ClawXpert.Detail' | translate: { Default: 'ClawXpert Detail' } }}
                 </div>
-                <div class="mt-2 text-2xl font-semibold text-text-primary">
-                  @if (activePanel() === 'files') {
-                    {{ 'PAC.Chat.ClawXpert.FilesTitle' | translate: { Default: 'Workspace file browser' } }}
-                  } @else {
-                    {{ 'PAC.Chat.ClawXpert.TerminalTitle' | translate: { Default: 'Workspace terminal' } }}
-                  }
-                </div>
-                <div class="mt-1 max-w-2xl text-sm text-text-secondary">
-                  @if (activePanel() === 'files') {
-                    {{
-                      'PAC.Chat.ClawXpert.FilesDesc'
-                        | translate
-                          : { Default: 'Browse and edit the current conversation workspace stored in server volume.' }
-                    }}
-                  } @else {
-                    {{
-                      'PAC.Chat.ClawXpert.TerminalDesc'
-                        | translate
-                          : { Default: 'Run commands inside the current conversation workspace and stream the output back.' }
-                    }}
-                  }
+                <div class="mt-2 text-lg font-semibold text-text-primary">
+                  {{ facade.definition.titleKey | translate: { Default: facade.definition.defaultTitle } }}
                 </div>
               </div>
 
-              <button
-                z-button
-                zType="ghost"
-                displayDensity="cosy"
-                type="button"
-                (click)="togglePanel(activePanel())"
+              <nav
+                z-tab-nav-bar
+                [tabPanel]="tabPanel"
+                color="accent"
+                alignTabs="start"
+                stretchTabs="false"
+                disableRipple
+                zSize="default"
+                class="border-0 p-0 m-0"
               >
-                {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}
-              </button>
+                <button
+                  z-tab-link
+                  type="button"
+                  data-panel-button="files"
+                  class="flex items-center gap-2"
+                  [active]="activePanel() === 'files'"
+                  (click)="selectPanel('files')"
+                >
+                  <i class="ri-folder-3-line text-base"></i>
+                  <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
+                </button>
+
+                <button
+                  z-tab-link
+                  type="button"
+                  data-panel-button="terminal"
+                  class="flex items-center gap-2"
+                  [active]="activePanel() === 'terminal'"
+                  (click)="selectPanel('terminal')"
+                >
+                  <i class="ri-terminal-window-line text-base"></i>
+                  <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
+                </button>
+              </nav>
             </div>
 
-            <div class="min-h-0 flex-1 p-2">
-              @if (contextLoading() && !resolvedConversationId()) {
-                <div class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
-                  {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace…' } }}
-                </div>
-              } @else if (!resolvedConversationId()) {
-                <div class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
-                  <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
-                  <div class="mt-4 text-base font-medium text-text-primary">
-                    {{
-                      'PAC.Chat.ClawXpert.DetailPanelEmptyTitle'
-                        | translate
-                          : { Default: 'Start a conversation to unlock workspace tools' }
-                    }}
+            <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div class="min-h-0 flex-1 p-2 pr-0">
+                @if (contextLoading() && !resolvedConversationId()) {
+                  <div class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
+                    {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace…' } }}
                   </div>
-                  <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                    @if (activePanel() === 'files') {
-                      {{
-                        'PAC.Chat.ClawXpert.FilesEmptyDesc'
-                          | translate
-                            : {
-                                Default:
-                                  'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
-                              }
-                      }}
-                    } @else {
-                      {{
-                        'PAC.Chat.ClawXpert.TerminalEmptyDesc'
-                          | translate
-                            : {
-                                Default:
-                                  'Once this ClawXpert thread is created, you can run commands here against the current workspace.'
-                              }
-                      }}
-                    }
-                  </div>
-                </div>
-              } @else {
-                @if (contextError()) {
-                  <div class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary">
-                    {{ contextError() }}
-                  </div>
-                }
-
-                @if (activePanel() === 'files') {
-                  <pac-clawxpert-conversation-files
-                    class="h-full"
-                    [conversationId]="resolvedConversationId()"
-                    [mode]="'editable'"
-                  />
                 } @else {
-                  <xp-chat-shared-terminal
-                    class="h-full"
-                    [mode]="'interactive'"
-                    [conversationId]="resolvedConversationId()"
-                    [projectId]="resolvedConversation()?.projectId ?? null"
-                  />
+                  @if (!resolvedConversationId()) {
+                    <div class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                      <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-base font-medium text-text-primary">
+                        {{
+                          'PAC.Chat.ClawXpert.DetailPanelEmptyTitle'
+                            | translate
+                              : { Default: 'Start a conversation to unlock workspace tools' }
+                        }}
+                      </div>
+                      <div class="mt-2 max-w-sm text-sm text-text-secondary">
+                        @if (activePanel() === 'files') {
+                          {{
+                            'PAC.Chat.ClawXpert.FilesEmptyDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
+                                  }
+                          }}
+                        } @else {
+                          {{
+                            'PAC.Chat.ClawXpert.TerminalEmptyDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Once this ClawXpert thread is created, you can run commands here against the current workspace.'
+                                  }
+                          }}
+                        }
+                      </div>
+                    </div>
+                  } @else {
+                    @if (contextError()) {
+                      <div class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary">
+                        {{ contextError() }}
+                      </div>
+                    }
+
+                    @if (activePanel() === 'files') {
+                      <pac-clawxpert-conversation-files
+                        class="h-full"
+                        [conversationId]="resolvedConversationId()"
+                        [mode]="'editable'"
+                        [reloadKey]="fileListReloadKey()"
+                      />
+                    } @else {
+                      <xp-chat-shared-terminal
+                        class="h-full"
+                        [mode]="'interactive'"
+                        [conversationId]="resolvedConversationId()"
+                        [projectId]="resolvedConversation()?.projectId ?? null"
+                      />
+                    }
+                  }
                 }
-              }
-            </div>
+              </div>
+            </z-tab-nav-panel>
           </div>
         }
       </section>
@@ -138,48 +152,6 @@ import { ClawXpertFacade } from './clawxpert.facade'
       <section [class]="chatShellClasses()">
         <div class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform]"
           [class]="showDetailPanel() ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border' : ''">
-          <div class="flex flex-wrap items-start justify-between gap-4 border-b border-divider-regular px-5 py-4">
-            <div>
-              <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-                {{ 'PAC.Chat.ClawXpert.Detail' | translate: { Default: 'ClawXpert Detail' } }}
-              </div>
-              <div class="mt-2 text-lg font-semibold text-text-primary">
-                {{ facade.definition.titleKey | translate: { Default: facade.definition.defaultTitle } }}
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-end gap-2">
-              <button
-                z-button
-                zType="ghost"
-                displayDensity="cosy"
-                type="button"
-                data-panel-button="files"
-                [class]="panelButtonClasses(activePanel() === 'files')"
-                (click)="togglePanel('files')"
-              >
-                <i class="ri-folder-3-line text-base"></i>
-                <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-              </button>
-
-              <button
-                z-button
-                zType="ghost"
-                displayDensity="cosy"
-                type="button"
-                data-panel-button="terminal"
-                [class]="panelButtonClasses(activePanel() === 'terminal')"
-                (click)="togglePanel('terminal')"
-              >
-                <i class="ri-terminal-window-line text-base"></i>
-                <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
-              </button>
-
-              <button z-button zType="outline" displayDensity="cosy" type="button" (click)="goToOverview()">
-                {{ 'PAC.Chat.ClawXpert.BackToOverview' | translate: { Default: 'Back to overview' } }}
-              </button>
-            </div>
-          </div>
 
           <div class="min-h-0 flex-1">
             @if (facade.loading()) {
@@ -244,9 +216,18 @@ import { ClawXpertFacade } from './clawxpert.facade'
     </div>
   `
 })
-export class ClawXpertConversationDetailComponent {
+export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
   readonly #conversationService = inject(ChatConversationService)
+  #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
+  #lastSyncedChatkitThread: { control: ChatKitControl | null; threadId: string | null | undefined } = {
+    control: null,
+    threadId: undefined
+  }
+  #lastReportedChatkitThread: { control: ChatKitControl | null; threadId: string | null | undefined } = {
+    control: null,
+    threadId: undefined
+  }
 
   readonly facade = inject(ClawXpertFacade)
   readonly control = injectHostedAssistantChatkitControl({
@@ -257,16 +238,33 @@ export class ClawXpertConversationDetailComponent {
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
-      this.facade.onChatThreadChange(threadId)
+      this.handleChatkitThreadEvent(threadId)
     },
     onThreadLoadStart: ({ threadId }) => {
-      this.facade.onChatThreadChange(threadId)
+      this.handleChatkitThreadEvent(threadId)
     },
     onThreadLoadEnd: ({ threadId }) => {
-      this.facade.onChatThreadChange(threadId)
+      this.handleChatkitThreadEvent(threadId)
+    },
+    onEffect: (event) => {
+      if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
+        this.scheduleWorkspaceFileListRefresh()
+      }
+    },
+    onLog: (event) => {
+      if (shouldRefreshWorkspaceFilesFromLogEvent(event)) {
+        this.scheduleWorkspaceFileListRefresh()
+      }
+    },
+    onResponseStart: () => {
+      this.facade.patchActiveConversationStatus('busy')
+    },
+    onResponseEnd: () => {
+      this.facade.patchActiveConversationStatus('idle')
     }
   })
-  readonly activePanel = signal<'files' | 'terminal' | null>(null)
+  readonly activePanel = signal<'files' | 'terminal' | null>('files')
+  readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
   readonly contextLoading = signal(false)
@@ -312,6 +310,65 @@ export class ClawXpertConversationDetailComponent {
       })
     })
 
+    effect((onCleanup) => {
+      const control = this.control()
+      const threadId = this.facade.threadId()
+      const viewState = this.facade.viewState()
+      this.facade.suppressAutoResume()
+
+      if (!control || threadId || viewState !== 'ready') {
+        return
+      }
+
+      let cancelled = false
+      const timer = setTimeout(() => {
+        if (cancelled) {
+          return
+        }
+
+        void this.facade.ensureConversationEntry(control)
+      })
+
+      onCleanup(() => {
+        cancelled = true
+        clearTimeout(timer)
+      })
+    })
+
+    effect((onCleanup) => {
+      const control = this.control()
+      const threadId = this.facade.threadId()
+      const viewState = this.facade.viewState()
+
+      if (!control || viewState !== 'ready') {
+        this.#lastSyncedChatkitThread = {
+          control: null,
+          threadId: undefined
+        }
+        this.#lastReportedChatkitThread = {
+          control: null,
+          threadId: undefined
+        }
+        return
+      }
+
+      if (this.#lastSyncedChatkitThread.control === control && this.#lastSyncedChatkitThread.threadId === threadId) {
+        return
+      }
+
+      this.#lastSyncedChatkitThread = {
+        control,
+        threadId
+      }
+
+      let cancelled = false
+      void this.syncChatkitThread(control, threadId, () => cancelled)
+
+      onCleanup(() => {
+        cancelled = true
+      })
+    })
+
     effect(
       (onCleanup) => {
         const threadId = this.facade.threadId()
@@ -320,6 +377,7 @@ export class ClawXpertConversationDetailComponent {
           this.contextError.set(null)
           this.resolvedConversationId.set(null)
           this.resolvedConversation.set(null)
+          this.facade.setActiveConversation(null)
           return
         }
 
@@ -328,44 +386,81 @@ export class ClawXpertConversationDetailComponent {
         this.contextError.set(null)
         this.resolvedConversationId.set(null)
         this.resolvedConversation.set(null)
+        this.facade.setActiveConversation(null)
 
         void this.resolveConversationContext(threadId, () => cancelled)
 
         onCleanup(() => {
           cancelled = true
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
-  goToOverview() {
-    this.facade.navigateToOverview()
+  ngOnDestroy() {
+    this.clearScheduledWorkspaceFileListRefresh()
+    this.facade.setActiveConversation(null)
   }
 
-  togglePanel(panel: 'files' | 'terminal' | null) {
-    if (!panel) {
-      this.activePanel.set(null)
+  selectPanel(panel: 'files' | 'terminal') {
+    this.activePanel.update((activePanel) => (activePanel === panel ? null : panel))
+  }
+
+  private scheduleWorkspaceFileListRefresh() {
+    this.clearScheduledWorkspaceFileListRefresh()
+    this.#workspaceFileRefreshTimer = setTimeout(() => {
+      this.#workspaceFileRefreshTimer = null
+      this.fileListReloadKey.update((value) => value + 1)
+    }, WORKSPACE_FILE_REFRESH_DEBOUNCE_MS)
+  }
+
+  private clearScheduledWorkspaceFileListRefresh() {
+    if (!this.#workspaceFileRefreshTimer) {
       return
     }
 
-    this.activePanel.update((current) => (current === panel ? null : panel))
+    clearTimeout(this.#workspaceFileRefreshTimer)
+    this.#workspaceFileRefreshTimer = null
   }
 
-  panelButtonClasses(active: boolean) {
-    return (
-      'gap-2 rounded-full border border-transparent transition-colors ' +
-      (active
-        ? 'border-divider-regular bg-components-list-option-active-bg text-text-primary shadow-sm'
-        : 'text-text-secondary hover:bg-button-ghost-hover hover:text-text-primary')
-    )
+  private handleChatkitThreadEvent(threadId: string | null) {
+    this.#lastReportedChatkitThread = {
+      control: this.control(),
+      threadId
+    }
+    this.facade.onChatThreadChange(threadId)
+  }
+
+  private async syncChatkitThread(control: ChatKitControl, threadId: string | null, isCancelled: () => boolean) {
+    await this.waitForChatkitMount(control, isCancelled)
+    if (isCancelled()) {
+      return
+    }
+
+    if (this.#lastReportedChatkitThread.control === control && this.#lastReportedChatkitThread.threadId === threadId) {
+      return
+    }
+
+    await control.setThreadId(threadId)
+  }
+
+  private async waitForChatkitMount(control: ChatKitControl, isCancelled: () => boolean) {
+    for (let index = 0; index < 12; index++) {
+      if (control.element || isCancelled()) {
+        return
+      }
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 16))
+    }
   }
 
   private async resolveConversationContext(threadId: string, isCancelled: () => boolean) {
     let conversationId: string | null = null
 
     try {
-      const thread = await firstValueFrom(this.#threadService.getThread(threadId))
+      const thread = (await firstValueFrom(this.#threadService.getThread(threadId))) as {
+        metadata?: { id?: string }
+      } | null
       if (isCancelled() || this.facade.threadId() !== threadId) {
         return
       }
@@ -383,30 +478,37 @@ export class ClawXpertConversationDetailComponent {
       if (conversationId) {
         this.resolvedConversationId.set(conversationId)
 
-        const conversation = await firstValueFrom(this.#conversationService.getById(conversationId))
+        const conversation = (await firstValueFrom(
+          this.#conversationService.getById(conversationId)
+        )) as IChatConversation | null
         if (isCancelled() || this.facade.threadId() !== threadId) {
           return
         }
 
         this.resolvedConversationId.set(conversation?.id ?? conversationId)
         this.resolvedConversation.set(conversation ?? null)
+        this.facade.setActiveConversation(conversation ?? null)
         this.contextError.set(null)
         return
       }
 
-      const conversation = await firstValueFrom(this.#conversationService.getByThreadId(threadId))
+      const conversation = (await firstValueFrom(this.#conversationService.getByThreadId(threadId))) as
+        | IChatConversation
+        | null
       if (isCancelled() || this.facade.threadId() !== threadId) {
         return
       }
 
       this.resolvedConversationId.set(conversation?.id ?? null)
       this.resolvedConversation.set(conversation ?? null)
+      this.facade.setActiveConversation(conversation ?? null)
       this.contextError.set(null)
     } catch (error) {
       if (isCancelled() || this.facade.threadId() !== threadId) {
         return
       }
 
+      this.facade.setActiveConversation(null)
       this.contextError.set(getErrorMessage(error) || 'Failed to resolve the current conversation context.')
     } finally {
       if (!isCancelled() && this.facade.threadId() === threadId) {

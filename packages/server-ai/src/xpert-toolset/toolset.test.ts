@@ -1,7 +1,7 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { Tool } from '@langchain/core/tools'
-import { IXpertToolset } from '@metad/contracts'
+import { IXpertToolset } from '@xpert-ai/contracts'
 import { BaseToolset } from './toolset'
 
 class MockTool extends Tool {

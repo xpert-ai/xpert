@@ -9,7 +9,7 @@ import {
   ISkillRepositoryIndex,
   WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
 } from '@cloud/app/@core'
-import { injectConfirmDelete } from '@metad/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { finalize } from 'rxjs'
 import { SkillRepositoryService, ToastrService } from '../../../@core/services'

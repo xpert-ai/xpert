@@ -2,7 +2,7 @@
 import { HttpClient } from '@angular/common/http'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FileTypePipe, SafePipe } from '@metad/core'
+import { FileTypePipe, SafePipe } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'

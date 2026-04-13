@@ -1,4 +1,4 @@
-import { SmartBusinessState, PeriodFunctions, SmartBusinessService, Indicator, Property, PropertyHierarchy, TimeGranularity, getDefaultHierarchy, QueryReturn, mapTimeGranularitySemantic, calcRange, TimeRangeType, FilterOperator, C_MEASURES, getIndicatorMeasureName, QueryOptions, getCalendarDimension, isEmpty } from '@metad/ocap-core'
+import { SmartBusinessState, PeriodFunctions, SmartBusinessService, Indicator, Property, PropertyHierarchy, TimeGranularity, getDefaultHierarchy, QueryReturn, mapTimeGranularitySemantic, calcRange, TimeRangeType, FilterOperator, C_MEASURES, getIndicatorMeasureName, QueryOptions, getCalendarDimension, isEmpty } from '@xpert-ai/ocap-core'
 import { isString } from 'lodash-es'
 import { BehaviorSubject, EMPTY, filter, map, Observable, switchMap, tap, withLatestFrom } from 'rxjs'
 

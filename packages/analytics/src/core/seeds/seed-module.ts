@@ -1,5 +1,5 @@
-import { IPluginConfig } from '@metad/server-common'
-import { registerPluginConfig } from '@metad/server-core'
+import { IPluginConfig } from '@xpert-ai/server-common'
+import { registerPluginConfig } from '@xpert-ai/server-core'
 import { INestApplicationContext } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import chalk from 'chalk'

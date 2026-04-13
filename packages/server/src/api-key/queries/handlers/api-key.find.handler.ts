@@ -1,4 +1,4 @@
-import { IApiKey } from '@metad/contracts'
+import { IApiKey } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { ApiKeyService } from '../../api-key.service'
 import { FindApiKeyQuery } from '../api-key.find.query'

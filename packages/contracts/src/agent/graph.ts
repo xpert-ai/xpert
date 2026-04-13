@@ -25,6 +25,10 @@ export const STATE_SYS_WORKSPACE_PATH = 'workspace_path'
  * URL for workspace files in sandbox environment
  */
 export const STATE_SYS_WORKSPACE_URL = 'workspace_url'
+/**
+ * Current runtime thread id
+ */
+export const STATE_SYS_THREAD_ID = 'thread_id'
 export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
 export type TMessageChannel = {
@@ -137,15 +141,15 @@ export function messageContentText(content: string | TMessageContentComplex) {
  * @returns
  */
 export function getWorkspaceFromRunnable(configurable: TAgentRunnableConfigurable): {
-  type?: 'project' | 'conversation'
+  type?: 'project' | 'user'
   id?: string
 } {
   return configurable?.projectId
     ? { type: 'project', id: '' }
-    : configurable?.thread_id
+    : configurable?.userId || configurable?.thread_id
       ? {
-          type: 'conversation',
-          id: configurable.thread_id
+          type: 'user',
+          id: ''
         }
       : {}
 }

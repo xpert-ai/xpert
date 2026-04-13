@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AuthRegisterCommand } from '../auth.register.command';
 import { AuthService } from '../../auth.service';
-import { IUser, RolesEnum } from '@metad/contracts';
+import { IUser, RolesEnum } from '@xpert-ai/contracts';
 import { UserService } from '../../../user/user.service';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 

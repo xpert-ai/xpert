@@ -1,6 +1,6 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { channelName, IWFNKnowledgeRetrieval, IXpertAgentExecution, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { channelName, IWFNKnowledgeRetrieval, IXpertAgentExecution, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'

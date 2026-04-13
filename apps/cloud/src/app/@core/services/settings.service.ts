@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { NxCoreService } from '@metad/core'
-import { ComponentStore } from '@metad/store'
+import { NxCoreService } from '@xpert-ai/core'
+import { ComponentStore } from '@xpert-ai/store'
 
 export interface SettingsState {
   theme: string

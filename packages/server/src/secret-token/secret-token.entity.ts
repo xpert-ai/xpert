@@ -1,4 +1,4 @@
-import { ISecretToken } from '@metad/contracts'
+import { ISecretToken } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { differenceInMinutes } from 'date-fns'
 import { AfterLoad, Column, Entity, Index } from 'typeorm'

@@ -1,7 +1,7 @@
 import { Runnable } from '@langchain/core/runnables'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
-import { TXpertTeamNode } from '@metad/contracts'
+import { TXpertTeamNode } from '@xpert-ai/contracts'
 
 /**
  * 

@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, inject } from '@angular/core'
-import { NgmConfirmCodeEditorComponent } from '@metad/ocap-angular/editor'
+import { NgmConfirmCodeEditorComponent } from '@xpert-ai/ocap-angular/editor'
 import { FieldType } from '@ngx-formly/core'
 import { isUndefined } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'

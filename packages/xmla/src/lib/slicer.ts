@@ -11,7 +11,7 @@ import {
   isNil,
   measureFormatter,
   PrimitiveType
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { groupBy, isEmpty, uniq } from 'lodash'
 import { WithMemberType } from './calculation'
 import { mapMDXFilterToStatement, MDXHierarchyFilter, MDXProperty } from './filter'

@@ -1,4 +1,4 @@
-import { uuid } from '@metad/ocap-core'
+import { uuid } from '@xpert-ai/ocap-core'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { SemanticModelService } from '../../model.service'

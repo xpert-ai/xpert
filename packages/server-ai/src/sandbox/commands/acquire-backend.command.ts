@@ -1,4 +1,4 @@
-import { TSandboxConfigurable } from '@metad/contracts'
+import { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { SandboxProviderCreateOptions } from '@xpert-ai/plugin-sdk'
 

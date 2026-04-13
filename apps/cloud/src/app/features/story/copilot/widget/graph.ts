@@ -2,15 +2,15 @@ import { inject } from '@angular/core'
 import { HumanMessage, SystemMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { CreateGraphOptions, createReactAgent } from '@metad/copilot'
+import { CreateGraphOptions, createReactAgent } from '@xpert-ai/copilot'
 import {
   injectDimensionMemberTool,
   makeCubeRulesPrompt,
   markdownEntityType,
   PROMPT_RETRIEVE_DIMENSION_MEMBER
-} from '@metad/core'
-import { DataSettings, pick } from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+} from '@xpert-ai/core'
+import { DataSettings, pick } from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom } from 'rxjs'
 import {

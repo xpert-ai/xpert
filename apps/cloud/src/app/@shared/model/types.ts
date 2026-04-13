@@ -1,5 +1,5 @@
-import { ISemanticModel, NgmSemanticModel, TSemanticModelDraft } from '@metad/cloud/state'
-import { Schema } from '@metad/ocap-core'
+import { ISemanticModel, NgmSemanticModel, TSemanticModelDraft } from '@xpert-ai/cloud/state'
+import { Schema } from '@xpert-ai/ocap-core'
 
 export enum MODEL_TYPE {
   /**

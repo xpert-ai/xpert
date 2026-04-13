@@ -1,5 +1,5 @@
-import { ApprovalPolicyTypesStringEnum, PermissionApprovalStatusTypesEnum } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { ApprovalPolicyTypesStringEnum, PermissionApprovalStatusTypesEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

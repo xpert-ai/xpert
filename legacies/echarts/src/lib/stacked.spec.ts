@@ -1,4 +1,4 @@
-import { C_MEASURES, OrderDirection } from '@metad/ocap-core'
+import { C_MEASURES, OrderDirection } from '@xpert-ai/ocap-core'
 import { CHART_ANNOTATION, DATA, SALES_ENTITY_TYPE } from './mock'
 import { getMatrixForMeasure, stackedForMeasure } from './stacked'
 

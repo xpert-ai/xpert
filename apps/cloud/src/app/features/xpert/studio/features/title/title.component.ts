@@ -2,12 +2,12 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, IfAnimations, linkedModel, OverlayAnimations } from '@metad/core'
+import { attrModel, IfAnimations, linkedModel, OverlayAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioFeaturesComponent } from '../features.component'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-title',

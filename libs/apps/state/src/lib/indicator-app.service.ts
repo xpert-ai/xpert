@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { IIndicatorApp } from '@metad/contracts'
+import { IIndicatorApp } from '@xpert-ai/contracts'
 import { map } from 'rxjs/operators'
 import { C_URI_API_INDICATOR_APP } from './constants'
 

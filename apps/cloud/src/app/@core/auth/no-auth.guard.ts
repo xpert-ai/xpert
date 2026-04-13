@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router'
-import { AuthService } from '@metad/cloud/state'
+import { AuthService } from '@xpert-ai/cloud/state'
 
 /**
  * Use for routes which only need to be displayed if user is NOT logged in

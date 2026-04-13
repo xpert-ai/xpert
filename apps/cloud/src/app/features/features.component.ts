@@ -20,9 +20,9 @@ import {
   RouterEvent,
   RouterOutlet
 } from '@angular/router'
-import { PacMenuItem } from '@metad/cloud/auth'
-import { injectUserPreferences, UsersService } from '@metad/cloud/state'
-import { isNotEmpty, nonNullable } from '@metad/core'
+import { PacMenuItem } from '@xpert-ai/cloud/auth'
+import { injectUserPreferences, UsersService } from '@xpert-ai/cloud/state'
+import { isNotEmpty, nonNullable } from '@xpert-ai/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'

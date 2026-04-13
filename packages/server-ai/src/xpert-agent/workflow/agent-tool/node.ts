@@ -13,7 +13,7 @@ import {
 	TXpertGraph,
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import { AgentStateAnnotation, createParameters, nextWorkflowNodes, TWorkflowGraphNode } from '../../../shared'

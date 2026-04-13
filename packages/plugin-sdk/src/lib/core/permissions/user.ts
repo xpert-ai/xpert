@@ -1,4 +1,4 @@
-import type { IUser } from '@metad/contracts'
+import type { IUser } from '@xpert-ai/contracts'
 import type { BasePermission } from './general'
 
 export type UserPermissionOperation = 'read' | 'write' | 'update' | 'delete'

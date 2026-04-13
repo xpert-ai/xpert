@@ -53,9 +53,9 @@ import {
     TXpertAgentConfig,
     XpertAgentExecutionStatusEnum,
     stringifyMessageContent
-} from '@metad/contracts'
-import { getErrorMessage, pick } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage, pick } from '@xpert-ai/server-common'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
@@ -176,8 +176,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 if (retry) {
                     throw new Error('Conversation ID is required for retry operation')
                 }
-                const workspacePath = await VolumeClient.getWorkspacePath(tenantId, projectId, userId)
-                const workspaceUrl = VolumeClient.getWorkspaceUrl(projectId, userId)
+                const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, projectId, userId)
+                const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(projectId, userId)
                 conversation = await this.commandBus.execute(
                     new ChatConversationUpsertCommand({
                         tenantId,
@@ -384,6 +384,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                                     timezone: user.timeZone || command.options.timeZone,
                                     date: format(new Date(), 'yyyy-MM-dd'),
                                     datetime: new Date().toLocaleString(),
+                                    thread_id: conversation.threadId,
                                     workspace_path: conversation.options?.workspacePath,
                                     workspace_url: conversation.options?.workspaceUrl
                                 }

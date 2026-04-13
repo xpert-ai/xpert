@@ -1,6 +1,7 @@
 {
-  "name": "@metad/story",
+  "name": "@xpert-ai/story",
   "version": "2.8.0",
+  "private": true,
   "peerDependencies": {
     "@angular/common": "^21.0.0",
     "@angular/core": "^21.0.0"

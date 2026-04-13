@@ -1,5 +1,5 @@
-import { IUser, IXpert, IXpertProject, IXpertToolset } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IUser, IXpert, IXpertProject, IXpertToolset } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { ApiProperty } from '@nestjs/swagger'
 import { Expose, Transform, TransformFnParams } from 'class-transformer'
 import { IsObject, IsOptional } from 'class-validator'

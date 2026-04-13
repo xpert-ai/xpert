@@ -1,6 +1,6 @@
-import { IUser, TChatConversationStatus } from '@metad/contracts'
-import { pick } from '@metad/server-common'
-import { UserPublicDTO } from '@metad/server-core'
+import { IUser, TChatConversationStatus } from '@xpert-ai/contracts'
+import { pick } from '@xpert-ai/server-common'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { ChatConversation } from '../../core/entities/internal'
 

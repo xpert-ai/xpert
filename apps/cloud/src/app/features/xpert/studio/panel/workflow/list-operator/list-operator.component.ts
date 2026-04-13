@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent, XpertVariableInputComponent } from '@cloud/app/@shared/agent'
 import { XpertWorkflowConditionFormComponent } from '@cloud/app/@shared/workflow'
-import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getVariableSchema,

@@ -38,6 +38,12 @@ export interface IAssistantBindingSkillPreference {
   disabledSkillIds: string[]
 }
 
+export interface IAssistantBindingConversationPreferences {
+  version: 1
+  defaultThreadId?: string | null
+  lastThreadId?: string | null
+}
+
 export interface IAssistantBindingToolPreferences {
   version: 1
   toolsets?: Record<string, IAssistantBindingToolsetPreference>
@@ -63,6 +69,7 @@ export interface IAssistantBindingUserPreference extends IBasePerTenantAndOrgani
   soul?: string | null
   profile?: string | null
   toolPreferences?: IAssistantBindingToolPreferences | null
+  conversationPreferences?: IAssistantBindingConversationPreferences | null
 }
 
 export interface IResolvedAssistantBinding extends IAssistantBinding {
@@ -81,6 +88,7 @@ export interface IAssistantBindingUserPreferenceUpsertInput {
   soul?: string | null
   profile?: string | null
   toolPreferences?: IAssistantBindingToolPreferences | null
+  conversationPreferences?: IAssistantBindingConversationPreferences | null
 }
 
 const USER_MANAGED_ASSISTANTS = new Set<AssistantCode>([AssistantCode.CLAWXPERT])

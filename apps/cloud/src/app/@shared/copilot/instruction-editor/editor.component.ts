@@ -16,7 +16,7 @@ import {
   ViewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { timer } from 'rxjs'

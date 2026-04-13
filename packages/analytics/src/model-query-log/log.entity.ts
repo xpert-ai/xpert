@@ -1,5 +1,5 @@
-import { ISemanticModel, ISemanticModelQueryLog, QueryStatusEnum, TQueryOptions } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ISemanticModel, ISemanticModelQueryLog, QueryStatusEnum, TQueryOptions } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'

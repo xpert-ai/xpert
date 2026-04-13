@@ -15,7 +15,7 @@ export function injectHelpWebsite(url?: string) {
   return computed(() => {
     const language = lang()
     if ([LanguagesEnum.Chinese, LanguagesEnum.SimplifiedChinese, LanguagesEnum.TraditionalChinese].includes(language)) {
-      return website + (url ?? '')
+      return `${website}/zh-Hans` + (url ?? '')
     } else {
       return `${website}/en` + (url ?? '')
     }

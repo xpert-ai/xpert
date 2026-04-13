@@ -5,8 +5,8 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
 import { ZardButtonComponent, ZardDialogService, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@metad/ocap-angular/common'
-import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
+import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@xpert-ai/ocap-angular/common'
+import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -14,7 +14,7 @@ import {
   nonNullable,
   parameterFormatter,
   ParameterProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { firstValueFrom, map } from 'rxjs'

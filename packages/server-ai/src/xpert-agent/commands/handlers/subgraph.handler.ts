@@ -52,10 +52,10 @@ import {
     TXpertTeamNode,
     WorkflowNodeTypeEnum,
     XpertAgentExecutionStatusEnum
-} from '@metad/contracts'
-import { stringifyMessageContent } from '@metad/copilot'
-import { getErrorMessage } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { stringifyMessageContent } from '@xpert-ai/copilot'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
@@ -689,6 +689,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 projectId: options.projectId,
                 conversationId: options.conversationId,
                 xpertId: xpert.id,
+                xpertFeatures: xpert.features ?? null,
                 agentKey,
                 tools: toolMap
             },

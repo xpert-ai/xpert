@@ -51,7 +51,7 @@
           </p>
         } @else {
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
-            {{ 'PAC.Explore.SkillDescriptionFallback' | translate: { Default: '该技能暂未提供更多说明。' } }}
+            {{ 'PAC.Explore.SkillDescriptionFallback' | translate: { Default: 'This skill does not include additional details yet.' } }}
           </p>
         }
       </div>
@@ -106,7 +106,7 @@
       <div class="flex items-end justify-between gap-3">
         <div class="min-w-0">
           <div class="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-quaternary">
-            {{ 'PAC.Explore.Creator' | translate: { Default: '创建者' } }}
+            {{ 'PAC.Explore.Creator' | translate: { Default: 'Creator' } }}
           </div>
           <div class="mt-1 truncate text-sm font-semibold text-text-primary">
             {{ publisherName() }}
@@ -118,7 +118,7 @@
 
         <button z-button type="button" zSize="lg" class="rounded-full cursor-pointer pr-4" (click)="addToWorkspace($event)">
           <z-icon zType="plus"></z-icon>
-          {{ 'PAC.ACTIONS.Add' | translate: { Default: '添加' } }}
+          {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
         </button>
       </div>
     </div>

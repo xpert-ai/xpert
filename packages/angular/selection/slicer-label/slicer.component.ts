@@ -1,7 +1,7 @@
 
 import { Component, EventEmitter, Output, booleanAttribute, computed, inject, input } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
-import { injectTranslate } from '@metad/ocap-angular/core'
+import { injectTranslate } from '@xpert-ai/ocap-angular/core'
 import {
   EntityType,
   FilterSelectionType,
@@ -14,7 +14,7 @@ import {
   nonNullable,
   slicerAsString,
   timeRangesSlicerAsString
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { combineLatestWith, map } from 'rxjs'
 

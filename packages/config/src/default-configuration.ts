@@ -6,7 +6,7 @@ import {
 	DEFAULT_API_BASE_URL,
 	DEFAULT_GRAPHQL_API_PATH,
 	IPluginConfig
-} from '@metad/server-common';
+} from '@xpert-ai/server-common';
 import chalk from 'chalk';
 import path from 'path';
 import { dbConnectionConfig } from './database';

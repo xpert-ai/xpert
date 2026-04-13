@@ -1,4 +1,4 @@
-import { DSCoreService } from '@metad/ocap-core';
+import { DSCoreService } from '@xpert-ai/ocap-core';
 import { ICommand } from '@nestjs/cqrs';
 
 /**

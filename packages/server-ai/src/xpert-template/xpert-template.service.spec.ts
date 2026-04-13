@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { LanguagesEnum } from '@metad/contracts'
+import { LanguagesEnum } from '@xpert-ai/contracts'
 
 jest.mock('../skill-repository/skill-repository.service', () => ({
 	SkillRepositoryService: class SkillRepositoryService {}
@@ -11,11 +11,11 @@ jest.mock('../skill-repository/repository-index/skill-repository-index.service',
 	SkillRepositoryIndexService: class SkillRepositoryIndexService {}
 }))
 
-jest.mock('@metad/server-config', () => ({
+jest.mock('@xpert-ai/server-config', () => ({
 	ConfigService: class ConfigService {}
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
 	TenantBaseEntity: class TenantBaseEntity {},
 	TenantAwareCrudService: class TenantAwareCrudService<T> {
 		constructor(protected readonly repository: unknown) {}

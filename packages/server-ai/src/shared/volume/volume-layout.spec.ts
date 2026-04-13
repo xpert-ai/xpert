@@ -5,7 +5,7 @@ const mockEnvironment = {
     }
 }
 
-jest.mock('@metad/server-config', () => ({
+jest.mock('@xpert-ai/server-config', () => ({
     environment: mockEnvironment
 }))
 

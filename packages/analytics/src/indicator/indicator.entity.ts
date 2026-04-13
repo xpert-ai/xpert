@@ -12,8 +12,8 @@ import {
   IndicatorStatusEnum,
   EmbeddingStatusEnum,
   TIndicatorDraft,
-} from '@metad/contracts'
-import { Tag } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { Tag } from '@xpert-ai/server-core'
 import { IsEnum, IsJSON, IsOptional, IsString } from 'class-validator'
 import {
   Column,

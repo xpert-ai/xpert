@@ -5,7 +5,7 @@ import { SharedModule } from '../../shared.module'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormFieldEmailsComponent } from '../../form-fields'
 import { RoleFormFieldComponent } from '../../user/forms/fields/role'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 
 @NgModule({
   imports: [

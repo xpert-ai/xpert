@@ -1,4 +1,4 @@
-import { DisplayBehaviour, filterTreeNodes, TreeNodeInterface } from '@metad/ocap-core'
+import { DisplayBehaviour, filterTreeNodes, TreeNodeInterface } from '@xpert-ai/ocap-core'
 
 export type TreeSelectTextNode = {
   key?: string | null

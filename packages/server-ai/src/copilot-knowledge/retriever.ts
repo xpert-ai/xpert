@@ -8,7 +8,7 @@ import {
 } from '@langchain/core/vectorstores'
 import { Logger } from '@nestjs/common'
 import { CopilotKnowledgeService } from './copilot-knowledge.service'
-import { AiBusinessRole } from '@metad/contracts'
+import { AiBusinessRole } from '@xpert-ai/contracts'
 
 /**
  * Type for options when adding a document to the VectorStore.

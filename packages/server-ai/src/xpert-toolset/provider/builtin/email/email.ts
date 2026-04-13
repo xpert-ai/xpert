@@ -1,4 +1,4 @@
-import { IXpertToolset } from '@metad/contracts'
+import { IXpertToolset } from '@xpert-ai/contracts'
 import { BuiltinToolset } from '../builtin-toolset'
 import { createTransporter, verifyTransporter } from './tools/send'
 import { EmailToolCredentials, SendEmailToolParameters } from './types'

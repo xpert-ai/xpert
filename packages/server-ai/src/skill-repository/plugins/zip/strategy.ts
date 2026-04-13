@@ -1,4 +1,4 @@
-import { ISkillRepository, ISkillRepositoryIndex, TSkillSourceMeta } from '@metad/contracts'
+import { ISkillRepository, ISkillRepositoryIndex, TSkillSourceMeta } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ISkillSourceProvider, SkillSourceProviderStrategy } from '@xpert-ai/plugin-sdk'
 import { cp, mkdtemp, mkdir, readdir, rm, readFile, writeFile } from 'fs/promises'

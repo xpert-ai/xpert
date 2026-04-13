@@ -1,4 +1,4 @@
-import { IPagination } from '@metad/contracts'
+import { IPagination } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -8,7 +8,7 @@ import {
 	TransformInterceptor,
 	transformWhere,
 	UUIDValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Body, Controller, Get, HttpStatus, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'

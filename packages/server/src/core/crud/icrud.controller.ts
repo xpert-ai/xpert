@@ -1,4 +1,4 @@
-import { IPagination } from '@metad/contracts';
+import { IPagination } from '@xpert-ai/contracts';
 import { DeepPartial, DeleteResult, FindManyOptions, FindOptionsWhere, UpdateResult } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 

@@ -8,9 +8,9 @@ import {
 	SemanticModelStatusEnum,
 	TSemanticModelDraft,
 	Visibility
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@xpert-ai/server-core'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'

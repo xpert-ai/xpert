@@ -1,6 +1,7 @@
 {
   "name": "@xpert-ai/plugin-transformer-common",
-  "version": "0.0.1",
+  "version": "0.0.2-beta.1",
+  "private": true,
   "xpert": {
     "plugin": {
       "level": "system"
@@ -15,6 +16,6 @@
   "module": "./index.js",
   "peerDependencies": {
     "@nestjs/common": ">=10",
-    "@xpert-ai/plugin-sdk": "^3.8.0"
+    "@xpert-ai/plugin-sdk": "workspace:*"
   }
 }

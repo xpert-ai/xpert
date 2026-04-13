@@ -16,7 +16,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, RouterOutlet } from '@angular/router'
-import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar/emoji-avatar/avatar.component'
 import { groupConversations } from '@cloud/app/xpert/types'
 import {
   IChatConversation,
@@ -25,17 +25,20 @@ import {
   IXpertTask,
   PaginationParams,
   PersistState
-} from '@metad/cloud/state'
-import { OverlayAnimations, routeAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+} from '@xpert-ai/cloud/state'
+import { OverlayAnimations, routeAnimations } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { firstValueFrom } from 'rxjs'
 import { filter, map, startWith } from 'rxjs/operators'
 import {
   AiFeatureEnum,
+  AssistantBindingService,
+  AssistantCode,
   ChatConversationService,
   getErrorMessage,
   injectProjectService,
@@ -44,10 +47,17 @@ import {
   Store
 } from '../../../@core'
 import { AppService } from '../../../app.service'
+import { environment } from '@cloud/environments/environment'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
+import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
-import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
+import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/task-dialog.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  hasAssistantBindingSource,
+  hasCompleteAssistantBinding,
+  sanitizeAssistantFrameUrl
+} from '../../assistant/assistant-chatkit.runtime'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
 type TAgentLink = {
@@ -79,6 +89,7 @@ type TAgentLink = {
   animations: [routeAnimations, OverlayAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
+    ClawXpertFacade,
     ChatHomeService,
     {
       provide: XpertHomeService,
@@ -94,6 +105,7 @@ export class ChatHomeComponent {
 
   readonly homeService = inject(ChatHomeService)
   readonly appService = inject(AppService)
+  readonly clawxpertFacade = inject(ClawXpertFacade)
   readonly route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly logger = inject(NGXLogger)
@@ -102,6 +114,7 @@ export class ChatHomeComponent {
   readonly #toastr = injectToastr()
   readonly #preferences = injectUserPreferences()
   readonly #store = inject(Store)
+  readonly #assistantBindingService = inject(AssistantBindingService)
 
   // Signals
   readonly currentPage = signal<{ type?: 'project' | 'conversation'; id?: string }>({})
@@ -142,17 +155,30 @@ export class ChatHomeComponent {
       this.chatSidebar.set(state)
     }
   })
+  readonly clawxpertEnabled = computed(() => {
+    this.featureOrganizations()
+    this.featureTenant()
+
+    return (
+      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
+      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
+    )
+  })
+  readonly clawxpertCardTitle = computed(() => {
+    return (
+      this.clawxpertFacade.currentXpert()?.title ||
+      this.clawxpertFacade.currentXpert()?.name ||
+      this.clawxpertFacade.definition.defaultLabel
+    )
+  })
+  readonly clawxpertCardLink = computed(() =>
+    this.clawxpertFacade.viewState() === 'ready' ? '/chat/clawxpert/c' : '/chat/clawxpert'
+  )
+  readonly clawxpertCardActive = computed(() => isClawXpertRoute(this.currentUrl()))
 
   readonly menuOverlay = signal<TMenuOverlayType>(null)
   private leaveTimer = null
   readonly allAgentLinks: TAgentLink[] = [
-    {
-      key: 'clawxpert',
-      defaultLabel: 'ClawXpert',
-      featureKey: AiFeatureEnum.FEATURE_XPERT_CLAWXPERT,
-      iconClass: 'ri-user-star-line',
-      link: '/chat/clawxpert'
-    },
     {
       key: 'chatbi',
       defaultLabel: 'ChatBI',
@@ -178,10 +204,7 @@ export class ChatHomeComponent {
     }
   ]
   readonly agentLinks = computed(() => {
-    this.featureOrganizations()
-    this.featureTenant()
-
-    if (!this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)) {
+    if (!this.clawxpertEnabled() && !this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)) {
       return []
     }
 
@@ -312,18 +335,33 @@ export class ChatHomeComponent {
   }
 
   // Start a new conversation from sidebar and clear active chat context.
-  newConversation() {
+  async newConversation() {
     this.homeService.conversationId.set(null)
     this.homeService.conversation.set(null)
     this.currentPage.set({ type: 'conversation' })
 
-    const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
-    if (typeof activeComponent?.newConv === 'function') {
-      activeComponent.newConv()
+    if (await this.isCommonAssistantReady()) {
+      const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
+
+      if (normalizeChatRoute(this.#router.url) === '/chat/x/common' && typeof activeComponent?.newConv === 'function') {
+        activeComponent.newConv()
+        return
+      }
+
+      await this.#router.navigate(['/chat/x/common'])
       return
     }
 
-    this.#router.navigate(['/chat/x/welcome'])
+    await this.#router.navigate(['/chat/x/welcome'])
+  }
+
+  openClawXpertCard() {
+    void this.#router.navigateByUrl(this.clawxpertCardLink())
+  }
+
+  openClawXpertSettings(event?: Event) {
+    event?.stopPropagation()
+    void this.#router.navigateByUrl('/chat/clawxpert')
   }
 
   newProject() {
@@ -455,6 +493,18 @@ export class ChatHomeComponent {
       this.openConversations() // Execute the openConversations method
     }
   }
+
+  private async isCommonAssistantReady() {
+    try {
+      const config = await firstValueFrom(this.#assistantBindingService.getEffective(AssistantCode.CHAT_COMMON))
+      const frameUrl = sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL)
+
+      return !!(config && hasAssistantBindingSource(config) && config.enabled && hasCompleteAssistantBinding(config, frameUrl))
+    } catch (error) {
+      this.logger.debug('Failed to resolve common assistant binding', error)
+      return false
+    }
+  }
 }
 
 function normalizeChatRoute(url: string) {
@@ -464,4 +514,8 @@ function normalizeChatRoute(url: string) {
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+}
+
+function isClawXpertRoute(url: string) {
+  return /^\/chat\/clawxpert(?:\/|$)/.test(normalizeChatRoute(url))
 }

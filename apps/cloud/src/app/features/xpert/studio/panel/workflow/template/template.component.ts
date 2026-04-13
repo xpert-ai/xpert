@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { CodeEditorCardComponent } from '@cloud/app/@shared/editors'
-import { attrModel, linkedModel } from '@metad/core'
+import { attrModel, linkedModel } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNTemplate,

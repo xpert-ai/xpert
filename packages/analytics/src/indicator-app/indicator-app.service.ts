@@ -1,4 +1,4 @@
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindManyOptions, Repository } from 'typeorm'

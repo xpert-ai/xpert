@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core'
 import { FormlyFieldConfig } from '@ngx-formly/core'
-import { WidgetComponentType } from '@metad/story/core'
-import { AccordionWrappers, DataSettingsSchemaService, FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
-import { WidgetComponentType as IndicatorCardWidgetType } from '@metad/story/widgets/indicator-card'
+import { WidgetComponentType } from '@xpert-ai/story/core'
+import { AccordionWrappers, DataSettingsSchemaService, FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
+import { WidgetComponentType as IndicatorCardWidgetType } from '@xpert-ai/story/widgets/indicator-card'
 import { map, startWith } from 'rxjs/operators'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 

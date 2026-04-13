@@ -8,7 +8,7 @@
 // 	IXpertAgentExecution,
 // 	TAgentRunnableConfigurable,
 // 	WorkflowNodeTypeEnum
-// } from '@metad/contracts'
+// } from '@xpert-ai/contracts'
 // import { Logger } from '@nestjs/common'
 // import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 // import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'

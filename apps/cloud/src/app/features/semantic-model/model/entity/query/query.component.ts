@@ -12,13 +12,13 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { Store } from '@metad/cloud/state'
-import { convertQueryResultColumns, LeanRightEaseInAnimation } from '@metad/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { EntityCapacity, getErrorMessage } from '@metad/ocap-angular/core'
-import { EntitySchemaNode, EntitySchemaType, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
-import { NgmMDXEditorComponent } from '@metad/ocap-angular/mdx'
-import { NgmSQLEditorComponent } from '@metad/ocap-angular/sql'
+import { Store } from '@xpert-ai/cloud/state'
+import { convertQueryResultColumns, LeanRightEaseInAnimation } from '@xpert-ai/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { EntityCapacity, getErrorMessage } from '@xpert-ai/ocap-angular/core'
+import { EntitySchemaNode, EntitySchemaType, NgmEntitySchemaComponent } from '@xpert-ai/ocap-angular/entity'
+import { NgmMDXEditorComponent } from '@xpert-ai/ocap-angular/mdx'
+import { NgmSQLEditorComponent } from '@xpert-ai/ocap-angular/sql'
 import {
   C_MEASURES,
   DisplayBehaviour,
@@ -27,7 +27,7 @@ import {
   measureFormatter,
   nonNullable,
   serializeUniqueName
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -39,8 +39,8 @@ import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { serializePropertyUniqueName } from '../../utils'
 import { ModelEntityService } from '../entity.service'
-import { getSemanticModelKey } from '@metad/story/core'
-import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
+import { NgmBaseEditorDirective } from '@xpert-ai/ocap-angular/formula'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
 import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({

@@ -8,7 +8,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { XpertStudioContextMenuComponent } from '../../context-menu/context-menu.component'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xp-xpert-workflow-node-start',

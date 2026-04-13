@@ -1,4 +1,4 @@
-import { FileStorageOption, UploadedFile } from '@metad/contracts'
+import { FileStorageOption, UploadedFile } from '@xpert-ai/contracts'
 import {
   FileStorageProvider,
   IFileStorageProvider,

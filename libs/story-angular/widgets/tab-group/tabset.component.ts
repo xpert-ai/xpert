@@ -13,11 +13,11 @@ import {
   output,
   signal
 } from '@angular/core'
-import { NgmAppearance, NgmFieldColor, NgmTabHeaderPosition } from '@metad/ocap-angular/core'
-import { DataSettings, IAdvancedFilter, ISlicer, nonNullable } from '@metad/ocap-core'
-import { IStoryWidget } from '@metad/core'
-import { WidgetComponentType } from '@metad/story/core'
-import { WidgetComponentType as IndicatorCardWidgetType } from '@metad/story/widgets/indicator-card'
+import { NgmAppearance, NgmFieldColor, NgmTabHeaderPosition } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, IAdvancedFilter, ISlicer, nonNullable } from '@xpert-ai/ocap-core'
+import { IStoryWidget } from '@xpert-ai/core'
+import { WidgetComponentType } from '@xpert-ai/story/core'
+import { WidgetComponentType as IndicatorCardWidgetType } from '@xpert-ai/story/widgets/indicator-card'
 import { ZardTabGroupComponent } from '@xpert-ai/headless-ui'
 
 export interface NxWidgetTabsetOptions {

@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
+import { signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatCommonAssistantComponent } from './common.component'
+import { ChatCommonService } from './common-chat.service'
+import { ChatHomeService } from '../home.service'
 import { clearChatCommonPendingInput, storeChatCommonPendingInput } from './pending-input.util'
 
 jest.mock('apps/cloud/src/app/@core', () => {
@@ -20,49 +23,146 @@ jest.mock('apps/cloud/src/app/@core', () => {
   }
 })
 
+jest.mock('../../../@core/providers/ocap', () => ({
+  provideOcap: jest.fn(() => [])
+}))
+
+jest.mock('@xpert-ai/ocap-angular/core', () => ({
+  provideOcapCore: jest.fn(() => [])
+}))
+
+jest.mock('../../../xpert', () => {
+  const angularCore = jest.requireActual('@angular/core')
+
+  class ChatService {}
+  class XpertOcapService {}
+  class XpertChatAppComponent {}
+
+  angularCore.Component({
+    selector: 'xpert-webapp',
+    standalone: true,
+    template: ''
+  })(XpertChatAppComponent)
+
+  return {
+    ChatService,
+    XpertChatAppComponent,
+    XpertOcapService
+  }
+})
+
+jest.mock('../../../@shared/avatar', () => {
+  const angularCore = jest.requireActual('@angular/core')
+
+  class EmojiAvatarComponent {}
+
+  angularCore.Component({
+    selector: 'emoji-avatar',
+    standalone: true,
+    template: ''
+  })(EmojiAvatarComponent)
+
+  return {
+    EmojiAvatarComponent
+  }
+})
+
+jest.mock('../xperts/xperts.component', () => {
+  const angularCore = jest.requireActual('@angular/core')
+
+  class ChatXpertsComponent {}
+
+  angularCore.Component({
+    selector: 'pac-chat-xperts',
+    standalone: true,
+    template: ''
+  })(ChatXpertsComponent)
+
+  return {
+    ChatXpertsComponent
+  }
+})
+
 jest.mock('../../assistant/assistant-chatkit.runtime', () => {
   const { signal } = jest.requireActual('@angular/core')
 
   const runtimeState = {
-    control: signal(null),
     config: signal(null),
+    hasSource: signal(false),
+    isConfigured: signal(false),
     loading: signal(false),
-    status: signal('missing'),
-    isConfigured: signal(false)
+    refresh: jest.fn(),
+    status: signal('missing')
   }
 
   return {
-    injectAssistantChatkitRuntime: jest.fn(() => runtimeState),
+    injectAssistantBindingRuntimeState: jest.fn(() => runtimeState),
     __runtimeState: runtimeState
   }
 })
 
-const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as any
-const {
-  injectAssistantChatkitRuntime
-}: {
-  injectAssistantChatkitRuntime: jest.Mock
-} = jest.requireMock('../../assistant/assistant-chatkit.runtime')
+jest.mock('./common-chat.service', () => {
+  const { signal } = jest.requireActual('@angular/core')
+
+  class ChatCommonService {
+    readonly assistantId = signal<string | null>(null)
+    readonly xpert = signal(null)
+    readonly ask = jest.fn()
+    readonly newConv = jest.fn()
+    readonly setAssistantId = jest.fn(async (assistantId: string | null) => {
+      this.assistantId.set(assistantId)
+    })
+  }
+
+  return {
+    ChatCommonService
+  }
+})
+
+const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as {
+  config: ReturnType<typeof import('@angular/core').signal<unknown>>
+  hasSource: ReturnType<typeof import('@angular/core').signal<boolean>>
+  isConfigured: ReturnType<typeof import('@angular/core').signal<boolean>>
+  loading: ReturnType<typeof import('@angular/core').signal<boolean>>
+  status: ReturnType<typeof import('@angular/core').signal<string>>
+}
 
 describe('ChatCommonAssistantComponent', () => {
   let router: Router
+  let service: ChatCommonService & {
+    ask: jest.Mock
+    newConv: jest.Mock
+    setAssistantId: jest.Mock
+    assistantId: ReturnType<typeof import('@angular/core').signal<string | null>>
+    xpert: ReturnType<typeof import('@angular/core').signal<unknown>>
+  }
 
   beforeEach(() => {
-    runtimeState.control.set(null)
+    jest.useFakeTimers()
+
     runtimeState.config.set(null)
+    runtimeState.hasSource.set(false)
+    runtimeState.isConfigured.set(false)
     runtimeState.loading.set(false)
     runtimeState.status.set('missing')
-    runtimeState.isConfigured.set(false)
-    injectAssistantChatkitRuntime.mockClear()
     clearChatCommonPendingInput()
 
     TestBed.resetTestingModule()
     TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ChatCommonAssistantComponent],
-      providers: [provideRouter([])]
+      providers: [
+        provideRouter([]),
+        {
+          provide: ChatHomeService,
+          useValue: {
+            sortedXperts: signal([])
+          }
+        }
+      ]
     })
 
     router = TestBed.inject(Router)
+    service = TestBed.inject(ChatCommonService) as typeof service
     jest.spyOn(router, 'getCurrentNavigation').mockReturnValue(null)
     Object.defineProperty(router, 'url', {
       configurable: true,
@@ -71,24 +171,11 @@ describe('ChatCommonAssistantComponent', () => {
   })
 
   afterEach(() => {
+    jest.runOnlyPendingTimers()
+    jest.useRealTimers()
     clearChatCommonPendingInput()
     TestBed.resetTestingModule()
     jest.clearAllMocks()
-  })
-
-  it('enables chatkit history in the runtime configuration', () => {
-    const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
-    fixture.detectChanges()
-
-    expect(injectAssistantChatkitRuntime).toHaveBeenCalledWith(
-      expect.objectContaining({
-        history: {
-          enabled: true,
-          showDelete: false,
-          showRename: false
-        }
-      })
-    )
   })
 
   it('renders a missing-config empty state', () => {
@@ -100,83 +187,38 @@ describe('ChatCommonAssistantComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.MissingTitle')
   })
 
-  it('renders the embedded chatkit when ready', () => {
+  it('renders the legacy xpert chat app when ready', () => {
     runtimeState.status.set('ready')
     runtimeState.config.set({
-      assistantId: 'xpert-1',
+      assistantId: 'assistant-1',
       sourceScope: 'tenant',
       enabled: true
-    })
-    runtimeState.control.set({
-      element: {},
-      setThreadId: jest.fn(),
-      sendUserMessage: jest.fn(),
-      focusComposer: jest.fn(),
-      subscribe: jest.fn(() => jest.fn()),
-      setInstance: jest.fn(),
-      getOptions: jest.fn(() => ({ frameUrl: 'https://frame.example.com' })),
-      getHandlers: jest.fn(() => ({}))
     })
 
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBeNull()
+    expect(service.setAssistantId).toHaveBeenCalledWith('assistant-1')
+    expect(fixture.nativeElement.querySelector('xpert-webapp')).not.toBeNull()
   })
 
-  it('starts a new assistant thread without leaving the common route', async () => {
-    const setThreadId = jest.fn().mockResolvedValue(undefined)
-    const focusComposer = jest.fn().mockResolvedValue(undefined)
-    runtimeState.status.set('ready')
-    runtimeState.config.set({
-      assistantId: 'xpert-1',
-      sourceScope: 'tenant',
-      enabled: true
-    })
-    runtimeState.control.set({
-      element: {},
-      setThreadId,
-      sendUserMessage: jest.fn(),
-      focusComposer,
-      subscribe: jest.fn(() => jest.fn()),
-      setInstance: jest.fn(),
-      getOptions: jest.fn(() => ({ frameUrl: 'https://frame.example.com' })),
-      getHandlers: jest.fn(() => ({}))
-    })
-
+  it('starts a new assistant thread without leaving the common route', () => {
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    await fixture.componentInstance.newConv()
+    fixture.componentInstance.newConv()
 
-    expect(setThreadId).toHaveBeenCalledWith(null)
-    expect(focusComposer).toHaveBeenCalled()
+    expect(service.newConv).toHaveBeenCalled()
   })
 
   it('reads a pending common conversation from router state input', () => {
-    runtimeState.status.set('ready')
-    runtimeState.config.set({
-      assistantId: 'xpert-1',
-      sourceScope: 'tenant',
-      enabled: true
-    })
-    runtimeState.control.set({
-      element: {},
-      setThreadId: jest.fn().mockResolvedValue(undefined),
-      sendUserMessage: jest.fn().mockResolvedValue(undefined),
-      focusComposer: jest.fn().mockResolvedValue(undefined),
-      subscribe: jest.fn(() => jest.fn()),
-      setInstance: jest.fn(),
-      getOptions: jest.fn(() => ({ frameUrl: 'https://frame.example.com' })),
-      getHandlers: jest.fn(() => ({}))
-    })
     jest.spyOn(router, 'getCurrentNavigation').mockReturnValue({
       extras: {
         state: {
           input: 'Help me summarize this quarter'
         }
       }
-    } as any)
+    } as never)
 
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
@@ -185,27 +227,53 @@ describe('ChatCommonAssistantComponent', () => {
   })
 
   it('reads a pending common conversation from storage when navigation state is unavailable', () => {
-    runtimeState.status.set('ready')
-    runtimeState.config.set({
-      assistantId: 'xpert-1',
-      sourceScope: 'tenant',
-      enabled: true
-    })
-    runtimeState.control.set({
-      element: {},
-      setThreadId: jest.fn().mockResolvedValue(undefined),
-      sendUserMessage: jest.fn().mockResolvedValue(undefined),
-      focusComposer: jest.fn().mockResolvedValue(undefined),
-      subscribe: jest.fn(() => jest.fn()),
-      setInstance: jest.fn(),
-      getOptions: jest.fn(() => ({ frameUrl: 'https://frame.example.com' })),
-      getHandlers: jest.fn(() => ({}))
-    })
     storeChatCommonPendingInput('Draft the weekly recap')
 
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
     expect(fixture.componentInstance.pendingConversation()?.text).toBe('Draft the weekly recap')
+  })
+
+  it('converts router-state input into the first legacy chat message', async () => {
+    runtimeState.status.set('ready')
+    runtimeState.config.set({
+      assistantId: 'assistant-1',
+      sourceScope: 'tenant',
+      enabled: true
+    })
+    jest.spyOn(router, 'getCurrentNavigation').mockReturnValue({
+      extras: {
+        state: {
+          input: 'Help me summarize this quarter'
+        }
+      }
+    } as never)
+
+    const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
+    fixture.detectChanges()
+    await Promise.resolve()
+    jest.runOnlyPendingTimers()
+
+    expect(service.newConv).toHaveBeenCalled()
+    expect(service.ask).toHaveBeenCalledWith('Help me summarize this quarter', { files: [] })
+    expect(fixture.componentInstance.pendingConversation()).toBeNull()
+  })
+
+  it('converts stored input into the first legacy chat message', async () => {
+    runtimeState.status.set('ready')
+    runtimeState.config.set({
+      assistantId: 'assistant-1',
+      sourceScope: 'tenant',
+      enabled: true
+    })
+    storeChatCommonPendingInput('Draft the weekly recap')
+
+    const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
+    fixture.detectChanges()
+    await Promise.resolve()
+    jest.runOnlyPendingTimers()
+
+    expect(service.ask).toHaveBeenCalledWith('Draft the weekly recap', { files: [] })
   })
 })

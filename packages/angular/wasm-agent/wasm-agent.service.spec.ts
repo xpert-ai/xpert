@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing'
-import { AgentType, Syntax, TableEntity, uuid } from '@metad/ocap-core'
+import { AgentType, Syntax, TableEntity, uuid } from '@xpert-ai/ocap-core'
 import { NGM_WASM_AGENT_WORKER, WasmAgentService } from './wasm-agent.service'
 
 describe('WasmAgentService', () => {
@@ -11,7 +11,7 @@ describe('WasmAgentService', () => {
         WasmAgentService,
         {
           provide: NGM_WASM_AGENT_WORKER,
-          useValue: '@metad/ocap-duckdb/dist/ocap-agent-data-init.worker.js'
+          useValue: '@xpert-ai/ocap-duckdb/dist/ocap-agent-data-init.worker.js'
         }
       ]
     })

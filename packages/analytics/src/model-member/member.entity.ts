@@ -1,5 +1,5 @@
-import { ISemanticModel, ISemanticModelEntity, ISemanticModelMember } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ISemanticModel, ISemanticModelEntity, ISemanticModelMember } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsOptional, IsString, IsNumber, IsJSON } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'

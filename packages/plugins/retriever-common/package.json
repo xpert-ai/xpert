@@ -1,6 +1,7 @@
 {
   "name": "@xpert-ai/plugin-retriever-common",
-  "version": "0.0.1",
+  "version": "0.0.2-beta.1",
+  "private": true,
   "xpert": {
     "plugin": {
       "level": "system"
@@ -11,7 +12,7 @@
   "module": "./index.js",
   "peerDependencies": {
     "@nestjs/common": ">=10",
-    "@metad/contracts": "*",
-    "@xpert-ai/plugin-sdk": "^3.8.4"
+    "@xpert-ai/contracts": "workspace:*",
+    "@xpert-ai/plugin-sdk": "workspace:*"
   }
 }

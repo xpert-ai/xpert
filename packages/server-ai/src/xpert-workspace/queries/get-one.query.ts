@@ -1,7 +1,7 @@
 import { IQuery } from '@nestjs/cqrs'
 import { FindManyOptions } from 'typeorm'
 import { XpertWorkspace } from '../workspace.entity'
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 
 /**
  */

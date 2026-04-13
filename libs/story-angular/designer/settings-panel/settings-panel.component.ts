@@ -17,8 +17,8 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 
-import { nonNullable } from '@metad/core'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { nonNullable } from '@xpert-ai/core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, filter, map } from 'rxjs/operators'
 import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE, STORY_DESIGNER_SCHEMA } from '../types'

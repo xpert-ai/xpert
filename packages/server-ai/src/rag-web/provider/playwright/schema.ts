@@ -1,4 +1,4 @@
-import { KDocumentWebTypeEnum, ParameterTypeEnum, TKDocumentWebSchema } from '@metad/contracts'
+import { KDocumentWebTypeEnum, ParameterTypeEnum, TKDocumentWebSchema } from '@xpert-ai/contracts'
 
 export type TRagPlaywrightParams = {
 	timeout: number

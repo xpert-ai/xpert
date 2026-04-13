@@ -14,8 +14,8 @@ import {
 } from '@angular/core'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { routeAnimations } from '@metad/core'
-import { isEqual, pick } from '@metad/ocap-core'
+import { routeAnimations } from '@xpert-ai/core'
+import { isEqual, pick } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ApiAuthType,

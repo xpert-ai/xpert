@@ -1,5 +1,5 @@
 import { CompiledStateGraph } from '@langchain/langgraph'
-import { IXpert, IXpertAgentExecution, TChatOptions, TXpertGraph, TXpertParameter } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions, TXpertGraph, TXpertParameter } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { TAgentSubgraphParams } from '../agent'
 

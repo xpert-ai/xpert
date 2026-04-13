@@ -6,7 +6,7 @@ import {
   getMemberValue,
   NamedSet,
   PropertyName
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { startsWith } from 'lodash'
 import { WithMemberType } from '../calculation'
 import { MDXHierarchyFilter, MDXProperty } from '../filter'

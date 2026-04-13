@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { NxStoryFeedService, StoryFeed } from '@metad/story/core'
+import { NxStoryFeedService, StoryFeed } from '@xpert-ai/story/core'
 import { Observable } from 'rxjs'
 import { FeedsService } from '../@core/services'
 

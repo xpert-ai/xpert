@@ -1,6 +1,6 @@
-import { IXpert, IXpertAgent } from '@metad/contracts'
-import { nonNullable } from '@metad/ocap-core'
-import { pick } from '@metad/server-common'
+import { IXpert, IXpertAgent } from '@xpert-ai/contracts'
+import { nonNullable } from '@xpert-ai/ocap-core'
+import { pick } from '@xpert-ai/server-common'
 import { isKeyEqual } from '../shared'
 
 export function getXpertAgent(xpert: IXpert, keyOrName: string, options: { isDraft: boolean }) {

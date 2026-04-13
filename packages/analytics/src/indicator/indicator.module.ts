@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SharedModule, TagModule, TenantModule, UserModule } from '@metad/server-core';
+import { SharedModule, TagModule, TenantModule, UserModule } from '@xpert-ai/server-core';
 import { RouterModule } from '@nestjs/core';
 import { IndicatorController } from './indicator.controller';
 import { Indicator } from './indicator.entity';

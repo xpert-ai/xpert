@@ -13,8 +13,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardFormImports, ZardInputDirective, ZardSliderComponent } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmControlsModule } from '@metad/ocap-angular/controls'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmControlsModule } from '@xpert-ai/ocap-angular/controls'
 import {
   attrModel,
   linkedModel,
@@ -23,7 +23,7 @@ import {
   NgmDSCoreService,
   OcapCoreModule,
   NgmFieldColor
-} from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -35,7 +35,7 @@ import {
   isEqual,
   isVariableProperty,
   pick
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   combineLatestWith,
   distinctUntilChanged,

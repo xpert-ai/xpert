@@ -8,7 +8,7 @@ import {
 	getWorkspaceFromRunnable,
 	IBaseToolset,
 	TFile
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import z from 'zod'
 import { toolNamePrefix } from '../../shared'

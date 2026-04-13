@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { PermissionsEnum } from '@metad/contracts';
+import { PermissionsEnum } from '@xpert-ai/contracts';
 import { NgxPermissionsGuard } from 'ngx-permissions';
 import { SMTPComponent } from '../../../@shared/smtp/smtp.component';
 import { CustomSmtpComponent } from './custom-smtp.component';

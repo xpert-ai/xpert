@@ -1,4 +1,4 @@
-import { IApiKey } from '@metad/contracts'
+import { IApiKey } from '@xpert-ai/contracts'
 import { Query } from '@nestjs/cqrs'
 
 export class UseApiKeyQuery extends Query<IApiKey> {

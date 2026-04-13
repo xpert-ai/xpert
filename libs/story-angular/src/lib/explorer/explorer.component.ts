@@ -25,18 +25,18 @@ import {
   ZardToggleGroupItemComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { nonBlank } from '@metad/core'
-import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
-import { NgmMemberTreeComponent } from '@metad/ocap-angular/controls'
-import { DisplayDensity, NgmDSCoreService, NgmThemeService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { EntityCapacity, NgmEntityPropertyComponent, PropertyCapacity } from '@metad/ocap-angular/entity'
+import { nonBlank } from '@xpert-ai/core'
+import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
+import { AnalyticalGridModule } from '@xpert-ai/ocap-angular/analytical-grid'
+import { NgmMemberTreeComponent } from '@xpert-ai/ocap-angular/controls'
+import { DisplayDensity, NgmDSCoreService, NgmThemeService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { EntityCapacity, NgmEntityPropertyComponent, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import {
   NgmChartPropertyComponent,
   NgmChartSettingsComponent,
   NgmSchemaChartTypeComponent
-} from '@metad/story/widgets/analytical-card'
-import { NgmGridSettingsComponent } from '@metad/story/widgets/analytical-grid'
+} from '@xpert-ai/story/widgets/analytical-card'
+import { NgmGridSettingsComponent } from '@xpert-ai/story/widgets/analytical-grid'
 import {
   AggregationRole,
   CHARTS,
@@ -65,13 +65,13 @@ import {
   omit,
   pick,
   uniqBy
-} from '@metad/ocap-core'
-import { NxStoryService, WidgetComponentType } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { NxStoryService, WidgetComponentType } from '@xpert-ai/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { combineLatestWith, filter, map, startWith, switchMap } from 'rxjs/operators'
-import { NgmSearchComponent, ResizerModule } from '@metad/ocap-angular/common'
+import { NgmSearchComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
 import { firstValueFrom } from 'rxjs'
-import { ExplainComponent } from '@metad/story/story'
+import { ExplainComponent } from '@xpert-ai/story/story'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 

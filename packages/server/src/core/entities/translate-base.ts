@@ -1,4 +1,4 @@
-import { ITranslation, ITranslatable, TranslatePropertyInput, TranslateInput } from '@metad/contracts';
+import { ITranslation, ITranslatable, TranslatePropertyInput, TranslateInput } from '@xpert-ai/contracts';
 import { TenantOrganizationBaseEntity } from '../entities/internal';
 
 export abstract class TranslationBase

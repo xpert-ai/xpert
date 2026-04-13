@@ -2,7 +2,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { Cache } from 'cache-manager'
 import { createHash } from 'crypto'
-import { XpertExtensionViewManifest, XpertResolvedViewHostContext, XpertViewDataResult, XpertViewQuery } from '@metad/contracts'
+import { XpertExtensionViewManifest, XpertResolvedViewHostContext, XpertViewDataResult, XpertViewQuery } from '@xpert-ai/contracts'
 import { StrategyBus } from '@xpert-ai/plugin-sdk'
 
 export interface XpertViewCacheHostIdentity {

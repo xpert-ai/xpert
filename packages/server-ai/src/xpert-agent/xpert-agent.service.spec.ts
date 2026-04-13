@@ -1,4 +1,4 @@
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     TenantOrganizationAwareCrudService: class {
         protected repository
 
@@ -20,6 +20,14 @@ jest.mock('../xpert/queries', () => ({
             public readonly conditions: Record<string, unknown>,
             public readonly params: Record<string, unknown>
         ) {}
+    }
+}))
+
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    AgentMiddlewareRegistry: class AgentMiddlewareRegistry {},
+    RequestContext: {
+        currentTenantId: jest.fn().mockReturnValue('tenant-1'),
+        currentUserId: jest.fn().mockReturnValue('user-1')
     }
 }))
 
@@ -188,5 +196,107 @@ describe('XpertAgentService', () => {
                 }
             }
         ])
+    })
+
+    it('loads draft features and injects them into middleware tooling requests', async () => {
+        const createMiddleware = jest.fn().mockResolvedValue({
+            tools: [
+                {
+                    name: 'sandbox_shell',
+                    description: 'Run shell commands',
+                    schema: null
+                }
+            ]
+        })
+        ;(service as any).agentMiddlewareRegistry = {
+            list: jest.fn().mockReturnValue([]),
+            get: jest.fn().mockReturnValue({
+                createMiddleware
+            })
+        }
+        queryBus.execute.mockResolvedValueOnce({
+            id: 'xpert-1',
+            features: {
+                sandbox: {
+                    enabled: true
+                }
+            }
+        })
+
+        await service.getMiddlewareTools('SandboxShell', {
+            xpertId: 'xpert-1',
+            options: {}
+        })
+
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                conditions: {
+                    id: 'xpert-1'
+                },
+                params: {
+                    isDraft: true
+                }
+            })
+        )
+        expect(createMiddleware).toHaveBeenCalledWith(
+            {},
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                xpertFeatures: {
+                    sandbox: {
+                        enabled: true
+                    }
+                }
+            })
+        )
+    })
+
+    it('loads draft features for middleware tool test requests', async () => {
+        const invoke = jest.fn().mockResolvedValue('ok')
+        const createMiddleware = jest.fn().mockResolvedValue({
+            tools: [
+                {
+                    name: 'sandbox_shell',
+                    invoke
+                }
+            ]
+        })
+        ;(service as any).agentMiddlewareRegistry = {
+            list: jest.fn().mockReturnValue([]),
+            get: jest.fn().mockReturnValue({
+                createMiddleware
+            })
+        }
+        queryBus.execute.mockResolvedValueOnce({
+            id: 'xpert-1',
+            features: {
+                sandbox: {
+                    enabled: true
+                }
+            }
+        })
+
+        await service.testMiddlewareTool('SandboxShell', 'sandbox_shell', {
+            xpertId: 'xpert-1',
+            options: {},
+            parameters: {
+                command: 'pwd'
+            }
+        })
+
+        expect(createMiddleware).toHaveBeenCalledWith(
+            {},
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                xpertFeatures: {
+                    sandbox: {
+                        enabled: true
+                    }
+                }
+            })
+        )
+        expect(invoke).toHaveBeenCalledWith({
+            command: 'pwd'
+        })
     })
 })

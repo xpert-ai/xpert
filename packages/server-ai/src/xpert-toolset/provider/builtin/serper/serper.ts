@@ -1,4 +1,4 @@
-import { IXpertToolset, TToolCredentials } from '@metad/contracts'
+import { IXpertToolset, TToolCredentials } from '@xpert-ai/contracts'
 import { ToolProviderCredentialValidationError } from '../../../errors'
 import { BuiltinToolset } from '../builtin-toolset'
 

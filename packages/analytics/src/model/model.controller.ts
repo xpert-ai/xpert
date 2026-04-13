@@ -7,7 +7,7 @@ import {
 	TSemanticModelDraft,
 	VisitEntityEnum,
 	VisitTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	CrudController,
 	CurrentUser,
@@ -21,7 +21,7 @@ import {
 	RoleGuard,
 	Roles,
 	UUIDValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	Body,
 	ClassSerializerInterceptor,

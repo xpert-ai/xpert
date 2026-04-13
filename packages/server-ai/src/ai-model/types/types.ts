@@ -1,4 +1,4 @@
-import { ICopilot, ILLMUsage, ParameterType } from "@metad/contracts"
+import { ICopilot, ILLMUsage, ParameterType } from "@xpert-ai/contracts"
 
 export const PROVIDE_AI_MODEL_LLM = 'provide_ai_model_llm'
 export const PROVIDE_AI_MODEL_MODERATION = 'provide_ai_model_moderation'

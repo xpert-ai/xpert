@@ -2,7 +2,7 @@ jest.mock('../xpert.service', () => ({
     XpertService: class XpertService {}
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentUser: jest.fn()
     }
@@ -20,8 +20,8 @@ jest.mock('../../xpert-toolset/xpert-toolset.service', () => ({
     XpertToolsetService: class XpertToolsetService {}
 }))
 
-import { RequestContext } from '@metad/server-core'
-import { AiModelTypeEnum, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
+import { AiModelTypeEnum, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { FindCopilotModelsQuery } from '../../copilot/queries'
 import { XpertExportCommand, XpertImportCommand } from '../commands'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
@@ -339,6 +339,7 @@ describe('XpertAuthoringService', () => {
                                 type: 'svg',
                                 value: '<svg />'
                             },
+                            features: ['sandbox'],
                             configSchema: {
                                 type: 'object',
                                 properties: {}
@@ -363,7 +364,8 @@ describe('XpertAuthoringService', () => {
             workspaceId: 'workspace-1',
             items: [
                 expect.objectContaining({
-                    name: 'XpertAuthoringMiddleware'
+                    name: 'XpertAuthoringMiddleware',
+                    features: ['sandbox']
                 })
             ]
         })

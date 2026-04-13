@@ -2,7 +2,7 @@ import { AfterViewInit, Component, TemplateRef, ViewChild } from '@angular/core'
 import { RouterModule } from '@angular/router'
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
-import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DisplayDensity, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { Meta, StoryObj, moduleMetadata } from '@storybook/angular'
 import { TreeTableComponent } from './tree-table.component'
 import { TreeTableModule } from './tree-table.module'

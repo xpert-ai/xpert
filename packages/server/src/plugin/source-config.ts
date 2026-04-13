@@ -1,4 +1,4 @@
-import type { PluginSource, PluginSourceConfig } from '@metad/contracts'
+import type { PluginSource, PluginSourceConfig } from '@xpert-ai/contracts'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return !!value && typeof value === 'object' && !Array.isArray(value)

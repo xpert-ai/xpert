@@ -1,4 +1,4 @@
-import { ConfigModule, ConfigService, getConfig } from '@metad/server-config'
+import { ConfigModule, ConfigService, getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Global, Inject, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'

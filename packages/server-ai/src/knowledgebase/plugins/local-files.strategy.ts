@@ -7,8 +7,8 @@ import {
 	IStorageFile,
 	STATE_VARIABLE_HUMAN,
 	TChatRequestHuman
-} from '@metad/contracts'
-import { GetStorageFileQuery } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { GetStorageFileQuery } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { DocumentSourceStrategy, IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'

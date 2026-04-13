@@ -1,4 +1,4 @@
-import { Employee } from '@metad/server-core'
+import { Employee } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import { DataSource } from '../../../../../core/entities/internal'
 import { DataSourceTypeService } from '../../../../../data-source-type/index'

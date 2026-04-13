@@ -15,9 +15,9 @@ import {
     createXpertNodes,
     letterStartSUID,
     omitXpertRelations
-} from '@metad/contracts'
-import { yaml } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { yaml } from '@xpert-ai/server-common'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
@@ -147,7 +147,8 @@ export class XpertAuthoringService {
             label: meta.label,
             description: meta.description,
             icon: meta.icon,
-            configSchema: meta.configSchema
+            configSchema: meta.configSchema,
+            features: meta.features
         }))
 
         return this.buildCatalogResult(items, {

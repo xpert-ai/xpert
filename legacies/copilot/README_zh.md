@@ -4,27 +4,27 @@
 
 [English](./README.md) | 中文
 
-`@metad/copilot` 是一个通用的抽象核心逻辑包，专为开发 AI Copilot 应用而设计。
+`@xpert-ai/copilot` 是一个通用的抽象核心逻辑包，专为开发 AI Copilot 应用而设计。
 它提供了一组灵活的工具和功能，使您能够快速构建并集成 Copilot 功能，而无需关注具体的用户界面框架。
 
 ## 安装
 
-通过 npm 安装 `@metad/copilot`：
+通过 npm 安装 `@xpert-ai/copilot`：
 
 ```bash
-npm install @metad/copilot
+npm install @xpert-ai/copilot
 ```
 
 ## 在 Angular 中使用
 
-`@metad/ocap-angular` 是一个为 Angular 框架设计的 UI 组件库。其中 `@metad/ocap-angular/copilot` 是 Copilot chat UI 组件，它建立在 `@metad/copilot` 的基础之上，旨在帮助用户在 Angular 应用中轻松地集成和构建 Copilot 聊天功能。
+`@xpert-ai/ocap-angular` 是一个为 Angular 框架设计的 UI 组件库。其中 `@xpert-ai/ocap-angular/copilot` 是 Copilot chat UI 组件，它建立在 `@xpert-ai/copilot` 的基础之上，旨在帮助用户在 Angular 应用中轻松地集成和构建 Copilot 聊天功能。
 
 ### 安装
 
-通过 npm 安装 `@metad/ocap-angular`：
+通过 npm 安装 `@xpert-ai/ocap-angular`：
 
 ```bash
-npm install @metad/ocap-angular
+npm install @xpert-ai/ocap-angular
 ```
 
 ### 配置
@@ -32,7 +32,7 @@ npm install @metad/ocap-angular
 在使用 Copilot 组件前需要提供配置参数。您可以通过 `provideClientCopilot` 函数并传入 AI API 参数来提供。
 
 ```typescript
-import { provideClientCopilot } from '@metad/ocap-angular/copilot'
+import { provideClientCopilot } from '@xpert-ai/ocap-angular/copilot'
 import { provideMarkdown } from 'ngx-markdown'
 
 export const appConfig: ApplicationConfig = {
@@ -53,14 +53,14 @@ export const appConfig: ApplicationConfig = {
 
 ### 使用
 
-在您的 Angular 应用中引入 `@metad/ocap-angular/copilot` 模块：
+在您的 Angular 应用中引入 `@xpert-ai/ocap-angular/copilot` 模块：
 
 ```typescript
 import {
   NgmCopilotChatComponent,
   injectCopilotCommand,
   injectMakeCopilotActionable,
-} from '@metad/ocap-angular/copilot';
+} from '@xpert-ai/ocap-angular/copilot';
 
 @Component({
   selector: 'app-root',
@@ -186,10 +186,10 @@ https://stackblitz.com/~/github.com/tiven-w/metad-copilot-demo
 
 ## 许可
 
-`@metad/copilot` 是基于 MIT 许可发布的。有关更多信息，请参阅 [LICENSE](./LICENSE) 文件。
+`@xpert-ai/copilot` 是基于 MIT 许可发布的。有关更多信息，请参阅 [LICENSE](./LICENSE) 文件。
 
 ## 联系我们
 
 如果您有任何疑问或需要进一步的帮助，请随时通过电子邮件联系我们：<mailto:service@xpertai.cn>
 
-谢谢您使用 `@metad/copilot`！我们期待看到您的 Copilot 应用取得成功。
+谢谢您使用 `@xpert-ai/copilot`！我们期待看到您的 Copilot 应用取得成功。

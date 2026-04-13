@@ -3,10 +3,10 @@ import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 
 import { Component, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { ChartAnnotation, DataSettings, isNil, omit, omitBy, pick } from '@metad/ocap-core'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { ChartAnnotation, DataSettings, isNil, omit, omitBy, pick } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NX_STORY_STORE, NxStoryStore, Story, StoryPoint, StoryPointState } from '@metad/story/core'
+import { NX_STORY_STORE, NxStoryStore, Story, StoryPoint, StoryPointState } from '@xpert-ai/story/core'
 import { firstValueFrom } from 'rxjs'
 import {
   IStoryTemplate,

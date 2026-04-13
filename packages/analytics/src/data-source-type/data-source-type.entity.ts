@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DataSourceProtocolEnum, DataSourceSyntaxEnum, IDataSourceType } from '@metad/contracts';
-import { TenantBaseEntity } from '@metad/server-core';
+import { DataSourceProtocolEnum, DataSourceSyntaxEnum, IDataSourceType } from '@xpert-ai/contracts';
+import { TenantBaseEntity } from '@xpert-ai/server-core';
 import {
     IsJSON,
     IsOptional, IsString

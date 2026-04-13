@@ -1,5 +1,5 @@
-import { IProject } from '@metad/contracts'
-import { CrudController, ParseJsonPipe, UUIDValidationPipe } from '@metad/server-core'
+import { IProject } from '@xpert-ai/contracts'
+import { CrudController, ParseJsonPipe, UUIDValidationPipe } from '@xpert-ai/server-core'
 import {
 	Body,
 	ClassSerializerInterceptor,

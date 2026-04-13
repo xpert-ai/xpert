@@ -1,14 +1,14 @@
 import { Component, OnInit, Input, Output, EventEmitter, forwardRef, ChangeDetectorRef, signal, computed, inject, DestroyRef } from '@angular/core';
-import { ILanguage } from '@metad/contracts';
+import { ILanguage } from '@xpert-ai/contracts';
 import { TranslateModule } from '@ngx-translate/core';
 import { LanguagesService, Store } from '../../../@core';
 import { filter, tap } from 'rxjs/operators';
 import { FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 import { TranslationBaseComponent } from '../translation-base.component';
-import { NgmSelectComponent, NgmSpinComponent } from '@metad/ocap-angular/common';
+import { NgmSelectComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NgmFieldAppearance } from "@metad/ocap-angular/core";
+import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
 
 @Component({
 	standalone: true,

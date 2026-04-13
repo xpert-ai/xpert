@@ -1,7 +1,7 @@
 import { Connection } from 'typeorm';
 import { OrganizationLanguage } from './organization-language.entity';
 import faker from 'faker';
-import { IOrganization, IOrganizationLanguage, ITenant } from '@metad/contracts';
+import { IOrganization, IOrganizationLanguage, ITenant } from '@xpert-ai/contracts';
 import { Language } from '../language/language.entity';
 import { DEFAULT_LANGUAGE_LEVEL, DEFAULT_ORGANIZATION_LANGUAGES } from './default-organization-languages';
 

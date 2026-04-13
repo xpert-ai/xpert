@@ -5,7 +5,7 @@ import { Repository, FindOneOptions, FindOptionsWhere } from 'typeorm'
 import { TenantAwareCrudService } from './../core/crud'
 import { Organization } from './organization.entity'
 import { OrganizationDemoCommand } from './commands'
-import { InviteStatusEnum, OrgGenerateDemoOptions, RolesEnum } from '@metad/contracts'
+import { InviteStatusEnum, OrgGenerateDemoOptions, RolesEnum } from '@xpert-ai/contracts'
 import { Invite, UserGroup, UserOrganization } from '../core/entities/internal'
 import { RequestContext } from '../core/context'
 

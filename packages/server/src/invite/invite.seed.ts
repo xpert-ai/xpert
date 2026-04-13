@@ -1,7 +1,7 @@
 import { Connection } from 'typeorm';
-import { InviteStatusEnum, IOrganization, ITenant, IUser, RolesEnum } from '@metad/contracts';
+import { InviteStatusEnum, IOrganization, ITenant, IUser, RolesEnum } from '@xpert-ai/contracts';
 import { sign } from 'jsonwebtoken';
-import { environment as env } from '@metad/server-config';
+import { environment as env } from '@xpert-ai/server-config';
 import { Invite, Role } from './../core/entities/internal';
 
 export const createDefaultEmployeeInviteSent = async (

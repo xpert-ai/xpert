@@ -1,4 +1,4 @@
-import { IIntegration, TRagWebOptions } from '@metad/contracts'
+import { IIntegration, TRagWebOptions } from '@xpert-ai/contracts'
 import { NotionAPILoader } from "@langchain/community/document_loaders/web/notionapi";
 
 export const load = async (webOptions: TRagWebOptions, integration: IIntegration) => {

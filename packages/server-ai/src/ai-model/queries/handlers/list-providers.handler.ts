@@ -1,4 +1,4 @@
-import { IAiProviderEntity } from '@metad/contracts'
+import { IAiProviderEntity } from '@xpert-ai/contracts'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { AIModelProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { AIProvidersService } from '../../ai-model.service'

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { DensityDirective } from '@metad/ocap-angular/core'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { SharedUiModule } from '../@shared/ui.module'
 import { SidenavNavigatorComponent } from './header'

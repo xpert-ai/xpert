@@ -1,4 +1,4 @@
-import { IEnvironment, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { IEnvironment, TXpertGraph, TXpertTeamNode } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { TAgentSubgraphParams } from '../agent'

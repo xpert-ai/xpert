@@ -1,4 +1,4 @@
-import { ISkillRepository, ISkillRepositoryIndex, TSkillSourceMeta } from '@metad/contracts'
+import { ISkillRepository, ISkillRepositoryIndex, TSkillSourceMeta } from '@xpert-ai/contracts'
 
 export interface ISkillSourceProvider {
 	type: string

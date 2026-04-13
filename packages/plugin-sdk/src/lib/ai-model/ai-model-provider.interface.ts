@@ -4,7 +4,7 @@ import {
   ICopilotModel,
   ProviderModel,
   AIModelEntity
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'

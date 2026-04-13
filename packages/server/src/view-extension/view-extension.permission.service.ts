@@ -3,7 +3,7 @@ import {
   XpertExtensionViewManifest,
   XpertViewActionDefinition,
   XpertViewHostContext
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { XpertViewHostDefinition, XpertViewHostResolution } from './host-definition.interface'
 

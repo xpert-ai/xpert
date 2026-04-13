@@ -1,11 +1,11 @@
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindOneOptions, FindOptionsRelationByString, Repository } from 'typeorm'
 import { BusinessArea, BusinessAreaService } from '../business-area/index'
 import { StoryPointPublicDTO } from './dto'
 import { StoryPoint } from './story-point.entity'
-import { Visibility } from '@metad/contracts'
+import { Visibility } from '@xpert-ai/contracts'
 
 @Injectable()
 export class StoryPointService extends TenantOrganizationAwareCrudService<StoryPoint> {

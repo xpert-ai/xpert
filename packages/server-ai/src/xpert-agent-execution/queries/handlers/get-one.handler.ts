@@ -1,6 +1,6 @@
 import { BaseMessage, mapChatMessagesToStoredMessages, SystemMessage } from '@langchain/core/messages'
-import { channelName, IXpert, IXpertAgent, IXpertAgentExecution, OrderTypeEnum } from '@metad/contracts'
-import { omit } from '@metad/server-common'
+import { channelName, IXpert, IXpertAgent, IXpertAgentExecution, OrderTypeEnum } from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { XpertAgentExecutionService } from '../../agent-execution.service'

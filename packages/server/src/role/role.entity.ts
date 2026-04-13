@@ -1,4 +1,4 @@
-import { IRole, IRolePermission, IUser, RolesEnum } from '@metad/contracts'
+import { IRole, IRolePermission, IUser, RolesEnum } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude } from 'class-transformer'
 import { Column, Entity, Index, OneToMany } from 'typeorm'

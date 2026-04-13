@@ -1,4 +1,4 @@
-import { TenantModule } from '@metad/server-core'
+import { TenantModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { DiscoveryModule } from '@nestjs/core'
 import { Module } from '@nestjs/common'

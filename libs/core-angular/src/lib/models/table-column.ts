@@ -1,5 +1,5 @@
 import { TemplateRef } from '@angular/core'
-import { Dimension, Property } from '@metad/ocap-core'
+import { Dimension, Property } from '@xpert-ai/ocap-core'
 import { mkenum } from '../helpers'
 import { IntentNavigation } from './navigation'
 import { SortDirection } from './sort-prop-dir'

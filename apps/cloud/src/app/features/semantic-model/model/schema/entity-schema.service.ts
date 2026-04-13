@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { DataSettingsSchemaService } from '@metad/story/designer'
+import { DataSettingsSchemaService } from '@xpert-ai/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { filter, map, shareReplay, switchMap } from 'rxjs/operators'
 import { injectHelpWebsite } from '@cloud/app/@core'

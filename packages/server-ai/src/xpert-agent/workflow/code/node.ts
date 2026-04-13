@@ -12,8 +12,8 @@ import {
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get, isNil } from 'lodash'
 import { SandboxVMCommand } from '../../../sandbox'

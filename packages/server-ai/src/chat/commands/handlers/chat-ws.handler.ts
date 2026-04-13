@@ -5,9 +5,9 @@
 // 	IChatConversation,
 // 	IXpert,
 // 	IXpertToolset,
-// } from '@metad/contracts'
-// import { NgmLanguageEnum } from '@metad/copilot'
-// import { getErrorMessage, shortuuid } from '@metad/server-common'
+// } from '@xpert-ai/contracts'
+// import { NgmLanguageEnum } from '@xpert-ai/copilot'
+// import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 // import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 // import { isNil } from 'lodash'
 // import { Observable } from 'rxjs'

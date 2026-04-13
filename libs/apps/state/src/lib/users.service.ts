@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IUser, IUserFindInput, IUserMeFeatures, IUserOrganization, IUserPasswordInput, IUserUpdateInput } from '@metad/contracts'
+import { IUser, IUserFindInput, IUserMeFeatures, IUserOrganization, IUserPasswordInput, IUserUpdateInput } from '@xpert-ai/contracts'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from './constants'
 

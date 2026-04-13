@@ -1,4 +1,4 @@
-import { IVerifySMTPTransport } from "@metad/contracts";
+import { IVerifySMTPTransport } from "@xpert-ai/contracts";
 import { CreateCustomSmtpDTO } from "./create-custom-smtp.dto";
 
 /**

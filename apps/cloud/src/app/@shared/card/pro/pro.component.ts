@@ -2,7 +2,7 @@
 import { Component, input, output } from '@angular/core'
 import { I18nObject, injectHelpWebsite } from '../../../@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   standalone: true,

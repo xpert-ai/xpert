@@ -1,4 +1,4 @@
-import { IUser, TGatewayQueryEvent } from '@metad/contracts'
+import { IUser, TGatewayQueryEvent } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 export class ModelOlapQuery implements IQuery {

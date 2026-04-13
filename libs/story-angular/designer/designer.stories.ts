@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common'
 import { HttpClientModule } from '@angular/common/http'
 import { AfterViewInit, Component, NgModule, OnInit } from '@angular/core'
-import { NgmFormlyModule } from '@metad/formly'
+import { NgmFormlyModule } from '@xpert-ai/formly'
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { FormlyModule } from '@ngx-formly/core'
-import { uuid } from '@metad/ds-core'
+import { uuid } from '@xpert-ai/ds-core'
 import { Meta, moduleMetadata, Story } from '@storybook/angular'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { BehaviorSubject, Observable, of } from 'rxjs'

@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { makeCubeRulesPrompt } from '@metad/core'
+import { makeCubeRulesPrompt } from '@xpert-ai/core'
 import { Route } from 'apps/cloud/src/app/@core/copilot'
 import { MEMBER_RETRIEVER_PROMPT } from './types'
 

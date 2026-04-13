@@ -1,4 +1,4 @@
-import { ConfigService } from '@metad/server-config'
+import { ConfigService } from '@xpert-ai/server-config'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { MulterModule } from '@nestjs/platform-express'

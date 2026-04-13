@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getVariableSchema,

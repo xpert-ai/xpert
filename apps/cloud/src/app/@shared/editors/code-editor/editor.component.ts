@@ -9,7 +9,7 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmResizableDirective } from '@metad/ocap-angular/common'
+import { NgmResizableDirective } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'

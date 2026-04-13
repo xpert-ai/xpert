@@ -8,7 +8,7 @@ import {
 	IUserOrganization,
 	LanguagesEnum,
 	UserType,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Exclude } from 'class-transformer'
 import {
 	IsAscii,

@@ -13,7 +13,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotChatMessage, injectToastr, IXpert, TInterruptCommand, XpertAgentExecutionStatusEnum } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'

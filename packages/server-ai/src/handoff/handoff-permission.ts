@@ -3,7 +3,7 @@ import {
   PluginServicePermissionHandler,
   registerPluginServicePermissionHandler,
   resolvePermissionOperations
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
   HANDOFF_PERMISSION_SERVICE_TOKEN,
   HANDOFF_QUEUE_SERVICE_TOKEN,

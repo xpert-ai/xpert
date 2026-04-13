@@ -1,5 +1,5 @@
-import { FeedTypeEnum, IFeed } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { FeedTypeEnum, IFeed } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { Column, Entity } from 'typeorm'
 import { IsJSON, IsOptional } from 'class-validator'

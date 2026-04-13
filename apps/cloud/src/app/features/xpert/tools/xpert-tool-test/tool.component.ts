@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { IfAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { IfAnimations } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IXpertTool,

@@ -19,4 +19,4 @@
 //   children?: Array<FlexLayout>
 // }
 
-export { FlexLayout, FlexItemType } from '@metad/story/core'
+export { FlexLayout, FlexItemType } from '@xpert-ai/story/core'

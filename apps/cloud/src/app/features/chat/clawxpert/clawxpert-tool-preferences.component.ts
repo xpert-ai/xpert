@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
@@ -566,7 +566,9 @@ export class ClawXpertToolPreferencesComponent {
           ...collectMiddlewareNodes(draft).map((node) => {
             const middleware = node.entity as IWFNMiddleware
             const meta = middlewareMetaMap.get(middleware.provider)
-            return this.#xpertAgentService.getAgentMiddleware(middleware.provider, middleware.options ?? {}).pipe(
+            return this.#xpertAgentService
+              .getAgentMiddleware(middleware.provider, middleware.options ?? {}, this.facade.xpertId())
+              .pipe(
               take(1),
               map((response) => buildMiddlewarePreferenceState(node.key, middleware, meta, response.tools ?? [])),
               catchError((error) =>

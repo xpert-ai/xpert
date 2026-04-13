@@ -28,7 +28,7 @@
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
-          "@metad/store"
+          "@xpert-ai/store"
         ]
       }
     },

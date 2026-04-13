@@ -4,7 +4,7 @@ import { formatDate } from '@angular/common';
 import { CountdownFormatFn, CountdownConfig } from './interfaces';
 
 /**
- * @deprecated use `@metad/ocap-angular/common`
+ * @deprecated use `@xpert-ai/ocap-angular/common`
  */
 @Injectable({ providedIn: 'root' })
 export class CountdownGlobalConfig implements CountdownConfig {

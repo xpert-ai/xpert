@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaFormComponent } from '../../forms'
 import { hasJsonSchemaRequiredErrors, jsonSchemaHasConfigFields } from './trigger-config.util'
@@ -9,7 +9,7 @@ import { WorkflowTriggerProviderOption } from './types'
 
 @Component({
   standalone: true,
-  selector: 'xpert-workflow-trigger-config-card',
+  selector: 'xp-workflow-trigger-config-card',
   imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, JSONSchemaFormComponent],
   template: `
     @if (appearance() === 'card') {

@@ -7,9 +7,9 @@ import {
 	ITenant,
 	IUser,
 	PayPeriodEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import faker from 'faker';
-import { environment as env } from '@metad/server-config';
+import { environment as env } from '@xpert-ai/server-config';
 import moment from 'moment';
 import { Employee, Organization } from './../core/entities/internal';
 import { getDefaultOrganization } from './../organization/organization.seed';

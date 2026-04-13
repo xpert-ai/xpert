@@ -7,7 +7,7 @@ import type {
   TMessageContentReasoning,
   TMessageContentText,
   TTokenUsage
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { nanoid as _nanoid } from 'nanoid'
 import { ZodSchema } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'

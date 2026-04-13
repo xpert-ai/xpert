@@ -1,4 +1,4 @@
-import { IXpertToolset } from '@metad/contracts'
+import { IXpertToolset } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { In } from 'typeorm'
 import { XpertToolsetService } from '../../xpert-toolset.service'

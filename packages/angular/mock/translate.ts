@@ -2,8 +2,8 @@ import { HttpClient } from '@angular/common/http'
 import { EnvironmentProviders, importProvidersFrom } from '@angular/core'
 import { MissingTranslationHandler, TranslateLoader, TranslateModule } from '@ngx-translate/core'
 import { Observable, of } from 'rxjs'
-import { NgmMissingTranslationHandler } from '@metad/ocap-angular/core'
-import { ZhHans } from '@metad/ocap-angular/i18n'
+import { NgmMissingTranslationHandler } from '@xpert-ai/ocap-angular/core'
+import { ZhHans } from '@xpert-ai/ocap-angular/i18n'
 
 export const zhHansLanguage = 'zh-Hans'
 

@@ -9,6 +9,7 @@ import {
     KnowledgeTask,
     LanguagesEnum,
     mapTranslationLanguage,
+    STATE_SYS_THREAD_ID,
     STATE_SYS_VOLUME,
     STATE_SYS_WORKSPACE_PATH,
     STATE_SYS_WORKSPACE_URL,
@@ -20,10 +21,10 @@ import {
     XpertAgentExecutionStatusEnum,
     figureOutXpert,
     IXpert
-} from '@metad/contracts'
-import { AgentRecursionLimit, isNil } from '@metad/copilot'
-import { RequestContext } from '@metad/server-core'
-import { getErrorMessage, omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { AgentRecursionLimit, isNil } from '@xpert-ai/copilot'
+import { RequestContext } from '@xpert-ai/server-core'
+import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
@@ -37,7 +38,7 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService, mergeRuntimeContextWithEnv } from '../../../environment'
-import { getWorkspace, VolumeClient, ExecutionCancelService } from '../../../shared'
+import { VolumeClient, ExecutionCancelService } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
@@ -65,8 +66,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const mute = [] as TXpertAgentConfig['mute']
         let unmutes = [] as TXpertAgentConfig['mute']
         const threadId = options.thread_id
-        const workspacePath = await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, threadId)
-        const workspaceUrl = VolumeClient.getWorkspaceUrl(options.projectId, userId, threadId)
+        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, options.projectId, userId)
+        const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(options.projectId, userId)
         const latestXpert = figureOutXpert(xpert as IXpert, options?.isDraft)
         const sandboxFeature = latestXpert.features?.sandbox
         const sandboxEnvironmentId = options?.sandboxEnvironmentId
@@ -198,17 +199,12 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const languageCode = options.language || user.preferredLanguage || 'en-US'
         const runtimeContext = mergeRuntimeContextWithEnv(options.context, options.environment)
-        const volumeClient = new VolumeClient({
-            tenantId,
-            catalog: 'users',
-            userId,
-            projectId: options.projectId
-        })
         const runtimeSystemState = buildRuntimeSystemState(state?.[STATE_VARIABLE_SYS], {
             language: languageCode,
             userEmail: user.email,
             timezone: user.timeZone || options.timeZone,
-            volume: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),
+            threadId,
+            volume: workspacePath,
             workspacePath,
             workspaceUrl
         })
@@ -509,6 +505,7 @@ function buildRuntimeSystemState(
         language: string
         userEmail?: string
         timezone?: string
+        threadId?: string
         volume?: string
         workspacePath?: string
         workspaceUrl?: string
@@ -524,6 +521,7 @@ function buildRuntimeSystemState(
         timezone: options.timezone,
         date: format(now, 'yyyy-MM-dd'),
         datetime: now.toLocaleString(),
+        [STATE_SYS_THREAD_ID]: options.threadId,
         [STATE_SYS_VOLUME]: options.volume,
         [STATE_SYS_WORKSPACE_PATH]: options.workspacePath,
         [STATE_SYS_WORKSPACE_URL]: options.workspaceUrl

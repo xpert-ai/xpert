@@ -1,4 +1,4 @@
-import { IIntegration, IntegrationEnum, IntegrationFeatureEnum } from '@metad/contracts'
+import { IIntegration, IntegrationEnum, IntegrationFeatureEnum } from '@xpert-ai/contracts'
 import {
 	Body,
 	Controller,

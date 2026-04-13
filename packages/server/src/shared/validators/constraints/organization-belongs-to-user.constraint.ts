@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
-import { ID, IOrganization } from '@metad/contracts';
-import { isEmpty } from '@metad/server-common';
+import { ID, IOrganization } from '@xpert-ai/contracts';
+import { isEmpty } from '@xpert-ai/server-common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RequestContext } from '../../../core/context';

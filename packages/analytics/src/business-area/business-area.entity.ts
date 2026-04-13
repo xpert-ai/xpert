@@ -6,8 +6,8 @@ import {
 	ISemanticModel,
 	IStory,
 	IUser,
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { IsEnum, IsOptional, IsString } from 'class-validator'
 import {
 	Column,

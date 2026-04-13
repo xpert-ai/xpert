@@ -9,9 +9,9 @@ import {
   OCAP_DATASOURCE_TOKEN,
   OCAP_MODEL_TOKEN,
   provideOcapCore
-} from '@metad/ocap-angular/core'
-import { provideTranslate } from '@metad/ocap-angular/mock'
-import { AgentType, DataSettings, DataSource, Type } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/core'
+import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
+import { AgentType, DataSettings, DataSource, Type } from '@xpert-ai/ocap-core'
 import { Meta, StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { CUBE_SALES_ORDER, MockAgent } from '../../mock/agent-mock.service'
 import { NgmEntitySchemaComponent } from './entity-schema.component'
@@ -80,7 +80,7 @@ const meta: Meta<NgmEntitySchemaComponent> = {
           useValue: {
             type: 'SQL',
             factory: async (): Promise<Type<DataSource>> => {
-              const { SQLDataSource } = await import('@metad/ocap-sql')
+              const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
               return SQLDataSource
             }
           },

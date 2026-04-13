@@ -13,6 +13,126 @@
     (click)="toggleSidebar()"
   >
     <div class="grow overflow-auto">
+      @if (clawxpertEnabled()) {
+        <div
+          data-sidebar="group"
+          class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
+          (click)="$event.stopPropagation()"
+        >
+          <div
+            data-clawxpert-card
+            [attr.data-state]="sidebarState()"
+            class="flex items-center overflow-hidden rounded-2xl border border-border transition-[padding,border-color,background-color,box-shadow] duration-200 ease-out"
+            [ngClass]="[
+              sidebarState() === 'expanded' ? 'gap-2 px-3 py-3 border' : 'justify-center gap-2 px-1.5 py-2.5 border-0',
+              clawxpertCardActive()
+                ? 'bg-components-card-bg'
+                : 'bg-background-default-subtle hover:bg-components-card-bg'
+            ]"
+          >
+            <button
+              data-clawxpert-open
+              type="button"
+              class="flex min-w-0 flex-1 text-left cursor-pointer transition-[gap,transform] duration-200 ease-out"
+              [ngClass]="
+                sidebarState() === 'expanded'
+                  ? 'items-center justify-start gap-3'
+                  : 'w-full flex-col items-center justify-center gap-1.5'
+              "
+              [zTooltip]="clawxpertCardTitle()"
+              zPosition="right"
+              [zDisabled]="sidebarState() === 'expanded'"
+              (click)="openClawXpertCard()"
+            >
+              <div class="relative shrink-0">
+                <emoji-avatar
+                  data-clawxpert-avatar
+                  class="block overflow-hidden border border-divider-regular bg-background-default-subtle shadow-sm transition-[width,height,border-radius,transform] duration-200 ease-out"
+                  [ngClass]="
+                    sidebarState() === 'expanded' ? 'h-12 w-12 rounded-2xl' : 'h-8 w-8 rounded-xl scale-[0.98]'
+                  "
+                  [avatar]="clawxpertFacade.currentXpertAvatar()"
+                  [alt]="clawxpertCardTitle()"
+                  [fallbackLabel]="clawxpertCardTitle()"
+                />
+                <span
+                  class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-components-card-bg bg-primary"
+                  [class.animate-pulse]="clawxpertFacade.sidebarStatus() === 'busy'"
+                ></span>
+              </div>
+
+              <div
+                data-clawxpert-details
+                class="min-w-0 overflow-hidden origin-left transition-[max-width,max-height,opacity,transform] duration-200 ease-out"
+                [ngClass]="
+                  sidebarState() === 'expanded'
+                    ? 'max-h-20 max-w-56 flex-1 opacity-100 translate-x-0'
+                    : 'max-h-0 max-w-0 opacity-0 pointer-events-none -translate-x-2'
+                "
+              >
+                <div data-clawxpert-title class="truncate text-base font-semibold text-text-primary">
+                  {{ clawxpertCardTitle() }}
+                </div>
+                <div data-clawxpert-status class="mt-1 truncate text-sm text-text-secondary">
+                  @switch (clawxpertFacade.sidebarStatus()) {
+                    @case ('busy') {
+                      {{ 'PAC.Chat.ClawXpert.SidebarStatusBusy' | translate: { Default: 'Busy' } }}
+                    }
+                    @case ('idle') {
+                      {{ 'PAC.Chat.ClawXpert.SidebarStatusIdle' | translate: { Default: 'Idle' } }}
+                    }
+                    @default {
+                      {{ 'PAC.Chat.ClawXpert.SidebarStatusSetup' | translate: { Default: 'Go to setup' } }}
+                    }
+                  }
+                </div>
+              </div>
+
+              <div
+                data-clawxpert-status-compact
+                class="overflow-hidden whitespace-nowrap text-center text-[10px] leading-4 text-text-secondary transition-[max-width,max-height,opacity,transform] duration-200 ease-out"
+                [ngClass]="
+                  sidebarState() === 'expanded'
+                    ? 'max-h-0 max-w-0 opacity-0 -translate-y-1'
+                    : 'max-h-6 max-w-full opacity-100 translate-y-0'
+                "
+              >
+              @if (sidebarState() === 'expanded') {
+                @switch (clawxpertFacade.sidebarStatus()) {
+                  @case ('busy') {
+                    {{ 'PAC.Chat.ClawXpert.SidebarStatusBusy' | translate: { Default: 'Busy' } }}
+                  }
+                  @case ('idle') {
+                    {{ 'PAC.Chat.ClawXpert.SidebarStatusIdle' | translate: { Default: 'Idle' } }}
+                  }
+                  @default {
+                    {{ 'PAC.Chat.ClawXpert.SidebarStatusSetup' | translate: { Default: 'Setup' } }}
+                  }
+                }
+              }
+              </div>
+            </button>
+
+            @if (sidebarState() === 'expanded') {
+              <button
+                data-clawxpert-settings
+                class="inline-flex h-9 shrink-0 items-center justify-center overflow-hidden rounded-lg text-text-secondary transition-[width,min-width,margin-left,opacity,transform,color,background-color] duration-200 ease-out hover:bg-button-ghost-hover hover:text-text-primary cursor-pointer"
+                [ngClass]="
+                  sidebarState() === 'expanded'
+                    ? 'ml-2 w-9 min-w-[2.25rem] opacity-100 translate-x-0'
+                    : 'ml-0 w-0 min-w-0 opacity-0 pointer-events-none -translate-x-2'
+                "
+                type="button"
+                [attr.aria-label]="'PAC.Chat.ClawXpert.SidebarSettings' | translate: { Default: 'ClawXpert settings' }"
+                (click)="openClawXpertSettings($event)"
+              >
+                <i class="ri-equalizer-2-line text-lg"></i>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
       <div
         data-sidebar="group"
         class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
@@ -106,7 +226,10 @@
                     </div>
                     @if (sidebarState() === 'expanded') {
                       <span class="min-w-0 flex-1 truncate">
-                        {{ 'PAC.Feature.Features.' + agent.featureKey + '.Name' | translate: { Default: agent.defaultLabel } }}
+                        {{
+                          'PAC.Feature.Features.' + agent.featureKey + '.Name'
+                            | translate: { Default: agent.defaultLabel }
+                        }}
                       </span>
                     }
                   </a>
@@ -121,7 +244,10 @@
                     </div>
                     @if (sidebarState() === 'expanded') {
                       <span class="min-w-0 flex-1 truncate">
-                        {{ 'PAC.Feature.Features.' + agent.featureKey + '.Name' | translate: { Default: agent.defaultLabel } }}
+                        {{
+                          'PAC.Feature.Features.' + agent.featureKey + '.Name'
+                            | translate: { Default: agent.defaultLabel }
+                        }}
                       </span>
                     }
                   </a>
@@ -280,7 +406,9 @@
                 <div class="cursor-pointer ms-[10px] me-[4px]">
                   <div class="border-l border-(--border) h-full ms-[6px] me-[4px]"></div>
                 </div>
-                <ng-container *ngTemplateOutlet="projectsTempl; context: { projects: previewProjects() }"></ng-container>
+                <ng-container
+                  *ngTemplateOutlet="projectsTempl; context: { projects: previewProjects() }"
+                ></ng-container>
               </div>
             </div>
           }
@@ -411,7 +539,7 @@
       overlayY: 'top'
     }
   ]"
-  >
+>
   <div
     @overlayAnimation1
     class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-divider-deep shadow-sm overflow-auto bg-components-card-bg"

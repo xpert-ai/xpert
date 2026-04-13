@@ -83,6 +83,50 @@ export const Attachment_Type_Options: TSelectOption<string, TXpertAttachmentType
     }
   ]
 
+export type JsonSchemaUIExtensions = {
+  /**
+   * UI component variant, or custom component name
+   */
+  component?: 'textarea' | 'select' | 'radio' | 'checkbox' | 'switch' | 'password' | string
+  /**
+   * UI component display span (for grid layouts)
+   */
+  span?: number
+  /**
+   * UI component column count (for grid layouts)
+   */
+  cols?: number
+  /**
+   * Additional inputs for the Custom UI component
+   */
+  inputs?: Record<string, unknown>
+  /**
+   * Whether this component supports selecting LangGraph state variables
+   */
+  variable?: boolean
+
+  enumLabels?: Record<string, I18nObject | string>;
+
+  styles?: Record<string, string>;
+  /**
+   * Help url for this field
+   */
+  help?: I18nObject;
+  /**
+   * Field dependencies
+   */
+  depends?: (string | { name: string; alias?: string })[]
+  /**
+   * Whether multiple values can be selected (for select component)
+   */
+  multiple?: boolean
+  /**
+   * Options values url for remote select component
+   */
+  selectUrl?: string
+
+  revealable?: boolean
+}
 
 type JsonSchema7Meta = {
     title?: I18nObject;
@@ -92,28 +136,7 @@ type JsonSchema7Meta = {
     /**
      * UI schema extensions
      */
-    'x-ui'?: {
-      /**
-       * UI component variant, or custom component name
-       */
-      component?: 'textarea' | 'select' | 'radio' | 'checkbox' | 'switch' | 'password' | string
-      /**
-       * UI component display span (for grid layouts)
-       */
-      span?: number
-      /**
-       * Additional inputs for the Custom UI component
-       */
-      inputs?: Record<string, unknown>
-      /**
-       * Whether this component supports selecting LangGraph state variables
-       */
-      variable?: boolean
-
-      enumLabels?: Record<string, I18nObject | string>;
-
-      styles?: Record<string, string>;
-    }
+    'x-ui'?: JsonSchemaUIExtensions;
 };
 export type JsonSchemaObjectType = {
     type: "object";

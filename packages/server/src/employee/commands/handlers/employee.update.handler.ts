@@ -1,4 +1,4 @@
-import { IEmployee } from '@metad/contracts';
+import { IEmployee } from '@xpert-ai/contracts';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EmployeeUpdateCommand } from './../employee.update.command';
 import { EmployeeService } from './../../employee.service';

@@ -1,4 +1,4 @@
-import { ApiKeyBindingType, ApiPrincipalType, IApiKey, IApiPrincipal, IUser } from '@metad/contracts'
+import { ApiKeyBindingType, ApiPrincipalType, IApiKey, IApiPrincipal, IUser } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { nanoid } from 'nanoid'

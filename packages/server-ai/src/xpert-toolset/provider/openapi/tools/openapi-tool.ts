@@ -1,7 +1,7 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
-import { ApiAuthType, ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ApiAuthType, ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import axios, { AxiosResponse } from 'axios'
 import type { OperationObject, ParameterObject } from "openapi-typescript/src/types";
 import { ToolParameterValidationError, ToolProviderCredentialValidationError } from '../../../errors'

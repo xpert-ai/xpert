@@ -1,18 +1,18 @@
 import { trigger, transition, query, style, stagger, animate, sequence } from '@angular/animations';
 import * as i0 from '@angular/core';
 import { Injectable, InjectionToken, inject, PLATFORM_ID, Inject, EventEmitter, ElementRef, Injector, input, booleanAttribute, signal, computed, afterNextRender, runInInjectionContext, HostBinding, Directive, Output, Input, HostListener, numberAttribute, effect, Pipe, NgModule, DestroyRef, output, untracked } from '@angular/core';
-import { SlicerSchema, IndicatorType, getEntityMeasures, getEntityDimensions, CHARTS, DimensionSchema, MeasureSchema, MEMBER_RETRIEVER_TOOL_NAME, compact, uniqBy, TimeGranularity, parameterFormatter, getEntityProperty, nonNullable, getPropertyName } from '@metad/ocap-core';
-export { CubeVariablePrompt, MEMBER_RETRIEVER_TOOL_NAME, PROMPT_RETRIEVE_DIMENSION_MEMBER, makeCubeRulesPrompt, markdownEntityType, markdownModelCube, nonBlank, nonNullable } from '@metad/ocap-core';
+import { SlicerSchema, IndicatorType, getEntityMeasures, getEntityDimensions, CHARTS, DimensionSchema, MeasureSchema, MEMBER_RETRIEVER_TOOL_NAME, compact, uniqBy, TimeGranularity, parameterFormatter, getEntityProperty, nonNullable, getPropertyName } from '@xpert-ai/ocap-core';
+export { CubeVariablePrompt, MEMBER_RETRIEVER_TOOL_NAME, PROMPT_RETRIEVE_DIMENSION_MEMBER, makeCubeRulesPrompt, markdownEntityType, markdownModelCube, nonBlank, nonNullable } from '@xpert-ai/ocap-core';
 import z$1, { z } from 'zod';
 import { BaseRetriever } from '@langchain/core/retrievers';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { formatDocumentsAsString } from 'langchain/util/document';
-import { Team, createReactAgent, CopilotAgentType } from '@metad/copilot';
-import { injectCommandFewShotPrompt, injectCopilotCommand } from '@metad/copilot-angular';
+import { Team, createReactAgent, CopilotAgentType } from '@xpert-ai/copilot';
+import { injectCommandFewShotPrompt, injectCopilotCommand } from '@xpert-ai/copilot-angular';
 import { TranslateService } from '@ngx-translate/core';
 import { SystemMessage } from '@langchain/core/messages';
 import { NGXLogger } from 'ngx-logger';
-import { NgmShortNumberPipe, DisplayDensity } from '@metad/ocap-angular/core';
+import { NgmShortNumberPipe, DisplayDensity } from '@xpert-ai/ocap-angular/core';
 import { takeUntilDestroyed, toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpParams, HttpErrorResponse } from '@angular/common/http';
@@ -24,7 +24,7 @@ import * as i1 from '@ng-web-apis/resize-observer';
 import { ResizeObserverService, WaResizeObserver } from '@ng-web-apis/resize-observer';
 import * as i1$1 from '@angular/platform-browser';
 import i18next from 'i18next';
-import { ComponentStore } from '@metad/store';
+import { ComponentStore } from '@xpert-ai/store';
 import { startOfYear, startOfQuarter, startOfMonth, subDays, subSeconds, addDays } from 'date-fns';
 import { ComponentStore as ComponentStore$1 } from '@ngrx/component-store';
 import { Store, select, createState } from '@ngneat/elf';
@@ -2097,7 +2097,7 @@ i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "21.1.4", ngImpor
         }], ctorParameters: () => [] });
 
 /**
- * @deprecated Migrate to `@metad/ocap-angular/core`
+ * @deprecated Migrate to `@xpert-ai/ocap-angular/core`
  */
 class NxCoreModule {
     static forRoot() {

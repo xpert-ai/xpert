@@ -1,4 +1,4 @@
-import { IRolePermission } from '@metad/contracts'
+import { IRolePermission } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { RolePermissionService } from '../../../role-permission/role-permission.service'
 import { TenantRolePermissionBulkCreateCommand } from '../tenant-role-bulk-create.command'

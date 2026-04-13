@@ -16,15 +16,15 @@ import {
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { saveAsYaml, uploadYamlFile } from '@metad/core'
-import { FORMLY_W_1_2 } from '@metad/formly'
+import { saveAsYaml, uploadYamlFile } from '@xpert-ai/core'
+import { FORMLY_W_1_2 } from '@xpert-ai/formly'
 import {
   CdkConfirmDeleteComponent,
   CdkConfirmOptionsComponent,
   NgmCommonModule,
   TableColumn
-} from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/common'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedFrom } from 'ngxtension/derived-from'

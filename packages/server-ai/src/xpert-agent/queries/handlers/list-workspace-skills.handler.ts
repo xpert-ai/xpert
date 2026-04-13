@@ -1,4 +1,4 @@
-import { ISkillPackage } from '@metad/contracts'
+import { ISkillPackage } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { SkillPackageService } from '../../../skill-package'

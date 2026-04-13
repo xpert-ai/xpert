@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,

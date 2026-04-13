@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core'
-import { XpertRawJsonViewSchema } from '@metad/contracts'
+import { XpertRawJsonViewSchema } from '@xpert-ai/contracts'
 
 @Component({
   standalone: true,

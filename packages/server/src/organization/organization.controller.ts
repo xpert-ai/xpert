@@ -1,5 +1,5 @@
-import { IOrganization, IOrganizationCreateInput, IPagination, OrgGenerateDemoOptions, PermissionsEnum, RolesEnum } from '@metad/contracts'
-import { isNotEmpty } from '@metad/server-common'
+import { IOrganization, IOrganizationCreateInput, IPagination, OrgGenerateDemoOptions, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
+import { isNotEmpty } from '@xpert-ai/server-common'
 import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, HttpStatus, InternalServerErrorException, Param, Post, Put, Query, UseGuards, ValidationPipe } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'

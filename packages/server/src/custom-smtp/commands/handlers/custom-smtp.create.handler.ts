@@ -1,4 +1,4 @@
-import { ICustomSmtp } from '@metad/contracts';
+import { ICustomSmtp } from '@xpert-ai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CustomSmtpService } from '../../custom-smtp.service';

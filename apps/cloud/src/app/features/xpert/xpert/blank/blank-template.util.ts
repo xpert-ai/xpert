@@ -11,7 +11,7 @@ import {
   TXpertTeamDraft,
   TXpertTeamNode,
   WorkflowNodeTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
   BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BlankTriggerSelection,

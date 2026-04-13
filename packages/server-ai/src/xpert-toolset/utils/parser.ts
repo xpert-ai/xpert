@@ -1,5 +1,5 @@
-import { ApiProviderSchemaType, ApiToolBundle, ToolParameterForm, ToolParameterType, TToolParameter } from '@metad/contracts';
-import { getErrorMessage, shortuuid, yaml } from '@metad/server-common';
+import { ApiProviderSchemaType, ApiToolBundle, ToolParameterForm, ToolParameterType, TToolParameter } from '@xpert-ai/contracts';
+import { getErrorMessage, shortuuid, yaml } from '@xpert-ai/server-common';
 import { fromParameter, fromSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import { jsonSchemaToZod } from 'json-schema-to-zod';
 import type { JSONSchema4, JSONSchema4Type } from "json-schema";

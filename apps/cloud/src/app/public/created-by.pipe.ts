@@ -1,5 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core'
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 
 /**
  * @deprecated 重复定义

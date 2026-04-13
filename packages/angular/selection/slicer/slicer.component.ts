@@ -10,7 +10,7 @@ import {
   nonNullable,
   slicerAsString,
   timeRangesSlicerAsString
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { combineLatest, combineLatestWith, filter, map } from 'rxjs'
 import { BaseSlicersComponent } from '../base-slicers'

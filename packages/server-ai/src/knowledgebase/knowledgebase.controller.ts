@@ -5,7 +5,7 @@ import {
 	IPagination,
 	KnowledgebasePermission,
 	KnowledgeDocumentMetadata
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -17,8 +17,8 @@ import {
 	UploadFileCommand,
 	getFileAssetDestination,
 	transformWhere
-} from '@metad/server-core'
-import { getErrorMessage } from '@metad/server-common'
+} from '@xpert-ai/server-core'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import {
 	Body,
 	Controller,

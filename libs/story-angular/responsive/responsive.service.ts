@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { write } from '@metad/core'
-import { FlexLayout, ID } from '@metad/story/core'
+import { write } from '@xpert-ai/core'
+import { FlexLayout, ID } from '@xpert-ai/story/core'
 import { Store, createStore, select, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { isEqual, negate } from 'lodash-es'

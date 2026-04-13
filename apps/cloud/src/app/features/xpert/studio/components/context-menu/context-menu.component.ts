@@ -1,4 +1,5 @@
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
+import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectorRef,
@@ -14,7 +15,7 @@ import {
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
-import { debouncedSignal, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { debouncedSignal, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
   IWFNClassifier,
@@ -73,6 +74,7 @@ import {
   IWFNMiddleware,
   genXpertMiddlewareKey,
   injectXpertAgentAPI,
+  TAgentMiddlewareMeta,
   TXpertTeamNode,
   genXpertIteratorKey,
   genXpertStartKey
@@ -103,7 +105,7 @@ import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.c
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { FormsModule } from '@angular/forms'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -114,6 +116,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CommonModule,
     FormsModule,
     CdkMenuModule,
+    OverlayModule,
     TranslateModule,
     ...ZardTooltipImports,
     NgmI18nPipe,
@@ -125,7 +128,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmCommonModule
   ],
   templateUrl: './context-menu.component.html',
-  styleUrl: './context-menu.component.scss'
+  styleUrl: './context-menu.component.css'
 })
 export class XpertStudioContextMenuComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
@@ -190,6 +193,9 @@ export class XpertStudioContextMenuComponent {
           : true
       }) ?? []
   )
+  readonly middlewareDetailTrigger = signal<CdkOverlayOrigin | null>(null)
+  readonly middlewareDetailOpen = signal(false)
+  readonly middlewareDetail = signal<{ meta: TAgentMiddlewareMeta } | null>(null)
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
@@ -237,6 +243,38 @@ export class XpertStudioContextMenuComponent {
 
     // Clear the insert connection state
     this.root.insertConnection = null
+  }
+
+  openMiddlewareDetail(middleware: { meta: TAgentMiddlewareMeta }, overlayTrigger: CdkOverlayOrigin) {
+    if (!middleware?.meta?.name) {
+      this.closeMiddlewareDetail()
+      return
+    }
+    this.middlewareDetail.set(middleware)
+    this.middlewareDetailTrigger.set(overlayTrigger)
+    this.middlewareDetailOpen.set(true)
+  }
+
+  closeMiddlewareDetail() {
+    this.middlewareDetailOpen.set(false)
+  }
+
+  middlewareConfigEntries(middleware: { meta: TAgentMiddlewareMeta } | null | undefined) {
+    const properties = middleware?.meta?.configSchema?.properties
+    return properties
+      ? Object.entries(properties).map(([key, property]) => ({
+          key,
+          title: property.title ?? key
+        }))
+      : []
+  }
+
+  middlewareConfigPreview(middleware: { meta: TAgentMiddlewareMeta } | null | undefined) {
+    return this.middlewareConfigEntries(middleware).slice(0, 3)
+  }
+
+  middlewareRemainingConfigCount(middleware: { meta: TAgentMiddlewareMeta } | null | undefined) {
+    return Math.max(0, this.middlewareConfigEntries(middleware).length - this.middlewareConfigPreview(middleware).length)
   }
 
   createAgent(menu: CdkMenu, byNode: TXpertTeamNode) {

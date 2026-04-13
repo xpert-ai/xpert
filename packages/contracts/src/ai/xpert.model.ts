@@ -24,7 +24,7 @@ export enum XpertTypeEnum {
   Agent = 'agent',
 
   /**
-   * Copilot in UI
+   * @deprecated use Chatkit with agent instead.
    */
   Copilot = 'copilot',
 
@@ -79,6 +79,8 @@ export type TXpertFeatures = {
    */
   sandbox?: TXpertSandboxFeature
 }
+
+export type TXpertFeatureKey = keyof TXpertFeatures
 
 export type TXpert = {
   /**

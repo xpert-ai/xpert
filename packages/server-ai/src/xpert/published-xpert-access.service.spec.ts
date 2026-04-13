@@ -1,4 +1,4 @@
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
         currentUserId: jest.fn(),
@@ -12,7 +12,7 @@ jest.mock('./xpert.entity', () => ({
 }))
 
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
 
 function createQueryBuilderMock(options?: { count?: number; rows?: { id: string }[] }) {

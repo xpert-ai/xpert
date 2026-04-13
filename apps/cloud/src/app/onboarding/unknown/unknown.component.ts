@@ -1,7 +1,7 @@
 
 import { Component } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from '../../@core'
 

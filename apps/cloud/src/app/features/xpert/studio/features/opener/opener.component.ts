@@ -2,7 +2,7 @@ import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from 
 
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
+import { attrModel, linkedModel, OverlayAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { linkedXpertFeaturesModel } from '../types'

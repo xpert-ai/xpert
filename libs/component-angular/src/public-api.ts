@@ -1,4 +1,4 @@
 /*
- * Public API Surface of @metad/components
+ * Public API Surface of @xpert-ai/components
  */
 export {}

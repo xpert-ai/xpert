@@ -7,7 +7,7 @@ import {
 	IXpertProjectVCS,
 	IXpertToolset,
 	OrderTypeEnum,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	applyWhereToQueryBuilder,
 	EventNameIntegrationAuthorized,
@@ -16,8 +16,8 @@ import {
 	RequestContext,
 	StorageFileDeleteCommand,
 	TenantOrganizationAwareCrudService
-} from '@metad/server-core'
-import { yaml } from '@metad/server-common'
+} from '@xpert-ai/server-core'
+import { yaml } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

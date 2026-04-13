@@ -1,10 +1,10 @@
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 import {
 	PaginationParams,
 	RequestContext,
 	TenantOrganizationAwareCrudService,
 	UserOrganizationService
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Brackets, Repository } from 'typeorm'

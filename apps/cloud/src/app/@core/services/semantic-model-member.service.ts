@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
 import { Document } from '@langchain/core/documents'
-import { API_PREFIX, ISemanticModelMember, OrganizationBaseCrudService } from '@metad/cloud/state'
+import { API_PREFIX, ISemanticModelMember, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 
 export const C_API_SEMANTIC_MODEL_MEMBER = API_PREFIX + '/semantic-model-member'
 

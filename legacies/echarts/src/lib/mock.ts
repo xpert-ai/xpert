@@ -1,4 +1,4 @@
-import { AggregationRole, ChartAnnotation, ChartDimensionRoleType, C_MEASURES, EntityType } from '@metad/ocap-core'
+import { AggregationRole, ChartAnnotation, ChartDimensionRoleType, C_MEASURES, EntityType } from '@xpert-ai/ocap-core'
 
 export const SALES_ENTITY_TYPE: EntityType = {
   name: 'Sales',

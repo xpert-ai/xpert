@@ -2,8 +2,8 @@
 import { Component, OnInit, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmCommonModule, NgmSelectModule } from '@metad/ocap-angular/common'
-import { DensityDirective } from '@metad/ocap-angular/core'
+import { NgmCommonModule, NgmSelectModule } from '@xpert-ai/ocap-angular/common'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmEntityPropertyComponent } from '../property/property.component'
 import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'

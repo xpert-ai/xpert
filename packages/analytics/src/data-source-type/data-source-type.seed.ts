@@ -1,5 +1,5 @@
-import { AdapterBaseOptions, QUERY_RUNNERS } from '@metad/adapter'
-import { DataSourceProtocolEnum, DataSourceSyntaxEnum, ITenant } from '@metad/contracts'
+import { AdapterBaseOptions, QUERY_RUNNERS } from '@xpert-ai/adapter'
+import { DataSourceProtocolEnum, DataSourceSyntaxEnum, ITenant } from '@xpert-ai/contracts'
 import { Connection } from 'typeorm'
 import { DataSourceType } from './data-source-type.entity'
 

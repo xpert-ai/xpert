@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SharedModule, TenantModule } from '@metad/server-core';
+import { SharedModule, TenantModule } from '@xpert-ai/server-core';
 import { DiscoveryModule, RouterModule } from '@nestjs/core';
 import { DataSourceStrategyRegistry } from '@xpert-ai/plugin-sdk';
 import { DataSourceTypeController } from './data-source-type.controller';

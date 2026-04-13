@@ -1,5 +1,5 @@
 import { Injectable, Injector } from '@angular/core'
-import { DesignerSchemaService } from '@metad/story/designer'
+import { DesignerSchemaService } from '@xpert-ai/story/designer'
 
 @Injectable()
 export class GridColumnSchema extends DesignerSchemaService {

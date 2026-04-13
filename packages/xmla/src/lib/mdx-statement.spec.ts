@@ -1,4 +1,4 @@
-import { AdvancedSlicerOperator, C_MEASURES, Dimension } from '@metad/ocap-core'
+import { AdvancedSlicerOperator, C_MEASURES, Dimension } from '@xpert-ai/ocap-core'
 import { DEPARTMENT_ENTITY_TYPE } from '../test/DATA'
 import { OrderFlag } from './functions'
 import { generateMDXQuery } from './mdx-query'

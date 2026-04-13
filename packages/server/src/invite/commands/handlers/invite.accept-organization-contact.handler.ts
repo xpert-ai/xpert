@@ -5,7 +5,7 @@ import {
 	IOrganization,
 	ITenant,
 	RolesEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateResult } from 'typeorm';
 import { TenantFeatureOrganizationCreateCommand } from './../../../tenant/commands';

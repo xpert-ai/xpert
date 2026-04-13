@@ -6,7 +6,7 @@ import { HumanMessage, isHumanMessage } from "@langchain/core/messages";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import { Inject, Injectable } from "@nestjs/common";
 import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, IAgentMiddlewareContext, IAgentMiddlewareStrategy, ModelRequest, Runtime, WrapWorkflowNodeExecutionCommand } from "@xpert-ai/plugin-sdk";
-import { AiModelTypeEnum, ICopilotModel, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@metad/contracts";
+import { AiModelTypeEnum, ICopilotModel, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@xpert-ai/contracts";
 import { CommandBus } from "@nestjs/cqrs";
 
 

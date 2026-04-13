@@ -34,7 +34,7 @@ import {
   RuntimeLevelType,
   Semantics,
   wrapHierarchyValue
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { t } from 'i18next'
 import { findIndex, flatten, groupBy, isEmpty, merge, negate, omit, padStart, uniq } from 'lodash'
 import { WithMemberType } from './calculation'

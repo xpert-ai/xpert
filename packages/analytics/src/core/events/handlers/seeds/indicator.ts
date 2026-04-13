@@ -1,4 +1,4 @@
-import { IIndicator, IndicatorStatusEnum, IndicatorType } from '@metad/contracts'
+import { IIndicator, IndicatorStatusEnum, IndicatorType } from '@xpert-ai/contracts'
 import { assign, omit } from 'lodash'
 import { Repository } from 'typeorm'
 import { Indicator } from '../../../../indicator/indicator.entity'

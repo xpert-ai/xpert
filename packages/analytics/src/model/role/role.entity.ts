@@ -1,5 +1,5 @@
-import { IModelRole, ISemanticModel, IUser, MDX, RoleTypeEnum } from '@metad/contracts'
-import { TenantOrganizationBaseEntity, User, UserPublicDTO } from '@metad/server-core'
+import { IModelRole, ISemanticModel, IUser, MDX, RoleTypeEnum } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity, User, UserPublicDTO } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Transform } from 'class-transformer'
 import { IsJSON, IsOptional, IsString, IsNumber } from 'class-validator'

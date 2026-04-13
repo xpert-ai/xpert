@@ -1,5 +1,5 @@
 import { SearchItem } from "@langchain/langgraph-checkpoint";
-import { LongTermMemoryTypeEnum } from "@metad/contracts";
+import { LongTermMemoryTypeEnum } from "@xpert-ai/contracts";
 
 /**
  * Tokenize a JSON path into parts.

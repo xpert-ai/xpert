@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsEnum, IsNotEmpty, IsString } from "class-validator";
-import { ICreateEmailInvitesInput, InvitationTypeEnum } from "@metad/contracts";
+import { ICreateEmailInvitesInput, InvitationTypeEnum } from "@xpert-ai/contracts";
 
 /**
  * Create Invite DTO validation

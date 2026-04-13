@@ -19,12 +19,12 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { IsDirty, markdownModelCube, NgMapPipeModule, NxCoreService, ReversePipe } from '@metad/core'
-import { NgmDrawerTriggerComponent, ResizerModule } from '@metad/ocap-angular/common'
-import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { AgentType, CalculationProperty, DataSettings, isEqual } from '@metad/ocap-core'
-import { provideStoryDesigner, StoryExplorerComponent } from '@metad/story'
+import { IsDirty, markdownModelCube, NgMapPipeModule, NxCoreService, ReversePipe } from '@xpert-ai/core'
+import { NgmDrawerTriggerComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
+import { NgmOcapCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { AgentType, CalculationProperty, DataSettings, isEqual } from '@xpert-ai/ocap-core'
+import { provideStoryDesigner, StoryExplorerComponent } from '@xpert-ai/story'
 import {
   EmulatedDevice,
   NxStoryService,
@@ -32,12 +32,12 @@ import {
   StoryOptions,
   StoryPointType,
   WidgetComponentType
-} from '@metad/story/core'
-import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/story/core'
+import { NxDesignerModule, NxSettingsPanelService } from '@xpert-ai/story/designer'
 import {
   NxStoryComponent,
   NxStoryModule
-} from '@metad/story/story'
+} from '@xpert-ai/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { registerTheme } from 'echarts/core'
 import { NGXLogger } from 'ngx-logger'
@@ -49,7 +49,7 @@ import { AppService } from '../../../app.service'
 import { StoryToolbarComponent } from '../toolbar/toolbar.component'
 import { StoryToolbarService } from '../toolbar/toolbar.service'
 import { ResponsiveBreakpoints, ResponsiveBreakpointType } from '../types'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
 import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 

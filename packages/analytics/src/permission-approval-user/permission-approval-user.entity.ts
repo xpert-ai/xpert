@@ -2,10 +2,10 @@
  * Permission Approval table 与 User table 的 Many to Many 映射表
  */
 import { Entity, Column, ManyToOne, Index, RelationId } from 'typeorm';
-import { IPermissionApproval, IPermissionApprovalUser, IUser } from '@metad/contracts';
+import { IPermissionApproval, IPermissionApprovalUser, IUser } from '@xpert-ai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsNumber } from 'class-validator';
-import { TenantOrganizationBaseEntity, User } from '@metad/server-core';
+import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core';
 import { PermissionApproval } from '../core/entities/internal';
 
 

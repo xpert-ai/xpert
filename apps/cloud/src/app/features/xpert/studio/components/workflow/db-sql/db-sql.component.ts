@@ -1,7 +1,7 @@
 
 import { ChangeDetectionStrategy, Component } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertWorkflowNodeDBBaseComponent } from '../db/db.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'

@@ -1,4 +1,4 @@
-import { IApiPrincipal } from '@metad/contracts'
+import { IApiPrincipal } from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { uniq } from 'lodash'

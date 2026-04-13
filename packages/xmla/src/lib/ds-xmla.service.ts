@@ -43,7 +43,7 @@ import {
   Syntax,
   VariableProperty,
   VirtualCube
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { t } from 'i18next'
 import { cloneDeep, groupBy, isArray, isEmpty, isNil, merge, mergeWith, sortBy } from 'lodash'
 import { combineLatest, firstValueFrom, from, Observable, of, throwError } from 'rxjs'

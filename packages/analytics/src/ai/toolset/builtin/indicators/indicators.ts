@@ -1,8 +1,8 @@
-import { isEnableTool, IXpertToolset, TStateVariable } from '@metad/contracts'
+import { isEnableTool, IXpertToolset, TStateVariable } from '@xpert-ai/contracts'
 import {
 	BuiltinToolset,
 	TBuiltinToolsetParams
-} from '@metad/server-ai'
+} from '@xpert-ai/server-ai'
 import { Logger } from '@nestjs/common'
 
 export class IndicatorsToolset extends BuiltinToolset {

@@ -6,9 +6,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, inject, signal, ViewContainerRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
-import { uploadYamlFile } from '@metad/core'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { pick } from '@metad/ocap-core'
+import { uploadYamlFile } from '@xpert-ai/core'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { pick } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   getErrorMessage,

@@ -6,7 +6,7 @@ import {
 	RelationId,
 	ManyToOne
 } from 'typeorm';
-import { IUser, IUserOrganization, IUserOrganizationPreferences } from '@metad/contracts';
+import { IUser, IUserOrganization, IUserOrganizationPreferences } from '@xpert-ai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { TenantOrganizationBaseEntity, User } from '../core/entities/internal';

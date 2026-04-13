@@ -3,9 +3,9 @@
     <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
       <div class="text-sm text-text-tertiary">
         @if (mode() === 'mine') {
-          {{ 'PAC.Explore.LoadingMyInspirations' | translate: { Default: '正在加载我的灵感资产...' } }}
+          {{ 'PAC.Explore.LoadingMyInspirations' | translate: { Default: 'Loading my inspiration assets...' } }}
         } @else {
-          {{ 'PAC.Explore.LoadingInspirations' | translate: { Default: '正在加载灵感模板...' } }}
+          {{ 'PAC.Explore.LoadingInspirations' | translate: { Default: 'Loading inspiration templates...' } }}
         }
       </div>
     </div>
@@ -31,12 +31,12 @@
               <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
                 <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
                   <i class="ri-database-2-line"></i>
-                  {{ 'PAC.Explore.InMyWorkspace' | translate: { Default: '已在工作区中' } }}
+                  {{ 'PAC.Explore.InMyWorkspace' | translate: { Default: 'In Workspace' } }}
                 </span>
                 @if (item.pipelineId) {
                   <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
                     <i class="ri-flow-chart"></i>
-                    {{ 'PAC.Explore.BoundPipeline' | translate: { Default: '已绑定 Pipeline' } }}
+                    {{ 'PAC.Explore.BoundPipeline' | translate: { Default: 'Pipeline Linked' } }}
                   </span>
                 }
               </div>
@@ -45,13 +45,16 @@
 
           <div class="flex flex-1 flex-col px-5 py-4">
             <p class="line-clamp-4 min-h-[96px] text-sm leading-6 text-text-tertiary">
-              {{ item.description || ('PAC.Explore.InspirationDescriptionFallback' | translate: { Default: '该灵感资产暂未提供更多说明。' }) }}
+              {{
+                item.description ||
+                  ('PAC.Explore.InspirationDescriptionFallback' | translate: { Default: 'This inspiration asset does not include additional details yet.' })
+              }}
             </p>
 
             <div class="mt-4 grid gap-3 rounded-2xl bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
               <div class="flex items-center justify-between gap-3">
                 <span class="text-text-tertiary">
-                  {{ 'PAC.Explore.Creator' | translate: { Default: '创建者' } }}
+                  {{ 'PAC.Explore.Creator' | translate: { Default: 'Creator' } }}
                 </span>
                 <span class="truncate text-right text-text-primary">
                   {{ creatorName(item) }}
@@ -59,7 +62,7 @@
               </div>
               <div class="flex items-center justify-between gap-3">
                 <span class="text-text-tertiary">
-                  {{ 'PAC.Explore.Documents' | translate: { Default: '文档数' } }}
+                  {{ 'PAC.Explore.Documents' | translate: { Default: 'Documents' } }}
                 </span>
                 <span class="text-text-primary">
                   {{ item.documentNum ?? 0 }}
@@ -72,7 +75,7 @@
                 {{ item.updatedAt || item.createdAt | date: 'yyyy-MM-dd' }}
               </div>
               <button type="button" class="btn btn-secondary btn-small shrink-0" (click)="openMineWorkspace($event)">
-                {{ 'PAC.Explore.OpenWorkspaceInspirations' | translate: { Default: '打开工作区灵感' } }}
+                {{ 'PAC.Explore.OpenWorkspaceInspirations' | translate: { Default: 'Open Workspace Inspirations' } }}
               </button>
             </div>
           </div>
@@ -132,7 +135,8 @@
                 'PAC.Explore.InspirationBrowseOnly'
                   | translate
                     : {
-                        Default: 'V1 先提供浏览与筛选入口，后续会补充更完整的安装和沉淀流程。'
+                        Default:
+                          'V1 currently provides browse and filter entry points only. A more complete install and curation flow will be added later.'
                       }
               }}
             </div>
@@ -148,32 +152,34 @@
         </div>
         @if (mode() === 'mine') {
           <h3 class="mt-4 text-xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.NoMyInspirations' | translate: { Default: '当前默认工作区还没有灵感资产' } }}
+            {{ 'PAC.Explore.NoMyInspirations' | translate: { Default: 'No Inspiration Assets in the Default Workspace Yet' } }}
           </h3>
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
             {{
               'PAC.Explore.NoMyInspirationsHint'
                 | translate
                   : {
-                      Default: '可以先在默认工作区中创建知识库或沉淀灵感内容，后续这里会自动展示。'
+                      Default:
+                        'Create knowledge or capture inspiration content in the default workspace first, and it will appear here automatically later.'
                     }
             }}
           </p>
           <div class="mt-6 flex justify-center">
             <button type="button" class="btn btn-secondary btn-medium" (click)="openMineWorkspace()">
-              {{ 'PAC.Explore.OpenWorkspaceInspirations' | translate: { Default: '打开工作区灵感' } }}
+              {{ 'PAC.Explore.OpenWorkspaceInspirations' | translate: { Default: 'Open Workspace Inspirations' } }}
             </button>
           </div>
         } @else {
           <h3 class="mt-4 text-xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.NoInspirations' | translate: { Default: '当前暂无可展示的灵感模板' } }}
+            {{ 'PAC.Explore.NoInspirations' | translate: { Default: 'No Inspiration Templates Available Yet' } }}
           </h3>
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
             {{
               'PAC.Explore.NoInspirationsHint'
                 | translate
                   : {
-                      Default: '当前语言下还没有对应的灵感市集内容，后续可以继续补充更多 pipeline 模板。'
+                      Default:
+                        'There is no matching inspiration market content for the current language yet. More pipeline templates can be added later.'
                     }
             }}
           </p>

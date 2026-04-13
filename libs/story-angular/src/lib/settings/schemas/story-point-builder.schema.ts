@@ -1,6 +1,6 @@
 import { Injectable, Injector } from '@angular/core'
-import { StoryPoint } from '@metad/story/core'
-import { BaseDesignerSchemaService, FORMLY_ROW, FORMLY_W_1_2, SchemaState } from '@metad/story/designer'
+import { StoryPoint } from '@xpert-ai/story/core'
+import { BaseDesignerSchemaService, FORMLY_ROW, FORMLY_W_1_2, SchemaState } from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 import { gridsterOptions } from './types'
 

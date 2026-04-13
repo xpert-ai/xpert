@@ -18,8 +18,8 @@ import {
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IImageUnderstandingStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'

@@ -5,8 +5,8 @@ import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject 
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
 import { ZardAccordionImports, ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
-import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   calcOffsetRange,
   DataSettings,
@@ -16,7 +16,7 @@ import {
   Property,
   TimeRange,
   TimeRangesSlicer
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith } from 'rxjs'
 

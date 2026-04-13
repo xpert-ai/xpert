@@ -17,8 +17,8 @@ import {
     TXpertParameter,
     WorkflowNodeTypeEnum,
     XpertParameterTypeEnum
-} from '@metad/contracts'
-import { omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
@@ -227,6 +227,14 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                         description: {
                             en_US: 'Workspace URL',
                             zh_Hans: '工作区 URL'
+                        }
+                    },
+                    {
+                        name: 'thread_id',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Current thread ID for custom path or isolation strategies',
+                            zh_Hans: '当前会话线程 ID，可用于自定义路径或隔离策略'
                         }
                     }
                 ]

@@ -1,4 +1,4 @@
-import { ApiKeyBindingType, IApiKey } from '@metad/contracts'
+import { ApiKeyBindingType, IApiKey } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsString, IsOptional } from 'class-validator';
 import { differenceInMinutes } from 'date-fns'

@@ -36,7 +36,7 @@ import {
   ZardTreeFlatDataSource,
   ZardTreeFlattener 
 } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import {
   DateVariableEnum,
   DisplayDensity,
@@ -45,7 +45,7 @@ import {
   NgmAppearance,
   NgmOcapCoreService,
   OcapCoreModule
-} from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -63,7 +63,7 @@ import {
   isTimeRangesSlicer,
   omit,
   timeRangesSlicerAsString
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   combineLatest,

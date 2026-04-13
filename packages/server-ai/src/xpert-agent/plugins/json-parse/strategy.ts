@@ -13,7 +13,7 @@ import {
 	workflowNodeIdentifier,
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'

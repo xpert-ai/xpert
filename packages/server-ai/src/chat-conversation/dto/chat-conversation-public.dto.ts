@@ -1,5 +1,5 @@
-import { IChatConversation, IProject, IUser, IXpert, IXpertAgentExecution } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IChatConversation, IProject, IUser, IXpert, IXpertAgentExecution } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto'
 import { XpertProjectIdentiDto } from '../../xpert-project/dto'

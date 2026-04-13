@@ -1,5 +1,5 @@
 import { BaseLanguageModel, getModelContextSize as _getModelContextSize } from "@langchain/core/language_models/base";
-import { ICopilotModel, ModelPropertyKey } from "@metad/contracts";
+import { ICopilotModel, ModelPropertyKey } from "@xpert-ai/contracts";
 import { ModelProfile } from "../types";
 
 export function getModelContextSize(input: BaseLanguageModel | ICopilotModel): number | undefined {

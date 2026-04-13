@@ -16,7 +16,7 @@ import {
 	IOrganizationContact,
 	IPagination,
 	PermissionsEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { CrudController } from './../core/crud';
 import { OrganizationContactEditByEmployeeCommand } from './commands';
 import { OrganizationContact } from './organization-contact.entity';

@@ -5,7 +5,7 @@
 }
 
 .xp-file-pane {
-  @apply relative min-h-[320px] flex h-full flex-col overflow-hidden rounded-3xl border border-divider-regular bg-gradient-to-br from-background-default-subtle via-components-panel-bg to-background-default-subtle;
+  @apply relative flex h-full flex-col overflow-hidden;
 }
 
 .xp-pane-header {

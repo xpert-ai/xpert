@@ -1,4 +1,4 @@
-import { PacMenuItem } from '@metad/cloud/auth'
+import { PacMenuItem } from '@xpert-ai/cloud/auth'
 import {
   AiFeatureEnum,
   AIPermissionsEnum,

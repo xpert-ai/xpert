@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, model } from '@an
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
 import { distinctUntilChanged } from 'rxjs/operators'

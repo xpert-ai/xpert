@@ -1,5 +1,5 @@
-import { ChecklistItem, RuleValidator } from '@metad/contracts'
-import { PropertyLevel, Schema } from '@metad/ocap-core'
+import { ChecklistItem, RuleValidator } from '@xpert-ai/contracts'
+import { PropertyLevel, Schema } from '@xpert-ai/ocap-core'
 
 export class LevelValidator implements RuleValidator {
     async validate(level: PropertyLevel, params: { schema: Schema; }): Promise<ChecklistItem[]> {

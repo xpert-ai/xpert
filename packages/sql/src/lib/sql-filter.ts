@@ -10,7 +10,7 @@ import {
   isNumber,
   isString,
   PropertyLevel
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { CubeContext } from './cube'
 import { createDimensionContext, DimensionContext } from './dimension'
 import { And, Not, Or, Parentheses } from './functions'

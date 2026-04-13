@@ -1,6 +1,7 @@
 {
-  "name": "@metad/ocap-angular",
-  "version": "3.9.0-beta.0",
+  "name": "@xpert-ai/ocap-angular",
+  "version": "3.9.0-beta.2",
+  "private": true,
   "keywords": [
     "metad",
     "ocap",
@@ -18,7 +19,7 @@
     "@angular/cdk": "^21.0.0",
     "@angular/common": "^21.0.0",
     "@angular/core": "^21.0.0",
-    "@metad/ocap-core": "^2.3.0",
+    "@xpert-ai/ocap-core": "workspace:*",
     "@ngx-translate/core": "^17.0.0",
     "lodash-es": "^4.17.21",
     "marked": "^17.0.0",
@@ -30,7 +31,8 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.1.18"
+    "@tailwindcss/cli": "^4.1.18",
+    "@tailwindcss/postcss": "^4.1.18"
   },
   "sideEffects": false
 }

@@ -1,16 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http'
-import { IProject, IUser } from '@metad/contracts'
-import { TableColumnType } from '@metad/ocap-core'
+import { IProject, IUser } from '@xpert-ai/contracts'
+import { TableColumnType } from '@xpert-ai/ocap-core'
 import { enUS, zhCN } from 'date-fns/locale'
 import ShortUniqueId from 'short-unique-id'
-export * from '@metad/contracts'
+export * from '@xpert-ai/contracts'
 export {
   convertConnectionResult,
   convertStoryModel,
   convertStoryPointResult,
   convertStoryResult,
   convertStoryWidgetResult
-} from '@metad/cloud/state'
+} from '@xpert-ai/cloud/state'
 
 const suuidGenerator = new ShortUniqueId({ length: 10 })
 export const suuid = (...args: Parameters<(typeof suuidGenerator)['randomUUID']>) =>

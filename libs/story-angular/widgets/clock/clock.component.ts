@@ -1,6 +1,6 @@
 import { Component, ElementRef, OnInit, output } from '@angular/core'
-import { DataSettings, ISlicer } from '@metad/ocap-core'
-import { IStoryWidget, resizeObservable } from '@metad/core'
+import { DataSettings, ISlicer } from '@xpert-ai/ocap-core'
+import { IStoryWidget, resizeObservable } from '@xpert-ai/core'
 import { interval } from 'rxjs'
 import { map, pluck, shareReplay } from 'rxjs/operators'
 import { FocusOrigin, FocusableOption } from '@angular/cdk/a11y'

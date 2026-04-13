@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy, Optional } from '@angular/core'
-import { NgmDSCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { ChartBusinessService } from '@metad/ocap-core'
+import { NgmDSCoreService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { ChartBusinessService } from '@xpert-ai/ocap-core'
 
 @Injectable()
 export class AnalyticalCardService<T> extends ChartBusinessService<T> implements OnDestroy {

@@ -20,7 +20,8 @@
         "InputParamsRequired": "节点‘{node}’的输入变量必输",
         "OutputParamsRequired": "节点‘{node}’的输出变量必输",
         "ItemInputParamNotFound": "未找到节点‘{node}’的元素输入变量",
-        "ClassifierClassesRequired": "分类器节点‘{node}’的类别必输"
+        "ClassifierClassesRequired": "分类器节点‘{node}’的类别必输",
+        "NoGraph": "未找到流程图"
     },
     "Project": {
         "CreatingTasks": "创建任务",

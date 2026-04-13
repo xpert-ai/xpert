@@ -1,4 +1,4 @@
-import { ICurrency } from '@metad/contracts';
+import { ICurrency } from '@xpert-ai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';

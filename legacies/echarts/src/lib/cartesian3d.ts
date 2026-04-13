@@ -12,7 +12,7 @@ import {
   getPropertyMeasure,
   getPropertyName,
   QueryReturn
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { formatMeasureValue } from './common'
 import { valueAxisLabelFormatter } from './components/axis'
 import { measuresToSeriesComponents, serializeSeriesComponent } from './components/series'

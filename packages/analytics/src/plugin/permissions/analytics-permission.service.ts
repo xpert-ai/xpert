@@ -1,5 +1,5 @@
-import { OrderTypeEnum } from '@metad/contracts'
-import { Agent, DataSourceFactory, DSCoreService } from '@metad/ocap-core'
+import { OrderTypeEnum } from '@xpert-ai/contracts'
+import { Agent, DataSourceFactory, DSCoreService } from '@xpert-ai/ocap-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import {
 	AnalyticsDSCoreInput,

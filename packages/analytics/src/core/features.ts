@@ -1,4 +1,4 @@
-import { AnalyticsFeatures, FeatureEnum, IFeatureCreateInput } from '@metad/contracts'
+import { AnalyticsFeatures, FeatureEnum, IFeatureCreateInput } from '@xpert-ai/contracts'
 
 
 export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [

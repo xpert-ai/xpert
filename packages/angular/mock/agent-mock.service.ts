@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { Agent, AgentStatusEnum, AgentType, Cube, DataSourceOptions } from '@metad/ocap-core'
+import { Agent, AgentStatusEnum, AgentType, Cube, DataSourceOptions } from '@xpert-ai/ocap-core'
 import { randCompanyName, randFloat, randNumber, randProductAdjective, randProductCategory } from '@ngneat/falso'
 import { Observable, Subject, of } from 'rxjs'
 

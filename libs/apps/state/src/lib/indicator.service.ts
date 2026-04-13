@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IIndicator, PaginationParams, TIndicatorDraft } from '@metad/contracts'
+import { IIndicator, PaginationParams, TIndicatorDraft } from '@xpert-ai/contracts'
 import { map } from 'rxjs/operators'
 import { C_URI_API_INDICATORS } from './constants'
 import { Indicator, convertIndicator } from './types'

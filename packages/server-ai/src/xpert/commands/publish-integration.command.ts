@@ -1,4 +1,4 @@
-import { IIntegration } from '@metad/contracts'
+import { IIntegration } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**

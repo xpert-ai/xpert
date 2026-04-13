@@ -13,7 +13,7 @@ import {
   getPropertyHierarchy,
   omitBlank,
   QueryReturn
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { assign, isEmpty, isNil, uniqBy } from 'lodash-es'
 import { formatMeasureNumber } from './common'
 import { axisOrient, getMeasureAxis, getValueAxis } from './components/axis'

@@ -1,4 +1,4 @@
-import { AiProviderRole } from '@metad/contracts'
+import { AiProviderRole } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 /**

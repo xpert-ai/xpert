@@ -1,5 +1,5 @@
-import { CopilotDefaultOptions } from '@metad/copilot'
-import { DimensionSchema } from '@metad/ocap-core'
+import { CopilotDefaultOptions } from '@xpert-ai/copilot'
+import { DimensionSchema } from '@xpert-ai/ocap-core'
 import { z } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 

@@ -5,7 +5,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormsModule, ReactiveFormsModule, ValidationErrors } from '@angular/forms'
 import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, Observable, switchMap } from 'rxjs'
 

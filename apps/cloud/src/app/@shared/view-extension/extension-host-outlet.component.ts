@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common'
 import { Component, effect, input, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
-import { XpertExtensionViewManifest } from '@metad/contracts'
+import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { injectViewExtensionApi } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { ViewRendererComponent } from './view-renderer.component'
 import { getErrorMessage } from '@cloud/app/@core/types'
 

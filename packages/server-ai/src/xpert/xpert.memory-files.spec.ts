@@ -1,4 +1,4 @@
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentUserId: jest.fn()
     },
@@ -17,7 +17,7 @@ jest.mock('@metad/server-core', () => ({
     UserGroupService: class UserGroupService {}
 }))
 
-jest.mock('@metad/server-common', () => ({
+jest.mock('@xpert-ai/server-common', () => ({
     getErrorMessage: jest.fn((error) => error?.message ?? String(error))
 }))
 
@@ -99,8 +99,8 @@ jest.mock('../shared/volume', () => ({
     WorkspaceVolumeClient: mockWorkspaceVolumeClient
 }))
 
-import { TFile } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { TFile } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { VolumeClient, WorkspaceVolumeClient } from '../shared/volume'
 import { XpertService } from './xpert.service'
 

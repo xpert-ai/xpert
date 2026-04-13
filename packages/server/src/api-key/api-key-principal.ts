@@ -6,7 +6,7 @@ import {
 	IUser,
 	RequestScopeLevel,
 	UserType
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import type { IncomingMessage } from 'http'
 
 export function buildApiKeyPrincipal(

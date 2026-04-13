@@ -5,7 +5,7 @@ import { Screenshot } from './screenshot.entity';
 import { ScreenshotController } from './screenshot.controller';
 import { ScreenshotService } from './screenshot.service';
 import { CommandHandlers } from './commands/handlers';
-import { TenantModule, UserModule } from '@metad/server-core';
+import { TenantModule, UserModule } from '@xpert-ai/server-core';
 import { RouterModule } from '@nestjs/core'
 
 @Module({

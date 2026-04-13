@@ -12,8 +12,8 @@ import {
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
-import { nonNullable } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { nonNullable } from '@xpert-ai/server-common'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'

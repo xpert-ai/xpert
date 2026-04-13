@@ -25,7 +25,7 @@ import {
   ZardTooltipImports,
   type ZardTableSortDirection
 } from '@xpert-ai/headless-ui'
-import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DisplayDensity, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { TableColumn } from '../types'

@@ -24,7 +24,7 @@ import {
   listAnimation,
   listEnterAnimation,
   ListSlideStaggerAnimation
-} from '@metad/core'
+} from '@xpert-ai/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
@@ -33,9 +33,9 @@ import { BehaviorSubject, EMPTY, startWith, switchMap } from 'rxjs'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
 import { CardCreateComponent } from '@cloud/app/@shared/card'
-import { debouncedSignal, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { debouncedSignal, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**

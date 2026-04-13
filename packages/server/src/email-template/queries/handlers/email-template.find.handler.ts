@@ -5,7 +5,7 @@ import {
 	ICustomizableEmailTemplate,
 	LanguagesEnum,
 	EmailTemplateNameEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { IsNull } from 'typeorm';
 import { RequestContext } from './../../../core/context';
 

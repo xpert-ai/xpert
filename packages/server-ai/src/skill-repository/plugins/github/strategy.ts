@@ -4,7 +4,7 @@ import {
 	ISkillRepositoryIndexPublisher,
 	ISkillRepositoryIndexStats,
 	TSkillSourceMeta
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable } from '@nestjs/common'
 import { ISkillSourceProvider, SkillSourceProviderStrategy } from '@xpert-ai/plugin-sdk'

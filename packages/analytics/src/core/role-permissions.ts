@@ -1,4 +1,4 @@
-import { AnalyticsPermissionsEnum, RolesEnum } from '@metad/contracts'
+import { AnalyticsPermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 
 const FULL_ANALYTICS_PERMISSIONS = [
 	AnalyticsPermissionsEnum.DATA_SOURCE_EDIT,

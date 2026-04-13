@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { isEqual } from 'lodash-es'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
@@ -65,15 +65,17 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
   readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta?.name === this.provider())?.meta)
   readonly #providerName = computed(() => this.providerMeta()?.name)
   readonly #options = computed(() => this.middlewareEntity()?.options ?? {}, { equal: isEqual })
+  readonly #xpertId = computed(() => this.studioService.viewModel()?.team?.id)
   readonly #toolsRes = myRxResource({
     options: { debounceTime: 500 },
     request: () => ({
       provider: this.#providerName(),
-      options: this.#options()
+      options: this.#options(),
+      xpertId: this.#xpertId()
     }),
     loader: ({ request }) => {
       return request.provider
-        ? this.agentAPI.getAgentMiddleware(request.provider, request.options).pipe(map((res) => res.tools))
+        ? this.agentAPI.getAgentMiddleware(request.provider, request.options, request.xpertId).pipe(map((res) => res.tools))
         : null
     }
   })

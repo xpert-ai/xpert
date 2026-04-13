@@ -1,5 +1,5 @@
-import { IVisit, VisitEntityEnum, VisitTypeEnum } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IVisit, VisitEntityEnum, VisitTypeEnum } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, ManyToOne } from 'typeorm'
 import { Indicator, SemanticModel, Story } from '../core/entities/internal'
 

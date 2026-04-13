@@ -1,7 +1,7 @@
 import { AsyncPipe } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { injectOrganization } from '@metad/cloud/state'
+import { injectOrganization } from '@xpert-ai/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService, routeAnimations } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'

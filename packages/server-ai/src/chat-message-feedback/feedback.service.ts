@@ -1,5 +1,5 @@
-import { LongTermMemoryTypeEnum } from '@metad/contracts'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { LongTermMemoryTypeEnum } from '@xpert-ai/contracts'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

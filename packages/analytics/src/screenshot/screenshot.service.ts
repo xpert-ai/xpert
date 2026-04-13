@@ -1,5 +1,5 @@
-import { IScreenshot } from '@metad/contracts'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { IScreenshot } from '@xpert-ai/contracts'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'

@@ -1,4 +1,4 @@
-import { ChatGatewayMessage, IUser } from '@metad/contracts'
+import { ChatGatewayMessage, IUser } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class ChatWSCommand implements ICommand {

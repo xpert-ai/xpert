@@ -1,5 +1,5 @@
-import { nonBlank, Property, Schema, SQLExpression } from '@metad/ocap-core'
-import { IModelRole, ISemanticModel, MDX, RoleTypeEnum } from '@metad/contracts'
+import { nonBlank, Property, Schema, SQLExpression } from '@xpert-ai/ocap-core'
+import { IModelRole, ISemanticModel, MDX, RoleTypeEnum } from '@xpert-ai/contracts'
 import { camelCase, cloneDeep, cloneDeepWith, forIn, isArray, isNil, isObject, isString, omit, pick } from 'lodash'
 import { Observable } from 'rxjs'
 import xml2js from 'xml2js'

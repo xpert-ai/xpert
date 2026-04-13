@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { StorageFile } from './storage-file.entity'
 import { TenantOrganizationAwareCrudService } from '../core/crud'
-import { FileStorageProviderEnum, IStorageFile, UploadedFile } from '@metad/contracts'
+import { FileStorageProviderEnum, IStorageFile, UploadedFile } from '@xpert-ai/contracts'
 import { FileStorage } from '../file/file-storage/file-storage'
 
 @Injectable()

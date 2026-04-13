@@ -2,9 +2,9 @@
 import { ChangeDetectionStrategy, Component, Input, forwardRef, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmColorInputComponent } from '@metad/components/form-field'
+import { NgmColorInputComponent } from '@xpert-ai/components/form-field'
 import { SharedUiModule } from '../../../../@shared/ui.module'
-import { DensityDirective } from '@metad/ocap-angular/core'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   standalone: true,

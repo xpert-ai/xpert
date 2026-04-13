@@ -1,4 +1,4 @@
-import { IStory } from '@metad/contracts'
+import { IStory } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class StoryCopyCommand implements ICommand {

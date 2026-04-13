@@ -16,9 +16,9 @@ import { FormsModule } from '@angular/forms'
 
 import { Z_MODAL_DATA, ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardSliderComponent, ZardToastService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser'
-import { AccessEnum, ISemanticModel, Visibility } from '@metad/contracts'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NX_STORY_STORE, NxStoryService, NxStoryStore, StoryPoint, StoryWidget } from '@metad/story/core'
+import { AccessEnum, ISemanticModel, Visibility } from '@xpert-ai/contracts'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NX_STORY_STORE, NxStoryService, NxStoryStore, StoryPoint, StoryWidget } from '@xpert-ai/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 

@@ -2,7 +2,7 @@ import {
 	IOrganizationContact,
 	ContactOrganizationInviteStatus,
 	RolesEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { User } from '../../../user/user.entity';
 import { UserService } from '../../../user/user.service';

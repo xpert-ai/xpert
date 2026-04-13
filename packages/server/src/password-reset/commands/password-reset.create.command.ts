@@ -1,4 +1,4 @@
-import { IPasswordReset } from '@metad/contracts';
+import { IPasswordReset } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class PasswordResetCreateCommand implements ICommand {

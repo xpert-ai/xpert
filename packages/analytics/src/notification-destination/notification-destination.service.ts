@@ -1,4 +1,4 @@
-import { REDIS_CLIENT, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { REDIS_CLIENT, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'

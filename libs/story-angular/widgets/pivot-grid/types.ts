@@ -1,7 +1,7 @@
 import { TemplateRef } from '@angular/core'
-import { DisplayDensity } from '@metad/ocap-angular/core'
-import { DataSettings, PivotColumn, SelectionVariant } from '@metad/ocap-core'
-import { TableColumn, WidgetMenuType } from '@metad/core'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, PivotColumn, SelectionVariant } from '@xpert-ai/ocap-core'
+import { TableColumn, WidgetMenuType } from '@xpert-ai/core'
 import { FilterMode, GridColumnDataType, GridSelectionMode, IGroupingExpression } from 'igniteui-angular'
 
 export interface PivotGridColumn extends PivotColumn, TableColumn {

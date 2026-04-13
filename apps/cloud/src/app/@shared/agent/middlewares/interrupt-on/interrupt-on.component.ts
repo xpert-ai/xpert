@@ -13,7 +13,7 @@ import {
 } from '@angular/core'
 import { ControlValueAccessor, FormsModule } from '@angular/forms'
 import { JSON_SCHEMA_WIDGET_CONTEXT } from '@cloud/app/@shared/forms'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { catchError, combineLatest, distinctUntilChanged, map, of, tap } from 'rxjs'
@@ -24,7 +24,7 @@ import {
   IWorkflowNode,
   IXpertAgent,
   IXpertToolset,
-  TXpertGraph,
+  TXpertTeamDraft,
   TXpertTeamNode,
   WorkflowNodeTypeEnum
 } from '../../../../@core'
@@ -56,7 +56,7 @@ const DEFAULT_DECISIONS: InterruptDecision[] = ['approve', 'edit', 'reject']
 })
 export class AgentInterruptOnComponent implements ControlValueAccessor {
   protected cva = inject<NgxControlValueAccessor<InterruptOnConfig | null>>(NgxControlValueAccessor)
-  readonly context = inject<{ context: Signal<{ draft: TXpertGraph; entity: IWFNMiddleware }> }>(
+  readonly context = inject<{ context: Signal<{ draft: TXpertTeamDraft; entity: IWFNMiddleware; xpertId?: string }> }>(
     JSON_SCHEMA_WIDGET_CONTEXT,
     { optional: true }
   )
@@ -77,6 +77,7 @@ export class AgentInterruptOnComponent implements ControlValueAccessor {
   // States
   readonly draft = computed(() => this.context?.context().draft)
   readonly entity = computed(() => this.context?.context().entity)
+  readonly xpertId = computed(() => this.context?.context().xpertId ?? this.draft()?.team?.id)
   readonly agentNode = computed(
     () => {
       const draft = this.draft()
@@ -142,7 +143,7 @@ export class AgentInterruptOnComponent implements ControlValueAccessor {
 
       return combineLatest(
         request.map((item) =>
-          this.agentAPI.getAgentMiddleware(item.provider, item.options).pipe(
+          this.agentAPI.getAgentMiddleware(item.provider, item.options, this.xpertId()).pipe(
             map(({ tools }) => tools?.map((tool) => ({ name: tool.name, description: tool.description })) ?? []),
             catchError(() => of<ToolOption[]>([]))
           )
@@ -446,7 +447,7 @@ export class AgentInterruptOnComponent implements ControlValueAccessor {
     return null
   }
 
-  private resolveAgentNode(draft: TXpertGraph, middlewareKey: string) {
+  private resolveAgentNode(draft: TXpertTeamDraft, middlewareKey: string) {
     const connection = draft.connections?.find(
       (conn) => conn.type === 'workflow' && normalizeKey(conn.to) === normalizeKey(middlewareKey)
     )

@@ -1,4 +1,4 @@
-import { ChecklistItem, RuleValidator, TXpertTeamDraft, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { ChecklistItem, RuleValidator, TXpertTeamDraft, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { groupBy } from 'lodash'
 
 export class FreeNodeValidator implements RuleValidator {

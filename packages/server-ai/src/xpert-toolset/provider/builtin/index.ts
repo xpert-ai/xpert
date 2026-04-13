@@ -1,4 +1,4 @@
-import { IXpertToolset } from '@metad/contracts'
+import { IXpertToolset } from '@xpert-ai/contracts'
 import { Type } from '@nestjs/common'
 import { TBuiltinToolsetParams } from '@xpert-ai/plugin-sdk'
 import { ToolProviderNotFoundError } from '../../errors'

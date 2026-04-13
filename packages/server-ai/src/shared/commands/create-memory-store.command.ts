@@ -1,4 +1,4 @@
-import { TCopilotModel } from '@metad/contracts'
+import { TCopilotModel } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**

@@ -1,6 +1,6 @@
 
 import { ChangeDetectionStrategy, Component, inject, model, output } from '@angular/core'
-import { Store, UsersService } from '@metad/cloud/state'
+import { Store, UsersService } from '@xpert-ai/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, IUser } from '../../../@core'
 import { AvatarEditorComponent } from '../../files'

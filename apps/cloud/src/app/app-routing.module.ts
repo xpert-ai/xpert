@@ -13,7 +13,7 @@ const routes: Routes = [
 	},
   {
     path: 'auth',
-    loadChildren: () => import('@metad/cloud/auth').then((m) => m.PacAuthModule)
+    loadChildren: () => import('@xpert-ai/cloud/auth').then((m) => m.PacAuthModule)
   },
   { path: 'sign-in/success', component: SignInSuccessComponent },
   {

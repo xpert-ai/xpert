@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, input, signal } from '@angular/core'
-import { ListHeightStaggerAnimation } from '@metad/core'
+import { ListHeightStaggerAnimation } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IChatConversation, IChatMessage } from 'apps/cloud/src/app/@core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'

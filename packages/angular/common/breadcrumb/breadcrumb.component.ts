@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, HostBinding, Input, OnChanges, Output, SimpleChanges } from '@angular/core'
 
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export interface Step {

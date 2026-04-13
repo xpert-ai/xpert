@@ -1,6 +1,6 @@
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { saveAsYaml } from '@metad/core'
-import { TableColumnType, TableEntity, omit, pick } from '@metad/ocap-core'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { saveAsYaml } from '@xpert-ai/core'
+import { TableColumnType, TableEntity, omit, pick } from '@xpert-ai/ocap-core'
 import { firstValueFrom } from 'rxjs'
 import { ColumnDef } from '../../@core'
 

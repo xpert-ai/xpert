@@ -1,14 +1,14 @@
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseStore } from '@langchain/langgraph'
-import { AiProviderRole, mapTranslationLanguage } from '@metad/contracts'
+import { AiProviderRole, mapTranslationLanguage } from '@xpert-ai/contracts'
 import {
 	CopilotMemoryStore,
 	CopilotModelGetEmbeddingsQuery,
 	CopilotNotFoundException,
 	CopilotOneByRoleQuery,
 	CreateCopilotStoreCommand
-} from '@metad/server-ai'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/server-ai'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CreateProjectStoreCommand } from '../create-store.command'

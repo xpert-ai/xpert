@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Entity, Column } from 'typeorm';
 import { IsDate } from 'class-validator';
-import { IImportRecord } from '@metad/contracts';
+import { IImportRecord } from '@xpert-ai/contracts';
 import { TenantBaseEntity } from '../../core/entities/internal';
 
 @Entity('import-record')

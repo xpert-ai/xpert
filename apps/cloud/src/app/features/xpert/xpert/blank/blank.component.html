@@ -259,7 +259,7 @@
         </z-step>
 
         <z-step [label]="'PAC.Workflow.Trigger' | translate: { Default: 'Trigger' }">
-          <xpert-blank-trigger-selection
+          <xp-blank-trigger-selection
             [(selections)]="selectedTriggers"
             [providers]="triggerProviderOptions()"
             [descriptionKey]="'PAC.Xpert.SelectTriggerProviders'"
@@ -987,7 +987,7 @@
         </z-step>
 
         <z-step [label]="'PAC.Workflow.Trigger' | translate: { Default: 'Trigger' }">
-          <xpert-blank-trigger-selection
+          <xp-blank-trigger-selection
             [(selections)]="selectedKnowledgeTriggers"
             [providers]="triggerProviderOptions()"
             [descriptionKey]="'PAC.Xpert.SelectKnowledgeTriggers'"

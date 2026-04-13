@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
-import { IChatBIModel } from '@metad/contracts'
+import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { IChatBIModel } from '@xpert-ai/contracts'
 import { NGXLogger } from 'ngx-logger'
 
 const API_CHATBI_MODELS = API_PREFIX + '/chatbi-model'

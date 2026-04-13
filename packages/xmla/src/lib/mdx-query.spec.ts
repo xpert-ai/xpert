@@ -5,7 +5,7 @@ import {
   FilterOperator,
   IFilter,
   OrderDirection
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { DEPARTMENT_ENTITY_TYPE } from '../test/DATA'
 import { mapMDXFilterToStatement, MDXHierarchyFilter } from './filter'
 import { OrderFlag } from './functions'

@@ -1,4 +1,4 @@
-import { CreationTable } from '@metad/adapter'
+import { CreationTable } from '@xpert-ai/adapter'
 import { ICommand } from '@nestjs/cqrs'
 
 export class DataLoadCommand implements ICommand {

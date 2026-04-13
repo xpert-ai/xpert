@@ -1,6 +1,6 @@
 
 import { Component, input } from '@angular/core'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IUser } from '../../../@core'
 import { UserPipe } from '../../pipes'

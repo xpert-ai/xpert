@@ -7,8 +7,8 @@ import {
 	omitXpertRelations,
 	replaceAgentInDraft,
 	TXpertTeamDraft
-} from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { t } from 'i18next'

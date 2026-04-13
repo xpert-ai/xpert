@@ -18,9 +18,9 @@ import {
 	TSemanticModelDraft,
 	TSemanticModelOptions,
 	Visibility
-} from '@metad/contracts'
-import { Schema } from '@metad/ocap-core'
-import { Tag, TenantOrganizationBaseEntity, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { Schema } from '@xpert-ai/ocap-core'
+import { Tag, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId, VersionColumn } from 'typeorm'

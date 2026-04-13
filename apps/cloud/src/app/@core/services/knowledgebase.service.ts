@@ -18,7 +18,7 @@ import {
   IXpert,
   PaginationParams,
   toHttpParams
-} from '@metad/cloud/state'
+} from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, interval, of } from 'rxjs'
 import { v4 as uuidv4 } from 'uuid'

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { C_MEASURES, CalculatedMember, compact, flatten, getEntityDimensions } from '@metad/ocap-core'
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { C_MEASURES, CalculatedMember, compact, flatten, getEntityDimensions } from '@xpert-ai/ocap-core'
+import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@xpert-ai/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { combineLatestWith, firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { HiddenLLM } from '@cloud/app/@shared/model'

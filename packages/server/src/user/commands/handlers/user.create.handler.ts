@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { IUser, mapTranslationLanguage } from '@metad/contracts';
-import { ConfigService } from '@metad/server-config';
+import { IUser, mapTranslationLanguage } from '@xpert-ai/contracts';
+import { ConfigService } from '@xpert-ai/server-config';
 import bcrypt from 'bcryptjs';
 import { UserCreateCommand } from '../user.create.command';
 import { UserService } from '../../user.service';

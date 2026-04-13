@@ -1,6 +1,6 @@
 // import { HttpClient } from '@angular/common/http'
 // import { Injectable } from '@angular/core'
-// import { ComponentStore } from '@metad/store'
+// import { ComponentStore } from '@xpert-ai/store'
 // import {
 //   IUserLoginInput,
 //   IAuthResponse,
@@ -8,10 +8,10 @@
 //   IUserRegistrationInput,
 //   PermissionsEnum,
 //   RolesEnum
-// } from '@metad/contracts'
+// } from '@xpert-ai/contracts'
 // import { lastValueFrom, Observable, of } from 'rxjs'
 // import { first, switchMap, tap } from 'rxjs/operators'
-// import { API_PREFIX } from '@metad/cloud/state'
+// import { API_PREFIX } from '@xpert-ai/cloud/state'
 
 // export interface AuthState {
 //   inited: boolean

@@ -4,8 +4,8 @@ jest.mock('../../xpert.service', () => ({
 jest.mock('../../../assistant-binding/assistant-binding.service', () => ({
     AssistantBindingService: class {}
 }))
-jest.mock('@metad/contracts', () => {
-    const actual = jest.requireActual('@metad/contracts')
+jest.mock('@xpert-ai/contracts', () => {
+    const actual = jest.requireActual('@xpert-ai/contracts')
     return {
         ...actual,
         createMessageAppendContextTracker: () => ({
@@ -19,7 +19,7 @@ jest.mock('@metad/contracts', () => {
 })
 
 import { of, lastValueFrom, toArray } from 'rxjs'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'

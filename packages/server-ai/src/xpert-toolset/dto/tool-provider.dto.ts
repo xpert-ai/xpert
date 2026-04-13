@@ -1,4 +1,4 @@
-import { IToolProvider, TAvatar, ToolTagEnum } from '@metad/contracts'
+import { IToolProvider, TAvatar, ToolTagEnum } from '@xpert-ai/contracts'
 import { Expose } from 'class-transformer'
 
 @Expose()

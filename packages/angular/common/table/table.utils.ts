@@ -1,5 +1,5 @@
 import type { ZardTableSizeVariants, ZardTableSortDirection } from '@xpert-ai/headless-ui'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import get from 'lodash-es/get'
 
 export interface TableSortState {

@@ -3,14 +3,14 @@ import path from 'path';
 import { copyFileSync, mkdirSync } from 'fs';
 import chalk from 'chalk';
 import { rimraf } from 'rimraf';
-import { ConfigService, environment as env } from '@metad/server-config';
+import { ConfigService, environment as env } from '@xpert-ai/server-config';
 import {
 	IFeature,
 	IFeatureCreateInput,
 	IFeatureOrganization,
 	ITenant
-} from '@metad/contracts';
-import { IPluginConfig } from '@metad/server-common';
+} from '@xpert-ai/contracts';
+import { IPluginConfig } from '@xpert-ai/server-common';
 import { DEFAULT_FEATURES } from './default-features';
 import { Feature } from './feature.entity';
 import { FeatureOrganization } from './feature-organization.entity';

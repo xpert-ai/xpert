@@ -13,7 +13,7 @@ import {
   ParameterProperty,
   RestrictedMeasureProperty,
   VarianceMeasureProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { DEPARTMENT_CUBE, DEPARTMENT_ENTITY_TYPE } from '../test/DATA'
 import {
   addCalculatedMember,

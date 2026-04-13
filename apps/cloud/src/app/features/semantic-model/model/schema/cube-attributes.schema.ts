@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { Cube } from '@metad/ocap-core'
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { Cube } from '@xpert-ai/ocap-core'
+import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@xpert-ai/story/designer'
 import { filter, map, switchMap } from 'rxjs'
 import { EntitySchemaService } from './entity-schema.service'
 import { CubeSchemaState } from './types'

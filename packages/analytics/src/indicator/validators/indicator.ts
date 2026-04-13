@@ -1,4 +1,4 @@
-import { ChecklistItem, IndicatorType, RuleValidator, TIndicatorDraft } from '@metad/contracts'
+import { ChecklistItem, IndicatorType, RuleValidator, TIndicatorDraft } from '@xpert-ai/contracts'
 
 export class IndicatorValidator implements RuleValidator {
 	async validate(draft: TIndicatorDraft): Promise<ChecklistItem[]> {

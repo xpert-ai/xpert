@@ -8,7 +8,7 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { instanceToPlain } from 'class-transformer';
-import { RolesEnum } from '@metad/contracts';
+import { RolesEnum } from '@xpert-ai/contracts';
 import { RequestContext } from './../../core/context';
 
 @Injectable()

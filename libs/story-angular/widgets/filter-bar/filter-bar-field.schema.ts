@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
 import { FormlyFieldConfig } from '@ngx-formly/core'
-import { ControlType } from '@metad/core'
-import { FilterControlType } from '@metad/story/core'
+import { ControlType } from '@xpert-ai/core'
+import { FilterControlType } from '@xpert-ai/story/core'
 import {
   DataSettingsSchemaService,
   DataTable,
@@ -13,7 +13,7 @@ import {
   SchemaState,
   SelectionType,
   Size
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { combineLatest } from 'rxjs'
 import { map } from 'rxjs/operators'
 

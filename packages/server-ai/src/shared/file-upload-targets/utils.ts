@@ -1,5 +1,5 @@
-import { FileUploadVolumeCatalog, IUploadFileVolumeTarget } from '@metad/contracts'
-import { environment } from '@metad/server-config'
+import { FileUploadVolumeCatalog, IUploadFileVolumeTarget } from '@xpert-ai/contracts'
+import { environment } from '@xpert-ai/server-config'
 import path from 'path'
 import { getApiContainerSandboxVolumeRootPath, usesFlattenedSandboxVolumeLayout } from '../volume/volume-layout'
 

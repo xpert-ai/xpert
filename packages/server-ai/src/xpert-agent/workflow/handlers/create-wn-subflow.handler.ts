@@ -13,8 +13,8 @@ import {
 	TAgentRunnableConfigurable,
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum,
-} from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { assign, get } from 'lodash'

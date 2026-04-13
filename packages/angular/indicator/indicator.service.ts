@@ -6,8 +6,8 @@ import {
   QueryOptions,
   SmartFilterBarService,
   SmartIndicatorDataService
-} from '@metad/ocap-core'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-core'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import { combineLatest, map } from 'rxjs'
 import { Trend } from './types'
 

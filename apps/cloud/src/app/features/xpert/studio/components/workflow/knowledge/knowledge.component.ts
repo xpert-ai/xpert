@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNKnowledgeRetrieval,

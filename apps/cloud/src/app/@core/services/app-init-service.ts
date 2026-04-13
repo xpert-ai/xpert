@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@angular/core'
 import { Router } from '@angular/router'
 import { Ability, AbilityBuilder } from '@casl/ability'
-import { IUser } from '@metad/contracts'
-import { UsersService } from '@metad/cloud/state'
+import { IUser } from '@xpert-ai/contracts'
+import { UsersService } from '@xpert-ai/cloud/state'
 import * as Sentry from "@sentry/angular";
 import { NgxPermissionsService } from 'ngx-permissions'
 import { firstValueFrom } from 'rxjs'

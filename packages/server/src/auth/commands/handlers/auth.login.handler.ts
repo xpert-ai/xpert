@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { IAuthResponse, IUserLoginInput } from '@metad/contracts'
+import { IAuthResponse, IUserLoginInput } from '@xpert-ai/contracts'
 import { AuthService } from '../../auth.service'
 import { AuthLoginCommand } from '../auth.login.command'
 

@@ -1,5 +1,5 @@
-import { AnalyticsPermissionsEnum, IPagination } from '@metad/contracts'
-import { CrudController, RequestContext } from '@metad/server-core'
+import { AnalyticsPermissionsEnum, IPagination } from '@xpert-ai/contracts'
+import { CrudController, RequestContext } from '@xpert-ai/server-core'
 import { ClassSerializerInterceptor, Controller, Get, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { IndicatorService } from '../indicator/indicator.service'

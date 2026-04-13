@@ -1,4 +1,4 @@
-import { IXpert } from '@metad/contracts'
+import { IXpert } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class XpertCreateCommand implements ICommand {

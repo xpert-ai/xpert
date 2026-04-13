@@ -1,4 +1,4 @@
-import { Tool } from '@metad/server-ai';
+import { Tool } from '@xpert-ai/server-ai';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

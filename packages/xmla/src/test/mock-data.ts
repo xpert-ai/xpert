@@ -14,7 +14,7 @@ import {
   PropertyDimension,
   Schema,
   Semantics
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 
 
 export const PRODUCT_DIMENSION: PropertyDimension = {

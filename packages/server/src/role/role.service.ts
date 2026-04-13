@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, FindOptionsWhere } from 'typeorm'
-import { IRole, ITenant, RolesEnum, IRoleMigrateInput, InviteStatusEnum } from '@metad/contracts'
+import { IRole, ITenant, RolesEnum, IRoleMigrateInput, InviteStatusEnum } from '@xpert-ai/contracts'
 import { TenantAwareCrudService } from './../core/crud'
 import { Role } from './role.entity'
 import { RequestContext } from './../core/context'

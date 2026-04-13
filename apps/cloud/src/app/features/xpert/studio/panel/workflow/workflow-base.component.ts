@@ -1,6 +1,6 @@
 import { Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { injectToastr, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAPIService } from '@cloud/app/@core'
 import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { injectI18nService } from '@cloud/app/@shared/i18n'

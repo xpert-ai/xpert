@@ -18,8 +18,8 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@metad/core'
-import { isNil } from '@metad/ocap-core'
+import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@xpert-ai/core'
+import { isNil } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
@@ -27,7 +27,7 @@ import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { XpertParametersCardComponent } from '../../@shared/xpert'
 import { ChatCanvasComponent } from '../canvas/canvas.component'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
-import { IXpert, Store } from '@metad/cloud/state'
+import { IXpert, Store } from '@xpert-ai/cloud/state'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { UserPipe } from '../../@shared/pipes'
 import { ChatService } from '../chat.service'
@@ -81,9 +81,18 @@ export class XpertChatAppComponent {
   readonly conversationId = this.chatService.conversationId
   readonly messages = this.chatService.messages
 
-  readonly xpert = derivedAsync(() => {
+  readonly routeXpert = derivedAsync(() => {
     const slug = this.paramRole()
     return slug && slug !== 'common' ? this.homeService.getXpert(slug) : null
+  })
+  readonly xpert = computed(() => {
+    const routeXpert = this.routeXpert()
+
+    if (routeXpert) {
+      return routeXpert
+    }
+
+    return this.paramRole() === 'common' || !!this.conversationId() ? this.chatService.xpert() : null
   })
 
   readonly features = computed(() => this.xpert()?.features)
@@ -132,6 +141,7 @@ export class XpertChatAppComponent {
     effect(
       () => {
         this.chatService.xpert.set(this.xpert())
+        // this.homeService.xpert.set(this.xpert())
       }
     )
 

@@ -15,7 +15,7 @@ import {
   getPropertyMeasure,
   IMember,
   OrderDirection
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { lowerCase, maxBy, minBy, orderBy, sortBy, sum, uniqBy } from 'lodash-es'
 import { axisOrient } from './components/axis'
 import { getEChartsMatrixTooltip } from './components/tooltip'

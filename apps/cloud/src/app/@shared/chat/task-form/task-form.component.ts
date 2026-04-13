@@ -2,7 +2,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 
 import { Component, effect, inject, input } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { IXpertTask } from '@metad/contracts'
+import { IXpertTask } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 

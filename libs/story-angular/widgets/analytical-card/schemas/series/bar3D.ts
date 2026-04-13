@@ -1,4 +1,4 @@
-import { AccordionWrappers, FORMLY_ROW } from '@metad/story/designer'
+import { AccordionWrappers, FORMLY_ROW } from '@xpert-ai/story/designer'
 import { Opacity, SingleColor, TextStyles } from '../common'
 
 export function Bar3DCapacity(className: string, I18N) {

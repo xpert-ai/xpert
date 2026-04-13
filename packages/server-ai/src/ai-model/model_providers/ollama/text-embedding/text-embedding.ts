@@ -1,6 +1,6 @@
 import { OllamaCamelCaseOptions, OllamaEmbeddings } from '@langchain/ollama'
-import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { AiModelTypeEnum, ICopilotModel } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
 import { TextEmbeddingModelManager } from '../../../types/text-embedding-model'

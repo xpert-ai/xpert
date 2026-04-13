@@ -1,4 +1,4 @@
-import { IBusinessArea } from '@metad/contracts'
+import { IBusinessArea } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class BusinessAreaCreateCommand implements ICommand {

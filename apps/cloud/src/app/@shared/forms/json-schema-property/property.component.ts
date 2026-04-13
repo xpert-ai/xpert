@@ -6,7 +6,7 @@
  */
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import {
@@ -20,7 +20,7 @@ import {
 import { XpertVariableInputComponent } from '../../agent'
 import { NgmSelectComponent } from '../../common'
 import { XpertRemoteSelectComponent } from '../../form-fields'
-import { TWorkflowVarGroup } from '../../../@core'
+import { TWorkflowVarGroup, JsonSchemaUIExtensions } from '../../../@core'
 import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -108,7 +108,7 @@ export class JSONSchemaPropertyComponent {
   })
 
   // x-ui
-  readonly xUi = computed(() => (this.meta() as any)?.['x-ui'] || {})
+  readonly xUi = computed<JsonSchemaUIExtensions>(() => (this.meta() as any)?.['x-ui'] || {})
   readonly xUiComponent = computed(() => this.xUi()?.component)
   readonly xUiInputType = computed(() =>
     ['secretInput', 'password'].includes(this.xUi()?.component) ? 'password' : 'text'

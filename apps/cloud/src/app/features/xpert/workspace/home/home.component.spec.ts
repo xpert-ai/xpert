@@ -6,7 +6,7 @@ import { of } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { AppService } from 'apps/cloud/src/app/app.service'
-import { Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
 import {
@@ -20,7 +20,7 @@ import { XpertWorkspaceHomeComponent } from './home.component'
 
 const selectedWorkspace = signal<{ id: string } | null>({ id: 'workspace-1' })
 
-jest.mock('@metad/cloud/state', () => ({
+jest.mock('@xpert-ai/cloud/state', () => ({
   Store: class Store {},
   injectWorkspace: () => selectedWorkspace
 }))

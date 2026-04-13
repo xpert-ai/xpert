@@ -2,7 +2,7 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ChatConversationService } from '../../conversation.service'
 import { ConvFileGetByPathCommand } from '../file-get-by-path.command'
 import { LoadStorageFileCommand } from '../../../shared'
-import { TFile } from '@metad/contracts'
+import { TFile } from '@xpert-ai/contracts'
 import { Document } from 'langchain/document'
 
 @CommandHandler(ConvFileGetByPathCommand)

@@ -1,6 +1,6 @@
 import { InjectionToken } from '@angular/core'
-import { ID } from '@metad/contracts'
-import { IDimensionMember } from '@metad/ocap-core'
+import { ID } from '@xpert-ai/contracts'
+import { IDimensionMember } from '@xpert-ai/ocap-core'
 import { Observable } from 'rxjs'
 import { StoryModel, StoryConnection } from './types'
 

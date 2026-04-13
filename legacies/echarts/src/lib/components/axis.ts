@@ -11,7 +11,7 @@ import {
   getEntityProperty,
   PropertyHierarchy,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { formatMeasureNumber, formatMeasureValue, setCategoryAxisLabel } from '../common'
 import { AxisEnum, AxisPointerLabelParams, EChartsContext, EChartsOptions } from '../types'
 

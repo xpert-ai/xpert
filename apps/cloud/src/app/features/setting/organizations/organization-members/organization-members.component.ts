@@ -1,13 +1,13 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, Input, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { injectConfirmDelete, NgmTableComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { BehaviorSubject, combineLatest, firstValueFrom, of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 import {
   getErrorMessage,
   IUserOrganization,

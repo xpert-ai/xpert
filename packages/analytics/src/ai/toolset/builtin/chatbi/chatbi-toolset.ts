@@ -15,7 +15,7 @@ import {
 	TMessageContentComponent,
 	TStateVariable,
 	TToolCredentials
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	AggregationRole,
 	BarVariant,
@@ -44,9 +44,9 @@ import {
 	tryFixSlicer,
 	tryFixVariableSlicer,
 	workOutTimeRangeSlicers
-} from '@metad/ocap-core'
-import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
-import { getErrorMessage, isEmpty, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
+} from '@xpert-ai/ocap-core'
+import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@xpert-ai/server-ai'
+import { getErrorMessage, isEmpty, omit, race, shortuuid, TimeoutError } from '@xpert-ai/server-common'
 import { t } from 'i18next'
 import { groupBy, upperFirst } from 'lodash'
 import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'

@@ -9,7 +9,7 @@ import {
 	getEntityHierarchy,
 	getEntityLevel,
 	getEntityProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { Document } from '@langchain/core/documents'
 import { countTokensSafe } from "@xpert-ai/plugin-sdk"
 import { SemanticModelMember } from "./member.entity"

@@ -18,13 +18,13 @@ import {
   ZardDialogRef
 } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { cloneDeep } from '@metad/ocap-core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { cloneDeep } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { Story, StoryModel, StoryOptions } from '@metad/story/core'
+import { Story, StoryModel, StoryOptions } from '@xpert-ai/story/core'
 import { Subject, combineLatestWith, filter, firstValueFrom, map, startWith, switchMap, tap } from 'rxjs'
 import { ISemanticModel, ProjectAPIService, ScreenshotService, ToastrService } from '../../../@core'
-import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective, NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
   standalone: true,

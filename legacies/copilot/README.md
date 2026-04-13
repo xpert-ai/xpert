@@ -4,26 +4,26 @@
 
 English | [中文](./README_zh.md)
 
-`@metad/copilot` is a general-purpose abstract core logic package designed specifically for developing AI Copilot applications. It provides a flexible set of tools and features that enable you to quickly build and integrate Copilot functionality without having to focus on specific user interface frameworks.
+`@xpert-ai/copilot` is a general-purpose abstract core logic package designed specifically for developing AI Copilot applications. It provides a flexible set of tools and features that enable you to quickly build and integrate Copilot functionality without having to focus on specific user interface frameworks.
 
 ## Installation
 
-Install `@metad/copilot` via npm:
+Install `@xpert-ai/copilot` via npm:
 
 ```bash
-npm install @metad/copilot
+npm install @xpert-ai/copilot
 ```
 
 ## Usage in Angular
 
-`@metad/ocap-angular` is a UI component library designed for the Angular framework. Among them, `@metad/ocap-angular/copilot` is the Copilot chat UI component, built on the foundation of `@metad/copilot`, aiming to assist users in seamlessly integrating and building Copilot chat functionality in Angular applications.
+`@xpert-ai/ocap-angular` is a UI component library designed for the Angular framework. Among them, `@xpert-ai/ocap-angular/copilot` is the Copilot chat UI component, built on the foundation of `@xpert-ai/copilot`, aiming to assist users in seamlessly integrating and building Copilot chat functionality in Angular applications.
 
 ### UI Installation
 
-Install `@metad/ocap-angular` via npm:
+Install `@xpert-ai/ocap-angular` via npm:
 
 ```bash
-npm install @metad/ocap-angular
+npm install @xpert-ai/ocap-angular
 ```
 
 ### Configuration
@@ -31,7 +31,7 @@ npm install @metad/ocap-angular
 Before using the Copilot component, you need to provide configuration parameters. You can do this by using the `provideClientCopilot` function and passing in the AI API parameters.
 
 ```typescript
-import { provideClientCopilot } from '@metad/ocap-angular/copilot'
+import { provideClientCopilot } from '@xpert-ai/ocap-angular/copilot'
 import { provideMarkdown } from 'ngx-markdown'
 
 export const appConfig: ApplicationConfig = {
@@ -52,14 +52,14 @@ export const appConfig: ApplicationConfig = {
 
 ### Usage in Components
 
-Introduce the `@metad/ocap-angular/copilot` module into your Angular application:
+Introduce the `@xpert-ai/ocap-angular/copilot` module into your Angular application:
 
 ```typescript
 import {
   NgmCopilotChatComponent,
   injectCopilotCommand,
   injectMakeCopilotActionable,
-} from '@metad/ocap-angular/copilot';
+} from '@xpert-ai/ocap-angular/copilot';
 
 @Component({
   selector: 'app-root',
@@ -184,10 +184,10 @@ If you find any issues or have suggestions for improvement, please feel free to 
 
 ## License
 
-`@metad/copilot` is released under the MIT license. For more information, please refer to the [LICENSE](./LICENSE) file.
+`@xpert-ai/copilot` is released under the MIT license. For more information, please refer to the [LICENSE](./LICENSE) file.
 
 ## Contact Us
 
 If you have any questions or need further assistance, please feel free to contact us via email at: <mailto:service@xpertai.cn>
 
-Thank you for using `@metad/copilot`! We look forward to seeing your Copilot application succeed.
+Thank you for using `@xpert-ai/copilot`! We look forward to seeing your Copilot application succeed.

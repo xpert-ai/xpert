@@ -8,4 +8,4 @@ export {
   PersistState,
   PersistStore,
   Store
-} from '@metad/cloud/state'
+} from '@xpert-ai/cloud/state'

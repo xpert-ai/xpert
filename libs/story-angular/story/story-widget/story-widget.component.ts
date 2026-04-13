@@ -41,9 +41,9 @@ import {
   WidgetMenu,
   WidgetMenuType,
   WidgetService
-} from '@metad/core'
-import { NgmCommonModule, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+} from '@xpert-ai/core'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 import {
   assignDeepOmitBlank,
   DataFieldWithIntentBasedNavigation,
@@ -51,7 +51,7 @@ import {
   mergeOptions,
   omit,
   OrderDirection
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   componentStyling,
   LinkedInteractionApplyTo,
@@ -64,8 +64,8 @@ import {
   StoryWidgetComponentProvider,
   uuid,
   WidgetComponentType
-} from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { select } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

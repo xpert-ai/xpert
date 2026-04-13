@@ -1,4 +1,4 @@
-import { Cube, DataSourceOptions, DataSourceSettings, Dimension, Measure, Property } from '@metad/ocap-core'
+import { Cube, DataSourceOptions, DataSourceSettings, Dimension, Measure, Property } from '@xpert-ai/ocap-core'
 import { t } from 'i18next'
 
 // Built-in measure field - row count
@@ -47,7 +47,7 @@ export interface SQLQueryProperty {
 
 // Types for sql database exec
 /**
- * Sync with @metad/contacts
+ * Sync with @xpert-ai/contacts
  */
 export interface IColumnDef {
   name: string

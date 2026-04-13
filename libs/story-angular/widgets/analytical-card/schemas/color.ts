@@ -1,5 +1,5 @@
-import { ColorPalettes } from '@metad/core'
-import { AccordionWrappers } from '@metad/story/designer'
+import { ColorPalettes } from '@xpert-ai/core'
+import { AccordionWrappers } from '@xpert-ai/story/designer'
 
 export function ColorCapacity(className?, I18N?) {
   return AccordionWrappers([

@@ -1,7 +1,7 @@
 import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/layout'
 import { computed, inject, Inject, Injectable, Injector, Optional, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { ID, IStoryTemplate, StoryTemplateType } from '@metad/contracts'
+import { ID, IStoryTemplate, StoryTemplateType } from '@xpert-ai/contracts'
 import {
   createSubStore,
   dirtyCheckWith,
@@ -12,10 +12,10 @@ import {
   nonNullable,
   NxCoreService,
   write
-} from '@metad/core'
-import { CdkConfirmUniqueComponent } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { EntitySelectDataType, EntitySelectResultType, NgmEntityDialogComponent } from '@metad/ocap-angular/entity'
+} from '@xpert-ai/core'
+import { CdkConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { EntitySelectDataType, EntitySelectResultType, NgmEntityDialogComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   assignDeepOmitBlank,
@@ -33,7 +33,7 @@ import {
   ParameterProperty,
   Property,
   Schema
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { createStore, Query, select, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { ZardDialogService, ZardToastService } from '@xpert-ai/headless-ui'

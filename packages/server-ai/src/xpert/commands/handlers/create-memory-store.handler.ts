@@ -1,6 +1,6 @@
 import { BaseStore } from '@langchain/langgraph'
-import { mapTranslationLanguage } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { mapTranslationLanguage } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'

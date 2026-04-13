@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs';
-import { IEmployeeCreateInput, LanguagesEnum } from '@metad/contracts';
+import { IEmployeeCreateInput, LanguagesEnum } from '@xpert-ai/contracts';
 
 export class EmployeeBulkCreateCommand implements ICommand {
 	static readonly type = '[Employee] Register';

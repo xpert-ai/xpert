@@ -1,5 +1,5 @@
-import { ConfigService, IEnvironment } from '@metad/server-config';
-import { IApiServerOptions } from '@metad/server-common';
+import { ConfigService, IEnvironment } from '@xpert-ai/server-config';
+import { IApiServerOptions } from '@xpert-ai/server-common';
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';

@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IDataSource, IDataSourceAuthentication } from '@metad/contracts'
+import { IDataSource, IDataSourceAuthentication } from '@xpert-ai/contracts'
 import { map, Observable, switchMap } from 'rxjs'
 import { C_API_DATA_SOURCE } from './constants'
 import { OrganizationBaseService } from './organization-base.service'

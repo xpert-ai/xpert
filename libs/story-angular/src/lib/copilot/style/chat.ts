@@ -1,5 +1,5 @@
-import { CopilotChatMessageRoleEnum, getFunctionCall } from '@metad/copilot'
-import { omitBlank } from '@metad/ocap-core'
+import { CopilotChatMessageRoleEnum, getFunctionCall } from '@xpert-ai/copilot'
+import { omitBlank } from '@xpert-ai/ocap-core'
 import { of } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { editStoryStyle } from './schema'

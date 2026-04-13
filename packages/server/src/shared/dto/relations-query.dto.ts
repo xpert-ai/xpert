@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, TransformFnParams } from 'class-transformer';
 import { IsArray, IsOptional } from 'class-validator';
-import { IBaseRelationsEntityModel } from '@metad/contracts';
+import { IBaseRelationsEntityModel } from '@xpert-ai/contracts';
 
 /**
  * Validates and transforms 'relations' query parameter.

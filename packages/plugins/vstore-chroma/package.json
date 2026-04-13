@@ -1,6 +1,7 @@
 {
   "name": "@xpert-ai/plugin-vstore-chroma",
-  "version": "0.0.1",
+  "version": "0.0.2-beta.1",
+  "private": true,
   "xpert": {
     "plugin": {
       "level": "organization"
@@ -14,6 +15,6 @@
   "peerDependencies": {
     "@langchain/community": "*",
     "@langchain/core": "*",
-    "@xpert-ai/plugin-sdk": "^3.8.0"
+    "@xpert-ai/plugin-sdk": "workspace:*"
   }
 }

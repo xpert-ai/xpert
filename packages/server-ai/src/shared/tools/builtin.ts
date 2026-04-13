@@ -8,7 +8,7 @@ import {
 	TToolCredentials,
 	TToolsetParams,
 	XpertToolsetCategoryEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { _BaseToolset } from './toolset'

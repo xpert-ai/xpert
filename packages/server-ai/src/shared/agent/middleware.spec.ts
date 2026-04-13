@@ -1,5 +1,5 @@
-jest.mock('@metad/contracts', () => {
-    const actual = jest.requireActual('@metad/contracts')
+jest.mock('@xpert-ai/contracts', () => {
+    const actual = jest.requireActual('@xpert-ai/contracts')
     return {
         ...actual,
         isMiddlewareToolEnabled: (config?: { enabled?: boolean } | boolean) => {
@@ -11,21 +11,22 @@ jest.mock('@metad/contracts', () => {
     }
 })
 
-import { WorkflowNodeTypeEnum } from '@metad/contracts'
+import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { getAgentMiddlewares } from './middleware'
 
 describe('getAgentMiddlewares', () => {
     it('filters middleware tools by xpert config and user preference for the matching node', async () => {
+        const createMiddleware = jest.fn(async () => ({
+            name: 'provider-a',
+            tools: [
+                { name: 'shared' },
+                { name: 'xpertOff' },
+                { name: 'userOff' }
+            ]
+        }))
         const registry = {
-            get: jest.fn((provider: string) => ({
-                createMiddleware: jest.fn(async () => ({
-                    name: provider,
-                    tools: [
-                        { name: 'shared' },
-                        { name: 'xpertOff' },
-                        { name: 'userOff' }
-                    ]
-                }))
+            get: jest.fn(() => ({
+                createMiddleware
             }))
         }
 
@@ -73,7 +74,13 @@ describe('getAgentMiddlewares', () => {
                 options: {}
             } as any,
             registry as any,
-            {} as any,
+            {
+                xpertFeatures: {
+                    sandbox: {
+                        enabled: true
+                    }
+                }
+            } as any,
             {
                 toolPreferences: {
                     version: 1,
@@ -88,6 +95,17 @@ describe('getAgentMiddlewares', () => {
         )
 
         expect(middlewares).toHaveLength(2)
+        expect(createMiddleware).toHaveBeenNthCalledWith(
+            1,
+            undefined,
+            expect.objectContaining({
+                xpertFeatures: {
+                    sandbox: {
+                        enabled: true
+                    }
+                }
+            })
+        )
         expect(middlewares[0].tools.map((tool) => tool.name)).toEqual(['shared'])
         expect(middlewares[1].tools.map((tool) => tool.name)).toEqual(['shared', 'xpertOff', 'userOff'])
     })

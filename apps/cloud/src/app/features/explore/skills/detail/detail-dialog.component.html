@@ -62,7 +62,7 @@
 
       <div class="rounded-[24px] border border-divider-regular bg-components-card-bg px-5 py-5">
         <div class="text-sm font-semibold text-text-primary">
-          {{ 'PAC.Explore.SkillDetails' | translate: { Default: '技能信息' } }}
+          {{ 'PAC.Explore.SkillDetails' | translate: { Default: 'Skill Details' } }}
         </div>
 
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
@@ -103,12 +103,12 @@
 
           <div>
             <div class="text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
-              {{ 'PAC.Explore.SourceLink' | translate: { Default: '源码链接' } }}
+              {{ 'PAC.Explore.SourceLink' | translate: { Default: 'Source Link' } }}
             </div>
             <div class="mt-2 text-sm">
               @if (item.link) {
                 <a class="text-primary-500 hover:text-primary-600" [href]="item.link" target="_blank" rel="noopener noreferrer">
-                  {{ 'PAC.Explore.OpenSourcePage' | translate: { Default: '打开原始页面' } }}
+                  {{ 'PAC.Explore.OpenSourcePage' | translate: { Default: 'Open Source Page' } }}
                 </a>
               } @else {
                 <span class="text-text-primary">--</span>
@@ -122,7 +122,7 @@
     <div class="space-y-4">
       <div class="rounded-[24px] border border-divider-regular bg-components-card-bg px-5 py-5">
         <div class="text-sm font-semibold text-text-primary">
-          {{ 'PAC.Explore.MarketSignals' | translate: { Default: '市场信号' } }}
+          {{ 'PAC.Explore.MarketSignals' | translate: { Default: 'Market Signals' } }}
         </div>
 
         <div class="mt-4 grid grid-cols-3 gap-3 text-center">
@@ -143,7 +143,7 @@
 
       <div class="rounded-[24px] border border-divider-regular bg-components-card-bg px-5 py-5">
         <div class="text-sm font-semibold text-text-primary">
-          {{ 'PAC.Explore.InstallSkillTitle' | translate: { Default: '安装技能' } }}
+          {{ 'PAC.Explore.InstallSkillTitle' | translate: { Default: 'Install Skill' } }}
         </div>
 
         <p class="mt-3 text-sm leading-6 text-text-tertiary">
@@ -152,7 +152,11 @@
               'PAC.Explore.InstallToDefaultWorkspaceHint'
                 | translate
                   : {
-                      Default: '点击下方按钮后，将优先安装到你的默认工作区 “' + defaultWorkspaceName + '”。'
+                      name: defaultWorkspaceName,
+                      Default:
+                        'After you click the button below, the skill will be installed to your default workspace "' +
+                        defaultWorkspaceName +
+                        '" first.'
                     }
             }}
           } @else {
@@ -160,7 +164,7 @@
               'PAC.Explore.InstallFallbackWorkspaceHint'
                 | translate
                   : {
-                      Default: '当前未检测到默认工作区，点击后会打开工作区选择弹窗。'
+                      Default: 'No default workspace is detected right now. Clicking the button will open the workspace selection dialog.'
                     }
             }}
           }
@@ -168,10 +172,10 @@
 
         <div class="mt-5 flex gap-2">
           <button type="button" class="btn btn-primary btn-medium flex-1" (click)="install()">
-            {{ 'PAC.ACTIONS.Add' | translate: { Default: '添加' } }}
+            {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
           </button>
           <button type="button" class="btn btn-secondary btn-medium" (click)="close()">
-            {{ 'PAC.ACTIONS.Close' | translate: { Default: '关闭' } }}
+            {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}
           </button>
         </div>
       </div>

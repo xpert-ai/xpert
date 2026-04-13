@@ -1,4 +1,4 @@
-import { IDocumentChunkerProvider, KnowledgeStructureEnum } from '@metad/contracts'
+import { IDocumentChunkerProvider, KnowledgeStructureEnum } from '@xpert-ai/contracts'
 import { DocumentInterface } from '@langchain/core/documents'
 import { ChunkMetadata } from '../types'
 

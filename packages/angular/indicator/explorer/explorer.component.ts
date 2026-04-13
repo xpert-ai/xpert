@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@metad/ocap-angular/core'
+import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
+import { NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@xpert-ai/ocap-angular/core'
 import {
   C_MEASURES,
   calcOffsetRange,
@@ -20,7 +20,7 @@ import {
   ReferenceLineType,
   ReferenceLineValueType,
   TimeRangeType
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'

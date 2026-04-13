@@ -1,6 +1,6 @@
 import { Connection } from 'typeorm';
 import { Country } from './country.entity';
-import { ICountry } from '@metad/contracts';
+import { ICountry } from '@xpert-ai/contracts';
 import { DEFAULT_COUNTRIES } from './default-countries';
 
 export const createCountries = async (

@@ -2,8 +2,8 @@
 
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { provideTranslate } from '@metad/ocap-angular/mock'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { applicationConfig, moduleMetadata, type Meta, type StoryObj } from '@storybook/angular'
 import { NgmTableComponent } from './table.component'
 

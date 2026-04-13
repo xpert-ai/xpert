@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core'
-import { NgmDesignerFormComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
+import { NgmDesignerFormComponent, STORY_DESIGNER_COMPONENT } from '@xpert-ai/story/designer'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { ModelRoutingModule } from './routing'
 import {

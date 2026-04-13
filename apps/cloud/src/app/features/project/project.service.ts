@@ -8,11 +8,11 @@ import {
   TagCategoryEnum,
   convertIndicatorResult,
   hierarchizeBusinessAreas
-} from '@metad/cloud/state'
-import { dirtyCheckWith, nonBlank } from '@metad/core'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { MDCube, isEntitySet, isEqual, negate, nonNullable } from '@metad/ocap-core'
+} from '@xpert-ai/cloud/state'
+import { dirtyCheckWith, nonBlank } from '@xpert-ai/core'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { MDCube, isEntitySet, isEqual, negate, nonNullable } from '@xpert-ai/ocap-core'
 import { Store, createStore, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { cloneDeep } from 'lodash-es'

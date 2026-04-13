@@ -1,4 +1,4 @@
-import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@metad/server-core'
+import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'

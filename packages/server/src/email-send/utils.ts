@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
-import { environment } from "@metad/server-config";
-import { ISMTPConfig } from "@metad/server-common";
-import { IVerifySMTPTransport } from "@metad/contracts";
+import { environment } from "@xpert-ai/server-config";
+import { ISMTPConfig } from "@xpert-ai/server-common";
+import { IVerifySMTPTransport } from "@xpert-ai/contracts";
 
 /**
  * Email utils functions.

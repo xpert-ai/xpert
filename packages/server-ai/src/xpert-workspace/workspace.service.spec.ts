@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common'
-import { RequestContext, UserOrganizationService } from '@metad/server-core'
+import { RequestContext, UserOrganizationService } from '@xpert-ai/server-core'
 import { XpertWorkspaceService } from './workspace.service'
 
 describe('XpertWorkspaceService', () => {

@@ -10,7 +10,7 @@ import {
 	PLUGIN_LEVEL,
 	PluginScopeRelation,
 	RolesEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
 import { findPluginLoadFailure } from './plugin.helper'

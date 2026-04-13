@@ -2,7 +2,7 @@
 import { Component, HostBinding, Input, forwardRef, signal } from '@angular/core'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 /**

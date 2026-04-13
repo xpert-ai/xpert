@@ -1,5 +1,5 @@
-import { IDocChunkMetadata, IKnowledgeDocument, IKnowledgeDocumentChunk, IKnowledgeDocumentPage, KBDocumentStatusEnum, KDocumentSourceType, KnowledgeStructureEnum } from '@metad/contracts'
-import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { IDocChunkMetadata, IKnowledgeDocument, IKnowledgeDocumentChunk, IKnowledgeDocumentPage, KBDocumentStatusEnum, KDocumentSourceType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
+import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

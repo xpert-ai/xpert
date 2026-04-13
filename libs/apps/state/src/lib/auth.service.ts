@@ -7,7 +7,7 @@ import {
   IUserRegistrationInput,
   PermissionsEnum,
   RolesEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Observable, firstValueFrom } from 'rxjs'
 import { C_API_AUTH } from './constants'
 

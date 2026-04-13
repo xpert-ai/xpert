@@ -1,9 +1,9 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
+import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
 import { AuthenticationEnum, IDataSource, IDataSourceType } from '@cloud/app/@core/types'
-import { isEmpty, omit } from '@metad/ocap-core'
+import { isEmpty, omit } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom, map } from 'rxjs'
 import {
@@ -19,9 +19,9 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 
-import { NgmInputComponent } from '@metad/ocap-angular/common'
+import { NgmInputComponent } from '@xpert-ai/ocap-angular/common'
 import { FormlyModule } from '@ngx-formly/core'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import {
   ZardButtonComponent,

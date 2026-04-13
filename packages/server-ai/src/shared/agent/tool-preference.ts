@@ -1,4 +1,4 @@
-import { IAssistantBindingToolPreferences } from '@metad/contracts'
+import { IAssistantBindingToolPreferences } from '@xpert-ai/contracts'
 
 export type TToolPreferenceSourceType = 'toolset' | 'middleware'
 

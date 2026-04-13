@@ -12,6 +12,8 @@ import {
   AssistantBindingService,
   AssistantCode,
   IAssistantBinding,
+  IAssistantBindingConversationPreferences,
+  IChatConversation,
   IAssistantBindingSkillPreference,
   IEnvironment,
   ICopilotModel,
@@ -26,17 +28,19 @@ import {
   TWorkflowTriggerMeta,
   TXpertTeamDraft,
   ToastrService,
+  ChatConversationService,
   XpertAPIService,
   XpertTaskService,
   getErrorMessage
 } from '../../../@core'
-import { CHAT_WORKFLOW_TRIGGER_PROVIDER, WorkflowTriggerProviderOption } from '../../../@shared/workflow'
 import { sanitizeAssistantFrameUrl } from '../../assistant/assistant-chatkit.runtime'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
 import {
   buildEditableXpertDraft,
+  CHAT_WORKFLOW_TRIGGER_PROVIDER,
   readTriggerEditorItemsFromDraft,
   upsertTriggerEditorItemsIntoDraft,
+  WorkflowTriggerProviderOption,
   XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING,
   XpertDraftTriggerEditorItem
 } from '../../xpert/draft/index'
@@ -47,6 +51,8 @@ export type ClawXpertDailyConversation = {
   date: string
   count: number
 }
+
+export type ClawXpertSidebarStatus = 'setup' | 'idle' | 'busy'
 
 type ClawXpertTaskSummary = {
   items: IXpertTask[]
@@ -88,6 +94,9 @@ export class ClawXpertFacade {
   #loadRequestId = 0
   #preferenceLoadRequestId = 0
   #triggerDraftLoadRequestId = 0
+  #conversationEntryRequestId = 0
+  #lastConversationEntryKey: string | null = null
+  #lastPersistedThreadKey: string | null = null
   #nullThreadChangeGuard: { threadId: string | null; expiresAt: number } = {
     threadId: null,
     expiresAt: 0
@@ -101,6 +110,7 @@ export class ClawXpertFacade {
   readonly #environmentService = inject(EnvironmentService)
   readonly #xpertService = inject(XpertAPIService)
   readonly #taskService = inject(XpertTaskService)
+  readonly #conversationService = inject(ChatConversationService)
 
   readonly definition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)!
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
@@ -128,8 +138,10 @@ export class ClawXpertFacade {
   readonly publishingXpert = signal(false)
   readonly savingCopilotModel = signal(false)
   readonly showWizard = signal(false)
+  readonly suppressAutoResume = signal(false)
   readonly pendingConversationStartId = signal(0)
   readonly taskRefreshTick = signal(0)
+  readonly activeConversation = signal<IChatConversation | null>(null)
   readonly errorMessage = signal<string | null>(null)
   readonly triggerDraftErrorMessage = signal<string | null>(null)
   readonly hasLoadedXperts = signal(false)
@@ -137,6 +149,11 @@ export class ClawXpertFacade {
   readonly triggerDraft = signal<TXpertTeamDraft | null>(null)
   readonly chatkitFrameUrl = computed(() => sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL))
   readonly toolPreferences = computed(() => normalizeToolPreferences(this.userPreference()?.toolPreferences))
+  readonly conversationPreferences = computed(() =>
+    normalizeConversationPreferences(this.userPreference()?.conversationPreferences)
+  )
+  readonly defaultThreadId = computed(() => this.conversationPreferences()?.defaultThreadId ?? null)
+  readonly lastThreadId = computed(() => this.conversationPreferences()?.lastThreadId ?? null)
   readonly triggerProviders = toSignal(
     this.#xpertService.getTriggerProviders().pipe(catchError(() => of([] as TWorkflowTriggerMeta[]))),
     { initialValue: [] as TWorkflowTriggerMeta[] }
@@ -163,6 +180,7 @@ export class ClawXpertFacade {
   readonly currentWorkspaceId = computed(() => {
     return this.triggerDraftSource()?.workspaceId ?? this.currentXpert()?.workspaceId ?? null
   })
+  readonly currentXpertAvatar = computed(() => this.currentXpert()?.avatar ?? null)
   readonly currentXpertLabel = computed(() => {
     return this.getXpertLabel(this.currentXpert() ?? this.resolvedPreference())
   })
@@ -188,6 +206,18 @@ export class ClawXpertFacade {
       return 'wizard'
     }
     return 'ready'
+  })
+  readonly isConversationRoute = computed(() => isClawXpertConversationPath(this.currentUrl()))
+  readonly sidebarStatus = computed<ClawXpertSidebarStatus>(() => {
+    if (this.viewState() !== 'ready') {
+      return 'setup'
+    }
+
+    if (!this.isConversationRoute()) {
+      return 'idle'
+    }
+
+    return this.activeConversation()?.status === 'busy' ? 'busy' : 'idle'
   })
   readonly boundDays = computed(() => calculateBoundDays(this.preference()?.createdAt))
   readonly conversationCount = toSignal(
@@ -311,6 +341,8 @@ export class ClawXpertFacade {
         this.loadingTriggerDraft.set(false)
         this.savingTriggerDraft.set(false)
         this.publishingXpert.set(false)
+        this.suppressAutoResume.set(false)
+        this.activeConversation.set(null)
         this.triggerDraftErrorMessage.set(null)
         this.triggerDraftSource.set(null)
         this.triggerDraft.set(null)
@@ -352,6 +384,44 @@ export class ClawXpertFacade {
 
       void this.loadTriggerDraft(xpertId)
     })
+
+    effect(() => {
+      const currentUrl = this.currentUrl()
+
+      if (currentUrl !== '/chat/clawxpert/c') {
+        this.#lastConversationEntryKey = null
+      }
+
+      if (!this.threadId()) {
+        this.#lastPersistedThreadKey = null
+      }
+    })
+
+    effect(() => {
+      const xpertId = this.xpertId()
+      const threadId = this.threadId()
+
+      if (!xpertId || !threadId || this.viewState() !== 'ready') {
+        return
+      }
+
+      const persistKey = `${xpertId}:${threadId}`
+      if (this.#lastPersistedThreadKey === persistKey) {
+        return
+      }
+
+      this.#lastPersistedThreadKey = persistKey
+      void this.persistConversationPreferences(
+        {
+          lastThreadId: threadId
+        },
+        {
+          notifySuccess: false,
+          notifyError: false,
+          rollbackOnError: false
+        }
+      )
+    })
   }
 
   openWizard() {
@@ -385,6 +455,7 @@ export class ClawXpertFacade {
   private async persistPreference(assistantId: string, options?: { forceAssistantId?: boolean }) {
     this.saving.set(true)
     const currentPreference = this.preference()
+    const previousAssistantId = currentPreference?.assistantId?.trim() || null
     try {
       const persistedPreference = (await firstValueFrom(
         this.#assistantBindingService.upsert({
@@ -401,6 +472,19 @@ export class ClawXpertFacade {
       )
 
       this.preference.set(preference)
+      if (previousAssistantId && previousAssistantId !== assistantId) {
+        await this.persistConversationPreferences(
+          {
+            defaultThreadId: null,
+            lastThreadId: null
+          },
+          {
+            notifySuccess: false,
+            notifyError: false,
+            rollbackOnError: false
+          }
+        )
+      }
       this.showWizard.set(false)
       this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
     } catch (error) {
@@ -758,8 +842,14 @@ export class ClawXpertFacade {
   }
 
   async startConversation() {
+    this.suppressAutoResume.set(true)
     const startId = this.pendingConversationStartId() + 1
     this.pendingConversationStartId.set(startId)
+    await this.navigateToChat()
+  }
+
+  async continueConversation() {
+    this.suppressAutoResume.set(false)
     await this.navigateToChat()
   }
 
@@ -806,6 +896,53 @@ export class ClawXpertFacade {
     }
   }
 
+  async ensureConversationEntry(control: ChatKitControl) {
+    if (this.currentUrl() !== '/chat/clawxpert/c') {
+      this.#lastConversationEntryKey = null
+      return
+    }
+
+    const xpertId = this.xpertId()
+    if (!control || !xpertId || this.threadId() || this.viewState() !== 'ready') {
+      return
+    }
+
+    const entryKey = `${xpertId}:${this.suppressAutoResume() ? 'suppressed' : 'resume'}`
+    if (this.#lastConversationEntryKey === entryKey) {
+      return
+    }
+
+    this.#lastConversationEntryKey = entryKey
+    const requestId = ++this.#conversationEntryRequestId
+
+    if (this.suppressAutoResume()) {
+      await control.focusComposer()
+      return
+    }
+
+    const threadId = await this.resolvePreferredThreadId(xpertId)
+    if (requestId !== this.#conversationEntryRequestId || this.currentUrl() !== '/chat/clawxpert/c' || this.threadId()) {
+      return
+    }
+
+    if (threadId) {
+      this.navigateToThread(threadId)
+      return
+    }
+
+    await control.focusComposer()
+  }
+
+  setActiveConversation(conversation: IChatConversation | null) {
+    this.activeConversation.set(conversation ? ({ ...conversation } as IChatConversation) : null)
+  }
+
+  patchActiveConversationStatus(status: 'busy' | 'idle') {
+    this.activeConversation.update((conversation) =>
+      conversation ? ({ ...conversation, status } as IChatConversation) : conversation
+    )
+  }
+
   getXpertLabel(xpert: Partial<IXpert> | Partial<IAssistantBinding> | null | undefined) {
     if (!xpert) {
       return ''
@@ -847,6 +984,7 @@ export class ClawXpertFacade {
     }
 
     if (threadId) {
+      this.suppressAutoResume.set(false)
       this.armNullThreadChangeGuard(threadId)
       this.navigateToThread(threadId)
       return
@@ -854,6 +992,12 @@ export class ClawXpertFacade {
 
     if (this.shouldIgnoreNullThreadChange()) {
       return
+    }
+
+    // Treat a chatkit-driven reset from an active thread as an explicit
+    // "start a new conversation" action so we do not auto-resume preferences.
+    if (this.threadId()) {
+      this.suppressAutoResume.set(true)
     }
 
     void this.navigateToChat()
@@ -873,6 +1017,145 @@ export class ClawXpertFacade {
     }
 
     return this.#nullThreadChangeGuard.threadId === activeThreadId && this.#nullThreadChangeGuard.expiresAt > Date.now()
+  }
+
+  private async resolvePreferredThreadId(xpertId: string) {
+    const validatedThreadIds = new Set<string>()
+    const savedPreferences = this.conversationPreferences()
+    const defaultThreadId = savedPreferences?.defaultThreadId ?? null
+    const lastThreadId = savedPreferences?.lastThreadId ?? null
+    const candidateThreadIds = [defaultThreadId, lastThreadId].filter(
+      (threadId): threadId is string => !!threadId?.trim()
+    )
+
+    for (const threadId of candidateThreadIds) {
+      const resolvedThreadId = await this.resolveValidSavedThreadId(threadId, xpertId)
+      validatedThreadIds.add(threadId)
+      if (resolvedThreadId) {
+        return resolvedThreadId
+      }
+    }
+
+    const latestThreadId = await this.getLatestConversationThreadId(xpertId)
+    if (!latestThreadId || validatedThreadIds.has(latestThreadId)) {
+      return null
+    }
+
+    return this.resolveValidSavedThreadId(latestThreadId, xpertId, false)
+  }
+
+  private async resolveValidSavedThreadId(threadId: string, xpertId: string, clearWhenInvalid = true) {
+    const conversation = (await firstValueFrom(
+      this.#conversationService.getByThreadId(threadId).pipe(catchError(() => of(null)))
+    )) as IChatConversation | null
+    const resolvedXpertId = conversation?.xpertId ?? conversation?.xpert?.id ?? null
+
+    if (conversation?.threadId && (!resolvedXpertId || resolvedXpertId === xpertId)) {
+      return conversation.threadId
+    }
+
+    if (clearWhenInvalid) {
+      await this.clearInvalidConversationThread(threadId)
+    }
+
+    return null
+  }
+
+  private async getLatestConversationThreadId(xpertId: string) {
+    const result = (await firstValueFrom(
+      this.#conversationService
+        .findAllByXpert(xpertId, {
+          take: 1,
+          order: {
+            updatedAt: OrderTypeEnum.DESC
+          }
+        })
+        .pipe(catchError(() => of({ items: [] as IChatConversation[] })))
+    )) as { items?: IChatConversation[] } | null
+
+    return normalizeConversationThreadId(result?.items?.[0]?.threadId)
+  }
+
+  private async clearInvalidConversationThread(threadId: string) {
+    const preferences = this.conversationPreferences()
+    if (!preferences) {
+      return
+    }
+
+    const nextDefaultThreadId = preferences.defaultThreadId === threadId ? null : undefined
+    const nextLastThreadId = preferences.lastThreadId === threadId ? null : undefined
+    if (nextDefaultThreadId === undefined && nextLastThreadId === undefined) {
+      return
+    }
+
+    await this.persistConversationPreferences(
+      {
+        ...(nextDefaultThreadId !== undefined ? { defaultThreadId: nextDefaultThreadId } : {}),
+        ...(nextLastThreadId !== undefined ? { lastThreadId: nextLastThreadId } : {})
+      },
+      {
+        notifySuccess: false,
+        notifyError: false,
+        rollbackOnError: false
+      }
+    )
+  }
+
+  private async persistConversationPreferences(
+    patch: Partial<IAssistantBindingConversationPreferences>,
+    options: {
+      notifySuccess: boolean
+      notifyError: boolean
+      rollbackOnError: boolean
+    }
+  ) {
+    if (!this.preference()?.assistantId?.trim()) {
+      return null
+    }
+
+    this.invalidateUserPreferenceLoads()
+    const previousPreference = this.userPreference()
+    const previousConversationPreferences = normalizeConversationPreferences(previousPreference?.conversationPreferences)
+    const nextConversationPreferences = mergeConversationPreferences(previousConversationPreferences, patch)
+    const nextPreference = {
+      ...(previousPreference ?? {}),
+      conversationPreferences: nextConversationPreferences
+    } as IAssistantBindingUserPreference
+
+    this.userPreference.set(nextPreference)
+
+    try {
+      const preference = (await firstValueFrom(
+        this.#assistantBindingService.upsertPreference(AssistantCode.CLAWXPERT, {
+          scope: AssistantBindingScope.USER,
+          conversationPreferences: nextConversationPreferences
+        })
+      )) as IAssistantBindingUserPreference
+
+      const normalizedPreference = this.normalizePersistedUserPreference(preference, nextPreference)
+      this.userPreference.set(normalizedPreference)
+
+      if (options.notifySuccess) {
+        this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      }
+
+      return normalizedPreference
+    } catch (error) {
+      if (options.rollbackOnError) {
+        this.userPreference.set(previousPreference ?? null)
+      }
+
+      if (options.notifyError) {
+        this.#toastr.error(
+          getErrorMessage(error) ||
+            this.#translate.instant('PAC.Chat.ClawXpert.ConversationPreferenceSaveFailed', {
+              Default: 'Failed to save the ClawXpert conversation preferences.'
+            })
+        )
+      }
+
+      return null
+    }
   }
 
   private async loadState() {
@@ -985,7 +1268,14 @@ export class ClawXpertFacade {
               persistedPreference.toolPreferences,
               currentPreference?.toolPreferences ?? null
             )
-          : (currentPreference?.toolPreferences ?? null)
+          : (currentPreference?.toolPreferences ?? null),
+      conversationPreferences:
+        persistedPreference && Object.prototype.hasOwnProperty.call(persistedPreference, 'conversationPreferences')
+          ? mergePersistedConversationPreferences(
+              persistedPreference.conversationPreferences,
+              currentPreference?.conversationPreferences ?? null
+            )
+          : (currentPreference?.conversationPreferences ?? null)
     } as IAssistantBindingUserPreference
   }
 
@@ -1033,6 +1323,26 @@ function normalizeClawXpertPath(url: string) {
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+}
+
+function normalizeConversationPreferences(
+  value?: IAssistantBindingConversationPreferences | null
+): IAssistantBindingConversationPreferences | null {
+  if (!value) {
+    return null
+  }
+
+  const defaultThreadId = normalizeConversationThreadId(value.defaultThreadId)
+  const lastThreadId = normalizeConversationThreadId(value.lastThreadId)
+  if (defaultThreadId == null && lastThreadId == null) {
+    return null
+  }
+
+  return {
+    version: 1,
+    ...(defaultThreadId !== undefined ? { defaultThreadId } : {}),
+    ...(lastThreadId !== undefined ? { lastThreadId } : {})
+  }
 }
 
 function normalizeToolPreferences(value?: IAssistantBindingToolPreferences | null): IAssistantBindingToolPreferences {
@@ -1138,6 +1448,54 @@ function mergePersistedToolPreferences(
         ...(middlewares ? { middlewares } : {}),
         ...(skills ? { skills } : {})
       }
+}
+
+function mergePersistedConversationPreferences(
+  persisted: IAssistantBindingConversationPreferences | null | undefined,
+  current: IAssistantBindingConversationPreferences | null
+): IAssistantBindingConversationPreferences | null {
+  if (persisted === undefined) {
+    return current ? normalizeConversationPreferences(current) : null
+  }
+
+  if (persisted === null) {
+    return null
+  }
+
+  const normalizedCurrent = current ? normalizeConversationPreferences(current) : null
+  const hasDefaultThreadId = Object.prototype.hasOwnProperty.call(persisted, 'defaultThreadId')
+  const hasLastThreadId = Object.prototype.hasOwnProperty.call(persisted, 'lastThreadId')
+  const defaultThreadId = hasDefaultThreadId
+    ? normalizeConversationThreadId(persisted.defaultThreadId)
+    : (normalizedCurrent?.defaultThreadId ?? undefined)
+  const lastThreadId = hasLastThreadId
+    ? normalizeConversationThreadId(persisted.lastThreadId)
+    : (normalizedCurrent?.lastThreadId ?? undefined)
+
+  return normalizeConversationPreferences({
+    version: 1,
+    ...(defaultThreadId !== undefined ? { defaultThreadId } : {}),
+    ...(lastThreadId !== undefined ? { lastThreadId } : {})
+  })
+}
+
+function mergeConversationPreferences(
+  current: IAssistantBindingConversationPreferences | null,
+  patch: Partial<IAssistantBindingConversationPreferences>
+): IAssistantBindingConversationPreferences | null {
+  const normalizedCurrent = current ? normalizeConversationPreferences(current) : null
+  const nextDefaultThreadId = Object.prototype.hasOwnProperty.call(patch, 'defaultThreadId')
+    ? normalizeConversationThreadId(patch.defaultThreadId)
+    : (normalizedCurrent?.defaultThreadId ?? undefined)
+  const nextLastThreadId = Object.prototype.hasOwnProperty.call(patch, 'lastThreadId')
+    ? normalizeConversationThreadId(patch.lastThreadId)
+    : (normalizedCurrent?.lastThreadId ?? undefined)
+
+  return normalizeConversationPreferences({
+    version: 1,
+    ...(nextDefaultThreadId !== undefined ? { defaultThreadId: nextDefaultThreadId } : {}),
+    ...(nextLastThreadId !== undefined ? { lastThreadId: nextLastThreadId } : {})
+  })
 }
 
 function getDisabledTools(
@@ -1259,9 +1617,22 @@ function isToolPreferencesEmpty(preferences?: IAssistantBindingToolPreferences |
   )
 }
 
+function normalizeConversationThreadId(value?: string | null): string | null | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  const normalized = value?.trim()
+  return normalized || null
+}
+
 function parseClawXpertThreadId(url: string) {
   const match = normalizeClawXpertPath(url).match(/^\/chat\/clawxpert\/c\/([^/]+)$/)
   return match?.[1] ? decodeURIComponent(match[1]) : null
+}
+
+function isClawXpertConversationPath(url: string) {
+  return /^\/chat\/clawxpert\/c(?:\/|$)/.test(normalizeClawXpertPath(url))
 }
 
 function calculateBoundDays(createdAt?: Date | string | null) {

@@ -7,8 +7,8 @@ import {
 	SemanticModelEntityJob,
 	TScheduleOptions,
 	ScheduleTaskStatus
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'

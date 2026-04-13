@@ -1,4 +1,4 @@
-import { ISemanticModel } from '@metad/contracts'
+import { ISemanticModel } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'

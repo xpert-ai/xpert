@@ -25,7 +25,7 @@ import {
     TXpertTeamDraft,
     TXpertTeamNode,
     XpertTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Exclude, Expose, Transform } from 'class-transformer'
 
 @Exclude()

@@ -1,5 +1,5 @@
-import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentPage } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentPage } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'

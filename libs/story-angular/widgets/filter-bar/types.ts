@@ -1,7 +1,7 @@
-import { SmartFilterOptions } from '@metad/ocap-angular/controls'
-import { DisplayDensity, NgmFieldAppearance, NgmFloatLabel } from '@metad/ocap-angular/core'
-import { FilterRestrictions } from '@metad/ocap-core'
-import { FilterControlType, StoryFilterBarOptions } from '@metad/story/core'
+import { SmartFilterOptions } from '@xpert-ai/ocap-angular/controls'
+import { DisplayDensity, NgmFieldAppearance, NgmFloatLabel } from '@xpert-ai/ocap-angular/core'
+import { FilterRestrictions } from '@xpert-ai/ocap-core'
+import { FilterControlType, StoryFilterBarOptions } from '@xpert-ai/story/core'
 
 export interface FilterBarSmartFilterOptions extends SmartFilterOptions {
   /**

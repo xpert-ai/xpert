@@ -1,9 +1,9 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { DestroyRef, Inject, Injectable, Optional, effect, inject } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { createSubStore, dirtyCheckWith, isNotEmpty, isNotEqual, write } from '@metad/core'
-import { effectAction } from '@metad/ocap-angular/core'
-import { ISlicer, isAdvancedFilter, isTimeRangesSlicer, nonNullable } from '@metad/ocap-core'
+import { createSubStore, dirtyCheckWith, isNotEmpty, isNotEqual, write } from '@xpert-ai/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { ISlicer, isAdvancedFilter, isTimeRangesSlicer, nonNullable } from '@xpert-ai/ocap-core'
 import {
   ID,
   LinkedAnalysisEvent,
@@ -20,9 +20,9 @@ import {
   StoryWidget,
   WIDGET_INIT_POSITION,
   uuid
-} from '@metad/story/core'
-import { FlexItemType, FlexLayout } from '@metad/story/responsive'
-import { ISmartFilterBarOptions } from '@metad/story/widgets/filter-bar'
+} from '@xpert-ai/story/core'
+import { FlexItemType, FlexLayout } from '@xpert-ai/story/responsive'
+import { ISmartFilterBarOptions } from '@xpert-ai/story/widgets/filter-bar'
 import { select, withProps } from '@ngneat/elf'
 import { TranslateService } from '@ngx-translate/core'
 import { ZardToastService } from '@xpert-ai/headless-ui'

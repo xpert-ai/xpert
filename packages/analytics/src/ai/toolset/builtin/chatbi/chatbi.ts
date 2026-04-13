@@ -1,6 +1,6 @@
 import { Tool } from '@langchain/core/tools'
-import { isEnableTool, IXpertToolset } from '@metad/contracts'
-import { TBuiltinToolsetParams } from '@metad/server-ai'
+import { isEnableTool, IXpertToolset } from '@xpert-ai/contracts'
+import { TBuiltinToolsetParams } from '@xpert-ai/server-ai'
 import { AbstractChatBIToolset } from './chatbi-toolset'
 import { createShowIndicatorsTool } from './tools/show_indicators'
 import { ChatBIToolsEnum } from './types'

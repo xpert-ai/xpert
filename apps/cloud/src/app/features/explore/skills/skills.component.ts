@@ -412,7 +412,7 @@ export class ExploreSkillsComponent {
       readI18nText(item.metadata?.description) ||
       item.skillIndex?.description ||
       this.#translate.instant('PAC.Explore.SkillDescriptionFallback', {
-        Default: '该技能暂未提供更多说明。'
+        Default: 'This skill does not include additional details yet.'
       })
     )
   }
@@ -421,7 +421,7 @@ export class ExploreSkillsComponent {
     return (
       item.skillIndex?.repository?.name ||
       this.#translate.instant('PAC.Explore.LocalSkill', {
-        Default: '本地技能'
+        Default: 'Local Skill'
       })
     )
   }
@@ -430,7 +430,7 @@ export class ExploreSkillsComponent {
     return (
       item.skillIndex?.repository?.provider ||
       this.#translate.instant('PAC.Explore.LocalProvider', {
-        Default: 'local'
+        Default: 'Local'
       })
     )
   }
@@ -442,7 +442,7 @@ export class ExploreSkillsComponent {
       item.skillIndex?.publisher?.handle ||
       item.metadata?.author?.name ||
       this.#translate.instant('PAC.Explore.LocalAuthor', {
-        Default: '本地上传'
+        Default: 'Uploaded Locally'
       })
     )
   }

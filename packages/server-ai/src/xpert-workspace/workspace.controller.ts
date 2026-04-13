@@ -1,5 +1,5 @@
-import { AIPermissionsEnum } from '@metad/contracts'
-import { DeepPartial } from '@metad/server-common'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { DeepPartial } from '@xpert-ai/server-common'
 import {
 	CrudController,
 	PaginationParams,
@@ -8,7 +8,7 @@ import {
 	Permissions,
 	RequestContext,
 	TransformInterceptor
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	Body,
 	Controller,

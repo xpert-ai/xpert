@@ -1,4 +1,4 @@
-import { IEmployee, IEmployeeCreateInput, IPagination, RolesEnum } from '@metad/contracts';
+import { IEmployee, IEmployeeCreateInput, IPagination, RolesEnum } from '@xpert-ai/contracts';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import moment from 'moment';

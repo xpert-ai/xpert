@@ -1,4 +1,4 @@
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { GridType } from 'angular-gridster2'
 
 export function gridsterOptions(className: string, I18NGridOptions) {

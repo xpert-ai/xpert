@@ -1,4 +1,4 @@
-import { ICopilotModel } from '@metad/contracts'
+import { ICopilotModel } from '@xpert-ai/contracts'
 import { IRerank } from '@xpert-ai/plugin-sdk'
 import { AIModel } from '../ai-model'
 import { TChatModelOptions } from './types'

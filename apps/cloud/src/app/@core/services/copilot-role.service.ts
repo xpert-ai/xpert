@@ -1,5 +1,5 @@
 // import { inject, Injectable } from '@angular/core'
-// import { OrganizationBaseCrudService, PaginationParams } from '@metad/cloud/state'
+// import { OrganizationBaseCrudService, PaginationParams } from '@xpert-ai/cloud/state'
 // import { NGXLogger } from 'ngx-logger'
 // import { BehaviorSubject, Observable, switchMap, tap } from 'rxjs'
 // import { API_COPILOT_ROLE } from '../constants/app.constants'

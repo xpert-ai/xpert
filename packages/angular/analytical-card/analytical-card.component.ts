@@ -18,7 +18,7 @@ import {
   signal
 } from '@angular/core'
 import { CdkMenuTrigger } from '@angular/cdk/menu'
-import { csvDownload, DisplayDensity, ISelectOption, NgmAppearance } from '@metad/ocap-angular/core'
+import { csvDownload, DisplayDensity, ISelectOption, NgmAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   ChartAnnotation,
   ChartOptions,
@@ -44,17 +44,17 @@ import {
   Property,
   putFilter,
   slicerAsString
-} from '@metad/ocap-core'
-import { EChartEngineEvent, SmartEChartEngine } from '@metad/ocap-echarts'
-import { ComponentStore } from '@metad/store'
+} from '@xpert-ai/ocap-core'
+import { EChartEngineEvent, SmartEChartEngine } from '@xpert-ai/ocap-echarts'
+import { ComponentStore } from '@xpert-ai/store'
 import { ECharts } from 'echarts/core'
 import { assign, cloneDeep, findIndex, isEmpty, isNil } from 'lodash-es'
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs'
 import { distinctUntilChanged, filter, map, pairwise, shareReplay, skip, startWith, tap, withLatestFrom } from 'rxjs/operators'
-import { Step } from '@metad/ocap-angular/common'
+import { Step } from '@xpert-ai/ocap-angular/common'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
-import { SlicersCapacity } from '@metad/ocap-angular/selection'
+import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
 import { AnalyticalCardService } from './analytical-card.service'
 
 export interface DrillLevel {

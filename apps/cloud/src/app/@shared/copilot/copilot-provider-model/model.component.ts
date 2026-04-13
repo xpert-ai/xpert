@@ -16,10 +16,10 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { KebabToCamelCasePipe } from '@metad/core'
-import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { KebabToCamelCasePipe } from '@xpert-ai/core'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import {
   AiModelTypeEnum,
   getErrorMessage,

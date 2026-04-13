@@ -10,15 +10,15 @@ import {
 	LanguagesEnum,
 	mapTranslationLanguage,
 	TranslationLanguageMap,
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { BadRequestException, forwardRef, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import Email from 'email-templates';
 import Handlebars from 'handlebars';
 import nodemailer from 'nodemailer';
 import { Repository, IsNull } from 'typeorm';
-import { environment as env } from '@metad/server-config';
-import { isEmpty, ISMTPConfig } from '@metad/server-common';
+import { environment as env } from '@xpert-ai/server-config';
+import { isEmpty, ISMTPConfig } from '@xpert-ai/server-common';
 import { TenantAwareCrudService } from './../core/crud';
 import { Email as IEmail } from './email.entity';
 import { Email as EmailEntity } from './email.entity';

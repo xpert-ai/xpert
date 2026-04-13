@@ -1,5 +1,5 @@
-import { IPagination } from '@metad/contracts'
-import { CrudController, ParseJsonPipe, Public, UUIDValidationPipe } from '@metad/server-core'
+import { IPagination } from '@xpert-ai/contracts'
+import { CrudController, ParseJsonPipe, Public, UUIDValidationPipe } from '@xpert-ai/server-core'
 import {
 	ClassSerializerInterceptor,
 	Controller,

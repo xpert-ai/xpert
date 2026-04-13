@@ -2,7 +2,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
-import { IXpertWorkspace } from '@metad/contracts'
+import { IXpertWorkspace } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectUser } from 'apps/cloud/src/app/@core'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'

@@ -1,6 +1,6 @@
 import { Injectable, Optional } from '@angular/core'
-import { NgmDSCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
-import { Indicator, IndicatorBusinessState, QueryReturn, SmartIndicatorDataService } from '@metad/ocap-core'
+import { NgmDSCoreService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
+import { Indicator, IndicatorBusinessState, QueryReturn, SmartIndicatorDataService } from '@xpert-ai/ocap-core'
 import { combineLatest } from 'rxjs'
 import { distinctUntilChanged, map, pluck, tap } from 'rxjs/operators'
 import { AccountingStatementOptions } from './types'

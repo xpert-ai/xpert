@@ -1,4 +1,4 @@
-import { IEnvironment, TEnvironmentVariable } from '@metad/contracts'
+import { IEnvironment, TEnvironmentVariable } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index } from 'typeorm'

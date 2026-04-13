@@ -4,9 +4,9 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, Inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { LinkedAnalysisSettings, LinkedInteractionApplyTo } from '@metad/story/core'
+import { LinkedAnalysisSettings, LinkedInteractionApplyTo } from '@xpert-ai/story/core'
 import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({

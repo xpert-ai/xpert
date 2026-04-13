@@ -1,4 +1,4 @@
-import { FORMLY_ROW } from '@metad/story/designer'
+import { FORMLY_ROW } from '@xpert-ai/story/designer'
 import { EmphasisAccordionWrappers, ItemStyleAccordionWrappers, Positions, WidthHeight } from '../common'
 import { LabelAccordionWrappers, LabelLineAccordionWrappers } from './label'
 

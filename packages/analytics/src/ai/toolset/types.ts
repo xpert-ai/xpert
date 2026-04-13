@@ -1,5 +1,5 @@
-import { IChatBIModel, IIndicator, ISemanticModel } from '@metad/contracts'
-import { assignDeepOmitBlank, C_MEASURES, ChartMeasure, cloneDeep, EntityType, getChartType, nonNullable, tryFixDimension } from '@metad/ocap-core'
+import { IChatBIModel, IIndicator, ISemanticModel } from '@xpert-ai/contracts'
+import { assignDeepOmitBlank, C_MEASURES, ChartMeasure, cloneDeep, EntityType, getChartType, nonNullable, tryFixDimension } from '@xpert-ai/ocap-core'
 import { upperFirst } from 'lodash'
 
 /**

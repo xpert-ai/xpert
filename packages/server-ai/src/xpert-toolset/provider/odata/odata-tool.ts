@@ -1,7 +1,7 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
-import { IXpertTool, TXpertToolEntity } from '@metad/contracts'
+import { IXpertTool, TXpertToolEntity } from '@xpert-ai/contracts'
 import { ApiBasedToolSchemaParser } from '../../utils/parser'
 import { ToolParameterValidationError } from '../../errors'
 import { BaseTool } from '../../../shared'

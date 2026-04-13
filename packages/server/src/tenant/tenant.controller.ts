@@ -1,4 +1,4 @@
-import { DEFAULT_TENANT, IPagination, ITenant, ITenantCreateInput, RolesEnum } from '@metad/contracts';
+import { DEFAULT_TENANT, IPagination, ITenant, ITenantCreateInput, RolesEnum } from '@xpert-ai/contracts';
 import { Request } from 'express';
 import {
 	BadRequestException,

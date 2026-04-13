@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX, SemanticModelServerService } from '@metad/cloud/state'
-import { IModelQuery } from '@metad/contracts'
-import { omit, pick } from '@metad/ocap-core'
+import { API_PREFIX, SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { IModelQuery } from '@xpert-ai/contracts'
+import { omit, pick } from '@xpert-ai/ocap-core'
 import { map } from 'rxjs'
 
 export interface ModelQuery extends IModelQuery {

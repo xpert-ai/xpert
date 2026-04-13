@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-integration-slack",
-  "version": "0.0.1",
+  "version": "0.0.2-beta.1",
   "xpert": {
     "plugin": {
       "level": "system"
@@ -11,12 +11,12 @@
   "module": "./index.js",
   "private": true,
   "peerDependencies": {
-    "@metad/contracts": "*",
+    "@xpert-ai/contracts": "workspace:*",
     "@nestjs/common": ">=10",
     "@nestjs/config": "*",
     "@nestjs/core": ">=10",
     "@nestjs/typeorm": "*",
-    "@xpert-ai/plugin-sdk": "^3.8.4",
+    "@xpert-ai/plugin-sdk": "workspace:*",
     "typeorm": "*",
     "zod": ">=3.22.4"
   }

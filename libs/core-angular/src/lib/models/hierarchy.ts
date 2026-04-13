@@ -1,4 +1,4 @@
-import { ValueListAnnotation, PropertyName, RecursiveHierarchyType } from "@metad/ocap-core";
+import { ValueListAnnotation, PropertyName, RecursiveHierarchyType } from "@xpert-ai/ocap-core";
 
 // 是否需要移到 ds-core 和其他类型放在一起?
 export interface Hierarchy {

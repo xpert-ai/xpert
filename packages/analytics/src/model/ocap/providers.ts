@@ -1,5 +1,5 @@
-import { DataSource, Type } from '@metad/ocap-core'
-import { SQLDataSource } from "@metad/ocap-sql"
+import { DataSource, Type } from '@xpert-ai/ocap-core'
+import { SQLDataSource } from "@xpert-ai/ocap-sql"
 import { ProxyAgent } from './agent'
 import { NgmDSCoreService } from './core.service'
 import { OCAP_AGENT_TOKEN, OCAP_DATASOURCES_TOKEN } from './types'

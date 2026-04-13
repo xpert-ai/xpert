@@ -1,5 +1,5 @@
 import { InjectionToken } from '@angular/core'
-import { OffSetDirection, TimeGranularity, TimeRange, TimeRangeType } from '@metad/ocap-core'
+import { OffSetDirection, TimeGranularity, TimeRange, TimeRangeType } from '@xpert-ai/ocap-core'
 import {
   endOfMonth,
   endOfQuarter,

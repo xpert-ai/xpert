@@ -7,7 +7,7 @@ import {
     RequestScopeLevel,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
 import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'

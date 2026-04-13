@@ -5,8 +5,8 @@ import {
     IXpertProjectTask,
     IXpertToolset,
     OrderTypeEnum
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import {
     CrudController,
     PaginationParams,
@@ -16,7 +16,7 @@ import {
     UploadFileCommand,
     getFileAssetDestination,
     UserPublicDTO
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
     BadRequestException,
     Body,

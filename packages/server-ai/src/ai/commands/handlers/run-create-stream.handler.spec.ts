@@ -20,8 +20,8 @@ jest.mock('../../../assistant-binding', () => ({
     AssistantBindingService: class AssistantBindingService {}
 }))
 
-jest.mock('@metad/contracts', () => {
-    const actual = jest.requireActual('@metad/contracts')
+jest.mock('@xpert-ai/contracts', () => {
+    const actual = jest.requireActual('@xpert-ai/contracts')
 
     return {
         ...actual,
@@ -32,7 +32,7 @@ jest.mock('@metad/contracts', () => {
     }
 })
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentApiKey: jest.fn(),
         currentRequest: jest.fn(),
@@ -41,7 +41,7 @@ jest.mock('@metad/server-core', () => ({
 }))
 
 import { of } from 'rxjs'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'

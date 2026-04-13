@@ -1,5 +1,5 @@
-import { keepAlive, takeUntilClose } from '@metad/server-common'
-import { environment } from '@metad/server-config'
+import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
+import { environment } from '@xpert-ai/server-config'
 import {
     GetDefaultTenantQuery,
     Public,
@@ -7,7 +7,7 @@ import {
     TransformInterceptor,
     UploadFileCommand,
     getFileAssetDestination
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -33,7 +33,7 @@ import { I18nService } from 'nestjs-i18n'
 import { join } from 'path'
 import { Observable } from 'rxjs'
 import { ChatConversationService } from '../chat-conversation'
-import { VolumeClient, getMediaTypeWithCharset, getWorkspace } from '../shared'
+import { VolumeClient, getMediaTypeWithCharset } from '../shared'
 import { SandboxAcquireBackendCommand } from './commands'
 
 @ApiTags('Sandbox')
@@ -183,8 +183,7 @@ export class SandboxController {
         }
 
         const effectiveProjectId = projectId ?? conversation?.projectId ?? null
-        const workspaceId = conversation?.threadId ?? conversationId
-        const workspacePath = await VolumeClient.getWorkspacePath(tenantId, effectiveProjectId, userId, workspaceId)
+        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, effectiveProjectId, userId)
         const sandboxContext = await this.commandBus.execute(
             new SandboxAcquireBackendCommand({
                 tenantId,
@@ -227,10 +226,9 @@ export class SandboxController {
                         return
                     }
 
-                    const workspaceLabel = getWorkspace(effectiveProjectId, workspaceId)
-                    const fallbackMessage = workspaceLabel
-                        ? `Command failed in workspace "${workspaceLabel}".`
-                        : 'Command failed.'
+                    const fallbackMessage = effectiveProjectId
+                        ? 'Command failed in the project workspace.'
+                        : 'Command failed in the user workspace.'
                     subscriber.error(result.output || fallbackMessage)
                 } catch (error) {
                     if (active) {

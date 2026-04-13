@@ -6,9 +6,9 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedFrom } from 'ngxtension/derived-from'

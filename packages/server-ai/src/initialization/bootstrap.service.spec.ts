@@ -2,7 +2,7 @@ jest.mock('../environment', () => ({
   EnvironmentService: class EnvironmentService {}
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
   OrganizationCreatedEvent: class OrganizationCreatedEvent {},
   OrganizationService: class OrganizationService {},
   TenantCreatedEvent: class TenantCreatedEvent {},

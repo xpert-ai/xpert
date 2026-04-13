@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
-import { AuthService } from '@metad/cloud/state'
+import { AuthService } from '@xpert-ai/cloud/state'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 

@@ -6,7 +6,7 @@ import {
   SemanticModel,
   Semantics,
   Syntax
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 
 export const DUCKDB_FOODMART_MODEL: SemanticModel = {
   name: 'FOODMART',

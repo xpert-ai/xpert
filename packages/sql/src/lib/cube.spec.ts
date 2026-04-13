@@ -1,4 +1,4 @@
-import { CalculationProperty, C_MEASURES, pick, pickBy } from '@metad/ocap-core'
+import { CalculationProperty, C_MEASURES, pick, pickBy } from '@xpert-ai/ocap-core'
 import { buildCubeContext, buildLevelContext, compileCubeSchema } from './cube'
 import { buildDimensionContext, DimensionContext } from './dimension'
 import {

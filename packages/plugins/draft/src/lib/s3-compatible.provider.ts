@@ -1,4 +1,4 @@
-import { FileStorageOption, UploadedFile } from '@metad/contracts'
+import { FileStorageOption, UploadedFile } from '@xpert-ai/contracts'
 import { IFileStorageProvider, IPluginConfigResolver, PLUGIN_CONFIG_RESOLVER_TOKEN } from '@xpert-ai/plugin-sdk'
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ConfigType } from '@nestjs/config'

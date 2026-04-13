@@ -1,4 +1,4 @@
-import { AgentType, SemanticModel, Syntax } from '@metad/ocap-core'
+import { AgentType, SemanticModel, Syntax } from '@xpert-ai/ocap-core'
 
 export const DUCKDB_TOP_SUBSCRIBED_MODEL: SemanticModel = {
   name: 'TopSubscribed',

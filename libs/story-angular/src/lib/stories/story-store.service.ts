@@ -9,7 +9,7 @@ import {
   StorySubscription,
   StoryWidget,
   StoryWidgetKey
-} from '@metad/story/core'
+} from '@xpert-ai/story/core'
 import { ZardToastService } from '@xpert-ai/headless-ui'
 import { Observable, of } from 'rxjs'
 

@@ -11,8 +11,8 @@ import {
 	LanguagesEnum,
 	PermissionsEnum,
 	RolesEnum
-} from '@metad/contracts';
-import type { RequestScopeLevel } from '@metad/contracts';
+} from '@xpert-ai/contracts';
+import type { RequestScopeLevel } from '@xpert-ai/contracts';
 import cls from 'cls-hooked';
 import { ExtractJwt } from 'passport-jwt';
 

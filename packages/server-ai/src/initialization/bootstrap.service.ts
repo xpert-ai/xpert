@@ -8,8 +8,8 @@ import {
 	TXpertTeamDraft,
 	IUser,
 	WorkflowNodeTypeEnum
-} from '@metad/contracts'
-import { getErrorMessage, yaml } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage, yaml } from '@xpert-ai/server-common'
 import {
 	OrganizationCreatedEvent,
 	OrganizationService,
@@ -19,7 +19,7 @@ import {
 	UserOrganizationDeletedEvent,
 	UserOrganizationService,
 	UserService
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'

@@ -78,7 +78,7 @@
                 @if (isLocalSkill(skill) && skill.publishAt) {
                   <div class="mt-2 inline-flex items-center gap-2 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
                     <i class="ri-broadcast-line"></i>
-                    {{ 'PAC.Explore.SharedToMarket' | translate: { Default: 'Shared to organization market' } }}
+                    {{ 'PAC.Explore.SharedToMarket' | translate: { Default: 'Shared to Organization Market' } }}
                   </div>
                 }
                 <p class="mt-2 line-clamp-4 min-h-[96px] text-sm leading-6 text-text-tertiary">
@@ -209,6 +209,7 @@
               'PAC.Explore.DefaultWorkspaceHint'
                 | translate
                   : {
+                      name: workspace()?.name,
                       Default: 'Installed by default to ' + workspace()?.name
                     }
             }}
@@ -312,7 +313,7 @@
             </button>
           }
         </div>
-
+        <!-- 
         <div class="grid gap-3 lg:grid-cols-3">
           <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
             <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
@@ -393,7 +394,7 @@
                       'In the current version, repository filtering and the top search affect the list for real; the role, app type, and trending dropdowns are shown as configurable filter shells for now.'
                   }
           }}
-        </div>
+        </div>  -->
       </div>
 
       <div class="mt-6 w-full relative overflow-auto" waIntersectionObserver waIntersectionThreshold="0.35">

@@ -4,9 +4,9 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@metad/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { DynamicGridDirective } from '@xpert-ai/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import {

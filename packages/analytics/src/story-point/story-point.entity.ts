@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IStory, IStoryPoint, IStoryWidget } from '@metad/contracts';
-import { TenantOrganizationBaseEntity } from '@metad/server-core';
+import { IStory, IStoryPoint, IStoryWidget } from '@xpert-ai/contracts';
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core';
 import { IsJSON, IsOptional, IsString } from 'class-validator';
 import {
 	Column, Entity,

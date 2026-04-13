@@ -6,7 +6,7 @@ import {
   getEntityProperty,
   mergeOptions,
   QueryReturn
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { formatMeasureNumber } from './common'
 import { EChartsContext, EChartsOptions } from './types'
 import { pickEChartsGlobalOptions } from './utils'

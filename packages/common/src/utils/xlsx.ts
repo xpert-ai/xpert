@@ -3,7 +3,7 @@ import fsPromises from 'fs/promises'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 
-// The same as import { TableColumnType } from '@metad/ocap-core'
+// The same as import { TableColumnType } from '@xpert-ai/ocap-core'
 export declare type TableColumnType = 'String' | 'Integer' | 'Numeric' | 'Boolean' | 'Datetime' | 'Date' | 'Time'
 export interface UploadSheetType {
   file: File

@@ -1,5 +1,5 @@
-import { IIntegration, IXpertProjectVCS } from '@metad/contracts'
-import { Integration } from '@metad/server-core'
+import { IIntegration, IXpertProjectVCS } from '@xpert-ai/contracts'
+import { Integration } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Exclude } from 'class-transformer'
 import { IsJSON, IsOptional, IsString } from 'class-validator'

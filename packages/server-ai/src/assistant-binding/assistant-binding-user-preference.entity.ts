@@ -1,10 +1,11 @@
 import {
   IAssistantBinding,
+  IAssistantBindingConversationPreferences,
   IAssistantBindingToolPreferences,
   IAssistantBindingUserPreference,
   IUser
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsOptional, IsString } from 'class-validator'
 import {
@@ -74,4 +75,9 @@ export class AssistantBindingUserPreference
   @IsOptional()
   @Column({ type: 'json', nullable: true })
   toolPreferences?: IAssistantBindingToolPreferences | null
+
+  @ApiPropertyOptional({ type: () => Object })
+  @IsOptional()
+  @Column({ type: 'json', nullable: true })
+  conversationPreferences?: IAssistantBindingConversationPreferences | null
 }

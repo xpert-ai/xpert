@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { AIProvidersService } from '../../../ai-model'
 import { CopilotProviderService } from '../../copilot-provider.service'
@@ -19,11 +20,15 @@ export class CopilotProviderModelParameterRulesHandler
 		const { providerId, modelType, model } = command
 
 		const copilotProvider = await this.service.findOneInOrganizationOrTenant(providerId)
+		if (!copilotProvider) {
+			throw new NotFoundException(`Copilot provider ${providerId} is not found.`)
+		}
+
 		const customModel = await this.modelService.findOneOrFailByWhereOptions({
 			providerId, modelType, modelName: model
 		})
 
-		const modelProvider = this.providersService.getProvider(copilotProvider.providerName)
+		const modelProvider = this.providersService.getProvider(copilotProvider.providerName, true)
 
 		return modelProvider.getModelManager(modelType)?.getParameterRules(model, customModel.record?.modelProperties)
 	}

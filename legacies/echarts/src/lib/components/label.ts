@@ -1,4 +1,4 @@
-import { assignDeepOmitBlank, ChartMeasure, ChartSettings, omit, PropertyMeasure } from '@metad/ocap-core'
+import { assignDeepOmitBlank, ChartMeasure, ChartSettings, omit, PropertyMeasure } from '@xpert-ai/ocap-core'
 import { formatMeasureValue } from '../common'
 import { EChartsOptions } from '../types'
 

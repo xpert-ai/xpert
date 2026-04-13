@@ -1,5 +1,5 @@
-import { ISemanticModel, IStorageFile, IUser, ProjectStatusEnum } from '@metad/contracts'
-import { StorageFilePublicDTO, UserPublicDTO } from '@metad/server-core'
+import { ISemanticModel, IStorageFile, IUser, ProjectStatusEnum } from '@xpert-ai/contracts'
+import { StorageFilePublicDTO, UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { SemanticModelQueryDTO } from '../../model/dto'

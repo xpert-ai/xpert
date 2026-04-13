@@ -1,5 +1,5 @@
 import { Document } from '@langchain/core/documents'
-import { IconType, KnowledgeStructureEnum } from '@metad/contracts'
+import { IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { v4 as uuid } from 'uuid'

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
-import { mergeClasses } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { cx, mergeClasses } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { FILE_TREE_SIZE_PRESETS, type FileTreeSizeVariants } from './tree.component.variants'
 import { FileTreeNode, flattenFileTree } from './tree.utils'
@@ -18,6 +18,7 @@ import { FileTreeNode, flattenFileTree } from './tree.utils'
   }
 })
 export class FileTreeComponent {
+  cx = cx
   readonly zSize = input<FileTreeSizeVariants>('default')
   readonly title = input<string>('File Tree')
   readonly subtitle = input<string | null>(null)
@@ -44,10 +45,6 @@ export class FileTreeComponent {
   )
   readonly titleClasses = computed(() => mergeClasses('font-semibold text-text-primary', this.sizePreset().titleText))
   readonly subtitleClasses = computed(() => mergeClasses('truncate text-text-tertiary', this.sizePreset().subtitleText))
-  readonly listClasses = computed(() => mergeClasses('flex flex-col', this.sizePreset().listGap))
-  readonly indentClasses = computed(() =>
-    mergeClasses('flex h-full shrink-0 justify-center', this.sizePreset().indentWidth)
-  )
   readonly toggleClasses = computed(() =>
     mergeClasses(
       'flex shrink-0 items-center justify-center rounded-md text-text-tertiary transition-colors hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',

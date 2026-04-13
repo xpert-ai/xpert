@@ -5,8 +5,8 @@ import {
     ChatMessageStepCategory,
     getToolCallIdFromConfig,
     TAgentMiddlewareMeta
-} from '@metad/contracts'
-import { omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {

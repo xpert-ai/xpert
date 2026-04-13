@@ -1,4 +1,4 @@
-import { FORMLY_ROW } from "@metad/story/designer"
+import { FORMLY_ROW } from "@xpert-ai/story/designer"
 
 export function TitleCapacity(className: string, I18N) {
   const showKey = '__showTitle__'

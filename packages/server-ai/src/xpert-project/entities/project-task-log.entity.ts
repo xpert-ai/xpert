@@ -1,4 +1,4 @@
-import { IXpertProjectTaskLog, IXpertProjectTaskStep } from '@metad/contracts'
+import { IXpertProjectTaskLog, IXpertProjectTaskStep } from '@xpert-ai/contracts'
 import { Column, Entity, ManyToOne } from 'typeorm'
 import { XpertProjectTaskStep } from './project-task-step.entity'
 import { XpertProjectBaseEntity } from './project.base'

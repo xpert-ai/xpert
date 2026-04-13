@@ -1,7 +1,7 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
-import { injectWorkspace } from '@metad/cloud/state'
+import { injectWorkspace } from '@xpert-ai/cloud/state'
 import { AssistantCode, XpertAPIService } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { distinctUntilChanged, EMPTY, filter, map, startWith, switchMap } from 'rxjs'

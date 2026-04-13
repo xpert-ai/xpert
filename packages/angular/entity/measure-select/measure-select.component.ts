@@ -3,8 +3,8 @@ import { booleanAttribute, Component, computed, forwardRef, inject, input, ViewC
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmSelectModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
+import { NgmSelectModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   getEntityMeasures,
@@ -14,7 +14,7 @@ import {
   isIndicatorMeasureProperty,
   nonNullable,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { orderBy } from 'lodash-es'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs'

@@ -7,7 +7,7 @@ import {
 	IOrganizationContactAcceptInviteInput,
 	IOrganizationContact,
 	IPagination
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import {
 	BadRequestException,
 	Body,

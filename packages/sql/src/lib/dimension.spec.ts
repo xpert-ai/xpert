@@ -1,4 +1,4 @@
-import { AggregationRole, C_MEASURES, serializeUniqueName } from '@metad/ocap-core'
+import { AggregationRole, C_MEASURES, serializeUniqueName } from '@xpert-ai/ocap-core'
 import {
   buildDimensionContext,
   compileDimensionSchema,

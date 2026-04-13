@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
@@ -9,7 +10,7 @@ import {
   ZardIconComponent,
   ZardMenuImports
 } from '@xpert-ai/headless-ui'
-import { AiModelTypeEnum, ICopilotModel, IXpert } from '../../../@core'
+import { AiModelTypeEnum, ICopilotModel, IXpert, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { CopilotModelSelectComponent } from '../../../@shared/copilot'
 import { ClawXpertFacade } from './clawxpert.facade'
@@ -149,8 +150,8 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
             </div>
 
             @if (facade.resolvedPreference() && facade.viewState() === 'ready') {
-              <div class="flex rounded-xl border border-border">
-                <button class="flex-1 rounded-l-xl rounded-r-none"
+              <div class="flex rounded-lg border border-border">
+                <button class="flex-1 rounded-l-lg rounded-r-none"
                   z-button
                   zType="ghost"
                   displayDensity="cosy"
@@ -170,7 +171,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                   displayDensity="cosy"
                   type="button"
                   zSize="icon"
-                  class="shrink-0 rounded-none rounded-r-xl border-0 border-l border-border px-3"
+                  class="shrink-0 rounded-none rounded-r-lg border-0 border-l border-border px-3"
                   z-menu
                   [zMenuTriggerFor]="actionMenu"
                   [disabled]="facade.clearing() || facade.savingCopilotModel()"
@@ -225,6 +226,10 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                     {{ 'PAC.Chat.ClawXpert.Change' | translate: { Default: 'Change ClawXpert' } }}
                   </button>
 
+                  <button type="button" z-menu-item (click)="openXpertOrchestration()">
+                    {{ 'PAC.Chat.ClawXpert.OpenOrchestration' | translate: { Default: '编排 ClawXpert' } }}
+                  </button>
+
                   <z-divider zSpacing="sm"></z-divider>
 
                   <button type="button" z-menu-item [disabled]="facade.clearing()" (click)="clearPreference()">
@@ -261,7 +266,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
               }
             </div>
 
-            <div class="grid gap-2" [class.grid-cols-2]="facade.hasPersistedDraft()">
+            <div class="grid grid-cols-1 gap-2" [class.grid-cols-2]="facade.hasPersistedDraft()">
               <button
                 z-button
                 zType="default"
@@ -269,9 +274,9 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                 type="button"
                 class="w-full"
                 [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert()"
-                (click)="startConversation()"
+                (click)="goToChat()"
               >
-                <z-icon zType="chat"></z-icon>
+                <z-icon zType="message-circle-more"></z-icon>
                 {{ 'PAC.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
               </button>
 
@@ -405,6 +410,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
 export class ClawXpertOverviewComponent {
   readonly eModelType = AiModelTypeEnum
   readonly facade = inject(ClawXpertFacade)
+  readonly #router = inject(Router)
   readonly #translate = inject(TranslateService)
   readonly #locale = normalizeLocale(this.#translate.currentLang || this.#translate.getDefaultLang())
 
@@ -485,8 +491,8 @@ export class ClawXpertOverviewComponent {
     }
   ])
 
-  startConversation() {
-    void this.facade.startConversation()
+  goToChat() {
+    void this.facade.continueConversation()
   }
 
   publishXpert() {
@@ -495,6 +501,17 @@ export class ClawXpertOverviewComponent {
 
   openWizard() {
     this.facade.openWizard()
+  }
+
+  openXpertOrchestration() {
+    const currentXpert = this.facade.currentXpert()
+    const xpertId = currentXpert?.id ?? this.facade.xpertId()
+
+    if (!xpertId) {
+      return
+    }
+
+    void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
   }
 
   async clearPreference() {

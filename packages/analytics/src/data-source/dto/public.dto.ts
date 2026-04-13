@@ -1,5 +1,5 @@
-import { AuthenticationEnum, IDataSourceType, IUser } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { AuthenticationEnum, IDataSourceType, IUser } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { DataSource } from '../data-source.entity'

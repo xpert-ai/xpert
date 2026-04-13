@@ -1,4 +1,4 @@
-import { WidgetComponentType } from '@metad/story/core'
+import { WidgetComponentType } from '@xpert-ai/story/core'
 import { z } from 'zod'
 import { ChartSchema } from './chart.schema'
 import { AnalyticsAnnotationSchema } from './grid.schema'

@@ -1,4 +1,4 @@
-import { FilterOperator, Drill, Cube, CalculatedMember } from '@metad/ocap-core'
+import { FilterOperator, Drill, Cube, CalculatedMember } from '@xpert-ai/ocap-core'
 import { mapMDXFilterToStatement, MDXHierarchyFilter } from './filter'
 import { MDXDialect } from './types'
 

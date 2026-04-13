@@ -1,8 +1,8 @@
-import { IUser, IXpert } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IUser, IXpert } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertPublicDTO } from '../../xpert/dto'
-import { ChatConversation } from '../conversation.entity'
+import type { ChatConversation } from '../conversation.entity'
 
 @Exclude()
 export class ChatConversationSimpleDTO {
@@ -11,6 +11,9 @@ export class ChatConversationSimpleDTO {
 
 	@Expose()
 	key: string
+
+	@Expose()
+	threadId: string
 
 	@Expose()
 	title?: string

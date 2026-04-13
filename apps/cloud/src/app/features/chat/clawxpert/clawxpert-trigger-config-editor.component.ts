@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
 import { ZardButtonComponent, ZardCardImports, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
@@ -145,7 +145,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
           } @else {
             <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-5 py-4">
               @for (item of workingItems(); track item.nodeKey) {
-                <xpert-workflow-trigger-config-card
+                <xp-workflow-trigger-config-card
                   [provider]="item.provider"
                   [config]="item.config"
                   [showHeader]="true"

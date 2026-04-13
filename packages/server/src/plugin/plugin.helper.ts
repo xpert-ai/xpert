@@ -4,13 +4,14 @@
  * - Local code plugins with a persisted workspace path should be restaged before load so restarts do not depend on stale copies.
  * - Non-code plugins continue to install through the organization plugin store and keep load-failure tracking centralized here.
  */
-import { isNotEmpty } from '@metad/server-common'
-import { getConfig } from '@metad/server-config'
+import { isNotEmpty } from '@xpert-ai/server-common'
+import { getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Type, Logger } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
 import { ModuleRef, NestContainer } from '@nestjs/core'
-import { PluginLevel, PluginSourceConfig } from '@metad/contracts'
+import { PluginLevel, PluginSourceConfig } from '@xpert-ai/contracts'
 import {
+	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
 	ORGANIZATION_METADATA_KEY,
 	PLUGIN_METADATA,
@@ -174,6 +175,14 @@ function hasPluginName(name: string | undefined | null): name is string {
 	return typeof name === 'string' && !!name
 }
 
+function appendStageWorkspacePluginError(message: string, stageError?: string) {
+	if (!stageError || message.includes(stageError)) {
+		return message
+	}
+
+	return `${message} | stageWorkspacePlugin failed earlier: ${stageError}`
+}
+
 export function upsertPluginLoadFailure(failure: PluginLoadFailureRecord) {
 	const pluginName = normalizePluginName(failure.pluginName)
 	const packageName = failure.packageName ? normalizePluginName(failure.packageName) : pluginName
@@ -305,7 +314,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
  * @param opts
  * @returns
  */
-export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) {
+export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, logger: Logger,) {
 	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 	const baseDirRoot =
 		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, opts) : process.cwd())
@@ -322,6 +331,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 		source?: LoadedPluginRecord['source']
 		level?: PluginLevel
 		sourceConfig?: PluginSourceConfig | null
+		stageError?: string
 	}> = opts.plugins?.length
 		? opts.plugins
 		: opts.discovery || opts.organizationId
@@ -333,6 +343,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 				}))
 			: []
 
+	// Stage code plugins first to ensure their workspace paths are persisted and available for loading, and also to allow them to be included in the manifest for non-code plugin installs.
 	for (const plugin of pluginNames) {
 		if (plugin.source !== 'code') {
 			continue
@@ -345,14 +356,23 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 			continue
 		}
 
-		stageWorkspacePlugin({
-			organizationId,
-			pluginName: plugin.runtimeName ?? plugin.name,
-			expectedPackageName: normalizePluginName(plugin.name),
-			workspacePath,
-			rootDir: opts.rootDir,
-			manifestName: opts.manifestName
-		})
+		try {
+			stageWorkspacePlugin({
+				organizationId,
+				pluginName: plugin.runtimeName ?? plugin.name,
+				expectedPackageName: normalizePluginName(plugin.name),
+				workspacePath,
+				rootDir: opts.rootDir,
+				manifestName: opts.manifestName
+			})
+		} catch (error) {
+			plugin.stageError = getErrorMessage(error)
+			console.error(error)
+			logger.error(
+				`Failed to stage workspace plugin ${plugin.name} for organization ${organizationId}: ${plugin.stageError}`,
+				error instanceof Error ? error.stack : error
+			)
+		}
 	}
 
 	// 1) install into organization workspace (and update manifest)
@@ -365,7 +385,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 	const modules: DynamicModule[] = []
 	const errors: PluginLoadFailureRecord[] = []
 
-	for (const { name, runtimeName, level, source, sourceConfig } of pluginNames) {
+	for (const { name, runtimeName, level, source, sourceConfig, stageError } of pluginNames) {
 		try {
 			const pluginPathName = runtimeName ?? name
 			const pluginBaseDir = opts.organizationId
@@ -409,7 +429,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 				baseDir: pluginBaseDir
 			})
 		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error)
+			const message = appendStageWorkspacePluginError(getErrorMessage(error), stageError)
 			const stack = error instanceof Error ? error.stack : undefined
 			const failure = {
 				organizationId,

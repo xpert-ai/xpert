@@ -1,7 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
 
 /**
- * @deprecated use `@metad/ocap-angular/common`
+ * @deprecated use `@xpert-ai/ocap-angular/common`
  */
 @Injectable()
 export class CountdownTimer {

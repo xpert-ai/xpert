@@ -11,7 +11,7 @@ import {
   QueryReturn,
   assignDeepOmitBlank,
   getDimensionMemberCaption,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { MapChart } from 'echarts/charts'
 import { registerMap, use } from 'echarts/core'
 import { firstValueFrom, Observable, shareReplay, tap } from 'rxjs'

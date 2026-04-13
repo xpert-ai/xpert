@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
+import { NgmEntityPropertyComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   assign,
@@ -14,7 +14,7 @@ import {
   omit,
   PropertyAttributes,
   PropertyDimension
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelDesignerType } from '../../../types'
 import { ModelEntityService } from '../../entity.service'

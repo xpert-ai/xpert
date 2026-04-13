@@ -19,10 +19,10 @@ import {
   ZardTooltipImports,
   ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmSelectionModule } from '@metad/ocap-angular/selection'
+import { NgmSelectionModule } from '@xpert-ai/ocap-angular/selection'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { AnalyticalGridComponent } from './analytical-grid.component'
 

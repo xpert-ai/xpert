@@ -1,4 +1,4 @@
-import { IXpertAgentExecution, JSONValue } from '@metad/contracts'
+import { IXpertAgentExecution, JSONValue } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 

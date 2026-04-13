@@ -1,9 +1,9 @@
-import { BusinessAreaRole } from '@metad/contracts'
+import { BusinessAreaRole } from '@xpert-ai/contracts'
 import {
 	RequestContext,
 	TenantOrganizationAwareCrudService,
 	TenantOrganizationBaseEntity,
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
 import {
 	FindManyOptions,

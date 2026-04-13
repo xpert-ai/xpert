@@ -1,5 +1,5 @@
-import { I18nObject, LanguagesEnum } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { I18nObject, LanguagesEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 
 /**
  * Translate a i18n object's label to the current language.

@@ -6,8 +6,8 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxC
 import { TranslateModule } from '@ngx-translate/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
-import { InviteService, ToastrService } from '@metad/cloud/state'
-import { IInvite, IUserRegistrationInput } from '@metad/contracts'
+import { InviteService, ToastrService } from '@xpert-ai/cloud/state'
+import { IInvite, IUserRegistrationInput } from '@xpert-ai/contracts'
 import { tap } from 'rxjs/operators'
 import { AcceptInviteFormComponent } from './accept-invite-form/accept-invite-form.component'
 

@@ -3,7 +3,7 @@ import {
 	IWFNKnowledgeRetrieval,
 	IWorkflowNode,
 	WorkflowNodeTypeEnum,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'

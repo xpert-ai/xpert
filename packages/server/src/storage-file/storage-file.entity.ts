@@ -1,5 +1,5 @@
 import { Entity, Column } from 'typeorm'
-import { IStorageFile } from '@metad/contracts'
+import { IStorageFile } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsString, IsOptional, IsNumber, IsDateString } from 'class-validator'
 import { Exclude } from 'class-transformer'

@@ -1,4 +1,4 @@
-// import { IntegrationEnum, TGithubAuth } from '@metad/contracts'
+// import { IntegrationEnum, TGithubAuth } from '@xpert-ai/contracts'
 // import { CACHE_MANAGER } from '@nestjs/cache-manager'
 // import { Inject, Logger } from '@nestjs/common'
 // import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'

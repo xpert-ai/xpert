@@ -4,9 +4,9 @@
  *  Approval Policy table has the many to one relationship to the Organization table and Tenant by organizationId and tenantId
  */
 import { Entity, Index, Column } from 'typeorm';
-import { IApprovalPolicy } from '@metad/contracts';
+import { IApprovalPolicy } from '@xpert-ai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import { TenantOrganizationBaseEntity } from '@metad/server-core';
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core';
 
 @Entity('approval_policy')
 export class ApprovalPolicy extends TenantOrganizationBaseEntity

@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { of } from 'rxjs'
 import {
   EnvironmentService,
@@ -578,6 +578,36 @@ describe('XpertNewBlankComponent', () => {
     expect(dialogRef.close).toHaveBeenCalledWith({
       xpert: publishedXpert,
       status: 'published'
+    })
+  })
+
+  it('persists a draft for create mode blank agents before closing', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, dialogRef, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+
+    component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalled()
+    expect(xpertService.saveDraft).toHaveBeenCalled()
+    expect(xpertService.publish).not.toHaveBeenCalled()
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      xpert: {
+        ...createdXpert,
+        draft: {
+          checklist: []
+        }
+      },
+      status: 'created'
     })
   })
 

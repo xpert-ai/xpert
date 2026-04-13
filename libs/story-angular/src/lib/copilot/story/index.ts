@@ -1,4 +1,4 @@
-import { CopilotCommand } from '@metad/copilot'
+import { CopilotCommand } from '@xpert-ai/copilot'
 import { switchMap } from 'rxjs'
 import { checkDefaultEntity } from '../common'
 import { createStoryPage, smartDiscover } from './chat'

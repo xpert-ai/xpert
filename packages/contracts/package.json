@@ -1,6 +1,6 @@
 {
-  "name": "@metad/contracts",
-  "version": "3.9.0-beta.0",
+  "name": "@xpert-ai/contracts",
+  "version": "3.9.0-beta.2",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -8,6 +8,10 @@
   },
   "bugs": {
     "url": "https://github.com/xpert-ai/xpert/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "directory": "dist"
   },
   "scripts": {
     "docs": "pnpm typedoc --out ./.docs"

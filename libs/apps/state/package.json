@@ -1,5 +1,5 @@
 {
-  "name": "@metad/ocap-cloud-state",
+  "name": "@xpert-ai/cloud-state",
   "version": "2.1.0",
   "peerDependencies": {
     "@angular/common": "^21.0.0",

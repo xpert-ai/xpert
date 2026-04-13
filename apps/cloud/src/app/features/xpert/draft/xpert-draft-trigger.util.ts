@@ -4,8 +4,8 @@ import {
   TXpertTeamDraft,
   TXpertTeamNode,
   WorkflowNodeTypeEnum
-} from '@metad/contracts'
-import { WorkflowTriggerProviderOption } from '../../../@shared/workflow/trigger-config/types'
+} from '@xpert-ai/contracts'
+import { WorkflowTriggerProviderOption } from './workflow-trigger-provider-option'
 
 const TRIGGER_NODE_HORIZONTAL_OFFSET = 280
 const TRIGGER_NODE_VERTICAL_GAP = 120

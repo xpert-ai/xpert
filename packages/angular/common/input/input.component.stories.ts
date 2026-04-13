@@ -1,7 +1,7 @@
 // Input.stories.ts
 
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { applicationConfig, moduleMetadata, type Meta, type StoryObj, argsToTemplate } from '@storybook/angular'
 import { NgmInputComponent } from './input.component'
 

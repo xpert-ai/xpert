@@ -12,9 +12,9 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormArray, FormControl, FormGroup } from '@angular/forms'
-import { NgmFormlyArrayComponent } from '@metad/formly/array'
-import { NgmThemeService } from '@metad/ocap-angular/core'
-import { EditorThemeMap } from '@metad/ocap-angular/formula'
+import { NgmFormlyArrayComponent } from '@xpert-ai/formly/array'
+import { NgmThemeService } from '@xpert-ai/ocap-angular/core'
+import { EditorThemeMap } from '@xpert-ai/ocap-angular/formula'
 import {
   BarVariant,
   ChartTypeEnum,
@@ -27,7 +27,7 @@ import {
   ScatterVariant,
   TreeVariant,
   WaterfallVariant
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { FieldType } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'

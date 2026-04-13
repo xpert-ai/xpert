@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import {
   WorkflowTriggerConfigCardComponent,
   WorkflowTriggerProviderOption,
@@ -14,7 +14,7 @@ import { BlankTriggerSelection } from './blank-draft.util'
 
 @Component({
   standalone: true,
-  selector: 'xpert-blank-trigger-selection',
+  selector: 'xp-blank-trigger-selection',
   imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, WorkflowTriggerConfigCardComponent],
   template: `
     <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
@@ -50,7 +50,7 @@ import { BlankTriggerSelection } from './blank-draft.util'
 
             @if (isSelected(provider.name) && shouldRenderConfig(provider)) {
               <div class="mt-3 rounded-xl border border-divider-regular bg-background-default px-3 py-3">
-                <xpert-workflow-trigger-config-card
+                <xp-workflow-trigger-config-card
                   appearance="inline"
                   [showHeader]="false"
                   [showEmptyState]="false"

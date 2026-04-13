@@ -1,4 +1,4 @@
-import { ProviderCredentialSchema } from "@metad/contracts";
+import { ProviderCredentialSchema } from "@xpert-ai/contracts";
 import { CommonValidator } from "./common_validator";
 
 export class ProviderCredentialSchemaValidator extends CommonValidator {

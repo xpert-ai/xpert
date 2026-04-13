@@ -1,4 +1,4 @@
-import { ISemanticModel } from '@metad/contracts'
+import { ISemanticModel } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { compact } from 'lodash'

@@ -1,8 +1,8 @@
 import { computed, effect, inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRouteSnapshot, NavigationEnd, Route, Router } from '@angular/router'
-import { RolesEnum } from '@metad/contracts'
-import { IOrganization, RequestScopeLevel, Store } from '@metad/cloud/state'
+import { RolesEnum } from '@xpert-ai/contracts'
+import { IOrganization, RequestScopeLevel, Store } from '@xpert-ai/cloud/state'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 
 export type RouteScopeContext = 'tenant-only' | 'organization-only' | 'dual-scope'

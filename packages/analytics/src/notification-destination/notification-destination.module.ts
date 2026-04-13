@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule, SharedModule, TenantModule } from '@metad/server-core';
+import { RedisModule, SharedModule, TenantModule } from '@xpert-ai/server-core';
 import { RouterModule } from '@nestjs/core';
 import { NotificationDestinationController } from './notification-destination.controller';
 import { NotificationDestination } from './notification-destination.entity';

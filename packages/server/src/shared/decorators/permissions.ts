@@ -1,5 +1,5 @@
-import { PermissionsEnum } from '@metad/contracts'
-import { PERMISSIONS_METADATA } from '@metad/server-common'
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { PERMISSIONS_METADATA } from '@xpert-ai/server-common'
 import { createParamDecorator, SetMetadata } from '@nestjs/common'
 import { RequestContext } from '../../core/context'
 

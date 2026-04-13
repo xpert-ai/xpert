@@ -1,4 +1,4 @@
-import { IScreenshot, IStorageFile } from '@metad/contracts'
+import { IScreenshot, IStorageFile } from '@xpert-ai/contracts'
 import {
 	BadRequestException,
 	Body,

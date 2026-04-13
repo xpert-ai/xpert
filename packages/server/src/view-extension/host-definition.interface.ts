@@ -1,4 +1,4 @@
-import { XpertViewHostContext, XpertViewSlot } from '@metad/contracts'
+import { XpertViewHostContext, XpertViewSlot } from '@xpert-ai/contracts'
 
 export interface XpertViewHostResolution {
   workspaceId?: string | null

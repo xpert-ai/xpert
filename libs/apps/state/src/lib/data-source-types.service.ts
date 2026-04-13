@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { IDataSourceType } from '@metad/contracts'
+import { IDataSourceType } from '@xpert-ai/contracts'
 import { map, shareReplay } from 'rxjs/operators'
 import { API_DATA_SOURCE_TYPE } from './constants'
 

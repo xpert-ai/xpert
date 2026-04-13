@@ -1,4 +1,4 @@
-import { ModelPropertyKey, ProviderModel } from '@metad/contracts'
+import { ModelPropertyKey, ProviderModel } from '@xpert-ai/contracts'
 import { Exclude, Expose, Transform } from 'class-transformer'
 
 @Expose()

@@ -1,6 +1,6 @@
 import { StoredMessage } from '@langchain/core/messages'
-import { IUser, IXpert, IXpertAgent, IXpertAgentExecution } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IUser, IXpert, IXpertAgent, IXpertAgentExecution } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Expose, Transform } from 'class-transformer'
 import { XpertAgentIdentiDto } from '../../xpert-agent/dto'
 import { XpertIdentiDto } from '../../xpert/dto'

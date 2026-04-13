@@ -1,7 +1,7 @@
 import { CollectionViewer, DataSource } from '@angular/cdk/collections'
 import { FormControl } from '@angular/forms'
 import { ZardFlatTreeControl, ZardTreeExpansionChange } from '@xpert-ai/headless-ui'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import {
   AggregationRole,
   C_MEASURES,
@@ -24,7 +24,7 @@ import {
   serializeUniqueName,
   TreeNodeInterface,
   VariableProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { flatMap, isEmpty } from 'lodash-es'
 import {

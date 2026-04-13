@@ -1,5 +1,5 @@
 import path from 'path';
-import { ConfigService, environment } from '@metad/server-config';
+import { ConfigService, environment } from '@xpert-ai/server-config';
 import { ServeStaticModuleOptions } from '@nestjs/serve-static';
 
 export async function resolveServeStaticPath(

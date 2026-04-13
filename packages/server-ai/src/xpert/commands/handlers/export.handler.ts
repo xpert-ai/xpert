@@ -5,8 +5,8 @@ import {
     LongTermMemoryTypeEnum,
     TXpertTeamConnection,
     TXpertTeamDraft
-} from '@metad/contracts'
-import { omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { MemoryDslDTO, XpertDraftDslDTO } from '../../dto'

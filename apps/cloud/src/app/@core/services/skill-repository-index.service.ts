@@ -6,7 +6,7 @@ import {
   OrganizationBaseCrudService,
   PaginationParams,
   toHttpParams
-} from '@metad/cloud/state'
+} from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { switchMap } from 'rxjs'
 

@@ -1,4 +1,4 @@
-import { IUser, TChatOptions, TChatRequest } from '@metad/contracts'
+import { IUser, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class ChatCommand implements ICommand {

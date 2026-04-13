@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http'
 import { importProvidersFrom } from '@angular/core'
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { provideLogger, provideTranslate } from '@metad/ocap-angular/mock'
+import { provideLogger, provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { Meta, StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgmCompareMemberSelectComponent } from './member-select.component'

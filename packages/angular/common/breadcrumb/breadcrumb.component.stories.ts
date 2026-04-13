@@ -2,7 +2,7 @@ import { Meta, moduleMetadata } from "@storybook/angular";
 import { NgmBreadcrumbBarComponent } from "./breadcrumb.component";
 import { CommonModule } from "@angular/common";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
-import { OcapCoreModule } from "@metad/ocap-angular/core";
+import { OcapCoreModule } from "@xpert-ai/ocap-angular/core";
 
 export default {
   title: 'Common/BreadcrumbBar',

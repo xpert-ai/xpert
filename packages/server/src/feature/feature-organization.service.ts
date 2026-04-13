@@ -1,8 +1,8 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
-import { IFeature, IFeatureOrganization, IFeatureOrganizationUpdateInput, ITenant } from '@metad/contracts';
-import { isNotEmpty } from '@metad/server-common';
+import { IFeature, IFeatureOrganization, IFeatureOrganizationUpdateInput, ITenant } from '@xpert-ai/contracts';
+import { isNotEmpty } from '@xpert-ai/server-common';
 import { TenantAwareCrudService } from './../core/crud';
 import { RequestContext } from './../core/context';
 import { FeatureOrganization } from './feature-organization.entity';

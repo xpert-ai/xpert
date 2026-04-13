@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 
 import { DIALOG_DATA, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from 'apps/cloud/src/app/@core'
 import { MCPToolsetToolTestComponent } from '../test/tool.component'

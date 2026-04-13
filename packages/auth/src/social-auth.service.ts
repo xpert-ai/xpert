@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService, IEnvironment } from '@metad/server-config';
+import { ConfigService, IEnvironment } from '@xpert-ai/server-config';
 import * as bcrypt from 'bcryptjs';
 
 /**

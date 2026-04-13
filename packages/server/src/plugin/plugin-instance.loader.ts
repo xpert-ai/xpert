@@ -4,8 +4,8 @@
  * Code plugins are restored by workspace-backed package name, not by a versioned npm spec, so their staged path stays stable across restarts.
  * Keep `sourceConfig` attached so runtime restore can restage local code plugins when needed.
  */
-import { getConfig } from '@metad/server-config'
-import { PluginLevel, PluginSourceConfig } from '@metad/contracts'
+import { getConfig } from '@xpert-ai/server-config'
+import { PluginLevel, PluginSourceConfig } from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { deserializePluginConfig } from './plugin-config.crypto'

@@ -1,4 +1,4 @@
-import { ISecretTokenFindInput } from '@metad/contracts';
+import { ISecretTokenFindInput } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class SecretTokenGetCommand implements ICommand {

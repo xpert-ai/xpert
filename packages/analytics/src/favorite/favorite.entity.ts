@@ -5,7 +5,7 @@ import {
     ISemanticModel,
     IStory,
     IIndicator
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { IsString, IsEnum, IsOptional } from 'class-validator'
 import {
     Column,

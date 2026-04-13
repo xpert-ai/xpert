@@ -1,13 +1,32 @@
-import { mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { PluginSdkValidationError } from './errors'
 import {
 	assertPluginSdkCompatibility,
 	assertPluginSdkInstallCandidate,
+	ensureHostContractsLink,
 	ensureHostPluginSdkLink,
 	readInstalledPluginManifest
 } from './plugin-sdk-versioning'
+
+function getExpectedHostSdkDirs() {
+	return [
+		dirname(require.resolve('@xpert-ai/plugin-sdk/package.json')),
+		join(process.cwd(), 'packages', 'plugin-sdk', 'dist'),
+		join(process.cwd(), 'packages', 'plugin-sdk')
+	]
+		.filter((candidate, index, items) => items.indexOf(candidate) === index)
+		.filter((candidate) => existsSync(candidate))
+		.map((candidate) => realpathSync(candidate))
+}
+
+function getExpectedHostContractsDirs() {
+	return [join(process.cwd(), 'packages', 'contracts', 'dist'), join(process.cwd(), 'packages', 'contracts')]
+		.filter((candidate, index, items) => items.indexOf(candidate) === index)
+		.filter((candidate) => existsSync(candidate))
+		.map((candidate) => realpathSync(candidate))
+}
 
 describe('plugin sdk versioning', () => {
 	it('accepts an explicit single-major peer range compatible with the host sdk', () => {
@@ -27,6 +46,26 @@ describe('plugin sdk versioning', () => {
 		).toEqual({
 			hostVersion: '3.8.4',
 			peerRange: '^3.8.0'
+		})
+	})
+
+	it('treats workspace sdk peer ranges as the current host sdk version', () => {
+		expect(
+			assertPluginSdkCompatibility(
+				{
+					name: '@xpert-ai/plugin-demo',
+					peerDependencies: {
+						'@xpert-ai/plugin-sdk': 'workspace:*'
+					}
+				},
+				{
+					hostVersion: '3.9.0-beta.0',
+					expectedPackageName: '@xpert-ai/plugin-demo'
+				}
+			)
+		).toEqual({
+			hostVersion: '3.9.0-beta.0',
+			peerRange: '3.9.0-beta.0'
 		})
 	})
 
@@ -122,10 +161,42 @@ describe('plugin sdk versioning', () => {
 
 		try {
 			const linkPath = ensureHostPluginSdkLink(workspaceDir)
-			const hostSdkDir = dirname(require.resolve('@xpert-ai/plugin-sdk/package.json'))
 
 			expect(linkPath).toBe(join(workspaceDir, 'node_modules', '@xpert-ai', 'plugin-sdk'))
-			expect(realpathSync(linkPath as string)).toBe(realpathSync(hostSdkDir))
+			expect(getExpectedHostSdkDirs()).toContain(realpathSync(linkPath as string))
+		} finally {
+			rmSync(workspaceDir, { recursive: true, force: true })
+		}
+	})
+
+	it('replaces broken sdk symlinks in plugin workspaces', () => {
+		const workspaceDir = mkdtempSync(join(tmpdir(), 'xpert-plugin-sdk-broken-'))
+
+		try {
+			const linkPath = join(workspaceDir, 'node_modules', '@xpert-ai', 'plugin-sdk')
+			const brokenTarget = join(workspaceDir, 'missing-plugin-sdk')
+
+			mkdirSync(dirname(linkPath), { recursive: true })
+			symlinkSync(brokenTarget, linkPath, 'junction')
+
+			expect(existsSync(linkPath)).toBe(false)
+
+			ensureHostPluginSdkLink(workspaceDir)
+
+			expect(getExpectedHostSdkDirs()).toContain(realpathSync(linkPath))
+		} finally {
+			rmSync(workspaceDir, { recursive: true, force: true })
+		}
+	})
+
+	it('links plugin workspaces to the host contracts package', () => {
+		const workspaceDir = mkdtempSync(join(tmpdir(), 'xpert-plugin-contracts-'))
+
+		try {
+			const linkPath = ensureHostContractsLink(workspaceDir)
+
+			expect(linkPath).toBe(join(workspaceDir, 'node_modules', '@xpert-ai', 'contracts'))
+			expect(getExpectedHostContractsDirs()).toContain(realpathSync(linkPath as string))
 		} finally {
 			rmSync(workspaceDir, { recursive: true, force: true })
 		}
@@ -136,7 +207,7 @@ describe('plugin sdk versioning', () => {
 			.toMatchObject({
 				name: '@xpert-ai/plugin-draft',
 				peerDependencies: expect.objectContaining({
-					'@xpert-ai/plugin-sdk': '^3.8.0'
+					'@xpert-ai/plugin-sdk': 'workspace:*'
 				})
 			})
 	})
@@ -155,7 +226,7 @@ describe('plugin sdk versioning', () => {
 			).toMatchObject({
 				name: '@xpert-ai/plugin-trigger-schedule',
 				peerDependencies: expect.objectContaining({
-					'@xpert-ai/plugin-sdk': '^3.8.0'
+					'@xpert-ai/plugin-sdk': 'workspace:*'
 				})
 			})
 		} finally {

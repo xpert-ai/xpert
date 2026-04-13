@@ -9,8 +9,8 @@ import {
   ISemanticModelPreferences,
   IStory,
   ISubscription
-} from '@metad/contracts'
-import { DisplayDensity, NgmAppearance, NgmTabHeaderPosition, ThemesEnum } from '@metad/ocap-angular/core'
+} from '@xpert-ai/contracts'
+import { DisplayDensity, NgmAppearance, NgmTabHeaderPosition, ThemesEnum } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   DataSourceOptions,
@@ -21,9 +21,9 @@ import {
   Schema,
   TimeGranularity,
   UUID
-} from '@metad/ocap-core'
-import { NxWatermarkOptions } from '@metad/components/trial-watermark'
-import { DefaultDataSettings, IStoryWidget } from '@metad/core'
+} from '@xpert-ai/ocap-core'
+import { NxWatermarkOptions } from '@xpert-ai/components/trial-watermark'
+import { DefaultDataSettings, IStoryWidget } from '@xpert-ai/core'
 import { GridsterConfig, GridsterItemConfig } from 'angular-gridster2'
 import ShortUniqueId from 'short-unique-id'
 

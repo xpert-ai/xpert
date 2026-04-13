@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { filterMessageText } from '@metad/copilot'
-import { RequestContext } from '@metad/server-core'
+import { filterMessageText } from '@xpert-ai/copilot'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { GetChatConversationQuery } from '../../../chat-conversation'
 import { CopilotGetOneQuery } from '../../../copilot'

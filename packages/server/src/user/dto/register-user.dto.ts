@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsNotEmpty, IsNotEmptyObject, IsObject, MinLength, ValidateNested } from "class-validator";
-import { IUserRegistrationInput } from "@metad/contracts";
+import { IUserRegistrationInput } from "@xpert-ai/contracts";
 import { Match } from "./../../shared/decorators/validations";
 import { CreateUserDTO } from "./create-user.dto";
 

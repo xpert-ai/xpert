@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
-import { TREE_NODE_DATA } from '@metad/ocap-angular/common/tree-select/tree-select.component.stories'
+import { TREE_NODE_DATA } from '@xpert-ai/ocap-angular/common/tree-select/tree-select.component.stories'
 import {
   DisplayDensity,
   NgmAppearance,
@@ -11,8 +11,8 @@ import {
   OCAP_DATASOURCE_TOKEN,
   OCAP_MODEL_TOKEN,
   OcapCoreModule
-} from '@metad/ocap-angular/core'
-import { AgentType, DataSettings, DataSource, Dimension, Type } from '@metad/ocap-core'
+} from '@xpert-ai/ocap-angular/core'
+import { AgentType, DataSettings, DataSource, Dimension, Type } from '@xpert-ai/ocap-core'
 import { MissingTranslationHandler, TranslateModule } from '@ngx-translate/core'
 import { Meta, moduleMetadata, StoryObj } from '@storybook/angular'
 import { CUBE_SALES_ORDER, MockAgent } from '../../mock/agent-mock.service'
@@ -78,7 +78,7 @@ export default {
           useValue: {
             type: 'SQL',
             factory: async (): Promise<Type<DataSource>> => {
-              const { SQLDataSource } = await import('@metad/ocap-sql')
+              const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
               return SQLDataSource
             }
           },

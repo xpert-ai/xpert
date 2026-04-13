@@ -10,7 +10,7 @@ import {
   TImageUnderstandingConfig,
   TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
-import { buildChunkTree, collectTreeLeaves, IconType, IKnowledgeDocument } from '@metad/contracts'
+import { buildChunkTree, collectTreeLeaves, IconType, IKnowledgeDocument } from '@xpert-ai/contracts'
 import { Document, DocumentInterface } from '@langchain/core/documents'
 import sharp from 'sharp'
 import { v4 as uuid } from 'uuid'

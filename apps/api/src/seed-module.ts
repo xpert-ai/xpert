@@ -1,4 +1,4 @@
-import { seedModule } from '@metad/analytics';
+import { seedModule } from '@xpert-ai/analytics';
 import { pluginConfig } from './plugin-config';
 
 seedModule(pluginConfig).catch((error: any) => {

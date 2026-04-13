@@ -14,19 +14,19 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { convertQueryResultColumns, linkedModel } from '@metad/core'
-import { NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { convertQueryResultColumns, linkedModel } from '@xpert-ai/core'
+import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import {
   NgmCalculatedMeasureComponent,
   NgmEntityModule,
   NgmFormulaEditorComponent,
   PropertyCapacity
-} from '@metad/ocap-angular/entity'
-import { NgmBaseEditorDirective, NgmFormulaModule } from '@metad/ocap-angular/formula'
-import { Dimension, measureFormatter, nonBlank, QueryReturn, stringifyProperty, Syntax } from '@metad/ocap-core'
-import { Crossjoin, Members } from '@metad/ocap-xmla'
-import { getSemanticModelKey } from '@metad/story/core'
+} from '@xpert-ai/ocap-angular/entity'
+import { NgmBaseEditorDirective, NgmFormulaModule } from '@xpert-ai/ocap-angular/formula'
+import { Dimension, measureFormatter, nonBlank, QueryReturn, stringifyProperty, Syntax } from '@xpert-ai/ocap-core'
+import { Crossjoin, Members } from '@xpert-ai/ocap-xmla'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { differenceBy, isNil, isPlainObject } from 'lodash-es'

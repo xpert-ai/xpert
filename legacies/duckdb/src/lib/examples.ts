@@ -11,7 +11,7 @@ import {
   ReferenceLineValueType,
   SemanticModel,
   Syntax
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 
 export const DUCKDB_WASM_MODEL: SemanticModel = {
   name: 'WASM',

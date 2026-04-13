@@ -47,10 +47,10 @@ import {
   NgmFieldAppearance,
   NgmFieldColor,
   NgmFloatLabel
-} from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { DisplayDensity } from '@metad/ocap-angular/core'
-import { DisplayBehaviour, filterTreeNodes, findTreeNode, FlatTreeNode, TreeNodeInterface } from '@metad/ocap-core'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour, filterTreeNodes, findTreeNode, FlatTreeNode, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import { isEqual } from 'lodash-es'
 import {
   BehaviorSubject,

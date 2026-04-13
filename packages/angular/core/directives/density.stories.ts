@@ -1,8 +1,8 @@
 import { provideHttpClient } from '@angular/common/http'
 
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { NgmSearchComponent } from '@metad/ocap-angular/common'
-import { provideTranslate } from '@metad/ocap-angular/mock'
+import { NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
+import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { DensityDirective } from './displayDensity'

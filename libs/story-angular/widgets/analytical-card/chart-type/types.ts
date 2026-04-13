@@ -1,4 +1,4 @@
-import { NxChartType } from '@metad/core'
+import { NxChartType } from '@xpert-ai/core'
 
 export enum ChartMainTypeEnum {
   Bar = NxChartType.Bar,

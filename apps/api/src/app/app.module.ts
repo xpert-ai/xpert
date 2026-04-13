@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common'
 import {
 	AnalyticsModule,
-} from '@metad/analytics'
-import { SeederModule, ServerAppModule } from '@metad/server-core'
+} from '@xpert-ai/analytics'
+import { SeederModule, ServerAppModule } from '@xpert-ai/server-core'
 
 @Module({
 	imports: [

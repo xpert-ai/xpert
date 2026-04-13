@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService, SystemPrivacyFields } from '@metad/cloud/state'
-import { Indicator } from '@metad/ocap-core'
+import { API_PREFIX, OrganizationBaseCrudService, SystemPrivacyFields } from '@xpert-ai/cloud/state'
+import { Indicator } from '@xpert-ai/ocap-core'
 import { omit } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, map, switchMap } from 'rxjs'

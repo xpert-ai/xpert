@@ -1,10 +1,10 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { IDocChunkMetadata } from '@metad/contracts'
+import { IDocChunkMetadata } from '@xpert-ai/contracts'
 import fs from 'fs'
 import http from 'http'
 import https from 'https'
 
-export { TDocumentAsset } from '@metad/contracts'
+export { TDocumentAsset } from '@xpert-ai/contracts'
 
 export interface ChunkMetadata extends IDocChunkMetadata{
   startOffset?: number // Start position in the original text

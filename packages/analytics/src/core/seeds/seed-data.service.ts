@@ -1,4 +1,4 @@
-import { CreationTable, DORIS_TYPE, File } from '@metad/adapter'
+import { CreationTable, DORIS_TYPE, File } from '@xpert-ai/adapter'
 import {
 	IIndicator,
 	IOrganization,
@@ -13,8 +13,8 @@ import {
 	ProjectStatusEnum,
 	StoryStatusEnum,
 	Visibility
-} from '@metad/contracts'
-import { ConfigService } from '@metad/server-config'
+} from '@xpert-ai/contracts'
+import { ConfigService } from '@xpert-ai/server-config'
 import {
 	Organization,
 	REDIS_CLIENT,
@@ -22,8 +22,8 @@ import {
 	SeedDataService as SeedServerDataService,
 	Tenant,
 	User
-} from '@metad/server-core'
-import { readYamlFile } from '@metad/server-common'
+} from '@xpert-ai/server-core'
+import { readYamlFile } from '@xpert-ai/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService as NestConfigService } from '@nestjs/config'
 import chalk from 'chalk';

@@ -1,6 +1,6 @@
-import { TFileDirectory } from '@metad/contracts'
-import { urlJoin } from '@metad/server-common';
-import { environment } from '@metad/server-config';
+import { TFileDirectory } from '@xpert-ai/contracts'
+import { urlJoin } from '@xpert-ai/server-common';
+import { environment } from '@xpert-ai/server-config';
 import { Dirent } from 'fs'
 import fsPromises from 'fs/promises'
 import path from 'path'

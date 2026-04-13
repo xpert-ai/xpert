@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   agentLabel,

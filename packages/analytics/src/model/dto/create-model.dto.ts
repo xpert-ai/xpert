@@ -1,4 +1,4 @@
-import { IModelQuery, IModelRole, ISemanticModelPreferences, ITag, ModelTypeEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
+import { IModelQuery, IModelRole, ISemanticModelPreferences, ITag, ModelTypeEnum, TSemanticModelDraft, Visibility } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsInstance, IsNotEmpty, IsOptional, IsString, IsArray, IsObject } from 'class-validator'
 import { ModelQuery, SemanticModelRole } from '../../core/entities/internal'

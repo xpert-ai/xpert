@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common'
 import { ModuleWithProviders, NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmControlsModule, NgmMemberDatepickerModule, NgmTimeFilterModule } from '@metad/ocap-angular/controls'
+import { NgmControlsModule, NgmMemberDatepickerModule, NgmTimeFilterModule } from '@xpert-ai/ocap-angular/controls'
 import { NxSmartFilterBarComponent } from './filter-bar.component'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 

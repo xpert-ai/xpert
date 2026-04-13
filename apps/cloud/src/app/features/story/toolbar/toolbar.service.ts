@@ -1,10 +1,10 @@
 import { Injectable, ViewContainerRef, inject } from '@angular/core'
-import { NxStoryService, StoryWidget } from '@metad/story/core'
+import { NxStoryService, StoryWidget } from '@xpert-ai/story/core'
 import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { IStoryTemplate, StoryTemplateType, ToastrService } from '../../../@core'
-import { DeepPartial } from '@metad/ocap-core'
+import { DeepPartial } from '@xpert-ai/ocap-core'
 import { StoryTemplateComponent } from '../../../@shared/story'
 import { toSignal } from '@angular/core/rxjs-interop'
 

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core'
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, Routes } from '@angular/router'
-import { Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { firstValueFrom } from 'rxjs'
 import { XpertAPIService } from '../@core'
 import { ChatHomeComponent } from './home/home.component'

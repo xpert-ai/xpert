@@ -1,6 +1,6 @@
 import { InjectionToken, TemplateRef } from '@angular/core'
-import { DataSettings, SelectionVariant } from '@metad/ocap-core'
-import { DisplayDensity, TableColumn } from '@metad/core'
+import { DataSettings, SelectionVariant } from '@xpert-ai/ocap-core'
+import { DisplayDensity, TableColumn } from '@xpert-ai/core'
 import { FilterMode, GridSelectionMode, IGridResourceStrings, IGroupingExpression } from 'igniteui-angular'
 
 export enum WidgetDesignerType {

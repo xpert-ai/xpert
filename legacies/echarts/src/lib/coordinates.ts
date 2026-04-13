@@ -6,7 +6,7 @@ import {
   isNil,
   mergeOptions,
   omit,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { chunk, groupBy } from 'lodash-es'
 import {
   CoordinateContext,

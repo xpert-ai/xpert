@@ -1,5 +1,5 @@
-import { ICopilotStore, IUser } from '@metad/contracts'
-import { TenantOrganizationBaseEntity, User, UserPublicDTO } from '@metad/server-core'
+import { ICopilotStore, IUser } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity, User, UserPublicDTO } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Transform } from 'class-transformer'
 import { IsJSON, IsOptional, IsString } from 'class-validator'

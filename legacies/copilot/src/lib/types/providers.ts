@@ -1,4 +1,4 @@
-import { AiProtocol, AiProvider } from "@metad/contracts"
+import { AiProtocol, AiProvider } from "@xpert-ai/contracts"
 
 export { AiProtocol, AiProvider }
 

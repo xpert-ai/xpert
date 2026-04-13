@@ -17,7 +17,7 @@ import {
   CalculatedMember,
   pick,
   getMemberKey,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { flatten, includes, isArray, isNil } from 'lodash'
 import { WithMemberType } from './calculation'
 import {

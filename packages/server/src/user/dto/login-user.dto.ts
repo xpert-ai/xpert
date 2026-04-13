@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty } from "class-validator";
-import { IUserLoginInput } from "@metad/contracts";
+import { IUserLoginInput } from "@xpert-ai/contracts";
 import { Transform, TransformFnParams } from "class-transformer";
 
 /**

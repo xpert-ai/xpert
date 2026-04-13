@@ -1,6 +1,6 @@
 import { BaseStore } from '@langchain/langgraph'
-import { ICopilotModel } from '@metad/contracts'
-import { ApiKeyOrClientSecretAuthGuard, Public, RequestContext, TransformInterceptor } from '@metad/server-core'
+import { ICopilotModel } from '@xpert-ai/contracts'
+import { ApiKeyOrClientSecretAuthGuard, Public, RequestContext, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, Logger, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

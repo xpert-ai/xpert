@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-import { IInvite, ITag, ITenant, IUserRegistrationInput } from '@metad/contracts'
+import { IInvite, ITag, ITenant, IUserRegistrationInput } from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({

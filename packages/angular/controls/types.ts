@@ -1,4 +1,4 @@
-import { FilterSelectionType, IMember, SmartFilterDataOptions, TreeSelectionMode } from '@metad/ocap-core'
+import { FilterSelectionType, IMember, SmartFilterDataOptions, TreeSelectionMode } from '@xpert-ai/ocap-core'
 
 export interface ControlOptions extends SmartFilterDataOptions {
   label?: string

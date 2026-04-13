@@ -1,4 +1,4 @@
-import { IUser, IUserGroup } from '@metad/contracts'
+import { IUser, IUserGroup } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinTable, ManyToMany } from 'typeorm'

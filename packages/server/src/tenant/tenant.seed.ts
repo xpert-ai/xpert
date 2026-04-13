@@ -1,4 +1,4 @@
-import { DEFAULT_TENANT, ITenant } from '@metad/contracts';
+import { DEFAULT_TENANT, ITenant } from '@xpert-ai/contracts';
 import { Connection } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import faker from 'faker';

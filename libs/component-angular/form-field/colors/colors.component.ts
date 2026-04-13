@@ -11,7 +11,7 @@ import {
   type ZardComboboxDeprecatedGroup,
   type ZardComboboxDeprecatedOption
 } from '@xpert-ai/headless-ui'
-import { DensityDirective } from '@metad/ocap-angular/core'
+import { DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 const listEnterAnimation = trigger('listEnterAnimation', [

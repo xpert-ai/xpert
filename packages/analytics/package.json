@@ -1,6 +1,7 @@
 {
-	"name": "@metad/analytics",
+	"name": "@xpert-ai/analytics",
 	"version": "3.9.0-beta.0",
+	"private": true,
 	"type": "commonjs",
 	"license": "AGPL-3.0",
 	"scripts": {

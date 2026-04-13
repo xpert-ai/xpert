@@ -7,7 +7,7 @@ import {
   XpertViewActionResult,
   XpertViewDataResult,
   XpertViewQuery
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
 import { ViewExtensionCacheService } from './view-extension.cache.service'

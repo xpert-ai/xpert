@@ -1,7 +1,7 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { getContextVariable } from '@langchain/core/context'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
-import { CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
+import { CONTEXT_VARIABLE_CURRENTSTATE } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { BuiltinTool } from '../../builtin-tool'

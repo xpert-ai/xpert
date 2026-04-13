@@ -3,7 +3,7 @@ import {
   ForbiddenException
 } from '@nestjs/common'
 
-jest.mock('@metad/contracts', () => ({
+jest.mock('@xpert-ai/contracts', () => ({
   AssistantCode: {
     CHAT_COMMON: 'chat_common',
     XPERT_SHARED: 'xpert_shared',
@@ -31,7 +31,7 @@ jest.mock('@metad/contracts', () => ({
   isUserManagedAssistant: (code: string) => code === 'clawxpert'
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
   RequestContext: {
     currentTenantId: jest.fn(),
     getOrganizationId: jest.fn(),
@@ -51,7 +51,7 @@ jest.mock('@metad/server-core', () => ({
   User: class User {}
 }))
 
-jest.mock('../xpert', () => ({
+jest.mock('../xpert/published-xpert-access.service', () => ({
   PublishedXpertAccessService: class PublishedXpertAccessService {}
 }))
 
@@ -64,8 +64,8 @@ import {
   AssistantBindingSourceScope,
   AssistantCode,
   RolesEnum
-} from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { AssistantBindingService } from './assistant-binding.service'
 
 describe('AssistantBindingService', () => {
@@ -313,6 +313,11 @@ describe('AssistantBindingService', () => {
       assistantBindingId: 'binding-1',
       soul: '# Rules',
       profile: '# Profile',
+      conversationPreferences: {
+        version: 1,
+        defaultThreadId: 'thread-main',
+        lastThreadId: 'thread-last'
+      },
       toolPreferences: {
         version: 1,
         toolsets: {
@@ -331,6 +336,11 @@ describe('AssistantBindingService', () => {
       expect.objectContaining({
         soul: '# Rules',
         profile: '# Profile',
+        conversationPreferences: {
+          version: 1,
+          defaultThreadId: 'thread-main',
+          lastThreadId: 'thread-last'
+        },
         toolPreferences: {
           version: 1,
           toolsets: {
@@ -407,6 +417,11 @@ describe('AssistantBindingService', () => {
       scope: AssistantBindingScope.USER,
       soul: '# Rules',
       profile: '# Profile',
+      conversationPreferences: {
+        version: 1,
+        defaultThreadId: 'thread-main',
+        lastThreadId: 'thread-last'
+      },
       toolPreferences: {
         version: 1,
         toolsets: {
@@ -424,6 +439,11 @@ describe('AssistantBindingService', () => {
         assistantBindingId: 'binding-1',
         soul: '# Rules',
         profile: '# Profile',
+        conversationPreferences: {
+          version: 1,
+          defaultThreadId: 'thread-main',
+          lastThreadId: 'thread-last'
+        },
         toolPreferences: {
           version: 1,
           toolsets: {
@@ -438,6 +458,57 @@ describe('AssistantBindingService', () => {
       })
     )
     expect(preferenceRepository.save).toHaveBeenCalled()
+  })
+
+  it('normalizes conversation preferences while preserving omitted user preference fields', async () => {
+    const existingPreference = {
+      assistantBindingId: 'binding-1',
+      soul: '# Rules',
+      profile: '# Profile',
+      conversationPreferences: {
+        version: 1,
+        defaultThreadId: 'thread-main',
+        lastThreadId: 'thread-last'
+      },
+      updatedBy: null
+    }
+
+    repository.findOne.mockResolvedValueOnce({
+      id: 'binding-1',
+      code: AssistantCode.CLAWXPERT,
+      scope: AssistantBindingScope.USER
+    })
+    preferenceRepository.findOne.mockResolvedValueOnce(existingPreference)
+
+    const result = await service.upsertBindingPreference(AssistantCode.CLAWXPERT, {
+      scope: AssistantBindingScope.USER,
+      conversationPreferences: {
+        version: 1,
+        defaultThreadId: '   ',
+        lastThreadId: 'thread-next'
+      }
+    })
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        soul: '# Rules',
+        profile: '# Profile',
+        conversationPreferences: {
+          version: 1,
+          defaultThreadId: null,
+          lastThreadId: 'thread-next'
+        }
+      })
+    )
+    expect(preferenceRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationPreferences: {
+          version: 1,
+          defaultThreadId: null,
+          lastThreadId: 'thread-next'
+        }
+      })
+    )
   })
 
   it('merges partial user preferences without clearing omitted fields', async () => {

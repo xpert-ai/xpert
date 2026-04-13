@@ -1,5 +1,5 @@
 import { IHandler } from '@foblex/mediator'
-import { TXpertTeamNode } from '@metad/contracts'
+import { TXpertTeamNode } from '@xpert-ai/contracts'
 import { Store, StoreDef } from '@ngneat/elf'
 import { ToConnectionViewModelHandler } from '../../connection'
 import { ToNodeViewModelHandler } from '../../node'

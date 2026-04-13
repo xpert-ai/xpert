@@ -1,4 +1,4 @@
-import { Agent, DataSourceFactory, DataSourceOptions, DSCacheService, DSCoreService } from '@metad/ocap-core'
+import { Agent, DataSourceFactory, DataSourceOptions, DSCacheService, DSCoreService } from '@xpert-ai/ocap-core'
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { OCAP_AGENT_TOKEN, OCAP_DATASOURCES_TOKEN, OCAP_MODEL_TOKEN } from './types'
 

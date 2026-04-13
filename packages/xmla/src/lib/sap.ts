@@ -4,7 +4,7 @@ import {
   ParameterProperty,
   VariableEntryType,
   wrapHierarchyValue
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { isArray } from 'lodash'
 import { MDXHierarchyFilter } from './filter'
 
