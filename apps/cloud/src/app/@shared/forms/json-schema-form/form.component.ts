@@ -68,11 +68,11 @@ export class JSONSchemaFormComponent {
     return false
   })
 
-  constructor() {
-    effect(() => {
-      console.log(this.schema())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(this.schema())
+  //   })
+  // }
 
   updateValue(name: string, value: unknown) {
     this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))
