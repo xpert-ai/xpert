@@ -4,9 +4,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardCheckboxComponent, ZardInputDirective, ZardTabComponent, ZardTabGroupComponent } from '@xpert-ai/headless-ui'
-
 import { PacAuthRoutingModule } from './auth-routing.module'
-import { PacAuthComponent } from './auth.component'
 import {
   defaultAuthOptions,
   PacAuthOptions,
@@ -52,7 +50,6 @@ export function nbOptionsFactory(options) {
 
 @NgModule({
   declarations: [
-    PacAuthComponent,
     UserLoginComponent,
     UserRegisterComponent,
     UserRegisterResultComponent,
@@ -75,7 +72,6 @@ export function nbOptionsFactory(options) {
     ZardCheckboxComponent
   ],
   exports: [
-    PacAuthComponent,
     UserLoginComponent,
     UserRegisterComponent,
     UserRegisterResultComponent,

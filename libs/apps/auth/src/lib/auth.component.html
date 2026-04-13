@@ -1,8 +1,8 @@
 <div class="pac-auth-card flex flex-col justify-start items-center pb-2 m-auto rounded-xl shadow-lg dark:border dark:border-neutral-800">
   <div class="pac-auth__header my-8">
-    <img class="pac-auth__logo w-10 h-10 rounded-xl mr-2" src="assets/logo.png" />
+    <img class="pac-auth__logo w-10 h-10 rounded-xl mr-2" [src]="appConfigs()?.app_logo || 'assets/logo.png'" />
     <span>
-      {{ title() || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}
+      {{ title() || appConfigs()?.app_name || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}
     </span>
   </div>
     
@@ -10,21 +10,20 @@
 
   <div class="flex justify-between items-center gap-2">
 
-    <select
+    <z-select class="w-32"
       id="countries"
-      class="text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
       [ngModel]="language()"
       (ngModelChange)="onLanguage($event)"
     >
-      <option value="en">English</option>
-      <option value="zh-Hans">中文简体</option>
-      <option value="zh-Hant">中文繁体</option>
-    </select>
+      <z-select-item zValue="en">English</z-select-item>
+      <z-select-item zValue="zh-Hans">中文简体</z-select-item>
+      <z-select-item zValue="zh-Hant">中文繁体</z-select-item>
+    </z-select>
 
     <div class="pac-auth__copyright flex-1 flex items-center whitespace-pre">
       {{ 'Auth.Copyright' | translate: { Default: 'Copyright' } }}
-      <span class="text-neutral-500">©</span>
-      2026 <a href="https://xpertai.cn" target="_blank">Xpert.AI</a> Inc.
+      <span class="text-text-primary">©</span>
+      2026 <a href="https://xpertai.cn" target="_blank">XpertAI</a> Inc.
     </div>
   </div>
 </div>
