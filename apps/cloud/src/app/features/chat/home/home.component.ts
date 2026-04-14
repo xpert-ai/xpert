@@ -146,8 +146,6 @@ export class ChatHomeComponent {
   readonly showLegacyHistory = computed(() => !this.isCommonAssistantRoute())
 
   readonly chatSidebar = attrModel(this.#preferences, 'chatSidebar')
-  readonly featureOrganizations = toSignal(this.#store.featureOrganizations$.pipe(startWith([])))
-  readonly featureTenant = toSignal(this.#store.featureTenant$.pipe(startWith([])))
   readonly sidebarState = linkedModel<PersistState['preferences']['chatSidebar']>({
     initialValue: 'expanded',
     compute: () => this.chatSidebar() || 'expanded',
@@ -156,9 +154,6 @@ export class ChatHomeComponent {
     }
   })
   readonly clawxpertEnabled = computed(() => {
-    this.featureOrganizations()
-    this.featureTenant()
-
     return (
       this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
       this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)

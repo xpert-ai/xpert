@@ -34,6 +34,9 @@ export class PACSettingComponent {
     initialValue: this.store.activeScope
   })
   readonly permissions = toSignal(this.permissionsService.permissions$.pipe(distinctUntilChanged()))
+  readonly featureContextHydrated = toSignal(this.store.featureContextHydrated$, {
+    initialValue: this.store.featureContextHydrated
+  })
   readonly scopeTranslations = toSignal(this.i18nService.stream('PAC.Scope'))
   readonly scopeIcon = computed(() =>
     this.activeScope().level === RequestScopeLevel.TENANT ? 'storage' : 'corporate_fare'
@@ -56,10 +59,11 @@ export class PACSettingComponent {
   readonly menus = computed(() => {
     const scopeLevel = this.activeScope().level
     this.permissions()
+    const featureContextHydrated = this.featureContextHydrated()
 
     return getSettingsMenuItems(scopeLevel)
       .filter((item) => {
-        if (item.data?.featureKey) {
+        if (item.data?.featureKey && featureContextHydrated) {
           const featureKey = Array.isArray(item.data.featureKey) ? item.data.featureKey : [item.data.featureKey]
           if (!featureKey.every((key) => this.store.hasFeatureEnabled(key))) {
             return false

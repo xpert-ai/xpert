@@ -48,6 +48,9 @@ export interface AppState {
 	featureToggles: IFeatureToggle[];
 	featureOrganizations: IFeatureOrganization[];
 	featureTenant: IFeatureOrganization[];
+	featureContextHydrated: boolean;
+	featureContextHydrationLoading: boolean;
+	featureContextHydrationFailed: boolean;
 	tenantSettings?: ITenantSetting
 }
 
@@ -105,7 +108,10 @@ export function createInitialAppState(): AppState {
 		userRolePermissions: [],
 		featureToggles: [],
 		featureOrganizations: [],
-		featureTenant: []
+		featureTenant: [],
+		featureContextHydrated: false,
+		featureContextHydrationLoading: false,
+		featureContextHydrationFailed: false
 	} as AppState;
 }
 
@@ -216,6 +222,9 @@ export class Store {
 		(state) => state.featureOrganizations
 	);
 	featureTenant$ = this.appQuery.select((state) => state.featureTenant);
+	featureContextHydrated$ = this.appQuery.select((state) => state.featureContextHydrated);
+	featureContextHydrationLoading$ = this.appQuery.select((state) => state.featureContextHydrationLoading);
+	featureContextHydrationFailed$ = this.appQuery.select((state) => state.featureContextHydrationFailed);
 	preferredLanguage$ = this.persistQuery.select(
 		(state) => state.preferredLanguage
 	);
@@ -240,6 +249,10 @@ export class Store {
 	 */
 	readonly xpert = toSignal(this.persistQuery.select((state) => state.xpert))
 	readonly preferences = toSignal(this.persistQuery.select((state) => state.preferences))
+	private readonly featureOrganizationsSignal = toSignal(this.featureOrganizations$, { initialValue: [] })
+	private readonly featureTenantSignal = toSignal(this.featureTenant$, { initialValue: [] })
+	private readonly featureTogglesSignal = toSignal(this.featureToggles$, { initialValue: [] })
+	private readonly featureContextHydratedSignal = toSignal(this.featureContextHydrated$, { initialValue: false })
 
 	set selectedOrganization(organization: IOrganization) {
 		this.appStore.update({
@@ -427,10 +440,50 @@ export class Store {
 		});
 	}
 
+	get featureContextHydrated(): boolean {
+		const { featureContextHydrated } = this.appQuery.getValue();
+		return featureContextHydrated;
+	}
+
+	set featureContextHydrated(featureContextHydrated: boolean) {
+		this.appStore.update({
+			featureContextHydrated
+		});
+	}
+
+	get featureContextHydrationLoading(): boolean {
+		const { featureContextHydrationLoading } = this.appQuery.getValue();
+		return featureContextHydrationLoading;
+	}
+
+	set featureContextHydrationLoading(featureContextHydrationLoading: boolean) {
+		this.appStore.update({
+			featureContextHydrationLoading
+		});
+	}
+
+	get featureContextHydrationFailed(): boolean {
+		const { featureContextHydrationFailed } = this.appQuery.getValue();
+		return featureContextHydrationFailed;
+	}
+
+	set featureContextHydrationFailed(featureContextHydrationFailed: boolean) {
+		this.appStore.update({
+			featureContextHydrationFailed
+		});
+	}
+
 	/*
 	 * Check features are enabled/disabled for tenant organization
 	 */
 	hasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
+		// Reading these signals makes feature checks reactive in OnPush templates/computeds
+		// after the deferred /user/me hydration updates tenant/org feature state.
+		this.featureOrganizationsSignal();
+		this.featureTenantSignal();
+		this.featureTogglesSignal();
+		this.featureContextHydratedSignal();
+
 		const {
 			featureTenant = [],
 			featureOrganizations = [],
@@ -451,6 +504,18 @@ export class Store {
 		return !!filtered.find(
 			(item) => item.feature.code === feature && item.isEnabled
 		);
+	}
+
+	selectHasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
+		return combineLatest([
+			this.featureOrganizations$,
+			this.featureTenant$,
+			this.featureToggles$,
+			this.featureContextHydrated$
+		]).pipe(
+			map(() => this.hasFeatureEnabled(feature)),
+			distinctUntilChanged()
+		)
 	}
 
 	get userRolePermissions(): IRolePermission[] {
@@ -776,6 +841,21 @@ export function injectActiveScope() {
 	})
 }
 
+function updateRememberedScopes(
+	rememberedScopes: PersistState['rememberedScopes'],
+	userId: string | null | undefined,
+	scope: RememberedUserScope
+) {
+	if (!userId) {
+		return rememberedScopes ?? {}
+	}
+
+	return {
+		...(rememberedScopes ?? {}),
+		[userId]: scope
+	}
+}
+
 export function injectScopeLevel() {
 	const store = inject(Store)
 	return toSignal(store.scopeLevel$, {
@@ -812,21 +892,6 @@ export function injectWorkspace() {
 export function injectWorkspaceId() {
 	const store = inject(Store)
 	return toSignal(store.workspaceId$)
-}
-
-function updateRememberedScopes(
-	rememberedScopes: PersistState['rememberedScopes'],
-	userId: string | null | undefined,
-	scope: RememberedUserScope
-) {
-	if (!userId) {
-		return rememberedScopes ?? {}
-	}
-
-	return {
-		...(rememberedScopes ?? {}),
-		[userId]: scope
-	}
 }
 
 function resolveActiveScopeFromPersistState(
