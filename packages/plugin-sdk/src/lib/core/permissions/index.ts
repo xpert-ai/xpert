@@ -10,7 +10,6 @@ export * from './general'
 export * from './analytics'
 export * from './operation'
 export * from './handoff'
-export * from './account-binding'
 export * from './user'
 
 import type {
@@ -21,7 +20,6 @@ import type {
   VectorStorePermission
 } from './general'
 import type { AnalyticsPermission } from './analytics'
-import type { AccountBindingPermission } from './account-binding'
 import type { HandoffPermission } from './handoff'
 import type { UserPermission } from './user'
 
@@ -35,7 +33,6 @@ export type Permission =
   | FileSystemPermission
   | IntegrationPermission
   | AnalyticsPermission
-  | AccountBindingPermission
   | UserPermission
   | HandoffPermission
 
