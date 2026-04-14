@@ -48,12 +48,15 @@ export class UserRoleSelectComponent {
     roles?: ISelectOption[]
     single?: boolean
     emptyHint?: string
+    loadOnEmptySearch?: boolean
+    excludeUserIds?: string[]
     searchOptions?: {
       organizationId?: string
       membership?: string
     }
   } = inject(DIALOG_DATA)
   private _dialogRef = inject(DialogRef)
+  private readonly excludedUserIds = new Set(this.data?.excludeUserIds ?? [])
 
   @Input() single: boolean
 
@@ -61,7 +64,8 @@ export class UserRoleSelectComponent {
   users: IUser[] = []
   loading = false
   searchControl = new FormControl<string>('')
-  readonly loadOnEmptySearch = this.data?.searchOptions?.membership === 'non-members'
+  readonly loadOnEmptySearch =
+    this.data?.loadOnEmptySearch === true || this.data?.searchOptions?.membership === 'non-members'
 
   public readonly users$ = this.searchControl.valueChanges.pipe(
     startWith(this.searchControl.value ?? ''),
@@ -84,12 +88,14 @@ export class UserRoleSelectComponent {
   )
   public readonly userOptions$ = this.users$.pipe(
     map((items) =>
-      items.map((user) => ({
-        id: user.id,
-        label: userLabel(user),
-        value: user,
-        data: user
-      }))
+      items
+        .filter((user) => !this.excludedUserIds.has(user.id))
+        .map((user) => ({
+          id: user.id,
+          label: userLabel(user),
+          value: user,
+          data: user
+        }))
     )
   )
 
@@ -111,7 +117,9 @@ export class UserRoleSelectComponent {
   }
 
   onUsersChange(value: unknown[]) {
-    const nextUsers = Array.isArray(value) ? value.filter(isUser) : []
+    const nextUsers = Array.isArray(value)
+      ? value.filter(isUser).filter((user) => !this.excludedUserIds.has(user.id))
+      : []
     this.users = this.single && nextUsers.length > 1 ? [nextUsers[nextUsers.length - 1]] : nextUsers
   }
 

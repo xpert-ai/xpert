@@ -27,7 +27,7 @@ import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { CommandBus } from '@nestjs/cqrs'
-import { IPagination, IUserMeFeatures, IUserOrganization, PermissionsEnum, IUserCreateInput, IUserUpdateInput, UserType, RolesEnum } from '@xpert-ai/contracts'
+import { IPagination, PermissionsEnum, IUserCreateInput, IUserUpdateInput, UserType, RolesEnum } from '@xpert-ai/contracts'
 import { CrudController, PaginationParams } from './../core/crud'
 import { RequestContext } from '../core/context'
 import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes'
@@ -40,7 +40,6 @@ import { FactoryResetService } from './factory-reset/factory-reset.service'
 import { UserDeleteCommand } from './commands/user.delete.command'
 import { Like, Not } from 'typeorm'
 import { UserPasswordDTO } from './dto'
-import { UserOrganization } from '../user-organization/user-organization.entity'
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -73,37 +72,9 @@ export class UserController extends CrudController<User> {
 		description: 'Record not found'
 	})
 	@Get('/me')
-	async findMe(): Promise<User> {
+	async findMe(@Query('data', ParseJsonPipe) data: { relations?: string[] } | null): Promise<User> {
 		const id = RequestContext.currentUserId()
-		return await this.userService.findCurrentUser(id)
-	}
-
-	@ApiOperation({ summary: 'Find current user organizations.' })
-	@ApiResponse({
-		status: HttpStatus.OK,
-		description: 'Found current user organizations',
-		type: UserOrganization,
-		isArray: true
-	})
-	@Get('/me/organizations')
-	async findMeOrganizations(): Promise<IUserOrganization[]> {
-		const id = RequestContext.currentUserId()
-		return await this.userService.findCurrentUserOrganizations(id)
-	}
-
-	@ApiOperation({ summary: 'Find current user features.' })
-	@ApiResponse({
-		status: HttpStatus.OK,
-		description: 'Found current user features'
-	})
-	@ApiResponse({
-		status: HttpStatus.NOT_FOUND,
-		description: 'Record not found'
-	})
-	@Get('/me/features')
-	async findMeFeatures(): Promise<IUserMeFeatures> {
-		const id = RequestContext.currentUserId()
-		return await this.userService.getCurrentUserFeatures(id)
+		return await this.userService.findCurrentUser(id, data?.relations)
 	}
 
 	/**

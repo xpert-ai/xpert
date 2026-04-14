@@ -1,8 +1,22 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IUser, IUserFindInput, IUserMeFeatures, IUserOrganization, IUserPasswordInput, IUserUpdateInput } from '@xpert-ai/contracts'
+import { IUser, IUserFindInput, IUserPasswordInput, IUserUpdateInput } from '@xpert-ai/contracts'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from './constants'
+
+// Backend already includes employee/role/rolePermissions/tenant for /user/me by default.
+export const CURRENT_USER_BOOTSTRAP_RELATIONS = [
+  'organizations',
+  'organizations.organization'
+] as const
+
+export const CURRENT_USER_FULL_RELATIONS = [
+  ...CURRENT_USER_BOOTSTRAP_RELATIONS,
+  'tenant.featureOrganizations',
+  'tenant.featureOrganizations.feature',
+  'organizations.organization.featureOrganizations',
+  'organizations.organization.featureOrganizations.feature'
+] as const
 
 @Injectable({
   providedIn: 'root'
@@ -12,94 +26,17 @@ export class UsersService {
 
   API_URL = `${API_PREFIX}/user`
 
-  getMe(): Promise<IUser> {
-    return firstValueFrom(this.http.get<IUser>(`${this.API_URL}/me`))
-  }
+  getMe(relations?: string[]): Promise<IUser> {
+    if (!relations?.length) {
+      return firstValueFrom(this.http.get<IUser>(`${this.API_URL}/me`))
+    }
 
-  getMeOrganizations(): Promise<IUserOrganization[]> {
-    return firstValueFrom(this.http.get<IUserOrganization[]>(`${this.API_URL}/me/organizations`))
-  }
-
-  getMeFeatures(): Promise<IUserMeFeatures> {
-    return firstValueFrom(this.http.get<IUserMeFeatures>(`${this.API_URL}/me/features`))
-  }
-
-  hasHydratedCurrentUser(userId: IUser['id'] | null | undefined, cachedUser?: IUser | null): cachedUser is IUser {
-    return (
-      !!userId &&
-      !!cachedUser &&
-      cachedUser.id === userId &&
-      !!cachedUser.tenant &&
-      Array.isArray(cachedUser.organizations) &&
-      cachedUser.organizations.length > 0
+    const data = JSON.stringify({ relations })
+    return firstValueFrom(
+      this.http.get<IUser>(`${this.API_URL}/me`, {
+        params: { data }
+      })
     )
-  }
-
-  getCachedMeOrganizations(userId: IUser['id'] | null | undefined, cachedUser?: IUser | null) {
-    if (
-      !userId ||
-      !cachedUser ||
-      cachedUser.id !== userId ||
-      !Array.isArray(cachedUser.organizations) ||
-      cachedUser.organizations.length === 0
-    ) {
-      return null
-    }
-
-    return cachedUser.organizations
-  }
-
-  mergeMeOrganizations(user: IUser, organizations?: IUserOrganization[] | null): IUser {
-    return {
-      ...user,
-      organizations: organizations ?? user.organizations ?? []
-    }
-  }
-
-  async resolveCurrentUser(userId: IUser['id'] | null | undefined, cachedUser?: IUser | null): Promise<IUser | null> {
-    if (!userId) {
-      return null
-    }
-
-    if (this.hasHydratedCurrentUser(userId, cachedUser)) {
-      return cachedUser
-    }
-
-    const cachedOrganizations = this.getCachedMeOrganizations(userId, cachedUser)
-    const [user, organizations] = await Promise.all([
-      this.getMe(),
-      cachedOrganizations ? Promise.resolve(cachedOrganizations) : this.getMeOrganizations()
-    ])
-
-    return this.mergeMeOrganizations(user, organizations)
-  }
-
-  mergeMeFeatures(user: IUser, features: IUserMeFeatures): IUser {
-    const organizationFeatures = new Map(
-      (features.organizationFeatures ?? []).map(({ organizationId, featureOrganizations }) => [
-        organizationId,
-        featureOrganizations
-      ])
-    )
-
-    return {
-      ...user,
-      tenant: user.tenant
-        ? {
-            ...user.tenant,
-            featureOrganizations: features.tenantFeatureOrganizations ?? []
-          }
-        : user.tenant,
-      organizations: (user.organizations ?? []).map((membership) => ({
-        ...membership,
-        organization: membership.organization
-          ? {
-              ...membership.organization,
-              featureOrganizations: organizationFeatures.get(membership.organizationId) ?? []
-            }
-          : membership.organization
-      }))
-    }
   }
 
   getUserByEmail(emailId: string): Promise<IUser> {
