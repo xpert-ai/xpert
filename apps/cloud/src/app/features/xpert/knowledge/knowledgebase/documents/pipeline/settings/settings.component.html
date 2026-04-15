@@ -13,7 +13,7 @@
         <button
           type="button"
           class="btn disabled:btn-disabled btn-secondary-accent btn-medium gap-x-0.5"
-          [disabled]="previewing()"
+          [disabled]="previewing() || !chunkerNode()"
           (click)="previewChunks()"
         >
           <i class="ri-eye-2-line"></i>
@@ -132,6 +132,7 @@
                     {{ 'PAC.Knowledgebase.PreviewDocError' | translate: {Default: 'Failed to load preview:'} }} {{ error }}
                   </p>
                   <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
+                    [disabled]="!chunkerNode()"
                     (click)="previewChunks()">{{ 'PAC.Knowledgebase.RetryPreview' | translate: {Default: 'Retry Preview'} }}</button>
                 </div>
               </div>
@@ -148,6 +149,7 @@
                   {{ 'PAC.Knowledgebase.PreviewDocHint' | translate: {Default: 'Click the "Document" button on the left to load a preview'} }}
                 </p>
                 <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
+                  [disabled]="!chunkerNode()"
                   (click)="previewChunks()">{{ 'PAC.Knowledgebase.PreviewChunks' | translate: {Default: 'Preview Chunks'} }}</button>
               </div>
             </div>
