@@ -3,21 +3,61 @@
     <div class="flex w-full flex-col rounded-lg border border-components-panel-border bg-components-panel-bg">
       <div class="flex items-center gap-x-1 px-4 py-2">
         <div class="system-sm-semibold-uppercase grow text-text-secondary">{{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}</div>
-        <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium" disabled="">
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-ghost btn-medium"
+          disabled=""
+        >
           {{ 'PAC.ACTIONS.Reset' | translate: {Default: 'Reset'} }}
         </button>
-        <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium gap-x-0.5"
-          (click)="previewChunks()">
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-secondary-accent btn-medium gap-x-0.5"
+          [disabled]="previewing()"
+          (click)="previewChunks()"
+        >
           <i class="ri-eye-2-line"></i>
           <span class="px-0.5">{{ 'PAC.Knowledgebase.PreviewChunks' | translate: {Default: 'Preview Chunks'} }}</span>
         </button>
       </div>
       <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3">
-        @if (parameters(); as parameters) {
-          <xpert-parameters-form class="w-full" [readonly]="loading()" 
-            [parameters]="parameters"
-            [(ngModel)]="parametersValue"
-          />
+        @if (chunkerNode(); as chunkerNode) {
+          @if (chunkerStrategy(); as chunkerStrategy) {
+            <div class="flex items-start gap-3 rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-3">
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-components-input-bg-normal">
+                @if (chunkerStrategy.icon; as icon) {
+                  <xp-icon class="!block h-8 w-8" [icon]="icon" />
+                } @else {
+                  <i class="ri-equalizer-3-line text-text-secondary"></i>
+                }
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="system-md-semibold text-text-secondary">
+                  {{ chunkerStrategy.label | i18n }}
+                </div>
+                <div class="system-xs-regular text-text-tertiary" [title]="chunkerStrategy.description | i18n">
+                  {{ chunkerStrategy.description | i18n }}
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (hasChunkerConfigFields()) {
+            <json-schema-form
+              class="grid grid-cols-2 gap-2"
+              [schema]="chunkerConfigSchema()"
+              [readonly]="true"
+              [ngModel]="chunkerConfig()"
+            />
+          } @else {
+            <div class="rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-3 text-sm text-text-tertiary">
+              {{ 'PAC.Pipeline.NoPluginConfig' | translate: {Default: 'No configuration required for this plugin.'} }}
+            </div>
+          }
+        } @else {
+          <div class="rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-3 text-sm text-text-tertiary">
+            {{ 'PAC.Knowledgebase.NoChunkersAvailable' | translate: {Default: 'No chunker providers available'} }}
+          </div>
         }
       </div>
     </div>

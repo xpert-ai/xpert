@@ -3578,6 +3578,7 @@
       "PdfExtractor": "PDF 提取器",
       "ChunkSettings": "分块设置",
       "ChunkSettingsDesc": "配置文本分块模式和预处理规则。",
+      "NoChunkersAvailable": "当前流水线未配置分块器",
       "PreviewDocHint": "点击左侧的“预览块”按钮来加载预览",
       "PreviewChunks": "预览分块",
       "SaveAndProcess": "保存并处理",
