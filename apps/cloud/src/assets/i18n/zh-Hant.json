@@ -2832,6 +2832,7 @@
       "PdfExtractor": "PDF 提取器",
       "ChunkSettings": "分塊設置",
       "ChunkSettingsDesc": "配置文本分塊模式和預處理規則。",
+      "NoChunkersAvailable": "當前流程未配置分塊器",
       "General": "通用",
       "GeneralDesc": "通用文本分塊模式，檢索和回憶的塊是相同的",
       "ChunkDelimiter": "分塊標識符",

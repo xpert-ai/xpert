@@ -20,6 +20,7 @@ jest.mock('@xpert-ai/contracts', () => {
 
 import { of, lastValueFrom, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { BadRequestException } from '@nestjs/common'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
@@ -238,6 +239,22 @@ describe('XpertChatHandler', () => {
                 }
             }
         })
+    })
+
+    it('rejects send requests with a null message payload', async () => {
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'send',
+                        message: null as any
+                    },
+                    {
+                        xpertId: 'xpert-1'
+                    } as any
+                )
+            )
+        ).rejects.toThrow(new BadRequestException('Invalid send request: message.input is required'))
     })
 
     it('passes a null tool preference snapshot when the user preference has no tool preferences', async () => {

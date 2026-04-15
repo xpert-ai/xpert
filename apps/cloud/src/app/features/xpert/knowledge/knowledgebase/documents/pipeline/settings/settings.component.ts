@@ -1,24 +1,35 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
   getErrorMessage,
+  IDocumentChunkerProvider,
   IKnowledgebase,
   IKnowledgebaseTask,
   IKnowledgeDocument,
+  IWFNChunker,
   IWFNSource,
   IXpert,
   KDocumentSourceType,
   KnowledgebaseService,
   ToastrService,
-  TXpertTeamNode
+  TXpertTeamNode,
+  WorkflowNodeTypeEnum
 } from '@cloud/app/@core'
+import { IconComponent } from '@cloud/app/@shared/avatar'
+import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
-import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
+import {
+  buildJsonSchemaDefaults,
+  jsonSchemaHasConfigFields
+} from '@cloud/app/@shared/workflow/trigger-config/trigger-config.util'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Subscription } from 'rxjs'
+import { startWith, switchMap } from 'rxjs/operators'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -32,7 +43,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     ContentLoaderModule,
-    XpertParametersFormComponent,
+    NgmI18nPipe,
+    IconComponent,
+    JSONSchemaFormComponent,
     KnowledgeChunkComponent
 ]
 })
@@ -41,6 +54,7 @@ export class KnowledgeDocumentPipelineSettingsComponent {
 
   readonly kbAPI = inject(KnowledgebaseService)
   readonly #toastr = inject(ToastrService)
+  readonly #translate = inject(TranslateService)
 
   // Inputs
   readonly knowledgebase = input<IKnowledgebase>()
@@ -53,9 +67,70 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly parametersValue = model<Partial<Record<string, unknown>>>({})
 
   // States
-  readonly parameters = computed(() => this.pipeline()?.agentConfig?.parameters)
+  readonly textSplitterStrategies = toSignal(
+    this.#translate.onLangChange.pipe(
+      startWith({ lang: this.#translate.currentLang }),
+      switchMap(() => this.kbAPI.getTextSplitterStrategies())
+    ),
+    {
+      initialValue: [] as IDocumentChunkerProvider[]
+    }
+  )
+  readonly chunkerNode = computed(() => {
+    const graph = this.pipeline()?.graph
+    const sourceKey = this.selectedSource()?.key
+    const workflowNodes = graph?.nodes?.filter(
+      (node): node is TXpertTeamNode & { type: 'workflow'; entity: IWFNChunker } => node.type === 'workflow'
+    )
+
+    if (!workflowNodes?.length) {
+      return null
+    }
+
+    if (sourceKey) {
+      const nodeMap = new Map(workflowNodes.map((node) => [node.key, node]))
+      const visited = new Set<string>()
+      const queue = [sourceKey]
+
+      while (queue.length) {
+        const key = queue.shift()
+        if (!key || visited.has(key)) {
+          continue
+        }
+
+        visited.add(key)
+        const node = nodeMap.get(key)
+        if (key !== sourceKey && node?.entity.type === WorkflowNodeTypeEnum.CHUNKER) {
+          return node
+        }
+
+        graph.connections
+          ?.filter((connection) => connection.type === 'edge' && connection.from === key)
+          .forEach((connection) => {
+            if (!visited.has(connection.to)) {
+              queue.push(connection.to)
+            }
+          })
+      }
+    }
+
+    return (
+      workflowNodes.find(
+        (node): node is TXpertTeamNode & { type: 'workflow'; entity: IWFNChunker } =>
+          node.entity.type === WorkflowNodeTypeEnum.CHUNKER
+      ) ?? null
+    )
+  })
+  readonly chunkerStrategy = computed(() =>
+    this.textSplitterStrategies().find((strategy) => strategy.name === this.chunkerNode()?.entity.provider)
+  )
+  readonly chunkerConfigSchema = computed(() => this.chunkerStrategy()?.configSchema ?? null)
+  readonly hasChunkerConfigFields = computed(() => jsonSchemaHasConfigFields(this.chunkerConfigSchema()))
+  readonly chunkerConfig = computed(() => ({
+    ...(buildJsonSchemaDefaults(this.chunkerConfigSchema()) ?? {}),
+    ...(this.chunkerNode()?.entity.config ?? {})
+  }))
   readonly previewing = signal(false)
-  readonly loading = signal(false)
   private previewSub: Subscription
   readonly previewDocName = signal('')
   readonly previewDocChunks = computed(() => {
@@ -87,6 +162,9 @@ export class KnowledgeDocumentPipelineSettingsComponent {
 
   previewChunks() {
     this.previewing.set(true)
+    this.task.set(null)
+    this.previewSub?.unsubscribe()
+
     this.kbAPI
       .processTask(this.knowledgebase().id, this.taskId(), {
         sources: {
@@ -97,7 +175,7 @@ export class KnowledgeDocumentPipelineSettingsComponent {
         stage: 'preview'
       })
       .subscribe({
-        next: (task) => {
+        next: () => {
           this.previewSub = this.kbAPI.pollTaskStatus(this.knowledgebase().id, this.taskId()).subscribe({
             next: (res) => {
               this.task.set(res)
@@ -111,8 +189,9 @@ export class KnowledgeDocumentPipelineSettingsComponent {
             }
           })
         },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
+        error: (error) => {
+          this.previewing.set(false)
+          this.#toastr.error(getErrorMessage(error))
         }
       })
   }

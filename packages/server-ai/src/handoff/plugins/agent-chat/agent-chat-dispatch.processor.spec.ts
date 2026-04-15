@@ -51,6 +51,33 @@ describe('AgentChatDispatchHandoffProcessor', () => {
 		})
 	})
 
+	it('returns dead when a send request is missing message.input', async () => {
+		const commandBus = { execute: jest.fn() }
+		const handoffQueueService = { enqueue: jest.fn() }
+		const processor = new AgentChatDispatchHandoffProcessor(
+			commandBus as any,
+			handoffQueueService as any
+		)
+
+		const result = await processor.process(
+			createMessage({
+				request: {
+					action: 'send',
+					message: null
+				},
+				options: { xpertId: 'xpert-id' },
+				callback: { messageType: 'channel.lark.chat_stream_event.v1' }
+			}) as any,
+			createContext() as any
+		)
+
+		expect(result).toEqual({
+			status: 'dead',
+			reason: 'Invalid send request in agent chat dispatch payload: message.input is required'
+		})
+		expect(commandBus.execute).not.toHaveBeenCalled()
+	})
+
 	it('converts stream events to callback messages with increasing sequence', async () => {
 		const commandBus = { execute: jest.fn() }
 		const handoffQueueService = { enqueue: jest.fn().mockResolvedValue({ id: 'callback-job-id' }) }
