@@ -4,7 +4,7 @@
 
 <div class="w-full border-b border-solid border-divider-regular"></div>
 
-<z-stepper class="w-[680px] max-w-full my-4" [linear]="true" orientation="horizontal" #stepper="zStepper">
+<z-stepper class="w-[680px] max-w-full my-4" [linear]="true" orientation="horizontal" #stepper="zStepper" (selectionChange)="onStepChange($event)">
   <z-step #step1="zStep" [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4">
       <ng-template zStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>
@@ -245,44 +245,21 @@
           {{ 'PAC.Onboarding.ConfigureAiModelDesc' | translate: {Default: 'Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings.'} }}
         </div>
 
-        @if (showAiModelForm()) {
-          <pac-copilot-config-form #onboardingCopilotForm class="w-full" [copilot]="primaryCopilot()" (saved)="onAiModelSaved()" />
-          <div class="flex items-center gap-4">
-            <button type="button" class="btn btn-secondary btn-large" [disabled]="loading()" (click)="skipAiModelSetup()">
-              {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
-            </button>
-            <button
-              z-button
-              zType="default"
-
-              type="button"
-              [disabled]="loading() || !onboardingCopilotForm.canSubmit() || !onboardingCopilotForm.hasSelectedModel()"
-              (click)="onboardingCopilotForm.submit()"
-            >
-              {{ 'PAC.Onboarding.SaveAndNext' | translate: {Default: 'Save and Next'} }}
-            </button>
-          </div>
-        } @else {
-          <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-5">
-            <div class="text-base font-medium text-text-primary">
-              {{ 'PAC.Onboarding.ConfigureAiModelTitle' | translate: {Default: 'Make your AI copilot ready to use'} }}
-            </div>
-            <div class="description mt-2">
-              {{ 'PAC.Onboarding.ConfigureAiModelHint' | translate: {Default: 'We will create your primary provider first, then you can add credentials and pick the default model in one place.'} }}
-            </div>
-
-            <div class="mt-4 flex items-center gap-4">
-              <button type="button" class="btn btn-primary btn-large" [disabled]="loading()" (click)="startAiModelSetup()">
-                {{ 'PAC.Onboarding.ConfigureAiModelAction' | translate: {Default: 'Start configuration'} }}
-              </button>
-            </div>
-          </div>
-          <div class="flex items-center justify-end gap-4">
-            <button type="button" class="btn btn-secondary btn-large" [disabled]="loading()" (click)="skipAiModelSetup()">
-              {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
-            </button>
-          </div>
-        }
+        <pac-copilot-config-form #onboardingCopilotForm class="w-full" [copilot]="primaryCopilot()" (saved)="onAiModelSaved()" />
+        <div class="flex items-center gap-4">
+          <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="skipAiModelSetup()">
+            {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
+          </button>
+          <button
+            z-button
+            zType="default"
+            type="button"
+            [disabled]="loading() || !showAiModelForm() || !onboardingCopilotForm.canSubmit() || !onboardingCopilotForm.hasSelectedModel()"
+            (click)="onboardingCopilotForm.submit()"
+          >
+            {{ 'PAC.Onboarding.SaveAndNext' | translate: {Default: 'Save and Next'} }}
+          </button>
+        </div>
 
         @if (loading()) {
           <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />

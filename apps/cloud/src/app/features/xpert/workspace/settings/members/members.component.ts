@@ -53,7 +53,10 @@ export class XpertWorkspaceMembersComponent {
   openAddUser() {
     this.#dialog
       .open<{ users: IUser[] }>(UserRoleSelectComponent, {
-        data: {}
+        data: {
+          loadOnEmptySearch: true,
+          excludeUserIds: this.allMembers().map((user) => user.id)
+        }
       })
       .closed.pipe(switchMap((result) => (result ? this.updateMembers(result.users) : EMPTY)))
       .subscribe()

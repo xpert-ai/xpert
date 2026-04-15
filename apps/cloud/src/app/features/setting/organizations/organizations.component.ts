@@ -4,7 +4,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { IOrganizationCreateInput, OrganizationDemoNetworkEnum } from '@xpert-ai/contracts'
-import { UsersService } from '@xpert-ai/cloud/state'
+import { CURRENT_USER_FULL_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
 import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -640,15 +640,7 @@ export class OrganizationsComponent {
   }
 
   private async refreshCurrentUserContext() {
-    const [user, organizations, features] = await Promise.all([
-      this.#usersService.getMe(),
-      this.#usersService.getMeOrganizations(),
-      this.#usersService.getMeFeatures()
-    ])
-    this.#store.user = this.#usersService.mergeMeFeatures(
-      this.#usersService.mergeMeOrganizations(user, organizations),
-      features
-    )
-    this.#store.featureTenant = (this.#store.user.tenant?.featureOrganizations ?? []).filter((item) => !item.organizationId)
+    this.#store.user = await this.#usersService.getMe([...CURRENT_USER_FULL_RELATIONS])
+    this.#store.featureTenant = this.#store.user.tenant.featureOrganizations.filter((item) => !item.organizationId)
   }
 }

@@ -21,7 +21,7 @@ import {
   RouterOutlet
 } from '@angular/router'
 import { PacMenuItem } from '@xpert-ai/cloud/auth'
-import { injectUserPreferences, UsersService } from '@xpert-ai/cloud/state'
+import { CURRENT_USER_BOOTSTRAP_RELATIONS, CURRENT_USER_FULL_RELATIONS, injectUserPreferences, UsersService } from '@xpert-ai/cloud/state'
 import { isNotEmpty, nonNullable } from '@xpert-ai/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -183,7 +183,8 @@ export class FeaturesComponent implements OnInit {
           this.selectedOrganization$,
           this.#store.selectActiveScope(),
           this.#store.featureTenant$,
-          this.#store.featureOrganizations$
+          this.#store.featureOrganizations$,
+          this.#store.featureContextHydrated$
         ),
         takeUntilDestroyed(this.#destroyRef)
       )
@@ -201,12 +202,16 @@ export class FeaturesComponent implements OnInit {
     const id = this.#store.userId
     if (!id) return
     const cachedUser = this.#store.user
-    const hasHydratedUser = this.#usersService.hasHydratedCurrentUser(id, cachedUser)
+    const hasHydratedUser =
+      !!cachedUser &&
+      Array.isArray(cachedUser?.organizations) &&
+      Array.isArray(cachedUser?.role?.rolePermissions) &&
+      !!cachedUser?.tenant
 
-    this.user = hasHydratedUser ? cachedUser : await this.#usersService.resolveCurrentUser(id, cachedUser)
-    if (!this.user) {
-      return
-    }
+    this.user =
+      hasHydratedUser
+        ? cachedUser
+        : await this.#usersService.getMe([...CURRENT_USER_BOOTSTRAP_RELATIONS])
 
     //When a new user registers & logs in for the first time, he/she does not have tenantId.
     //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.
@@ -231,29 +236,52 @@ export class FeaturesComponent implements OnInit {
 
     //tenant enabled/disabled features for relatives organizations
     const { tenant, role } = this.user
-    this.#store.featureTenant = (tenant.featureOrganizations ?? []).filter((item) => !item.organizationId)
-    if (!hasHydratedUser) {
-      void this.hydrateUserFeatures()
+    const tenantFeatures = tenant?.featureOrganizations ?? []
+    this.#store.featureTenant = tenantFeatures.filter((item) => !item.organizationId)
+    this.#store.featureContextHydrated = Array.isArray(tenant?.featureOrganizations)
+    this.#store.featureContextHydrationFailed = false
+    if (this.#store.featureContextHydrated) {
+      this.#store.featureContextHydrationLoading = false
     }
 
     //only enabled permissions assign to logged in user
-    this.#store.userRolePermissions = (role.rolePermissions ?? []).filter((permission) => permission.enabled)
+    this.#store.userRolePermissions = role.rolePermissions.filter((permission) => permission.enabled)
+
+    if (!this.#store.featureContextHydrated && !this.#store.featureContextHydrationLoading) {
+      this.#store.featureContextHydrationLoading = true
+      this.#store.featureContextHydrationFailed = false
+      void this.hydrateCurrentUserContextInBackground(id)
+    }
   }
 
-  private async hydrateUserFeatures() {
+  private async hydrateCurrentUserContextInBackground(userId: string) {
     try {
-      const features = await this.#usersService.getMeFeatures()
-      this.user = this.#usersService.mergeMeFeatures(this.#store.user, features)
+      const fullUser = await this.#usersService.getMe([...CURRENT_USER_FULL_RELATIONS])
+
+      if (this.#store.userId !== userId || !this.#store.user) {
+        return
+      }
+
+      const currentUser = this.#store.user
+      this.#store.user = {
+        ...fullUser,
+        ...currentUser,
+        employee: fullUser.employee ?? currentUser.employee,
+        role: fullUser.role ?? currentUser.role,
+        tenant: fullUser.tenant ?? currentUser.tenant,
+        organizations: fullUser.organizations ?? currentUser.organizations
+      }
+
+      const tenantFeatures = fullUser.tenant?.featureOrganizations ?? []
+      this.#store.featureTenant = tenantFeatures.filter((item) => !item.organizationId)
+      this.#store.featureContextHydrated = true
+      this.#store.featureContextHydrationFailed = false
     } catch (error) {
       this.#logger?.error(error)
-      this.user = this.#usersService.mergeMeFeatures(this.#store.user, {
-        tenantFeatureOrganizations: [],
-        organizationFeatures: []
-      })
+      this.#store.featureContextHydrationFailed = true
+    } finally {
+      this.#store.featureContextHydrationLoading = false
     }
-
-    this.#store.user = this.user
-    this.#store.featureTenant = (this.user.tenant?.featureOrganizations ?? []).filter((item) => !item.organizationId)
   }
 
   loadItems() {
@@ -289,9 +317,11 @@ export class FeaturesComponent implements OnInit {
 
     // enabled/disabled features from here
     if (Object.prototype.hasOwnProperty.call(item.data, 'featureKey') && item.hidden !== true) {
-      const { featureKey } = item.data
-      const disabled = Array.isArray(featureKey) ? !featureKey.every((key) => this.#store.hasFeatureEnabled(key)) : !this.#store.hasFeatureEnabled(featureKey)
-      item.hidden = disabled || (item.data.hide && item.data.hide())
+      if (this.#store.featureContextHydrated) {
+        const { featureKey } = item.data
+        const disabled = Array.isArray(featureKey) ? !featureKey.every((key) => this.#store.hasFeatureEnabled(key)) : !this.#store.hasFeatureEnabled(featureKey)
+        item.hidden = disabled || (item.data.hide && item.data.hide())
+      }
     }
 
     if (item.children) {
@@ -358,6 +388,11 @@ export class FeaturesComponent implements OnInit {
       this.activeRouteUrl.set(url)
       this.pendingRouteUrl.set(null)
       this.loading.set(false)
+      if (this.#store.featureContextHydrationFailed && !this.#store.featureContextHydrationLoading && this.#store.userId) {
+        this.#store.featureContextHydrationLoading = true
+        this.#store.featureContextHydrationFailed = false
+        void this.hydrateCurrentUserContextInBackground(this.#store.userId)
+      }
       if (url.match(/^\/data\/project(?:\/|$)/)) {
         this.#appService.setCatalog({
           catalog: MenuCatalog.Project,

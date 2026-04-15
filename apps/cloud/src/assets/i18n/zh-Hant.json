@@ -2501,9 +2501,6 @@
       "EnableFeaturesDesc": "選擇您想要啟用的功能模塊，稍後也可以在系統設置中進行配置。",
       "ConfigureAiModel": "配置 AI 模型",
       "ConfigureAiModelDesc": "為模型提供商配置主提供商並選擇默認模型。稍後您仍可以在系統設置中繼續完善。",
-      "ConfigureAiModelTitle": "讓您的模型提供商準備就緒",
-      "ConfigureAiModelHint": "我們會先為您創建主提供商，然後您可以在這裡繼續填寫授權信息並選擇默認模型。",
-      "ConfigureAiModelAction": "開始配置",
       "SaveAndNext": "保存並下一步",
       "EnableFeaturesSuccess": "功能模塊設置成功！"
     },
