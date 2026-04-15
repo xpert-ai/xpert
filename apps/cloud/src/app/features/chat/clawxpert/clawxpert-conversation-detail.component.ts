@@ -4,6 +4,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
+import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage } from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
@@ -15,6 +16,8 @@ import {
 } from './clawxpert-workspace-file-refresh.utils'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
+const CONVERSATION_DETAIL_REFRESH_INTERVAL_MS = 1000
+const CONVERSATION_DETAIL_RELATIONS = ['messages']
 
 @Component({
   standalone: true,
@@ -27,7 +30,8 @@ const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
     ZardIconComponent,
     ...ZardTabsImports,
     ClawXpertConversationFilesComponent,
-    ChatSharedTerminalComponent
+    ChatSharedTerminalComponent,
+    ChatComputerTimelineComponent
   ],
   template: `
     <div [class]="workspaceLayoutClasses()">
@@ -69,6 +73,18 @@ const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
                 <button
                   z-tab-link
                   type="button"
+                  data-panel-button="computer"
+                  class="flex items-center gap-2"
+                  [active]="activePanel() === 'computer'"
+                  (click)="selectPanel('computer')"
+                >
+                  <i class="ri-computer-line text-base"></i>
+                  <span>{{ 'PAC.Chat.ClawXpert.Computer' | translate: { Default: 'Computer' } }}</span>
+                </button>
+
+                <button
+                  z-tab-link
+                  type="button"
                   data-panel-button="terminal"
                   class="flex items-center gap-2"
                   [active]="activePanel() === 'terminal'"
@@ -104,7 +120,16 @@ const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
                               | translate
                                 : {
                                     Default:
-                                      'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
+                                  'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
+                                  }
+                          }}
+                        } @else if (activePanel() === 'computer') {
+                          {{
+                            'PAC.Chat.ClawXpert.ComputerEmptyDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Once this ClawXpert thread is created, its computer timeline will appear here as workspace tools start running.'
                                   }
                           }}
                         } @else {
@@ -132,6 +157,12 @@ const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
                         [conversationId]="resolvedConversationId()"
                         [mode]="'editable'"
                         [reloadKey]="fileListReloadKey()"
+                      />
+                    } @else if (activePanel() === 'computer') {
+                      <xp-chat-computer-timeline
+                        class="h-full"
+                        [conversation]="resolvedConversation()"
+                        [projectId]="resolvedConversation()?.projectId ?? null"
                       />
                     } @else {
                       <xp-chat-shared-terminal
@@ -219,6 +250,7 @@ const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
   readonly #conversationService = inject(ChatConversationService)
+  readonly #responseActive = signal(false)
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #lastSyncedChatkitThread: { control: ChatKitControl | null; threadId: string | null | undefined } = {
     control: null,
@@ -257,13 +289,19 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onResponseStart: () => {
+      this.#responseActive.set(true)
       this.facade.patchActiveConversationStatus('busy')
     },
     onResponseEnd: () => {
+      this.#responseActive.set(false)
       this.facade.patchActiveConversationStatus('idle')
+
+      if (this.activePanel() === 'computer' && this.resolvedConversationId()) {
+        void this.refreshResolvedConversationDetail()
+      }
     }
   })
-  readonly activePanel = signal<'files' | 'terminal' | null>('files')
+  readonly activePanel = signal<'files' | 'computer' | 'terminal' | null>('files')
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
@@ -369,10 +407,31 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       })
     })
 
+    effect((onCleanup) => {
+      const conversationId = this.resolvedConversationId()
+      const panel = this.activePanel()
+      const isConversationBusy = this.#responseActive() || this.facade.activeConversation()?.status === 'busy'
+
+      if (panel !== 'computer' || !conversationId || !isConversationBusy) {
+        return
+      }
+
+      let cancelled = false
+      const intervalId = setInterval(() => {
+        void this.refreshResolvedConversationDetail(() => cancelled)
+      }, CONVERSATION_DETAIL_REFRESH_INTERVAL_MS)
+
+      onCleanup(() => {
+        cancelled = true
+        clearInterval(intervalId)
+      })
+    })
+
     effect(
       (onCleanup) => {
         const threadId = this.facade.threadId()
         if (!threadId) {
+          this.#responseActive.set(false)
           this.contextLoading.set(false)
           this.contextError.set(null)
           this.resolvedConversationId.set(null)
@@ -382,6 +441,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         }
 
         let cancelled = false
+        this.#responseActive.set(false)
         this.contextLoading.set(true)
         this.contextError.set(null)
         this.resolvedConversationId.set(null)
@@ -399,10 +459,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   ngOnDestroy() {
     this.clearScheduledWorkspaceFileListRefresh()
+    this.#responseActive.set(false)
     this.facade.setActiveConversation(null)
   }
 
-  selectPanel(panel: 'files' | 'terminal') {
+  selectPanel(panel: 'files' | 'computer' | 'terminal') {
     this.activePanel.update((activePanel) => (activePanel === panel ? null : panel))
   }
 
@@ -456,6 +517,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   private async resolveConversationContext(threadId: string, isCancelled: () => boolean) {
     let conversationId: string | null = null
+    let baseConversation: IChatConversation | null = null
 
     try {
       const thread = (await firstValueFrom(this.#threadService.getThread(threadId))) as {
@@ -475,46 +537,110 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     try {
-      if (conversationId) {
-        this.resolvedConversationId.set(conversationId)
-
-        const conversation = (await firstValueFrom(
-          this.#conversationService.getById(conversationId)
-        )) as IChatConversation | null
+      if (!conversationId) {
+        baseConversation = (await firstValueFrom(this.#conversationService.getByThreadId(threadId))) as
+          | IChatConversation
+          | null
         if (isCancelled() || this.facade.threadId() !== threadId) {
           return
         }
 
-        this.resolvedConversationId.set(conversation?.id ?? conversationId)
-        this.resolvedConversation.set(conversation ?? null)
-        this.facade.setActiveConversation(conversation ?? null)
+        conversationId = baseConversation?.id ?? null
+      }
+
+      this.resolvedConversationId.set(conversationId)
+
+      if (!conversationId) {
+        this.resolvedConversation.set(null)
+        this.facade.setActiveConversation(null)
         this.contextError.set(null)
         return
       }
 
-      const conversation = (await firstValueFrom(this.#conversationService.getByThreadId(threadId))) as
-        | IChatConversation
-        | null
+      const conversation = await this.loadConversationDetail(conversationId)
       if (isCancelled() || this.facade.threadId() !== threadId) {
         return
       }
 
-      this.resolvedConversationId.set(conversation?.id ?? null)
-      this.resolvedConversation.set(conversation ?? null)
-      this.facade.setActiveConversation(conversation ?? null)
+      this.syncResolvedConversation(conversationId, conversation ?? baseConversation)
       this.contextError.set(null)
     } catch (error) {
       if (isCancelled() || this.facade.threadId() !== threadId) {
         return
       }
 
-      this.facade.setActiveConversation(null)
+      if (conversationId) {
+        this.syncResolvedConversation(conversationId, baseConversation)
+      } else {
+        this.resolvedConversationId.set(null)
+        this.resolvedConversation.set(null)
+        this.facade.setActiveConversation(null)
+      }
+
       this.contextError.set(getErrorMessage(error) || 'Failed to resolve the current conversation context.')
     } finally {
       if (!isCancelled() && this.facade.threadId() === threadId) {
         this.contextLoading.set(false)
       }
     }
+  }
+
+  private async refreshResolvedConversationDetail(isCancelled: () => boolean = () => false) {
+    const conversationId = this.resolvedConversationId()
+    if (!conversationId) {
+      return
+    }
+
+    try {
+      const conversation = await this.loadConversationDetail(conversationId)
+      if (isCancelled() || this.resolvedConversationId() !== conversationId) {
+        return
+      }
+
+      if (!conversation) {
+        return
+      }
+
+      this.syncResolvedConversation(conversationId, conversation)
+      this.contextError.set(null)
+    } catch (error) {
+      if (isCancelled() || this.resolvedConversationId() !== conversationId) {
+        return
+      }
+
+      this.contextError.set(getErrorMessage(error) || 'Failed to refresh the current conversation context.')
+    }
+  }
+
+  private async loadConversationDetail(conversationId: string) {
+    return (await firstValueFrom(
+      this.#conversationService.getById(conversationId, {
+        relations: [...CONVERSATION_DETAIL_RELATIONS]
+      })
+    )) as IChatConversation | null
+  }
+
+  private syncResolvedConversation(conversationId: string, conversation: IChatConversation | null) {
+    const nextConversation = this.withRuntimeConversationStatus(conversation)
+
+    this.resolvedConversationId.set(nextConversation?.id ?? conversationId)
+    this.resolvedConversation.set(nextConversation)
+    this.facade.setActiveConversation(nextConversation)
+  }
+
+  private withRuntimeConversationStatus(conversation: IChatConversation | null) {
+    if (!conversation) {
+      return null
+    }
+
+    if (!this.#responseActive()) {
+      return conversation
+    }
+
+    return {
+      ...conversation,
+      status: 'busy'
+    } as IChatConversation
   }
 }
 
