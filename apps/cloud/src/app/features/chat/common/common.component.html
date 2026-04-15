@@ -1,102 +1,100 @@
-<div class="flex h-full min-h-0 flex-col overflow-hidden p-4">
-  <section class="min-h-0 flex-1 overflow-hidden">
-    @switch (status()) {
-      @case ('ready') {
-        <xpert-webapp class="block h-full min-h-0 overflow-y-auto">
-          @if (!currentXpert()) {
-            <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
-          }
+<section class="min-h-0 flex-1 flex h-full flex-col overflow-hidden">
+  @switch (status()) {
+    @case ('ready') {
+      <xpert-webapp class="block h-full min-h-0 overflow-y-auto">
+        @if (!currentXpert()) {
+          <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
+        }
 
-          <button
-            action
-            class="inline-flex h-9 max-w-[160px] items-center justify-center gap-2 truncate rounded-xl border border-button-outline-border px-3.5 py-2 pl-3 pr-2.5 text-base font-medium leading-[normal] text-text-primary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50 sm:border-0 sm:px-3"
-            type="button"
-            [attr.active]="cmt.isOpen()"
-            #cmt="cdkMenuTriggerFor"
-            [cdkMenuTriggerFor]="menu"
-          >
-            @if (currentXpert()) {
-              <div class="truncate">{{ currentXpert()?.title || currentXpert()?.name }}</div>
-            } @else {
-              <div class="truncate">{{ 'PAC.Chat.Common' | translate: { Default: 'Common' } }}</div>
-            }
-            <i class="ri-arrow-down-s-line text-text-primary transition-transform" [class.rotate-180]="cmt.isOpen()"></i>
-          </button>
-        </xpert-webapp>
-      }
-      @case ('loading') {
-        <div class="flex h-full min-h-0 items-center justify-center px-6 text-sm text-text-secondary">
-          {{ 'PAC.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant…' } }}
-        </div>
-      }
-      @case ('disabled') {
-        <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
-          <i class="ri-pause-circle-line text-3xl text-text-tertiary"></i>
-          <div class="mt-4 text-base font-medium text-text-primary">
-            {{ 'PAC.Assistant.DisabledTitle' | translate: { Default: 'Assistant disabled' } }}
-          </div>
-          <div class="mt-2 max-w-sm text-sm text-text-secondary">
-            {{
-              'PAC.Assistant.DisabledDesc'
-                | translate
-                  : { Default: 'This assistant is configured but currently disabled for the active organization.' }
-            }}
-          </div>
-          <a
-            class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
-            [routerLink]="assistantsRoute"
-          >
-            {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
-          </a>
-        </div>
-      }
-      @case ('error') {
-        <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
-          <i class="ri-error-warning-line text-3xl text-text-tertiary"></i>
-          <div class="mt-4 text-base font-medium text-text-primary">
-            {{ 'PAC.Assistant.LoadFailed' | translate: { Default: 'Failed to load assistant configuration.' } }}
-          </div>
-          <div class="mt-2 max-w-sm text-sm text-text-secondary">
-            {{
-              'PAC.Assistant.ErrorDesc'
-                | translate
-                  : { Default: 'Check the assistant configuration and try again from the common chat page.' }
-            }}
-          </div>
-          <a
-            class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
-            [routerLink]="assistantsRoute"
-          >
-            {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
-          </a>
-        </div>
-      }
-      @default {
-        <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
-          <i class="ri-settings-3-line text-3xl text-text-tertiary"></i>
-          <div class="mt-4 text-base font-medium text-text-primary">
-            {{ 'PAC.Assistant.MissingTitle' | translate: { Default: 'Assistant not configured' } }}
-          </div>
-          <div class="mt-2 max-w-sm text-sm text-text-secondary">
-            {{
-              'PAC.Assistant.MissingDesc'
-                | translate
-                  : {
-                      Default: 'Configure the Common assistant in Settings / Assistants before starting a conversation here.'
-                    }
-            }}
-          </div>
-          <a
-            class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
-            [routerLink]="assistantsRoute"
-          >
-            {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
-          </a>
-        </div>
-      }
+        <button
+          action
+          class="inline-flex h-9 max-w-[160px] items-center justify-center gap-2 truncate rounded-xl border border-button-outline-border px-3.5 py-2 pl-3 pr-2.5 text-base font-medium leading-[normal] text-text-primary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50 sm:border-0 sm:px-3"
+          type="button"
+          [attr.active]="cmt.isOpen()"
+          #cmt="cdkMenuTriggerFor"
+          [cdkMenuTriggerFor]="menu"
+        >
+          @if (currentXpert()) {
+            <div class="truncate">{{ currentXpert()?.title || currentXpert()?.name }}</div>
+          } @else {
+            <div class="truncate">{{ 'PAC.Chat.Common' | translate: { Default: 'Common' } }}</div>
+          }
+          <i class="ri-arrow-down-s-line text-text-primary transition-transform" [class.rotate-180]="cmt.isOpen()"></i>
+        </button>
+      </xpert-webapp>
     }
-  </section>
-</div>
+    @case ('loading') {
+      <div class="flex h-full min-h-0 items-center justify-center px-6 text-sm text-text-secondary">
+        {{ 'PAC.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant…' } }}
+      </div>
+    }
+    @case ('disabled') {
+      <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
+        <i class="ri-pause-circle-line text-3xl text-text-tertiary"></i>
+        <div class="mt-4 text-base font-medium text-text-primary">
+          {{ 'PAC.Assistant.DisabledTitle' | translate: { Default: 'Assistant disabled' } }}
+        </div>
+        <div class="mt-2 max-w-sm text-sm text-text-secondary">
+          {{
+            'PAC.Assistant.DisabledDesc'
+              | translate
+                : { Default: 'This assistant is configured but currently disabled for the active organization.' }
+          }}
+        </div>
+        <a
+          class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
+          [routerLink]="assistantsRoute"
+        >
+          {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
+        </a>
+      </div>
+    }
+    @case ('error') {
+      <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
+        <i class="ri-error-warning-line text-3xl text-text-tertiary"></i>
+        <div class="mt-4 text-base font-medium text-text-primary">
+          {{ 'PAC.Assistant.LoadFailed' | translate: { Default: 'Failed to load assistant configuration.' } }}
+        </div>
+        <div class="mt-2 max-w-sm text-sm text-text-secondary">
+          {{
+            'PAC.Assistant.ErrorDesc'
+              | translate
+                : { Default: 'Check the assistant configuration and try again from the common chat page.' }
+          }}
+        </div>
+        <a
+          class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
+          [routerLink]="assistantsRoute"
+        >
+          {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
+        </a>
+      </div>
+    }
+    @default {
+      <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
+        <i class="ri-settings-3-line text-3xl text-text-tertiary"></i>
+        <div class="mt-4 text-base font-medium text-text-primary">
+          {{ 'PAC.Assistant.MissingTitle' | translate: { Default: 'Assistant not configured' } }}
+        </div>
+        <div class="mt-2 max-w-sm text-sm text-text-secondary">
+          {{
+            'PAC.Assistant.MissingDesc'
+              | translate
+                : {
+                    Default: 'Configure the Common assistant in Settings / Assistants before starting a conversation here.'
+                  }
+          }}
+        </div>
+        <a
+          class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
+          [routerLink]="assistantsRoute"
+        >
+          {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
+        </a>
+      </div>
+    }
+  }
+</section>
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large max-w-sm overflow-visible text-text-primary">

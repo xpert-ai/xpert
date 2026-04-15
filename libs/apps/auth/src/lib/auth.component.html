@@ -1,8 +1,8 @@
 <div class="pac-auth-card flex flex-col justify-start items-center pb-2 m-auto rounded-xl shadow-lg dark:border dark:border-neutral-800">
   <div class="pac-auth__header my-8">
-    <img class="pac-auth__logo w-10 h-10 rounded-xl mr-2" [src]="appConfigs()?.app_logo || 'assets/logo.png'" />
+    <img class="pac-auth__logo w-10 h-10 rounded-xl mr-2" [src]="'assets/logo.png'" />
     <span>
-      {{ title() || appConfigs()?.app_name || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}
+      {{ title() || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}
     </span>
   </div>
     
