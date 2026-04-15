@@ -13,6 +13,7 @@ import {
 import { AiModelTypeEnum, ICopilotModel, IXpert, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { CopilotModelSelectComponent } from '../../../@shared/copilot'
+import { countDisplayTextUnits } from '../../../@shared/text-count.utils'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
 import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.component'
@@ -480,14 +481,14 @@ export class ClawXpertOverviewComponent {
       defaultLabel: 'Behavior Guidelines',
       descriptionKey: 'PAC.Chat.ClawXpert.BehaviorEditorDesc',
       defaultDescription: 'Edit the markdown file that defines the assistant behavior baseline for this binding.',
-      words: countWords(this.facade.userPreference()?.soul)
+      words: countDisplayTextUnits(this.facade.userPreference()?.soul)
     },
     {
       labelKey: 'PAC.Chat.ClawXpert.TabUserProfile',
       defaultLabel: 'User Profile',
       descriptionKey: 'PAC.Chat.ClawXpert.UserProfileEditorDesc',
       defaultDescription: 'Capture stable user context in markdown so future sessions can start with better grounding.',
-      words: countWords(this.facade.userPreference()?.profile)
+      words: countDisplayTextUnits(this.facade.userPreference()?.profile)
     }
   ])
 
@@ -529,15 +530,6 @@ function buildModelLabel(xpert: IXpert | null, assistantId?: string | null) {
   }
 
   return xpert?.slug || assistantId || 'ClawXpert'
-}
-
-function countWords(value?: string | null) {
-  const content = value?.trim()
-  if (!content) {
-    return 0
-  }
-
-  return content.split(/\s+/).length
 }
 
 function buildHeatmapModel(
