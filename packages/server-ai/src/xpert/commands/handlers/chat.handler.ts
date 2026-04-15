@@ -112,9 +112,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const { xpertId, taskId, from, fromEndUserId } = options ?? {}
         let { execution } = options ?? {}
         const userId = RequestContext.currentUserId()
+        const sendInput =
+            request.action === 'send'
+                ? request.message?.input
+                : null
+
+        if (request.action === 'send' && !sendInput) {
+            throw new BadRequestException('Invalid send request: message.input is required')
+        }
+
         let input: TChatRequestHuman | null =
             request.action === 'send'
-                ? normalizeChatState(request.state, request.message.input)[STATE_VARIABLE_HUMAN]
+                ? normalizeChatState(request.state, sendInput)[STATE_VARIABLE_HUMAN]
                 : request.action === 'resume'
                   ? normalizeChatState(request.state)[STATE_VARIABLE_HUMAN]
                   : null
@@ -122,7 +131,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             request.action === 'retry'
                 ? null
                 : request.action === 'send'
-                  ? normalizeChatState(request.state, request.message.input)
+                  ? normalizeChatState(request.state, sendInput)
                   : normalizeChatState(request.state)
 
         const timeStart = Date.now()
