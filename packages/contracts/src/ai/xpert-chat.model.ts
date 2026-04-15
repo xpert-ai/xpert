@@ -1,6 +1,8 @@
 import type { TChatRequestHuman, TInterruptCommand } from '@xpert-ai/chatkit-types'
 import { STATE_VARIABLE_HUMAN } from '@xpert-ai/chatkit-types'
 
+export type TXpertFollowUpMode = 'queue' | 'steer'
+
 export type TXpertChatState = {
   [STATE_VARIABLE_HUMAN]?: TChatRequestHuman
 } & Record<string, any>
@@ -52,7 +54,23 @@ export type TXpertChatRetryRequest = {
   checkpointId?: string
 }
 
-export type TChatRequest = TXpertChatSendRequest | TXpertChatResumeRequest | TXpertChatRetryRequest
+export type TXpertChatFollowUpRequest = {
+  action: 'follow_up'
+  conversationId: string
+  mode: TXpertFollowUpMode
+  message: {
+    clientMessageId?: string
+    input: TChatRequestHuman
+  }
+  target?: TXpertChatTarget
+  state?: TXpertChatState
+}
+
+export type TChatRequest =
+  | TXpertChatSendRequest
+  | TXpertChatResumeRequest
+  | TXpertChatRetryRequest
+  | TXpertChatFollowUpRequest
 
 export type TXpertAgentChatRunRequest = {
   action: 'run'
@@ -75,4 +93,23 @@ export type TXpertAgentChatResumeRequest = {
   state?: TXpertChatState
 }
 
-export type TXpertAgentChatRequest = TXpertAgentChatRunRequest | TXpertAgentChatResumeRequest
+export type TXpertAgentChatFollowUpRequest = {
+  action: 'follow_up'
+  agentKey: string
+  xpertId: string
+  mode: TXpertFollowUpMode
+  message: {
+    clientMessageId?: string
+    input: TChatRequestHuman
+  }
+  target?: {
+    executionId?: string
+  }
+  environmentId?: string
+  state?: TXpertChatState
+}
+
+export type TXpertAgentChatRequest =
+  | TXpertAgentChatRunRequest
+  | TXpertAgentChatResumeRequest
+  | TXpertAgentChatFollowUpRequest

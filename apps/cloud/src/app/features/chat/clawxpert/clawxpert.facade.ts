@@ -154,6 +154,9 @@ export class ClawXpertFacade {
   )
   readonly defaultThreadId = computed(() => this.conversationPreferences()?.defaultThreadId ?? null)
   readonly lastThreadId = computed(() => this.conversationPreferences()?.lastThreadId ?? null)
+  readonly defaultFollowUpBehavior = computed(
+    () => this.conversationPreferences()?.defaultFollowUpBehavior ?? 'queue'
+  )
   readonly triggerProviders = toSignal(
     this.#xpertService.getTriggerProviders().pipe(catchError(() => of([] as TWorkflowTriggerMeta[]))),
     { initialValue: [] as TWorkflowTriggerMeta[] }
@@ -943,6 +946,19 @@ export class ClawXpertFacade {
     )
   }
 
+  async setDefaultFollowUpBehavior(behavior: 'queue' | 'steer') {
+    await this.persistConversationPreferences(
+      {
+        defaultFollowUpBehavior: behavior
+      },
+      {
+        notifySuccess: false,
+        notifyError: false,
+        rollbackOnError: false
+      }
+    )
+  }
+
   getXpertLabel(xpert: Partial<IXpert> | Partial<IAssistantBinding> | null | undefined) {
     if (!xpert) {
       return ''
@@ -1334,15 +1350,27 @@ function normalizeConversationPreferences(
 
   const defaultThreadId = normalizeConversationThreadId(value.defaultThreadId)
   const lastThreadId = normalizeConversationThreadId(value.lastThreadId)
-  if (defaultThreadId == null && lastThreadId == null) {
+  const defaultFollowUpBehavior = normalizeConversationFollowUpBehavior(value.defaultFollowUpBehavior)
+  if (defaultThreadId == null && lastThreadId == null && defaultFollowUpBehavior === undefined) {
     return null
   }
 
   return {
-    version: 1,
+    version: 2,
     ...(defaultThreadId !== undefined ? { defaultThreadId } : {}),
-    ...(lastThreadId !== undefined ? { lastThreadId } : {})
+    ...(lastThreadId !== undefined ? { lastThreadId } : {}),
+    ...(defaultFollowUpBehavior !== undefined ? { defaultFollowUpBehavior } : {})
   }
+}
+
+function normalizeConversationFollowUpBehavior(
+  value?: 'queue' | 'steer' | null
+): 'queue' | 'steer' | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  return value === 'steer' ? 'steer' : 'queue'
 }
 
 function normalizeToolPreferences(value?: IAssistantBindingToolPreferences | null): IAssistantBindingToolPreferences {
@@ -1465,17 +1493,22 @@ function mergePersistedConversationPreferences(
   const normalizedCurrent = current ? normalizeConversationPreferences(current) : null
   const hasDefaultThreadId = Object.prototype.hasOwnProperty.call(persisted, 'defaultThreadId')
   const hasLastThreadId = Object.prototype.hasOwnProperty.call(persisted, 'lastThreadId')
+  const hasDefaultFollowUpBehavior = Object.prototype.hasOwnProperty.call(persisted, 'defaultFollowUpBehavior')
   const defaultThreadId = hasDefaultThreadId
     ? normalizeConversationThreadId(persisted.defaultThreadId)
     : (normalizedCurrent?.defaultThreadId ?? undefined)
   const lastThreadId = hasLastThreadId
     ? normalizeConversationThreadId(persisted.lastThreadId)
     : (normalizedCurrent?.lastThreadId ?? undefined)
+  const defaultFollowUpBehavior = hasDefaultFollowUpBehavior
+    ? normalizeConversationFollowUpBehavior(persisted.defaultFollowUpBehavior)
+    : (normalizedCurrent?.defaultFollowUpBehavior ?? undefined)
 
   return normalizeConversationPreferences({
-    version: 1,
+    version: 2,
     ...(defaultThreadId !== undefined ? { defaultThreadId } : {}),
-    ...(lastThreadId !== undefined ? { lastThreadId } : {})
+    ...(lastThreadId !== undefined ? { lastThreadId } : {}),
+    ...(defaultFollowUpBehavior !== undefined ? { defaultFollowUpBehavior } : {})
   })
 }
 
@@ -1490,11 +1523,15 @@ function mergeConversationPreferences(
   const nextLastThreadId = Object.prototype.hasOwnProperty.call(patch, 'lastThreadId')
     ? normalizeConversationThreadId(patch.lastThreadId)
     : (normalizedCurrent?.lastThreadId ?? undefined)
+  const nextDefaultFollowUpBehavior = Object.prototype.hasOwnProperty.call(patch, 'defaultFollowUpBehavior')
+    ? normalizeConversationFollowUpBehavior(patch.defaultFollowUpBehavior)
+    : (normalizedCurrent?.defaultFollowUpBehavior ?? undefined)
 
   return normalizeConversationPreferences({
-    version: 1,
+    version: 2,
     ...(nextDefaultThreadId !== undefined ? { defaultThreadId: nextDefaultThreadId } : {}),
-    ...(nextLastThreadId !== undefined ? { lastThreadId: nextLastThreadId } : {})
+    ...(nextLastThreadId !== undefined ? { lastThreadId: nextLastThreadId } : {}),
+    ...(nextDefaultFollowUpBehavior !== undefined ? { defaultFollowUpBehavior: nextDefaultFollowUpBehavior } : {})
   })
 }
 

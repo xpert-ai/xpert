@@ -63,6 +63,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
 import { Command } from '@langchain/langgraph'
+import { ChatMessageEventTypeEnum } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
@@ -76,6 +77,7 @@ describe('XpertAgentInvokeHandler', () => {
     let envService: { findOne: jest.Mock }
     let i18nService: { t: jest.Mock }
     let executionCancelService: { register: jest.Mock; unregister: jest.Mock }
+    let chatMessageRepository: { find: jest.Mock; save: jest.Mock }
     let handler: XpertAgentInvokeHandler
 
     beforeEach(() => {
@@ -101,6 +103,10 @@ describe('XpertAgentInvokeHandler', () => {
             register: jest.fn(),
             unregister: jest.fn()
         }
+        chatMessageRepository = {
+            find: jest.fn().mockResolvedValue([]),
+            save: jest.fn().mockResolvedValue(undefined)
+        }
 
         handler = new XpertAgentInvokeHandler(
             commandBus as any,
@@ -108,7 +114,8 @@ describe('XpertAgentInvokeHandler', () => {
             checkpointSaver as any,
             envService as any,
             i18nService as unknown as I18nService,
-            executionCancelService as unknown as ExecutionCancelService
+            executionCancelService as unknown as ExecutionCancelService,
+            chatMessageRepository as any
         )
 
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
@@ -408,14 +415,167 @@ describe('XpertAgentInvokeHandler', () => {
             })
         )
     })
+
+    it('does not consume pending steer follow-ups from chat model start events and passes root execution context', async () => {
+        const graph = createGraph(
+            (async function* () {
+                yield {
+                    event: 'on_chat_model_start',
+                    metadata: {
+                        langgraph_node: 'agent-2'
+                    }
+                }
+            })()
+        )
+        const subscriber = {
+            next: jest.fn()
+        }
+
+        chatMessageRepository.find.mockResolvedValueOnce([
+            {
+                id: 'db-message-1',
+                content: 'steer input',
+                followUpMode: 'steer',
+                followUpStatus: 'pending',
+                targetExecutionId: 'execution-1',
+                conversationId: 'conversation-1'
+            }
+        ])
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Original prompt'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {}
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    conversationId: 'conversation-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber,
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(graph.updateState).not.toHaveBeenCalled()
+        expect(graph.streamEvents).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                configurable: expect.objectContaining({
+                    executionId: 'execution-1',
+                    rootExecutionId: 'execution-1',
+                    agentKey: 'agent-1',
+                    rootAgentKey: 'agent-1'
+                })
+            })
+        )
+        expect(chatMessageRepository.save).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: 'db-message-1',
+                    followUpMode: 'queue'
+                })
+            ])
+        )
+        expect(subscriber.next).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    event: ChatMessageEventTypeEnum.ON_CHAT_EVENT
+                })
+            })
+        )
+    })
+
+    it('downgrades stale steer follow-ups to queue when the run completes without another model call', async () => {
+        const graph = createGraph()
+
+        chatMessageRepository.find.mockResolvedValueOnce([
+            {
+                id: 'db-message-2',
+                followUpMode: 'steer',
+                followUpStatus: 'pending',
+                targetExecutionId: 'execution-1',
+                conversationId: 'conversation-1'
+            }
+        ])
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Original prompt'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {}
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    conversationId: 'conversation-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(chatMessageRepository.save).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: 'db-message-2',
+                    followUpMode: 'queue'
+                })
+            ])
+        )
+    })
 })
 
-function createGraph() {
+function createGraph(streamEvents?: AsyncGenerator<unknown>) {
     return {
         streamEvents: jest.fn().mockReturnValue(
-            (async function* () {
-                //
-            })()
+            streamEvents ??
+                (async function* () {
+                    //
+                })()
         ),
         getState: jest.fn().mockResolvedValue({
             config: {

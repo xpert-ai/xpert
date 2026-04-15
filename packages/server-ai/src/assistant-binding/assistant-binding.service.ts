@@ -899,16 +899,26 @@ function normalizeConversationPreferencesValue(
 
   const defaultThreadId = normalizePreferenceThreadId(value.defaultThreadId)
   const lastThreadId = normalizePreferenceThreadId(value.lastThreadId)
+  const defaultFollowUpBehavior = normalizeFollowUpBehavior(value.defaultFollowUpBehavior)
 
-  if (defaultThreadId == null && lastThreadId == null) {
+  if (defaultThreadId == null && lastThreadId == null && defaultFollowUpBehavior === undefined) {
     return null
   }
 
   return {
-    version: 1,
+    version: 2,
     ...(defaultThreadId !== undefined ? { defaultThreadId } : {}),
-    ...(lastThreadId !== undefined ? { lastThreadId } : {})
+    ...(lastThreadId !== undefined ? { lastThreadId } : {}),
+    ...(defaultFollowUpBehavior !== undefined ? { defaultFollowUpBehavior } : {})
   }
+}
+
+function normalizeFollowUpBehavior(value?: 'queue' | 'steer' | null): 'queue' | 'steer' | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  return value === 'steer' ? 'steer' : 'queue'
 }
 
 function normalizePreferenceThreadId(value?: string | null): string | null | undefined {

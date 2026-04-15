@@ -350,6 +350,56 @@
       style="background: linear-gradient(0deg, color-mix(in oklab, var(--background) 94%, transparent) 40%, color-mix(in oklab, var(--background) 0%, transparent) 100%)"
     >
       <div class="pb-4 w-full max-w-full mx-auto">
+        <div class="mb-2 flex items-center justify-between gap-2 rounded-xl border border-divider-deep bg-components-panel-bg px-3 py-2">
+          <div class="text-xs text-text-tertiary">
+            {{ 'PAC.Chat.FollowUpBehavior' | translate: { Default: 'Follow-up behavior' } }}
+          </div>
+          <div class="flex items-center gap-1 rounded-full bg-components-input-bg-normal p-1">
+            <button
+              type="button"
+              class="px-3 py-1 text-xs rounded-full"
+              [ngClass]="{
+                'bg-primary-500 text-text-anti': followUpBehavior() === 'queue',
+                'text-text-tertiary': followUpBehavior() !== 'queue'
+              }"
+              (click)="setFollowUpBehavior('queue')"
+            >
+              {{ 'PAC.Chat.FollowUpQueue' | translate: { Default: 'Queue' } }}
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1 text-xs rounded-full"
+              [ngClass]="{
+                'bg-primary-500 text-text-anti': followUpBehavior() === 'steer',
+                'text-text-tertiary': followUpBehavior() !== 'steer'
+              }"
+              (click)="setFollowUpBehavior('steer')"
+            >
+              {{ 'PAC.Chat.FollowUpSteer' | translate: { Default: 'Steer' } }}
+            </button>
+          </div>
+        </div>
+
+        @if (pendingFollowUps()?.length) {
+          <div class="mb-2 space-y-2 rounded-xl border border-divider-deep bg-components-panel-bg px-3 py-3">
+            <div class="text-xs text-text-tertiary">
+              {{ 'PAC.Chat.PendingFollowUps' | translate: { Default: 'Pending follow-ups' } }}
+            </div>
+            @for (item of pendingFollowUps(); track item.id) {
+              <div class="rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 py-2">
+                <div class="mb-1 text-[11px] text-primary-500">
+                  @if (item.mode === 'queue') {
+                    {{ 'PAC.Chat.FollowUpQueueHint' | translate: { Default: 'Queued for the next run' } }}
+                  } @else {
+                    {{ 'PAC.Chat.FollowUpSteerHint' | translate: { Default: 'Will steer after the current tool call' } }}
+                  }
+                </div>
+                <div class="text-sm text-text-primary break-words">{{ item.input }}</div>
+              </div>
+            }
+          </div>
+        }
+
         <div class="relative bg-components-panel-bg border border-divider-deep rounded-xl mb-2">
           @if (attachments()?.length) {
             <chat-attachments
@@ -398,7 +448,7 @@
                 }
               }
 
-              @if (loading()) {
+              @if (loading() && !input()) {
                 <button
                   class="w-8 h-8 flex justify-center items-center rounded-full border-light hover:shadow-md"
                   (click)="onStop()"
@@ -408,7 +458,7 @@
               } @else {
                 <button
                   class="group action-btn action-btn-md primary"
-                  [disabled]="loading() || !input()"
+                  [disabled]="!input()"
                   (click)="sendMessage(input())"
                 >
                   <svg

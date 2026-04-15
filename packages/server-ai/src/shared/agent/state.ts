@@ -37,6 +37,14 @@ export type TAgentStateSystem = {
 	profile?: string | null
 }
 
+export const STATE_VARIABLE_PENDING_FOLLOW_UPS = 'pending_follow_ups'
+
+export type TPendingFollowUpStateItem = {
+	messageId: string
+	clientMessageId?: string | null
+	human: TChatRequestHuman
+}
+
 export type TStateChannel = {
 	name: string
 	annotation: BaseChannel
@@ -74,6 +82,10 @@ export const AgentStateAnnotation = Annotation.Root({
 			return b ?? a
 		},
 		default: () => ({} as TChatRequestHuman)
+	}),
+	[STATE_VARIABLE_PENDING_FOLLOW_UPS]: Annotation<TPendingFollowUpStateItem[]>({
+		reducer: (a, b) => b ?? a,
+		default: () => []
 	}),
 	/**
 	 * Temporarily transfer tool call information between nodes

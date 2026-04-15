@@ -1,0 +1,195 @@
+# Agent Chat Follow-up Behavior 统一方案
+
+## 目标
+
+在 `chatkit`、`chatkit-ui` 和 Xpert 项目中的 agent chat 里，对齐 Codex 的 follow-up behavior：
+
+- `queue`
+  - 运行中提交的消息立即显示在 pending 区
+  - 当前 run 结束后再作为下一轮正常用户消息进入 transcript 并启动新执行
+- `steer`
+  - 运行中提交的消息立即显示在 pending 区
+  - 工具调用完成后，在下一轮模型调用前注入当前执行
+  - 不新开 execution
+
+## 统一约定
+
+- 共享类型新增 `FollowUpBehavior = 'queue' | 'steer'`
+- `sendUserMessage` 支持单次覆盖 `followUpMode`
+- 对外消息和持久化消息都补充：
+  - `followUpMode`
+  - `followUpStatus`
+  - `targetExecutionId`
+  - `visibleAt`
+- `chatkit` 宿主默认模式写入 `AssistantBindingConversationPreferences.defaultFollowUpBehavior`
+- Xpert legacy agent chat 默认模式写入本地存储
+
+## UI 行为
+
+- busy 状态下 composer 仍可输入和发送 follow-up
+- composer 增加 `queue / steer` 切换控件
+- `Shift+Meta+Enter`（macOS）和 `Shift+Ctrl+Enter`（Windows / Linux）对当前消息使用默认模式的反向值
+- `Shift+Enter` 继续保留换行
+- pending follow-up 不会立刻进入正式 transcript，只会在被消费时插入
+
+## 后端行为
+
+- 新增 `action: 'follow_up'`
+- `steer` follow-up 持久化为 `human` 消息，初始状态为 `pending`
+- 在工具调用结束后、下一次模型调用前，按 FIFO 装载当前 execution 的 steer follow-up，并通过现有 LangGraph 状态更新链路注入
+- 如果 steer 目标 execution 已结束，则自动降级成 `queue`
+
+## 当前版本范围
+
+- `chatkit` / `chatkit-ui` / Hosted ChatKit
+- Xpert assistant host runtime
+- Xpert legacy preview agent chat
+- 对外文档与契约
+
+## 整体实现逻辑
+
+Follow-up behavior 的核心不是“多发一条消息”，而是“当当前 run 还没有结束时，新输入应该如何进入系统”。
+
+系统把这件事拆成 4 个阶段：
+
+1. 模式决策
+   - 先读取 composer 当前默认模式：`queue` 或 `steer`
+   - 如果用户使用反向快捷键提交，则只对当前这一条消息临时反转模式
+2. 本地挂起
+   - 前端不会立刻把 follow-up 当成正式 transcript 消息
+   - 它会先进入一个 `pending follow-ups` 队列，让用户立刻看到“这条消息已经提交”
+3. 服务端消费
+   - `queue` 和 `steer` 进入系统的时机不同
+   - `queue` 等当前 run 结束后再启动下一轮
+   - `steer` 等当前工具调用结束后、下一轮模型调用前注入到当前执行
+4. 正式入 transcript
+   - 只有当 follow-up 真正被消费时，这条消息才会带着正式状态进入 transcript
+   - 在此之前，它只是 pending，不参与正式消息流
+
+## 时序模型
+
+### `queue`
+
+`queue` 适合“等这一轮回答完，再继续补充下一句”的场景。
+
+时序如下：
+
+1. 用户在 busy 状态下发送一条 follow-up
+2. 前端立即把它加入 pending rail
+3. 当前 run 继续执行，不被打断
+4. 当前 run 结束后，前端或宿主从 pending 队列里按 FIFO 取出第一条
+5. 这条消息作为下一轮正常 `send` 请求发给后端
+6. 新一轮 execution 开始，消息进入正式 transcript
+
+这个模式不会尝试修改当前执行中的 graph state，所以实现最稳定，也最适合作为默认模式。
+
+### `steer`
+
+`steer` 适合“趁 agent 还在执行，补充一条新的指导”。
+
+时序如下：
+
+1. 用户在 busy 状态下发送一条 `steer` follow-up
+2. 前端立即把它加入 pending rail
+3. 前端立刻向后端发送 `action: 'follow_up'`
+4. 后端把这条消息持久化为 `human` 消息，但状态先记为：
+   - `followUpMode: 'steer'`
+   - `followUpStatus: 'pending'`
+   - `visibleAt: null`
+5. 当前工具调用结束后，在下一次模型调用前，后端读取当前 execution 下所有 pending steer follow-ups
+6. 后端通过现有 LangGraph 状态更新链路把这些 follow-up 合并注入当前执行
+7. 注入成功后，把这些消息标记为 `consumed`，并写入 `visibleAt`
+8. 前端在合适的事件边界把它们从 pending 区移动到 transcript
+
+`steer` 不会新建 execution，它的目标是“改变当前执行后续的推理输入”。
+
+## 前端状态机
+
+前端实现里，follow-up 相关状态主要有 3 类：
+
+- composer 默认模式
+  - 决定 busy 状态下新消息默认走 `queue` 还是 `steer`
+- pending follow-ups
+  - 保存所有已提交但尚未正式进入 transcript 的消息
+- 当前 run 状态
+  - 决定 follow-up 什么时候可以被消费
+
+对应规则如下：
+
+- `idle`
+  - 普通发送，直接走 `send`
+- `busy`
+  - 允许继续输入
+  - 允许继续发送
+  - 新消息不再中止当前 run
+- `interrupted`
+  - 当前版本不接受新的 follow-up
+  - 仍然优先使用原有 `resume / confirm / reject` 流程
+
+## 后端持久化模型
+
+为了让 follow-up 能跨刷新、跨宿主、跨事件边界恢复，后端把它作为普通 `human` 消息存储，只是补充了额外元数据：
+
+- `followUpMode`
+  - 当前消息是 `queue` 还是 `steer`
+- `followUpStatus`
+  - `pending`、`consumed`、`canceled`
+- `targetExecutionId`
+  - 这条消息想作用到哪个 execution
+- `visibleAt`
+  - 什么时候正式变成 transcript 可见消息
+
+这种设计的好处是：
+
+- UI 刷新后还能恢复 pending 状态
+- 后端可以准确判断是否已经被消费
+- `steer` 可以安全地绑定当前 execution
+- stale 消息可以做降级处理，而不是直接丢失
+
+## 降级与兜底策略
+
+为了保证 follow-up 不丢消息，系统做了几层兜底：
+
+- 如果 `steer` 的目标 execution 已经结束
+  - 自动降级为 `queue`
+- 如果 `steer` 注入失败
+  - 可以回退为 `queue`
+- 如果当前会话进入 `interrupted`
+  - 暂停 follow-up 消费
+- 如果用户刷新页面
+  - 通过已持久化的 pending 元数据恢复状态
+
+## 默认模式与宿主持久化
+
+默认模式不是写死在组件里的，而是由宿主保存：
+
+- Hosted ChatKit / assistant chatkit
+  - 持久化到 `AssistantBindingConversationPreferences.defaultFollowUpBehavior`
+- Xpert legacy agent chat
+  - 持久化到本地存储
+
+这样做的目的是把“默认行为偏好”交给宿主，而不是耦合到具体 UI 组件内部。
+
+## 当前实现差异
+
+统一设计是一套，但不同入口的实现深度不完全一样：
+
+- `chatkit-ui`
+  - 完整支持 `queue` 和 `steer`
+  - 有 pending rail、模式切换、反向快捷键、事件边界消费
+- Xpert assistant host runtime
+  - 负责把默认模式与事件桥接给 ChatKit
+- Xpert legacy preview agent chat
+  - 已接入 pending follow-up、`queue / steer` 切换、快捷键和后端 follow-up 协议
+- Xpert 简化 `chat-input`
+  - 当前优先保证“回答中仍可继续输入并排队发送”
+  - 更偏向 `queue` 语义
+
+## 一句话总结
+
+Follow-up behavior 的本质是：
+
+- `queue`：把新消息排到下一轮
+- `steer`：把新消息插入当前轮后续推理
+
+两者都先进入 pending，再在正确的系统边界被正式消费。

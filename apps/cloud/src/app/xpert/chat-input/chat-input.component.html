@@ -1,6 +1,6 @@
 <div class="relative z-40 flex flex-col items-center w-full pb-3 sm:pb-4">
   <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10">
-    <div class="flex flex-row gap-2 justify-center w-full relative">
+    <div class="flex flex-col justify-start w-full relative">
       <input
         id="dropzone-file"
         #fileDropRef
@@ -12,6 +12,90 @@
         (change)="fileBrowseHandler($event.target)"
         (click)="fileDropRef.value = null"
       />
+
+      @if (showFollowUpTray()) {
+        <div class="px-8 pt-2 @[480px]/input:px-3">
+          <div class="follow-up-tray rounded-t-3xl border border-divider-regular bg-components-card-bg px-3 py-2.5 sm:px-4">
+            <div class="mb-2.5 flex items-center justify-between gap-2">
+              <div class="text-base font-semibold tracking-[-0.02em] text-text-primary">
+                {{ 'PAC.Chat.PendingFollowUp' | translate: { Default: 'Pending Follow-up' } }}
+              </div>
+
+              <button
+                type="button"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-divider-regular text-text-tertiary transition-colors hover:border-components-input-border-hover hover:bg-hover-bg hover:text-text-primary"
+                [cdkMenuTriggerFor]="followUpMenu"
+                [attr.aria-label]="'PAC.Chat.FollowUpSettings' | translate: { Default: 'Follow-up settings' }"
+              >
+                <i class="ri-equalizer-line"></i>
+              </button>
+            </div>
+
+            <div class="space-y-2.5">
+              @for (item of pendingFollowUps(); track item.id ?? $index) {
+                <div class="follow-up-item rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 py-1.5">
+                  <div class="flex items-start gap-2.5">
+                    <div class="pt-0.5 text-lg leading-none text-text-tertiary">
+                      <i class="ri-corner-down-left-line"></i>
+                    </div>
+
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-start gap-1.5">
+                        <div class="min-w-0 flex-1 text-sm font-medium truncate text-text-primary" [title]="item.content">
+                          {{ item.content }}
+                        </div>
+           
+                        @if (item.mode === 'queue') {
+                          <button
+                            type="button"
+                            class="inline-flex h-7 px-2 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                            (click)="steerPendingFollowUp(item.id)"
+                            [attr.aria-label]="'PAC.Chat.SteerPendingFollowUp' | translate: { Default: 'Steer pending follow-up' }"
+                          >
+                            {{ 'PAC.Chat.FollowUpSteer' | translate: { Default: 'Steer' } }}
+                          </button>
+                        }
+
+                        <button
+                          type="button"
+                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                          (click)="removePendingFollowUp(item.id)"
+                          [attr.aria-label]="
+                            'PAC.Chat.RemovePendingFollowUp' | translate: { Default: 'Remove pending follow-up' }
+                          "
+                        >
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+
+                        <button
+                          type="button"
+                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                          [cdkMenuTriggerFor]="followUpItemMenu"
+                          [cdkMenuTriggerData]="{ item: item }"
+                          [attr.aria-label]="'PAC.Chat.MoreActions' | translate: { Default: 'More actions' }"
+                        >
+                          <i class="ri-more-2-fill"></i>
+                        </button>
+                      </div>
+
+                      <div class="flex items-center gap-1.5 text-[11px] text-text-tertiary">
+                        <i class="ri-information-line text-sm"></i>
+                        <span>
+                          @if (item.mode === 'queue') {
+                            {{ 'PAC.Chat.FollowUpQueueHint' | translate: { Default: 'Queued for the next run' } }}
+                          } @else {
+                            {{ 'PAC.Chat.FollowUpSteerHint' | translate: { Default: 'Will steer after the current tool call' } }}
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
       <div
         class="query-bar group bg-components-card-bg duration-100 relative w-full shadow-sm sm:shadow-md rounded-[28px] border border-divider-regular overflow-hidden hover:border-components-input-border-hover hover:bg-input-background-hover focus-within:border-components-input-border-active hover:focus-within:border-components-input-border-active pb-12 px-2 @[480px]/input:px-3"
       >
@@ -35,7 +119,7 @@
             zBorderless
             #userInput
             dir="auto"
-            aria-label="Ask Xpert anything"
+            [attr.aria-label]="'PAC.Chat.AskAnything' | translate: { Default: 'Ask Xpert anything' }"
             class="w-full px-2 @[480px]/input:px-3 mt-2 pt-3 mb-5 bg-transparent focus:outline-none text-text-primary align-bottom resize-none overflow-auto"
             [formControl]="promptControl"
             cdkTextareaAutosize
@@ -70,7 +154,7 @@
               #attachTrigger
               class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-divider-deep text-text-secondary hover:text-text-primary hover:bg-button-ghost-hover"
               type="button"
-              aria-label="Attach"
+              [attr.aria-label]="'PAC.Chat.Attach' | translate: { Default: 'Attach' }"
               tabindex="0"
               [cdkMenuTriggerFor]="attachMenu"
               [cdkMenuPosition]="[
@@ -133,7 +217,7 @@
                 zTooltipClass="context-usage-tooltip"
                 zPosition="top"
                 [zDisabled]="!contextUsageTooltip()"
-                aria-label="Context window usage"
+                [attr.aria-label]="'PAC.Chat.ContextWindowUsage' | translate: { Default: 'Context window usage' }"
               >
                 <span class="context-usage-ring" [ngStyle]="contextUsageRingStyle()">
                   <span class="context-usage-ring__inner">
@@ -177,7 +261,7 @@
               </div>
             }
 
-            @if (answering()) {
+            @if (answering() && !draftPrompt()) {
               <button
                 type="button"
                 class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border border-divider-regular p-1 text-text-primary bg-components-card-bg transition-transform origin-center enabled:hover:scale-110 enabled:hover:bg-hover-bg"
@@ -198,7 +282,7 @@
               <button
                 type="button"
                 class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border border-divider-regular p-1 bg-components-card-bg disabled:opacity-10 disabled:text-text-quaternary text-text-primary bottom-1.5 transition-transform origin-center enabled:hover:scale-110 enabled:hover:bg-hover-bg"
-                [disabled]="!prompt() || disabled()"
+                [disabled]="!draftPrompt() || disabled()"
                 (click)="send()"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-text-primary">
@@ -261,5 +345,56 @@
         </button>
       </div>
     }
+  </div>
+</ng-template>
+
+<ng-template #followUpMenu>
+  <div cdkMenu class="cdk-menu__large follow-up-menu">
+    <div class="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+      {{ 'PAC.Chat.FollowUpBehavior' | translate: { Default: 'Follow-up behavior' } }}
+    </div>
+
+    <button type="button" cdkMenuItem (click)="setFollowUpBehavior('queue')">
+      <i
+        class="mr-2"
+        [ngClass]="
+          followUpBehavior() === 'queue' ? 'ri-checkbox-circle-fill text-primary-500' : 'ri-list-check-3 text-text-tertiary'
+        "
+      ></i>
+      <span>{{ 'PAC.Chat.FollowUpQueue' | translate: { Default: 'Queue' } }}</span>
+    </button>
+    <button type="button" cdkMenuItem (click)="setFollowUpBehavior('steer')">
+      <i
+        class="mr-2"
+        [ngClass]="
+          followUpBehavior() === 'steer' ? 'ri-checkbox-circle-fill text-primary-500' : 'ri-direction-line text-text-tertiary'
+        "
+      ></i>
+      <span>{{ 'PAC.Chat.FollowUpSteer' | translate: { Default: 'Steer' } }}</span>
+    </button>
+    @if (pendingFollowUps().length) {
+      <div class="mx-2 my-1 h-px bg-divider-regular"></div>
+      <button type="button" cdkMenuItem (click)="clearPendingFollowUps()">
+        <i class="ri-delete-bin-6-line mr-2"></i>
+        <span>{{ 'PAC.KEY_WORDS.ClearAll' | translate: { Default: 'Clear all' } }}</span>
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #followUpItemMenu let-item="item">
+  <div cdkMenu class="cdk-menu__large follow-up-item-menu">
+    <button type="button" cdkMenuItem (click)="editPendingFollowUp(item)">
+      <i class="ri-edit-line mr-2"></i>
+      <span>{{ 'PAC.Chat.EditMessage' | translate: { Default: 'Edit message' } }}</span>
+    </button>
+    <button type="button" cdkMenuItem (click)="item.mode === 'queue' ? closeQueue() : removePendingFollowUp(item.id)">
+      <i class="ri-corner-down-left-line mr-2"></i>
+      @if (item.mode === 'queue') {
+        <span>{{ 'PAC.Chat.CloseQueue' | translate: { Default: 'Close queue' } }}</span>
+      } @else {
+        <span>{{ 'PAC.Chat.RemoveFollowUp' | translate: { Default: 'Remove follow-up' } }}</span>
+      }
+    </button>
   </div>
 </ng-template>

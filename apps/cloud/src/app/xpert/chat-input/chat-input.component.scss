@@ -1,10 +1,31 @@
 @reference "../../../styles/tailwind-reference.css";
+
 :host {
   @apply w-full flex flex-col items-stretch lg:w-[800px] max-w-full;
 }
 
 .btn-canvas.active {
   @apply bg-lime-50 text-lime-800;
+}
+
+.follow-up-tray {
+  box-shadow: 0 12px 30px color-mix(in oklab, var(--foreground) 7%, transparent);
+}
+
+.follow-up-item {
+  box-shadow: 0 4px 14px color-mix(in oklab, var(--foreground) 6%, transparent);
+}
+
+.follow-up-mode-chip__queue {
+  background: color-mix(in oklab, var(--background) 86%, transparent);
+  border-color: color-mix(in oklab, var(--ring) 18%, transparent);
+  color: color-mix(in oklab, var(--foreground) 74%, transparent);
+}
+
+.follow-up-mode-chip__steer {
+  background: color-mix(in oklab, var(--background) 96%, transparent);
+  border-color: color-mix(in oklab, var(--ring) 24%, transparent);
+  color: var(--foreground);
 }
 
 .context-usage-ring {
@@ -31,4 +52,12 @@
   color: var(--background);
   border: 1px solid color-mix(in oklab, var(--ring) 20%, transparent);
   box-shadow: 0 12px 28px color-mix(in oklab, var(--foreground) 28%, transparent);
+}
+
+:host ::ng-deep .follow-up-menu,
+:host ::ng-deep .follow-up-item-menu {
+  border-radius: 24px;
+  border: 1px solid color-mix(in oklab, var(--ring) 16%, transparent);
+  background: color-mix(in oklab, var(--background) 98%, transparent);
+  box-shadow: 0 18px 40px color-mix(in oklab, var(--foreground) 18%, transparent);
 }

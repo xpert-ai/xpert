@@ -108,6 +108,16 @@ export type TAgentRunnableConfigurable = {
    */
   executionId: string
   /**
+   * Root execution id of the current agent run.
+   * Nested subgraphs keep writing steer follow-ups back into this execution.
+   */
+  rootExecutionId?: string
+  /**
+   * Root agent key of the current agent run.
+   * Nested subgraphs use this as the primary transcript/log channel.
+   */
+  rootAgentKey?: string
+  /**
    * Sandbox backend context
    */
   sandbox?: TSandboxConfigurable

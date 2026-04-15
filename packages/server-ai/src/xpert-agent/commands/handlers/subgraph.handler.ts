@@ -30,6 +30,7 @@ import {
     allChannels,
     channelName,
     ChatMessageEventTypeEnum,
+    ChatMessageTypeEnum,
     findStartNodes,
     getAgentMiddlewareNodes,
     getCurrentGraph,
@@ -44,6 +45,7 @@ import {
     KnowledgebaseChannel,
     mapTranslationLanguage,
     STATE_VARIABLE_HUMAN,
+    STATE_VARIABLE_SYS,
     TAgentRunnableConfigurable,
     TStateVariable,
     TSummarize,
@@ -78,6 +80,8 @@ import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
+import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
+import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
@@ -103,6 +107,8 @@ import {
     translate,
     stateVariable,
     createParameters,
+    STATE_VARIABLE_PENDING_FOLLOW_UPS,
+    TPendingFollowUpStateItem,
     TGraphTool,
     TSubAgent,
     TWorkflowGraphNode,
@@ -1096,7 +1102,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             }
         }
 
-        const agentLoopEntryNode = beforeModelHooks[0]?.key ?? agentKey
+        const stagePendingFollowUpsNodeKey = `${agentKey}_stage_pending_follow_ups`
+        const consumePendingFollowUpsNodeKey = `${agentKey}_consume_pending_follow_ups`
+        const hasSteerPreTurnNodes = !hiddenAgent
+        const agentLoopEntryNode = hasSteerPreTurnNodes
+            ? stagePendingFollowUpsNodeKey
+            : beforeModelHooks[0]?.key ?? agentKey
         const agentStartNode = beforeAgentHooks[0]?.key ?? agentLoopEntryNode
         const agentDecisionNode = afterModelExecutionOrder[afterModelExecutionOrder.length - 1]?.key ?? agentKey
         const afterAgentEntryNode = afterAgentExecutionOrder[0]?.key
@@ -1122,6 +1133,32 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     })
                 )
             )
+            subgraphBuilder
+                .addNode(
+                    stagePendingFollowUpsNodeKey,
+                    (await this.commandBus.execute(
+                        new CreateNodeStagePendingSteerFollowUpsCommand({
+                            conversationId: options.conversationId
+                        })
+                    )).withConfig({
+                        runName: stagePendingFollowUpsNodeKey,
+                        tags: [thread_id, xpert.id, stagePendingFollowUpsNodeKey]
+                    })
+                )
+                .addNode(
+                    consumePendingFollowUpsNodeKey,
+                    (await this.commandBus.execute(
+                        new CreateNodeConsumePendingSteerFollowUpsCommand({
+                            agentKey,
+                            agentChannel,
+                            subscriber,
+                            attachmentOptions: agent.options?.attachment ?? agent.options?.vision
+                        })
+                    )).withConfig({
+                        runName: consumePendingFollowUpsNodeKey,
+                        tags: [thread_id, xpert.id, consumePendingFollowUpsNodeKey]
+                    })
+                )
             beforeModelHooks.forEach(({ key, hook }) =>
                 subgraphBuilder.addNode(
                     key,
@@ -1168,11 +1205,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 subgraphBuilder.addEdge(beforeAgentHooks[beforeAgentHooks.length - 1].key, agentLoopEntryNode)
             }
+            subgraphBuilder.addEdge(stagePendingFollowUpsNodeKey, consumePendingFollowUpsNodeKey)
             if (beforeModelHooks.length) {
                 for (let i = 0; i < beforeModelHooks.length - 1; i++) {
                     subgraphBuilder.addEdge(beforeModelHooks[i].key, beforeModelHooks[i + 1].key)
                 }
+                subgraphBuilder.addEdge(consumePendingFollowUpsNodeKey, beforeModelHooks[0].key)
                 subgraphBuilder.addEdge(beforeModelHooks[beforeModelHooks.length - 1].key, agentKey)
+            } else {
+                subgraphBuilder.addEdge(consumePendingFollowUpsNodeKey, agentKey)
             }
             if (afterModelExecutionOrder.length) {
                 subgraphBuilder.addEdge(agentKey, afterModelExecutionOrder[0].key)

@@ -3,6 +3,7 @@ import { BaseStore } from '@langchain/langgraph'
 import {
     appendMessageContent,
     appendMessagePlainText,
+    CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED,
     ChatMessageEventTypeEnum,
     TChatMessageStep,
     ChatMessageTypeEnum,
@@ -20,6 +21,7 @@ import {
     STATE_VARIABLE_HUMAN,
     STATE_VARIABLE_SYS,
     TChatConversationStatus,
+    TFollowUpConsumedEvent,
     TChatRequestHuman,
     TSensitiveOperation,
     TXpertChatResumeRequest,
@@ -30,7 +32,7 @@ import { getErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { catchError, concat, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
+import { catchError, concat, concatMap, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
 import { uniq } from 'lodash'
 import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/cancel-summary.command'
 import { ScheduleSummaryJobCommand } from '../../../chat-conversation/commands/schedule-summary.command'
@@ -43,6 +45,7 @@ import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
+import { findPendingFollowUpByClientMessageId } from '../../../shared/agent/persisted-follow-up'
 import { normalizeChatState } from '../../../shared/agent/utils'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
@@ -123,7 +126,57 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 ? null
                 : request.action === 'send'
                   ? normalizeChatState(request.state, request.message.input)
-                  : normalizeChatState(request.state)
+                  : request.action === 'follow_up'
+                    ? normalizeChatState(request.state, request.message.input)
+                    : normalizeChatState(request.state)
+
+        if (request.action === 'follow_up') {
+            const conversation = await this.queryBus.execute(
+                new GetChatConversationQuery({ id: request.conversationId }, ['messages'])
+            )
+            if (!conversation) {
+                throw new BadRequestException(`Conversation "${request.conversationId}" not found`)
+            }
+            if (conversation.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+                throw new BadRequestException('Follow-up is not available while the conversation is interrupted')
+            }
+
+            const followUpInput = normalizeChatState(request.state, request.message.input)[STATE_VARIABLE_HUMAN]
+            if (!followUpInput?.input?.trim()) {
+                throw new BadRequestException('Follow-up input is required')
+            }
+
+            const targetExecutionId =
+                request.target?.executionId ??
+                options?.execution?.id ??
+                [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
+                null
+
+            await this.commandBus.execute(
+                new ChatMessageUpsertCommand({
+                    parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
+                    role: 'human',
+                    content: followUpInput.input,
+                    conversationId: conversation.id,
+                    ...(followUpInput.files
+                        ? {
+                              attachments: followUpInput.files as IStorageFile[]
+                          }
+                        : {}),
+                    executionId: targetExecutionId ?? undefined,
+                    followUpMode: request.mode,
+                    followUpStatus: 'pending',
+                    targetExecutionId,
+                    visibleAt: null,
+                    thirdPartyMessage: {
+                        followUpInput,
+                        followUpClientMessageId: request.message.clientMessageId ?? null
+                    }
+                })
+            )
+
+            return EMPTY
+        }
 
         const timeStart = Date.now()
 
@@ -224,6 +277,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             let userMessage: IChatMessage = null
+            const persistedPendingFollowUp =
+                request.action === 'send'
+                    ? findPendingFollowUpByClientMessageId(conversation.messages, request.message.clientMessageId)
+                    : null
             // Retry starts a fresh AI turn from the original human input by locating
             // the run's nearest `input` checkpoint, while still creating a new
             // execution and AI placeholder for the retried response.
@@ -278,18 +335,34 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             executionId = execution.id
 
             if (request.action !== 'retry') {
-                const _humanMessage: Partial<IChatMessage> = {
-                    parent: conversation.messages[conversation.messages.length - 1],
-                    role: 'human',
-                    content: input.input,
-                    conversationId: conversation.id,
-                    ...(input.files
-                        ? {
-                              attachments: input.files as IStorageFile[]
-                          }
-                        : {})
+                if (persistedPendingFollowUp?.id) {
+                    userMessage = await this.commandBus.execute(
+                        new ChatMessageUpsertCommand({
+                            ...persistedPendingFollowUp,
+                            content: input.input,
+                            followUpStatus: 'consumed',
+                            visibleAt: new Date(),
+                            ...(input.files
+                                ? {
+                                      attachments: input.files as IStorageFile[]
+                                  }
+                                : {})
+                        })
+                    )
+                } else {
+                    const _humanMessage: Partial<IChatMessage> = {
+                        parent: conversation.messages[conversation.messages.length - 1],
+                        role: 'human',
+                        content: input.input,
+                        conversationId: conversation.id,
+                        ...(input.files
+                            ? {
+                                  attachments: input.files as IStorageFile[]
+                              }
+                            : {})
+                    }
+                    userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand(_humanMessage))
                 }
-                userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand(_humanMessage))
             }
 
             aiMessage = await this.commandBus.execute(
@@ -386,47 +459,90 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
                 let _execution = null
                 let operation: TSensitiveOperation = null
+                let pendingSteerAssistantParentId: string | null = null
                 const messageAppendContextTracker = createMessageAppendContextTracker()
                 concat(
                     agentObservable.pipe(
-                        tap({
-                            next: (event) => {
-                                if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
-                                    const { messageContext } = messageAppendContextTracker.resolve({
-                                        incoming: event.data.data,
-                                        fallbackSource:
-                                            typeof event.data.data === 'string' ? 'memory_reply' : undefined,
-                                        fallbackStreamId: aiMessage?.id ?? executionId
+                        concatMap(async (event) => {
+                            if (
+                                pendingSteerAssistantParentId &&
+                                shouldStartAssistantMessageAfterSteer(event)
+                            ) {
+                                aiMessage = await this.commandBus.execute(
+                                    new ChatMessageUpsertCommand({
+                                        parent: { id: pendingSteerAssistantParentId } as IChatMessage,
+                                        role: 'ai',
+                                        content: ``,
+                                        executionId,
+                                        conversationId: conversation.id,
+                                        status: 'thinking'
                                     })
+                                )
+                                pendingSteerAssistantParentId = null
 
-                                    appendMessageContent(aiMessage, event.data.data, messageContext)
-                                    result = appendMessagePlainText(result, event.data.data, messageContext)
-                                } else if (event.data.type === ChatMessageTypeEnum.EVENT) {
-                                    switch (event.data.event) {
-                                        case ChatMessageEventTypeEnum.ON_AGENT_END: {
-                                            _execution = event.data.data
-                                            break
+                                subscriber.next({
+                                    data: {
+                                        type: ChatMessageTypeEnum.EVENT,
+                                        event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
+                                        data: { ...aiMessage, status: 'thinking' }
+                                    }
+                                } as MessageEvent)
+                            }
+
+                            if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
+                                const { messageContext } = messageAppendContextTracker.resolve({
+                                    incoming: event.data.data,
+                                    fallbackSource:
+                                        typeof event.data.data === 'string' ? 'memory_reply' : undefined,
+                                    fallbackStreamId: aiMessage?.id ?? executionId
+                                })
+
+                                appendMessageContent(aiMessage, event.data.data, messageContext)
+                                result = appendMessagePlainText(result, event.data.data, messageContext)
+                            } else if (event.data.type === ChatMessageTypeEnum.EVENT) {
+                                switch (event.data.event) {
+                                    case ChatMessageEventTypeEnum.ON_AGENT_END: {
+                                        _execution = event.data.data
+                                        break
+                                    }
+                                    case ChatMessageEventTypeEnum.ON_INTERRUPT: {
+                                        operation = event.data.data
+                                        break
+                                    }
+                                    case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                                        appendMessageSteps(aiMessage, [event.data.data])
+                                        break
+                                    }
+                                    case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+                                        if (event.data.data?.type === 'sandbox') {
+                                            conversation.options ??= {}
+                                            conversation.options.features ??= []
+                                            conversation.options.features.push('sandbox')
+                                            conversation.options.features = uniq(conversation.options.features)
                                         }
-                                        case ChatMessageEventTypeEnum.ON_INTERRUPT: {
-                                            operation = event.data.data
-                                            break
+
+                                        if (isFollowUpConsumedEvent(event.data.data)) {
+                                            aiMessage.status = XpertAgentExecutionStatusEnum.SUCCESS
+                                            aiMessage.error = null
+                                            await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+
+                                            subscriber.next({
+                                                data: {
+                                                    type: ChatMessageTypeEnum.EVENT,
+                                                    event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
+                                                    data: { ...aiMessage }
+                                                }
+                                            } as MessageEvent)
+
+                                            pendingSteerAssistantParentId =
+                                                event.data.data.messageIds[event.data.data.messageIds.length - 1] ?? null
                                         }
-                                        case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-                                            appendMessageSteps(aiMessage, [event.data.data])
-                                            break
-                                        }
-                                        case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
-                                            if (event.data.data?.type === 'sandbox') {
-                                                conversation.options ??= {}
-                                                conversation.options.features ??= []
-                                                conversation.options.features.push('sandbox')
-                                                conversation.options.features = uniq(conversation.options.features)
-                                            }
-                                            break
-                                        }
+                                        break
                                     }
                                 }
                             }
+
+                            return event
                         }),
                         catchError((err) => {
                             status = XpertAgentExecutionStatusEnum.ERROR
@@ -632,6 +748,30 @@ function appendMessageSteps(aiMessage: IChatMessage, steps: TChatMessageStep[]) 
         }
         aiMessage.events.push(item)
     })
+}
+
+function isFollowUpConsumedEvent(value: unknown): value is TFollowUpConsumedEvent {
+    return (
+        !!value &&
+        typeof value === 'object' &&
+        (value as TFollowUpConsumedEvent).type === CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED &&
+        (value as TFollowUpConsumedEvent).mode === 'steer' &&
+        Array.isArray((value as TFollowUpConsumedEvent).messageIds)
+    )
+}
+
+function shouldStartAssistantMessageAfterSteer(event: MessageEvent) {
+    if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
+        return true
+    }
+
+    if (event.data.type !== ChatMessageTypeEnum.EVENT) {
+        return false
+    }
+
+    return [ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, ChatMessageEventTypeEnum.ON_INTERRUPT].includes(
+        event.data.event as ChatMessageEventTypeEnum
+    )
 }
 
 function withPreferenceSystemState(

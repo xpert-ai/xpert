@@ -24,7 +24,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 ],
   selector: 'chat-human-message',
   templateUrl: './message.component.html',
-  styleUrl: 'message.component.scss',
+  styleUrl: 'message.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [ListHeightStaggerAnimation]
 })

@@ -61,7 +61,7 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { format } from 'date-fns/format'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { isNil } from 'lodash'
-import { Observable, Subscriber, tap } from 'rxjs'
+import { EMPTY, Observable, Subscriber, tap } from 'rxjs'
 import z from 'zod'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
@@ -102,6 +102,7 @@ import {
     BaseTool,
     createHumanMessage,
     CreateMemoryStoreCommand,
+    findPendingFollowUpByClientMessageId,
     rejectGraph,
     stateToParameters,
     stateVariable,
@@ -136,6 +137,45 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         const interruptCommand = request.action === 'resume' ? toInterruptCommand(request) : null
         const retry = request.action === 'retry'
         const confirm = request.action === 'resume'
+
+        if (request.action === 'follow_up') {
+            const conversation = await this.queryBus.execute(
+                new GetChatConversationQuery({ id: request.conversationId }, ['messages', 'messages.attachments'])
+            )
+            if (!conversation) {
+                throw new Error(`Conversation "${request.conversationId}" not found`)
+            }
+
+            const targetExecutionId =
+                request.target?.executionId ??
+                [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
+                null
+
+            await this.commandBus.execute(
+                new ChatMessageUpsertCommand({
+                    parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
+                    role: 'human',
+                    content: request.message.input?.input,
+                    conversationId: conversation.id,
+                    ...(request.message.input?.files
+                        ? {
+                              attachments: request.message.input.files as IStorageFile[]
+                          }
+                        : {}),
+                    executionId: targetExecutionId ?? undefined,
+                    followUpMode: request.mode,
+                    followUpStatus: 'pending',
+                    targetExecutionId,
+                    visibleAt: null,
+                    thirdPartyMessage: {
+                        followUpInput: request.message.input,
+                        followUpClientMessageId: request.message.clientMessageId ?? null
+                    }
+                })
+            )
+
+            return EMPTY
+        }
 
         let conversation: IChatConversation = null
         let userMessage: IChatMessage = null
@@ -207,6 +247,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 projectId ??= conversation.projectId
             }
 
+            const persistedPendingFollowUp =
+                request.action === 'send'
+                    ? findPendingFollowUpByClientMessageId(conversation.messages, request.message.clientMessageId)
+                    : null
+
             if (retry) {
                 const retryMessageId = resolveConversationRetrySourceMessageId(request, conversation.messages)
                 if (!retryMessageId) {
@@ -255,14 +300,30 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             }
 
             if (!userMessage) {
-                userMessage = await this.commandBus.execute(
-                    new ChatMessageUpsertCommand({
-                        role: 'human',
-                        content: input.input,
-                        conversationId: conversation.id,
-                        attachments: input.files as IStorageFile[]
-                    })
-                )
+                if (persistedPendingFollowUp?.id) {
+                    userMessage = await this.commandBus.execute(
+                        new ChatMessageUpsertCommand({
+                            ...persistedPendingFollowUp,
+                            content: input.input,
+                            followUpStatus: 'consumed',
+                            visibleAt: new Date(),
+                            ...(input.files
+                                ? {
+                                      attachments: input.files as IStorageFile[]
+                                  }
+                                : {})
+                        })
+                    )
+                } else {
+                    userMessage = await this.commandBus.execute(
+                        new ChatMessageUpsertCommand({
+                            role: 'human',
+                            content: input.input,
+                            conversationId: conversation.id,
+                            attachments: input.files as IStorageFile[]
+                        })
+                    )
+                }
             }
         }
 

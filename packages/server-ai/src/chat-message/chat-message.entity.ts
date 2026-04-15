@@ -125,4 +125,24 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@IsString()
 	@Column({ nullable: true })
 	executionId?: string
+
+	@ApiPropertyOptional({ enum: ['queue', 'steer'] })
+	@IsOptional()
+	@Column({ type: 'varchar', nullable: true })
+	followUpMode?: 'queue' | 'steer'
+
+	@ApiPropertyOptional({ enum: ['pending', 'consumed', 'canceled'] })
+	@IsOptional()
+	@Column({ type: 'varchar', nullable: true })
+	followUpStatus?: 'pending' | 'consumed' | 'canceled'
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsOptional()
+	@Column({ nullable: true })
+	targetExecutionId?: string | null
+
+	@ApiPropertyOptional({ type: () => 'timestamptz' })
+	@IsOptional()
+	@Column({ type: 'timestamptz', nullable: true })
+	visibleAt?: Date | null
 }

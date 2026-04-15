@@ -4,9 +4,7 @@ import { RouterModule } from '@angular/router'
 import { TranslatePipe } from '@xpert-ai/core'
 import { AiProviderRole, injectCopilotServer } from '../../../@core'
 
-/**
- * @deprecated use chatkit
- */
+
 @Component({
   standalone: true,
   selector: 'copilot-enable-model',

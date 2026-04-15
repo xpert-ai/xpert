@@ -22,13 +22,15 @@ export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
 type AssistantChatKitOptions = Parameters<typeof createChatKit>[0]
 type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
+type AssistantChatKitEventHandlers = ChatKitEventHandlers
 type AssistantHostedClientSecret =
   | string
   | {
       secret: string
       organizationId: string
     }
-type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> & {
+type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> &
+  AssistantChatKitEventHandlers & {
   api: {
     apiUrl: string
     xpertId?: string
@@ -43,14 +45,14 @@ type AssistantRuntimeInput = {
   initialThread?: Signal<string | null>
   titleKey: string
   titleDefault: string
-  onReady?: NonNullable<ChatKitEventHandlers['onReady']>
-  onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
-  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
-  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
-  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
-  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
-  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
-  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
+  onReady?: NonNullable<AssistantChatKitEventHandlers['onReady']>
+  onEffect?: NonNullable<AssistantChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<AssistantChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<AssistantChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<AssistantChatKitEventHandlers['onResponseEnd']>
+  onThreadChange?: NonNullable<AssistantChatKitEventHandlers['onThreadChange']>
+  onThreadLoadStart?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 type AssistantBindingRuntimeInput = {
@@ -66,14 +68,14 @@ type AssistantHostedRuntimeInput = {
   initialThread?: Signal<string | null>
   titleKey: string
   titleDefault: string
-  onReady?: NonNullable<ChatKitEventHandlers['onReady']>
-  onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
-  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
-  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
-  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
-  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
-  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
-  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
+  onReady?: NonNullable<AssistantChatKitEventHandlers['onReady']>
+  onEffect?: NonNullable<AssistantChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<AssistantChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<AssistantChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<AssistantChatKitEventHandlers['onResponseEnd']>
+  onThreadChange?: NonNullable<AssistantChatKitEventHandlers['onThreadChange']>
+  onThreadLoadStart?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {

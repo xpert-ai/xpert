@@ -1,5 +1,7 @@
 export * from './chat.command'
 export * from './invoke.command'
 export * from './compile-graph.command'
+export * from './create-node-stage-pending-steer-follow-ups.command'
+export * from './create-node-consume-pending-steer-follow-ups.command'
 export * from './summarize-title.command'
 export * from './workflow-subgraph.command'

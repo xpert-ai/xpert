@@ -40,7 +40,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     }
 }))
 
-import { of } from 'rxjs'
+import { EMPTY, of } from 'rxjs'
 import { RequestContext } from '@xpert-ai/server-core'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
@@ -732,5 +732,96 @@ describe('RunCreateStreamHandler execute', () => {
             relations: ['user', 'createdBy']
         })
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+    })
+
+    it('does not append a complete SSE event when background follow_up is submitted', async () => {
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
+        const appendEvent = jest.fn().mockResolvedValue(undefined)
+        const appendCompleteEvent = jest.fn().mockResolvedValue(undefined)
+        const commandBus = {
+            execute: jest.fn(async (command) => {
+                if (command instanceof XpertChatCommand) {
+                    return EMPTY
+                }
+
+                return null
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'GetChatConversationQuery') {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: 'xpert-1',
+                        status: 'busy',
+                        options: {}
+                    }
+                }
+
+                if (query.constructor.name === 'XpertAgentExecutionOneQuery') {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+
+                return {
+                    id: 'xpert-1'
+                }
+            })
+        }
+        const handler = new RunCreateStreamHandler(
+            commandBus as any,
+            queryBus as any,
+            {
+                findOne: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            {
+                appendEvent,
+                appendCompleteEvent
+            } as any,
+            {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                    id: 'xpert-1',
+                    environmentId: null
+                }),
+                getPublishedXpertInTenant: jest.fn()
+            } as any,
+            {
+                isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
+            } as any
+        )
+
+        const { stream } = await handler.execute({
+            threadId: 'thread-1',
+            runCreate: {
+                assistant_id: 'xpert-1',
+                input: {
+                    action: 'follow_up',
+                    conversationId: 'conversation-1',
+                    mode: 'steer',
+                    target: {
+                        executionId: 'execution-1'
+                    },
+                    message: {
+                        clientMessageId: 'client-message-1',
+                        input: {
+                            input: 'Please change direction'
+                        }
+                    }
+                }
+            }
+        } as any)
+
+        await new Promise<void>((resolve, reject) => {
+            stream.subscribe({
+                complete: () => resolve(),
+                error: reject
+            })
+        })
+
+        expect(appendEvent).not.toHaveBeenCalled()
+        expect(appendCompleteEvent).not.toHaveBeenCalled()
     })
 })

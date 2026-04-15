@@ -27,11 +27,14 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { InjectRepository } from '@nestjs/typeorm'
 import { format } from 'date-fns/format'
 import { pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
+import { Repository } from 'typeorm'
 import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
+import { ChatMessage } from '../../../chat-message/chat-message.entity'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createMapStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
@@ -53,8 +56,41 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly checkpointSaver: CopilotCheckpointSaver,
         private readonly envService: EnvironmentService,
         private readonly i18nService: I18nService,
-        private readonly executionCancelService: ExecutionCancelService
+        private readonly executionCancelService: ExecutionCancelService,
+        @InjectRepository(ChatMessage)
+        private readonly chatMessageRepository: Repository<ChatMessage>
     ) {}
+
+    private async downgradePendingSteerFollowUpsToQueue(conversationId?: string, executionId?: string) {
+        if (!conversationId || !executionId) {
+            return []
+        }
+
+        const pendingMessages = await this.chatMessageRepository.find({
+            where: {
+                conversationId,
+                targetExecutionId: executionId,
+                followUpMode: 'steer',
+                followUpStatus: 'pending'
+            },
+            order: {
+                createdAt: 'ASC'
+            }
+        })
+
+        if (!pendingMessages.length) {
+            return []
+        }
+
+        await this.chatMessageRepository.save(
+            pendingMessages.map((message) => ({
+                ...message,
+                followUpMode: 'queue' as const
+            }))
+        )
+
+        return pendingMessages.map((message) => message.id).filter((id): id is string => Boolean(id))
+    }
 
     public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
         const { state, agentKeyOrName, xpert, options } = command
@@ -278,8 +314,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     language: languageCode,
                     userId,
                     executionId: execution.id,
+                    rootExecutionId: options.rootExecutionId ?? execution.id,
                     xpertId: xpert.id,
                     agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
+                    rootAgentKey: agent.key,
                     sandbox: sandboxContext,
                     copilotModel,
                     ...(runtimeContext ? { context: runtimeContext } : {}),
@@ -305,6 +343,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     (async () => {
                         // Record last state when exception
                         await recordLastState()
+                        await this.downgradePendingSteerFollowUpsToQueue(options.conversationId, execution?.id)
                         // Translate recursion limit error
                         if (err instanceof GraphRecursionError) {
                             const recursionLimitReached = await this.i18nService.t(
@@ -345,6 +384,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         } as MessageEvent)
                         throw new NodeInterrupt(`Confirm tool calls`)
                     }
+                    await this.downgradePendingSteerFollowUpsToQueue(options.conversationId, execution?.id)
                     return null
                 })
             )
@@ -385,6 +425,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                                 error: 'Aborted!'
                             })
                         )
+                        await this.downgradePendingSteerFollowUpsToQueue(options.conversationId, execution?.id)
                     } catch (err) {
                         //
                     }
