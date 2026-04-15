@@ -83,11 +83,11 @@
 
   <div
     #container
-    [@listEnterAnimation]="reasoning()"
+    [@listEnterAnimation]="reasoning()?.length"
     class="thought-container px-5 pb-4 max-h-52 overflow-auto"
     [class.reasoning]="status() === 'reasoning'"
   >
-    @for (item of reasoning(); track item) {
+    @for (item of reasoning(); track item.id ?? $index) {
       <markdown
         #container
         class="ngm-copilot-markdown block text-sm font-body text-gray-500"
