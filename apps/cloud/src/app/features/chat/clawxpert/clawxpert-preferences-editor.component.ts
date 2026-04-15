@@ -7,6 +7,7 @@ import {
   ZardIconComponent,
   ZardTabsImports
 } from '@xpert-ai/headless-ui'
+import { countDisplayTextUnits } from '../../../@shared/text-count.utils'
 import { CodeEditorComponent } from '../../../@shared/editors/code-editor/editor.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 
@@ -282,20 +283,11 @@ export class ClawXpertPreferencesEditorComponent {
 
   getActiveWordCount() {
     return this.activeTab() === 'behavior'
-      ? countWords(this.form.controls.soul.value)
-      : countWords(this.form.controls.profile.value)
+      ? countDisplayTextUnits(this.form.controls.soul.value)
+      : countDisplayTextUnits(this.form.controls.profile.value)
   }
 
   getTotalWordCount() {
-    return countWords(this.form.controls.soul.value) + countWords(this.form.controls.profile.value)
+    return countDisplayTextUnits(this.form.controls.soul.value) + countDisplayTextUnits(this.form.controls.profile.value)
   }
-}
-
-function countWords(value?: string | null) {
-  const content = value?.trim()
-  if (!content) {
-    return 0
-  }
-
-  return content.split(/\s+/).length
 }

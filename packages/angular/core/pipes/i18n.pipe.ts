@@ -4,7 +4,8 @@ import { NgmLanguageEnum } from '../models'
 
 @Pipe({
   standalone: true,
-  name: 'i18n'
+  name: 'i18n',
+  pure: false
 })
 export class NgmI18nPipe implements PipeTransform {
   private readonly translate = inject(TranslateService)

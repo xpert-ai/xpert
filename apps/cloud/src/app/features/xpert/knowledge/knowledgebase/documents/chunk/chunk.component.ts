@@ -26,7 +26,7 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xpert-knowledge-document-chunk',
@@ -37,6 +37,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     TranslateModule,
     CdkMenuModule,
     ZardButtonComponent,
+    ZardSwitchComponent,
     ...ZardTooltipImports,
     ZardIconComponent,
     WaIntersectionObserver,
