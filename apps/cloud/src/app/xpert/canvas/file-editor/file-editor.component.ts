@@ -1,6 +1,6 @@
 
 import { HttpClient } from '@angular/common/http'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CopyComponent } from '@cloud/app/@shared/common'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
@@ -10,7 +10,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
-import { XpertHomeService } from '../../home.service'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
@@ -29,7 +28,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatCanvasFileEditorComponent {
-  readonly homeService = inject(XpertHomeService)
   readonly httpClient = inject(HttpClient)
 
   // Inputs

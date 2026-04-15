@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
 import { IKnowledgeDocument, TChatMessageStep } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { DocumentInterface } from '@langchain/core/documents'
-import { XpertHomeService } from '../../home.service'
 
 @Component({
   standalone: true,
@@ -14,8 +13,6 @@ import { XpertHomeService } from '../../home.service'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatCanvasKnowledgesComponent {
-  readonly homeService = inject(XpertHomeService)
-
   // Inputs
   readonly message = input<TChatMessageStep<(DocumentInterface & {document: Partial<IKnowledgeDocument>})[]>>()
 

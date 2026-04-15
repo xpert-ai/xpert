@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { TChatMessageStep, TFile } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { XpertHomeService } from '../../home.service'
 
 @Component({
   standalone: true,
@@ -14,7 +13,6 @@ import { XpertHomeService } from '../../home.service'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatCanvasIframeComponent {
-  readonly homeService = inject(XpertHomeService)
   readonly sanitizer = inject(DomSanitizer)
 
   // Inputs
