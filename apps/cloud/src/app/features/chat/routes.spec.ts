@@ -55,10 +55,6 @@ jest.mock('./home/home.component', () => ({
   ChatHomeComponent: class ChatHomeComponent {}
 }))
 
-jest.mock('./welcome/welcome.component', () => ({
-  ChatCommonWelcomeComponent: class ChatCommonWelcomeComponent {}
-}))
-
 import { ChatCommonAssistantComponent } from './common/common.component'
 import { Injector, runInInjectionContext } from '@angular/core'
 import { Route, Router, UrlSegment, UrlSegmentGroup } from '@angular/router'
@@ -129,6 +125,12 @@ describe('chat routes', () => {
     expect(route?.redirectTo).toBe('/chat/x/common')
   })
 
+  it('redirects /chat/x/welcome to /chat/x/common', () => {
+    const route = children.find((item) => item.path === 'x/welcome')
+
+    expect(route?.redirectTo).toBe('/chat/x/common')
+  })
+
   it('keeps /chat/c/:id on the legacy chat xpert component', () => {
     const route = children.find((item) => item.path === 'c/:id')
 
@@ -177,14 +179,20 @@ describe('chat routes', () => {
     expect(result).toBe('/chat/clawxpert')
   })
 
-  it('redirects /chat to the welcome assistant when ClawXpert is unavailable', async () => {
+  it('redirects /chat to the common assistant when ClawXpert is unavailable', async () => {
     store.hasFeatureEnabled.mockImplementation((feature: string) => feature === 'FEATURE_XPERT')
 
     const route = children.find((item) => item.path === '' && item.canActivate?.length)
     const guard = route?.canActivate?.[0] as () => any
     const result = await runInInjectionContext(injector, () => firstValueFrom(guard()))
 
-    expect(result).toBe('/chat/x/welcome')
+    expect(result).toBe('/chat/x/common')
     expect(assistantBindingService.get).not.toHaveBeenCalled()
+  })
+
+  it('redirects unknown chat routes to /chat/x/common', () => {
+    const route = children.find((item) => item.path === '**')
+
+    expect(route?.redirectTo).toBe('x/common')
   })
 })
