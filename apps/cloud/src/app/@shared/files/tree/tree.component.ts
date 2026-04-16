@@ -5,6 +5,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { FILE_TREE_SIZE_PRESETS, type FileTreeSizeVariants } from './tree.component.variants'
 import { FileTreeNode, flattenFileTree } from './tree.utils'
 
+export type FileTreeUploadKind = 'file' | 'folder'
+
 @Component({
   standalone: true,
   selector: 'pac-file-tree',
@@ -82,7 +84,7 @@ export class FileTreeComponent {
   readonly directoryToggle = output<FileTreeNode>()
   readonly fileDownload = output<FileTreeNode>()
   readonly fileDelete = output<FileTreeNode>()
-  readonly uploadRequest = output<void>()
+  readonly uploadRequest = output<FileTreeUploadKind>()
 
   isActiveItem(item: FileTreeNode) {
     return this.activePath() === (item.fullPath || item.filePath)
@@ -139,7 +141,7 @@ export class FileTreeComponent {
     this.fileDelete.emit(item)
   }
 
-  onUploadClick() {
-    this.uploadRequest.emit()
+  onUploadClick(kind: FileTreeUploadKind) {
+    this.uploadRequest.emit(kind)
   }
 }

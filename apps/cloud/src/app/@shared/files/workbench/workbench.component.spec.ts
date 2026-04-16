@@ -70,7 +70,7 @@ jest.mock('../tree/tree.component', () => {
     @Input() selectHint?: string
     @Output() readonly fileSelect = new EventEmitter<FileTreeNode>()
     @Output() readonly directoryToggle = new EventEmitter<FileTreeNode>()
-    @Output() readonly uploadRequest = new EventEmitter<void>()
+    @Output() readonly uploadRequest = new EventEmitter<'file' | 'folder'>()
     @Output() readonly fileDownload = new EventEmitter<FileTreeNode>()
     @Output() readonly fileDelete = new EventEmitter<FileTreeNode>()
   }
@@ -322,6 +322,40 @@ describe('FileWorkbenchComponent', () => {
     } as FileTreeNode)
 
     expect(component.treeActivePath()).toBe('docs')
+  })
+
+  it('uploads folder contents with their relative parent directories preserved', async () => {
+    const { component, fileUploader, toastr } = await setup()
+    const directoryFile = new File(['# Guide\n'], 'guide.md', { type: 'text/markdown' })
+    const nestedFile = new File(['console.log("hi")\n'], 'index.ts', { type: 'text/typescript' })
+    Object.defineProperty(directoryFile, 'webkitRelativePath', {
+      configurable: true,
+      value: 'docs-import/guide.md'
+    })
+    Object.defineProperty(nestedFile, 'webkitRelativePath', {
+      configurable: true,
+      value: 'docs-import/src/index.ts'
+    })
+
+    const input = document.createElement('input')
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [directoryFile, nestedFile]
+    })
+
+    await component.toggleDirectory({
+      filePath: 'docs',
+      fullPath: 'docs',
+      fileType: 'directory',
+      hasChildren: true,
+      children: []
+    } as FileTreeNode)
+
+    await component.onUploadFiles({ target: input } as Event, 'folder')
+
+    expect(fileUploader).toHaveBeenNthCalledWith(1, directoryFile, 'docs/docs-import')
+    expect(fileUploader).toHaveBeenNthCalledWith(2, nestedFile, 'docs/docs-import/src')
+    expect(toastr.success).toHaveBeenCalled()
   })
 
   it('deletes a file and clears the active preview when it was selected', async () => {

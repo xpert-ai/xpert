@@ -112,6 +112,8 @@
     "LoadFilesFailed": "加载文件列表失败",
     "LoadFolderFailed": "加载文件夹失败",
     "LoadFileFailed": "加载文件失败",
+    "UploadFiles": "上传文件",
+    "UploadFolder": "上传文件夹",
     "Repositories": "仓库",
     "Synced": "同步于",
     "ChooseFile": "选择文件",

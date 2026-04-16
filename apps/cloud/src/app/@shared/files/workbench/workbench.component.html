@@ -27,12 +27,21 @@
   [selectHint]="'PAC.Files.SelectItemTreeHint' | translate: { Default: 'Choose an item to load its file tree.' }"
   (fileSelect)="openFile($event)"
   (directoryToggle)="toggleDirectory($event)"
-  (uploadRequest)="requestUpload()"
+  (uploadRequest)="requestUpload($event)"
   (fileDownload)="downloadTreeFile($event)"
   (fileDelete)="deleteTreeFile($event)"
 />
 
-<input #uploadInput type="file" class="hidden" multiple (change)="onUploadFiles($event)" />
+<input #uploadInput type="file" class="hidden" multiple (change)="onUploadFiles($event, 'file')" />
+<input
+  #folderUploadInput
+  type="file"
+  class="hidden"
+  multiple
+  webkitdirectory
+  directory
+  (change)="onUploadFiles($event, 'folder')"
+/>
 
 <pac-file-viewer
   class="lg:block min-h-[320px]"
