@@ -21,7 +21,7 @@ export class XpertMemoryFilesComponent {
   readonly xpertId = this.xpertComponent.paramId
   readonly xpert = computed(() => this.xpertComponent.xpert() ?? this.xpertComponent.latestXpert())
   readonly workspaceId = computed(() => this.xpert()?.workspaceId ?? null)
-  readonly rootLabel = computed(() => this.xpert()?.title || this.xpert()?.name || 'Memory files')
+  readonly rootLabel = computed(() => '.xpert/memory')
   readonly reloadKey = computed(() => this.workspaceId() ?? '__hosted__')
 
   readonly loadMemoryFiles: FileWorkbenchFilesLoader = (path?: string) => {

@@ -21,10 +21,18 @@ const execPromise = util.promisify(exec)
 export class FileLocalSystem implements FilesSystem {
 	constructor(protected params: TSandboxParams) {}
 
+	private createUserVolumeClient() {
+		return new VolumeClient({
+			tenantId: this.params.tenantId,
+			catalog: 'users',
+			userId: this.params.userId
+		})
+	}
+
 	async createFile(body: TCreateFileReq, options: { signal: AbortSignal }): Promise<TCreateFileResp> {
 		const { workspace_id, file_path, file_contents, file_description } = body
-		const root = VolumeClient.getWorkspaceRoot(this.params.tenantId, this.params.projectId, this.params.userId)
-		const filePath = path.join(root, workspace_id, file_path)
+		const client = this.createUserVolumeClient()
+		const filePath = client.getVolumePath(path.join(workspace_id, file_path))
 		await fsPromises.mkdir(path.dirname(filePath), { recursive: true })
 		await fsPromises.writeFile(filePath, file_contents)
 
@@ -42,12 +50,7 @@ export class FileLocalSystem implements FilesSystem {
 	async listFiles(body: TListFilesReq, options: { signal: AbortSignal }): Promise<TListFilesResponse> {
 		const { workspace_id, path: dirPath = '', depth = 2, limit = 1000 } = body
 
-		const client = new VolumeClient({
-			tenantId: this.params.tenantId,
-			catalog: 'projects',
-			projectId: this.params.projectId,
-			userId: this.params.userId
-		})
+		const client = this.createUserVolumeClient()
 
 		const files = await client.list({
 			path: path.join(workspace_id, dirPath),
@@ -68,12 +71,7 @@ export class FileLocalSystem implements FilesSystem {
 
 	async readFile(req: TReadFileReq, options?: { signal: AbortSignal }): Promise<string> {
 		const { workspace_id, file_path, line_from, line_to } = req
-		const client = new VolumeClient({
-			tenantId: this.params.tenantId,
-			catalog: 'projects',
-			projectId: this.params.projectId,
-			userId: this.params.userId
-		})
+		const client = this.createUserVolumeClient()
 
 		const content = await client.readFile(path.join(workspace_id, file_path))
 		if (line_from !== undefined && line_to !== undefined) {
@@ -85,12 +83,7 @@ export class FileLocalSystem implements FilesSystem {
 
 	deleteFile(body: TFileBaseReq, options?: { signal: AbortSignal }): Promise<void> {
 		const { workspace_id, file_path } = body
-		const client = new VolumeClient({
-			tenantId: this.params.tenantId,
-			catalog: 'projects',
-			projectId: this.params.projectId,
-			userId: this.params.userId
-		})
+		const client = this.createUserVolumeClient()
 
 		return client.deleteFile(path.join(workspace_id, file_path))
 	}
@@ -125,7 +118,7 @@ export class SandboxLocal extends Sandbox {
 
 export class GitLocalClient extends GitClient {
 	async getWorkspacePath() {
-		return await VolumeClient.getSharedWorkspacePath(this.params.tenantId, this.params.projectId, this.params.userId)
+		return await VolumeClient.getCurrentUserWorkspacePath(this.params.tenantId, this.params.userId)
 	}
 
 	async execGit(command: string, repoPath: string) {

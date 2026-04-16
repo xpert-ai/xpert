@@ -77,12 +77,22 @@ export class VolumeClient {
         return dist
     }
 
+    static async getCurrentUserWorkspacePath(tenantId: string, userId: string): Promise<string> {
+        const dist = VolumeClient._getWorkspaceRoot(tenantId, 'user', userId)
+        await fsPromises.mkdir(dist, { recursive: true })
+        return dist
+    }
+
     static getWorkspaceUrl(projectId: string, userId: string, conversationId?: string) {
         return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId) + '/')
     }
 
     static getSharedWorkspaceUrl(projectId: string, userId: string) {
         return sandboxVolumeUrl(sandboxVolume(projectId, userId))
+    }
+
+    static getCurrentUserWorkspaceUrl(userId: string) {
+        return sandboxVolumeUrl(`/user/${userId}`)
     }
 
     constructor(params: {

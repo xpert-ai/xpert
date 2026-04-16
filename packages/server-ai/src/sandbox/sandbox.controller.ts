@@ -117,17 +117,15 @@ export class SandboxController {
     @Post('file')
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(
-        @Body('workspace') workspace: string,
-        @Body('conversationId') conversationId: string,
+        @Body('workspace') _workspace: string,
+        @Body('conversationId') _conversationId: string,
         @Body('path') path: string,
         @UploadedFile() file: Express.Multer.File
     ) {
-        const conversation = await this.conversationService.findOne({ where: { id: conversationId } })
         const client = new VolumeClient({
             tenantId: RequestContext.currentTenantId(),
             userId: RequestContext.currentUserId(),
-            catalog: 'projects',
-            projectId: conversation.projectId
+            catalog: 'users'
         })
 
         const asset = await this.commandBus.execute(
@@ -140,8 +138,8 @@ export class SandboxController {
                     {
                         kind: 'sandbox',
                         mode: 'mounted_workspace',
-                        workspacePath: client.getVolumePath(workspace),
-                        workspaceUrl: client.getPublicUrl(workspace),
+                        workspacePath: client.getVolumePath(),
+                        workspaceUrl: client.getPublicUrl(''),
                         folder: path || ''
                     }
                 ]
@@ -183,7 +181,7 @@ export class SandboxController {
         }
 
         const effectiveProjectId = projectId ?? conversation?.projectId ?? null
-        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, effectiveProjectId, userId)
+        const workspacePath = await VolumeClient.getCurrentUserWorkspacePath(tenantId, userId)
         const sandboxContext = await this.commandBus.execute(
             new SandboxAcquireBackendCommand({
                 tenantId,

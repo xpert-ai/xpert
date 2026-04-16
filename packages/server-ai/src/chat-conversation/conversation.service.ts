@@ -161,7 +161,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
     async getWorkspaceFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).list(conversation.threadId, {
+        return this.createWorkspaceVolumeClient(conversation).list('', {
             path,
             deepth
         })
@@ -169,12 +169,12 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
     async readWorkspaceFile(id: string, filePath: string): Promise<TFile> {
         const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).readFile(conversation.threadId, filePath)
+        return this.createWorkspaceVolumeClient(conversation).readFile('', filePath)
     }
 
     async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
         const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).saveFile(conversation.threadId, filePath, content)
+        return this.createWorkspaceVolumeClient(conversation).saveFile('', filePath, content)
     }
 
     private createWorkspaceVolumeClient(conversation: ChatConversation) {

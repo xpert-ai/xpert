@@ -105,6 +105,8 @@ import { VolumeClient, WorkspaceVolumeClient } from '../shared/volume'
 import { XpertService } from './xpert.service'
 
 describe('XpertService memory files', () => {
+    const memoryWorkspacePath = '.xpert/memory'
+
     let service: XpertService
 
     beforeEach(() => {
@@ -123,7 +125,7 @@ describe('XpertService memory files', () => {
         )
     })
 
-    it('lists files inside the current user memory workspace for the xpert', async () => {
+    it('lists files inside the memory workspace root for the xpert', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1'
@@ -144,13 +146,13 @@ describe('XpertService memory files', () => {
                 userId: 'user-1'
             })
         )
-        expect(mockList).toHaveBeenCalledWith('xpert-1', {
+        expect(mockList).toHaveBeenCalledWith(memoryWorkspacePath, {
             path: 'docs',
             deepth: 2
         })
     })
 
-    it('reads files inside the current user memory workspace for the xpert', async () => {
+    it('reads files inside the memory workspace root for the xpert', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1'
@@ -167,10 +169,10 @@ describe('XpertService memory files', () => {
             catalog: 'users',
             userId: 'user-1'
         })
-        expect(mockReadFile).toHaveBeenCalledWith('xpert-1', 'README.md')
+        expect(mockReadFile).toHaveBeenCalledWith(memoryWorkspacePath, 'README.md')
     })
 
-    it('saves files inside the current user memory workspace for the xpert', async () => {
+    it('saves files inside the memory workspace root for the xpert', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1'
@@ -188,6 +190,6 @@ describe('XpertService memory files', () => {
             catalog: 'users',
             userId: 'user-1'
         })
-        expect(mockSaveFile).toHaveBeenCalledWith('xpert-1', 'README.md', '# Updated\n')
+        expect(mockSaveFile).toHaveBeenCalledWith(memoryWorkspacePath, 'README.md', '# Updated\n')
     })
 })

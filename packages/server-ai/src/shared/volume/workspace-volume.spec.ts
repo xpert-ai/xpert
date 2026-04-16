@@ -15,6 +15,9 @@ describe('WorkspaceVolumeClient', () => {
             getPublicUrl: (filePath: string) => (filePath ? `${baseUrl}/${filePath.replace(/^\/+/, '')}` : baseUrl)
         })
 
+        await fsPromises.mkdir(path.join(tempRoot, 'docs'), { recursive: true })
+        await fsPromises.writeFile(path.join(tempRoot, 'README.md'), '# User Root\n', 'utf8')
+        await fsPromises.writeFile(path.join(tempRoot, 'docs', 'root-guide.md'), '# Root Guide\n', 'utf8')
         await fsPromises.mkdir(path.join(tempRoot, 'thread-1', 'docs'), { recursive: true })
         await fsPromises.writeFile(path.join(tempRoot, 'thread-1', 'README.md'), '# Workspace\n', 'utf8')
         await fsPromises.writeFile(path.join(tempRoot, 'thread-1', 'docs', 'guide.md'), '# Guide\n', 'utf8')
@@ -31,6 +34,16 @@ describe('WorkspaceVolumeClient', () => {
 
         expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/README.md', '/docs', '/binary.bin']))
         expect(files.find((file) => file.filePath === 'README.md')?.url).toContain('/thread-1/README.md')
+    })
+
+    it('supports using the volume root as the workspace root', async () => {
+        const files = await workspaceVolume.list('')
+
+        expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/README.md', '/docs', '/thread-1']))
+        await expect(workspaceVolume.readFile('', 'README.md')).resolves.toMatchObject({
+            filePath: 'README.md',
+            contents: '# User Root\n'
+        })
     })
 
     it('reads text files and keeps binary files read-only', async () => {

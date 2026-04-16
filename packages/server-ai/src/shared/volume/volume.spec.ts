@@ -41,4 +41,16 @@ describe('VolumeClient shared workspace helpers', () => {
         )
         expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/user/user-1', { recursive: true })
     })
+
+    it('returns the explicit current user workspace root helpers', async () => {
+        const mkdirSpy = jest.spyOn(fsPromises, 'mkdir').mockResolvedValue(undefined)
+
+        await expect(VolumeClient.getCurrentUserWorkspacePath('tenant-1', 'user-1')).resolves.toBe(
+            '/sandbox/tenant-1/user/user-1'
+        )
+        expect(VolumeClient.getCurrentUserWorkspaceUrl('user-1')).toBe(
+            'http://localhost:3000/api/sandbox/volume/user/user-1'
+        )
+        expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/user/user-1', { recursive: true })
+    })
 })

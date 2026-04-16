@@ -13,12 +13,14 @@ import {
   IAgentMiddlewareStrategy,
   PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
-import { isAbsolute, resolve } from 'node:path'
+import { basename, isAbsolute, relative, resolve } from 'node:path'
 import { z } from 'zod/v3'
 import { getToolCallId, withToolMessage } from './toolMessageUtils'
 import { assertSandboxFeatureEnabled } from './xpertFeatureGate'
 
 const SANDBOX_FILE_MIDDLEWARE_NAME = 'SandboxFile'
+const LOCAL_SHELL_SANDBOX_PROVIDER = 'local-shell-sandbox'
+const SANDBOX_ROOT_MARKERS = ['user', 'workspace', 'sandbox', 'root'] as const
 
 const indentationSchema = z.object({
   anchor_line: z.number().optional().describe('Anchor line to center the indentation lookup on (defaults to offset)'),
@@ -29,7 +31,7 @@ const indentationSchema = z.object({
 }).optional()
 
 const readToolSchema = z.object({
-  file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file'),
+  file_path: z.string().min(1, 'File path is required.').describe('File path relative to the current working directory. Absolute paths inside the current workspace are also accepted.'),
   offset: z.number().optional().describe('The 1-indexed line number to start reading from (defaults to 1)'),
   limit: z.number().optional().describe('Maximum number of lines to return (defaults to 2000)'),
   mode: z.enum(['slice', 'indentation']).optional().describe('Mode: "slice" for simple ranges (default), "indentation" to expand around anchor line'),
@@ -38,24 +40,24 @@ const readToolSchema = z.object({
 
 const globToolSchema = z.object({
   pattern: z.string().min(1, 'Pattern is required.').describe('The glob pattern to match files against (e.g., "**/*.ts", "src/*.py")'),
-  path: z.string().optional().describe('Subdirectory to search in (relative to workspace root). Defaults to "." (current directory) if not specified. Always provide this parameter for best results.')
+  path: z.string().optional().describe('Subdirectory to search in, relative to the current working directory. Defaults to "." if not specified. Always provide this parameter for best results.')
 })
 
 const grepToolSchema = z.object({
   pattern: z.string().min(1, 'Pattern is required.').describe('The regex pattern to search for in file contents'),
-  path: z.string().optional().describe('Subdirectory to search in (relative to workspace root). Defaults to "." (current directory) if not specified. Always provide this parameter for best results.'),
+  path: z.string().optional().describe('Subdirectory to search in, relative to the current working directory. Defaults to "." if not specified. Always provide this parameter for best results.'),
   include: z.string().optional().describe('File pattern to include in the search (e.g. "*.js", "*.{ts,tsx}")')
 })
 
 const editToolSchema = z.object({
-  file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file to edit'),
+  file_path: z.string().min(1, 'File path is required.').describe('File path relative to the current working directory. Absolute paths inside the current workspace are also accepted.'),
   old_string: z.string().describe('Exact text to replace (must match file content)'),
   new_string: z.string().describe('Replacement text'),
   replace_all: z.boolean().optional().describe('Replace all occurrences (default false)')
 })
 
 const multiEditToolSchema = z.object({
-  file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file to edit'),
+  file_path: z.string().min(1, 'File path is required.').describe('File path relative to the current working directory. Absolute paths inside the current workspace are also accepted.'),
   edits: z.array(z.object({
     oldString: z.string().min(1, 'Old string is required.').describe('Exact text to replace (must match file content)'),
     newString: z.string().describe('Replacement text'),
@@ -64,17 +66,17 @@ const multiEditToolSchema = z.object({
 })
 
 const writeToolSchema = z.object({
-  file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file to create'),
+  file_path: z.string().min(1, 'File path is required.').describe('File path relative to the current working directory. Absolute paths inside the current workspace are also accepted.'),
   content: z.any().describe('Complete file content as a single string. Special characters (quotes, newlines, etc.) must be properly escaped in JSON.')
 })
 
 const appendToolSchema = z.object({
-  file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file to append to'),
+  file_path: z.string().min(1, 'File path is required.').describe('File path relative to the current working directory. Absolute paths inside the current workspace are also accepted.'),
   content: z.any().describe('Content to append to the file. Special characters (quotes, newlines, etc.) must be properly escaped in JSON.')
 })
 
 const listDirToolSchema = z.object({
-  dir_path: z.string().min(1, 'Directory path is required.').describe('Absolute path to the directory'),
+  dir_path: z.string().min(1, 'Directory path is required.').describe('Directory path relative to the current working directory. Absolute paths inside the current workspace are also accepted.'),
   offset: z.number().optional().describe('1-indexed entry number to start from (defaults to 1)'),
   limit: z.number().optional().describe('Maximum number of entries to return (defaults to 25)'),
   depth: z.number().optional().describe('Maximum depth to traverse (defaults to 2)')
@@ -95,12 +97,75 @@ function getWorkingDirectory(config: any): string {
   return backend.workingDirectory || configurable?.sandbox?.workingDirectory
 }
 
+function getSandboxProvider(config: any): string | undefined {
+  const configurable = config?.configurable as TAgentRunnableConfigurable | undefined
+  return configurable?.sandbox?.provider
+}
+
+function isLocalShellSandbox(config: any): boolean {
+  return getSandboxProvider(config) === LOCAL_SHELL_SANDBOX_PROVIDER
+}
+
+function isPathInsideWorkingDirectory(workingDirectory: string, candidatePath: string): boolean {
+  const relativePath = relative(workingDirectory, candidatePath)
+  return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
+}
+
+function deriveWorkspaceRelativePath(absolutePath: string): string {
+  const segments = absolutePath.replace(/\\/g, '/').split('/').filter(Boolean)
+  for (const marker of SANDBOX_ROOT_MARKERS) {
+    const markerIndex = segments.lastIndexOf(marker)
+    if (markerIndex !== -1 && markerIndex < segments.length - 1) {
+      return segments.slice(markerIndex + 1).join('/')
+    }
+  }
+  return segments.at(-1) ?? ''
+}
+
 function resolveSandboxPath(config: any, fileOrDirPath?: string): string {
   const workingDirectory = getWorkingDirectory(config)
   if (!fileOrDirPath) {
     return workingDirectory
   }
-  return isAbsolute(fileOrDirPath) ? fileOrDirPath : resolve(workingDirectory, fileOrDirPath)
+
+  if (!isAbsolute(fileOrDirPath)) {
+    return resolve(workingDirectory, fileOrDirPath)
+  }
+
+  const normalizedAbsolutePath = resolve(fileOrDirPath)
+  if (!isLocalShellSandbox(config)) {
+    return normalizedAbsolutePath
+  }
+
+  if (isPathInsideWorkingDirectory(workingDirectory, normalizedAbsolutePath)) {
+    return normalizedAbsolutePath
+  }
+
+  return resolve(workingDirectory, deriveWorkspaceRelativePath(normalizedAbsolutePath))
+}
+
+function getSandboxDisplayPath(config: any, resolvedPath: string, requestedPath?: string): string {
+  if (!isLocalShellSandbox(config)) {
+    return requestedPath ?? resolvedPath
+  }
+
+  const workingDirectory = getWorkingDirectory(config)
+  const relativePath = relative(workingDirectory, resolvedPath).replace(/\\/g, '/')
+  if (!relativePath || relativePath === '') {
+    return '.'
+  }
+  if (!relativePath.startsWith('..') && !isAbsolute(relativePath)) {
+    return relativePath
+  }
+  return basename(resolvedPath)
+}
+
+function normalizeWriteResultPath<T extends { path?: string }>(config: any, result: T, displayPath: string): T {
+  if (!isLocalShellSandbox(config) || !result.path) {
+    return result
+  }
+
+  return { ...result, path: displayPath }
 }
 
 
@@ -138,7 +203,8 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
       async ({ file_path, offset, limit, mode, indentation }, config) => {
         const backend = getBackend(config)
         const resolvedFilePath = resolveSandboxPath(config, file_path)
-        return withToolMessage(getToolCallId(config), 'sandbox_read_file', file_path, { file_path, offset, limit }, () =>
+        const displayFilePath = getSandboxDisplayPath(config, resolvedFilePath, file_path)
+        return withToolMessage(getToolCallId(config), 'sandbox_read_file', displayFilePath, { file_path: displayFilePath, offset, limit }, () =>
           backend.read(resolvedFilePath, offset, limit, mode, indentation)
         )
       },
@@ -153,7 +219,8 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
       async ({ pattern, path }, config) => {
         const backend = getBackend(config)
         const resolvedPath = resolveSandboxPath(config, path)
-        return withToolMessage(getToolCallId(config), 'sandbox_glob', pattern, { pattern, path }, () =>
+        const displayPath = getSandboxDisplayPath(config, resolvedPath, path)
+        return withToolMessage(getToolCallId(config), 'sandbox_glob', pattern, { pattern, path: displayPath }, () =>
           backend.glob(pattern, resolvedPath)
         )
       },
@@ -168,7 +235,8 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
       async ({ pattern, path, include }, config) => {
         const backend = getBackend(config)
         const resolvedPath = resolveSandboxPath(config, path)
-        return withToolMessage(getToolCallId(config), 'sandbox_grep', pattern, { pattern, path, include }, () =>
+        const displayPath = getSandboxDisplayPath(config, resolvedPath, path)
+        return withToolMessage(getToolCallId(config), 'sandbox_grep', pattern, { pattern, path: displayPath, include }, () =>
           backend.grep(pattern, resolvedPath, include)
         )
       },
@@ -183,8 +251,13 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
       async ({ file_path, old_string, new_string, replace_all }, config) => {
         const backend = getBackend(config)
         const resolvedFilePath = resolveSandboxPath(config, file_path)
-        return withToolMessage(getToolCallId(config), 'sandbox_edit_file', file_path, { file_path }, async () => {
-          const result = await backend.edit(resolvedFilePath, old_string, new_string, replace_all)
+        const displayFilePath = getSandboxDisplayPath(config, resolvedFilePath, file_path)
+        return withToolMessage(getToolCallId(config), 'sandbox_edit_file', displayFilePath, { file_path: displayFilePath }, async () => {
+          const result = normalizeWriteResultPath(
+            config,
+            await backend.edit(resolvedFilePath, old_string, new_string, replace_all),
+            displayFilePath
+          )
           return JSON.stringify(result, null, 2)
         })
       },
@@ -199,9 +272,10 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
       async ({ file_path, content }, config) => {
         const backend = getBackend(config)
         const resolvedFilePath = resolveSandboxPath(config, file_path)
-        return withToolMessage(getToolCallId(config), 'sandbox_write_file', file_path, { file_path }, async () => {
+        const displayFilePath = getSandboxDisplayPath(config, resolvedFilePath, file_path)
+        return withToolMessage(getToolCallId(config), 'sandbox_write_file', displayFilePath, { file_path: displayFilePath }, async () => {
           const normalizedContent = Array.isArray(content) ? content.join('') : content
-          const result = await backend.write(resolvedFilePath, normalizedContent)
+          const result = normalizeWriteResultPath(config, await backend.write(resolvedFilePath, normalizedContent), displayFilePath)
           return JSON.stringify(result, null, 2)
         })
       },
@@ -221,13 +295,13 @@ CRITICAL FORMAT REQUIREMENTS:
 
 CORRECT format:
 {
-  "file_path": "/path/to/file.js",
+  "file_path": "docs/file.js",
   "content": "const x = 1;\\nconst y = 2;\\nconsole.log(x + y);"
 }
 
 INCORRECT format (DO NOT USE):
 [
-  {"file_path": "/path/to/file.js", "content": "const x = 1;"},
+  {"file_path": "docs/file.js", "content": "const x = 1;"},
   {"content": "const y = 2;"}
 ]`,
         schema: writeToolSchema
@@ -238,9 +312,10 @@ INCORRECT format (DO NOT USE):
       async ({ file_path, content }, config) => {
         const backend = getBackend(config)
         const resolvedFilePath = resolveSandboxPath(config, file_path)
-        return withToolMessage(getToolCallId(config), 'sandbox_append_file', file_path, { file_path }, async () => {
+        const displayFilePath = getSandboxDisplayPath(config, resolvedFilePath, file_path)
+        return withToolMessage(getToolCallId(config), 'sandbox_append_file', displayFilePath, { file_path: displayFilePath }, async () => {
           const normalizedContent = Array.isArray(content) ? content.join('') : content
-          const result = await backend.append(resolvedFilePath, normalizedContent)
+          const result = normalizeWriteResultPath(config, await backend.append(resolvedFilePath, normalizedContent), displayFilePath)
           return JSON.stringify(result, null, 2)
         })
       },
@@ -267,8 +342,13 @@ CRITICAL FORMAT REQUIREMENTS:
       async ({ file_path, edits }, config) => {
         const backend = getBackend(config)
         const resolvedFilePath = resolveSandboxPath(config, file_path)
-        return withToolMessage(getToolCallId(config), 'sandbox_multi_edit_file', file_path, { file_path }, async () => {
-          const result = await backend.multiEdit(resolvedFilePath, edits as EditOperation[])
+        const displayFilePath = getSandboxDisplayPath(config, resolvedFilePath, file_path)
+        return withToolMessage(getToolCallId(config), 'sandbox_multi_edit_file', displayFilePath, { file_path: displayFilePath }, async () => {
+          const result = normalizeWriteResultPath(
+            config,
+            await backend.multiEdit(resolvedFilePath, edits as EditOperation[]),
+            displayFilePath
+          )
           return JSON.stringify(result, null, 2)
         })
       },
@@ -283,7 +363,8 @@ CRITICAL FORMAT REQUIREMENTS:
       async ({ dir_path, offset, limit, depth }, config) => {
         const backend = getBackend(config)
         const resolvedDirPath = resolveSandboxPath(config, dir_path)
-        return withToolMessage(getToolCallId(config), 'sandbox_list_dir', dir_path, { dir_path, offset, limit, depth }, () =>
+        const displayDirPath = getSandboxDisplayPath(config, resolvedDirPath, dir_path)
+        return withToolMessage(getToolCallId(config), 'sandbox_list_dir', displayDirPath, { dir_path: displayDirPath, offset, limit, depth }, () =>
           backend.listDir(resolvedDirPath, offset, limit, depth)
         )
       },

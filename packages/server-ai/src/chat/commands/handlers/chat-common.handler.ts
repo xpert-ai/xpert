@@ -216,8 +216,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 if (retry) {
                     throw new Error('Conversation ID is required for retry operation')
                 }
-                const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, projectId, userId)
-                const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(projectId, userId)
+                const workspacePath = await VolumeClient.getCurrentUserWorkspacePath(tenantId, userId)
+                const workspaceUrl = VolumeClient.getCurrentUserWorkspaceUrl(userId)
                 conversation = await this.commandBus.execute(
                     new ChatConversationUpsertCommand({
                         tenantId,

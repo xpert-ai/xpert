@@ -81,7 +81,7 @@ describe('ChatConversationService workspace files', () => {
         await service.getWorkspaceFiles('conversation-1', 'docs', 2)
 
         expect(service.findOne).toHaveBeenCalledWith('conversation-1')
-        expect(listWorkspace).toHaveBeenCalledWith('thread-1', {
+        expect(listWorkspace).toHaveBeenCalledWith('', {
             path: 'docs',
             deepth: 2
         })
@@ -95,7 +95,7 @@ describe('ChatConversationService workspace files', () => {
         await service.readWorkspaceFile('conversation-1', 'README.md')
 
         expect(service.findOne).toHaveBeenCalledWith('conversation-1')
-        expect(readWorkspaceFile).toHaveBeenCalledWith('thread-1', 'README.md')
+        expect(readWorkspaceFile).toHaveBeenCalledWith('', 'README.md')
     })
 
     it('saves files inside the current conversation workspace', async () => {
@@ -107,7 +107,7 @@ describe('ChatConversationService workspace files', () => {
         await service.saveWorkspaceFile('conversation-1', 'README.md', '# Updated\n')
 
         expect(service.findOne).toHaveBeenCalledWith('conversation-1')
-        expect(saveWorkspaceFile).toHaveBeenCalledWith('thread-1', 'README.md', '# Updated\n')
+        expect(saveWorkspaceFile).toHaveBeenCalledWith('', 'README.md', '# Updated\n')
     })
 
     it('finds the conversation by thread id inside the current scope', async () => {

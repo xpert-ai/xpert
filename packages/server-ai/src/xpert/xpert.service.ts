@@ -446,16 +446,19 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
     async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).list(xpert.id, {
-            path,
-            deepth
-        })
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).list(
+            getXpertMemoryWorkspacePath(),
+            {
+                path,
+                deepth
+            }
+        )
     }
 
     async getMemoryFile(id: string, filePath: string): Promise<TFile> {
         const xpert = await this.findOne(id)
         return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).readFile(
-            xpert.id,
+            getXpertMemoryWorkspacePath(),
             filePath
         )
     }
@@ -463,7 +466,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
     async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
         const xpert = await this.findOne(id)
         return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).saveFile(
-            xpert.id,
+            getXpertMemoryWorkspacePath(),
             filePath,
             content
         )
@@ -490,4 +493,8 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             userId
         })
     }
+}
+
+function getXpertMemoryWorkspacePath() {
+    return ['.xpert', 'memory'].join('/')
 }

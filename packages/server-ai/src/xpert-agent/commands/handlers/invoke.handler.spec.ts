@@ -46,6 +46,8 @@ jest.mock('../../../shared', () => ({
         static getWorkspaceUrl = jest.fn()
         static getSharedWorkspacePath = jest.fn()
         static getSharedWorkspaceUrl = jest.fn()
+        static getCurrentUserWorkspacePath = jest.fn()
+        static getCurrentUserWorkspaceUrl = jest.fn()
 
         getVolumePath(workspace?: string) {
             return workspace ? `/volume/${workspace}` : '/volume'
@@ -127,8 +129,8 @@ describe('XpertAgentInvokeHandler', () => {
             timeZone: 'Asia/Shanghai',
             preferredLanguage: 'en-US'
         } as any)
-        jest.spyOn(VolumeClient, 'getSharedWorkspacePath').mockResolvedValue('/tmp/workspace')
-        jest.spyOn(VolumeClient, 'getSharedWorkspaceUrl').mockReturnValue('/workspace')
+        jest.spyOn(VolumeClient, 'getCurrentUserWorkspacePath').mockResolvedValue('/tmp/workspace')
+        jest.spyOn(VolumeClient, 'getCurrentUserWorkspaceUrl').mockReturnValue('/workspace')
     })
 
     afterEach(() => {
@@ -193,8 +195,8 @@ describe('XpertAgentInvokeHandler', () => {
                 volume: '/tmp/workspace'
             })
         })
-        expect(VolumeClient.getSharedWorkspacePath).toHaveBeenCalledWith('tenant-1', undefined, 'user-1')
-        expect(VolumeClient.getSharedWorkspaceUrl).toHaveBeenCalledWith(undefined, 'user-1')
+        expect(VolumeClient.getCurrentUserWorkspacePath).toHaveBeenCalledWith('tenant-1', 'user-1')
+        expect(VolumeClient.getCurrentUserWorkspaceUrl).toHaveBeenCalledWith('user-1')
     })
 
     it('merges soul and profile into resume command updates', async () => {
@@ -410,6 +412,73 @@ describe('XpertAgentInvokeHandler', () => {
                     workFor: {
                         type: 'user',
                         id: 'user-1'
+                    }
+                })
+            })
+        )
+    })
+
+    it('uses the shared workspace root as sandbox working directory even for sandbox environments', async () => {
+        const graph = createGraph()
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof SandboxAcquireBackendCommand) {
+                return {
+                    provider: 'local-shell-sandbox',
+                    workingDirectory: '/tmp/workspace'
+                }
+            }
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Original prompt'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {
+                        sandbox: {
+                            enabled: true,
+                            provider: 'local-shell-sandbox'
+                        }
+                    }
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    sandboxEnvironmentId: 'sandbox-env-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    provider: 'local-shell-sandbox',
+                    tenantId: 'tenant-1',
+                    workingDirectory: '/tmp/workspace',
+                    workFor: {
+                        type: 'environment',
+                        id: 'sandbox-env-1'
                     }
                 })
             })

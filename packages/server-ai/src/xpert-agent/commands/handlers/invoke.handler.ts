@@ -102,8 +102,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const mute = [] as TXpertAgentConfig['mute']
         let unmutes = [] as TXpertAgentConfig['mute']
         const threadId = options.thread_id
-        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, options.projectId, userId)
-        const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(options.projectId, userId)
+        const workspacePath = await VolumeClient.getCurrentUserWorkspacePath(tenantId, userId)
+        const workspaceUrl = VolumeClient.getCurrentUserWorkspaceUrl(userId)
         const latestXpert = figureOutXpert(xpert as IXpert, options?.isDraft)
         const sandboxFeature = latestXpert.features?.sandbox
         const sandboxEnvironmentId = options?.sandboxEnvironmentId
@@ -120,7 +120,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 sandboxContext = await this.commandBus.execute(
                     new SandboxAcquireBackendCommand({
                         provider: sandboxFeature?.provider,
-                        workingDirectory: sandboxEnvironmentId ? null : workspacePath,
+                        workingDirectory: workspacePath,
                         tenantId,
                         workFor: sandboxWorkFor
                     })
