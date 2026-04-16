@@ -5,6 +5,7 @@ import { t } from 'i18next'
 import {
 	IPluginConfiguration,
 	IPluginDescriptor,
+	IPluginLatestVersionStatus,
 	PLUGIN_CONFIGURATION_STATUS,
 	PLUGIN_LOAD_STATUS,
 	PLUGIN_LEVEL,
@@ -135,6 +136,11 @@ export class PluginController {
 		return this.listVisiblePlugins(body.names)
 	}
 
+	@Post('latest-versions')
+	async getLatestVersions(@Body() body?: { names?: string[] }): Promise<IPluginLatestVersionStatus[]> {
+		return this.listLatestPluginVersions(body?.names)
+	}
+
 	@Post('update')
 	async updatePlugin(@Body() body: { pluginName: string }) {
 		if (!body?.pluginName) {
@@ -220,7 +226,6 @@ export class PluginController {
 		const packageName = normalizePluginName(plugin.packageName ?? plugin.name)
 		const scope = plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 		const canUpdate = canUpdatePlugin(plugin, organizationId) && supportsNpmRegistryUpdates(plugin.source)
-		const latestVersion = canUpdate ? await this.resolveLatestPluginVersion(packageName) : undefined
 		const instance = await this.pluginInstanceService.findOneByPluginName(plugin.name, plugin.organizationId)
 		const inspected = inspectConfig(
 			plugin.name,
@@ -246,14 +251,14 @@ export class PluginController {
 			packageName,
 			source: plugin.source,
 			currentVersion: plugin.instance.meta?.version,
-			latestVersion,
+			latestVersion: undefined,
 			isGlobal: scope === GLOBAL_ORGANIZATION_SCOPE,
 			level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION,
 			canConfigure: plugin.organizationId === organizationId && !!resolvePluginConfigSchema(plugin.instance),
 			canRefresh: plugin.source === 'code' && !!workspacePath && canUninstallPlugin(plugin, organizationId),
 			canUninstall: canUninstallPlugin(plugin, organizationId),
 			canUpdate,
-			hasUpdate: canUpdate && hasNewerVersion(plugin.instance.meta?.version, latestVersion),
+			hasUpdate: false,
 			configSchema: resolvePluginConfigSchema(plugin.instance),
 			configurationStatus,
 			configurationError,
@@ -417,5 +422,40 @@ export class PluginController {
 
 	private async resolveLatestPluginVersion(packageName: string): Promise<string | undefined> {
 		return this.queryBus.execute(new ResolveLatestPluginVersionQuery(packageName))
+	}
+
+	private async listLatestPluginVersions(names?: string[]): Promise<IPluginLatestVersionStatus[]> {
+		const visiblePlugins = await this.listVisiblePlugins(names)
+		const updateablePlugins = visiblePlugins.filter(
+			(plugin) => plugin.canUpdate && plugin.loadStatus === PLUGIN_LOAD_STATUS.LOADED
+		)
+
+		const latestVersionByPackageName = new Map<string, string | undefined>()
+		const uniquePackageNames = Array.from(
+			new Set(
+				updateablePlugins
+					.map((plugin) => plugin.packageName ?? plugin.name)
+					.filter((packageName): packageName is string => typeof packageName === 'string' && !!packageName)
+			)
+		)
+
+		await Promise.all(
+			uniquePackageNames.map(async (packageName) => {
+				latestVersionByPackageName.set(packageName, await this.resolveLatestPluginVersion(packageName))
+			})
+		)
+
+		return updateablePlugins.map((plugin) => {
+			const packageName = plugin.packageName ?? plugin.name
+			const latestVersion = latestVersionByPackageName.get(packageName)
+
+			return {
+				organizationId: plugin.organizationId,
+				name: plugin.name,
+				packageName: plugin.packageName,
+				latestVersion,
+				hasUpdate: hasNewerVersion(plugin.currentVersion, latestVersion)
+			}
+		})
 	}
 }

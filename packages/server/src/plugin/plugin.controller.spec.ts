@@ -344,7 +344,7 @@ describe('PluginController', () => {
 		)
 	})
 
-	it('includes update status only when the user can update and a newer version exists', async () => {
+	it('returns base plugin descriptors without resolving latest versions', async () => {
 		loadedPlugins.push({
 			organizationId: 'org-1',
 			name: '@xpert-ai/plugin-env-demo',
@@ -367,10 +367,40 @@ describe('PluginController', () => {
 				name: '@xpert-ai/plugin-env-demo',
 				canUninstall: true,
 				canUpdate: true,
-				hasUpdate: true,
+				hasUpdate: false,
 				currentVersion: '0.0.1',
-				latestVersion: '0.0.2'
+				latestVersion: undefined
 			})
+		])
+		expect((queryBus as any).execute).not.toHaveBeenCalled()
+	})
+
+	it('returns latest version statuses only for updateable loaded plugins', async () => {
+		loadedPlugins.push({
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-env-demo',
+			packageName: '@xpert-ai/plugin-env-demo',
+			source: 'env',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-env-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				}
+			},
+			ctx: {}
+		})
+		;(queryBus as any).execute.mockResolvedValue('0.0.2')
+
+		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-env-demo'] })).resolves.toEqual([
+			{
+				organizationId: 'org-1',
+				name: '@xpert-ai/plugin-env-demo',
+				packageName: '@xpert-ai/plugin-env-demo',
+				latestVersion: '0.0.2',
+				hasUpdate: true
+			}
 		])
 		expect((queryBus as any).execute).toHaveBeenCalledWith(
 			new ResolveLatestPluginVersionQuery('@xpert-ai/plugin-env-demo')
@@ -412,6 +442,27 @@ describe('PluginController', () => {
 		expect((queryBus as any).execute).not.toHaveBeenCalled()
 	})
 
+	it('does not return latest version statuses for code plugins', async () => {
+		loadedPlugins.push({
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			source: 'code',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-code-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				}
+			},
+			ctx: {}
+		})
+
+		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-code-demo'] })).resolves.toEqual([])
+		expect((queryBus as any).execute).not.toHaveBeenCalled()
+	})
+
 	it('does not allow organization-scoped users to update global plugins', async () => {
 		loadedPlugins.push({
 			organizationId: GLOBAL_ORGANIZATION_SCOPE,
@@ -442,7 +493,28 @@ describe('PluginController', () => {
 		expect((queryBus as any).execute).not.toHaveBeenCalled()
 	})
 
-	it('allows tenant-level super admins to update global plugins', async () => {
+	it('does not return latest version statuses for global plugins from an organization scope', async () => {
+		loadedPlugins.push({
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			name: '@xpert-ai/plugin-global-demo',
+			packageName: '@xpert-ai/plugin-global-demo',
+			source: 'env',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-global-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				}
+			},
+			ctx: {}
+		})
+
+		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-global-demo'] })).resolves.toEqual([])
+		expect((queryBus as any).execute).not.toHaveBeenCalled()
+	})
+
+	it('returns latest version statuses for global plugins when tenant-level super admins can update them', async () => {
 		RequestContext.getOrganizationId.mockReturnValue(GLOBAL_ORGANIZATION_SCOPE)
 		RequestContext.hasRole.mockImplementation((role: string) => role === 'SUPER_ADMIN')
 		loadedPlugins.push({
@@ -462,18 +534,67 @@ describe('PluginController', () => {
 		})
 		;(queryBus as any).execute.mockResolvedValue('0.0.2')
 
-		await expect(controller.getPlugins()).resolves.toEqual([
-			expect.objectContaining({
+		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-global-demo'] })).resolves.toEqual([
+			{
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
 				name: '@xpert-ai/plugin-global-demo',
-				isGlobal: true,
-				canUninstall: true,
-				canUpdate: true,
+				packageName: '@xpert-ai/plugin-global-demo',
 				hasUpdate: true,
 				latestVersion: '0.0.2'
-			})
+			}
 		])
 		expect((queryBus as any).execute).toHaveBeenCalledWith(
 			new ResolveLatestPluginVersionQuery('@xpert-ai/plugin-global-demo')
+		)
+	})
+
+	it('returns only the organization-scoped latest version status when a global plugin is shadowed', async () => {
+		loadedPlugins.push(
+			{
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				name: '@xpert-ai/plugin-scope-demo',
+				packageName: '@xpert-ai/plugin-scope-demo',
+				source: 'env',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				instance: {
+					meta: {
+						name: '@xpert-ai/plugin-scope-demo',
+						version: '0.0.1',
+						level: PLUGIN_LEVEL.ORGANIZATION
+					}
+				},
+				ctx: {}
+			},
+			{
+				organizationId: 'org-1',
+				name: '@xpert-ai/plugin-scope-demo',
+				packageName: '@xpert-ai/plugin-scope-demo',
+				source: 'env',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				instance: {
+					meta: {
+						name: '@xpert-ai/plugin-scope-demo',
+						version: '0.0.2',
+						level: PLUGIN_LEVEL.ORGANIZATION
+					}
+				},
+				ctx: {}
+			}
+		)
+		;(queryBus as any).execute.mockResolvedValue('0.0.3')
+
+		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-scope-demo'] })).resolves.toEqual([
+			{
+				organizationId: 'org-1',
+				name: '@xpert-ai/plugin-scope-demo',
+				packageName: '@xpert-ai/plugin-scope-demo',
+				latestVersion: '0.0.3',
+				hasUpdate: true
+			}
+		])
+		expect((queryBus as any).execute).toHaveBeenCalledTimes(1)
+		expect((queryBus as any).execute).toHaveBeenCalledWith(
+			new ResolveLatestPluginVersionQuery('@xpert-ai/plugin-scope-demo')
 		)
 	})
 
@@ -644,5 +765,26 @@ describe('PluginController', () => {
 			})
 		])
 		expect((pluginInstanceService as any).findVisibleInOrganization).toHaveBeenCalledWith('org-1')
+	})
+
+	it('does not return latest version statuses for plugins that failed to load', async () => {
+		;(pluginInstanceService as any).findVisibleInOrganization.mockResolvedValue([
+			{
+				pluginName: '@xpert-ai/plugin-broken-demo',
+				packageName: '@xpert-ai/plugin-broken-demo',
+				version: '1.2.3',
+				source: 'npm',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				organizationId: 'org-1',
+				configurationStatus: null,
+				configurationError: null
+			}
+		])
+		;(findPluginLoadFailure as jest.Mock).mockReturnValue({
+			error: 'Cannot find module ./dist/index.js'
+		})
+
+		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-broken-demo'] })).resolves.toEqual([])
+		expect((queryBus as any).execute).not.toHaveBeenCalled()
 	})
 })
