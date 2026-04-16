@@ -1,6 +1,9 @@
 import {
+    AssistantBindingScope,
+    AssistantCode,
     AiModelTypeEnum,
     ChecklistItem,
+    IAssistantBindingToolPreferences,
     ISkillPackage,
     IXpert,
     ModelFeature,
@@ -22,7 +25,9 @@ import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
 import { createHash } from 'crypto'
+import { AssistantBindingService } from '../../assistant-binding/assistant-binding.service'
 import { KnowledgebaseService } from '../../knowledgebase/knowledgebase.service'
+import { SkillPackageService } from '../../skill-package'
 import { FindCopilotModelsQuery } from '../../copilot/queries'
 import { XpertAgentService } from '../../xpert-agent/xpert-agent.service'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
@@ -45,6 +50,7 @@ import {
     CurrentXpertDslResult,
     EditXpertPayload,
     KnowledgebaseCatalogItem,
+    NewSkillPayload,
     NewXpertPayload,
     SkillCatalogItem,
     ToolsetCatalogItem
@@ -116,7 +122,9 @@ export class XpertAuthoringService {
         private readonly queryBus: QueryBus,
         private readonly xpertAgentService: XpertAgentService,
         private readonly xpertToolsetService: XpertToolsetService,
-        private readonly knowledgebaseService: KnowledgebaseService
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly skillPackageService: SkillPackageService,
+        private readonly assistantBindingService: AssistantBindingService
     ) {}
 
     async getCurrentXpertFromContext(context: AuthoringAssistantRequestContext): Promise<CurrentXpertDslResult> {
@@ -422,6 +430,47 @@ export class XpertAuthoringService {
         })
     }
 
+    async newSkillFromContext(
+        context: AuthoringAssistantRequestContext,
+        payload: NewSkillPayload
+    ): Promise<AssistantDraftMutationResult> {
+        const toolName: AuthoringToolName = 'newSkill'
+        const trimmedIntent = payload?.userIntent?.trim()
+        if (!trimmedIntent) {
+            return this.buildRejectedResult(toolName, 'Missing userIntent for workspace skill creation.', null, [
+                this.createDiagnostic('request', 'Missing userIntent for workspace skill creation.')
+            ])
+        }
+
+        const workspaceId = this.requireWorkspaceId(context)
+        if (!workspaceId) {
+            return this.buildRejectedResult(toolName, 'Missing workspaceId for workspace skill creation.', null, [
+                this.createDiagnostic('request', 'Missing workspaceId for workspace skill creation.')
+            ])
+        }
+
+        const trimmedSkillMarkdown = payload?.skillMarkdown?.trim()
+        if (!trimmedSkillMarkdown) {
+            return this.buildRejectedResult(toolName, 'Missing skillMarkdown for workspace skill creation.', null, [
+                this.createDiagnostic('request', 'Missing skillMarkdown for workspace skill creation.')
+            ])
+        }
+
+        try {
+            const createdSkill = await this.skillPackageService.createWorkspaceSkillPackage(workspaceId, {
+                userIntent: trimmedIntent,
+                skillName: payload?.skillName,
+                skillMarkdown: payload.skillMarkdown
+            })
+            const warnings = await this.ensureClawXpertWorkspaceSkillPreference(workspaceId)
+
+            return this.buildAppliedSkillResult(createdSkill, warnings)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to create workspace skill.'
+            return this.buildRejectedResult(toolName, message, null, [this.buildNewSkillDiagnostic(message)])
+        }
+    }
+
     async editXpertFromContext(
         context: AuthoringAssistantRequestContext,
         payload: EditXpertPayload,
@@ -611,6 +660,39 @@ export class XpertAuthoringService {
         }
     }
 
+    private buildAppliedSkillResult(
+        result: Awaited<ReturnType<SkillPackageService['createWorkspaceSkillPackage']>>,
+        warnings: string[]
+    ): AssistantDraftMutationResult {
+        const packageName = typeof result.skillPackage.name === 'string' ? result.skillPackage.name : null
+        const displayName =
+            this.pickI18nText(result.skillPackage.metadata?.displayName) ||
+            result.skillPackage.metadata?.name ||
+            packageName ||
+            'Skill'
+
+        return {
+            status: 'applied',
+            toolName: 'newSkill',
+            summary: `Created skill "${displayName}" in this workspace. It will be available from the next round.`,
+            diagnostics: null,
+            syncMode: 'none',
+            conflictType: null,
+            requiresRefresh: false,
+            committedDraftHash: null,
+            updatedDraftFragment: {
+                skill: {
+                    id: result.skillPackage.id ?? null,
+                    name: packageName,
+                    workspaceId: result.skillPackage.workspaceId ?? null,
+                    packagePath: result.packagePath,
+                    skillMdPath: result.skillMdPath
+                }
+            },
+            warnings
+        }
+    }
+
     private buildCatalogResult<T>(
         items: T[],
         options: {
@@ -679,6 +761,37 @@ export class XpertAuthoringService {
         return workspaceId || null
     }
 
+    private async ensureClawXpertWorkspaceSkillPreference(workspaceId: string): Promise<string[]> {
+        const binding = await this.assistantBindingService.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+        if (!binding?.id) {
+            return ['ClawXpert binding was not found, so skill preferences were not updated.']
+        }
+
+        try {
+            const currentPreference = await this.assistantBindingService.getBindingPreference(
+                AssistantCode.CLAWXPERT,
+                AssistantBindingScope.USER
+            )
+            const nextToolPreferences = ensureWorkspaceSkillPreference(
+                currentPreference?.toolPreferences ?? null,
+                workspaceId
+            )
+
+            await this.assistantBindingService.upsertBindingPreference(AssistantCode.CLAWXPERT, {
+                scope: AssistantBindingScope.USER,
+                toolPreferences: nextToolPreferences
+            })
+
+            return []
+        } catch (error) {
+            return [
+                error instanceof Error
+                    ? `Skill preferences could not be updated automatically: ${error.message}`
+                    : 'Skill preferences could not be updated automatically.'
+            ]
+        }
+    }
+
     private async loadXpertById(xpertId?: string | null) {
         if (!xpertId) {
             throw new Error('Missing target Xpert id.')
@@ -730,6 +843,14 @@ export class XpertAuthoringService {
             updatedDraftFragment: null,
             warnings: []
         }
+    }
+
+    private buildNewSkillDiagnostic(message: string): AuthoringDiagnostic {
+        if (message.includes('frontmatter') || message.includes('SKILL.md')) {
+            return this.createDiagnostic('yaml', message)
+        }
+
+        return this.createDiagnostic('validation', message)
     }
 
     private async validateCandidateDraft(
@@ -1638,6 +1759,28 @@ export class XpertAuthoringService {
             copilotId,
             provider,
             model
+        }
+    }
+}
+
+function ensureWorkspaceSkillPreference(
+    toolPreferences: IAssistantBindingToolPreferences | null,
+    workspaceId: string
+): IAssistantBindingToolPreferences {
+    const normalizedWorkspaceId = workspaceId.trim()
+    const currentSkills = toolPreferences?.skills ?? {}
+    const currentWorkspacePreference = currentSkills[normalizedWorkspaceId]
+
+    return {
+        version: 1,
+        ...(toolPreferences?.toolsets ? { toolsets: { ...toolPreferences.toolsets } } : {}),
+        ...(toolPreferences?.middlewares ? { middlewares: { ...toolPreferences.middlewares } } : {}),
+        skills: {
+            ...currentSkills,
+            [normalizedWorkspaceId]: {
+                workspaceId: currentWorkspacePreference?.workspaceId?.trim() || normalizedWorkspaceId,
+                disabledSkillIds: currentWorkspacePreference?.disabledSkillIds ?? []
+            }
         }
     }
 }

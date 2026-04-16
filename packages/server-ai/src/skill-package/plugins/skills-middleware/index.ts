@@ -55,14 +55,17 @@ export interface ISkillsMiddlewareOptions {
  * Runtime skill-selection state (attached to middleware state).
  *
  * - `selectedSkillIds`: Runtime-selected skill package IDs.
+ * - `disabledSkillIds`: Runtime blacklist for the effective workspace skill set.
  * - `selectedSkillWorkspaceId`: Workspace ID associated with runtime-selected skills. If provided,
- *   middleware verifies access and loads those skills from this workspace; otherwise it falls back
- *   to the current context workspace.
+ *   middleware verifies access and uses that workspace for runtime skill loading; otherwise it falls
+ *   back to the current context workspace.
  *
  * Merge behavior with config:
  * - `options.skills` are always loaded for the current context workspace.
  * - Runtime `selectedSkillIds` are additionally loaded for the effective workspace
  *   (`selectedSkillWorkspaceId` after access check / fallback).
+ * - When `selectedSkillWorkspaceId` is present and runtime `selectedSkillIds` are absent, the
+ *   middleware loads the full effective workspace skill set and filters it with `disabledSkillIds`.
  */
 type RuntimeSkillSelectionState = {
 	selectedSkillIds?: string[]
@@ -306,6 +309,15 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 		return skillIds.filter((skillId) => !disabledSkillIdSet.has(skillId))
 	}
 
+	private filterSkillMetadata(skills: SkillPromptMetadata[], disabledSkillIds: string[]) {
+		if (!disabledSkillIds.length) {
+			return skills
+		}
+
+		const disabledSkillIdSet = new Set(disabledSkillIds)
+		return skills.filter((skill) => !disabledSkillIdSet.has(skill.id))
+	}
+
 	private escapeForShell(value: string): string {
 		return `'${value.replace(/'/g, `'\"'\"'`)}'`
 	}
@@ -496,6 +508,10 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				}
 
 				const skills: SkillPromptMetadata[] = []
+				if (!hasRuntimeSelection && stateWorkspaceId && configuredSkillIds.length === 0) {
+					const workspaceSkills = await this.loadWorkspaceSkillMetadata(SkillsRootInContainer, runtimeWorkspaceId)
+					skills.push(...this.filterSkillMetadata(workspaceSkills, disabledSkillIds))
+				}
 				for (const [workspaceId, ids] of workspaceSkillSelections.entries()) {
 					const workspaceSkills = await this.loadSkillMetadata(
 						SkillsRootInContainer,
@@ -672,6 +688,32 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			where: {
 				workspaceId,
 				id: In(skillIds)
+			},
+			relations: { skillIndex: { repository: true } }
+		})
+
+		const skills: SkillPromptMetadata[] = []
+		for (const skillPackage of skillPackages) {
+			const skill = await this.parseSkillPackage(workspacePath, skillPackage)
+			if (skill) {
+				skills.push(skill)
+			}
+		}
+
+		return skills
+	}
+
+	private async loadWorkspaceSkillMetadata(
+		workspacePath: string,
+		workspaceId: string
+	): Promise<SkillPromptMetadata[]> {
+		if (!workspaceId) {
+			return []
+		}
+
+		const skillPackages = await this.skillPackageRepository.find({
+			where: {
+				workspaceId
 			},
 			relations: { skillIndex: { repository: true } }
 		})
