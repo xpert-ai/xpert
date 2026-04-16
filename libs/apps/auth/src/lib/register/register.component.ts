@@ -1,11 +1,17 @@
+import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnDestroy } from '@angular/core'
 import { AbstractControl, FormControl, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms'
-import { Router } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
+import { firstValueFrom } from 'rxjs'
 import { take } from 'rxjs'
 import { NbAuthSocialLink, PAC_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 import { matchValidator, PacAuthResult, PacAuthService, passwordStrength, PasswordStrengthEnum } from '../services'
+
+type CompleteSsoBindingResponse = {
+  location: string
+}
 
 @Component({
   standalone: false,
@@ -23,12 +29,15 @@ export class UserRegisterComponent implements OnDestroy {
   errors: string[] = []
   messages: string[] = []
   socialLinks: NbAuthSocialLink[] = []
+  ssoTicket = ''
 
   constructor(
     protected service: PacAuthService,
     @Inject(PAC_AUTH_OPTIONS) protected options = {},
     fb: UntypedFormBuilder,
+    private http: HttpClient,
     private translateService: TranslateService,
+    private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {
@@ -53,6 +62,7 @@ export class UserRegisterComponent implements OnDestroy {
     this.showMessages = this.getConfigValue('forms.register.showMessages')
     this.strategy = this.getConfigValue('forms.register.strategy')
     this.socialLinks = this.getConfigValue('forms.login.socialLinks')
+    this.ssoTicket = this.route.snapshot.queryParamMap.get('ticket')?.trim() ?? ''
   }
 
   // #region fields
@@ -137,13 +147,33 @@ export class UserRegisterComponent implements OnDestroy {
     }, 1000)
   }
 
-  register(): void {
+  async register(): Promise<void> {
     this.errors = this.messages = []
     this.submitted = true
     const data = this.form.value
 
+    if (this.ssoTicket) {
+      try {
+        const result = await firstValueFrom(
+          this.http.post<CompleteSsoBindingResponse>('/api/auth/sso/bind/register', {
+            ticket: this.ssoTicket,
+            email: data.email?.trim(),
+            password: data.password,
+            confirmPassword: data.confirm
+          })
+        )
+
+        window.location.assign(result.location)
+        return
+      } catch (error) {
+        this.submitted = false
+        this.errors = [this.resolveErrorMessage(error)]
+        this.cdr.detectChanges()
+        return
+      }
+    }
+
     this.service.register(this.strategy, data).subscribe((result: PacAuthResult) => {
-      
       if (result.isSuccess()) {
         this.messages = [this.getTranslation('Auth.SignupSuccess', {Default: '🎉 Signup success, please active the link in your email'})]
       } else {
@@ -177,5 +207,28 @@ export class UserRegisterComponent implements OnDestroy {
     if (this.interval$) {
       clearInterval(this.interval$)
     }
+  }
+
+  private resolveErrorMessage(error: unknown): string {
+    const httpError = error as HttpErrorResponse
+    const payload = httpError?.error
+
+    if (typeof payload === 'string' && payload.trim().length > 0) {
+      return payload.trim()
+    }
+
+    if (typeof payload?.message === 'string' && payload.message.trim().length > 0) {
+      return payload.message.trim()
+    }
+
+    if (Array.isArray(payload?.message) && payload.message.length > 0) {
+      return payload.message.join('\n')
+    }
+
+    if (typeof payload?.error === 'string' && payload.error.trim().length > 0) {
+      return payload.error.trim()
+    }
+
+    return '注册失败，请稍后重试。'
   }
 }

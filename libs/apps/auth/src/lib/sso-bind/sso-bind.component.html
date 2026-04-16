@@ -1,0 +1,131 @@
+@if (loading) {
+  <div class="flex min-h-[20rem] w-full items-center justify-center px-4 py-8 text-sm text-text-secondary">
+    {{ 'AUTH.SSO_BIND.LOADING' | translate: { Default: '正在加载 SSO 账号信息...' } }}
+  </div>
+} @else if (loadError) {
+  <div class="flex w-full max-w-md flex-col gap-4 px-2 py-4">
+    <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-5 py-5">
+      <div class="text-base font-semibold text-text-primary">
+        {{ 'AUTH.SSO_BIND.EXPIRED_TITLE' | translate: { Default: '绑定会话已失效' } }}
+      </div>
+      <p class="mt-2 text-sm leading-6 text-text-secondary whitespace-pre-line">
+        {{ loadError }}
+      </p>
+    </div>
+
+    <button
+      z-button
+      zFull
+      type="button"
+      class="h-10 text-sm font-medium"
+      (click)="navigateToLogin()"
+    >
+      {{ 'AUTH.SSO_BIND.BACK_TO_LOGIN' | translate: { Default: '返回登录页' } }}
+    </button>
+  </div>
+} @else if (challenge) {
+  <div class="flex w-full max-w-md flex-col gap-5 px-2 py-4">
+    <div class="flex flex-col items-center gap-3 px-5 py-3 text-center">
+      @if (challenge.avatarUrl) {
+        <img
+          class="h-16 w-16 rounded-full border border-divider-regular object-cover"
+          [src]="challenge.avatarUrl"
+          [alt]="providerLabel(challenge.provider, challenge.displayName)"
+        />
+      } @else {
+        <div class="flex h-16 w-16 items-center justify-center rounded-full border border-divider-regular bg-components-card-bg text-base font-semibold text-text-primary">
+          {{ providerLabel(challenge.provider, challenge.displayName).slice(0, 1) }}
+        </div>
+      }
+
+      <div class="text-lg font-semibold text-text-primary">
+        {{ challenge.displayName || ('AUTH.SSO_BIND.DEFAULT_DISPLAY_NAME' | translate: { Default: 'SSO 账号' }) }}
+      </div>
+    </div>
+
+    @if (mode === 'choice') {
+      <div class="flex flex-col gap-3">
+        <button
+          z-button
+          zFull
+          type="button"
+          class="h-10 text-sm font-medium"
+          (click)="openExistingAccountForm()"
+        >
+          {{ 'AUTH.SSO_BIND.LOGIN_EXISTING' | translate: { Default: '登录已有账号' } }}
+        </button>
+
+        <button
+          z-button
+          zFull
+          zType="outline"
+          type="button"
+          class="h-10 rounded-lg border border-divider-regular text-sm font-medium text-fg-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+          (click)="openRegister()"
+        >
+          {{ 'AUTH.SSO_BIND.REGISTER_NEW' | translate: { Default: '注册新账号' } }}
+        </button>
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+        <div>
+          <label for="sso-bind-user-name" class="mb-2 block text-base font-medium text-text-primary">
+            {{ 'AUTH.LOGIN.ACCOUNT' | translate: { Default: 'Account' } }}
+          </label>
+          <input
+            z-input
+            id="sso-bind-user-name"
+            type="text"
+            formControlName="userName"
+            [placeholder]="'AUTH.LOGIN.USERNAME' | translate: { Default: 'Username / Email' }"
+            required
+          >
+        </div>
+
+        <div>
+          <label for="sso-bind-password" class="mb-2 block text-base font-medium text-text-primary">
+            {{ 'AUTH.LOGIN.PASSWORD' | translate: { Default: 'Password' } }}
+          </label>
+          <input
+            z-input
+            id="sso-bind-password"
+            type="password"
+            formControlName="password"
+            placeholder="••••••••"
+            required
+          >
+        </div>
+
+        @if (submitError) {
+          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary whitespace-pre-line">
+            {{ submitError }}
+          </div>
+        }
+
+        <div class="flex flex-col gap-3">
+          <button
+            z-button
+            zFull
+            type="submit"
+            class="h-10 text-sm font-medium"
+            [zLoading]="submitting"
+            [disabled]="form.invalid || submitting"
+          >
+            {{ 'AUTH.SSO_BIND.SUBMIT' | translate: { Default: '确认绑定并登录' } }}
+          </button>
+
+          <button
+            z-button
+            zFull
+            zType="outline"
+            type="button"
+            class="h-10 rounded-lg border border-divider-regular text-sm font-medium text-fg-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+            (click)="mode = 'choice'"
+          >
+            {{ 'AUTH.SSO_BIND.BACK' | translate: { Default: '返回选择' } }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+}

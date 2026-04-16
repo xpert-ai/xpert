@@ -90,42 +90,22 @@
 
 </form>
 
-<div class="pac-login__signins flex flex-wrap justify-center items-center gap-2">
-  @if (enableDingtalk()) {
-    <button
-      z-button
-      zType="outline"
-      zSize="icon-lg"
-      (click)="open('dingtalk', 'window')"
-      class="pac-login__signin-button rounded-lg border border-gray-300 p-2 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
-      [title]="'AUTH.LOGIN.DINGTALK' | translate: {Default: 'Dingtalk'}"
-    >
-      <img class="w-6 h-6" src="/assets/images/destinations/dingtalk.svg" alt="Dingtalk">
-    </button>
-  }
-  @if (enableFeishu()) {
-    <button
-      z-button
-      zType="outline"
-      zSize="icon-lg"
-      (click)="open('feishu', 'window')"
-      class="pac-login__signin-button rounded-lg border border-gray-300 p-2 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
-      [title]="'AUTH.LOGIN.FEISHU' | translate: {Default: 'Feishu'}"
-    >
-      <img class="w-6 h-6" src="/assets/images/destinations/feishu.png" alt="Feishu">
-    </button>
-  }
-
-  @if (enableGithub()) {
-    <button
-      z-button
-      zType="outline"
-      zSize="icon-lg"
-      (click)="open('github', 'window')"
-      class="pac-login__signin-button rounded-lg border border-gray-300 p-2 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
-      [title]="'AUTH.LOGIN.GITHUB' | translate: {Default: 'Github'}"
-    >
-      <img class="w-6 h-6" src="/assets/images/destinations/GitHub-Mark-120px-plus.png" alt="Github">
-    </button>
-  }
-</div>
+@if (ssoProviders().length) {
+  <div class="pac-login__signins flex flex-wrap justify-center items-center gap-2">
+    @for (provider of ssoProviders(); track provider.provider) {
+      <button
+        z-button
+        zType="outline"
+        type="button"
+        (click)="openProvider(provider)"
+        class="pac-login__signin-button rounded-lg border border-divider-regular px-3 py-2 text-fg-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+        [title]="provider.displayName"
+      >
+        <span class="flex items-center gap-2">
+          <img class="w-5 h-5" [src]="provider.icon" [alt]="provider.displayName">
+          <span>{{ provider.displayName }}</span>
+        </span>
+      </button>
+    }
+  </div>
+}

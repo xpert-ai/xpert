@@ -8,6 +8,8 @@ import { PacLogoutComponent } from './logout/logout.component'
 import { UserRegisterResultComponent } from './register-result/register-result.component'
 import { UserRegisterComponent } from './register/register.component'
 import { ResetPasswordComponent } from './reset-password/reset-password.component'
+import { CurrentUserSsoConfirmComponent } from './current-user-sso-confirm/current-user-sso-confirm.component'
+import { SsoBindComponent } from './sso-bind/sso-bind.component'
 import { VarifyEmailComponent } from './verify-email/verify-email.component'
 
 const routes: Routes = [
@@ -54,6 +56,16 @@ const routes: Routes = [
       {
         path: 'logout',
         component: PacLogoutComponent
+      },
+      {
+        path: 'sso-bind',
+        component: SsoBindComponent,
+        data: { title: '绑定账号', titleI18n: 'app.login.bind' }
+      },
+      {
+        path: 'sso-confirm',
+        component: CurrentUserSsoConfirmComponent,
+        data: { title: '确认绑定', titleI18n: 'app.login.bind' }
       }
     ]
   }
