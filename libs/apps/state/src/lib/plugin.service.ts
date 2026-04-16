@@ -6,6 +6,7 @@ import {
   IPluginDescriptor,
   IPluginInstallInput,
   IPluginInstallResult,
+  IPluginLatestVersionStatus,
   IPluginUpdateResult
 } from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
@@ -28,6 +29,12 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
 
   getByNames(names: string[]) {
     return this.httpClient.post<IPluginDescriptor[]>(`${this.apiBaseUrl}/by-names`, { names })
+  }
+
+  getLatestVersions(names?: string[]) {
+    return this.httpClient.post<IPluginLatestVersionStatus[]>(`${this.apiBaseUrl}/latest-versions`, {
+      ...(names?.length ? { names } : {})
+    })
   }
 
   getConfiguration(pluginName: string) {
