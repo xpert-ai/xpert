@@ -44,6 +44,7 @@
     "@xpert-ai/ocap-xmla": "3.9.0-beta.2"
   },
   "changesets": [
+    "cozy-queens-trade",
     "long-hornets-cut",
     "many-jars-allow",
     "tough-pandas-turn"
