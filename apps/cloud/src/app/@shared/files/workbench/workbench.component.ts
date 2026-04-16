@@ -19,8 +19,8 @@ import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Observable, defaultIfEmpty, finalize, firstValueFrom, from, isObservable } from 'rxjs'
 import { getErrorMessage, injectToastr, TFile, TFileDirectory } from '../../../@core'
-import { FileTreeComponent } from '../tree/tree.component'
 import { FileEditorSelection, mapFileLanguageFromPath } from '../editor/editor.component'
+import { FileTreeComponent, type FileTreeUploadKind } from '../tree/tree.component'
 import {
   FileTreeNode,
   findPreferredFile,
@@ -33,6 +33,10 @@ import { FilePanelMode, FileViewerComponent } from '../viewer/viewer.component'
 
 type DirtyDialogAction = 'save' | 'discard' | 'cancel'
 export type FileWorkbenchTreeItem = FileTreeNode
+type FileWorkbenchUploadSelection = {
+  file: File
+  relativePath: string | null
+}
 
 type AsyncValue<T> = T | Promise<T> | Observable<T>
 
@@ -106,6 +110,7 @@ export class FileWorkbenchComponent {
 
   readonly unsavedChangesDialog = viewChild<TemplateRef<unknown>>('unsavedChangesDialog')
   readonly uploadInput = viewChild<ElementRef<HTMLInputElement>>('uploadInput')
+  readonly folderUploadInput = viewChild<ElementRef<HTMLInputElement>>('folderUploadInput')
 
   readonly treeLoading = signal(false)
   readonly saving = signal(false)
@@ -332,16 +337,17 @@ export class FileWorkbenchComponent {
     await this.downloadFileByPath(filePath)
   }
 
-  requestUpload() {
+  requestUpload(kind: FileTreeUploadKind = 'file') {
     if (!this.canUploadFiles() || this.uploading()) {
       return
     }
 
-    this.uploadInput()?.nativeElement.click()
+    const input = kind === 'folder' ? this.folderUploadInput()?.nativeElement : this.uploadInput()?.nativeElement
+    input?.click()
   }
 
-  async onUploadFiles(event: Event) {
-    const files = readSelectedFiles(event)
+  async onUploadFiles(event: Event, kind: FileTreeUploadKind = 'file') {
+    const files = readSelectedFiles(event, kind)
     const input = event.target instanceof HTMLInputElement ? event.target : null
     if (!files.length) {
       if (input) {
@@ -363,8 +369,9 @@ export class FileWorkbenchComponent {
     let uploadedCount = 0
 
     try {
-      for (const file of files) {
-        await resolveAsyncValue(fileUploader(file, targetPath))
+      for (const { file, relativePath } of files) {
+        const destinationPath = resolveUploadDestinationPath(targetPath, relativePath)
+        await resolveAsyncValue(fileUploader(file, destinationPath))
         uploadedCount++
       }
 
@@ -842,9 +849,33 @@ function createReferenceRequest(
   }
 }
 
-function readSelectedFiles(event: Event) {
+function readSelectedFiles(event: Event, kind: FileTreeUploadKind): FileWorkbenchUploadSelection[] {
   const input = event.target instanceof HTMLInputElement ? event.target : null
-  return input?.files ? Array.from(input.files) : []
+  if (!input?.files) {
+    return []
+  }
+
+  return Array.from(input.files).map((file) => ({
+    file,
+    relativePath: kind === 'folder' ? normalizeUploadRelativePath(file.webkitRelativePath) : null
+  }))
+}
+
+function normalizeUploadRelativePath(relativePath?: string | null) {
+  const normalized = (relativePath ?? '')
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '')
+    .replace(/^\.\//, '')
+
+  return normalized || null
+}
+
+function resolveUploadDestinationPath(targetPath: string, relativePath?: string | null) {
+  const normalizedTargetPath = normalizeReferencePath(targetPath) ?? ''
+  const normalizedRelativePath = normalizeUploadRelativePath(relativePath)
+  const relativeDirectoryPath = normalizedRelativePath ? parentDirectoryPath(normalizedRelativePath) : ''
+  return [normalizedTargetPath, relativeDirectoryPath].filter(Boolean).join('/')
 }
 
 function mergeFileTreeState(previous: FileTreeNode[], next: FileTreeNode[]) {

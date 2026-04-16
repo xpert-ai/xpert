@@ -17,15 +17,27 @@
     <div class="flex shrink-0 items-start gap-2">
       @if (canUpload()) {
         <div class="flex shrink-0 flex-col items-end gap-1">
-          <button z-button zSize="sm" zType="ghost"
-            type="button"
-            [class]="sizePreset().itemText"
-            [disabled]="uploadDisabled() || uploading()"
-            (click)="onUploadClick()"
-          >
-            <i class="ri-upload-2-line"></i>
-            <span>{{ 'PAC.Files.Upload' | translate: { Default: 'Upload' } }}</span>
-          </button>
+          <div class="flex flex-wrap justify-end gap-2">
+            <button z-button zSize="sm" zType="ghost"
+              type="button"
+              [class]="sizePreset().itemText"
+              [disabled]="uploadDisabled() || uploading()"
+              (click)="onUploadClick('file')"
+            >
+              <i class="ri-upload-2-line"></i>
+              <span>{{ 'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' } }}</span>
+            </button>
+
+            <button z-button zSize="sm" zType="ghost"
+              type="button"
+              [class]="sizePreset().itemText"
+              [disabled]="uploadDisabled() || uploading()"
+              (click)="onUploadClick('folder')"
+            >
+              <i class="ri-folder-upload-line"></i>
+              <span>{{ 'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' } }}</span>
+            </button>
+          </div>
 
           @if (uploadTargetHint()) {
             <div class="max-w-[14rem] text-right text-xs text-text-tertiary">

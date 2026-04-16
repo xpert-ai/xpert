@@ -107,7 +107,9 @@
       "SkillFileSaved": "文件已保存",
       "LoadFilesFailed": "載入文件列表失敗",
       "LoadFolderFailed": "載入資料夾失敗",
-      "LoadFileFailed": "載入文件失敗"
+      "LoadFileFailed": "載入文件失敗",
+      "UploadFiles": "上傳文件",
+      "UploadFolder": "上傳資料夾"
     },
     "KEY_WORDS": {
       "Skills": "技能",
