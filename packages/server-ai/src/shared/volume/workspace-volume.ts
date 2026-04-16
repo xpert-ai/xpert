@@ -28,8 +28,15 @@ export interface WorkspaceVolumeAccess {
     getPublicUrl(filePath: string): string
 }
 
+type TWorkspaceVolumeOptions = {
+    allowRootWorkspace?: boolean
+}
+
 export class WorkspaceVolumeClient {
-    constructor(private readonly access: WorkspaceVolumeAccess) {}
+    constructor(
+        private readonly access: WorkspaceVolumeAccess,
+        private readonly options?: TWorkspaceVolumeOptions
+    ) {}
 
     async list(workspacePath: string, params?: { path?: string; deepth?: number }): Promise<TFileDirectory[]> {
         const workspaceRoot = this.resolveWorkspaceRoot(workspacePath)
@@ -100,12 +107,12 @@ export class WorkspaceVolumeClient {
 
     private resolveWorkspaceRoot(workspacePath: string) {
         const normalizedWorkspacePath = normalizeWorkspacePath(workspacePath)
-        if (!normalizedWorkspacePath) {
+        if (!normalizedWorkspacePath && !this.options?.allowRootWorkspace) {
             throw new BadRequestException('Workspace path is required')
         }
 
         const volumePath = this.access.getVolumePath()
-        const workspaceRoot = resolve(volumePath, normalizedWorkspacePath)
+        const workspaceRoot = normalizedWorkspacePath ? resolve(volumePath, normalizedWorkspacePath) : volumePath
         const relativeToVolume = relative(volumePath, workspaceRoot)
         if (relativeToVolume.startsWith('..') || isAbsolute(relativeToVolume)) {
             throw new BadRequestException('Invalid workspace path')

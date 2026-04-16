@@ -57,12 +57,13 @@ describe('ClawXpertConversationFilesComponent', () => {
   it('passes read-only mode by omitting the fileSaver loader', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationFilesComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('xpertId', 'xpert-1')
     fixture.componentRef.setInput('mode', 'readonly')
     fixture.detectChanges()
 
     const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent)).componentInstance as MockFileWorkbenchComponent
 
-    expect(workbench.rootId).toBe('conversation-1')
+    expect(workbench.rootId).toBe('xpert-1')
     expect(workbench.fileSaver).toBeNull()
     expect(workbench.treeSize).toBe('sm')
   })
@@ -70,6 +71,7 @@ describe('ClawXpertConversationFilesComponent', () => {
   it('passes editable mode by providing the fileSaver loader', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationFilesComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('xpertId', 'xpert-1')
     fixture.componentRef.setInput('mode', 'editable')
     fixture.componentRef.setInput('reloadKey', 3)
     fixture.detectChanges()

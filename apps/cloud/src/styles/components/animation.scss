@@ -19,7 +19,7 @@
   }
 }
 
-@keyframes twinkling {
+@keyframes thinkingTwinkling {
   50% {
     opacity: 0;
     transform: scale(.9);
@@ -29,6 +29,6 @@
 @layer components {
   .thinking-placeholder {
     @apply inline-block w-5 h-5 -mb-1 rounded-full bg-black dark:bg-white;
-    animation: twinkling 2000ms infinite linear;
+    animation: thinkingTwinkling 2000ms infinite linear;
   }
 }

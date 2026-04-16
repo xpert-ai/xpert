@@ -27,7 +27,8 @@ jest.mock('../chat-conversation', () => ({
 
 jest.mock('../shared', () => ({
     VolumeClient: {
-        getSharedWorkspacePath: jest.fn().mockResolvedValue('/workspace/user-1')
+        getSharedWorkspacePath: jest.fn().mockResolvedValue('/workspace/project-1'),
+        getXpertWorkspacePath: jest.fn().mockResolvedValue('/workspace/xpert-1/user/user-1')
     },
     getMediaTypeWithCharset: jest.fn()
 }))
@@ -105,7 +106,7 @@ describe('SandboxController', () => {
             expect.objectContaining({
                 params: expect.objectContaining({
                     provider: 'local-shell-sandbox',
-                    workingDirectory: '/workspace/user-1',
+                    workingDirectory: '/workspace/project-1',
                     workFor: {
                         type: 'project',
                         id: 'project-1'
@@ -114,6 +115,49 @@ describe('SandboxController', () => {
             })
         )
         expect(items).toContain('file-a')
+    })
+
+    it('uses the xpert workspace root for non-project conversations', async () => {
+        conversationService.findOne.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            projectId: null,
+            xpertId: 'xpert-1',
+            xpert: {
+                features: {
+                    sandbox: {
+                        enabled: true,
+                        provider: 'local-shell-sandbox'
+                    }
+                }
+            }
+        })
+        commandBus.execute.mockResolvedValue({
+            id: 'sandbox-1',
+            execute: jest.fn().mockResolvedValue({
+                output: 'file-b',
+                exitCode: 0,
+                truncated: false
+            })
+        })
+
+        const res = new EventEmitter() as ResponseLike
+        const stream$ = await controller.terminal({ cmd: 'ls' }, null, 'conversation-1', res as unknown as Response)
+        const items = await firstValueFrom(stream$.pipe(toArray()))
+
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    provider: 'local-shell-sandbox',
+                    workingDirectory: '/workspace/xpert-1/user/user-1',
+                    workFor: {
+                        type: 'user',
+                        id: 'user-1'
+                    }
+                })
+            })
+        )
+        expect(items).toContain('file-b')
     })
 
     it('rejects terminal access when the conversation sandbox feature is disabled', async () => {

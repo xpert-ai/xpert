@@ -402,8 +402,7 @@ export class XpertController extends CrudController<Xpert> {
     async getMemoryFiles(
         @Param('id', UUIDValidationPipe) id: string,
         @Query('deepth') deepth: number,
-        @Query('path') path: string,
-        @Query('workspaceId') _workspaceId?: string
+        @Query('path') path: string
     ) {
         return await this.service.getMemoryFiles(id, path, deepth)
     }
@@ -412,8 +411,7 @@ export class XpertController extends CrudController<Xpert> {
     @Get(':id/memory/file')
     async getMemoryFile(
         @Param('id', UUIDValidationPipe) id: string,
-        @Query('path') path: string,
-        @Query('workspaceId') _workspaceId?: string
+        @Query('path') path: string
     ) {
         return await this.service.getMemoryFile(id, path)
     }
@@ -426,7 +424,6 @@ export class XpertController extends CrudController<Xpert> {
         body: {
             path: string
             content: string
-            workspaceId?: string | null
         }
     ) {
         return await this.service.saveMemoryFile(id, body?.path, body?.content ?? '')

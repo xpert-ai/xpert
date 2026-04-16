@@ -9,6 +9,7 @@ import {
     getFileAssetDestination
 } from '@xpert-ai/server-core'
 import {
+    BadRequestException,
     Body,
     Controller,
     ForbiddenException,
@@ -34,7 +35,9 @@ import { join } from 'path'
 import { Observable } from 'rxjs'
 import { ChatConversationService } from '../chat-conversation'
 import { VolumeClient, getMediaTypeWithCharset } from '../shared'
+import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
 import { SandboxAcquireBackendCommand } from './commands'
+import { IChatConversation } from '@xpert-ai/contracts'
 
 @ApiTags('Sandbox')
 @ApiBearerAuth()
@@ -63,11 +66,7 @@ export class SandboxController {
         const volume = VolumeClient.getApiContainerSandboxVolumeRoot(tenant)
 
         if (environment.envName === 'dev') {
-            // Remove leading "/user/{uuid}/" or "/project/{uuid}/" from path if present
-            const leadingPathRegex = /^(user|project|knowledges)\/[0-9a-fA-F-]{36}\//
-            if (leadingPathRegex.test(subpath)) {
-                subpath = subpath.replace(leadingPathRegex, '')
-            }
+            subpath = normalizeSandboxPublicVolumeSubpath(subpath)
         }
 
         const filePath = join(volume, subpath)
@@ -123,12 +122,7 @@ export class SandboxController {
         @UploadedFile() file: Express.Multer.File
     ) {
         const conversation = await this.conversationService.findOne({ where: { id: conversationId } })
-        const client = new VolumeClient({
-            tenantId: RequestContext.currentTenantId(),
-            userId: RequestContext.currentUserId(),
-            catalog: 'projects',
-            projectId: conversation.projectId
-        })
+        const client = this.createConversationVolumeClient(conversation)
 
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
@@ -183,7 +177,14 @@ export class SandboxController {
         }
 
         const effectiveProjectId = projectId ?? conversation?.projectId ?? null
-        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, effectiveProjectId, userId)
+        const workspacePath = effectiveProjectId
+            ? await VolumeClient.getSharedWorkspacePath(tenantId, effectiveProjectId, userId)
+            : conversation?.xpertId
+              ? await VolumeClient.getXpertWorkspacePath(tenantId, conversation.xpertId, userId)
+              : null
+        if (!workspacePath) {
+            throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
+        }
         const sandboxContext = await this.commandBus.execute(
             new SandboxAcquireBackendCommand({
                 tenantId,
@@ -228,7 +229,7 @@ export class SandboxController {
 
                     const fallbackMessage = effectiveProjectId
                         ? 'Command failed in the project workspace.'
-                        : 'Command failed in the user workspace.'
+                        : 'Command failed in the xpert workspace.'
                     subscriber.error(result.output || fallbackMessage)
                 } catch (error) {
                     if (active) {
@@ -246,6 +247,29 @@ export class SandboxController {
                 keepAlive(30000),
                 takeUntilClose(res)
             )
+    }
+
+    private createConversationVolumeClient(conversation: Partial<IChatConversation>) {
+        if (conversation?.projectId) {
+            return new VolumeClient({
+                tenantId: conversation.tenantId,
+                userId: conversation.createdById ?? RequestContext.currentUserId(),
+                catalog: 'projects',
+                projectId: conversation.projectId
+            })
+        }
+
+        if (conversation?.xpertId) {
+            return new VolumeClient({
+                tenantId: conversation.tenantId,
+                userId: conversation.createdById ?? RequestContext.currentUserId(),
+                catalog: 'xperts',
+                xpertId: conversation.xpertId,
+                isolateByUser: true
+            })
+        }
+
+        throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
     }
 
 }

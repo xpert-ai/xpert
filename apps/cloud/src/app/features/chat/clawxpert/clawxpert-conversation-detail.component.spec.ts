@@ -91,6 +91,7 @@ jest.mock('./clawxpert-conversation-files.component', () => {
   })
   class ClawXpertConversationFilesComponent {
     @Input() conversationId?: string | null
+    @Input() xpertId?: string | null
     @Input() mode?: 'readonly' | 'editable'
     @Input() reloadKey?: number
   }
@@ -208,6 +209,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     loadingUserPreference: ReturnType<typeof signal<boolean>>
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
+    xpertId: ReturnType<typeof signal<string | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
     suppressAutoResume: ReturnType<typeof signal<boolean>>
@@ -239,6 +241,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       loadingUserPreference: signal(false),
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
+      xpertId: signal('assistant-1'),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
       suppressAutoResume: signal(false),
@@ -328,6 +331,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
     fixture.detectChanges()
@@ -434,6 +438,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
   })
 
   it('clears the shared active conversation when the thread is reset or the component is destroyed', async () => {

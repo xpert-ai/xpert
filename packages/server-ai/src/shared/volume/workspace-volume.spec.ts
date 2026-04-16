@@ -15,6 +15,7 @@ describe('WorkspaceVolumeClient', () => {
             getPublicUrl: (filePath: string) => (filePath ? `${baseUrl}/${filePath.replace(/^\/+/, '')}` : baseUrl)
         })
 
+        await fsPromises.writeFile(path.join(tempRoot, 'MEMORY.md'), '# Memory\n', 'utf8')
         await fsPromises.mkdir(path.join(tempRoot, 'thread-1', 'docs'), { recursive: true })
         await fsPromises.writeFile(path.join(tempRoot, 'thread-1', 'README.md'), '# Workspace\n', 'utf8')
         await fsPromises.writeFile(path.join(tempRoot, 'thread-1', 'docs', 'guide.md'), '# Guide\n', 'utf8')
@@ -73,5 +74,28 @@ describe('WorkspaceVolumeClient', () => {
         await expect(workspaceVolume.list('thread-1', { path: '../outside' })).rejects.toThrow(
             'Invalid conversation file path'
         )
+    })
+
+    it('supports root-scoped workspaces when explicitly enabled', async () => {
+        const rootWorkspaceVolume = new WorkspaceVolumeClient(
+            {
+                getVolumePath: (filePath?: string) => (filePath ? path.join(tempRoot, filePath) : tempRoot),
+                getPublicUrl: (filePath: string) => (filePath ? `${baseUrl}/${filePath.replace(/^\/+/, '')}` : baseUrl)
+            },
+            { allowRootWorkspace: true }
+        )
+
+        const files = await rootWorkspaceVolume.list('')
+        expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/MEMORY.md', '/thread-1']))
+
+        await expect(rootWorkspaceVolume.readFile('', 'MEMORY.md')).resolves.toMatchObject({
+            filePath: 'MEMORY.md',
+            contents: '# Memory\n'
+        })
+
+        await expect(rootWorkspaceVolume.saveFile('', 'MEMORY.md', '# Updated Memory\n')).resolves.toMatchObject({
+            filePath: 'MEMORY.md',
+            contents: '# Updated Memory\n'
+        })
     })
 })
