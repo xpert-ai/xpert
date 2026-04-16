@@ -15,6 +15,7 @@ describe('WorkspaceVolumeClient', () => {
             getPublicUrl: (filePath: string) => (filePath ? `${baseUrl}/${filePath.replace(/^\/+/, '')}` : baseUrl)
         })
 
+        await fsPromises.writeFile(path.join(tempRoot, 'PROJECT.md'), '# Project Root\n', 'utf8')
         await fsPromises.mkdir(path.join(tempRoot, 'thread-1', 'docs'), { recursive: true })
         await fsPromises.writeFile(path.join(tempRoot, 'thread-1', 'README.md'), '# Workspace\n', 'utf8')
         await fsPromises.writeFile(path.join(tempRoot, 'thread-1', 'docs', 'guide.md'), '# Guide\n', 'utf8')
@@ -31,6 +32,14 @@ describe('WorkspaceVolumeClient', () => {
 
         expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/README.md', '/docs', '/binary.bin']))
         expect(files.find((file) => file.filePath === 'README.md')?.url).toContain('/thread-1/README.md')
+    })
+
+    it('treats an empty workspace path as the volume root', async () => {
+        await expect(workspaceVolume.readFile('', 'PROJECT.md')).resolves.toMatchObject({
+            filePath: 'PROJECT.md',
+            contents: '# Project Root\n',
+            url: `${baseUrl}/PROJECT.md`
+        })
     })
 
     it('reads text files and keeps binary files read-only', async () => {

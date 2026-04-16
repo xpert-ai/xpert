@@ -88,6 +88,6 @@ export function sandboxVolumeUrl(volume: string, workspaceId?: string) {
 export function sandboxVolume(projectId: string, userId: string) {
 	return projectId ? `/project/${projectId}` : `/user/${userId}`
 }
-export function getWorkspace(projectId: string, conversationId: string) {
-    return projectId ? '' : conversationId
+export function getWorkspace(projectId: string, threadId: string) {
+    return projectId ? '' : threadId
 }

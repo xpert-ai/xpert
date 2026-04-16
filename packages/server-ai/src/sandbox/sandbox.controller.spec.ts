@@ -27,7 +27,7 @@ jest.mock('../chat-conversation', () => ({
 
 jest.mock('../shared', () => ({
     VolumeClient: {
-        getSharedWorkspacePath: jest.fn().mockResolvedValue('/workspace/user-1')
+        getConversationDefaultWorkspacePath: jest.fn().mockResolvedValue('/workspace/user-1')
     },
     getMediaTypeWithCharset: jest.fn()
 }))
@@ -132,12 +132,7 @@ describe('SandboxController', () => {
         })
 
         await expect(
-            controller.terminal(
-                { cmd: 'ls' },
-                null,
-                'conversation-1',
-                new EventEmitter() as unknown as Response
-            )
+            controller.terminal({ cmd: 'ls' }, null, 'conversation-1', new EventEmitter() as unknown as Response)
         ).rejects.toBeInstanceOf(ForbiddenException)
         expect(commandBus.execute).not.toHaveBeenCalled()
     })

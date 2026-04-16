@@ -100,12 +100,8 @@ export class WorkspaceVolumeClient {
 
     private resolveWorkspaceRoot(workspacePath: string) {
         const normalizedWorkspacePath = normalizeWorkspacePath(workspacePath)
-        if (!normalizedWorkspacePath) {
-            throw new BadRequestException('Workspace path is required')
-        }
-
         const volumePath = this.access.getVolumePath()
-        const workspaceRoot = resolve(volumePath, normalizedWorkspacePath)
+        const workspaceRoot = normalizedWorkspacePath ? resolve(volumePath, normalizedWorkspacePath) : volumePath
         const relativeToVolume = relative(volumePath, workspaceRoot)
         if (relativeToVolume.startsWith('..') || isAbsolute(relativeToVolume)) {
             throw new BadRequestException('Invalid workspace path')

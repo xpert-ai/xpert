@@ -183,15 +183,18 @@ export class SandboxController {
         }
 
         const effectiveProjectId = projectId ?? conversation?.projectId ?? null
-        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, effectiveProjectId, userId)
+        const workspacePath = await VolumeClient.getConversationDefaultWorkspacePath(
+            tenantId,
+            effectiveProjectId,
+            userId,
+            conversation?.threadId
+        )
         const sandboxContext = await this.commandBus.execute(
             new SandboxAcquireBackendCommand({
                 tenantId,
                 provider: sandboxFeature.provider,
                 workingDirectory: workspacePath,
-                workFor: effectiveProjectId
-                    ? { type: 'project', id: effectiveProjectId }
-                    : { type: 'user', id: userId }
+                workFor: effectiveProjectId ? { type: 'project', id: effectiveProjectId } : { type: 'user', id: userId }
             })
         )
         const backend = resolveSandboxBackend(sandboxContext)
@@ -204,7 +207,8 @@ export class SandboxController {
 
             void (async () => {
                 try {
-                    const streamExecute = typeof backend.streamExecute === 'function' ? backend.streamExecute.bind(backend) : null
+                    const streamExecute =
+                        typeof backend.streamExecute === 'function' ? backend.streamExecute.bind(backend) : null
                     const result = streamExecute
                         ? await streamExecute(body.cmd, (line) => {
                               if (active) {
@@ -240,12 +244,11 @@ export class SandboxController {
             return () => {
                 active = false
             }
-        })
-            .pipe(
-                // Add an operator to send a comment event periodically (30s) to keep the connection alive
-                keepAlive(30000),
-                takeUntilClose(res)
-            )
+        }).pipe(
+            // Add an operator to send a comment event periodically (30s) to keep the connection alive
+            keepAlive(30000),
+            takeUntilClose(res)
+        )
     }
 
 }

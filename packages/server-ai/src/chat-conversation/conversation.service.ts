@@ -159,34 +159,45 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		return conversation.attachments
 	}
 
-    async getWorkspaceFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
-        const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).list(conversation.threadId, {
-            path,
-            deepth
-        })
-    }
+	async getWorkspaceFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
+		const conversation = await this.findOne(id)
+		return this.createWorkspaceVolumeClient(conversation).list(this.getConversationDefaultWorkspaceKey(conversation), {
+			path,
+			deepth
+		})
+	}
 
-    async readWorkspaceFile(id: string, filePath: string): Promise<TFile> {
-        const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).readFile(conversation.threadId, filePath)
-    }
+	async readWorkspaceFile(id: string, filePath: string): Promise<TFile> {
+		const conversation = await this.findOne(id)
+		return this.createWorkspaceVolumeClient(conversation).readFile(
+			this.getConversationDefaultWorkspaceKey(conversation),
+			filePath
+		)
+	}
 
-    async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
-        const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).saveFile(conversation.threadId, filePath, content)
-    }
+	async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
+		const conversation = await this.findOne(id)
+		return this.createWorkspaceVolumeClient(conversation).saveFile(
+			this.getConversationDefaultWorkspaceKey(conversation),
+			filePath,
+			content
+		)
+	}
 
-    private createWorkspaceVolumeClient(conversation: ChatConversation) {
-        return new WorkspaceVolumeClient(this.createVolumeClient(conversation))
-    }
+	private createWorkspaceVolumeClient(conversation: ChatConversation) {
+		return new WorkspaceVolumeClient(this.createVolumeClient(conversation))
+	}
 
-    private createVolumeClient(conversation: ChatConversation) {
-        return new VolumeClient({
-            tenantId: conversation.tenantId,
-            catalog: 'users',
-            userId: conversation.createdById
-        })
-    }
+	private createVolumeClient(conversation: ChatConversation) {
+		return new VolumeClient({
+			tenantId: conversation.tenantId,
+			catalog: 'users',
+			userId: conversation.createdById,
+			projectId: conversation.projectId
+		})
+	}
 
+	private getConversationDefaultWorkspaceKey(conversation: ChatConversation) {
+		return VolumeClient.getConversationDefaultWorkspaceKey(conversation.projectId, conversation.threadId)
+	}
 }

@@ -9,7 +9,9 @@ jest.mock('@xpert-ai/server-core', () => ({
         getOrganizationId: jest.fn(),
         currentUserId: jest.fn(),
         currentUser: jest.fn()
-    }
+    },
+    TenantBaseEntity: class TenantBaseEntity {},
+    TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {}
 }))
 
 jest.mock('@xpert-ai/copilot', () => ({
@@ -46,6 +48,8 @@ jest.mock('../../../shared', () => ({
         static getWorkspaceUrl = jest.fn()
         static getSharedWorkspacePath = jest.fn()
         static getSharedWorkspaceUrl = jest.fn()
+        static getConversationDefaultWorkspacePath = jest.fn()
+        static getConversationDefaultWorkspaceUrl = jest.fn()
 
         getVolumePath(workspace?: string) {
             return workspace ? `/volume/${workspace}` : '/volume'
@@ -117,7 +121,6 @@ describe('XpertAgentInvokeHandler', () => {
             executionCancelService as unknown as ExecutionCancelService,
             chatMessageRepository as any
         )
-
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
@@ -127,8 +130,8 @@ describe('XpertAgentInvokeHandler', () => {
             timeZone: 'Asia/Shanghai',
             preferredLanguage: 'en-US'
         } as any)
-        jest.spyOn(VolumeClient, 'getSharedWorkspacePath').mockResolvedValue('/tmp/workspace')
-        jest.spyOn(VolumeClient, 'getSharedWorkspaceUrl').mockReturnValue('/workspace')
+        jest.spyOn(VolumeClient, 'getConversationDefaultWorkspacePath').mockResolvedValue('/tmp/workspace')
+        jest.spyOn(VolumeClient, 'getConversationDefaultWorkspaceUrl').mockReturnValue('/workspace')
     })
 
     afterEach(() => {
@@ -193,8 +196,13 @@ describe('XpertAgentInvokeHandler', () => {
                 volume: '/tmp/workspace'
             })
         })
-        expect(VolumeClient.getSharedWorkspacePath).toHaveBeenCalledWith('tenant-1', undefined, 'user-1')
-        expect(VolumeClient.getSharedWorkspaceUrl).toHaveBeenCalledWith(undefined, 'user-1')
+        expect(VolumeClient.getConversationDefaultWorkspacePath).toHaveBeenCalledWith(
+            'tenant-1',
+            undefined,
+            'user-1',
+            'thread-1'
+        )
+        expect(VolumeClient.getConversationDefaultWorkspaceUrl).toHaveBeenCalledWith(undefined, 'user-1', 'thread-1')
     })
 
     it('merges soul and profile into resume command updates', async () => {
@@ -350,7 +358,7 @@ describe('XpertAgentInvokeHandler', () => {
         })
     })
 
-    it('uses the shared workspace root as sandbox working directory', async () => {
+    it('uses the conversation default workspace as sandbox working directory', async () => {
         const graph = createGraph()
 
         commandBus.execute.mockImplementation(async (command) => {

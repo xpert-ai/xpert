@@ -61,12 +61,9 @@ export class VolumeClient {
         tenantId: string,
         projectId: string,
         userId: string,
-        conversationId?: string
+        threadId?: string
     ): Promise<string> {
-        const dist = path.join(
-            VolumeClient.getWorkspaceRoot(tenantId, projectId, userId),
-            getWorkspace(projectId, conversationId) || ''
-        )
+        const dist = path.join(VolumeClient.getWorkspaceRoot(tenantId, projectId, userId), getWorkspace(projectId, threadId) || '')
         await fsPromises.mkdir(dist, { recursive: true })
         return dist
     }
@@ -77,12 +74,35 @@ export class VolumeClient {
         return dist
     }
 
-    static getWorkspaceUrl(projectId: string, userId: string, conversationId?: string) {
-        return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId) + '/')
+    static getConversationDefaultWorkspaceKey(projectId?: string, threadId?: string) {
+        return getWorkspace(projectId, threadId) || ''
+    }
+
+    static async getConversationDefaultWorkspacePath(
+        tenantId: string,
+        projectId: string | undefined,
+        userId: string,
+        threadId?: string
+    ): Promise<string> {
+        const workspaceKey = VolumeClient.getConversationDefaultWorkspaceKey(projectId, threadId)
+        const dist = path.join(VolumeClient.getWorkspaceRoot(tenantId, projectId, userId), workspaceKey)
+        await fsPromises.mkdir(dist, { recursive: true })
+        return dist
+    }
+
+    static getWorkspaceUrl(projectId: string, userId: string, threadId?: string) {
+        return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, threadId) + '/')
     }
 
     static getSharedWorkspaceUrl(projectId: string, userId: string) {
         return sandboxVolumeUrl(sandboxVolume(projectId, userId))
+    }
+
+    static getConversationDefaultWorkspaceUrl(projectId: string | undefined, userId: string, threadId?: string) {
+        const workspaceKey = VolumeClient.getConversationDefaultWorkspaceKey(projectId, threadId)
+        return workspaceKey
+            ? sandboxVolumeUrl(sandboxVolume(projectId, userId), workspaceKey + '/')
+            : sandboxVolumeUrl(sandboxVolume(projectId, userId))
     }
 
     constructor(params: {
