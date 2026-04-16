@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
+import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
@@ -252,14 +252,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #conversationService = inject(ChatConversationService)
   readonly #responseActive = signal(false)
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
-  #lastSyncedChatkitThread: { control: ChatKitControl | null; threadId: string | null | undefined } = {
-    control: null,
-    threadId: undefined
-  }
-  #lastReportedChatkitThread: { control: ChatKitControl | null; threadId: string | null | undefined } = {
-    control: null,
-    threadId: undefined
-  }
 
   readonly facade = inject(ClawXpertFacade)
   readonly control = injectHostedAssistantChatkitControl({
@@ -270,14 +262,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
-      this.handleChatkitThreadEvent(threadId)
+      console.log(`Thread changed:`, threadId)
+      this.facade.onChatThreadChange(threadId)
     },
-    onThreadLoadStart: ({ threadId }) => {
-      this.handleChatkitThreadEvent(threadId)
-    },
-    onThreadLoadEnd: ({ threadId }) => {
-      this.handleChatkitThreadEvent(threadId)
-    },
+    // onThreadLoadStart: ({ threadId }) => {
+    //   this.facade.onChatThreadChange(threadId)
+    // },
+    // onThreadLoadEnd: ({ threadId }) => {
+    //   this.facade.onChatThreadChange(threadId)
+    // },
     onEffect: (event) => {
       if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
@@ -352,9 +345,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const control = this.control()
       const threadId = this.facade.threadId()
       const viewState = this.facade.viewState()
+      const loadingUserPreference = this.facade.loadingUserPreference()
+
+      console.log(`ThreadId:`, threadId, loadingUserPreference)
+
       this.facade.suppressAutoResume()
 
-      if (!control || threadId || viewState !== 'ready') {
+      if (!control || threadId || viewState !== 'ready' || loadingUserPreference) {
         return
       }
 
@@ -363,47 +360,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         if (cancelled) {
           return
         }
-
         void this.facade.ensureConversationEntry(control)
       })
 
       onCleanup(() => {
         cancelled = true
         clearTimeout(timer)
-      })
-    })
-
-    effect((onCleanup) => {
-      const control = this.control()
-      const threadId = this.facade.threadId()
-      const viewState = this.facade.viewState()
-
-      if (!control || viewState !== 'ready') {
-        this.#lastSyncedChatkitThread = {
-          control: null,
-          threadId: undefined
-        }
-        this.#lastReportedChatkitThread = {
-          control: null,
-          threadId: undefined
-        }
-        return
-      }
-
-      if (this.#lastSyncedChatkitThread.control === control && this.#lastSyncedChatkitThread.threadId === threadId) {
-        return
-      }
-
-      this.#lastSyncedChatkitThread = {
-        control,
-        threadId
-      }
-
-      let cancelled = false
-      void this.syncChatkitThread(control, threadId, () => cancelled)
-
-      onCleanup(() => {
-        cancelled = true
       })
     })
 
@@ -482,37 +444,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     clearTimeout(this.#workspaceFileRefreshTimer)
     this.#workspaceFileRefreshTimer = null
-  }
-
-  private handleChatkitThreadEvent(threadId: string | null) {
-    this.#lastReportedChatkitThread = {
-      control: this.control(),
-      threadId
-    }
-    this.facade.onChatThreadChange(threadId)
-  }
-
-  private async syncChatkitThread(control: ChatKitControl, threadId: string | null, isCancelled: () => boolean) {
-    await this.waitForChatkitMount(control, isCancelled)
-    if (isCancelled()) {
-      return
-    }
-
-    if (this.#lastReportedChatkitThread.control === control && this.#lastReportedChatkitThread.threadId === threadId) {
-      return
-    }
-
-    await control.setThreadId(threadId)
-  }
-
-  private async waitForChatkitMount(control: ChatKitControl, isCancelled: () => boolean) {
-    for (let index = 0; index < 12; index++) {
-      if (control.element || isCancelled()) {
-        return
-      }
-
-      await new Promise<void>((resolve) => setTimeout(resolve, 16))
-    }
   }
 
   private async resolveConversationContext(threadId: string, isCancelled: () => boolean) {

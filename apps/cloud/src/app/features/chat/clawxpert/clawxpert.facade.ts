@@ -153,7 +153,6 @@ export class ClawXpertFacade {
     normalizeConversationPreferences(this.userPreference()?.conversationPreferences)
   )
   readonly defaultThreadId = computed(() => this.conversationPreferences()?.defaultThreadId ?? null)
-  readonly lastThreadId = computed(() => this.conversationPreferences()?.lastThreadId ?? null)
   readonly defaultFollowUpBehavior = computed(
     () => this.conversationPreferences()?.defaultFollowUpBehavior ?? 'queue'
   )
@@ -416,7 +415,7 @@ export class ClawXpertFacade {
       this.#lastPersistedThreadKey = persistKey
       void this.persistConversationPreferences(
         {
-          lastThreadId: threadId
+          defaultThreadId: threadId
         },
         {
           notifySuccess: false,
@@ -478,8 +477,7 @@ export class ClawXpertFacade {
       if (previousAssistantId && previousAssistantId !== assistantId) {
         await this.persistConversationPreferences(
           {
-            defaultThreadId: null,
-            lastThreadId: null
+            defaultThreadId: null
           },
           {
             notifySuccess: false,
@@ -906,7 +904,7 @@ export class ClawXpertFacade {
     }
 
     const xpertId = this.xpertId()
-    if (!control || !xpertId || this.threadId() || this.viewState() !== 'ready') {
+    if (!control || !xpertId || this.threadId() || this.viewState() !== 'ready' || this.loadingUserPreference()) {
       return
     }
 
@@ -1039,10 +1037,7 @@ export class ClawXpertFacade {
     const validatedThreadIds = new Set<string>()
     const savedPreferences = this.conversationPreferences()
     const defaultThreadId = savedPreferences?.defaultThreadId ?? null
-    const lastThreadId = savedPreferences?.lastThreadId ?? null
-    const candidateThreadIds = [defaultThreadId, lastThreadId].filter(
-      (threadId): threadId is string => !!threadId?.trim()
-    )
+    const candidateThreadIds = [defaultThreadId].filter((threadId): threadId is string => !!threadId?.trim())
 
     for (const threadId of candidateThreadIds) {
       const resolvedThreadId = await this.resolveValidSavedThreadId(threadId, xpertId)
@@ -1099,15 +1094,13 @@ export class ClawXpertFacade {
     }
 
     const nextDefaultThreadId = preferences.defaultThreadId === threadId ? null : undefined
-    const nextLastThreadId = preferences.lastThreadId === threadId ? null : undefined
-    if (nextDefaultThreadId === undefined && nextLastThreadId === undefined) {
+    if (nextDefaultThreadId === undefined) {
       return
     }
 
     await this.persistConversationPreferences(
       {
-        ...(nextDefaultThreadId !== undefined ? { defaultThreadId: nextDefaultThreadId } : {}),
-        ...(nextLastThreadId !== undefined ? { lastThreadId: nextLastThreadId } : {})
+        defaultThreadId: nextDefaultThreadId
       },
       {
         notifySuccess: false,
@@ -1349,16 +1342,14 @@ function normalizeConversationPreferences(
   }
 
   const defaultThreadId = normalizeConversationThreadId(value.defaultThreadId)
-  const lastThreadId = normalizeConversationThreadId(value.lastThreadId)
   const defaultFollowUpBehavior = normalizeConversationFollowUpBehavior(value.defaultFollowUpBehavior)
-  if (defaultThreadId == null && lastThreadId == null && defaultFollowUpBehavior === undefined) {
+  if (defaultThreadId == null && defaultFollowUpBehavior === undefined) {
     return null
   }
 
   return {
     version: 2,
     ...(defaultThreadId !== undefined ? { defaultThreadId } : {}),
-    ...(lastThreadId !== undefined ? { lastThreadId } : {}),
     ...(defaultFollowUpBehavior !== undefined ? { defaultFollowUpBehavior } : {})
   }
 }
@@ -1492,14 +1483,10 @@ function mergePersistedConversationPreferences(
 
   const normalizedCurrent = current ? normalizeConversationPreferences(current) : null
   const hasDefaultThreadId = Object.prototype.hasOwnProperty.call(persisted, 'defaultThreadId')
-  const hasLastThreadId = Object.prototype.hasOwnProperty.call(persisted, 'lastThreadId')
   const hasDefaultFollowUpBehavior = Object.prototype.hasOwnProperty.call(persisted, 'defaultFollowUpBehavior')
   const defaultThreadId = hasDefaultThreadId
     ? normalizeConversationThreadId(persisted.defaultThreadId)
     : (normalizedCurrent?.defaultThreadId ?? undefined)
-  const lastThreadId = hasLastThreadId
-    ? normalizeConversationThreadId(persisted.lastThreadId)
-    : (normalizedCurrent?.lastThreadId ?? undefined)
   const defaultFollowUpBehavior = hasDefaultFollowUpBehavior
     ? normalizeConversationFollowUpBehavior(persisted.defaultFollowUpBehavior)
     : (normalizedCurrent?.defaultFollowUpBehavior ?? undefined)
@@ -1507,7 +1494,6 @@ function mergePersistedConversationPreferences(
   return normalizeConversationPreferences({
     version: 2,
     ...(defaultThreadId !== undefined ? { defaultThreadId } : {}),
-    ...(lastThreadId !== undefined ? { lastThreadId } : {}),
     ...(defaultFollowUpBehavior !== undefined ? { defaultFollowUpBehavior } : {})
   })
 }
@@ -1520,9 +1506,6 @@ function mergeConversationPreferences(
   const nextDefaultThreadId = Object.prototype.hasOwnProperty.call(patch, 'defaultThreadId')
     ? normalizeConversationThreadId(patch.defaultThreadId)
     : (normalizedCurrent?.defaultThreadId ?? undefined)
-  const nextLastThreadId = Object.prototype.hasOwnProperty.call(patch, 'lastThreadId')
-    ? normalizeConversationThreadId(patch.lastThreadId)
-    : (normalizedCurrent?.lastThreadId ?? undefined)
   const nextDefaultFollowUpBehavior = Object.prototype.hasOwnProperty.call(patch, 'defaultFollowUpBehavior')
     ? normalizeConversationFollowUpBehavior(patch.defaultFollowUpBehavior)
     : (normalizedCurrent?.defaultFollowUpBehavior ?? undefined)
@@ -1530,7 +1513,6 @@ function mergeConversationPreferences(
   return normalizeConversationPreferences({
     version: 2,
     ...(nextDefaultThreadId !== undefined ? { defaultThreadId: nextDefaultThreadId } : {}),
-    ...(nextLastThreadId !== undefined ? { lastThreadId: nextLastThreadId } : {}),
     ...(nextDefaultFollowUpBehavior !== undefined ? { defaultFollowUpBehavior: nextDefaultFollowUpBehavior } : {})
   })
 }
