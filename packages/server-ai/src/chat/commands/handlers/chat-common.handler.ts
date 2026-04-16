@@ -103,6 +103,7 @@ import {
     createHumanMessage,
     CreateMemoryStoreCommand,
     findPendingFollowUpByClientMessageId,
+    normalizeReferences,
     rejectGraph,
     stateToParameters,
     stateVariable,
@@ -151,12 +152,18 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
                 null
 
+            const references = normalizeReferences(request.message.input?.references)
             await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
                     parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
                     role: 'human',
                     content: request.message.input?.input,
                     conversationId: conversation.id,
+                    ...(references.length
+                        ? {
+                              references
+                          }
+                        : {}),
                     ...(request.message.input?.files
                         ? {
                               attachments: request.message.input.files as IStorageFile[]
@@ -289,6 +296,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 const fallbackRetryInput: TChatRequestHuman = {
                     ...(conversation.options?.parameters ?? {}),
                     input: stringifyMessageContent(userMessage.content),
+                    ...(userMessage.references?.length
+                        ? {
+                              references: userMessage.references
+                          }
+                        : {}),
                     ...(userMessage.attachments?.length
                         ? {
                               files: userMessage.attachments
@@ -300,6 +312,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             }
 
             if (!userMessage) {
+                const references = normalizeReferences(input.references)
                 if (persistedPendingFollowUp?.id) {
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
@@ -307,6 +320,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             content: input.input,
                             followUpStatus: 'consumed',
                             visibleAt: new Date(),
+                            ...(references.length
+                                ? {
+                                      references
+                                  }
+                                : {}),
                             ...(input.files
                                 ? {
                                       attachments: input.files as IStorageFile[]
@@ -320,6 +338,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             role: 'human',
                             content: input.input,
                             conversationId: conversation.id,
+                            ...(references.length
+                                ? {
+                                      references
+                                  }
+                                : {}),
                             attachments: input.files as IStorageFile[]
                         })
                     )

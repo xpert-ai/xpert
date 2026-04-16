@@ -44,6 +44,7 @@
       "SecretKey": "Key",
       "Middleware": "Middleware",
       "Skills": "Skills",
+      "You": "You",
       "Active": "Active",
       "All": "All",
       "CURRENCY": "Currency",
@@ -442,6 +443,8 @@
       "zh-Hant": "繁体中文"
     },
     "Chat": {
+      "QuoteSelection": "Quote selection",
+      "RemoveReference": "Remove reference",
       "Event_on_agent_start": "Agent start",
       "Event_on_agent_end": "Agent end",
       "Event_on_tool_start": "Tool start",

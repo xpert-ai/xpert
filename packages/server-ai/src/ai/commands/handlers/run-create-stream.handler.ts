@@ -18,6 +18,7 @@ import { ChatConversationUpsertCommand } from '../../../chat-conversation/comman
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { AssistantBindingService } from '../../../assistant-binding'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
+import { hydrateSendRequestHumanInput } from '../../../shared/agent'
 import { PublishedXpertAccessService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
@@ -252,17 +253,17 @@ function normalizeRunCreateInput(input: unknown, options?: { isConversationBusy?
     }
 
     if (isLegacyChatRequest(input)) {
-        return normalizeLegacyChatRequest(input, options)
+        return hydrateSendRequestHumanInput(normalizeLegacyChatRequest(input, options))
     }
 
     if (!input.action) {
-        return {
+        return hydrateSendRequestHumanInput({
             ...input,
             action: 'send'
-        }
+        })
     }
 
-    return input
+    return hydrateSendRequestHumanInput(input)
 }
 
 function getChatRequestEnvironmentId(chatRequest: TChatRequestV2): string | undefined {

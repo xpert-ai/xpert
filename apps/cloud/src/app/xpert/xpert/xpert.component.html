@@ -112,6 +112,7 @@
         class="w-full"
         [xpert]="xpert()"
         (chat)="chatInput.ask($event)"
+        (reference)="chatInput.addReferences($event)"
       />
     }
   </div>

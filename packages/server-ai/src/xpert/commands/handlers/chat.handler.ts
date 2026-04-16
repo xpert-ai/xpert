@@ -47,6 +47,7 @@ import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
 import { findPendingFollowUpByClientMessageId } from '../../../shared/agent/persisted-follow-up'
 import { normalizeChatState } from '../../../shared/agent/utils'
+import { normalizeReferences } from '../../../shared/agent'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
@@ -161,12 +162,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
                 null
 
+            const references = normalizeReferences(followUpInput.references)
             await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
                     parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
                     role: 'human',
                     content: followUpInput.input,
                     conversationId: conversation.id,
+                    ...(references.length
+                        ? {
+                              references
+                          }
+                        : {}),
                     ...(followUpInput.files
                         ? {
                               attachments: followUpInput.files as IStorageFile[]
@@ -320,6 +327,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 const fallbackRetryState = {
                     ...(conversation.options?.parameters ?? {}),
                     input: stringifyMessageContent(userMessage.content),
+                    ...(userMessage.references?.length
+                        ? {
+                              references: userMessage.references
+                          }
+                        : {}),
                     ...(userMessage.attachments?.length
                         ? {
                               files: userMessage.attachments
@@ -344,6 +356,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             executionId = execution.id
 
             if (request.action !== 'retry') {
+                const references = normalizeReferences(input.references)
                 if (persistedPendingFollowUp?.id) {
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
@@ -351,6 +364,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             content: input.input,
                             followUpStatus: 'consumed',
                             visibleAt: new Date(),
+                            ...(references.length
+                                ? {
+                                      references
+                                  }
+                                : {}),
                             ...(input.files
                                 ? {
                                       attachments: input.files as IStorageFile[]
@@ -364,6 +382,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         role: 'human',
                         content: input.input,
                         conversationId: conversation.id,
+                        ...(references.length
+                            ? {
+                                  references
+                              }
+                            : {}),
                         ...(input.files
                             ? {
                                   attachments: input.files as IStorageFile[]
