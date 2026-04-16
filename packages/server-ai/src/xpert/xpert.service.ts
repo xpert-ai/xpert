@@ -41,6 +41,8 @@ import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
 import { FreeNodeValidator } from './validators'
 import { Xpert } from './xpert.entity'
 
+const XPERT_MEMORY_WORKSPACE_PATH = '.xpert/memory'
+
 @Injectable()
 export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
     constructor(
@@ -460,24 +462,27 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
     async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).list(xpert.id, {
-            path,
-            deepth
-        })
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).list(
+            XPERT_MEMORY_WORKSPACE_PATH,
+            {
+                path,
+                deepth
+            }
+        )
     }
 
     async getMemoryFile(id: string, filePath: string): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).readFile(
-            xpert.id,
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).readFile(
+            XPERT_MEMORY_WORKSPACE_PATH,
             filePath
         )
     }
 
     async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).saveFile(
-            xpert.id,
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).saveFile(
+            XPERT_MEMORY_WORKSPACE_PATH,
             filePath,
             content
         )
@@ -493,15 +498,19 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         return this.sandboxService.listProviders()
     }
 
-    private createWorkspaceVolumeClient(tenantId: string, userId: string) {
-        return new WorkspaceVolumeClient(this.createVolumeClient(tenantId, userId))
+    private createWorkspaceVolumeClient(tenantId: string, userId: string, xpertId: string) {
+        return new WorkspaceVolumeClient(this.createVolumeClient(tenantId, userId, xpertId), {
+            allowRootWorkspace: true
+        })
     }
 
-    private createVolumeClient(tenantId: string, userId: string) {
+    private createVolumeClient(tenantId: string, userId: string, xpertId: string) {
         return new VolumeClient({
             tenantId,
-            catalog: 'users',
-            userId
+            catalog: 'xperts',
+            userId,
+            xpertId,
+            isolateByUser: true
         })
     }
 }

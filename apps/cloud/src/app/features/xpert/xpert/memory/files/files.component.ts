@@ -20,9 +20,8 @@ export class XpertMemoryFilesComponent {
 
   readonly xpertId = this.xpertComponent.paramId
   readonly xpert = computed(() => this.xpertComponent.xpert() ?? this.xpertComponent.latestXpert())
-  readonly workspaceId = computed(() => this.xpert()?.workspaceId ?? null)
   readonly rootLabel = computed(() => this.xpert()?.title || this.xpert()?.name || 'Memory files')
-  readonly reloadKey = computed(() => this.workspaceId() ?? '__hosted__')
+  readonly reloadKey = computed(() => this.xpertId() ?? '__hosted__')
 
   readonly loadMemoryFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const xpertId = this.xpertId()
@@ -30,7 +29,7 @@ export class XpertMemoryFilesComponent {
       return []
     }
 
-    return this.#fileMemoryAPI.getFiles(xpertId, this.workspaceId(), path ?? '')
+    return this.#fileMemoryAPI.getFiles(xpertId, path ?? '')
   }
 
   readonly loadMemoryFile: FileWorkbenchFileLoader = (path: string) => {
@@ -39,7 +38,7 @@ export class XpertMemoryFilesComponent {
       throw new Error('Xpert context is required')
     }
 
-    return this.#fileMemoryAPI.getFile(xpertId, this.workspaceId(), path)
+    return this.#fileMemoryAPI.getFile(xpertId, path)
   }
 
   readonly saveMemoryFile: FileWorkbenchFileSaver = (path: string, content: string) => {
@@ -48,7 +47,7 @@ export class XpertMemoryFilesComponent {
       throw new Error('Xpert context is required')
     }
 
-    return this.#fileMemoryAPI.saveFile(xpertId, this.workspaceId(), path, content)
+    return this.#fileMemoryAPI.saveFile(xpertId, path, content)
   }
 
   readonly effectiveFileSaver = computed<FileWorkbenchFileSaver | null>(() => {

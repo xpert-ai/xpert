@@ -155,6 +155,7 @@ const CONVERSATION_DETAIL_RELATIONS = ['messages']
                       <pac-clawxpert-conversation-files
                         class="h-full"
                         [conversationId]="resolvedConversationId()"
+                        [xpertId]="facade.xpertId()"
                         [mode]="'editable'"
                         [reloadKey]="fileListReloadKey()"
                       />

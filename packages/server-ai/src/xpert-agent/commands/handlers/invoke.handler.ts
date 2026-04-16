@@ -103,9 +103,17 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const mute = [] as TXpertAgentConfig['mute']
         let unmutes = [] as TXpertAgentConfig['mute']
         const threadId = options.thread_id
-        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, options.projectId, userId)
-        const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(options.projectId, userId)
         const latestXpert = figureOutXpert(xpert as IXpert, options?.isDraft)
+        const workspacePath = options.projectId
+            ? await VolumeClient.getSharedWorkspacePath(tenantId, options.projectId, userId)
+            : await VolumeClient.getXpertWorkspacePath(
+                  tenantId,
+                  resolveWorkspaceXpertId(latestXpert, xpert),
+                  userId
+              )
+        const workspaceUrl = options.projectId
+            ? VolumeClient.getSharedWorkspaceUrl(options.projectId, userId)
+            : VolumeClient.getXpertWorkspaceUrl(resolveWorkspaceXpertId(latestXpert, xpert), userId)
         const sandboxFeature = latestXpert.features?.sandbox
         const sandboxEnvironmentId = options?.sandboxEnvironmentId
         const sandboxWorkFor = {
@@ -581,6 +589,15 @@ function mergeCommandUpdateWithSystemState(update: unknown, systemState: Record<
             ...systemState
         }
     }
+}
+
+function resolveWorkspaceXpertId(latestXpert: Partial<IXpert> | null | undefined, xpert: Partial<IXpert> | null | undefined) {
+    const candidate = latestXpert?.id ?? xpert?.id
+    if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate
+    }
+
+    throw new Error('Xpert workspace requires xpertId')
 }
 
 function isRecord(value: unknown): value is Record<string, any> {

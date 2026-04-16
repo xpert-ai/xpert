@@ -123,7 +123,7 @@ describe('XpertService memory files', () => {
         )
     })
 
-    it('lists files inside the current user memory workspace for the xpert', async () => {
+    it('lists files inside the current xpert memory workspace', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1'
@@ -135,22 +135,25 @@ describe('XpertService memory files', () => {
         expect(service.findOne).toHaveBeenCalledWith('xpert-1')
         expect(VolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            catalog: 'users',
-            userId: 'user-1'
+            catalog: 'xperts',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            isolateByUser: true
         })
         expect(WorkspaceVolumeClient).toHaveBeenCalledWith(
             expect.objectContaining({
                 tenantId: 'tenant-1',
                 userId: 'user-1'
-            })
+            }),
+            { allowRootWorkspace: true }
         )
-        expect(mockList).toHaveBeenCalledWith('xpert-1', {
+        expect(mockList).toHaveBeenCalledWith('.xpert/memory', {
             path: 'docs',
             deepth: 2
         })
     })
 
-    it('reads files inside the current user memory workspace for the xpert', async () => {
+    it('reads files inside the current xpert memory workspace', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1'
@@ -164,13 +167,15 @@ describe('XpertService memory files', () => {
         expect(service.findOne).toHaveBeenCalledWith('xpert-1')
         expect(VolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            catalog: 'users',
-            userId: 'user-1'
+            catalog: 'xperts',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            isolateByUser: true
         })
-        expect(mockReadFile).toHaveBeenCalledWith('xpert-1', 'README.md')
+        expect(mockReadFile).toHaveBeenCalledWith('.xpert/memory', 'README.md')
     })
 
-    it('saves files inside the current user memory workspace for the xpert', async () => {
+    it('saves files inside the current xpert memory workspace', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1'
@@ -185,9 +190,11 @@ describe('XpertService memory files', () => {
         expect(service.findOne).toHaveBeenCalledWith('xpert-1')
         expect(VolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            catalog: 'users',
-            userId: 'user-1'
+            catalog: 'xperts',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            isolateByUser: true
         })
-        expect(mockSaveFile).toHaveBeenCalledWith('xpert-1', 'README.md', '# Updated\n')
+        expect(mockSaveFile).toHaveBeenCalledWith('.xpert/memory', 'README.md', '# Updated\n')
     })
 })

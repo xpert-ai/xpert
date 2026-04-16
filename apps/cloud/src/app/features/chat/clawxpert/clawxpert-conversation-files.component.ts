@@ -17,7 +17,7 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
   imports: [CommonModule, TranslateModule, FileWorkbenchComponent],
   template: `
     <pac-file-workbench
-      [rootId]="conversationId()"
+      [rootId]="xpertId() || conversationId()"
       [rootLabel]="'PAC.Chat.ClawXpert.WorkspaceFiles' | translate: { Default: 'Workspace files' }"
       [filesLoader]="loadConversationFiles"
       [fileLoader]="loadConversationFile"
@@ -35,6 +35,7 @@ export class ClawXpertConversationFilesComponent {
   readonly #conversationService = inject(ChatConversationService)
 
   readonly conversationId = input<string | null | undefined>(null)
+  readonly xpertId = input<string | null | undefined>(null)
   readonly mode = input<ClawXpertConversationFilesMode>('editable')
   readonly reloadKey = input<number>(0)
 

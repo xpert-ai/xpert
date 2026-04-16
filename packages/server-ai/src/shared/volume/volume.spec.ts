@@ -41,4 +41,28 @@ describe('VolumeClient shared workspace helpers', () => {
         )
         expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/user/user-1', { recursive: true })
     })
+
+    it('returns the user-isolated xpert workspace root for non-project xpert runs', async () => {
+        const mkdirSpy = jest.spyOn(fsPromises, 'mkdir').mockResolvedValue(undefined)
+
+        await expect(
+            VolumeClient.getXpertWorkspacePath('tenant-1', 'xpert-1', 'user-1')
+        ).resolves.toBe('/sandbox/tenant-1/xpert/xpert-1/user/user-1')
+        expect(VolumeClient.getXpertWorkspaceUrl('xpert-1', 'user-1')).toBe(
+            'http://localhost:3000/api/sandbox/volume/xpert/xpert-1/user/user-1'
+        )
+        expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/xpert/xpert-1/user/user-1', { recursive: true })
+    })
+
+    it('returns the shared xpert workspace root when user isolation is disabled', async () => {
+        const mkdirSpy = jest.spyOn(fsPromises, 'mkdir').mockResolvedValue(undefined)
+
+        await expect(
+            VolumeClient.getXpertWorkspacePath('tenant-1', 'xpert-1', 'user-1', false)
+        ).resolves.toBe('/sandbox/tenant-1/xpert/xpert-1')
+        expect(VolumeClient.getXpertWorkspaceUrl('xpert-1', 'user-1', false)).toBe(
+            'http://localhost:3000/api/sandbox/volume/xpert/xpert-1'
+        )
+        expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/xpert/xpert-1', { recursive: true })
+    })
 })

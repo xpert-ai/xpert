@@ -1,7 +1,8 @@
 import { environment } from '@xpert-ai/server-config'
 import path from 'path'
 
-const LEGACY_PUBLIC_VOLUME_PREFIX = /^(user|project|knowledges|skills)\/[0-9a-fA-F-]{36}\//
+const LEGACY_PUBLIC_VOLUME_PREFIX =
+    /^(?:(user|project|knowledges|skills)\/[0-9a-fA-F-]{36}\/|xpert\/[0-9a-fA-F-]{36}\/(?:user\/[0-9a-fA-F-]{36}\/)?)/
 
 function getLocalSandboxDataRoot() {
     const homeDir = process.env.HOME || process.env.USERPROFILE || ''

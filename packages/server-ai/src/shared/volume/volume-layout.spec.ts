@@ -39,6 +39,14 @@ describe('volume layout helpers', () => {
         expect(normalizeSandboxPublicVolumeSubpath('project/123e4567-e89b-12d3-a456-426614174000/file.txt')).toBe(
             'file.txt'
         )
+        expect(
+            normalizeSandboxPublicVolumeSubpath(
+                'xpert/123e4567-e89b-12d3-a456-426614174000/user/123e4567-e89b-12d3-a456-426614174001/file.txt'
+            )
+        ).toBe('file.txt')
+        expect(normalizeSandboxPublicVolumeSubpath('xpert/123e4567-e89b-12d3-a456-426614174000/file.txt')).toBe(
+            'file.txt'
+        )
     })
 
     it('falls back to the flattened local data layout when sandboxConfig is missing', () => {
