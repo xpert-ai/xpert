@@ -697,6 +697,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 xpertId: xpert.id,
                 xpertFeatures: xpert.features ?? null,
                 agentKey,
+                knowledgebaseIds: agent.knowledgebaseIds,
                 tools: toolMap
             },
             {

@@ -13,6 +13,7 @@ export interface IAgentMiddlewareContext {
   xpertId?: string
   xpertFeatures?: TXpertFeatures | null
   agentKey?: string
+  knowledgebaseIds?: string[]
   node: IWFNMiddleware
   tools: Map<string, StructuredToolInterface | RunnableToolLike>
 }

@@ -3,6 +3,14 @@ import { EntitySubscriberInterface, EventSubscriber, InsertEvent } from 'typeorm
 import { Knowledgebase } from '../core/entities/internal'
 import { KnowledgeDocument } from './document.entity'
 
+function isSystemManagedDocument(document: Partial<KnowledgeDocument> | null | undefined) {
+	if (!document?.metadata || typeof document.metadata !== 'object') {
+		return false
+	}
+
+	return 'systemManaged' in document.metadata && document.metadata.systemManaged === true
+}
+
 @EventSubscriber()
 export class KnowledgeDocumentSubscriber implements EntitySubscriberInterface<KnowledgeDocument> {
 	/**
@@ -18,7 +26,7 @@ export class KnowledgeDocumentSubscriber implements EntitySubscriberInterface<Kn
 	 * @param event 
 	 */
 	async beforeInsert(event: InsertEvent<KnowledgeDocument>) {
-		if (event.entity.sourceType !== DocumentTypeEnum.FOLDER) {
+		if (event.entity.sourceType !== DocumentTypeEnum.FOLDER && !isSystemManagedDocument(event.entity)) {
 			const kbRepo = event.queryRunner.manager.getRepository(Knowledgebase)
 			const kb = await kbRepo.findOneBy({ id: event.entity.knowledgebaseId })
 			if (kb) {
