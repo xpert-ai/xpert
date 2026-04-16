@@ -41,13 +41,18 @@
       "USER": "User",
       "SUCCEED": "Succeed",
       "Middleware": "Middleware",
-      "Skills": "Skills"
+      "Skills": "Skills",
+      "You": "You"
     },
     "Common": {
       "Tools": "Tools",
       "Loading": "Loading...",
       "Enabled": "Enabled",
       "NoTools": "No tools"
+    },
+    "Chat": {
+      "QuoteSelection": "Quote selection",
+      "RemoveReference": "Remove reference"
     },
     "MENU": {
       "AGENT": "Agent",
@@ -479,6 +484,7 @@
       "NoMiddlewaresAvailable": "No middleware providers available"
     },
     "Xpert": {
+      "Assistant": "Assistant",
       "StartFrom": "Start from",
       "BlankStart": "Blank",
       "TemplateStart": "Template",

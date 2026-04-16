@@ -182,6 +182,7 @@
       "SAVE": "保存",
       "Refresh": "刷新",
       "Management": "管理",
+      "You": "你",
       "User": "用户",
       "Users": "用户",
       "Action": "操作",
@@ -270,6 +271,10 @@
       "Enabled": "启用",
       "NoTools": "无工具",
       "NoFields": "暂无字段"
+    },
+    "Chat": {
+      "QuoteSelection": "引用选中内容",
+      "RemoveReference": "移除引用"
     },
     "MENU": {
       "Certification": "认证",
@@ -1495,7 +1500,8 @@
       "Joined": "加入时间"
     },
     "Xpert": {
-      "XpertUserGroups": "XPERT 用户组"
+      "XpertUserGroups": "XPERT 用户组",
+      "Assistant": "助手"
     },
     "Feature": {
       "Features": {

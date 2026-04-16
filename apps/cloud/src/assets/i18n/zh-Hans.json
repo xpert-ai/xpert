@@ -2766,6 +2766,8 @@
       }
     },
     "Chat": {
+      "QuoteSelection": "引用选中内容",
+      "RemoveReference": "移除引用",
       "SearchChats": "搜索聊天...",
       "Input": "输入",
       "Output": "输出",
