@@ -488,6 +488,27 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         )
     }
 
+    async uploadMemoryFile(
+        id: string,
+        folderPath: string,
+        file: { originalname: string; buffer: Buffer; mimetype?: string }
+    ): Promise<TFile> {
+        const xpert = await this.findOne(id)
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).uploadFile(
+            XPERT_MEMORY_WORKSPACE_PATH,
+            folderPath,
+            file
+        )
+    }
+
+    async deleteMemoryFile(id: string, filePath: string): Promise<void> {
+        const xpert = await this.findOne(id)
+        await this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).deleteFile(
+            XPERT_MEMORY_WORKSPACE_PATH,
+            filePath
+        )
+    }
+
     async getTriggerProviders() {
         return this.triggerRegistry.list().map((provider) => ({
             ...provider.meta

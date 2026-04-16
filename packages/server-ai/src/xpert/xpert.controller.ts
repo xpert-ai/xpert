@@ -50,7 +50,8 @@ import {
     InternalServerErrorException,
     Res,
     NotFoundException,
-    BadRequestException
+    BadRequestException,
+    UploadedFile as NestUploadedFile
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { UploadedFile } from '@xpert-ai/contracts'
@@ -427,6 +428,26 @@ export class XpertController extends CrudController<Xpert> {
         }
     ) {
         return await this.service.saveMemoryFile(id, body?.path, body?.content ?? '')
+    }
+
+    @UseGuards(XpertGuard)
+    @Post(':id/memory/file/upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body('path') path: string,
+        @NestUploadedFile() file: Express.Multer.File
+    ) {
+        return await this.service.uploadMemoryFile(id, path, file)
+    }
+
+    @UseGuards(XpertGuard)
+    @Delete(':id/memory/file')
+    async deleteMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('path') path: string
+    ) {
+        return await this.service.deleteMemoryFile(id, path)
     }
 
     @Post(':id/memory/bulk')

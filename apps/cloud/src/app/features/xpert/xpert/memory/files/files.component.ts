@@ -1,6 +1,13 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core'
-import { FileWorkbenchComponent, FileWorkbenchFileLoader, FileWorkbenchFileSaver, FileWorkbenchFilesLoader } from '@cloud/app/@shared/files'
+import {
+  FileWorkbenchComponent,
+  FileWorkbenchFileDeleter,
+  FileWorkbenchFileLoader,
+  FileWorkbenchFileSaver,
+  FileWorkbenchFileUploader,
+  FileWorkbenchFilesLoader
+} from '@cloud/app/@shared/files'
 import { injectFileMemoryAPI } from '@cloud/app/@core'
 import { XpertComponent } from '../../xpert.component'
 
@@ -50,9 +57,37 @@ export class XpertMemoryFilesComponent {
     return this.#fileMemoryAPI.saveFile(xpertId, path, content)
   }
 
+  readonly uploadMemoryFile: FileWorkbenchFileUploader = (file: File, path: string) => {
+    const xpertId = this.xpertId()
+    if (!xpertId) {
+      throw new Error('Xpert context is required')
+    }
+
+    return this.#fileMemoryAPI.uploadFile(xpertId, file, path)
+  }
+
+  readonly deleteMemoryFile: FileWorkbenchFileDeleter = (path: string) => {
+    const xpertId = this.xpertId()
+    if (!xpertId) {
+      throw new Error('Xpert context is required')
+    }
+
+    return this.#fileMemoryAPI.deleteFile(xpertId, path)
+  }
+
   readonly effectiveFileSaver = computed<FileWorkbenchFileSaver | null>(() => {
     const activePath = this.fileWorkbench()?.activeFilePath()
     return isManagedMemoryIndexPath(activePath) ? null : this.saveMemoryFile
+  })
+
+  readonly effectiveFileDeleter = computed<FileWorkbenchFileDeleter | null>(() => {
+    const activePath = this.fileWorkbench()?.activeFilePath()
+    return isManagedMemoryIndexPath(activePath) ? null : this.deleteMemoryFile
+  })
+
+  readonly effectiveFileUploader = computed<FileWorkbenchFileUploader | null>(() => {
+    const activePath = this.fileWorkbench()?.activeFilePath()
+    return isManagedMemoryIndexPath(activePath) ? null : this.uploadMemoryFile
   })
 }
 

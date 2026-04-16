@@ -1,7 +1,7 @@
 import { TFile, TFileDirectory } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import fsPromises from 'fs/promises'
-import { basename, isAbsolute, relative, resolve } from 'path'
+import { basename, dirname, isAbsolute, relative, resolve } from 'path'
 import { getMediaTypeWithCharset, listFiles } from '../utils'
 
 const EDITABLE_WORKSPACE_EXTENSIONS = new Set([
@@ -103,6 +103,46 @@ export class WorkspaceVolumeClient {
 
         await fsPromises.writeFile(absolutePath, content ?? '', 'utf8')
         return this.readFile(workspacePath, relativePath)
+    }
+
+    async uploadFile(
+        workspacePath: string,
+        folderPath: string,
+        file: { originalname: string; buffer: Buffer; mimetype?: string }
+    ): Promise<TFile> {
+        const workspaceRoot = this.resolveWorkspaceRoot(workspacePath)
+        const relativeFolderPath = this.resolveWorkspaceRelativePath(workspaceRoot, folderPath)
+        const fileName = basename(file.originalname || '')
+        if (!fileName) {
+            throw new BadRequestException('File name is required')
+        }
+
+        const relativeFilePath = [relativeFolderPath, fileName].filter(Boolean).join('/')
+        const absoluteFilePath = resolve(workspaceRoot, relativeFilePath)
+        const resolvedRelativePath = relative(workspaceRoot, absoluteFilePath)
+        if (resolvedRelativePath.startsWith('..') || isAbsolute(resolvedRelativePath)) {
+            throw new BadRequestException('Invalid conversation file path')
+        }
+
+        await fsPromises.mkdir(dirname(absoluteFilePath), { recursive: true })
+        await fsPromises.writeFile(absoluteFilePath, file.buffer)
+        return this.readFile(workspacePath, resolvedRelativePath.replace(/\\/g, '/'))
+    }
+
+    async deleteFile(workspacePath: string, filePath: string): Promise<void> {
+        const workspaceRoot = this.resolveWorkspaceRoot(workspacePath)
+        const relativePath = this.resolveWorkspaceRelativePath(workspaceRoot, filePath)
+        if (!relativePath) {
+            throw new BadRequestException('File path is required')
+        }
+
+        const absolutePath = resolve(workspaceRoot, relativePath)
+        const stat = await fsPromises.stat(absolutePath).catch(() => null)
+        if (!stat?.isFile()) {
+            throw new BadRequestException('Conversation file not found')
+        }
+
+        await fsPromises.unlink(absolutePath)
     }
 
     private resolveWorkspaceRoot(workspacePath: string) {

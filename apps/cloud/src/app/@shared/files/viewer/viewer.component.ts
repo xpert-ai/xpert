@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, input, model, output } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardSegmentedComponent, ZardSegmentedItemComponent } from '@xpert-ai/headless-ui'
@@ -26,13 +26,26 @@ export class FileViewerComponent {
   readonly editable = input(false)
   readonly markdown = input(false)
   readonly dirty = input(false)
+  readonly downloadable = input(false)
   readonly mode = model<FilePanelMode>('view')
   readonly readOnlyHint = input(
     'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
   )
+  readonly unsupportedPreviewTitle = input('This file cannot be previewed here.')
+  readonly unsupportedPreviewHint = input(
+    'This file is not a text-based format. Download it to inspect the original contents in another app.'
+  )
+
+  readonly displayFileName = computed(() => fileNameFromPath(this.filePath()))
 
   readonly contentChange = output<string>()
   readonly discard = output<void>()
   readonly save = output<void>()
   readonly back = output<void>()
+  readonly download = output<void>()
+}
+
+function fileNameFromPath(filePath?: string | null) {
+  const normalized = (filePath ?? '').trim()
+  return normalized.split('/').pop() || normalized
 }

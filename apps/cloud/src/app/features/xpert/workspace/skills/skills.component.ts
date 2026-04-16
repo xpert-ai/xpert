@@ -1,4 +1,4 @@
-import { Dialog } from '@angular/cdk/dialog'
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
@@ -6,9 +6,13 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
   FileWorkbenchComponent,
+  FileWorkbenchDownloadPayload,
+  FileWorkbenchFileDeleter,
+  FileWorkbenchFileDownloader,
   FileWorkbenchFileLoader,
   FileWorkbenchFilesLoader,
-  FileWorkbenchFileSaver
+  FileWorkbenchFileSaver,
+  FileWorkbenchFileUploader
 } from '@cloud/app/@shared/files'
 import { XpertSkillIndexesComponent, XpertSkillRepositoriesComponent } from '@cloud/app/@shared/skills'
 import { OverlayAnimation1 } from '@xpert-ai/core'
@@ -131,7 +135,7 @@ export class XpertWorkspaceSkillsComponent {
   })
 
   readonly registering = signal(false)
-  #registerDialogRef: any = null
+  #registerDialogRef: DialogRef<unknown, unknown> | null = null
 
   readonly loadActiveSkillFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const workspaceId = this.workspace()?.id
@@ -158,6 +162,41 @@ export class XpertWorkspaceSkillsComponent {
       throw new Error('Active skill is required')
     }
     return this.skillPackageAPI.saveFile(workspaceId, skillId, path, content)
+  }
+
+  readonly uploadActiveSkillFile: FileWorkbenchFileUploader = (file: File, path: string) => {
+    const workspaceId = this.workspace()?.id
+    const skillId = this.activeSkillId()
+    if (!workspaceId || !skillId) {
+      throw new Error('Active skill is required')
+    }
+
+    return this.skillPackageAPI.uploadFile(workspaceId, skillId, file, path)
+  }
+
+  readonly deleteActiveSkillFile: FileWorkbenchFileDeleter = (path: string) => {
+    const workspaceId = this.workspace()?.id
+    const skillId = this.activeSkillId()
+    if (!workspaceId || !skillId) {
+      throw new Error('Active skill is required')
+    }
+
+    return this.skillPackageAPI.deleteFile(workspaceId, skillId, path)
+  }
+
+  readonly downloadActiveSkillFile: FileWorkbenchFileDownloader = async (path: string) => {
+    const workspaceId = this.workspace()?.id
+    const skillId = this.activeSkillId()
+    if (!workspaceId || !skillId) {
+      throw new Error('Active skill is required')
+    }
+
+    const blob = await firstValueFrom(this.skillPackageAPI.downloadFile(workspaceId, skillId, path))
+    return {
+      kind: 'blob',
+      blob,
+      fileName: path.split('/').pop() || path
+    } satisfies FileWorkbenchDownloadPayload
   }
 
   readonly #syncSelectionWithData = effect(

@@ -54,10 +54,34 @@ export class SkillPackageService extends XpertWorkspaceBaseCrudService<ISkillPac
     })
   }
 
+  uploadFile(workspaceId: string, id: string, file: File, path = '') {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('path', path)
+    return this.httpClient.post<TFile>(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}/file/upload`, formData)
+  }
+
+  downloadFile(workspaceId: string, id: string, path: string) {
+    return this.httpClient.get(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}/file/download`, {
+      params: toParams({
+        path
+      }),
+      responseType: 'blob'
+    })
+  }
+
   saveFile(workspaceId: string, id: string, path: string, content: string) {
     return this.httpClient.put<TFile>(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}/file`, {
       path,
       content
+    })
+  }
+
+  deleteFile(workspaceId: string, id: string, path: string) {
+    return this.httpClient.delete<void>(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}/file`, {
+      params: toParams({
+        path
+      })
     })
   }
 }

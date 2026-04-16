@@ -3,8 +3,10 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import { ChatConversationService } from '../../../@core'
 import {
   FileWorkbenchComponent,
+  FileWorkbenchFileDeleter,
   FileWorkbenchFileLoader,
   FileWorkbenchFileSaver,
+  FileWorkbenchFileUploader,
   FileWorkbenchFilesLoader
 } from '../../../@shared/files'
 import { TranslateModule } from '@ngx-translate/core'
@@ -22,6 +24,8 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
       [filesLoader]="loadConversationFiles"
       [fileLoader]="loadConversationFile"
       [fileSaver]="mode() === 'editable' ? saveConversationFile : null"
+      [fileDeleter]="mode() === 'editable' ? deleteConversationFile : null"
+      [fileUploader]="mode() === 'editable' ? uploadConversationFile : null"
       [reloadKey]="reloadKey()"
       [treeSize]="'sm'"
     />
@@ -64,5 +68,23 @@ export class ClawXpertConversationFilesComponent {
     }
 
     return this.#conversationService.saveFile(conversationId, path, content)
+  }
+
+  readonly uploadConversationFile: FileWorkbenchFileUploader = (file: File, path: string) => {
+    const conversationId = this.conversationId()
+    if (!conversationId) {
+      throw new Error('Conversation context is required')
+    }
+
+    return this.#conversationService.uploadFile(conversationId, file, path)
+  }
+
+  readonly deleteConversationFile: FileWorkbenchFileDeleter = (path: string) => {
+    const conversationId = this.conversationId()
+    if (!conversationId) {
+      throw new Error('Conversation context is required')
+    }
+
+    return this.#conversationService.deleteFile(conversationId, path)
   }
 }

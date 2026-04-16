@@ -9,7 +9,7 @@ import {
   toHttpParams
 } from '@xpert-ai/cloud/state'
 import { toParams } from '@xpert-ai/core'
-import { EMPTY, switchMap } from 'rxjs'
+import { switchMap } from 'rxjs'
 import { TFile } from '../types'
 
 @Injectable({ providedIn: 'root' })
@@ -40,7 +40,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
   }
 
   getThreadState(id: string) {
-    return this.httpClient.get<any>(this.apiBaseUrl + `/${id}/state`)
+    return this.httpClient.get<unknown>(this.apiBaseUrl + `/${id}/state`)
   }
 
   getByThreadId(threadId: string) {
@@ -84,8 +84,19 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
+  uploadFile(id: string, file: File, path = '') {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('path', path)
+    return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/file/upload`, formData)
+  }
+
   deleteFile(id: string, filePath: string) {
-    return EMPTY // @todo
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/file`, {
+      params: toParams({
+        path: filePath
+      })
+    })
   }
 
 }

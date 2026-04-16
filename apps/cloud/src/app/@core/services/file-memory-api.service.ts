@@ -31,6 +31,21 @@ export class FileMemoryApiService {
       content
     })
   }
+
+  uploadFile(xpertId: string, file: File, path = '') {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('path', path)
+    return this.#httpClient.post<TFile>(`${this.#apiBaseUrl}/${xpertId}/memory/file/upload`, formData)
+  }
+
+  deleteFile(xpertId: string, path: string) {
+    return this.#httpClient.delete<void>(`${this.#apiBaseUrl}/${xpertId}/memory/file`, {
+      params: toParams({
+        path
+      })
+    })
+  }
 }
 
 export function injectFileMemoryAPI() {

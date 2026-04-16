@@ -180,6 +180,22 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         return client.saveFile(scopePath, filePath, content)
     }
 
+    async uploadWorkspaceFile(
+        id: string,
+        folderPath: string,
+        file: { originalname: string; buffer: Buffer; mimetype?: string }
+    ): Promise<TFile> {
+        const conversation = await this.findOne(id)
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        return client.uploadFile(scopePath, folderPath, file)
+    }
+
+    async deleteWorkspaceFile(id: string, filePath: string): Promise<void> {
+        const conversation = await this.findOne(id)
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        await client.deleteFile(scopePath, filePath)
+    }
+
     private createWorkspaceVolumeClient(conversation: ChatConversation) {
         if (conversation.projectId) {
             return {

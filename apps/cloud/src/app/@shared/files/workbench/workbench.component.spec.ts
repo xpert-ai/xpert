@@ -23,12 +23,23 @@ class MockFileTreeComponent {
   @Input() activePath?: string | null
   @Input() loading?: boolean
   @Input() loadingPaths?: Set<string>
+  @Input() canUpload?: boolean
+  @Input() uploadDisabled?: boolean
+  @Input() uploading?: boolean
+  @Input() uploadTargetHint?: string | null
+  @Input() canDownload?: boolean
+  @Input() canDelete?: boolean
+  @Input() downloadingPaths?: Set<string>
+  @Input() deletingPaths?: Set<string>
   @Input() emptyTitle?: string
   @Input() emptyHint?: string
   @Input() selectTitle?: string
   @Input() selectHint?: string
   @Output() readonly fileSelect = new EventEmitter<FileTreeNode>()
   @Output() readonly directoryToggle = new EventEmitter<FileTreeNode>()
+  @Output() readonly uploadRequest = new EventEmitter<void>()
+  @Output() readonly fileDownload = new EventEmitter<FileTreeNode>()
+  @Output() readonly fileDelete = new EventEmitter<FileTreeNode>()
 }
 
 @Component({
@@ -45,13 +56,17 @@ class MockFileViewerComponent {
   @Input() editable?: boolean
   @Input() markdown?: boolean
   @Input() dirty?: boolean
+  @Input() downloadable?: boolean
   @Input() mode?: 'view' | 'edit'
   @Input() readOnlyHint?: string
+  @Input() unsupportedPreviewTitle?: string
+  @Input() unsupportedPreviewHint?: string
   @Output() readonly modeChange = new EventEmitter<'view' | 'edit'>()
   @Output() readonly contentChange = new EventEmitter<string>()
   @Output() readonly discard = new EventEmitter<void>()
   @Output() readonly save = new EventEmitter<void>()
   @Output() readonly back = new EventEmitter<void>()
+  @Output() readonly download = new EventEmitter<void>()
 }
 
 async function setup(options?: {
@@ -102,7 +117,7 @@ async function setup(options?: {
   const dialog = {
     open: jest.fn(() => ({
       close: jest.fn(),
-      closed: of(null)
+      closed: of(true)
     }))
   }
   const toastr = {
@@ -118,6 +133,14 @@ async function setup(options?: {
       contents: content
     } as TFile)
   )
+  const fileUploader = jest.fn((_file: File, path: string) =>
+    of({
+      filePath: [path, 'new.txt'].filter(Boolean).join('/'),
+      fileType: 'txt',
+      contents: 'uploaded\n'
+    } as TFile)
+  )
+  const fileDeleter = jest.fn(() => of(undefined))
 
   TestBed.resetTestingModule()
   TestBed.overrideComponent(FileWorkbenchComponent, {
@@ -148,6 +171,8 @@ async function setup(options?: {
   fixture.componentRef.setInput('filesLoader', filesLoader)
   fixture.componentRef.setInput('fileLoader', fileLoader)
   fixture.componentRef.setInput('fileSaver', fileSaver)
+  fixture.componentRef.setInput('fileUploader', fileUploader)
+  fixture.componentRef.setInput('fileDeleter', fileDeleter)
   fixture.detectChanges()
   await fixture.whenStable()
   fixture.detectChanges()
@@ -158,6 +183,8 @@ async function setup(options?: {
     filesLoader,
     fileLoader,
     fileSaver,
+    fileUploader,
+    fileDeleter,
     toastr
   }
 }
@@ -181,7 +208,12 @@ describe('FileWorkbenchComponent', () => {
     const { component, filesLoader } = await setup()
 
     const docsNode = component.fileTree().find((item) => item.fullPath === 'docs')
-    await component.toggleDirectory(docsNode!)
+    expect(docsNode).toBeDefined()
+    if (!docsNode) {
+      throw new Error('Expected docs node to be present')
+    }
+
+    await component.toggleDirectory(docsNode)
 
     expect(filesLoader).toHaveBeenCalledWith('docs')
     expect((component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.[0]?.fullPath).toBe(
@@ -203,6 +235,99 @@ describe('FileWorkbenchComponent', () => {
     expect(component.dirty()).toBe(false)
     expect(component.panelMode()).toBe('view')
     expect(component.activeFile()?.contents).toBe('# Updated skill\n')
+    expect(toastr.success).toHaveBeenCalled()
+  })
+
+  it('uses root as the upload target until a tree item is selected', async () => {
+    const { component } = await setup()
+
+    expect(component.uploadTargetPath()).toBe('')
+    expect(component.uploadTargetDisplayPath()).toBe('/')
+
+    await component.openFile({
+      filePath: 'SKILL.md',
+      fullPath: 'SKILL.md',
+      fileType: 'md',
+      hasChildren: false
+    } as FileTreeNode)
+
+    expect(component.uploadTargetPath()).toBe('')
+
+    await component.toggleDirectory({
+      filePath: 'docs',
+      fullPath: 'docs',
+      fileType: 'directory',
+      hasChildren: true,
+      children: []
+    } as FileTreeNode)
+
+    expect(component.uploadTargetPath()).toBe('docs')
+    expect(component.uploadTargetDisplayPath()).toBe('/docs')
+  })
+
+  it('highlights the selected directory in the tree', async () => {
+    const { component } = await setup()
+
+    expect(component.treeActivePath()).toBe('SKILL.md')
+
+    await component.toggleDirectory({
+      filePath: 'docs',
+      fullPath: 'docs',
+      fileType: 'directory',
+      hasChildren: true,
+      children: []
+    } as FileTreeNode)
+
+    expect(component.treeActivePath()).toBe('docs')
+  })
+
+  it('deletes a file and clears the active preview when it was selected', async () => {
+    const { component, fileDeleter, toastr } = await setup({
+      rootFiles: [
+        {
+          filePath: 'SKILL.md',
+          fullPath: 'SKILL.md',
+          fileType: 'md',
+          hasChildren: false
+        },
+        {
+          filePath: 'notes.txt',
+          fullPath: 'notes.txt',
+          fileType: 'txt',
+          hasChildren: false
+        }
+      ],
+      fileContents: {
+        'SKILL.md': {
+          filePath: 'SKILL.md',
+          fileType: 'md',
+          contents: '# Analyze New Repo\n'
+        },
+        'notes.txt': {
+          filePath: 'notes.txt',
+          fileType: 'txt',
+          contents: 'hello\n'
+        }
+      }
+    })
+
+    await component.openFile({
+      filePath: 'notes.txt',
+      fullPath: 'notes.txt',
+      fileType: 'txt',
+      hasChildren: false
+    } as FileTreeNode)
+
+    await component.deleteTreeFile({
+      filePath: 'notes.txt',
+      fullPath: 'notes.txt',
+      fileType: 'txt',
+      hasChildren: false
+    } as FileTreeNode)
+
+    expect(fileDeleter).toHaveBeenCalledWith('notes.txt')
+    expect(component.fileTree().some((item) => item.fullPath === 'notes.txt')).toBe(false)
+    expect(component.activeFilePath()).toBe('SKILL.md')
     expect(toastr.success).toHaveBeenCalled()
   })
 })

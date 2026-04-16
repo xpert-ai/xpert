@@ -380,6 +380,31 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	async uploadSkillPackageFile(
+		workspaceId: string,
+		id: string,
+		folderPath: string,
+		file: { originalname: string; buffer: Buffer; mimetype?: string }
+	): Promise<TFile> {
+		const { rootPath } = await this.resolveSkillPackageRoot(workspaceId, id)
+		const relativeFolderPath = validateSkillRelativePath(rootPath, folderPath)
+		const fileName = basename(file.originalname || '')
+		if (!fileName) {
+			throw new BadRequestException('File name is required')
+		}
+
+		const relativeFilePath = [relativeFolderPath, fileName].filter(Boolean).join('/')
+		const absolutePath = resolve(rootPath, relativeFilePath)
+		const resolvedRelativePath = relative(rootPath, absolutePath)
+		if (resolvedRelativePath.startsWith('..') || isAbsolute(resolvedRelativePath)) {
+			throw new BadRequestException('Invalid skill file path')
+		}
+
+		await fs.mkdir(dirname(absolutePath), { recursive: true })
+		await fs.writeFile(absolutePath, file.buffer)
+		return this.readSkillPackageFile(workspaceId, id, resolvedRelativePath.replace(/\\/g, '/'))
+	}
+
 	async saveSkillPackageFile(workspaceId: string, id: string, filePath: string, content: string): Promise<TFile> {
 		const normalizedPath = normalizeSkillFilePath(filePath)
 		if (!normalizedPath) {
@@ -397,6 +422,30 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 
 		await fs.writeFile(absolutePath, content ?? '', 'utf8')
 		return this.readSkillPackageFile(workspaceId, id, normalizedPath)
+	}
+
+	async deleteSkillPackageFile(workspaceId: string, id: string, filePath: string): Promise<void> {
+		const { absolutePath } = await this.resolveSkillPackageFilePath(workspaceId, id, filePath)
+		const stat = await fs.stat(absolutePath).catch(() => null)
+		if (!stat?.isFile()) {
+			throw new BadRequestException('Skill file not found')
+		}
+
+		await fs.unlink(absolutePath)
+	}
+
+	async getSkillPackageFileDownload(workspaceId: string, id: string, filePath: string) {
+		const { absolutePath, relativePath } = await this.resolveSkillPackageFilePath(workspaceId, id, filePath)
+		const stat = await fs.stat(absolutePath).catch(() => null)
+		if (!stat?.isFile()) {
+			throw new BadRequestException('Skill file not found')
+		}
+
+		return {
+			absolutePath,
+			fileName: basename(relativePath),
+			mimeType: getMediaTypeWithCharset(relativePath)
+		}
 	}
 
 	private buildMetadataForUpload(skill: IUploadedSkill): SkillPackageInstallMetadata {
