@@ -1,12 +1,12 @@
 @if (loading) {
   <div class="flex min-h-[20rem] w-full items-center justify-center px-4 py-8 text-sm text-text-secondary">
-    {{ 'AUTH.SSO_BIND.LOADING' | translate: { Default: '正在加载 SSO 账号信息...' } }}
+    {{ 'Auth.SSO_BIND.LOADING' | translate: { Default: 'Loading SSO account information...' } }}
   </div>
 } @else if (loadError) {
   <div class="flex w-full max-w-md flex-col gap-4 px-2 py-4">
     <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-5 py-5">
       <div class="text-base font-semibold text-text-primary">
-        {{ 'AUTH.SSO_BIND.EXPIRED_TITLE' | translate: { Default: '绑定会话已失效' } }}
+        {{ 'Auth.SSO_BIND.EXPIRED_TITLE' | translate: { Default: 'Binding Session Expired' } }}
       </div>
       <p class="mt-2 text-sm leading-6 text-text-secondary whitespace-pre-line">
         {{ loadError }}
@@ -20,7 +20,7 @@
       class="h-10 text-sm font-medium"
       (click)="navigateToLogin()"
     >
-      {{ 'AUTH.SSO_BIND.BACK_TO_LOGIN' | translate: { Default: '返回登录页' } }}
+      {{ 'Auth.SSO_BIND.BACK_TO_LOGIN' | translate: { Default: 'Back to Sign In' } }}
     </button>
   </div>
 } @else if (challenge) {
@@ -39,7 +39,7 @@
       }
 
       <div class="text-lg font-semibold text-text-primary">
-        {{ challenge.displayName || ('AUTH.SSO_BIND.DEFAULT_DISPLAY_NAME' | translate: { Default: 'SSO 账号' }) }}
+        {{ challenge.displayName || ('Auth.SSO_BIND.DEFAULT_DISPLAY_NAME' | translate: { Default: 'SSO Account' }) }}
       </div>
     </div>
 
@@ -52,7 +52,7 @@
           class="h-10 text-sm font-medium"
           (click)="openExistingAccountForm()"
         >
-          {{ 'AUTH.SSO_BIND.LOGIN_EXISTING' | translate: { Default: '登录已有账号' } }}
+          {{ 'Auth.SSO_BIND.LOGIN_EXISTING' | translate: { Default: 'Sign In to Existing Account' } }}
         </button>
 
         <button
@@ -63,7 +63,7 @@
           class="h-10 rounded-lg border border-divider-regular text-sm font-medium text-fg-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
           (click)="openRegister()"
         >
-          {{ 'AUTH.SSO_BIND.REGISTER_NEW' | translate: { Default: '注册新账号' } }}
+          {{ 'Auth.SSO_BIND.REGISTER_NEW' | translate: { Default: 'Create New Account' } }}
         </button>
       </div>
     } @else {
@@ -111,7 +111,7 @@
             [zLoading]="submitting"
             [disabled]="form.invalid || submitting"
           >
-            {{ 'AUTH.SSO_BIND.SUBMIT' | translate: { Default: '确认绑定并登录' } }}
+            {{ 'Auth.SSO_BIND.SUBMIT' | translate: { Default: 'Bind and Sign In' } }}
           </button>
 
           <button
@@ -122,7 +122,7 @@
             class="h-10 rounded-lg border border-divider-regular text-sm font-medium text-fg-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
             (click)="mode = 'choice'"
           >
-            {{ 'AUTH.SSO_BIND.BACK' | translate: { Default: '返回选择' } }}
+            {{ 'Auth.SSO_BIND.BACK' | translate: { Default: 'Back' } }}
           </button>
         </div>
       </form>

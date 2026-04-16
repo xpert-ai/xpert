@@ -229,6 +229,8 @@ export class UserRegisterComponent implements OnDestroy {
       return payload.error.trim()
     }
 
-    return '注册失败，请稍后重试。'
+    return this.getTranslation('Auth.RegisterFail', {
+      Default: 'Registration failed. Please try again later.'
+    })
   }
 }

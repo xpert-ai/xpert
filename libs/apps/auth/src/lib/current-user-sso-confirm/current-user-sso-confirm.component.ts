@@ -1,6 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { TranslateService } from '@ngx-translate/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 
@@ -28,6 +29,7 @@ export class CurrentUserSsoConfirmComponent {
   readonly #router = inject(Router)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #translate = inject(TranslateService)
 
   ticket = ''
   challenge: SsoBindChallengeView | null = null
@@ -93,7 +95,10 @@ export class CurrentUserSsoConfirmComponent {
 
     if (!this.ticket) {
       this.loading = false
-      this.loadError = '会话已失效，请重新发起绑定。'
+      this.loadError = this.translate(
+        'Auth.SSO_CONFIRM.SESSION_EXPIRED',
+        'This binding session has expired. Please start again.'
+      )
       this.#cdr.markForCheck()
       return
     }
@@ -108,9 +113,18 @@ export class CurrentUserSsoConfirmComponent {
       )
     } catch (error) {
       if ((error as HttpErrorResponse)?.status === 401) {
-        this.loadError = '登录状态已失效，请重新登录后再试。'
+        this.loadError = this.translate(
+          'Auth.SSO_CONFIRM.LOGIN_REQUIRED',
+          'Your sign-in session has expired. Please sign in and try again.'
+        )
       } else {
-      this.loadError = this.resolveErrorMessage(error, '会话已失效，请重新发起绑定。')
+        this.loadError = this.resolveErrorMessage(
+          error,
+          this.translate(
+            'Auth.SSO_CONFIRM.SESSION_EXPIRED',
+            'This binding session has expired. Please start again.'
+          )
+        )
       }
     } finally {
       this.loading = false
@@ -124,24 +138,39 @@ export class CurrentUserSsoConfirmComponent {
 
     if (status === 400) {
       this.challenge = null
-      this.loadError = this.resolveErrorMessage(error, '会话已失效，请重新发起绑定。')
+      this.loadError = this.resolveErrorMessage(
+        error,
+        this.translate(
+          'Auth.SSO_CONFIRM.SESSION_EXPIRED',
+          'This binding session has expired. Please start again.'
+        )
+      )
       return
     }
 
     if (status === 401) {
-      this.submitError = '登录状态已失效，请重新登录后再试。'
+      this.submitError = this.translate(
+        'Auth.SSO_CONFIRM.LOGIN_REQUIRED',
+        'Your sign-in session has expired. Please sign in and try again.'
+      )
       return
     }
 
     if (status === 409) {
       this.submitError = this.resolveErrorMessage(
         error,
-        '绑定冲突，请联系管理员处理。'
+        this.translate(
+          'Auth.SSO_CONFIRM.CONFLICT',
+          'This binding conflicts with another account. Please contact your administrator.'
+        )
       )
       return
     }
 
-    this.submitError = this.resolveErrorMessage(error, '绑定失败，请稍后重试。')
+    this.submitError = this.resolveErrorMessage(
+      error,
+      this.translate('Auth.SSO_CONFIRM.FAIL', 'Binding failed. Please try again later.')
+    )
   }
 
   private resolveErrorMessage(error: unknown, fallback: string): string {
@@ -165,5 +194,9 @@ export class CurrentUserSsoConfirmComponent {
     }
 
     return fallback
+  }
+
+  private translate(key: string, fallback: string): string {
+    return this.#translate.instant(key, { Default: fallback })
   }
 }

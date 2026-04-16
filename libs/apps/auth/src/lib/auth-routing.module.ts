@@ -60,12 +60,12 @@ const routes: Routes = [
       {
         path: 'sso-bind',
         component: SsoBindComponent,
-        data: { title: '绑定账号', titleI18n: 'app.login.bind' }
+        data: { title: 'Bind Account', titleI18n: 'app.login.bind' }
       },
       {
         path: 'sso-confirm',
         component: CurrentUserSsoConfirmComponent,
-        data: { title: '确认绑定', titleI18n: 'app.login.bind' }
+        data: { title: 'Confirm Binding', titleI18n: 'app.login.confirm-bind' }
       }
     ]
   }

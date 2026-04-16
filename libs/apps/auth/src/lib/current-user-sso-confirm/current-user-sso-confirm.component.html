@@ -1,12 +1,12 @@
 @if (loading) {
   <div class="flex min-h-[20rem] w-full items-center justify-center px-4 py-8 text-sm text-text-secondary">
-    {{ 'AUTH.SSO_CONFIRM.LOADING' | translate: { Default: '正在加载 SSO 账号信息...' } }}
+    {{ 'Auth.SSO_CONFIRM.LOADING' | translate: { Default: 'Loading SSO account information...' } }}
   </div>
 } @else if (loadError) {
   <div class="flex w-full max-w-md flex-col gap-4 px-2 py-4">
     <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-5 py-5">
       <div class="text-base font-semibold text-text-primary">
-        {{ 'AUTH.SSO_CONFIRM.ERROR_TITLE' | translate: { Default: '绑定会话不可用' } }}
+        {{ 'Auth.SSO_CONFIRM.ERROR_TITLE' | translate: { Default: 'Binding Session Unavailable' } }}
       </div>
       <p class="mt-2 whitespace-pre-line text-sm leading-6 text-text-secondary">
         {{ loadError }}
@@ -20,7 +20,7 @@
       class="h-10 text-sm font-medium"
       (click)="navigateToLogin()"
     >
-      {{ 'AUTH.SSO_CONFIRM.BACK_TO_LOGIN' | translate: { Default: '返回登录页' } }}
+      {{ 'Auth.SSO_CONFIRM.BACK_TO_LOGIN' | translate: { Default: 'Back to Sign In' } }}
     </button>
   </div>
 } @else if (challenge) {
@@ -39,7 +39,7 @@
       }
 
       <div class="text-lg font-semibold text-text-primary">
-        {{ challenge.displayName || ('AUTH.SSO_CONFIRM.DEFAULT_DISPLAY_NAME' | translate: { Default: 'SSO 账号' }) }}
+        {{ challenge.displayName || ('Auth.SSO_CONFIRM.DEFAULT_DISPLAY_NAME' | translate: { Default: 'SSO Account' }) }}
       </div>
     </div>
 
@@ -58,7 +58,7 @@
       [disabled]="submitting"
       (click)="submit()"
     >
-      {{ 'AUTH.SSO_CONFIRM.SUBMIT' | translate: { Default: '确认绑定当前账号' } }}
+      {{ 'Auth.SSO_CONFIRM.SUBMIT' | translate: { Default: 'Confirm and Bind Current Account' } }}
     </button>
   </div>
 }

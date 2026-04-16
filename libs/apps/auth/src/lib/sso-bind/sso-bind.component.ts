@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms'
+import { TranslateService } from '@ngx-translate/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 
@@ -29,6 +30,7 @@ export class SsoBindComponent {
   readonly #router = inject(Router)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #translate = inject(TranslateService)
 
   readonly form: FormGroup
 
@@ -132,7 +134,10 @@ export class SsoBindComponent {
 
     if (!this.ticket) {
       this.loading = false
-      this.loadError = '会话已失效，请重新通过 SSO 登录。'
+      this.loadError = this.translate(
+        'Auth.SSO_BIND.SESSION_EXPIRED',
+        'This binding session has expired. Please sign in with SSO again.'
+      )
       this.#cdr.markForCheck()
       return
     }
@@ -148,7 +153,10 @@ export class SsoBindComponent {
     } catch (error) {
       this.loadError = this.resolveErrorMessage(
         error,
-        '会话已失效，请重新通过 SSO 登录。'
+        this.translate(
+          'Auth.SSO_BIND.SESSION_EXPIRED',
+          'This binding session has expired. Please sign in with SSO again.'
+        )
       )
     } finally {
       this.loading = false
@@ -161,8 +169,14 @@ export class SsoBindComponent {
     const status = httpError?.status
 
     if (status === 400) {
-      const message = this.resolveErrorMessage(error, '会话已失效，请重新通过 SSO 登录。')
-      if (message.includes('失效') || message.toLowerCase().includes('expired')) {
+      const message = this.resolveErrorMessage(
+        error,
+        this.translate(
+          'Auth.SSO_BIND.SESSION_EXPIRED',
+          'This binding session has expired. Please sign in with SSO again.'
+        )
+      )
+      if (this.isExpiredBindingMessage(message)) {
         this.challenge = null
         this.loadError = message
         return
@@ -172,19 +186,28 @@ export class SsoBindComponent {
     }
 
     if (status === 401) {
-      this.submitError = '账号或密码错误，请重试。'
+      this.submitError = this.translate(
+        'Auth.SSO_BIND.INVALID_CREDENTIALS',
+        'Incorrect account or password. Please try again.'
+      )
       return
     }
 
     if (status === 409) {
       this.submitError = this.resolveErrorMessage(
         error,
-        '绑定冲突，请联系管理员处理。'
+        this.translate(
+          'Auth.SSO_BIND.CONFLICT',
+          'This binding conflicts with another account. Please contact your administrator.'
+        )
       )
       return
     }
 
-    this.submitError = this.resolveErrorMessage(error, '绑定失败，请稍后重试。')
+    this.submitError = this.resolveErrorMessage(
+      error,
+      this.translate('Auth.SSO_BIND.FAIL', 'Binding failed. Please try again later.')
+    )
   }
 
   private resolveErrorMessage(error: unknown, fallback: string): string {
@@ -208,5 +231,21 @@ export class SsoBindComponent {
     }
 
     return fallback
+  }
+
+  private isExpiredBindingMessage(message: string): boolean {
+    const normalizedMessage = message.trim().toLowerCase()
+    const translatedExpiredMessage = this.translate(
+      'Auth.SSO_BIND.SESSION_EXPIRED',
+      'This binding session has expired. Please sign in with SSO again.'
+    )
+      .trim()
+      .toLowerCase()
+
+    return normalizedMessage.includes('expired') || normalizedMessage === translatedExpiredMessage
+  }
+
+  private translate(key: string, fallback: string): string {
+    return this.#translate.instant(key, { Default: fallback })
   }
 }
