@@ -9,6 +9,7 @@ import { CommandHandlers } from './commands/handlers'
 import { EventHandlers } from './events/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { TenantController } from './tenant.controller'
+import { AnonymousTenantResolverService } from './anonymous-tenant-resolver.service'
 import { Tenant } from './tenant.entity'
 import { TenantService } from './tenant.service'
 import { FeatureModule } from '../feature/feature.module'
@@ -24,7 +25,7 @@ import { FeatureModule } from '../feature/feature.module'
 		forwardRef(() => FeatureModule),
 	],
 	controllers: [TenantController],
-	providers: [TenantService, ...CommandHandlers, ...QueryHandlers, ...EventHandlers],
-	exports: [TenantService]
+	providers: [TenantService, AnonymousTenantResolverService, ...CommandHandlers, ...QueryHandlers, ...EventHandlers],
+	exports: [TenantService, AnonymousTenantResolverService]
 })
 export class TenantModule {}

@@ -721,6 +721,25 @@ export class AuthService extends SocialAuthService {
 		return tokens
 	}
 
+	async issueTokensForUser(
+		userId: string
+	): Promise<{ jwt: string; refreshToken: string; userId: string }> {
+		const user = await this.userService.findOne(userId)
+
+		if (!user) {
+			throw new NotFoundException(`The user '${userId}' was not found`)
+		}
+
+		const { token, refreshToken } = await this.createToken(user)
+		await this.updateRefreshToken(user.id, refreshToken)
+
+		return {
+			jwt: token,
+			refreshToken,
+			userId: user.id
+		}
+	}
+
 	async updateRefreshToken(userId: string, refreshToken: string) {
 		const hashedRefreshToken = await this.getPasswordHash(refreshToken)
 		await this.userService.update(userId, {

@@ -1,4 +1,4 @@
-import { DEFAULT_TENANT, IPagination, ITenant, ITenantCreateInput, RolesEnum } from '@xpert-ai/contracts';
+import { IPagination, ITenant, ITenantCreateInput, RolesEnum } from '@xpert-ai/contracts';
 import { Request } from 'express';
 import {
 	BadRequestException,
@@ -19,7 +19,7 @@ import {
 import { CommandBus } from '@nestjs/cqrs';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UUIDValidationPipe } from './../shared/pipes';
-import { RequestContext } from '../core/context';
+import { RequestContext } from '../core/context/request-context';
 import { CrudController } from './../core/crud';
 import { Public, Roles } from './../shared/decorators';
 import { RoleGuard, TenantPermissionGuard } from './../shared/guards';
@@ -28,12 +28,18 @@ import { TenantService } from './tenant.service';
 import { UserCreateCommand } from '../user/commands';
 import { FeatureBulkCreateCommand } from '../feature/commands';
 import { LanguageInitCommand } from '../language/commands';
+import {
+	ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY,
+	AnonymousTenantResolution,
+	AnonymousTenantResolverService
+} from './anonymous-tenant-resolver.service';
 
 @ApiTags('Tenant')
 @Controller()
 export class TenantController extends CrudController<Tenant> {
 	constructor(
 		private readonly tenantService: TenantService,
+		private readonly anonymousTenantResolver: AnonymousTenantResolverService,
 		private readonly commandBus: CommandBus) {
 		super(tenantService);
 	}
@@ -80,25 +86,14 @@ export class TenantController extends CrudController<Tenant> {
 	@HttpCode(HttpStatus.OK)
 	@Get('onboard')
 	async getOnboardDefault(@Req() request: Request): Promise<ITenant> {
-		const name = request['tenant-domain'] || DEFAULT_TENANT
-		let tenant = await this.tenantService.findOneOrFailByOptions({
-			where: {
-				name
-			},
-			relations: [ 'settings' ]
-		})
-		if (!tenant.success) {
-			tenant = await this.tenantService.findOneOrFailByOptions({
-				where: {
-					name: DEFAULT_TENANT
-				},
-				relations: [ 'settings' ]
-			})
-		}
+		const resolution =
+			(request[ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY] as AnonymousTenantResolution | undefined) ??
+			(await this.anonymousTenantResolver.resolve(request))
+		const tenant = resolution.tenant
 
-		return tenant.success ? {
-			...tenant.record,
-			settings: tenant.record.settings.filter((item) => item.name?.startsWith('tenant'))
+		return tenant ? {
+			...tenant,
+			settings: (tenant.settings ?? []).filter((item) => item.name?.startsWith('tenant'))
 		} : null
 	}
 

@@ -4,9 +4,12 @@ import { ModuleRef } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import {
+	ACCOUNT_BINDING_PERMISSION_SERVICE_TOKEN,
+	BOUND_IDENTITY_LOGIN_PERMISSION_SERVICE_TOKEN,
 	INTEGRATION_PERMISSION_SERVICE_TOKEN,
 	PLUGIN_CONFIG_RESOLVER_TOKEN,
 	PluginLifecycleMethods,
+	SSO_BINDING_PERMISSION_SERVICE_TOKEN,
 	StrategyBus,
 	USER_PERMISSION_SERVICE_TOKEN
 } from '@xpert-ai/plugin-sdk'
@@ -20,7 +23,13 @@ import { QueryHandlers } from './queries/handlers'
 import { LOADED_PLUGINS } from './types'
 import { PluginInstance } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
-import { PluginIntegrationPermissionService, PluginUserPermissionService } from './permissions'
+import {
+	PluginAccountBindingPermissionService,
+	PluginBoundIdentityLoginPermissionService,
+	PluginIntegrationPermissionService,
+	PluginSsoBindingPermissionService,
+	PluginUserPermissionService
+} from './permissions'
 
 @Global()
 @Module({
@@ -30,11 +39,26 @@ import { PluginIntegrationPermissionService, PluginUserPermissionService } from 
 	providers: [
 		{ provide: LOADED_PLUGINS, useValue: loaded },
 		PluginConfigResolverProvider,
+		{
+			provide: BOUND_IDENTITY_LOGIN_PERMISSION_SERVICE_TOKEN,
+			useExisting: PluginBoundIdentityLoginPermissionService
+		},
+		{
+			provide: SSO_BINDING_PERMISSION_SERVICE_TOKEN,
+			useExisting: PluginSsoBindingPermissionService
+		},
+		{
+			provide: ACCOUNT_BINDING_PERMISSION_SERVICE_TOKEN,
+			useExisting: PluginAccountBindingPermissionService
+		},
 		{ provide: INTEGRATION_PERMISSION_SERVICE_TOKEN, useExisting: PluginIntegrationPermissionService },
 		{ provide: USER_PERMISSION_SERVICE_TOKEN, useExisting: PluginUserPermissionService },
 		PluginConfigResolver,
 		PluginInstanceService,
 		PluginManagementService,
+		PluginBoundIdentityLoginPermissionService,
+		PluginSsoBindingPermissionService,
+		PluginAccountBindingPermissionService,
 		PluginIntegrationPermissionService,
 		PluginUserPermissionService,
 		StrategyBus,
