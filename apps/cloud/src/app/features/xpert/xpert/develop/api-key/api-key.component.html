@@ -1,26 +1,58 @@
 <h3 class="text-2xl font-semibold text-text-primary">
-  API {{ 'PAC.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}
+  @if (isWorkspaceBinding()) {
+    {{ 'PAC.Xpert.WorkspaceApiKeys' | translate: { Default: 'Workspace API Keys' } }}
+  } @else {
+    API {{ 'PAC.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}
+  }
 </h3>
 
-<button
-  type="button"
-  class="absolute right-4 top-4 w-6 h-6 rounded-md cursor-pointer pressable hover:bg-hover-bg"
-  (click)="close()"
->
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="text-text-tertiary">
-    <path
-      d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
-    ></path>
-  </svg>
-</button>
+@if (showCloseButton()) {
+  <button
+    type="button"
+    class="absolute right-4 top-4 w-6 h-6 rounded-md cursor-pointer pressable hover:bg-hover-bg"
+    (click)="close()"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="text-text-tertiary">
+      <path
+        d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
+      ></path>
+    </svg>
+  </button>
+}
 
 <p class="mt-1 text-[13px] text-text-tertiary font-normal leading-5 flex-shrink-0">
-  {{
-    'PAC.Xpert.ProtectYourKey'
-      | translate
-        : { Default: 'To prevent API abuse, protect your API Key. Avoid using it as plain text in front-end code. :)' }
-  }}
+  @if (isWorkspaceBinding()) {
+    {{
+      'PAC.Xpert.WorkspaceApiKeyDescription'
+        | translate
+          : {
+              Default:
+                'Keys created here belong to the current workspace and can access published assistants in this workspace.'
+            }
+    }}
+  } @else {
+    {{
+      'PAC.Xpert.ProtectYourKey'
+        | translate
+          : {
+              Default: 'To prevent API abuse, protect your API Key. Avoid using it as plain text in front-end code. :)'
+            }
+    }}
+  }
 </p>
+
+@if (isWorkspaceBinding()) {
+  <div
+    class="mt-3 inline-flex items-center gap-2 rounded-full border border-divider-regular px-3 py-1 text-xs text-text-secondary"
+  >
+    <span class="font-medium">{{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}</span>
+    @if (subjectName()) {
+      <span>{{ subjectName() }}</span>
+    } @else {
+      <span>{{ 'PAC.Xpert.CurrentWorkspace' | translate: { Default: 'Current workspace' } }}</span>
+    }
+  </div>
+}
 <div class="flex flex-col flex-grow mt-4 overflow-hidden">
   <div class="flex items-center flex-shrink-0 text-sm font-semibold text-text-tertiary border-b border-solid h-9">
     <div class="flex-shrink-0 w-64 px-3">API {{ 'PAC.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}</div>
@@ -92,6 +124,7 @@
   <button
     type="button"
     class="btn disabled:btn-disabled btn-secondary btn-medium flex flex-shrink-0 mt-4"
+    [disabled]="!resolvedBindingType() || !resolvedBindingId()"
     (click)="createApiKey()"
   >
     <svg
@@ -105,7 +138,11 @@
       ></path>
     </svg>
     <div class="text-sm font-medium text-text-primary">
-      {{ 'PAC.Xpert.CreateNewSecretKey' | translate: { Default: 'Create new secret key' } }}
+      @if (isWorkspaceBinding()) {
+        {{ 'PAC.Xpert.CreateWorkspaceSecretKey' | translate: { Default: 'Create workspace secret key' } }}
+      } @else {
+        {{ 'PAC.Xpert.CreateNewSecretKey' | translate: { Default: 'Create new secret key' } }}
+      }
     </div>
   </button>
 </div>

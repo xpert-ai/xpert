@@ -1,4 +1,5 @@
 import {
+    ApiKeyBindingType,
     IApiKey,
     IApiPrincipal,
     IChatConversation,
@@ -357,8 +358,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
     private async resolveAssistantForRun(assistantId: string) {
         const apiKey = RequestContext.currentApiKey()
 
-        // For assistant-bound keys, entityId is the allowed xpert id.
-        if (apiKey?.type === 'assistant' && apiKey.entityId && apiKey.entityId !== assistantId) {
+        if (apiKey?.type === ApiKeyBindingType.ASSISTANT && apiKey.entityId && apiKey.entityId !== assistantId) {
             throw new ForbiddenException('API key is not allowed to access this assistant.')
         }
 
@@ -369,6 +369,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             : await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
                   relations: ['user', 'createdBy']
               })
+
+        if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
+            throw new ForbiddenException('API key is not allowed to access this workspace assistant.')
+        }
 
         this.applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
         this.applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)

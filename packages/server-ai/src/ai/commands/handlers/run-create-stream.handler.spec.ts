@@ -32,7 +32,7 @@ jest.mock('@xpert-ai/contracts', () => {
     }
 })
 
-jest.mock('@xpert-ai/server-core', () => ({
+jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: {
         currentApiKey: jest.fn(),
         currentRequest: jest.fn(),
@@ -41,7 +41,8 @@ jest.mock('@xpert-ai/server-core', () => ({
 }))
 
 import { EMPTY, of } from 'rxjs'
-import { RequestContext } from '@xpert-ai/server-core'
+import { ApiKeyBindingType } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
@@ -649,6 +650,197 @@ describe('RunCreateStreamHandler execute', () => {
             requestedUserId: 'end-user-1',
             principalType: 'api_key',
             ownerUserId: 'owner-user-1'
+        })
+    })
+
+    it('allows workspace-bound api keys for assistants in the same workspace', async () => {
+        const request = {
+            headers: {
+                'organization-id': 'org-created-by-owner'
+            },
+            user: {
+                id: 'owner-user-1',
+                tenantId: 'tenant-1',
+                ownerUserId: 'owner-user-1',
+                principalType: 'api_key'
+            }
+        }
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue({
+            id: 'key-1',
+            tenantId: 'tenant-1',
+            type: ApiKeyBindingType.WORKSPACE,
+            entityId: 'workspace-1',
+            createdById: 'owner-user-1'
+        })
+        ;(RequestContext.currentRequest as jest.Mock).mockReturnValue(request)
+        ;(RequestContext.currentUser as jest.Mock).mockImplementation(() => request.user)
+
+        const commandBus = {
+            execute: jest.fn(async (command) => {
+                if (command instanceof XpertAgentExecutionUpsertCommand) {
+                    return {
+                        id: 'execution-1'
+                    }
+                }
+
+                if (command instanceof XpertChatCommand) {
+                    return of({
+                        data: {
+                            data: null
+                        }
+                    } as any)
+                }
+
+                return null
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'GetChatConversationQuery') {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: 'xpert-workspace-1',
+                        options: {}
+                    }
+                }
+
+                return null
+            })
+        }
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                id: 'xpert-workspace-1',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                workspaceId: 'workspace-1',
+                user: {
+                    id: 'assistant-user-1',
+                    tenantId: 'tenant-1',
+                    username: 'assistant-user'
+                }
+            }),
+            getPublishedXpertInTenant: jest.fn()
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
+        }
+
+        const handler = new RunCreateStreamHandler(
+            commandBus as any,
+            queryBus as any,
+            {
+                findOne: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            {
+                appendEvent: jest.fn().mockResolvedValue(undefined),
+                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            publishedXpertAccessService as any,
+            assistantBindingService as any
+        )
+
+        await handler.execute({
+            threadId: 'thread-1',
+            runCreate: {
+                assistant_id: 'xpert-workspace-1',
+                input: {
+                    action: 'send',
+                    message: {
+                        input: {
+                            input: 'Create assistant'
+                        }
+                    }
+                }
+            }
+        } as any)
+
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-workspace-1', {
+            relations: ['user', 'createdBy']
+        })
+        expect(request.headers['organization-id']).toBeUndefined()
+        expect(request.headers['x-scope-level']).toBe('tenant')
+    })
+
+    it('rejects workspace-bound api keys for assistants in a different workspace', async () => {
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue({
+            id: 'key-1',
+            tenantId: 'tenant-1',
+            type: ApiKeyBindingType.WORKSPACE,
+            entityId: 'workspace-1',
+            createdById: 'owner-user-1'
+        })
+        ;(RequestContext.currentRequest as jest.Mock).mockReturnValue({
+            headers: {
+                'organization-id': 'org-created-by-owner'
+            }
+        })
+        ;(RequestContext.currentUser as jest.Mock).mockReturnValue(null)
+
+        const commandBus = {
+            execute: jest.fn()
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'GetChatConversationQuery') {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: 'xpert-workspace-2',
+                        options: {}
+                    }
+                }
+
+                return null
+            })
+        }
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                id: 'xpert-workspace-2',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                workspaceId: 'workspace-2'
+            }),
+            getPublishedXpertInTenant: jest.fn()
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
+        }
+
+        const handler = new RunCreateStreamHandler(
+            commandBus as any,
+            queryBus as any,
+            {
+                findOne: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            {
+                appendEvent: jest.fn().mockResolvedValue(undefined),
+                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            publishedXpertAccessService as any,
+            assistantBindingService as any
+        )
+
+        await expect(
+            handler.execute({
+                threadId: 'thread-1',
+                runCreate: {
+                    assistant_id: 'xpert-workspace-2',
+                    input: {
+                        action: 'send',
+                        message: {
+                            input: {
+                                input: 'Create assistant'
+                            }
+                        }
+                    }
+                }
+            } as any)
+        ).rejects.toThrow('API key is not allowed to access this workspace assistant.')
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-workspace-2', {
+            relations: ['user', 'createdBy']
         })
     })
 
