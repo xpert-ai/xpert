@@ -55,6 +55,10 @@ export interface IChatMessage
 
   executionId?: string
   execution?: IXpertAgentExecution
+  followUpMode?: 'queue' | 'steer'
+  followUpStatus?: 'pending' | 'consumed' | 'canceled'
+  targetExecutionId?: string | null
+  visibleAt?: Date | string | null
 }
 
 /**

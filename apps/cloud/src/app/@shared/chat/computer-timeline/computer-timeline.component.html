@@ -1,0 +1,264 @@
+<section
+  class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-divider-deep bg-background-default-subtle shadow-sm"
+>
+  @if (stepMessage(); as step) {
+    <div
+      class="flex h-[36px] w-full items-center border-b border-divider-deep bg-background-default-subtle px-3"
+    >
+      <div class="relative flex flex-1 items-center justify-center">
+        <button
+          type="button"
+          class="absolute left-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-hover-bg"
+          (click)="togglePin()"
+        >
+          @if (pin()) {
+            <i class="ri-pushpin-2-fill text-primary-500"></i>
+          } @else {
+            <i class="ri-pushpin-line"></i>
+          }
+        </button>
+
+        <div class="max-w-[250px] truncate text-center text-base font-medium text-text-secondary">
+          @if (stepTitleUrl(); as stepUrl) {
+            <a [href]="stepUrl" target="_blank" class="hover:underline">{{ step.title }}</a>
+          } @else {
+            {{ step.title }}
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 min-h-0 w-full overflow-y-auto">
+      @switch (step.type) {
+        @case (eChatMessageStepCategory.List) {
+          <div class="flex h-full flex-col overflow-auto px-4 py-3">
+            @for (item of listItems(); track item.url; let first = $first) {
+              <div class="border-b border-divider-deep py-3" [class.pt-0]="first">
+                <a
+                  [href]="item.url"
+                  target="_blank"
+                  class="block truncate text-base font-medium text-text-primary hover:underline"
+                >
+                  {{ item.title }}
+                </a>
+                <div class="mt-0.5 line-clamp-3 text-sm text-text-tertiary">
+                  {{ item.description }}
+                </div>
+              </div>
+            } @empty {
+              <div class="flex h-full flex-col items-center justify-center p-4 text-text-secondary">
+                <div><i class="ri-shopping-cart-line text-xl"></i></div>
+                <div>{{ 'PAC.Chat.NoResults' | translate: { Default: 'No results found' } }}</div>
+              </div>
+            }
+          </div>
+        }
+        @case (eChatMessageStepCategory.WebSearch) {
+          <div class="flex h-full flex-col overflow-auto px-4 py-3">
+            @for (item of webSearchItems(); track item.url; let first = $first) {
+              <div class="border-b border-divider-deep py-3" [class.pt-0]="first">
+                <a
+                  [href]="item.url"
+                  target="_blank"
+                  class="block line-clamp-2 cursor-pointer text-base font-medium text-text-primary hover:underline"
+                >
+                  {{ item.title }}
+                </a>
+                <div class="mt-0.5 line-clamp-3 text-sm text-text-tertiary">
+                  {{ item.content }}
+                </div>
+              </div>
+            } @empty {
+              <div class="flex h-full flex-col items-center justify-center p-4 text-text-secondary">
+                <div><i class="ri-shopping-cart-line text-xl"></i></div>
+                <div>{{ 'PAC.Chat.NoResults' | translate: { Default: 'No results found' } }}</div>
+              </div>
+            }
+          </div>
+        }
+        @case (eChatMessageStepCategory.File) {
+          @if (fileStep(); as fileStep) {
+            <chat-canvas-file-editor [step]="fileStep" class="h-full w-full" />
+          }
+        }
+        @case (eChatMessageStepCategory.Files) {
+          <div class="flex h-full flex-col overflow-auto px-4 py-3">
+            @for (item of filesItems(); track item.filePath; let first = $first) {
+              <div class="flex items-center gap-3 border-b border-divider-deep py-3" [class.pt-0]="first">
+                <div
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background-default-subtle text-text-secondary"
+                >
+                  @switch (item.filePath | fileType) {
+                    @case ('code') {
+                      <i class="ri-code-s-slash-line text-lg"></i>
+                    }
+                    @case ('zip') {
+                      <i class="ri-folder-zip-line text-lg"></i>
+                    }
+                    @default {
+                      <i class="ri-file-line text-lg"></i>
+                    }
+                  }
+                </div>
+                <a
+                  [href]="item.url"
+                  target="_blank"
+                  class="block min-w-0 flex-1 cursor-pointer line-clamp-2 text-base font-medium text-text-primary hover:underline"
+                >
+                  {{ item.filePath }}
+                </a>
+              </div>
+            } @empty {
+              <div class="flex h-full flex-col items-center justify-center p-4 text-text-secondary">
+                <div><i class="ri-file-list-3-line text-xl"></i></div>
+                <div>
+                  {{ 'PAC.Chat.NoFiles' | translate: { Default: 'No files were captured for this step.' } }}
+                </div>
+              </div>
+            }
+          </div>
+        }
+        @case (eChatMessageStepCategory.Program) {
+          @if (programStep(); as programStep) {
+            <xp-chat-shared-terminal class="h-full p-2" [mode]="'replay'" [replayStep]="programStep" />
+          }
+        }
+        @case (eChatMessageStepCategory.Iframe) {
+          @if (iframeStep(); as iframeStep) {
+            <chat-canvas-iframe [step]="iframeStep" />
+          }
+        }
+        @case (eChatMessageStepCategory.Knowledges) {
+          @if (knowledgesStep(); as knowledgesStep) {
+            <chat-canvas-knowledges [message]="knowledgesStep" />
+          }
+        }
+        @default {
+          @if (step.error) {
+            <div class="p-2 text-sm whitespace-pre-line text-text-destructive">{{ step.error }}</div>
+          } @else {
+            @switch (step.toolset) {
+              @case ('browser-use') {
+                @if (browserUseData(); as browserUse) {
+                  @if (browserUse.screenshot) {
+                    <img [src]="browserUse.screenshot" alt="Screenshot" class="h-auto max-w-full" />
+                  } @else if (browserUse.errors) {
+                    <div class="p-2">
+                      <span class="text-text-destructive">{{ browserUse.errors }}</span>
+                    </div>
+                  }
+                }
+              }
+              @case ('file') {
+                @if (fileToolData(); as fileData) {
+                  @switch (fileData.extension) {
+                    @case ('html') {
+                      <xpert-canvas-html-editor class="h-full" [content]="fileData.content" [url]="fileData.url" />
+                    }
+                    @default {
+                      <pac-file-editor class="h-full" [fileName]="fileData.url" [content]="fileData.content" />
+                    }
+                  }
+                }
+              }
+              @case ('project') {
+                @if (projectTasks(); as tasks) {
+                  @switch (step.tool) {
+                    @case ('project_create_tasks') {
+                      <xpert-project-tasks [projectId]="projectId()" [tasks]="tasks" class="group" />
+                    }
+                    @case ('project_update_tasks') {
+                      <xpert-project-tasks [projectId]="projectId()" [tasks]="tasks" class="group" />
+                    }
+                  }
+                }
+              }
+              @case ('planning') {
+                @switch (step.tool) {
+                  @case ('create_plan') {
+                    @if (planningData(); as planning) {
+                      <div class="p-4">
+                        <div class="font-semibold text-text-secondary">{{ planning.title }}</div>
+                        <ul class="list-inside list-decimal">
+                          @for (item of planning.steps; track item.content) {
+                            <li class="text-sm text-text-primary">{{ item.content }}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                  }
+                  @default {
+                    <div class="p-4 text-sm whitespace-pre-line">{{ step.message }}</div>
+                  }
+                }
+              }
+              @case ('browser') {
+                @if (browserArtifact(); as artifact) {
+                  <img [src]="artifact.image_url" [alt]="artifact.title || step.title" class="h-auto max-w-full" />
+                }
+              }
+              @default {
+                <div class="p-2 text-sm whitespace-pre-line">{{ step.message }}</div>
+              }
+            }
+          }
+        }
+      }
+    </div>
+
+    @if (stepMessageLength()) {
+      <div
+        class="relative mt-auto flex h-[44px] w-full items-center gap-2 border-t border-divider-regular bg-components-panel-bg px-2"
+      >
+        <div class="mr-1 flex items-center">
+          <button
+            type="button"
+            class="flex h-[24px] w-[24px] items-center justify-center rounded-lg text-text-secondary transition-colors enabled:pressable enabled:hover:bg-hover-bg enabled:hover:text-text-primary disabled:cursor-not-allowed"
+            [disabled]="stepIndex() <= 0"
+            (click)="prevStep()"
+          >
+            <i class="ri-skip-back-line"></i>
+          </button>
+          <button
+            type="button"
+            class="flex h-[24px] w-[24px] items-center justify-center rounded-lg text-text-secondary transition-colors enabled:pressable enabled:hover:bg-hover-bg enabled:hover:text-text-primary disabled:cursor-not-allowed"
+            [disabled]="stepIndex() >= stepMessageLength() - 1"
+            (click)="nextStep()"
+          >
+            <i class="ri-skip-forward-line"></i>
+          </button>
+        </div>
+        <z-slider
+          class="flex-1 mx-2"
+          min="0"
+          [max]="stepMessageLength() - 1"
+          step="1"
+          [showTickMarks]="true"
+          [showValueLabel]="true"
+          [value]="stepIndex()"
+          (changeEnd)="updateStepIndexFromSlider($event)"
+        ></z-slider>
+      </div>
+    }
+  } @else {
+    <div class="flex h-full min-h-[18rem] flex-col items-center justify-center px-6 text-center">
+      <div
+        class="flex h-14 w-14 items-center justify-center rounded-2xl bg-background-default-subtle text-text-tertiary"
+      >
+        <i class="ri-computer-line text-2xl"></i>
+      </div>
+      <div class="mt-4 text-base font-medium text-text-primary">
+        {{ 'PAC.Chat.ComputerTimelineEmptyTitle' | translate: { Default: 'No computer activity yet' } }}
+      </div>
+      <div class="mt-2 max-w-sm text-sm text-text-secondary">
+        {{
+          'PAC.Chat.ComputerTimelineEmptyDesc'
+            | translate
+              : {
+                  Default: 'Computer steps will appear here once the workspace starts running tools for this conversation.'
+                }
+        }}
+      </div>
+    </div>
+  }
+</section>

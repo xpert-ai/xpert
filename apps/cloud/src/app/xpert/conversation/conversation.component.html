@@ -30,10 +30,10 @@
 @for (message of messages(); track message.id) {
   @switch (message.role) {
     @case ('user') {
-      <chat-human-message class="w-full flex justify-end my-4" [message]="message" />
+      <chat-human-message class="w-full flex justify-end mb-4" [message]="message" />
     }
     @case ('human') {
-      <chat-human-message class="w-full flex justify-end my-4" [message]="message" />
+      <chat-human-message class="w-full flex justify-end mb-4" [message]="message" />
     }
     @case ('assistant') {
       <pac-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />

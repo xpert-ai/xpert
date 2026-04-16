@@ -31,6 +31,11 @@ export type ActiveScope =
 	| { level: RequestScopeLevel.TENANT }
 	| { level: RequestScopeLevel.ORGANIZATION; organizationId: string }
 
+export interface RememberedUserScope {
+	level: RequestScopeLevel
+	organizationId?: string | null
+}
+
 export interface AppState {
 	user: IUser;
 	userRolePermissions: IRolePermission[];
@@ -43,6 +48,9 @@ export interface AppState {
 	featureToggles: IFeatureToggle[];
 	featureOrganizations: IFeatureOrganization[];
 	featureTenant: IFeatureOrganization[];
+	featureContextHydrated: boolean;
+	featureContextHydrationLoading: boolean;
+	featureContextHydrationFailed: boolean;
 	tenantSettings?: ITenantSetting
 }
 
@@ -50,6 +58,7 @@ export interface PersistState {
 	organizationId?: string;
 	activeScopeLevel?: RequestScopeLevel;
 	lastOrganizationId?: string;
+	rememberedScopes?: Record<string, RememberedUserScope>;
 	lastTenantCompatibleRoute?: string;
 	lastOrganizationCompatibleRoute?: string;
 	workspaceId?: string;
@@ -99,7 +108,10 @@ export function createInitialAppState(): AppState {
 		userRolePermissions: [],
 		featureToggles: [],
 		featureOrganizations: [],
-		featureTenant: []
+		featureTenant: [],
+		featureContextHydrated: false,
+		featureContextHydrationLoading: false,
+		featureContextHydrationFailed: false
 	} as AppState;
 }
 
@@ -210,6 +222,9 @@ export class Store {
 		(state) => state.featureOrganizations
 	);
 	featureTenant$ = this.appQuery.select((state) => state.featureTenant);
+	featureContextHydrated$ = this.appQuery.select((state) => state.featureContextHydrated);
+	featureContextHydrationLoading$ = this.appQuery.select((state) => state.featureContextHydrationLoading);
+	featureContextHydrationFailed$ = this.appQuery.select((state) => state.featureContextHydrationFailed);
 	preferredLanguage$ = this.persistQuery.select(
 		(state) => state.preferredLanguage
 	);
@@ -234,6 +249,10 @@ export class Store {
 	 */
 	readonly xpert = toSignal(this.persistQuery.select((state) => state.xpert))
 	readonly preferences = toSignal(this.persistQuery.select((state) => state.preferences))
+	private readonly featureOrganizationsSignal = toSignal(this.featureOrganizations$, { initialValue: [] })
+	private readonly featureTenantSignal = toSignal(this.featureTenant$, { initialValue: [] })
+	private readonly featureTogglesSignal = toSignal(this.featureToggles$, { initialValue: [] })
+	private readonly featureContextHydratedSignal = toSignal(this.featureContextHydrated$, { initialValue: false })
 
 	set selectedOrganization(organization: IOrganization) {
 		this.appStore.update({
@@ -322,13 +341,18 @@ export class Store {
 	}
 
 	set organizationId(id: IOrganization['id'] | null) {
-		this.persistStore.update({
+		this.persistStore.update((state) => ({
+			...state,
 			organizationId: id,
 			activeScopeLevel: id
 				? RequestScopeLevel.ORGANIZATION
 				: RequestScopeLevel.TENANT,
-			lastOrganizationId: id || this.lastOrganizationId
-		});
+			lastOrganizationId: id || this.lastOrganizationId,
+			rememberedScopes: updateRememberedScopes(state.rememberedScopes, state.userId, {
+				level: id ? RequestScopeLevel.ORGANIZATION : RequestScopeLevel.TENANT,
+				organizationId: id || this.lastOrganizationId
+			})
+		}));
 	}
 
 	get activeScope(): ActiveScope {
@@ -416,10 +440,50 @@ export class Store {
 		});
 	}
 
+	get featureContextHydrated(): boolean {
+		const { featureContextHydrated } = this.appQuery.getValue();
+		return featureContextHydrated;
+	}
+
+	set featureContextHydrated(featureContextHydrated: boolean) {
+		this.appStore.update({
+			featureContextHydrated
+		});
+	}
+
+	get featureContextHydrationLoading(): boolean {
+		const { featureContextHydrationLoading } = this.appQuery.getValue();
+		return featureContextHydrationLoading;
+	}
+
+	set featureContextHydrationLoading(featureContextHydrationLoading: boolean) {
+		this.appStore.update({
+			featureContextHydrationLoading
+		});
+	}
+
+	get featureContextHydrationFailed(): boolean {
+		const { featureContextHydrationFailed } = this.appQuery.getValue();
+		return featureContextHydrationFailed;
+	}
+
+	set featureContextHydrationFailed(featureContextHydrationFailed: boolean) {
+		this.appStore.update({
+			featureContextHydrationFailed
+		});
+	}
+
 	/*
 	 * Check features are enabled/disabled for tenant organization
 	 */
 	hasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
+		// Reading these signals makes feature checks reactive in OnPush templates/computeds
+		// after the deferred /user/me hydration updates tenant/org feature state.
+		this.featureOrganizationsSignal();
+		this.featureTenantSignal();
+		this.featureTogglesSignal();
+		this.featureContextHydratedSignal();
+
 		const {
 			featureTenant = [],
 			featureOrganizations = [],
@@ -440,6 +504,18 @@ export class Store {
 		return !!filtered.find(
 			(item) => item.feature.code === feature && item.isEnabled
 		);
+	}
+
+	selectHasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
+		return combineLatest([
+			this.featureOrganizations$,
+			this.featureTenant$,
+			this.featureToggles$,
+			this.featureContextHydrated$
+		]).pipe(
+			map(() => this.hasFeatureEnabled(feature)),
+			distinctUntilChanged()
+		)
 	}
 
 	get userRolePermissions(): IRolePermission[] {
@@ -614,7 +690,11 @@ export class Store {
 			...state,
 			activeScopeLevel: RequestScopeLevel.TENANT,
 			organizationId: null,
-			lastOrganizationId: currentOrganizationId || state.lastOrganizationId || null
+			lastOrganizationId: currentOrganizationId || state.lastOrganizationId || null,
+			rememberedScopes: updateRememberedScopes(state.rememberedScopes, state.userId, {
+				level: RequestScopeLevel.TENANT,
+				organizationId: currentOrganizationId || state.lastOrganizationId || null
+			})
 		}));
 		this.appStore.update({
 			selectedOrganization: null
@@ -631,12 +711,40 @@ export class Store {
 			...state,
 			activeScopeLevel: RequestScopeLevel.ORGANIZATION,
 			organizationId: organization.id,
-			lastOrganizationId: organization.id
+			lastOrganizationId: organization.id,
+			rememberedScopes: updateRememberedScopes(state.rememberedScopes, state.userId, {
+				level: RequestScopeLevel.ORGANIZATION,
+				organizationId: organization.id
+			})
 		}));
 		this.appStore.update({
 			selectedOrganization: organization
 		});
 		this.loadPermissions();
+	}
+
+	restoreRememberedScope(userId: string | null | undefined) {
+		if (!userId) {
+			return
+		}
+
+		const rememberedScope = this.persistQuery.getValue().rememberedScopes?.[userId]
+		if (!rememberedScope) {
+			return
+		}
+
+		this.persistStore.update((state) => ({
+			...state,
+			activeScopeLevel: rememberedScope.level,
+			organizationId:
+				rememberedScope.level === RequestScopeLevel.ORGANIZATION
+					? rememberedScope.organizationId ?? null
+					: null,
+			lastOrganizationId:
+				rememberedScope.organizationId ??
+				state.lastOrganizationId ??
+				null
+		}))
 	}
 
 	setLastCompatibleRoute(level: RequestScopeLevel, route: string | null) {
@@ -731,6 +839,21 @@ export function injectActiveScope() {
 	return toSignal(store.selectActiveScope(), {
 		initialValue: store.activeScope
 	})
+}
+
+function updateRememberedScopes(
+	rememberedScopes: PersistState['rememberedScopes'],
+	userId: string | null | undefined,
+	scope: RememberedUserScope
+) {
+	if (!userId) {
+		return rememberedScopes ?? {}
+	}
+
+	return {
+		...(rememberedScopes ?? {}),
+		[userId]: scope
+	}
 }
 
 export function injectScopeLevel() {

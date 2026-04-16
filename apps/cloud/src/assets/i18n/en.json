@@ -393,10 +393,7 @@
       "FeatureCategoryDesc_ai": "Features related to AI, including workflows, digital expert agents, knowledge bases, project spaces, etc.",
       "FeatureCategoryDesc_bi": "Features related to BI data analysis, including semantic models, indicators, story dashboards, etc.",
       "ConfigureAiModel": "Configure AI Model",
-      "ConfigureAiModelDesc": "Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings.",
-      "ConfigureAiModelTitle": "Make your AI copilot ready to use",
-      "ConfigureAiModelHint": "We will create your primary provider first, then you can add credentials and pick the default model in one place.",
-      "ConfigureAiModelAction": "Start configuration"
+      "ConfigureAiModelDesc": "Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings."
     },
     "INDICATOR": {
       "REGISTER": {

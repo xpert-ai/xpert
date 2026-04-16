@@ -81,6 +81,7 @@
                   "zh-hans/guides/icon-schema",
                   "zh-hans/guides/release",
                   "zh-hans/guides/message-assembly-v2",
+                  "zh-hans/guides/follow-up-architecture",
                   "zh-hans/guides/permission",
                   "zh-hans/guides/newroles",
                   "zh-hans/guides/features-current",
@@ -92,6 +93,10 @@
           {
             "tab": "方案",
             "groups": [
+              {
+                "group": "计划",
+                "pages": ["zh-hans/plans/follow-up-behavior-agent-chat"]
+              },
               {
                 "group": "快速开始",
                 "pages": ["zh-hans/solutions/declarative-extended-view-system"]

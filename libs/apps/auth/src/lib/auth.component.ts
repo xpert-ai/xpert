@@ -1,18 +1,28 @@
-import { Location } from '@angular/common'
+import { CommonModule, Location } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { Store } from '@xpert-ai/cloud/state'
-import { TranslateService } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { map, startWith } from 'rxjs/operators'
 import { PacAuthService } from './services/auth.service'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { RouterModule } from '@angular/router'
+import { ZardSelectImports } from '@xpert-ai/headless-ui'
 
 @Component({
-  standalone: false,
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...ZardSelectImports,
+  ],
   selector: 'pac-auth',
   styleUrls: ['./auth.component.scss'],
   templateUrl: './auth.component.html',
   host: {
-    class: 'pac-auth'
+    class: 'pac-auth',
   }
 })
 export class PacAuthComponent {

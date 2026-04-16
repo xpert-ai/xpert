@@ -228,6 +228,14 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                             en_US: 'Workspace URL',
                             zh_Hans: '工作区 URL'
                         }
+                    },
+                    {
+                        name: 'thread_id',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Current thread ID for custom path or isolation strategies',
+                            zh_Hans: '当前会话线程 ID，可用于自定义路径或隔离策略'
+                        }
                     }
                 ]
             })

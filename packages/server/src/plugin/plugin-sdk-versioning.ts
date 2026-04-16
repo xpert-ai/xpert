@@ -9,6 +9,23 @@ import { getCodeWorkspacePath } from './source-config'
 import { normalizePluginName } from './types'
 
 const HOSTED_PLUGIN_SDK_PACKAGE = '@xpert-ai/plugin-sdk'
+const HOSTED_CONTRACTS_PACKAGE = '@xpert-ai/contracts'
+
+type HostRuntimePackageConfig = {
+	packageName: string
+	workspaceRelativePath: string[]
+}
+
+const HOST_RUNTIME_PACKAGES: Record<string, HostRuntimePackageConfig> = {
+	[HOSTED_PLUGIN_SDK_PACKAGE]: {
+		packageName: HOSTED_PLUGIN_SDK_PACKAGE,
+		workspaceRelativePath: ['packages', 'plugin-sdk']
+	},
+	[HOSTED_CONTRACTS_PACKAGE]: {
+		packageName: HOSTED_CONTRACTS_PACKAGE,
+		workspaceRelativePath: ['packages', 'contracts']
+	}
+}
 
 type PluginPackageManifest = {
 	name?: string
@@ -31,8 +48,9 @@ export interface PluginInstallValidationOptions {
 }
 
 let cachedHostPluginSdkVersion: string | undefined
-let cachedHostPluginSdkDir: string | undefined
 let cachedHostPluginSdkPackageJsonPath: string | undefined
+const cachedHostRuntimePackageDirs = new Map<string, string>()
+const cachedHostRuntimePackageJsonPaths = new Map<string, string>()
 
 function getRequire(basedir?: string) {
 	if (!basedir) {
@@ -89,6 +107,81 @@ function getWorkspacePluginSearchDirs(basedir?: string) {
 	return Array.from(candidates).filter((candidate) => existsSync(candidate))
 }
 
+function getHostRuntimePackageConfig(packageName: string) {
+	const config = HOST_RUNTIME_PACKAGES[packageName]
+	if (!config) {
+		throw new PluginSdkValidationError(packageName, `Unsupported host runtime package "${packageName}"`)
+	}
+	return config
+}
+
+function getPackageJsonCandidatesForMapping(mappedPath: string) {
+	const resolvedPath = resolve(mappedPath)
+	const candidates = [resolve(resolvedPath, 'package.json')]
+	const pathHasExtension = /\.[^/\\]+$/.test(resolvedPath)
+
+	if (pathHasExtension) {
+		candidates.push(resolve(dirname(resolvedPath), 'package.json'))
+		candidates.push(resolve(dirname(dirname(resolvedPath)), 'package.json'))
+	}
+
+	return candidates
+}
+
+function resolveHostRuntimePackageJsonPath(packageName: string) {
+	const cachedPath = cachedHostRuntimePackageJsonPaths.get(packageName)
+	if (cachedPath) {
+		return cachedPath
+	}
+
+	const config = getHostRuntimePackageConfig(packageName)
+
+	try {
+		const packageJsonPath = getRequire(process.cwd()).resolve(`${packageName}/package.json`)
+		cachedHostRuntimePackageJsonPaths.set(packageName, packageJsonPath)
+		return packageJsonPath
+	} catch {
+		// Fall through to workspace-aware resolution.
+	}
+
+	const candidates = new Set<string>()
+	const nxMappings = process.env.NX_MAPPINGS
+
+	if (nxMappings) {
+		try {
+			const mappings = JSON.parse(nxMappings) as Record<string, string>
+			const mappedPath = mappings[packageName]
+			if (mappedPath) {
+				for (const candidate of getPackageJsonCandidatesForMapping(mappedPath)) {
+					candidates.add(candidate)
+				}
+			}
+		} catch {
+			// Ignore malformed mapping payloads and continue with local fallbacks.
+		}
+	}
+
+	for (const startPath of [process.cwd(), __dirname]) {
+		for (const dir of collectAncestorDirs(startPath)) {
+			candidates.add(resolve(dir, ...config.workspaceRelativePath, 'dist', 'package.json'))
+			candidates.add(resolve(dir, ...config.workspaceRelativePath, 'package.json'))
+			candidates.add(resolve(dir, 'node_modules', ...packageName.split('/'), 'package.json'))
+		}
+	}
+
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) {
+			cachedHostRuntimePackageJsonPaths.set(packageName, candidate)
+			return candidate
+		}
+	}
+
+	throw new PluginSdkValidationError(
+		packageName,
+		`Unable to resolve ${packageName}/package.json from runtime or workspace fallbacks`
+	)
+}
+
 function pathEntryExists(targetPath: string) {
 	try {
 		lstatSync(targetPath)
@@ -130,52 +223,8 @@ function resolveHostPluginSdkPackageJsonPath() {
 		return cachedHostPluginSdkPackageJsonPath
 	}
 
-	try {
-		cachedHostPluginSdkPackageJsonPath = getRequire(process.cwd()).resolve(
-			`${HOSTED_PLUGIN_SDK_PACKAGE}/package.json`
-		)
-		return cachedHostPluginSdkPackageJsonPath
-	} catch {
-		// Fall through to workspace-aware resolution.
-	}
-
-	const candidates = new Set<string>()
-	const nxMappings = process.env.NX_MAPPINGS
-
-	if (nxMappings) {
-		try {
-			const mappings = JSON.parse(nxMappings) as Record<string, string>
-			const mappedPath = mappings[HOSTED_PLUGIN_SDK_PACKAGE]
-			if (mappedPath) {
-				candidates.add(resolve(mappedPath, 'package.json'))
-			}
-		} catch {
-			// Ignore malformed mapping payloads and continue with local fallbacks.
-		}
-	}
-
-	for (const dir of collectAncestorDirs(process.cwd())) {
-		candidates.add(resolve(dir, 'packages', 'plugin-sdk', 'dist', 'package.json'))
-		candidates.add(resolve(dir, 'packages', 'plugin-sdk', 'package.json'))
-		candidates.add(resolve(dir, 'node_modules', ...HOSTED_PLUGIN_SDK_PACKAGE.split('/'), 'package.json'))
-	}
-
-	for (const dir of collectAncestorDirs(__dirname)) {
-		candidates.add(resolve(dir, 'packages', 'plugin-sdk', 'dist', 'package.json'))
-		candidates.add(resolve(dir, 'packages', 'plugin-sdk', 'package.json'))
-	}
-
-	for (const candidate of candidates) {
-		if (existsSync(candidate)) {
-			cachedHostPluginSdkPackageJsonPath = candidate
-			return candidate
-		}
-	}
-
-	throw new PluginSdkValidationError(
-		HOSTED_PLUGIN_SDK_PACKAGE,
-		`Unable to resolve ${HOSTED_PLUGIN_SDK_PACKAGE}/package.json from runtime or workspace fallbacks`
-	)
+	cachedHostPluginSdkPackageJsonPath = resolveHostRuntimePackageJsonPath(HOSTED_PLUGIN_SDK_PACKAGE)
+	return cachedHostPluginSdkPackageJsonPath
 }
 
 // Resolve pnpm workspace protocol ranges to concrete semver so runtime validation
@@ -237,13 +286,15 @@ export function getHostPluginSdkVersion() {
 	return cachedHostPluginSdkVersion
 }
 
-function getHostPluginSdkDir() {
-	if (cachedHostPluginSdkDir) {
-		return cachedHostPluginSdkDir
+function getHostRuntimePackageDir(packageName: string) {
+	const cachedDir = cachedHostRuntimePackageDirs.get(packageName)
+	if (cachedDir) {
+		return cachedDir
 	}
 
-	cachedHostPluginSdkDir = dirname(resolveHostPluginSdkPackageJsonPath())
-	return cachedHostPluginSdkDir
+	const packageDir = dirname(resolveHostRuntimePackageJsonPath(packageName))
+	cachedHostRuntimePackageDirs.set(packageName, packageDir)
+	return packageDir
 }
 
 export function assertPluginSdkCompatibility(
@@ -341,18 +392,18 @@ export function assertInstalledPluginSdkCompatibility(pluginName: string, basedi
 	})
 }
 
-export function ensureHostPluginSdkLink(basedir?: string) {
+function ensureHostRuntimePackageLink(packageName: string, basedir?: string) {
 	if (!basedir) {
 		return undefined
 	}
 
-	const hostPluginSdkDir = getHostPluginSdkDir()
-	const targetDir = resolve(basedir, 'node_modules', ...HOSTED_PLUGIN_SDK_PACKAGE.split('/'))
+	const hostPackageDir = getHostRuntimePackageDir(packageName)
+	const targetDir = resolve(basedir, 'node_modules', ...packageName.split('/'))
 	const parentDir = dirname(targetDir)
 
 	if (pathEntryExists(targetDir)) {
 		try {
-			if (realpathSync(targetDir) === realpathSync(hostPluginSdkDir)) {
+			if (realpathSync(targetDir) === realpathSync(hostPackageDir)) {
 				return targetDir
 			}
 		} catch {
@@ -365,14 +416,14 @@ export function ensureHostPluginSdkLink(basedir?: string) {
 	mkdirSync(parentDir, { recursive: true })
 
 	try {
-		symlinkSync(hostPluginSdkDir, targetDir, 'junction')
+		symlinkSync(hostPackageDir, targetDir, 'junction')
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
 			throw error
 		}
 
 		try {
-			if (realpathSync(targetDir) === realpathSync(hostPluginSdkDir)) {
+			if (realpathSync(targetDir) === realpathSync(hostPackageDir)) {
 				return targetDir
 			}
 		} catch {
@@ -380,10 +431,18 @@ export function ensureHostPluginSdkLink(basedir?: string) {
 		}
 
 		rmSync(targetDir, { recursive: true, force: true })
-		symlinkSync(hostPluginSdkDir, targetDir, 'junction')
+		symlinkSync(hostPackageDir, targetDir, 'junction')
 	}
 
 	return targetDir
+}
+
+export function ensureHostPluginSdkLink(basedir?: string) {
+	return ensureHostRuntimePackageLink(HOSTED_PLUGIN_SDK_PACKAGE, basedir)
+}
+
+export function ensureHostContractsLink(basedir?: string) {
+	return ensureHostRuntimePackageLink(HOSTED_CONTRACTS_PACKAGE, basedir)
 }
 
 function readWorkspacePluginManifest(pluginName: string, workspacePath: string) {

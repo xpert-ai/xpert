@@ -89,20 +89,37 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 		return path.join(this.configService.assetOptions.serverRoot, getBuiltinToolsetBaseUrl(name), name)
 	}
 
-	private resolveIcon(icon: ProviderIcon): [Buffer, string] | null {
-		if (!icon) {
+	private resolveIcon(icon: ProviderIcon | unknown): [Buffer, string] | null {
+		if (!isObjectValue(icon)) {
 			return null
 		}
 
-		// IconDefinition shape.
-		if (icon.type === 'svg' && icon.value) {
-			return [Buffer.from(icon.value, 'utf-8'), 'image/svg+xml']
+		const type = getNonEmptyString(icon, 'type')
+		const value = getNonEmptyString(icon, 'value')
+
+		// Standard IconDefinition shape.
+		if (type === 'svg' && value) {
+			return [Buffer.from(value, 'utf-8'), 'image/svg+xml']
 		}
-		if (icon.type === 'image' && icon.value) {
-			return this.decodeBase64Image(icon.value)
+		if (type === 'image' && value) {
+			return this.decodeBase64Image(value)
 		}
 
-		throw new HttpException('Icon format not supported:' + icon.type, HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+		// Backward compatibility for older plugin builds that used { svg, color }.
+		const legacySvg = getNonEmptyString(icon, 'svg')
+		if (legacySvg) {
+			return [Buffer.from(legacySvg, 'utf-8'), 'image/svg+xml']
+		}
+
+		const legacyImage = getNonEmptyString(icon, 'image')
+		if (legacyImage) {
+			return this.decodeBase64Image(legacyImage)
+		}
+
+		throw new HttpException(
+			'Icon format not supported:' + (type ?? getNonEmptyString(icon, 'svg') ?? 'unknown'),
+			HttpStatus.UNSUPPORTED_MEDIA_TYPE
+		)
 	}
 
 	private decodeBase64Image(value: string): [Buffer, string] {
@@ -115,4 +132,18 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 
 		return [byteData, mimeType]
 	}
+}
+
+function isObjectValue(value: unknown): value is object {
+	return typeof value === 'object' && value !== null
+}
+
+function getNonEmptyString(value: object, key: string): string | null {
+	const candidate = Reflect.get(value, key)
+	if (typeof candidate !== 'string') {
+		return null
+	}
+
+	const normalized = candidate.trim()
+	return normalized ? normalized : null
 }

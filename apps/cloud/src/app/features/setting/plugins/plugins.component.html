@@ -552,9 +552,19 @@
           "
           [(ngModel)]="localWorkspacePath"
         />
+        <div class="text-xs text-text-tertiary">
+          {{
+            'PAC.Plugin.LocalWorkspacePathHint'
+              | translate
+                : {
+                    Default:
+                      'Add the plugin workspace path to the PLUGIN_WORKSPACE_ROOTS environment variable first.'
+                  }
+          }}
+        </div>
       </div>
       @if (localInstallError()) {
-        <div class="max-w-sm text-sm max-h-96 overflow-auto text-text-destructive">{{ localInstallError() }}</div>
+        <div class="max-w-xl text-sm max-h-96 overflow-auto whitespace-break-spaces text-text-destructive">{{ localInstallError() }}</div>
       }
       @if (localInstalling()) {
         <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />

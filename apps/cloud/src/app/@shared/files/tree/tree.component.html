@@ -13,11 +13,11 @@
   <div [class]="bodyClasses()">
     @if (hasContext()) {
       @if (flatItems().length) {
-        <div [class]="listClasses()">
+        <div [class]="cx('flex flex-col', sizePreset().listGap)">
           @for (item of flatItems(); track item.fullPath ?? item.filePath) {
-            <div [class]="itemRowClasses(item) + ' hover:bg-hover-bg'">
+            <div [class]="cx(itemRowClasses(item), 'hover:bg-hover-bg')" (click)="fileSelect.emit(item)">
               @for (level of item.levels; track $index) {
-                <div [class]="indentClasses()">
+                <div [class]="cx('flex h-full shrink-0 justify-center', sizePreset().indentWidth)">
                   <div class="w-px bg-divider-regular"></div>
                 </div>
               }
@@ -40,7 +40,7 @@
                 <span [class]="togglePlaceholderClasses()"></span>
               }
 
-              <button type="button" [class]="itemContentClasses()" (click)="fileSelect.emit(item)">
+              <button type="button" [class]="itemContentClasses()">
                 <i
                   [class]="itemIconClasses()"
                   [class.ri-folder-open-line]="item.hasChildren && item.expanded"

@@ -15,6 +15,7 @@
     "@langchain/langgraph": "0.4.7",
     "@langchain/ollama": "0.2.3",
     "@langchain/openai": "0.6.9",
+    "@metad/contracts": "3.8.4",
     "@swc/helpers": "0.5.3",
     "@xpert-ai/store": "workspace:*",
     "@xpert-ai/plugin-sdk": "workspace:*",

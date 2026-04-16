@@ -91,6 +91,32 @@ describe('UserService', () => {
 		)
 	})
 
+	it('loads current user with core relations by default', async () => {
+		const user = { id: 'user-1' }
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+
+		const result = await service.findCurrentUser('user-1')
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: ['employee', 'role', 'role.rolePermissions', 'tenant']
+		})
+		expect(result).toBe(user)
+	})
+
+	it('loads current user with requested relations merged into the core relations', async () => {
+		const user = { id: 'user-1' }
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+
+		const result = await service.findCurrentUser('user-1', ['organizations', 'organizations.organization'])
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: ['employee', 'role', 'role.rolePermissions', 'tenant', 'organizations', 'organizations.organization']
+		})
+		expect(result).toBe(user)
+	})
+
 	it('removes user organizations through the service and emits deletion events before soft deleting the user', async () => {
 		userRepository.findOne.mockResolvedValue({
 			id: 'user-1',

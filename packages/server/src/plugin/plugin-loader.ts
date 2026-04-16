@@ -4,7 +4,11 @@ import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'path'
-import { assertInstalledPluginSdkCompatibility, ensureHostPluginSdkLink } from './plugin-sdk-versioning'
+import {
+	assertInstalledPluginSdkCompatibility,
+	ensureHostContractsLink,
+	ensureHostPluginSdkLink
+} from './plugin-sdk-versioning'
 import { PluginLoadError } from './errors'
 
 export interface PluginLoadOptions {
@@ -82,7 +86,7 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 	}
 	const target = resolveFromBase(modName)
 	let errorMessage = ''
-	const preferredTsEntry = getPreferredWorkspaceTsEntry(opts)
+	const preferredTsEntry = getPreferredCodeTsEntry(modName, opts)
 
 	if (!production && preferredTsEntry) {
 		try {
@@ -130,6 +134,7 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 	}
 
 	ensureHostPluginSdkLink(opts.basedir)
+	ensureHostContractsLink(opts.basedir)
 	assertInstalledPluginSdkCompatibility(modName, opts.basedir)
 	const m = await loadModule(modName, opts)
 	const plugin = (m?.default ?? m) as XpertPlugin
@@ -147,12 +152,26 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 
 function getPreferredWorkspaceTsEntry(opts: PluginLoadOptions) {
 	const workspacePath = normalizeWorkspacePath(opts.workspacePath)
-	if (opts.source !== 'code' || !workspacePath) {
+	if (opts.source !== 'code' || !workspacePath || isWorkspaceTsEntryEsm(workspacePath)) {
 		return null
 	}
 
 	const tsEntry = getWorkspaceTsEntryPath(workspacePath)
 	return existsSync(tsEntry) ? tsEntry : null
+}
+
+function getPreferredCodeTsEntry(modName: string, opts: PluginLoadOptions) {
+	if (opts.source !== 'code') {
+		return null
+	}
+
+	const stagedEntry = getStagedPluginTsEntryPath(modName, opts.basedir)
+	if (stagedEntry) {
+		return stagedEntry
+	}
+
+	// Fallback only when there is no staged plugin basedir to load from.
+	return opts.basedir ? null : getPreferredWorkspaceTsEntry(opts)
 }
 
 function normalizeWorkspacePath(workspacePath?: string) {
@@ -161,6 +180,36 @@ function normalizeWorkspacePath(workspacePath?: string) {
 
 function getWorkspaceTsEntryPath(workspacePath: string) {
 	return resolve(workspacePath, 'src/index.ts')
+}
+
+function getStagedPluginTsEntryPath(modName: string, basedir?: string) {
+	if (!basedir) {
+		return null
+	}
+
+	const packageRoot = resolve(basedir, 'node_modules', ...modName.split('/'))
+	if (isWorkspaceTsEntryEsm(packageRoot)) {
+		return null
+	}
+
+	const tsEntry = getWorkspaceTsEntryPath(packageRoot)
+	return existsSync(tsEntry) ? tsEntry : null
+}
+
+function isWorkspaceTsEntryEsm(workspacePath: string) {
+	const packageJsonPath = resolve(workspacePath, 'package.json')
+	if (!existsSync(packageJsonPath)) {
+		return false
+	}
+
+	try {
+		const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { type?: string }
+		// ESM workspaces commonly use `.js` source specifiers and `import.meta`, which cannot be
+		// synchronously loaded through the CJS ts-node path below. Fall back to the staged package entry.
+		return packageJson.type === 'module'
+	} catch {
+		return false
+	}
 }
 
 function loadTsEntry(cjsRequire: NodeRequire, tsEntry: string) {

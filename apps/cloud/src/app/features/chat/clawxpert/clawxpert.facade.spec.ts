@@ -46,12 +46,145 @@ jest.mock('../../assistant/assistant.registry', () => ({
 }))
 
 jest.mock('../../xpert/draft/index', () => {
-  const triggerUtil = jest.requireActual('../../xpert/draft/xpert-draft-trigger.util')
-  const providerOption = jest.requireActual('../../xpert/draft/workflow-trigger-provider-option')
+  const XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING = 'xpert-draft-primary-agent-node-missing'
+  const CHAT_WORKFLOW_TRIGGER_PROVIDER = {
+    name: 'chat',
+    label: {
+      en_US: 'Chat',
+      zh_Hans: '聊天'
+    }
+  }
+
+  const clone = <T>(value: T): T => {
+    if (value == null || typeof value !== 'object') {
+      return value
+    }
+
+    return JSON.parse(JSON.stringify(value)) as T
+  }
+
+  const isWorkflowTriggerNode = (node: any) => node?.type === 'workflow' && node?.entity?.type === 'trigger'
+
+  const getPrimaryAgentNodeFromDraft = (draft: any) => {
+    const primaryAgentKey = draft?.team?.agent?.key
+    if (!primaryAgentKey) {
+      return null
+    }
+
+    return draft?.nodes?.find((node: any) => node?.type === 'agent' && node?.key === primaryAgentKey) ?? null
+  }
+
+  const readTriggerEditorItemsFromDraft = (draft: any, providers: any[] = []) => {
+    const providerMap = new Map(providers.map((provider) => [provider.name, provider]))
+
+    return (draft?.nodes ?? [])
+      .filter((node: any) => isWorkflowTriggerNode(node))
+      .map((node: any) => {
+        const providerName = `${node?.entity?.from ?? 'chat'}`.trim() || 'chat'
+        const provider =
+          providerMap.get(providerName) ?? {
+            name: providerName,
+            label: {
+              en_US: providerName,
+              zh_Hans: providerName
+            }
+          }
+
+        return {
+          nodeKey: node.key,
+          provider,
+          config: clone(node?.entity?.config)
+        }
+      })
+      .filter((item: any) => item.provider.name !== 'chat')
+  }
+
+  const upsertTriggerEditorItemsIntoDraft = (draft: any, items: any[]) => {
+    const draftNodeKeys = new Set((draft?.nodes ?? []).map((node: any) => node.key))
+    const newItems = items.filter((item) => !draftNodeKeys.has(item.nodeKey))
+    const primaryAgentNode = newItems.length ? getPrimaryAgentNodeFromDraft(draft) : null
+
+    if (newItems.length && !primaryAgentNode) {
+      throw new Error(XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING)
+    }
+
+    const configByNodeKey = new Map(items.map((item) => [item.nodeKey, clone(item.config)]))
+    const nextNodes = (draft?.nodes ?? []).map((node: any) => {
+      if (!isWorkflowTriggerNode(node) || !configByNodeKey.has(node.key)) {
+        return node
+      }
+
+      return {
+        ...node,
+        entity: {
+          ...node.entity,
+          config: configByNodeKey.get(node.key)
+        }
+      }
+    })
+
+    const nextConnections = [...(draft?.connections ?? [])]
+    const existingEdgeKeys = new Set(
+      nextConnections
+        .filter((connection: any) => connection.type === 'edge')
+        .map((connection: any) => `${connection.from}/${connection.to}`)
+    )
+    const baseTriggerNodes = nextNodes.filter((node: any) => isWorkflowTriggerNode(node))
+
+    const appendedNodes = newItems.map((item, index) => {
+      const position = baseTriggerNodes.length
+        ? {
+            x: baseTriggerNodes[0].position.x,
+            y: Math.max(...baseTriggerNodes.map((node: any) => node.position.y)) + (index + 1) * 120
+          }
+        : {
+            x: primaryAgentNode.position.x - 280,
+            y: primaryAgentNode.position.y + index * 120
+          }
+
+      return {
+        type: 'workflow',
+        key: item.nodeKey,
+        position,
+        entity: {
+          type: 'trigger',
+          key: item.nodeKey,
+          title: item.provider.name.trim(),
+          from: item.provider.name.trim(),
+          config: clone(item.config)
+        }
+      }
+    })
+
+    appendedNodes.forEach((node) => {
+      const connectionKey = `${node.key}/${primaryAgentNode.key}`
+      if (!existingEdgeKeys.has(connectionKey)) {
+        nextConnections.push({
+          type: 'edge',
+          key: connectionKey,
+          from: node.key,
+          to: primaryAgentNode.key
+        })
+        existingEdgeKeys.add(connectionKey)
+      }
+    })
+
+    return {
+      ...draft,
+      team: {
+        ...draft.team
+      },
+      nodes: [...nextNodes, ...appendedNodes],
+      connections: nextConnections
+    }
+  }
 
   return {
-    ...triggerUtil,
-    ...providerOption,
+    CHAT_WORKFLOW_TRIGGER_PROVIDER,
+    XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING,
+    readTriggerEditorItemsFromDraft,
+    upsertTriggerEditorItemsIntoDraft,
+    getPrimaryAgentNodeFromDraft,
     buildEditableXpertDraft: (xpert: { id?: string; draft?: any; graph?: { nodes?: any[]; connections?: any[] }; agent?: { key?: string } }) => ({
       team: {
         id: xpert?.draft?.team?.id ?? xpert?.id ?? null,
@@ -67,24 +200,27 @@ jest.mock('../../xpert/draft/index', () => {
 import { TestBed } from '@angular/core/testing'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
+import type { IAssistantBinding, IChatConversation, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
 import { of, Subject, throwError } from 'rxjs'
 import {
   AssistantBindingService,
   ChatConversationService,
   EnvironmentService,
-  IAssistantBinding,
-  IChatConversation,
-  IXpert,
   Store,
-  TXpertTeamDraft,
   ToastrService,
-  WorkflowNodeTypeEnum,
   XpertAPIService,
-  XpertTaskService,
-  XpertTypeEnum
+  XpertTaskService
 } from '../../../@core'
-import { WorkflowTriggerProviderOption } from '../../xpert/draft/workflow-trigger-provider-option'
+import type { WorkflowTriggerProviderOption } from '../../xpert/draft/workflow-trigger-provider-option'
 import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
+
+const WorkflowNodeTypeEnum = {
+  TRIGGER: 'trigger'
+} as const
+
+const XpertTypeEnum = {
+  Agent: 'agent'
+} as const
 
 async function flushPromises() {
   for (let index = 0; index < 3; index++) {
@@ -97,6 +233,7 @@ async function flushPromises() {
 function createXpert(id: string, name = id, overrides?: Partial<IXpert>): IXpert {
   return {
     id,
+    slug: id,
     name,
     latest: true,
     type: XpertTypeEnum.Agent,
@@ -142,14 +279,11 @@ function createConversation(id: string, overrides?: Partial<IChatConversation>):
   } as IChatConversation
 }
 
-function createConversationPreferences(overrides?: { defaultThreadId?: string | null; lastThreadId?: string | null }) {
+function createConversationPreferences(overrides?: { defaultThreadId?: string | null }) {
   return {
-    version: 1 as const,
+    version: 2 as const,
     ...(Object.prototype.hasOwnProperty.call(overrides ?? {}, 'defaultThreadId')
       ? { defaultThreadId: overrides?.defaultThreadId ?? null }
-      : {}),
-    ...(Object.prototype.hasOwnProperty.call(overrides ?? {}, 'lastThreadId')
-      ? { lastThreadId: overrides?.lastThreadId ?? null }
       : {})
   }
 }
@@ -980,8 +1114,7 @@ describe('ClawXpertFacade', () => {
     assistantBindingService.getPreference.mockReturnValue(
       of({
         conversationPreferences: createConversationPreferences({
-          defaultThreadId: 'thread-main',
-          lastThreadId: 'thread-last'
+          defaultThreadId: 'thread-main'
         })
       })
     )
@@ -990,18 +1123,40 @@ describe('ClawXpertFacade', () => {
     await flushPromises()
 
     expect(facade.defaultThreadId()).toBe('thread-main')
-    expect(facade.lastThreadId()).toBe('thread-last')
   })
 
-  it('restores the saved main conversation before any fallback', async () => {
+  it('persists the active thread as defaultThreadId once the conversation route is ready', async () => {
+    router.url = '/chat/clawxpert/c/thread-current'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          defaultThreadId: 'thread-current'
+        })
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(assistantBindingService.upsertPreference).toHaveBeenCalledWith('clawxpert', {
+      scope: 'user',
+      conversationPreferences: createConversationPreferences({
+        defaultThreadId: 'thread-current'
+      })
+    })
+    expect(facade.defaultThreadId()).toBe('thread-current')
+  })
+
+  it('restores the saved default thread before falling back to a fresh lookup', async () => {
     router.url = '/chat/clawxpert/c'
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
     assistantBindingService.getPreference.mockReturnValue(
       of({
         conversationPreferences: createConversationPreferences({
-          defaultThreadId: 'thread-main',
-          lastThreadId: 'thread-last'
+          defaultThreadId: 'thread-main'
         })
       })
     )
@@ -1021,28 +1176,31 @@ describe('ClawXpertFacade', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-main'])
   })
 
-  it('clears an invalid main conversation and falls back to the last thread', async () => {
+  it('clears an invalid saved default thread and falls back to the latest updated conversation', async () => {
     router.url = '/chat/clawxpert/c'
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
     assistantBindingService.getPreference.mockReturnValue(
       of({
         conversationPreferences: createConversationPreferences({
-          defaultThreadId: 'thread-main',
-          lastThreadId: 'thread-last'
+          defaultThreadId: 'thread-stale'
         })
       })
     )
     assistantBindingService.upsertPreference.mockReturnValue(
       of({
-        conversationPreferences: createConversationPreferences({
-          lastThreadId: 'thread-last'
-        })
+        conversationPreferences: null
       })
     )
     conversationService.getByThreadId
       .mockReturnValueOnce(of(null))
-      .mockReturnValueOnce(of(createConversation('conversation-last', { threadId: 'thread-last', xpertId: 'xpert-threads' })))
+      .mockReturnValueOnce(of(createConversation('conversation-main', { threadId: 'thread-main', xpertId: 'xpert-threads' })))
+    conversationService.findAllByXpert.mockReturnValue(
+      of({
+        items: [createConversation('conversation-main', { threadId: 'thread-main', xpertId: 'xpert-threads' })],
+        total: 1
+      })
+    )
 
     const facade = TestBed.inject(ClawXpertFacade)
     await flushPromises()
@@ -1053,12 +1211,15 @@ describe('ClawXpertFacade', () => {
 
     expect(assistantBindingService.upsertPreference).toHaveBeenCalledWith('clawxpert', {
       scope: 'user',
-      conversationPreferences: createConversationPreferences({
-        defaultThreadId: null,
-        lastThreadId: 'thread-last'
-      })
+      conversationPreferences: null
     })
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-last'])
+    expect(conversationService.findAllByXpert).toHaveBeenCalledWith('xpert-threads', {
+      take: 1,
+      order: {
+        updatedAt: 'DESC'
+      }
+    })
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-main'])
   })
 
   it('falls back to the latest updated conversation when no saved thread exists', async () => {
@@ -1111,14 +1272,70 @@ describe('ClawXpertFacade', () => {
     expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
   })
 
+  it('suppresses auto resume when chatkit resets an active thread to start a new conversation', async () => {
+    router.url = '/chat/clawxpert/c/thread-active'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          defaultThreadId: 'thread-main'
+        })
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    facade.onChatThreadChange(null)
+    await flushPromises()
+
+    expect(facade.suppressAutoResume()).toBe(true)
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c'])
+
+    router.navigate.mockClear()
+    router.url = '/chat/clawxpert/c'
+    router.events.next(new NavigationEnd(1, router.url, router.url))
+    await flushPromises()
+
+    const focusComposer = jest.fn()
+    await facade.ensureConversationEntry({
+      focusComposer
+    } as any)
+
+    expect(focusComposer).toHaveBeenCalled()
+    expect(router.navigate).not.toHaveBeenCalled()
+    expect(conversationService.getByThreadId).not.toHaveBeenCalled()
+    expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
+  })
+
+  it('navigates to the new chatkit thread after a blank conversation is created', async () => {
+    router.url = '/chat/clawxpert/c/thread-active'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    facade.onChatThreadChange(null)
+    await flushPromises()
+
+    router.navigate.mockClear()
+
+    facade.onChatThreadChange('thread-new')
+    await flushPromises()
+
+    expect(facade.suppressAutoResume()).toBe(false)
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-new'])
+  })
+
   it('clears saved conversation pointers when rebinding to a different ClawXpert', async () => {
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-old')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-old', 'Old Xpert')]))
     assistantBindingService.getPreference.mockReturnValue(
       of({
         conversationPreferences: createConversationPreferences({
-          defaultThreadId: 'thread-old',
-          lastThreadId: 'thread-old'
+          defaultThreadId: 'thread-old'
         })
       })
     )

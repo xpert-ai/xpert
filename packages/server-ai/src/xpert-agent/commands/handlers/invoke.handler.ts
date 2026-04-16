@@ -9,6 +9,7 @@ import {
     KnowledgeTask,
     LanguagesEnum,
     mapTranslationLanguage,
+    STATE_SYS_THREAD_ID,
     STATE_SYS_VOLUME,
     STATE_SYS_WORKSPACE_PATH,
     STATE_SYS_WORKSPACE_URL,
@@ -19,25 +20,29 @@ import {
     TXpertAgentConfig,
     XpertAgentExecutionStatusEnum,
     figureOutXpert,
+    getXpertAgentRecursionLimit,
     IXpert
 } from '@xpert-ai/contracts'
-import { AgentRecursionLimit, isNil } from '@xpert-ai/copilot'
+import { isNil } from '@xpert-ai/copilot'
 import { RequestContext } from '@xpert-ai/server-core'
 import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { InjectRepository } from '@nestjs/typeorm'
 import { format } from 'date-fns/format'
 import { pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
+import { Repository } from 'typeorm'
 import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
+import { ChatMessage } from '../../../chat-message/chat-message.entity'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createMapStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService, mergeRuntimeContextWithEnv } from '../../../environment'
-import { getWorkspace, VolumeClient, ExecutionCancelService } from '../../../shared'
+import { VolumeClient, ExecutionCancelService } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
@@ -52,8 +57,41 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly checkpointSaver: CopilotCheckpointSaver,
         private readonly envService: EnvironmentService,
         private readonly i18nService: I18nService,
-        private readonly executionCancelService: ExecutionCancelService
+        private readonly executionCancelService: ExecutionCancelService,
+        @InjectRepository(ChatMessage)
+        private readonly chatMessageRepository: Repository<ChatMessage>
     ) {}
+
+    private async downgradePendingSteerFollowUpsToQueue(conversationId?: string, executionId?: string) {
+        if (!conversationId || !executionId) {
+            return []
+        }
+
+        const pendingMessages = await this.chatMessageRepository.find({
+            where: {
+                conversationId,
+                targetExecutionId: executionId,
+                followUpMode: 'steer',
+                followUpStatus: 'pending'
+            },
+            order: {
+                createdAt: 'ASC'
+            }
+        })
+
+        if (!pendingMessages.length) {
+            return []
+        }
+
+        await this.chatMessageRepository.save(
+            pendingMessages.map((message) => ({
+                ...message,
+                followUpMode: 'queue' as const
+            }))
+        )
+
+        return pendingMessages.map((message) => message.id).filter((id): id is string => Boolean(id))
+    }
 
     public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
         const { state, agentKeyOrName, xpert, options } = command
@@ -65,8 +103,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const mute = [] as TXpertAgentConfig['mute']
         let unmutes = [] as TXpertAgentConfig['mute']
         const threadId = options.thread_id
-        const workspacePath = await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, threadId)
-        const workspaceUrl = VolumeClient.getWorkspaceUrl(options.projectId, userId, threadId)
+        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, options.projectId, userId)
+        const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(options.projectId, userId)
         const latestXpert = figureOutXpert(xpert as IXpert, options?.isDraft)
         const sandboxFeature = latestXpert.features?.sandbox
         const sandboxEnvironmentId = options?.sandboxEnvironmentId
@@ -198,17 +236,12 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const languageCode = options.language || user.preferredLanguage || 'en-US'
         const runtimeContext = mergeRuntimeContextWithEnv(options.context, options.environment)
-        const volumeClient = new VolumeClient({
-            tenantId,
-            catalog: 'users',
-            userId,
-            projectId: options.projectId
-        })
         const runtimeSystemState = buildRuntimeSystemState(state?.[STATE_VARIABLE_SYS], {
             language: languageCode,
             userEmail: user.email,
             timezone: user.timeZone || options.timeZone,
-            volume: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),
+            threadId,
+            volume: workspacePath,
             workspacePath,
             workspaceUrl
         })
@@ -271,7 +304,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             }
         }
 
-        const recursionLimit = team.agentConfig?.recursionLimit ?? AgentRecursionLimit
+        const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
         const contentStream = from(
             graph.streamEvents(graphInput, {
                 version: 'v2',
@@ -282,8 +315,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     language: languageCode,
                     userId,
                     executionId: execution.id,
+                    rootExecutionId: options.rootExecutionId ?? execution.id,
                     xpertId: xpert.id,
                     agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
+                    rootAgentKey: agent.key,
                     sandbox: sandboxContext,
                     copilotModel,
                     ...(runtimeContext ? { context: runtimeContext } : {}),
@@ -309,6 +344,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     (async () => {
                         // Record last state when exception
                         await recordLastState()
+                        await this.downgradePendingSteerFollowUpsToQueue(options.conversationId, execution?.id)
                         // Translate recursion limit error
                         if (err instanceof GraphRecursionError) {
                             const recursionLimitReached = await this.i18nService.t(
@@ -349,6 +385,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         } as MessageEvent)
                         throw new NodeInterrupt(`Confirm tool calls`)
                     }
+                    await this.downgradePendingSteerFollowUpsToQueue(options.conversationId, execution?.id)
                     return null
                 })
             )
@@ -389,6 +426,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                                 error: 'Aborted!'
                             })
                         )
+                        await this.downgradePendingSteerFollowUpsToQueue(options.conversationId, execution?.id)
                     } catch (err) {
                         //
                     }
@@ -509,6 +547,7 @@ function buildRuntimeSystemState(
         language: string
         userEmail?: string
         timezone?: string
+        threadId?: string
         volume?: string
         workspacePath?: string
         workspaceUrl?: string
@@ -524,6 +563,7 @@ function buildRuntimeSystemState(
         timezone: options.timezone,
         date: format(now, 'yyyy-MM-dd'),
         datetime: now.toLocaleString(),
+        [STATE_SYS_THREAD_ID]: options.threadId,
         [STATE_SYS_VOLUME]: options.volume,
         [STATE_SYS_WORKSPACE_PATH]: options.workspacePath,
         [STATE_SYS_WORKSPACE_URL]: options.workspaceUrl

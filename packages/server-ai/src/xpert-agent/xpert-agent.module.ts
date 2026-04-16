@@ -5,6 +5,7 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AgentMiddlewareRegistry, WorkflowNodeRegistry, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
+import { ChatMessage } from '../chat-message/chat-message.entity'
 import { EnvironmentModule } from '../environment'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { XpertModule } from '../xpert/xpert.module'
@@ -22,7 +23,7 @@ import { SkillPackageModule } from '../skill-package'
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert-agent', module: XpertAgentModule }]),
-        TypeOrmModule.forFeature([XpertAgent]),
+        TypeOrmModule.forFeature([XpertAgent, ChatMessage]),
         TenantModule,
         RedisModule,
         CqrsModule,

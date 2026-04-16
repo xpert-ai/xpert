@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http'
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { linkedModel } from '@xpert-ai/core'
 import { omit, uniq } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -43,6 +44,10 @@ import { filterLatestMessages } from '../@shared/chat/filter-latest-messages'
 import { buildResumeDecision, extractInterruptPatch } from '../@shared/chat/interrupt-request'
 import { XpertHomeService } from './home.service'
 import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/chat/context/thread-context-usage'
+import {
+  parseFollowUpConsumedEvent,
+  resolveFollowUpConsumedIds
+} from '../@shared/chat/context/follow-up-consumed'
 import { TCopilotChatMessage } from './types'
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
@@ -56,6 +61,13 @@ function createRetryPlaceholderMessage(): TCopilotChatMessage {
     content: '',
     status: 'thinking'
   }
+}
+
+export type PendingFollowUp = {
+  id?: string
+  content: string
+  files?: Partial<IStorageFile>[]
+  mode: 'queue' | 'steer'
 }
 
 /**
@@ -92,9 +104,11 @@ export abstract class ChatService {
   readonly toolsets = signal<IXpertToolset[]>([])
 
   readonly answering = signal<boolean>(false)
+  readonly pendingFollowUps = signal<PendingFollowUp[]>([])
   readonly contextUsageByAgentKey = signal<Record<string, TThreadContextUsageEvent>>({})
   protected chatSubscription: Subscription = null
   private readonly messageAppendContextTracker = createMessageAppendContextTracker()
+  private shouldStartFreshAssistantMessageAfterSteer = false
 
   readonly lang = this.appService.lang
 
@@ -277,15 +291,6 @@ export abstract class ChatService {
 
   ask(content: string, params: { files: { id: string }[] }) {
     const id = uuid()
-    const humanMessage: TCopilotChatMessage = {
-      id,
-      role: 'user',
-      content
-    }
-    if (params?.files?.length) {
-      humanMessage.attachments = params.files as IStorageFile[]
-    }
-    this.appendMessage(humanMessage)
     this.sendMessage({ id, content, files: params.files })
   }
 
@@ -296,7 +301,36 @@ export abstract class ChatService {
     return this.chatService.chat(request, options)
   }
 
-  sendMessage(options: { id?: string; content: string; files?: Partial<IStorageFile>[] }) {
+  sendMessage(options: {
+    id?: string
+    content: string
+    files?: Partial<IStorageFile>[]
+    followUpMode?: 'queue' | 'steer'
+  }) {
+    const content = options.content?.trim()
+    if (!content) {
+      return
+    }
+
+    if (this.answering() && this.conversation()?.id) {
+      this.enqueueFollowUp({
+        ...options,
+        content,
+        mode: options.followUpMode ?? 'steer'
+      })
+      return
+    }
+
+    const humanMessage: TCopilotChatMessage = {
+      id: options.id ?? uuid(),
+      role: 'user',
+      content
+    }
+    if (options.files?.length) {
+      humanMessage.attachments = options.files as IStorageFile[]
+    }
+    this.appendMessage(humanMessage)
+
     const request: TChatRequest = {
       action: 'send',
       conversationId: this.conversation()?.id,
@@ -305,7 +339,7 @@ export abstract class ChatService {
         clientMessageId: options.id,
         input: {
           ...(this.parametersValue() ?? {}),
-          input: options.content,
+          input: content,
           files: options.files
         }
       }
@@ -313,7 +347,7 @@ export abstract class ChatService {
 
     this.executeChatRequest(request, {
       mode: 'send',
-      content: options.content
+      content
     })
   }
 
@@ -504,7 +538,15 @@ export abstract class ChatService {
                       content: ``,
                       status: 'thinking'
                     })
+                  } else if (this.shouldStartFreshAssistantMessageAfterSteer) {
+                    this.appendMessage({
+                      id: uuid(),
+                      role: 'ai',
+                      content: ``,
+                      status: 'thinking'
+                    })
                   }
+                  this.shouldStartFreshAssistantMessageAfterSteer = false
                   this.updateLatestMessage((lastM) => {
                     return {
                       ...lastM,
@@ -536,6 +578,13 @@ export abstract class ChatService {
                 case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
                   if (isThreadContextUsageEvent(event.data)) {
                     this.setContextUsage(event.data)
+                    break
+                  }
+
+                  const followUpConsumedEvent = parseFollowUpConsumedEvent(event.data)
+                  if (followUpConsumedEvent) {
+                    this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
+                    this.shouldStartFreshAssistantMessageAfterSteer = true
                     break
                   }
 
@@ -583,6 +632,7 @@ export abstract class ChatService {
       },
       error: (error) => {
         this.answering.set(false)
+        this.shouldStartFreshAssistantMessageAfterSteer = false
         this.messageAppendContextTracker.reset()
         this.#toastr.error(getErrorMessage(error))
         this.updateLatestMessage((message) => {
@@ -592,9 +642,12 @@ export abstract class ChatService {
             error: getErrorMessage(error)
           }
         })
+        this.downgradePendingSteerFollowUpsToQueue()
+        this.drainQueuedFollowUps()
       },
       complete: () => {
         this.answering.set(false)
+        this.shouldStartFreshAssistantMessageAfterSteer = false
         this.messageAppendContextTracker.reset()
         this.updateLatestMessage((message) => {
           return {
@@ -607,6 +660,8 @@ export abstract class ChatService {
           const lastMessage = this.#messages()[this.#messages().length - 1]
           this.onSuggestionQuestions(lastMessage.id)
         }
+        this.downgradePendingSteerFollowUpsToQueue()
+        this.drainQueuedFollowUps()
       }
     })
   }
@@ -614,6 +669,7 @@ export abstract class ChatService {
   cancelMessage() {
     this.chatSubscription?.unsubscribe()
     this.answering.set(false)
+    this.shouldStartFreshAssistantMessageAfterSteer = false
 
     // Update conversation status to indicate it's no longer busy
     // This will stop the relativeTimes pipe from updating (condition: conversationStatus === 'busy')
@@ -632,6 +688,9 @@ export abstract class ChatService {
         status: lastM.role === 'ai' ? XpertAgentExecutionStatusEnum.SUCCESS : lastM.status
       }
     })
+
+    this.downgradePendingSteerFollowUpsToQueue()
+    this.drainQueuedFollowUps()
   }
 
   // Suggestion Questions
@@ -653,6 +712,8 @@ export abstract class ChatService {
 
   setConversation(id: string) {
     if (id !== this.conversationId()) {
+      this.pendingFollowUps.set([])
+      this.shouldStartFreshAssistantMessageAfterSteer = false
       if (this.answering() && this.conversation()?.id) {
         this.cancelMessage()
       }
@@ -695,9 +756,21 @@ export abstract class ChatService {
 
   updateLatestMessage(updateFn: (value: TCopilotChatMessage) => TCopilotChatMessage) {
     this.#messages.update((messages) => {
-      const lastMessage = messages[messages.length - 1] as TCopilotChatMessage
-      messages[messages.length - 1] = updateFn(lastMessage)
-      return [...messages]
+      const nextMessages = [...(messages ?? [])]
+      let lastMessageIndex = -1
+      for (let i = nextMessages.length - 1; i >= 0; i--) {
+        if (nextMessages[i]?.role === 'ai') {
+          lastMessageIndex = i
+          break
+        }
+      }
+      if (lastMessageIndex < 0) {
+        return nextMessages
+      }
+
+      const lastMessage = nextMessages[lastMessageIndex] as TCopilotChatMessage
+      nextMessages[lastMessageIndex] = updateFn(lastMessage)
+      return nextMessages
     })
   }
 
@@ -712,6 +785,162 @@ export abstract class ChatService {
 
   appendMessage(message: TCopilotChatMessage) {
     this.#messages.update((messages) => [...(messages ?? []), message])
+  }
+
+  private enqueueFollowUp(item: PendingFollowUp) {
+    this.pendingFollowUps.update((state) => [...(state ?? []), item])
+
+    if (item.mode !== 'steer') {
+      return
+    }
+
+    this.requestSteerFollowUp(item)
+  }
+
+  steerPendingFollowUp(id: string) {
+    const item = this.pendingFollowUps().find((entry) => entry.id === id)
+    if (!item || item.mode === 'steer') {
+      return
+    }
+
+    const steerItem: PendingFollowUp = {
+      ...item,
+      mode: 'steer'
+    }
+
+    this.pendingFollowUps.update((state) =>
+      (state ?? []).map((entry) => (entry.id === id ? steerItem : entry))
+    )
+
+    if (!this.answering() || !this.conversation()?.id) {
+      return
+    }
+
+    this.requestSteerFollowUp(steerItem)
+  }
+
+  closeQueue() {
+    const queuedItems = this.pendingFollowUps().filter((item) => item.mode === 'queue')
+    if (!queuedItems.length) {
+      return
+    }
+
+    this.pendingFollowUps.update((state) =>
+      (state ?? []).map((item) => (item.mode === 'queue' ? { ...item, mode: 'steer' } : item))
+    )
+
+    if (!this.answering() || !this.conversation()?.id) {
+      return
+    }
+
+    queuedItems.forEach((item) => {
+      this.requestSteerFollowUp({
+        ...item,
+        mode: 'steer'
+      })
+    })
+  }
+
+  private requestSteerFollowUp(item: PendingFollowUp) {
+    const lastAiMessage = [...this.messages()].reverse().find((message) => message?.role === 'ai')
+    const request: TChatRequest = {
+      action: 'follow_up',
+      conversationId: this.conversation()?.id,
+      mode: 'steer',
+      target: {
+        aiMessageId: lastAiMessage?.id,
+        executionId: lastAiMessage?.executionId
+      },
+      message: {
+        clientMessageId: item.id,
+        input: {
+          ...(this.parametersValue() ?? {}),
+          input: item.content,
+          files: item.files
+        }
+      }
+    }
+
+    this.chatRequest(this.xpert()?.slug, request, {
+      xpertId: this.xpert()?.id,
+      messageId: item.id
+    })
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        error: () => {
+          this.pendingFollowUps.update((state) =>
+            (state ?? []).map((entry) => (entry.id === item.id ? { ...entry, mode: 'queue' } : entry))
+          )
+        }
+      })
+  }
+
+  removePendingFollowUp(id: string) {
+    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => item.id !== id))
+  }
+
+  clearPendingFollowUps() {
+    this.pendingFollowUps.set([])
+  }
+
+  private flushPendingSteerFollowUps(ids: string[]) {
+    if (!ids.length) {
+      return
+    }
+
+    const idSet = new Set(ids)
+    const steerItems = this.pendingFollowUps().filter(
+      (item) => item.mode === 'steer' && idSet.has(item.id ?? '')
+    )
+
+    if (!steerItems.length) {
+      return
+    }
+
+    steerItems.forEach((item) => {
+      const message: TCopilotChatMessage = {
+        id: item.id ?? uuid(),
+        role: 'human',
+        content: item.content
+      }
+      if (item.files?.length) {
+        message.attachments = item.files as IStorageFile[]
+      }
+      this.appendMessage(message)
+    })
+    this.pendingFollowUps.update((state) =>
+      (state ?? []).filter((item) => !(item.mode === 'steer' && idSet.has(item.id ?? '')))
+    )
+  }
+
+  private downgradePendingSteerFollowUpsToQueue() {
+    this.pendingFollowUps.update((state) =>
+      (state ?? []).map((item) => (item.mode === 'steer' ? { ...item, mode: 'queue' } : item))
+    )
+  }
+
+  updatePendingFollowUp(item: PendingFollowUp) {
+    this.pendingFollowUps.update((state) => {
+      const existing = state?.find((entry) => entry.id === item.id)
+      if (!existing) {
+        return state
+      }
+      return state.map((entry) => (entry.id === item.id ? { ...entry, ...item } : entry))
+    })
+  }
+
+  private drainQueuedFollowUps() {
+    if (this.answering()) {
+      return
+    }
+
+    const next = this.pendingFollowUps().find((item) => item.mode === 'queue')
+    if (!next) {
+      return
+    }
+
+    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => item.id !== next.id))
+    this.sendMessage(next)
   }
 
   updateEvent(event) {

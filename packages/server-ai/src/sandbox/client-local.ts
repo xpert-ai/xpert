@@ -125,12 +125,7 @@ export class SandboxLocal extends Sandbox {
 
 export class GitLocalClient extends GitClient {
 	async getWorkspacePath() {
-		return await VolumeClient.getWorkspacePath(
-			this.params.tenantId,
-			this.params.projectId,
-			this.params.userId,
-			this.params.conversationId
-		)
+		return await VolumeClient.getSharedWorkspacePath(this.params.tenantId, this.params.projectId, this.params.userId)
 	}
 
 	async execGit(command: string, repoPath: string) {

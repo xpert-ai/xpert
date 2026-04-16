@@ -55,6 +55,12 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 				reason: 'Missing callback.messageType in agent chat dispatch payload'
 			}
 		}
+		if (request.action === 'send' && !request.message?.input) {
+			return {
+				status: 'dead',
+				reason: 'Invalid send request in agent chat dispatch payload: message.input is required'
+			}
+		}
 
 		this.logger.debug(`Processing agent chat dispatch message "${message.id}" with request:`, request, 'and options:', options)
 		return this.runTaskWithRequestContext(message, async () => {

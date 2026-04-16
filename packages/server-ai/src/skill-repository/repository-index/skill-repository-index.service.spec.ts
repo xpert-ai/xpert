@@ -47,6 +47,7 @@ describe('SkillRepositoryIndexService', () => {
 	}
 	let skillRepositoryService: {
 		findOneByIdString: jest.Mock
+		localizeRepository: jest.Mock
 		updateLastSyncAt: jest.Mock
 	}
 	let strategy: {
@@ -66,6 +67,7 @@ describe('SkillRepositoryIndexService', () => {
 				id: 'repo-1',
 				provider: 'clawhub'
 			}),
+			localizeRepository: jest.fn((repository) => repository ? { ...repository, name: `${repository.name} (localized)` } : repository),
 			updateLastSyncAt: jest.fn().mockResolvedValue(undefined)
 		}
 		strategy = {
@@ -203,7 +205,12 @@ describe('SkillRepositoryIndexService', () => {
 						repositoryId: 'repo-1',
 						skillId: 'weather',
 						skillPath: 'weather',
-						name: 'Weather'
+						name: 'Weather',
+						repository: {
+							id: 'repo-1',
+							name: 'Workspace Shared Skills',
+							provider: 'workspace-public'
+						}
 					}
 				],
 				1
@@ -227,11 +234,20 @@ describe('SkillRepositoryIndexService', () => {
 		expect(queryBuilder.take).toHaveBeenCalledWith(24)
 		expect(queryBuilder.addOrderBy).toHaveBeenCalledWith('skill.updatedAt', 'DESC')
 		expect(queryBuilder.getManyAndCount).toHaveBeenCalled()
+		expect(skillRepositoryService.localizeRepository).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'repo-1',
+				name: 'Workspace Shared Skills'
+			})
+		)
 		expect(result).toEqual({
 			items: [
 				expect.objectContaining({
 					id: 'skill-1',
-					skillId: 'weather'
+					skillId: 'weather',
+					repository: expect.objectContaining({
+						name: 'Workspace Shared Skills (localized)'
+					})
 				})
 			],
 			total: 1

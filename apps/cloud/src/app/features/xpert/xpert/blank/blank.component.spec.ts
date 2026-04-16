@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { Store } from '@xpert-ai/cloud/state'
 import { of } from 'rxjs'
 import {
+  AiModelTypeEnum,
   EnvironmentService,
   KnowledgebaseService,
   SkillPackageService,
@@ -608,6 +609,65 @@ describe('XpertNewBlankComponent', () => {
         }
       },
       status: 'created'
+    })
+  })
+
+  it('seeds selected middleware model options from the chosen primary model before saving the draft', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert,
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'SummarizationMiddleware',
+              label: {
+                en_US: 'Summarization Middleware'
+              },
+              configSchema: {
+                type: 'object',
+                properties: {
+                  model: {
+                    type: 'object',
+                    'x-ui': {
+                      component: 'ai-model-select',
+                      inputs: {
+                        modelType: AiModelTypeEnum.LLM
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    component.copilotModel.set({
+      copilotId: 'copilot-qwen',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'qwen3.6-plus'
+    } as any)
+    component.selectedMiddlewares.set(['SummarizationMiddleware'])
+
+    component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    const savedDraft = xpertService.saveDraft.mock.calls[0][1]
+    const middlewareNode = savedDraft.nodes.find(
+      (node: any) => node.type === 'workflow' && node.entity?.provider === 'SummarizationMiddleware'
+    )
+
+    expect(middlewareNode.entity.options.model).toEqual({
+      copilotId: 'copilot-qwen',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'qwen3.6-plus'
     })
   })
 

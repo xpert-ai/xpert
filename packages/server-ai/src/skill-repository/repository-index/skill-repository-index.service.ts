@@ -158,7 +158,13 @@ export class SkillRepositoryIndexService extends TenantOrganizationAwareCrudServ
 		}
 
 		const [items, total] = await query.getManyAndCount()
-		return { items, total }
+		return {
+			items: items.map((item) => ({
+				...item,
+				repository: this.skillRepositoryService.localizeRepository(item.repository)
+			})),
+			total
+		}
 	}
 
 	/**

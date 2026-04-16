@@ -65,6 +65,7 @@ import {
   take
 } from 'rxjs'
 import {
+  BlankMiddlewareDefinition,
   BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BlankTriggerSelection,
   BlankWorkflowStarterNodeKey,
@@ -1022,7 +1023,10 @@ export class XpertNewBlankComponent {
 
     try {
       const team = await this.getDraftTeam(xpert)
-      const draft = await buildBlankXpertDraft(team, this.getSelections())
+      const draft = await buildBlankXpertDraft(team, this.getSelections(), {
+        defaultCopilotModel: team.agent?.copilotModel ?? team.copilotModel ?? this.copilotModel() ?? null,
+        middlewareDefinitions: this.getSelectedMiddlewareDefinitions()
+      })
       const savedDraft = await firstValueFrom(this.xpertService.saveDraft(xpert.id, draft))
       return {
         xpert: {
@@ -1169,6 +1173,16 @@ export class XpertNewBlankComponent {
       skills: this.selectedSkills(),
       middlewares: this.selectedMiddlewares()
     }
+  }
+
+  private getSelectedMiddlewareDefinitions(): BlankMiddlewareDefinition[] {
+    const selected = new Set(this.selectedMiddlewares())
+    return this.middlewareProviders()
+      .map(({ meta }) => ({
+        name: meta.name,
+        configSchema: meta.configSchema
+      }))
+      .filter((definition) => selected.has(definition.name))
   }
 
   private getKnowledgeSelections() {

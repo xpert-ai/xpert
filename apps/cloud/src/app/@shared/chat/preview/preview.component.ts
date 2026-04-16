@@ -47,7 +47,8 @@ import {
   uuid,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
-  XpertAPIService
+  XpertAPIService,
+  Store
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
@@ -66,9 +67,17 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { filterLatestMessages } from '../filter-latest-messages'
 import { buildResumeDecision, extractInterruptPatch } from '../interrupt-request'
 import { isThreadContextUsageEvent } from '../context/thread-context-usage'
+import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../context/follow-up-consumed'
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
   return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
+}
+
+type PendingFollowUp = {
+  id: string
+  input: string
+  files?: IStorageFile[]
+  mode: 'queue' | 'steer'
 }
 
 @Component({
@@ -106,6 +115,7 @@ export class ChatConversationPreviewComponent {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly #clipboard = inject(Clipboard)
+  readonly #store = inject(Store)
   readonly confirmDel = injectConfirmDelete()
   readonly #audioRecorder = inject(AudioRecorderService)
   readonly #synthesizeService = inject(SynthesizeService)
@@ -162,6 +172,8 @@ export class ChatConversationPreviewComponent {
   readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
   readonly inputLength = computed(() => this.input()?.length ?? 0)
   readonly loading = signal(false)
+  readonly pendingFollowUps = signal<PendingFollowUp[]>([])
+  readonly followUpBehavior = signal<'queue' | 'steer'>(this.readPersistedFollowUpBehavior())
 
   readonly output = signal('')
 
@@ -238,6 +250,7 @@ export class ChatConversationPreviewComponent {
 
   private chatSubscription: Subscription
   private readonly messageAppendContextTracker = createMessageAppendContextTracker()
+  private shouldStartFreshAssistantMessageAfterSteer = false
 
   // Attachments
   readonly attachment = computed(() => this.xpert()?.features?.attachment)
@@ -281,10 +294,10 @@ export class ChatConversationPreviewComponent {
     this.#destroyRef.onDestroy(() => {
       this.#destroyed = true
     })
-  }
 
-  sendMessage(input: string) {
-    this.chat({ input })
+    effect(() => {
+      this.persistFollowUpBehavior(this.followUpBehavior())
+    })
   }
 
   resumeOperation(decision: TXpertChatResumeDecision['type'], command?: TInterruptCommand) {
@@ -315,8 +328,21 @@ export class ChatConversationPreviewComponent {
     reject?: boolean
     retry?: boolean
     checkpointId?: string
+    followUpBehavior?: 'queue' | 'steer'
   }) {
-    if (this.loading()) return
+    if (this.loading()) {
+      if (!options?.input || this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+        return
+      }
+
+      void this.enqueueFollowUp({
+        id: options?.messageId ?? uuid(),
+        input: options.input,
+        files: options?.files ?? this.files(),
+        mode: options?.followUpBehavior ?? this.followUpBehavior()
+      })
+      return
+    }
 
     this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
@@ -458,10 +484,17 @@ export class ChatConversationPreviewComponent {
                     break
                   }
                   case ChatMessageEventTypeEnum.ON_MESSAGE_START: {
-                    this.currentMessage.update((state) => ({
-                      ...state,
-                      ...event.data
-                    }))
+                    if (this.shouldStartFreshAssistantMessageAfterSteer || !this.currentMessage()) {
+                      this.currentMessage.set({
+                        ...event.data
+                      })
+                    } else {
+                      this.currentMessage.update((state) => ({
+                        ...state,
+                        ...event.data
+                      }))
+                    }
+                    this.shouldStartFreshAssistantMessageAfterSteer = false
                     break
                   }
                   case ChatMessageEventTypeEnum.ON_AGENT_END: {
@@ -474,6 +507,16 @@ export class ChatConversationPreviewComponent {
                   }
                   case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
                     if (isThreadContextUsageEvent(event.data)) {
+                      break
+                    }
+                    const followUpConsumedEvent = parseFollowUpConsumedEvent(event.data)
+                    if (followUpConsumedEvent) {
+                      if (this.currentMessage()) {
+                        this.appendMessage({ ...this.currentMessage() })
+                        this.currentMessage.set(null)
+                      }
+                      this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
+                      this.shouldStartFreshAssistantMessageAfterSteer = true
                       break
                     }
                     this.currentMessage.update((state) => ({
@@ -489,14 +532,17 @@ export class ChatConversationPreviewComponent {
         },
         error: (err) => {
           this.messageAppendContextTracker.reset()
+          this.shouldStartFreshAssistantMessageAfterSteer = false
           this.onChatError(getErrorMessage(err))
         },
         complete: () => {
           this.messageAppendContextTracker.reset()
+          this.shouldStartFreshAssistantMessageAfterSteer = false
           if (this.#destroyed) {
             return
           }
           this.loading.set(false)
+          this.downgradePendingSteerFollowUpsToQueue()
           if (this.currentMessage()) {
             this.appendMessage({ ...this.currentMessage() })
           }
@@ -504,6 +550,7 @@ export class ChatConversationPreviewComponent {
             this.onSuggestionQuestions(this.currentMessage().id)
           }
           this.currentMessage.set(null)
+          this.drainQueuedFollowUps()
         }
       })
 
@@ -515,6 +562,8 @@ export class ChatConversationPreviewComponent {
 
   onChatError(message: string) {
     this.loading.set(false)
+    this.shouldStartFreshAssistantMessageAfterSteer = false
+    this.downgradePendingSteerFollowUpsToQueue()
     if (this.currentMessage()) {
       this.appendMessage({ ...this.currentMessage() })
     }
@@ -532,6 +581,9 @@ export class ChatConversationPreviewComponent {
       this.chatSubscription.unsubscribe()
     }
     this.loading.set(false)
+    this.shouldStartFreshAssistantMessageAfterSteer = false
+    this.downgradePendingSteerFollowUpsToQueue()
+    this.drainQueuedFollowUps()
     this.currentMessage.set(null)
     this.chatStop.emit()
   }
@@ -579,14 +631,157 @@ export class ChatConversationPreviewComponent {
 
   onKeydown(event: KeyboardEvent) {
     if (event.key === 'Enter') {
-      if (event.isComposing || event.shiftKey || this.loading()) {
+      if (event.isComposing) {
         return
       }
-      if (this.loading()) return
+
+      if (event.shiftKey && (event.metaKey || event.ctrlKey)) {
+        if (!this.input()) {
+          return
+        }
+        this.sendMessage(this.input(), this.followUpBehavior() === 'queue' ? 'steer' : 'queue')
+        event.preventDefault()
+        return
+      }
+
+      if (event.shiftKey) {
+        return
+      }
 
       this.sendMessage(this.input())
       event.preventDefault()
     }
+  }
+
+  setFollowUpBehavior(behavior: 'queue' | 'steer') {
+    this.followUpBehavior.set(behavior)
+  }
+
+  sendMessage(input: string, followUpBehavior?: 'queue' | 'steer') {
+    this.chat({ input, followUpBehavior })
+  }
+
+  private async enqueueFollowUp(item: PendingFollowUp) {
+    this.pendingFollowUps.update((state) => [...(state ?? []).filter((entry) => entry.id !== item.id), item])
+    this.input.set('')
+    this.attachments.set([])
+
+    if (item.mode !== 'steer') {
+      return
+    }
+
+    const request: TChatRequest = {
+      action: 'follow_up',
+      conversationId: this.conversation()?.id,
+      mode: 'steer',
+      target: {
+        aiMessageId: findLastAiMessageId(this.messages()) ?? undefined,
+        executionId: this.currentMessage()?.executionId ?? this.lastMessage()?.executionId ?? undefined
+      },
+      message: {
+        clientMessageId: item.id,
+        input: {
+          ...(this.parameterValue() ?? {}),
+          input: item.input,
+          files: item.files?.map((file) => ({
+            id: file.id,
+            originalName: file.originalName,
+            name: file.originalName,
+            filePath: file.file,
+            fileUrl: file.url,
+            mimeType: file.mimetype,
+            size: file.size,
+            extension: file.originalName.split('.').pop()
+          }))
+        }
+      }
+    } as TChatRequest
+
+    this.xpertService
+      .chat(this.xpert().id, request, {
+        isDraft: true,
+        messageId: item.id
+      })
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        error: () => {
+          this.pendingFollowUps.update((state) =>
+            (state ?? []).map((entry) => (entry.id === item.id ? { ...entry, mode: 'queue' } : entry))
+          )
+        }
+      })
+  }
+
+  private flushPendingSteerFollowUps(ids: string[]) {
+    if (!ids.length) {
+      return
+    }
+
+    const idSet = new Set(ids)
+    const steerItems = this.pendingFollowUps().filter(
+      (item) => item.mode === 'steer' && idSet.has(item.id)
+    )
+
+    if (!steerItems.length) {
+      return
+    }
+
+    steerItems.forEach((item) => {
+      this.appendMessage({
+        id: item.id,
+        role: 'human',
+        content: item.input,
+        conversationId: this.conversation()?.id,
+        attachments: item.files
+      })
+    })
+    this.pendingFollowUps.update((state) =>
+      (state ?? []).filter((item) => !(item.mode === 'steer' && idSet.has(item.id)))
+    )
+  }
+
+  private downgradePendingSteerFollowUpsToQueue() {
+    this.pendingFollowUps.update((state) =>
+      (state ?? []).map((item) => (item.mode === 'steer' ? { ...item, mode: 'queue' } : item))
+    )
+  }
+
+  private drainQueuedFollowUps() {
+    if (this.loading()) {
+      return
+    }
+
+    const next = this.pendingFollowUps().find((item) => item.mode === 'queue')
+    if (!next) {
+      return
+    }
+
+    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => item.id !== next.id))
+    this.chat({
+      input: next.input,
+      files: next.files,
+      messageId: next.id
+    })
+  }
+
+  private getFollowUpStorageKey() {
+    return `xpert:agent-chat:follow-up-behavior:${this.#store.organizationId ?? 'tenant'}:${this.#store.userId ?? 'anonymous'}`
+  }
+
+  private readPersistedFollowUpBehavior(): 'queue' | 'steer' {
+    if (typeof localStorage === 'undefined') {
+      return 'queue'
+    }
+
+    return localStorage.getItem(this.getFollowUpStorageKey()) === 'steer' ? 'steer' : 'queue'
+  }
+
+  private persistFollowUpBehavior(behavior: 'queue' | 'steer') {
+    if (typeof localStorage === 'undefined') {
+      return
+    }
+
+    localStorage.setItem(this.getFollowUpStorageKey(), behavior)
   }
 
   openExecution(message: IChatMessage) {

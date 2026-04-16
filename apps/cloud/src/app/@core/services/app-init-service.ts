@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@angular/core'
 import { Router } from '@angular/router'
 import { Ability, AbilityBuilder } from '@casl/ability'
 import { IUser } from '@xpert-ai/contracts'
-import { UsersService } from '@xpert-ai/cloud/state'
+import { CURRENT_USER_BOOTSTRAP_RELATIONS, CURRENT_USER_FULL_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
 import * as Sentry from "@sentry/angular";
 import { NgxPermissionsService } from 'ngx-permissions'
 import { firstValueFrom } from 'rxjs'
@@ -31,7 +31,7 @@ export class AppInitService {
     try {
       const id = this.store.userId
       if (id) {
-        this.user = await this.usersService.getMe()
+        this.user = await this.usersService.getMe([...CURRENT_USER_BOOTSTRAP_RELATIONS])
 
         //When a new user registers & logs in for the first time, he/she does not have tenantId.
         //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.
@@ -55,12 +55,14 @@ export class AppInitService {
         this.scopeService.initializeEntryScope(organizations, preferredOrganizationId)
 
         //tenant enabled/disabled features for relatives organizations
-        const { tenant } = this.user
-        this.store.featureTenant = (tenant.featureOrganizations ?? []).filter((item) => !item.organizationId)
-        void this.hydrateUserFeatures()
+        const tenantFeatures = this.user.tenant?.featureOrganizations ?? []
+        this.store.featureTenant = tenantFeatures.filter((item) => !item.organizationId)
+        this.store.featureContextHydrated = Array.isArray(this.user.tenant?.featureOrganizations)
+        this.store.featureContextHydrationLoading = false
+        this.store.featureContextHydrationFailed = false
 
         //only enabled permissions assign to logged in user
-        this.store.userRolePermissions = (this.user.role.rolePermissions ?? []).filter((permission) => permission.enabled)
+        this.store.userRolePermissions = this.user.role.rolePermissions.filter((permission) => permission.enabled)
 
         if (this.user.preferredLanguage && !this.store.preferredLanguage) {
           this.store.preferredLanguage = this.user.preferredLanguage
@@ -73,6 +75,12 @@ export class AppInitService {
 
         // Sentry identify user
         Sentry.setUser({ id: this.user.id, email: this.user.email, username: this.user.username })
+
+        if (!this.store.featureContextHydrated) {
+          this.store.featureContextHydrationLoading = true
+          this.store.featureContextHydrationFailed = false
+          this.hydrateCurrentUserContextInBackground(id)
+        }
       } else {
         const onboarded = await firstValueFrom(this.tenantService.getOnboard())
         if (onboarded.tenant) {
@@ -93,20 +101,35 @@ export class AppInitService {
     }
   }
 
-  private async hydrateUserFeatures() {
-    try {
-      const features = await this.usersService.getMeFeatures()
-      this.user = this.usersService.mergeMeFeatures(this.store.user, features)
-    } catch (error) {
-      console.log(error)
-      this.user = this.usersService.mergeMeFeatures(this.store.user, {
-        tenantFeatureOrganizations: [],
-        organizationFeatures: []
-      })
-    }
+  private hydrateCurrentUserContextInBackground(userId: string) {
+    void this.usersService
+      .getMe([...CURRENT_USER_FULL_RELATIONS])
+      .then((fullUser) => {
+        if (this.store.userId !== userId || !this.store.user) {
+          return
+        }
 
-    this.store.user = this.user
-    this.store.featureTenant = (this.user.tenant?.featureOrganizations ?? []).filter((item) => !item.organizationId)
+        const currentUser = this.store.user
+        this.store.user = {
+          ...fullUser,
+          ...currentUser,
+          employee: fullUser.employee ?? currentUser.employee,
+          role: fullUser.role ?? currentUser.role,
+          tenant: fullUser.tenant ?? currentUser.tenant,
+          organizations: fullUser.organizations ?? currentUser.organizations
+        }
+
+        const tenantFeatures = fullUser.tenant?.featureOrganizations ?? []
+        this.store.featureTenant = tenantFeatures.filter((item) => !item.organizationId)
+        this.store.featureContextHydrated = true
+        this.store.featureContextHydrationLoading = false
+        this.store.featureContextHydrationFailed = false
+      })
+      .catch((error) => {
+        this.store.featureContextHydrationFailed = true
+        this.store.featureContextHydrationLoading = false
+        console.warn('Deferred current-user hydration failed', error)
+      })
   }
 
   private updateAbility(user: IUser) {

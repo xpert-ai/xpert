@@ -20,6 +20,7 @@ jest.mock('@xpert-ai/contracts', () => {
 
 import { of, lastValueFrom, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { BadRequestException } from '@nestjs/common'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
@@ -238,6 +239,137 @@ describe('XpertChatHandler', () => {
                 }
             }
         })
+    })
+
+    it('reuses a persisted pending follow-up instead of creating a duplicate human message on fallback send', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [
+                        {
+                            id: 'ai-parent-1',
+                            role: 'ai',
+                            content: 'Previous reply'
+                        },
+                        {
+                            id: 'follow-up-1',
+                            parentId: 'ai-parent-1',
+                            role: 'human',
+                            content: 'Please continue',
+                            conversationId: 'conversation-1',
+                            followUpMode: 'queue',
+                            followUpStatus: 'pending',
+                            thirdPartyMessage: {
+                                followUpClientMessageId: 'client-1',
+                                followUpInput: {
+                                    input: 'Please continue'
+                                }
+                            }
+                        }
+                    ],
+                    status: command.entity.status,
+                    title: null,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: {}
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.id === 'follow-up-1') {
+                    return {
+                        ...command.entity
+                    }
+                }
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-1',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            title: 'Generated title'
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    conversationId: 'conversation-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Please continue'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const humanCommands = commands.filter(
+            (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+        ) as ChatMessageUpsertCommand[]
+
+        expect(humanCommands).toHaveLength(1)
+        expect(humanCommands[0].entity).toEqual(
+            expect.objectContaining({
+                id: 'follow-up-1',
+                content: 'Please continue',
+                followUpStatus: 'consumed'
+            })
+        )
+        expect(humanCommands[0].entity.visibleAt).toBeInstanceOf(Date)
+    })
+
+    it('rejects send requests with a null message payload', async () => {
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'send',
+                        message: null as any
+                    },
+                    {
+                        xpertId: 'xpert-1'
+                    } as any
+                )
+            )
+        ).rejects.toThrow(new BadRequestException('Invalid send request: message.input is required'))
     })
 
     it('passes a null tool preference snapshot when the user preference has no tool preferences', async () => {

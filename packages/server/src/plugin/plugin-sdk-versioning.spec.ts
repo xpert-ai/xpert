@@ -5,6 +5,7 @@ import { PluginSdkValidationError } from './errors'
 import {
 	assertPluginSdkCompatibility,
 	assertPluginSdkInstallCandidate,
+	ensureHostContractsLink,
 	ensureHostPluginSdkLink,
 	readInstalledPluginManifest
 } from './plugin-sdk-versioning'
@@ -15,6 +16,13 @@ function getExpectedHostSdkDirs() {
 		join(process.cwd(), 'packages', 'plugin-sdk', 'dist'),
 		join(process.cwd(), 'packages', 'plugin-sdk')
 	]
+		.filter((candidate, index, items) => items.indexOf(candidate) === index)
+		.filter((candidate) => existsSync(candidate))
+		.map((candidate) => realpathSync(candidate))
+}
+
+function getExpectedHostContractsDirs() {
+	return [join(process.cwd(), 'packages', 'contracts', 'dist'), join(process.cwd(), 'packages', 'contracts')]
 		.filter((candidate, index, items) => items.indexOf(candidate) === index)
 		.filter((candidate) => existsSync(candidate))
 		.map((candidate) => realpathSync(candidate))
@@ -176,6 +184,19 @@ describe('plugin sdk versioning', () => {
 			ensureHostPluginSdkLink(workspaceDir)
 
 			expect(getExpectedHostSdkDirs()).toContain(realpathSync(linkPath))
+		} finally {
+			rmSync(workspaceDir, { recursive: true, force: true })
+		}
+	})
+
+	it('links plugin workspaces to the host contracts package', () => {
+		const workspaceDir = mkdtempSync(join(tmpdir(), 'xpert-plugin-contracts-'))
+
+		try {
+			const linkPath = ensureHostContractsLink(workspaceDir)
+
+			expect(linkPath).toBe(join(workspaceDir, 'node_modules', '@xpert-ai', 'contracts'))
+			expect(getExpectedHostContractsDirs()).toContain(realpathSync(linkPath as string))
 		} finally {
 			rmSync(workspaceDir, { recursive: true, force: true })
 		}

@@ -39,9 +39,10 @@ export interface IAssistantBindingSkillPreference {
 }
 
 export interface IAssistantBindingConversationPreferences {
-  version: 1
+  version: 2
   defaultThreadId?: string | null
   lastThreadId?: string | null
+  defaultFollowUpBehavior?: 'queue' | 'steer'
 }
 
 export interface IAssistantBindingToolPreferences {

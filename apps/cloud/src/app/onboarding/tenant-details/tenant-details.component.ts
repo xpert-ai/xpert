@@ -8,7 +8,8 @@ import {
   ZardInputDirective,
   ZardProgressBarComponent,
   ZardStepperComponent,
-  ZardStepperImports
+  ZardStepperImports,
+  type ZardStepperSelectionEvent
 } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
 import { matchWithValidator } from '@xpert-ai/cloud/auth'
@@ -112,6 +113,7 @@ export class TenantDetailsComponent {
   }
 
   loading = signal(false)
+  aiModelSetupRequested = signal(false)
   tenantCompleted = signal(false)
   demoError = signal<string>(null)
   demoCompleted = signal(false)
@@ -269,11 +271,16 @@ export class TenantDetailsComponent {
   enableFeatures() {
     this.loading.set(true)
     this.#featureAPI.featuresToggle(this.features().map(({feature}) => feature)).subscribe({
-      next: () => {
-        this.loading.set(false)
+      next: async () => {
         this.toastrService.success('PAC.Onboarding.EnableFeaturesSuccess', {
           Default: 'Features enabled successfully!'
         })
+
+        if (this.hasAiFeature()) {
+          await this.startAiModelSetup()
+        }
+
+        this.loading.set(false)
         this.stepper.next()
       },
       error: (err) => {
@@ -367,10 +374,11 @@ export class TenantDetailsComponent {
   async startAiModelSetup() {
     const primaryCopilot = this.primaryCopilot()
 
-    if (primaryCopilot?.enabled) {
+    if (this.aiModelSetupRequested() || primaryCopilot?.enabled) {
       return
     }
 
+    this.aiModelSetupRequested.set(true)
     this.loading.set(true)
     try {
       if (!primaryCopilot) {
@@ -380,11 +388,30 @@ export class TenantDetailsComponent {
       await firstValueFrom(this.#copilotServer.enableCopilot(AiProviderRole.Primary))
       this.#copilotServer.refresh()
     } catch (error) {
+      this.aiModelSetupRequested.set(false)
       this.primaryCopilotCreatedInOnboarding.set(false)
       this.toastrService.error(getErrorMessage(error))
     } finally {
       this.loading.set(false)
     }
+  }
+
+  onStepChange(event: ZardStepperSelectionEvent) {
+    if (
+      !this.hasAiFeature() ||
+      event.selectedIndex !== this.getAiModelStepIndex() ||
+      this.primaryCopilot()?.enabled ||
+      this.aiModelSetupRequested() ||
+      this.loading()
+    ) {
+      return
+    }
+
+    void this.startAiModelSetup()
+  }
+
+  private getAiModelStepIndex() {
+    return this.hasSemanticModel() ? 3 : 2
   }
 
   async skipAiModelSetup() {
@@ -403,6 +430,7 @@ export class TenantDetailsComponent {
     this.loading.set(true)
     try {
       await firstValueFrom(this.#copilotServer.delete(primaryCopilot.id))
+      this.aiModelSetupRequested.set(false)
       this.primaryCopilotCreatedInOnboarding.set(false)
       this.#copilotServer.refresh()
       this.stepper.next()

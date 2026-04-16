@@ -1,6 +1,6 @@
 import { inject } from '@angular/core'
 import { Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
-import { of } from 'rxjs'
+import { of, race, timer } from 'rxjs'
 import { filter, map, switchMap, take, catchError } from 'rxjs/operators'
 import { AiFeatureEnum, AssistantBindingScope, AssistantBindingService, AssistantCode, Store } from '../../@core'
 import { ChatTasksComponent } from './tasks/tasks.component'
@@ -13,14 +13,31 @@ import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conv
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
 
+const FEATURE_HYDRATION_TIMEOUT_MS = 3000
+
+function waitForFeatureHydration(store: Store) {
+  return race(
+    store.featureContextHydrated$.pipe(
+      filter(Boolean),
+      take(1),
+      map(() => true)
+    ),
+    store.featureContextHydrationFailed$.pipe(
+      filter(Boolean),
+      take(1),
+      map(() => false)
+    ),
+    // Avoid leaving the navigation promise pending forever when feature hydration is delayed.
+    timer(FEATURE_HYDRATION_TIMEOUT_MS).pipe(map(() => false))
+  )
+}
+
 function featureGate(featureKeys: AiFeatureEnum[]) {
   return () => {
     const store = inject(Store)
     const router = inject(Router)
 
-    return store.user$.pipe(
-      filter((user) => Array.isArray(user?.tenant?.featureOrganizations)),
-      take(1),
+    return waitForFeatureHydration(store).pipe(
       map(() =>
         featureKeys.every((featureKey) => store.hasFeatureEnabled(featureKey))
           ? true
@@ -36,9 +53,7 @@ function redirectToDefaultChatEntry() {
     const router = inject(Router)
     const assistantBindingService = inject(AssistantBindingService)
 
-    return store.user$.pipe(
-      filter((user) => Array.isArray(user?.tenant?.featureOrganizations)),
-      take(1),
+    return waitForFeatureHydration(store).pipe(
       switchMap(() => {
         if (
           !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) ||

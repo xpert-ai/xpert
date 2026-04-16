@@ -1,8 +1,22 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IUser, IUserFindInput, IUserMeFeatures, IUserPasswordInput, IUserUpdateInput } from '@xpert-ai/contracts'
+import { IUser, IUserFindInput, IUserPasswordInput, IUserUpdateInput } from '@xpert-ai/contracts'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from './constants'
+
+// Backend already includes employee/role/rolePermissions/tenant for /user/me by default.
+export const CURRENT_USER_BOOTSTRAP_RELATIONS = [
+  'organizations',
+  'organizations.organization'
+] as const
+
+export const CURRENT_USER_FULL_RELATIONS = [
+  ...CURRENT_USER_BOOTSTRAP_RELATIONS,
+  'tenant.featureOrganizations',
+  'tenant.featureOrganizations.feature',
+  'organizations.organization.featureOrganizations',
+  'organizations.organization.featureOrganizations.feature'
+] as const
 
 @Injectable({
   providedIn: 'root'
@@ -12,40 +26,17 @@ export class UsersService {
 
   API_URL = `${API_PREFIX}/user`
 
-  getMe(): Promise<IUser> {
-    return firstValueFrom(this.http.get<IUser>(`${this.API_URL}/me`))
-  }
-
-  getMeFeatures(): Promise<IUserMeFeatures> {
-    return firstValueFrom(this.http.get<IUserMeFeatures>(`${this.API_URL}/me/features`))
-  }
-
-  mergeMeFeatures(user: IUser, features: IUserMeFeatures): IUser {
-    const organizationFeatures = new Map(
-      (features.organizationFeatures ?? []).map(({ organizationId, featureOrganizations }) => [
-        organizationId,
-        featureOrganizations
-      ])
-    )
-
-    return {
-      ...user,
-      tenant: user.tenant
-        ? {
-            ...user.tenant,
-            featureOrganizations: features.tenantFeatureOrganizations ?? []
-          }
-        : user.tenant,
-      organizations: (user.organizations ?? []).map((membership) => ({
-        ...membership,
-        organization: membership.organization
-          ? {
-              ...membership.organization,
-              featureOrganizations: organizationFeatures.get(membership.organizationId) ?? []
-            }
-          : membership.organization
-      }))
+  getMe(relations?: string[]): Promise<IUser> {
+    if (!relations?.length) {
+      return firstValueFrom(this.http.get<IUser>(`${this.API_URL}/me`))
     }
+
+    const data = JSON.stringify({ relations })
+    return firstValueFrom(
+      this.http.get<IUser>(`${this.API_URL}/me`, {
+        params: { data }
+      })
+    )
   }
 
   getUserByEmail(emailId: string): Promise<IUser> {

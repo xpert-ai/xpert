@@ -24,6 +24,7 @@ import {
   DateRelativePipe,
   injectToastr,
   IStorageFile,
+  Store,
   uuid
 } from '@cloud/app/@core'
 import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
@@ -31,8 +32,9 @@ import { AppService } from '@cloud/app/app.service'
 import { FileTypePipe, OverlayAnimations } from '@xpert-ai/core'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { startWith } from 'rxjs'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
-import { ChatService } from '../chat.service'
+import { ChatService, PendingFollowUp } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { FileIconComponent } from '@cloud/app/@shared/files'
 import {
@@ -75,6 +77,7 @@ export class ChatInputComponent {
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
   readonly #audioRecorder = inject(AudioRecorderService)
+  readonly #store = inject(Store)
 
   // Inputs
   readonly disabled = input<boolean>()
@@ -85,11 +88,18 @@ export class ChatInputComponent {
   // Chirldren
   readonly attachTrigger = viewChild('attachTrigger', { read: CdkMenuTrigger })
   readonly canvasRef = viewChild('waveCanvas', { read: ElementRef })
+  readonly userInputRef = viewChild('userInput', { read: ElementRef })
 
   // States
   readonly promptControl = new FormControl<string>(null)
-  readonly prompt = toSignal(this.promptControl.valueChanges)
+  readonly prompt = toSignal(this.promptControl.valueChanges.pipe(startWith(this.promptControl.value ?? '')), {
+    initialValue: this.promptControl.value ?? ''
+  })
+  readonly draftPrompt = computed(() => this.prompt()?.trim() ?? '')
   readonly answering = this.chatService.answering
+  readonly pendingFollowUps = this.chatService.pendingFollowUps
+  readonly followUpBehavior = signal<'queue' | 'steer'>(this.readPersistedFollowUpBehavior())
+  readonly showFollowUpTray = computed(() => this.pendingFollowUps().length > 0)
   readonly xpert = this.chatService.xpert
   readonly conversation = this.chatService.conversation
   readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
@@ -181,10 +191,16 @@ export class ChatInputComponent {
     effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()))
     effect(() => this.#audioRecorder.xpert.set(this.xpert()))
     effect(() => this.promptControl.setValue(this.#audioRecorder.text()))
+    effect(() => this.persistFollowUpBehavior(this.followUpBehavior()))
   }
 
   send() {
-    this.ask(this.prompt().trim())
+    const content = this.draftPrompt()
+    if (!content) {
+      return
+    }
+
+    this.ask(content)
   }
 
   // askWebsocket() {
@@ -201,20 +217,10 @@ export class ChatInputComponent {
 
   ask(content: string) {
     const id = uuid()
-    // const content = this.prompt().trim()
-    // this.answering.set(true)
-    this.chatService.appendMessage({
-      id,
-      role: 'user',
-      content,
-      attachments: this.files()
-    })
-    this.promptControl.setValue('')
-
-    // Send message
     this.chatService.sendMessage({
       id,
       content,
+      followUpMode: this.followUpBehavior(),
       files: this.files()?.map((file) => ({
         id: file.id,
         originalName: file.originalName,
@@ -227,6 +233,8 @@ export class ChatInputComponent {
       }))
     })
 
+    this.promptControl.setValue('')
+
     // Clear
     this.attachments.set([])
 
@@ -238,14 +246,13 @@ export class ChatInputComponent {
   }
 
   triggerFun(event: KeyboardEvent) {
-    if (this.answering()) return
     if ((event.isComposing || event.shiftKey) && event.key === 'Enter') {
       return
     }
 
     if (event.key === 'Enter') {
       event.preventDefault()
-      const text = this.prompt()?.trim()
+      const text = this.draftPrompt()
       if (text) {
         setTimeout(() => {
           this.ask(text)
@@ -266,11 +273,13 @@ export class ChatInputComponent {
 
   // Input method composition updated
   onCompositionUpdate(event: CompositionEvent) {
+    void event
     // Update current value
   }
 
   // Input method composition ended
   onCompositionEnd(event: CompositionEvent) {
+    void event
     this.isComposing.set(false)
   }
 
@@ -278,6 +287,55 @@ export class ChatInputComponent {
     this.homeService.canvasOpened.update((state) =>
       state ? { ...state, opened: !state.opened } : { opened: true, type: 'Computer' }
     )
+  }
+
+  setFollowUpBehavior(behavior: 'queue' | 'steer') {
+    this.followUpBehavior.set(behavior)
+  }
+
+  closeQueue() {
+    this.followUpBehavior.set('steer')
+    this.chatService.closeQueue()
+  }
+
+  removePendingFollowUp(id?: string) {
+    if (!id) {
+      return
+    }
+
+    this.chatService.removePendingFollowUp(id)
+  }
+
+  steerPendingFollowUp(id?: string) {
+    if (!id) {
+      return
+    }
+
+    this.chatService.steerPendingFollowUp(id)
+  }
+
+  updatePendingFollowUp(item: PendingFollowUp) {
+    this.chatService.updatePendingFollowUp(item)
+  }
+
+  editPendingFollowUp(item?: { id?: string; content: string; mode: 'queue' | 'steer' }) {
+    if (!item?.content) {
+      return
+    }
+
+    this.followUpBehavior.set(item.mode)
+    this.promptControl.setValue(item.content)
+    this.removePendingFollowUp(item.id)
+
+    queueMicrotask(() => {
+      const textarea = this.userInputRef()?.nativeElement as HTMLTextAreaElement | undefined
+      textarea?.focus()
+      textarea?.setSelectionRange(textarea.value.length, textarea.value.length)
+    })
+  }
+
+  clearPendingFollowUps() {
+    this.chatService.clearPendingFollowUps()
   }
 
   // Attachments
@@ -335,5 +393,25 @@ export class ChatInputComponent {
   }
   stopRecording() {
     this.#audioRecorder.stopRecording()
+  }
+
+  private getFollowUpStorageKey() {
+    return `xpert:agent-chat:follow-up-behavior:${this.#store.organizationId ?? 'tenant'}:${this.#store.userId ?? 'anonymous'}`
+  }
+
+  private readPersistedFollowUpBehavior(): 'queue' | 'steer' {
+    if (typeof localStorage === 'undefined') {
+      return 'steer'
+    }
+
+    return localStorage.getItem(this.getFollowUpStorageKey()) === 'queue' ? 'queue' : 'steer'
+  }
+
+  private persistFollowUpBehavior(behavior: 'queue' | 'steer') {
+    if (typeof localStorage === 'undefined') {
+      return
+    }
+
+    localStorage.setItem(this.getFollowUpStorageKey(), behavior)
   }
 }

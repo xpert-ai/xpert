@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
-import { ChatSharedTerminalComponent } from '@cloud/app/@shared/chat'
+import { ChatSharedTerminalComponent } from '@cloud/app/@shared/chat/terminal/terminal.component'
 import { TChatMessageStep, TProgramToolMessage } from '@cloud/app/@core'
 @Component({
   standalone: true,

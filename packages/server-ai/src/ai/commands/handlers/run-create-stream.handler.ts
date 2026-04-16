@@ -21,6 +21,7 @@ import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } 
 import { PublishedXpertAccessService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
+import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { RedisSseStreamService } from '../../stream/redis-sse.service'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -89,10 +90,27 @@ const retryChatRequestSchema = z
     })
     .passthrough()
 
+const followUpChatRequestSchema = z
+    .object({
+        action: z.literal('follow_up'),
+        conversationId: z.string().optional(),
+        mode: z.union([z.literal('queue'), z.literal('steer')]),
+        message: z
+            .object({
+                clientMessageId: z.string().optional(),
+                input: humanInputSchema
+            })
+            .passthrough(),
+        target: targetSchema.optional(),
+        state: stateSchema.optional()
+    })
+    .passthrough()
+
 const chatRequestSchema = z.discriminatedUnion('action', [
     sendChatRequestSchema,
     resumeChatRequestSchema,
-    retryChatRequestSchema
+    retryChatRequestSchema,
+    followUpChatRequestSchema
 ])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -136,7 +154,38 @@ function toLegacyInterruptPatch(input: LegacyTChatRequest) {
     return Object.keys(patch).length ? patch : undefined
 }
 
-function normalizeLegacyChatRequest(input: LegacyTChatRequest): Record<string, unknown> {
+function normalizeLegacyChatRequest(
+    input: LegacyTChatRequest,
+    options?: { isConversationBusy?: boolean }
+): Record<string, unknown> {
+    const followUpMode = (input as LegacyTChatRequest & { followUpMode?: 'queue' | 'steer' }).followUpMode
+
+    if (followUpMode && options?.isConversationBusy) {
+        return omitBy(
+            {
+                action: 'follow_up',
+                conversationId: input.conversationId,
+                mode: followUpMode,
+                target: omitBy(
+                    {
+                        aiMessageId: input.id,
+                        executionId: input.executionId
+                    },
+                    isNil
+                ),
+                message: omitBy(
+                    {
+                        clientMessageId: input.id,
+                        input: input.input
+                    },
+                    isNil
+                ),
+                state: input.state
+            },
+            isNil
+        )
+    }
+
     if (input.retry) {
         return omitBy(
             {
@@ -197,13 +246,13 @@ function normalizeLegacyChatRequest(input: LegacyTChatRequest): Record<string, u
     )
 }
 
-function normalizeRunCreateInput(input: unknown): unknown {
+function normalizeRunCreateInput(input: unknown, options?: { isConversationBusy?: boolean }): unknown {
     if (!isRecord(input)) {
         return input
     }
 
     if (isLegacyChatRequest(input)) {
-        return normalizeLegacyChatRequest(input)
+        return normalizeLegacyChatRequest(input, options)
     }
 
     if (!input.action) {
@@ -236,7 +285,11 @@ export function validateRunCreateInput(
     input: LegacyTChatRequest | TChatRequestV2 | unknown,
     conversation: IChatConversation
 ): TChatRequestV2 {
-    const parsed = chatRequestSchema.safeParse(normalizeRunCreateInput(input))
+    const parsed = chatRequestSchema.safeParse(
+        normalizeRunCreateInput(input, {
+            isConversationBusy: conversation?.status === 'busy'
+        })
+    )
     if (!parsed.success) {
         throw new BadRequestException(
             parsed.error.issues.map(({ message, path }) => `${path.join('.')}: ${message}`).join('; ')
@@ -377,45 +430,71 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             await this.commandBus.execute(new ChatConversationUpsertCommand(conversation))
         }
 
-        const execution = await this.commandBus.execute(
-            new XpertAgentExecutionUpsertCommand(
-                omitBy(
-                    {
-                        id: chatRequest.action === 'resume' ? chatRequest.target.executionId : undefined,
-                        threadId: conversation.threadId,
-                        status: XpertAgentExecutionStatusEnum.RUNNING
-                    },
-                    isNil
+        let execution =
+            chatRequest.action === 'follow_up' && chatRequest.target?.executionId
+                ? await this.queryBus.execute(new XpertAgentExecutionOneQuery(chatRequest.target.executionId))
+                : null
+
+        if (!execution) {
+            execution = await this.commandBus.execute(
+                new XpertAgentExecutionUpsertCommand(
+                    omitBy(
+                        {
+                            id:
+                                chatRequest.action === 'resume'
+                                    ? chatRequest.target.executionId
+                                    : chatRequest.action === 'follow_up'
+                                      ? chatRequest.target?.executionId
+                                      : undefined,
+                            threadId: conversation.threadId,
+                            status: XpertAgentExecutionStatusEnum.RUNNING
+                        },
+                        isNil
+                    )
                 )
             )
-        )
+        }
+
+        if (!execution?.id) {
+            throw new BadRequestException('Execution ID could not be resolved')
+        }
 
         const stream = await this.commandBus.execute(
             new XpertChatCommand(chatRequest, {
                 xpertId: xpert.id,
                 from: 'api',
-                execution: chatRequest.action === 'resume' ? undefined : execution,
+                execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
                 ...(runtimeContext ? { context: runtimeContext } : {}),
                 environment,
                 sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId
             })
         )
-        return {
-            execution,
-            stream: stream.pipe(
-                map((message) => {
-                    if (typeof message.data.data === 'object') {
-                        return {
-                            ...message,
-                            data: {
-                                ...message.data,
-                                data: omitBy(message.data.data, isNil) // Remove null or undefined values
-                            }
+        const normalizedStream = stream.pipe(
+            map((message) => {
+                if (typeof message.data.data === 'object') {
+                    return {
+                        ...message,
+                        data: {
+                            ...message.data,
+                            data: omitBy(message.data.data, isNil) // Remove null or undefined values
                         }
                     }
+                }
 
-                    return message
-                }),
+                return message
+            })
+        )
+
+        if (chatRequest.action === 'follow_up') {
+            return {
+                execution,
+                stream: normalizedStream
+            }
+        }
+
+        return {
+            execution,
+            stream: normalizedStream.pipe(
                 tap((message) => {
                     this.redisSseStreamService.appendEvent(threadId, execution.id, message.data).catch((error) => {
                         this.#logger.warn(`Failed to persist SSE event: ${error}`)

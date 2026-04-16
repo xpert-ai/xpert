@@ -54,6 +54,9 @@ export class VolumeClient {
         }
     }
 
+    /**
+     * @deprecated Prefer `getSharedWorkspacePath`
+     */
     static async getWorkspacePath(
         tenantId: string,
         projectId: string,
@@ -68,8 +71,18 @@ export class VolumeClient {
         return dist
     }
 
+    static async getSharedWorkspacePath(tenantId: string, projectId: string, userId: string): Promise<string> {
+        const dist = VolumeClient.getWorkspaceRoot(tenantId, projectId, userId)
+        await fsPromises.mkdir(dist, { recursive: true })
+        return dist
+    }
+
     static getWorkspaceUrl(projectId: string, userId: string, conversationId?: string) {
         return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId) + '/')
+    }
+
+    static getSharedWorkspaceUrl(projectId: string, userId: string) {
+        return sandboxVolumeUrl(sandboxVolume(projectId, userId))
     }
 
     constructor(params: {

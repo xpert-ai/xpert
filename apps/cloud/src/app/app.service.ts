@@ -77,9 +77,7 @@ export class AppService extends ComponentStore<PACAppState> {
 
   public readonly isDark$ = this.select((state) => state.dark)
 
-  public readonly copilotEnabled$ = this.store.featureOrganizations$.pipe(
-    map(() => this.store.hasFeatureEnabled('FEATURE_COPILOT' as any))
-  )
+  public readonly copilotEnabled$ = this.store.selectHasFeatureEnabled('FEATURE_COPILOT' as any)
 
   readonly theme$ = injectTheme()
 

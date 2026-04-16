@@ -7,8 +7,14 @@ import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
-import { FindOptionsWhere, Repository } from 'typeorm'
+import { FindManyOptions, FindOneOptions, FindOptionsWhere, Repository } from 'typeorm'
+import { translate } from '../shared/translate'
 import { SkillRepository } from './skill-repository.entity'
+
+type SkillRepositoryPage = {
+	items: SkillRepository[]
+	total: number
+}
 
 @Injectable()
 export class SkillRepositoryService extends TenantOrganizationAwareCrudService<SkillRepository> {
@@ -22,6 +28,22 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 		repository: Repository<SkillRepository>
 	) {
 		super(repository)
+	}
+
+	override async findAll(filter?: FindManyOptions<SkillRepository>): Promise<SkillRepositoryPage> {
+		return this.localizeRepositoryPage(await super.findAll(filter))
+	}
+
+	override async findAllInOrganizationOrTenant(options?: FindManyOptions<SkillRepository>): Promise<SkillRepositoryPage> {
+		return this.localizeRepositoryPage(await super.findAllInOrganizationOrTenant(options))
+	}
+
+	override async findOneByIdString(id: string, options?: FindOneOptions<SkillRepository>): Promise<SkillRepository> {
+		return this.localizeRepository(await super.findOneByIdString(id, options))
+	}
+
+	override async findOneInOrganizationOrTenant(id: string, options?: FindOneOptions<SkillRepository>): Promise<SkillRepository> {
+		return this.localizeRepository(await super.findOneInOrganizationOrTenant(id, options))
 	}
 
 	/**
@@ -75,10 +97,10 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 			return existing
 		}
 
-		return this.create({
-			name: WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME,
+		return this.localizeRepository(await this.create({
+			name: this.getWorkspacePublicRepositoryName(),
 			provider: WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
-		})
+		}))
 	}
 
 	async deleteRepository(id: string) {
@@ -97,5 +119,34 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 		if (repository.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER) {
 			throw new BadRequestException('System managed repositories cannot be modified manually.')
 		}
+	}
+
+	localizeRepository(repository: SkillRepository): SkillRepository
+	localizeRepository(repository?: SkillRepository | null): SkillRepository | null | undefined
+	localizeRepository(repository?: SkillRepository | null): SkillRepository | null | undefined {
+		if (!repository || repository.provider !== WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER) {
+			return repository
+		}
+
+		return {
+			...repository,
+			name: this.getWorkspacePublicRepositoryName()
+		}
+	}
+
+	private localizeRepositoryPage(result: SkillRepositoryPage): SkillRepositoryPage {
+		return {
+			...result,
+			items: result.items.map((item) => this.localizeRepository(item))
+		}
+	}
+
+	private getWorkspacePublicRepositoryName() {
+		const label = this.skillSourceProviderRegistry
+			.list()
+			.find((strategy) => strategy.type === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER)
+			?.meta?.label
+
+		return translate(label ?? WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME)
 	}
 }

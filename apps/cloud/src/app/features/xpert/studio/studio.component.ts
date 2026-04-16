@@ -363,6 +363,7 @@ export class XpertStudioComponent {
         this.fFlowComponent().clearSelection()
       }
 
+      this.releaseInvalidParentNodes()
       this.#cdr.detectChanges()
     })
   }
@@ -698,16 +699,42 @@ export class XpertStudioComponent {
       return
     }
 
-    console.log('Drop to group', event)
+    const targetNode = this.apiService.getNode(event.fTargetNode)
+    if (!this.isCanvasGroupTarget(targetNode)) {
+      return
+    }
+
     for (const key of event.fNodes) {
       this.apiService.updateNode(key, (state) => {
-        console.log('Update node parentId', state, event.fTargetNode)
         return {
           ...state,
           parentId: event.fTargetNode
         }
       })
     }
+  }
+
+  private isCanvasGroupTarget(node: TXpertTeamNode | undefined): boolean {
+    return !!node && (node.type === 'xpert' || (node.type === 'workflow' && GROUP_NODE_TYPES.includes(node.entity.type)))
+  }
+
+  private releaseInvalidParentNodes(): void {
+    const invalidNodes =
+      this.viewModel()?.nodes.filter((node) => {
+        if (!node.parentId) {
+          return false
+        }
+
+        const parentNode = this.apiService.getNode(node.parentId)
+        return !this.isCanvasGroupTarget(parentNode)
+      }) ?? []
+
+    invalidNodes.forEach((node) => {
+      this.apiService.updateNode(node.key, (state) => ({
+        ...state,
+        parentId: null
+      }))
+    })
   }
 }
 
