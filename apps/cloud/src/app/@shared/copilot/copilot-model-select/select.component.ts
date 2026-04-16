@@ -240,10 +240,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
         this.#cdr.detectChanges()
       }, 600)
     })
-
-    effect(() => {
-      console.log(this.modelParameterRules())
-    })
   }
 
   writeValue(obj: any): void {
