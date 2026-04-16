@@ -1,5 +1,6 @@
-import { getErrorMessage } from '@xpert-ai/server-common'
+import { getErrorMessage, yaml } from '@xpert-ai/server-common'
 import {
+	convertToUrlPath,
 	I18nObject,
 	IShareSkillPackageInput,
 	ISkillRepositoryIndexPublisher,
@@ -62,6 +63,26 @@ type SharedSkillMetadataInput = {
 	tags: string[]
 	license?: string
 	version?: string
+}
+
+type WorkspaceSkillFrontmatter = {
+	name: string
+	description: string
+	version?: string
+	license?: string
+	tags?: string[]
+}
+
+type CreateWorkspaceSkillPackageInput = {
+	userIntent: string
+	skillName?: string
+	skillMarkdown: string
+}
+
+type CreateWorkspaceSkillPackageResult = {
+	skillPackage: SkillPackage
+	packagePath: string
+	skillMdPath: string
 }
 
 const buildSharedSkillStats = (version?: string | null) => ({
@@ -177,6 +198,58 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		} catch (error) {
 			this.#logger.error(`Failed to install skill package: ${getErrorMessage(error)}`)
 			throw new BadRequestException(`Failed to install skill package: ${getErrorMessage(error)}`)
+		}
+	}
+
+	async createWorkspaceSkillPackage(
+		workspaceId: string,
+		input: CreateWorkspaceSkillPackageInput
+	): Promise<CreateWorkspaceSkillPackageResult> {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		await this.assertWorkspaceAccess(workspaceId)
+
+		const tenantId = RequestContext.currentTenantId()
+		if (!tenantId) {
+			throw new BadRequestException('Tenant context is missing')
+		}
+
+		const rawSkillMarkdown = typeof input.skillMarkdown === 'string' ? input.skillMarkdown : ''
+		if (!rawSkillMarkdown.trim()) {
+			throw new BadRequestException('skillMarkdown is required')
+		}
+
+		const frontmatter = parseWorkspaceSkillFrontmatter(rawSkillMarkdown)
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
+		const skillBaseName = input.skillName?.trim() || frontmatter.name || input.userIntent?.trim() || 'skill'
+		const packagePath = await this.allocateWorkspaceSkillPackagePath(installDir, skillBaseName)
+		const absolutePackagePath = join(installDir, packagePath)
+		const skillMdPath = join(absolutePackagePath, 'SKILL.md')
+		const normalizedSkillMarkdown = ensureTrailingNewline(rawSkillMarkdown)
+		const metadata = this.buildMetadataForWorkspaceSkill(frontmatter, packagePath, skillMdPath, skillBaseName)
+
+		await fs.mkdir(absolutePackagePath, { recursive: true })
+		await fs.writeFile(skillMdPath, normalizedSkillMarkdown, 'utf8')
+
+		try {
+			const skillPackage = await this.create({
+				workspaceId,
+				name: metadata.name ?? skillBaseName,
+				skillIndexId: null,
+				visibility: 'private',
+				packagePath,
+				metadata
+			})
+
+			return {
+				skillPackage,
+				packagePath,
+				skillMdPath
+			}
+		} catch (error) {
+			await fs.rm(absolutePackagePath, { recursive: true, force: true })
+			throw error
 		}
 	}
 
@@ -465,6 +538,29 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	private buildMetadataForWorkspaceSkill(
+		frontmatter: WorkspaceSkillFrontmatter,
+		packagePath: string,
+		skillMdPath: string,
+		skillName: string
+	): SkillPackageInstallMetadata {
+		const displayName = frontmatter.name?.trim() || skillName.trim()
+		const description = frontmatter.description?.trim()
+
+		return {
+			name: displayName || packagePath,
+			displayName: displayName ? toI18nObject(displayName) : undefined,
+			description: description ? toI18nObject(description) : undefined,
+			tags: normalizeTagList(frontmatter.tags),
+			license: frontmatter.license?.trim() || undefined,
+			version: frontmatter.version?.trim() || undefined,
+			visibility: 'private',
+			skillPath: packagePath,
+			source: FILE_SKILL_SOURCE_PROVIDER,
+			skillMdPath
+		}
+	}
+
 	private buildMetadataFromIndex(index: {
 		name?: string
 		description?: string
@@ -492,6 +588,20 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 				}
 				: undefined
 		} satisfies Partial<SkillMetadata>
+	}
+
+	private async allocateWorkspaceSkillPackagePath(installDir: string, skillName: string) {
+		const baseSlug = toWorkspaceSkillSlug(skillName)
+
+		for (let index = 1; index < 100; index++) {
+			const candidate = index === 1 ? baseSlug : `${baseSlug}-${index}`
+			const absoluteCandidate = join(installDir, candidate)
+			if (!(await pathExists(absoluteCandidate))) {
+				return candidate
+			}
+		}
+
+		return `${baseSlug}-${Date.now()}`
 	}
 
 	private normalizeSharedSkillInput(skillPackage: SkillPackage, input: IShareSkillPackageInput): SharedSkillMetadataInput {
@@ -734,6 +844,72 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new ForbiddenException('Access denied to workspace')
 		}
 	}
+}
+
+function parseWorkspaceSkillFrontmatter(skillMarkdown: string): WorkspaceSkillFrontmatter {
+	const frontmatterMatch = /^---\s*\r?\n([\s\S]*?)\r?\n---(?:\s*\r?\n|$)/.exec(skillMarkdown)
+	if (!frontmatterMatch) {
+		throw new BadRequestException('SKILL.md frontmatter is required')
+	}
+
+	let parsedFrontmatter: unknown
+	try {
+		parsedFrontmatter = yaml.parse(frontmatterMatch[1])
+	} catch {
+		throw new BadRequestException('SKILL.md frontmatter is invalid')
+	}
+
+	if (!parsedFrontmatter || typeof parsedFrontmatter !== 'object' || Array.isArray(parsedFrontmatter)) {
+		throw new BadRequestException('SKILL.md frontmatter is invalid')
+	}
+
+	const candidate = parsedFrontmatter as {
+		name?: unknown
+		description?: unknown
+		version?: unknown
+		license?: unknown
+		tags?: unknown
+	}
+	const name = typeof candidate.name === 'string' ? candidate.name.trim() : ''
+	const description = typeof candidate.description === 'string' ? candidate.description.trim() : ''
+	if (!name || !description) {
+		throw new BadRequestException('SKILL.md frontmatter must include name and description')
+	}
+
+	return {
+		name,
+		description,
+		version: typeof candidate.version === 'string' && candidate.version.trim() ? candidate.version.trim() : undefined,
+		license: typeof candidate.license === 'string' && candidate.license.trim() ? candidate.license.trim() : undefined,
+		tags: Array.isArray(candidate.tags)
+			? candidate.tags
+					.map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+					.filter((tag): tag is string => Boolean(tag))
+			: undefined
+	}
+}
+
+async function pathExists(path: string) {
+	try {
+		await fs.access(path)
+		return true
+	} catch {
+		return false
+	}
+}
+
+function ensureTrailingNewline(value: string) {
+	return value.endsWith('\n') ? value : `${value}\n`
+}
+
+function toWorkspaceSkillSlug(value: string) {
+	const normalized = convertToUrlPath(value).replace(/^\/+|\/+$/g, '')
+	const flattened = normalized
+		.split('/')
+		.map((segment) => segment.trim())
+		.filter(Boolean)
+		.join('-')
+	return flattened || 'skill'
 }
 
 function normalizeSkillFilePath(filePath?: string | null) {

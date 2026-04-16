@@ -1,5 +1,50 @@
 jest.mock('@xpert-ai/server-common', () => ({
-	getErrorMessage: (error: Error) => error?.message ?? String(error)
+	getErrorMessage: (error: Error) => error?.message ?? String(error),
+	yaml: {
+		parse: (value: string) => {
+			const lines = value.split('\n')
+			const result: {
+				name?: string
+				description?: string
+				version?: string
+				license?: string
+				tags?: string[]
+			} = {}
+			let currentArrayKey: 'tags' | null = null
+
+			for (const rawLine of lines) {
+				const line = rawLine.trimEnd()
+				const trimmed = line.trim()
+				if (!trimmed) {
+					continue
+				}
+				if (currentArrayKey && trimmed.startsWith('- ')) {
+					result.tags = [...(result.tags ?? []), trimmed.slice(2).trim()]
+					continue
+				}
+				currentArrayKey = null
+
+				const colonIndex = line.indexOf(':')
+				if (colonIndex === -1) {
+					continue
+				}
+
+				const key = line.slice(0, colonIndex).trim()
+				const parsedValue = line.slice(colonIndex + 1).trim()
+				if (key === 'tags' && !parsedValue) {
+					currentArrayKey = 'tags'
+					result.tags = []
+					continue
+				}
+
+				if (key === 'name' || key === 'description' || key === 'version' || key === 'license') {
+					result[key] = parsedValue
+				}
+			}
+
+			return result
+		}
+	}
 }))
 
 jest.mock('@nestjs/typeorm', () => ({
@@ -195,6 +240,84 @@ describe('SkillPackageService', () => {
 		)
 		expect(createArg.metadata.version).toBeUndefined()
 		expect(result.metadata.version).toBeUndefined()
+	})
+
+	it('creates a workspace skill package with a single SKILL.md file and persisted metadata', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-'))
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		createSpy.mockImplementationOnce(async (item: any) => ({
+			id: 'skill-created-1',
+			...item
+		}))
+
+		const result = await service.createWorkspaceSkillPackage('workspace-1', {
+			userIntent: 'Create a workspace helper',
+			skillName: 'Workspace Skill',
+			skillMarkdown:
+				'---\nname: Workspace Skill\ndescription: Helps this workspace.\nversion: 1.0.0\ntags:\n  - workspace\n---\n# Workspace Skill\n'
+		})
+
+		expect(createSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				workspaceId: 'workspace-1',
+				name: 'Workspace Skill',
+				visibility: 'private',
+				packagePath: 'workspace-skill',
+				metadata: expect.objectContaining({
+					name: 'Workspace Skill',
+					version: '1.0.0',
+					tags: ['workspace'],
+					source: 'file',
+					skillPath: 'workspace-skill',
+					skillMdPath: join(tempRoot, 'workspace-skill', 'SKILL.md')
+				})
+			})
+		)
+		await expect(readFile(join(tempRoot, 'workspace-skill', 'SKILL.md'), 'utf8')).resolves.toContain(
+			'# Workspace Skill\n'
+		)
+		expect(result).toEqual(
+			expect.objectContaining({
+				packagePath: 'workspace-skill',
+				skillMdPath: join(tempRoot, 'workspace-skill', 'SKILL.md'),
+				skillPackage: expect.objectContaining({
+					id: 'skill-created-1',
+					workspaceId: 'workspace-1'
+				})
+			})
+		)
+	})
+
+	it('adds a numeric suffix when creating a workspace skill package with an existing slug', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-dup-'))
+		await mkdir(join(tempRoot, 'workspace-skill'), { recursive: true })
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		createSpy.mockImplementationOnce(async (item: any) => item)
+
+		const result = await service.createWorkspaceSkillPackage('workspace-1', {
+			userIntent: 'Create a workspace helper',
+			skillName: 'Workspace Skill',
+			skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n'
+		})
+
+		expect(result.packagePath).toBe('workspace-skill-2')
+		await expect(readFile(join(tempRoot, 'workspace-skill-2', 'SKILL.md'), 'utf8')).resolves.toContain(
+			'# Workspace Skill\n'
+		)
+	})
+
+	it('rejects workspace skill creation when SKILL.md frontmatter is missing required fields', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-invalid-'))
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+		await expect(
+			service.createWorkspaceSkillPackage('workspace-1', {
+				userIntent: 'Create a workspace helper',
+				skillName: 'Workspace Skill',
+				skillMarkdown: '---\nname: Workspace Skill\n---\n# Workspace Skill\n'
+			})
+		).rejects.toThrow('SKILL.md frontmatter must include name and description')
+		expect(createSpy).not.toHaveBeenCalled()
 	})
 
 	it('lists workspace skill files from the installed package root', async () => {

@@ -140,4 +140,80 @@ describe('SkillsMiddleware', () => {
 
     expect(loadSkillMetadata).toHaveBeenCalledWith('/root/skills/', ['skill-a'], 'workspace-1')
   })
+
+  it('loads all workspace skills in blacklist mode when selectedSkillIds are absent', async () => {
+    const middleware = createMiddleware()
+    ;(middleware as any).skillPackageRepository.find = jest.fn().mockResolvedValue([
+      {
+        id: 'skill-a',
+        workspaceId: 'workspace-1',
+        packagePath: 'skill-a',
+        metadata: {
+          name: 'skill-a',
+          skillPath: 'skill-a',
+          skillMdPath: '/root/skills/skill-a/SKILL.md'
+        }
+      },
+      {
+        id: 'skill-b',
+        workspaceId: 'workspace-1',
+        packagePath: 'skill-b',
+        metadata: {
+          name: 'skill-b',
+          skillPath: 'skill-b',
+          skillMdPath: '/root/skills/skill-b/SKILL.md'
+        }
+      }
+    ])
+    jest.spyOn(middleware as any, 'parseSkillPackage').mockImplementation(async (_workspaceRoot: string, skillPackage: any) => ({
+      id: skillPackage.id,
+      name: skillPackage.metadata.name,
+      description: `${skillPackage.metadata.name} description`,
+      path: `/root/skills/${skillPackage.packagePath}/SKILL.md`,
+      packagePath: skillPackage.packagePath,
+      workspaceId: skillPackage.workspaceId,
+      version: '1'
+    }))
+
+    const instance = await middleware.createMiddleware(
+      {
+        skills: []
+      },
+      {
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1',
+        projectId: null,
+        node: {} as any,
+        tools: new Map()
+      }
+    )
+
+    const handler = jest.fn(async (request) => request)
+    const result = (await instance.wrapModelCall(
+      {
+        runtime: {
+          configurable: {
+            sandbox: {}
+          }
+        },
+        state: {
+          disabledSkillIds: ['skill-b'],
+          selectedSkillWorkspaceId: 'workspace-1'
+        },
+        systemMessage: new SystemMessage('base')
+      } as any,
+      handler
+    )) as any
+
+    expect((middleware as any).skillPackageRepository.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          workspaceId: 'workspace-1'
+        }
+      })
+    )
+    expect(result.systemMessage.content).toContain('skill-a')
+    expect(result.systemMessage.content).not.toContain('skill-b')
+  })
 })

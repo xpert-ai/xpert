@@ -29,6 +29,7 @@ import {
     CopilotModelCatalogSnapshot,
     EditXpertPayload,
     Icon,
+    NewSkillPayload,
     NewXpertPayload
 } from './xpert-authoring.types'
 
@@ -117,6 +118,7 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
             this.createGetAvailableKnowledgebasesTool(),
             this.createGetAvailableSkillsTool(),
             this.createNewXpertTool(),
+            this.createNewSkillTool(),
             this.createEditXpertTool()
         ]
     }
@@ -234,6 +236,26 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
                     userIntent: z.string(),
                     templateId: z.string().optional(),
                     xpertName: z.string().optional()
+                })
+            }
+        )
+    }
+
+    private createNewSkillTool() {
+        return tool(
+            async (input, config) => {
+                const runtimeState = this.readState()
+                const context = this.resolveContext(this.readContext(config), runtimeState)
+                return this.authoringService.newSkillFromContext(context, input as NewSkillPayload)
+            },
+            {
+                name: 'newSkill',
+                description:
+                    'Create a new workspace skill package from a concise SKILL.md. The SKILL.md must start with YAML frontmatter and include at least name and description. Prefer generating only SKILL.md; do not add README, CHANGELOG, or installation docs.',
+                schema: z.object({
+                    userIntent: z.string(),
+                    skillName: z.string().optional(),
+                    skillMarkdown: z.string()
                 })
             }
         )
