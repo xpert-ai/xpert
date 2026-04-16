@@ -27,7 +27,7 @@ jest.mock('../chat-conversation', () => ({
 
 jest.mock('../shared', () => ({
     VolumeClient: {
-        getConversationDefaultWorkspacePath: jest.fn().mockResolvedValue('/workspace/user-1')
+        getSharedWorkspacePath: jest.fn().mockResolvedValue('/workspace/user-1')
     },
     getMediaTypeWithCharset: jest.fn()
 }))

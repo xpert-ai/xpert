@@ -26,6 +26,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import fsPromises from 'fs/promises'
 import { assign, uniq, uniqBy } from 'lodash'
 import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
@@ -446,24 +447,30 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
     async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).list(xpert.id, {
-            path,
-            deepth
-        })
+        const volumeClient = this.createVolumeClient(xpert.tenantId, RequestContext.currentUserId())
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).list(
+            await this.resolveMemoryWorkspaceKey(volumeClient, xpert.id),
+            {
+                path,
+                deepth
+            }
+        )
     }
 
     async getMemoryFile(id: string, filePath: string): Promise<TFile> {
         const xpert = await this.findOne(id)
+        const volumeClient = this.createVolumeClient(xpert.tenantId, RequestContext.currentUserId())
         return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).readFile(
-            xpert.id,
+            await this.resolveMemoryWorkspaceKey(volumeClient, xpert.id),
             filePath
         )
     }
 
     async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
         const xpert = await this.findOne(id)
+        const volumeClient = this.createVolumeClient(xpert.tenantId, RequestContext.currentUserId())
         return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).saveFile(
-            xpert.id,
+            await this.resolveMemoryWorkspaceKey(volumeClient, xpert.id),
             filePath,
             content
         )
@@ -489,5 +496,21 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             catalog: 'users',
             userId
         })
+    }
+
+    private getMemoryWorkspaceKey(xpertId: string) {
+        return `.xpert/memory/xperts/${xpertId}/private`
+    }
+
+    private async resolveMemoryWorkspaceKey(volumeClient: VolumeClient, xpertId: string) {
+        const preferredWorkspaceKey = this.getMemoryWorkspaceKey(xpertId)
+        const volumeRoot = volumeClient.getVolumePath()
+        if (!volumeRoot) {
+            return preferredWorkspaceKey
+        }
+
+        const preferredWorkspaceRoot = volumeClient.getVolumePath(preferredWorkspaceKey)
+        const stat = await fsPromises.stat(preferredWorkspaceRoot).catch(() => null)
+        return stat?.isDirectory() ? preferredWorkspaceKey : xpertId
     }
 }

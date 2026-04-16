@@ -130,8 +130,8 @@ describe('XpertAgentInvokeHandler', () => {
             timeZone: 'Asia/Shanghai',
             preferredLanguage: 'en-US'
         } as any)
-        jest.spyOn(VolumeClient, 'getConversationDefaultWorkspacePath').mockResolvedValue('/tmp/workspace')
-        jest.spyOn(VolumeClient, 'getConversationDefaultWorkspaceUrl').mockReturnValue('/workspace')
+        jest.spyOn(VolumeClient, 'getSharedWorkspacePath').mockResolvedValue('/tmp/user-root')
+        jest.spyOn(VolumeClient, 'getSharedWorkspaceUrl').mockReturnValue('/user/data')
     })
 
     afterEach(() => {
@@ -191,18 +191,13 @@ describe('XpertAgentInvokeHandler', () => {
                 language: 'en-US',
                 user_email: 'user@example.com',
                 thread_id: 'thread-1',
-                workspace_path: '/tmp/workspace',
-                workspace_url: '/workspace',
-                volume: '/tmp/workspace'
+                workspace_path: '/tmp/user-root',
+                workspace_url: '/user/data',
+                volume: '/tmp/user-root'
             })
         })
-        expect(VolumeClient.getConversationDefaultWorkspacePath).toHaveBeenCalledWith(
-            'tenant-1',
-            undefined,
-            'user-1',
-            'thread-1'
-        )
-        expect(VolumeClient.getConversationDefaultWorkspaceUrl).toHaveBeenCalledWith(undefined, 'user-1', 'thread-1')
+        expect(VolumeClient.getSharedWorkspacePath).toHaveBeenCalledWith('tenant-1', undefined, 'user-1')
+        expect(VolumeClient.getSharedWorkspaceUrl).toHaveBeenCalledWith(undefined, 'user-1')
     })
 
     it('merges soul and profile into resume command updates', async () => {
@@ -260,9 +255,9 @@ describe('XpertAgentInvokeHandler', () => {
                     profile: '# Profile',
                     language: 'en-US',
                     thread_id: 'thread-1',
-                    workspace_path: '/tmp/workspace',
-                    workspace_url: '/workspace',
-                    volume: '/tmp/workspace'
+                    workspace_path: '/tmp/user-root',
+                    workspace_url: '/user/data',
+                    volume: '/tmp/user-root'
                 })
             }
         })
@@ -350,22 +345,22 @@ describe('XpertAgentInvokeHandler', () => {
                     profile: '# Profile',
                     language: 'en-US',
                     thread_id: 'thread-1',
-                    workspace_path: '/tmp/workspace',
-                    workspace_url: '/workspace',
-                    volume: '/tmp/workspace'
+                    workspace_path: '/tmp/user-root',
+                    workspace_url: '/user/data',
+                    volume: '/tmp/user-root'
                 })
             }
         })
     })
 
-    it('uses the conversation default workspace as sandbox working directory', async () => {
+    it('uses the shared user workspace as sandbox working directory', async () => {
         const graph = createGraph()
 
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof SandboxAcquireBackendCommand) {
                 return {
                     provider: 'local-shell-sandbox',
-                    workingDirectory: '/tmp/workspace'
+                    workingDirectory: '/tmp/user-root'
                 }
             }
             if (command instanceof CompileGraphCommand) {
@@ -414,7 +409,7 @@ describe('XpertAgentInvokeHandler', () => {
                 params: expect.objectContaining({
                     provider: 'local-shell-sandbox',
                     tenantId: 'tenant-1',
-                    workingDirectory: '/tmp/workspace',
+                    workingDirectory: '/tmp/user-root',
                     workFor: {
                         type: 'user',
                         id: 'user-1'

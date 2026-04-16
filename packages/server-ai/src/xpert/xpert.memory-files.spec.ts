@@ -144,7 +144,7 @@ describe('XpertService memory files', () => {
                 userId: 'user-1'
             })
         )
-        expect(mockList).toHaveBeenCalledWith('xpert-1', {
+        expect(mockList).toHaveBeenCalledWith('.xpert/memory/xperts/xpert-1/private', {
             path: 'docs',
             deepth: 2
         })
@@ -167,7 +167,7 @@ describe('XpertService memory files', () => {
             catalog: 'users',
             userId: 'user-1'
         })
-        expect(mockReadFile).toHaveBeenCalledWith('xpert-1', 'README.md')
+        expect(mockReadFile).toHaveBeenCalledWith('.xpert/memory/xperts/xpert-1/private', 'README.md')
     })
 
     it('saves files inside the current user memory workspace for the xpert', async () => {
@@ -188,6 +188,10 @@ describe('XpertService memory files', () => {
             catalog: 'users',
             userId: 'user-1'
         })
-        expect(mockSaveFile).toHaveBeenCalledWith('xpert-1', 'README.md', '# Updated\n')
+        expect(mockSaveFile).toHaveBeenCalledWith(
+            '.xpert/memory/xperts/xpert-1/private',
+            'README.md',
+            '# Updated\n'
+        )
     })
 })

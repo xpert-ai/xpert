@@ -229,17 +229,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                         from: chatFrom
                     })
                 )
-                const workspacePath = await VolumeClient.getConversationDefaultWorkspacePath(
-                    tenantId,
-                    projectId,
-                    userId,
-                    conversation.threadId
-                )
-                const workspaceUrl = VolumeClient.getConversationDefaultWorkspaceUrl(
-                    projectId,
-                    userId,
-                    conversation.threadId
-                )
+                const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, undefined, userId)
+                const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(undefined, userId)
                 conversation = await this.commandBus.execute(
                     new ChatConversationUpsertCommand({
                         id: conversation.id,

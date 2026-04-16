@@ -161,27 +161,21 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
 	async getWorkspaceFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
 		const conversation = await this.findOne(id)
-		return this.createWorkspaceVolumeClient(conversation).list(this.getConversationDefaultWorkspaceKey(conversation), {
+		const files = await this.createWorkspaceVolumeClient(conversation).list(this.getUserWorkspaceKey(), {
 			path,
 			deepth
 		})
+		return await this.filterLegacyConversationDirectories(files, conversation, path)
 	}
 
 	async readWorkspaceFile(id: string, filePath: string): Promise<TFile> {
 		const conversation = await this.findOne(id)
-		return this.createWorkspaceVolumeClient(conversation).readFile(
-			this.getConversationDefaultWorkspaceKey(conversation),
-			filePath
-		)
+		return this.createWorkspaceVolumeClient(conversation).readFile(this.getUserWorkspaceKey(), filePath)
 	}
 
 	async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
 		const conversation = await this.findOne(id)
-		return this.createWorkspaceVolumeClient(conversation).saveFile(
-			this.getConversationDefaultWorkspaceKey(conversation),
-			filePath,
-			content
-		)
+		return this.createWorkspaceVolumeClient(conversation).saveFile(this.getUserWorkspaceKey(), filePath, content)
 	}
 
 	private createWorkspaceVolumeClient(conversation: ChatConversation) {
@@ -192,12 +186,44 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		return new VolumeClient({
 			tenantId: conversation.tenantId,
 			catalog: 'users',
-			userId: conversation.createdById,
-			projectId: conversation.projectId
+			userId: conversation.createdById
 		})
 	}
 
-	private getConversationDefaultWorkspaceKey(conversation: ChatConversation) {
-		return VolumeClient.getConversationDefaultWorkspaceKey(conversation.projectId, conversation.threadId)
+	private getUserWorkspaceKey() {
+		return ''
+	}
+
+	private async filterLegacyConversationDirectories(
+		files: TFileDirectory[] | null | undefined,
+		conversation: ChatConversation,
+		path?: string
+	) {
+		if (!files?.length || !this.isWorkspaceRootPath(path)) {
+			return files ?? []
+		}
+
+		const threadIds = await this.getConversationThreadIds(conversation)
+		if (!threadIds.size) {
+			return files
+		}
+
+		return files.filter((item) => !(item.fileType === 'directory' && threadIds.has(item.filePath)))
+	}
+
+	private async getConversationThreadIds(conversation: ChatConversation) {
+		const conversations = await this.repository.find({
+			select: ['threadId'],
+			where: {
+				tenantId: conversation.tenantId,
+				createdById: conversation.createdById
+			}
+		})
+		return new Set(conversations.map((item) => item.threadId).filter(Boolean))
+	}
+
+	private isWorkspaceRootPath(path?: string) {
+		const normalizedPath = (path ?? '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
+		return !normalizedPath
 	}
 }

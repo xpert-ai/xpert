@@ -115,7 +115,7 @@ export function buildListFilesTool(toolset: BaseFileToolset) {
 		},
 		{
 			name: TOOL_NAME,
-			description: `List all files in current workspace. The path is relative to /workspace (e.g., 'src/main.py' for /workspace/src/main.py)`,
+			description: `List all files in the current workspace. The path is relative to the workspace root (e.g., 'src/main.py').`,
 			schema: z.object({}),
 			verboseParsingErrors: true
 		}
@@ -160,11 +160,11 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 		},
 		{
 			name: TOOL_NAME,
-			description: `Create a new file with the provided contents at a given path in the workspace. The path must be relative to /workspace (e.g., 'src/main.py' for /workspace/src/main.py)`,
+			description: `Create a new file with the provided contents at a given path in the workspace. The path must be relative to the workspace root (e.g., 'src/main.py').`,
 			schema: z.object({
 				file_path: z
 					.string()
-					.describe(`Path to the file to be created, relative to /workspace (e.g., 'src/main.py')`),
+					.describe(`Path to the file to be created, relative to the workspace root (e.g., 'src/main.py')`),
 				file_contents: z.string().describe(`The content to write to the file`),
 				file_description: z
 					.string()
@@ -241,11 +241,11 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 		},
 		{
 			name: TOOL_NAME,
-			description: `Replace specific text in a file. The file path must be relative to /workspace (e.g., 'src/main.py' for /workspace/src/main.py). Use this when you need to replace a unique string that appears exactly once in the file.`,
+			description: `Replace specific text in a file. The file path must be relative to the workspace root (e.g., 'src/main.py'). Use this when you need to replace a unique string that appears exactly once in the file.`,
 			schema: z.object({
 				file_path: z
 					.string()
-					.describe(`Path to the file to be created, relative to /workspace (e.g., 'src/main.py')`),
+					.describe(`Path to the file to be created, relative to the workspace root (e.g., 'src/main.py')`),
 				old_str: z.string().describe(`Text to be replaced (must appear exactly once)`),
 				new_str: z.string().describe(`Replacement text`)
 			}),
@@ -291,11 +291,11 @@ export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
 		},
 		{
 			name: TOOL_NAME,
-			description: `Completely rewrite an existing file with new content. The file path must be relative to /workspace (e.g., 'src/main.py' for /workspace/src/main.py). Use this when you need to replace the entire file content or make extensive changes throughout the file.`,
+			description: `Completely rewrite an existing file with new content. The file path must be relative to the workspace root (e.g., 'src/main.py'). Use this when you need to replace the entire file content or make extensive changes throughout the file.`,
 			schema: z.object({
 				file_path: z
 					.string()
-					.describe(`Path to the file to be created, relative to /workspace (e.g., 'src/main.py')`),
+					.describe(`Path to the file to be created, relative to the workspace root (e.g., 'src/main.py')`),
 				file_contents: z
 					.string()
 					.describe(`The new content to write to the file, replacing all existing content`),
@@ -346,11 +346,11 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 		},
 		{
 			name: TOOL_NAME,
-			description: `Delete a file at the given path. The path must be relative to /workspace (e.g., 'src/main.py' for /workspace/src/main.py)`,
+			description: `Delete a file at the given path. The path must be relative to the workspace root (e.g., 'src/main.py').`,
 			schema: z.object({
 				file_path: z
 					.string()
-					.describe(`Path to the file to be deleted, relative to /workspace (e.g., 'src/main.py')`)
+					.describe(`Path to the file to be deleted, relative to the workspace root (e.g., 'src/main.py')`)
 			}),
 			verboseParsingErrors: true
 		}
@@ -399,12 +399,12 @@ export function buildReadFileTool(toolset: BaseFileToolset) {
 		},
 		{
 			name: TOOL_NAME,
-			description: `Read and return the contents of a file. This tool is essential for verifying data, checking file contents, and analyzing information. Always use this tool to read file contents before processing or analyzing data. The file path must be relative to /workspace.`,
+			description: `Read and return the contents of a file. This tool is essential for verifying data, checking file contents, and analyzing information. Always use this tool to read file contents before processing or analyzing data. The file path must be relative to the workspace root.`,
 			schema: z.object({
 				file_path: z
 					.string()
 					.describe(
-						`Path to the file to read, relative to /workspace (e.g., 'src/main.py' for /workspace/src/main.py). Must be a valid file path within the workspace.`
+						`Path to the file to read, relative to the workspace root (e.g., 'src/main.py'). Must be a valid file path within the workspace.`
 					)
 			}),
 			verboseParsingErrors: true

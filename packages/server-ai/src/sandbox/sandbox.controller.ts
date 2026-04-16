@@ -183,12 +183,7 @@ export class SandboxController {
         }
 
         const effectiveProjectId = projectId ?? conversation?.projectId ?? null
-        const workspacePath = await VolumeClient.getConversationDefaultWorkspacePath(
-            tenantId,
-            effectiveProjectId,
-            userId,
-            conversation?.threadId
-        )
+        const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, undefined, userId)
         const sandboxContext = await this.commandBus.execute(
             new SandboxAcquireBackendCommand({
                 tenantId,

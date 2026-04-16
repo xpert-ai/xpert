@@ -52,7 +52,7 @@ jest.mock('./dto', () => ({
     }
 }))
 
-import { TFile } from '@xpert-ai/contracts'
+import { TFile, TFileDirectory } from '@xpert-ai/contracts'
 import fsPromises from 'fs/promises'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
@@ -66,6 +66,9 @@ import { ChatConversationService } from './conversation.service'
 
 describe('ChatConversationService workspace files', () => {
     let service: ChatConversationService
+    let repository: {
+        find: jest.Mock
+    }
     const userConversation = {
         id: 'conversation-1',
         tenantId: 'tenant-1',
@@ -78,8 +81,11 @@ describe('ChatConversationService workspace files', () => {
     } satisfies Pick<ChatConversation, 'id' | 'tenantId' | 'createdById' | 'threadId' | 'projectId'>
 
     beforeEach(() => {
+        repository = {
+            find: jest.fn().mockResolvedValue([])
+        }
         service = new ChatConversationService(
-            {} as Repository<ChatConversation>,
+            repository as unknown as Repository<ChatConversation>,
             {} as ChatMessageService,
             {} as CommandBus,
             {} as QueryBus,
@@ -91,20 +97,20 @@ describe('ChatConversationService workspace files', () => {
         jest.restoreAllMocks()
     })
 
-    it('lists files inside the current conversation workspace', async () => {
+    it('lists files inside the user workspace root', async () => {
         const listWorkspace = jest.spyOn(WorkspaceVolumeClient.prototype, 'list').mockResolvedValue([])
         jest.spyOn(service, 'findOne').mockResolvedValue(userConversation as ChatConversation)
 
         await service.getWorkspaceFiles('conversation-1', 'docs', 2)
 
         expect(service.findOne).toHaveBeenCalledWith('conversation-1')
-        expect(listWorkspace).toHaveBeenCalledWith('thread-1', {
+        expect(listWorkspace).toHaveBeenCalledWith('', {
             path: 'docs',
             deepth: 2
         })
     })
 
-    it('reads files inside the current conversation workspace', async () => {
+    it('reads files inside the user workspace root', async () => {
         const readWorkspaceFile = jest.spyOn(WorkspaceVolumeClient.prototype, 'readFile').mockResolvedValue({
             filePath: 'README.md'
         } as TFile)
@@ -113,10 +119,10 @@ describe('ChatConversationService workspace files', () => {
         await service.readWorkspaceFile('conversation-1', 'README.md')
 
         expect(service.findOne).toHaveBeenCalledWith('conversation-1')
-        expect(readWorkspaceFile).toHaveBeenCalledWith('thread-1', 'README.md')
+        expect(readWorkspaceFile).toHaveBeenCalledWith('', 'README.md')
     })
 
-    it('saves files inside the current conversation workspace', async () => {
+    it('saves files inside the user workspace root', async () => {
         const saveWorkspaceFile = jest.spyOn(WorkspaceVolumeClient.prototype, 'saveFile').mockResolvedValue({
             filePath: 'README.md',
             contents: '# Updated\n'
@@ -126,10 +132,10 @@ describe('ChatConversationService workspace files', () => {
         await service.saveWorkspaceFile('conversation-1', 'README.md', '# Updated\n')
 
         expect(service.findOne).toHaveBeenCalledWith('conversation-1')
-        expect(saveWorkspaceFile).toHaveBeenCalledWith('thread-1', 'README.md', '# Updated\n')
+        expect(saveWorkspaceFile).toHaveBeenCalledWith('', 'README.md', '# Updated\n')
     })
 
-    it('uses the project workspace root for project conversations', async () => {
+    it('uses the user workspace root for project conversations', async () => {
         const getVolumePath = jest.spyOn(VolumeClient.prototype, 'getVolumePath')
         const getPublicUrl = jest.spyOn(VolumeClient.prototype, 'getPublicUrl')
         const listFiles = jest.spyOn(sharedUtils, 'listFiles').mockResolvedValue([])
@@ -138,15 +144,65 @@ describe('ChatConversationService workspace files', () => {
         await service.getWorkspaceFiles('conversation-1', 'docs', 2)
 
         expect(service.findOne).toHaveBeenCalledWith('conversation-1')
-        expect(getVolumePath).toHaveReturnedWith('/sandbox/tenant-1/project/project-1')
-        expect(getPublicUrl).toHaveReturnedWith('http://localhost:3000/api/sandbox/volume/project/project-1')
+        expect(getVolumePath).toHaveReturnedWith('/sandbox/tenant-1/user/user-1')
+        expect(getPublicUrl).toHaveReturnedWith('http://localhost:3000/api/sandbox/volume/user/user-1')
         expect(listFiles).toHaveBeenCalledWith('docs', 2, 0, {
-            root: '/sandbox/tenant-1/project/project-1',
-            baseUrl: 'http://localhost:3000/api/sandbox/volume/project/project-1'
+            root: '/sandbox/tenant-1/user/user-1',
+            baseUrl: 'http://localhost:3000/api/sandbox/volume/user/user-1'
         })
     })
 
-    it('reads files from the project workspace root for project conversations', async () => {
+    it('hides legacy conversation thread directories from the user workspace root listing', async () => {
+        const listWorkspace = jest.spyOn(WorkspaceVolumeClient.prototype, 'list').mockResolvedValue([
+            {
+                filePath: 'thread-1',
+                fileType: 'directory'
+            },
+            {
+                filePath: 'thread-2',
+                fileType: 'directory'
+            },
+            {
+                filePath: 'docs',
+                fileType: 'directory'
+            },
+            {
+                filePath: 'README.md',
+                fileType: 'md'
+            }
+        ] as TFileDirectory[])
+        jest.spyOn(service, 'findOne').mockResolvedValue(userConversation as ChatConversation)
+        repository.find.mockResolvedValue([
+            { threadId: 'thread-1' },
+            { threadId: 'thread-2' }
+        ])
+
+        const files = await service.getWorkspaceFiles('conversation-1')
+
+        expect(listWorkspace).toHaveBeenCalledWith('', {
+            path: undefined,
+            deepth: undefined
+        })
+        expect(repository.find).toHaveBeenCalledWith({
+            select: ['threadId'],
+            where: {
+                tenantId: 'tenant-1',
+                createdById: 'user-1'
+            }
+        })
+        expect(files).toEqual([
+            {
+                filePath: 'docs',
+                fileType: 'directory'
+            },
+            {
+                filePath: 'README.md',
+                fileType: 'md'
+            }
+        ])
+    })
+
+    it('reads files from the user workspace root for project conversations', async () => {
         const modifiedAt = new Date('2024-01-01T00:00:00.000Z')
         const stat = {
             isFile: () => true,
@@ -159,16 +215,16 @@ describe('ChatConversationService workspace files', () => {
 
         const file = await service.readWorkspaceFile('conversation-1', 'README.md')
 
-        expect(fsPromises.stat).toHaveBeenCalledWith('/sandbox/tenant-1/project/project-1/README.md')
-        expect(fsPromises.readFile).toHaveBeenCalledWith('/sandbox/tenant-1/project/project-1/README.md')
+        expect(fsPromises.stat).toHaveBeenCalledWith('/sandbox/tenant-1/user/user-1/README.md')
+        expect(fsPromises.readFile).toHaveBeenCalledWith('/sandbox/tenant-1/user/user-1/README.md')
         expect(file).toMatchObject({
             filePath: 'README.md',
             contents: '# Project',
-            url: 'http://localhost:3000/api/sandbox/volume/project/project-1/README.md'
+            url: 'http://localhost:3000/api/sandbox/volume/user/user-1/README.md'
         })
     })
 
-    it('saves files into the project workspace root for project conversations', async () => {
+    it('saves files into the user workspace root for project conversations', async () => {
         const modifiedAt = new Date('2024-01-01T00:00:00.000Z')
         const stat = {
             isFile: () => true,
@@ -185,14 +241,14 @@ describe('ChatConversationService workspace files', () => {
         const file = await service.saveWorkspaceFile('conversation-1', 'README.md', '# Updated\n')
 
         expect(fsPromises.writeFile).toHaveBeenCalledWith(
-            '/sandbox/tenant-1/project/project-1/README.md',
+            '/sandbox/tenant-1/user/user-1/README.md',
             '# Updated\n',
             'utf8'
         )
         expect(file).toMatchObject({
             filePath: 'README.md',
             contents: '# Updated\n',
-            url: 'http://localhost:3000/api/sandbox/volume/project/project-1/README.md'
+            url: 'http://localhost:3000/api/sandbox/volume/user/user-1/README.md'
         })
     })
 
