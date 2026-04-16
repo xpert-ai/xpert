@@ -257,9 +257,11 @@ export type TXpertOptions = {
 /**
  * Config for Agent execution (Langgraph.js)
  */
+export const DEFAULT_XPERT_AGENT_RECURSION_LIMIT = 1000
+
 export type TXpertAgentConfig = {
   /**
-   * Maximum number of times a call can recurse. If not provided, defaults to 25.
+   * Maximum number of times a call can recurse. If not provided, defaults to 1000.
    */
   recursionLimit?: number
   /** Maximum number of parallel calls to make. */
@@ -337,6 +339,23 @@ export type TXpertAgentConfig = {
       parameters?: Record<string, any>
     }
   >
+}
+
+export function getXpertAgentRecursionLimit(agentConfig?: { recursionLimit?: number | null } | null): number {
+  return typeof agentConfig?.recursionLimit === 'number'
+    ? agentConfig.recursionLimit
+    : DEFAULT_XPERT_AGENT_RECURSION_LIMIT
+}
+
+export function normalizeXpertAgentConfig(): { recursionLimit: number }
+export function normalizeXpertAgentConfig<T extends { recursionLimit?: number | null }>(
+  agentConfig: T
+): Omit<T, 'recursionLimit'> & { recursionLimit: number }
+export function normalizeXpertAgentConfig<T extends { recursionLimit?: number | null }>(agentConfig?: T | null) {
+  return {
+    ...(agentConfig ?? {}),
+    recursionLimit: getXpertAgentRecursionLimit(agentConfig)
+  }
 }
 
 export type TStateVariableType = XpertParameterTypeEnum | 'object' | 'array[string]' | 'array[number]' | 'array[object]'

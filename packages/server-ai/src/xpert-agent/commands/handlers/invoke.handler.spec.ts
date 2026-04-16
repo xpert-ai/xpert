@@ -54,6 +54,10 @@ jest.mock('../../../shared', () => ({
     ExecutionCancelService: class ExecutionCancelService {}
 }))
 
+jest.mock('../../../chat-message/chat-message.entity', () => ({
+    ChatMessage: class ChatMessage {}
+}))
+
 jest.mock('../../../knowledgebase', () => ({
     KnowledgebaseTaskService: class KnowledgebaseTaskService {},
     KnowledgeTaskServiceQuery: class KnowledgeTaskServiceQuery {}
@@ -192,6 +196,9 @@ describe('XpertAgentInvokeHandler', () => {
                 workspace_url: '/workspace',
                 volume: '/tmp/workspace'
             })
+        })
+        expect(graph.streamEvents.mock.calls[0][1]).toMatchObject({
+            recursionLimit: 1000
         })
         expect(VolumeClient.getSharedWorkspacePath).toHaveBeenCalledWith('tenant-1', undefined, 'user-1')
         expect(VolumeClient.getSharedWorkspaceUrl).toHaveBeenCalledWith(undefined, 'user-1')

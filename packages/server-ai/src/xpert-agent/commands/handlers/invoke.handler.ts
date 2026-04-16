@@ -20,9 +20,10 @@ import {
     TXpertAgentConfig,
     XpertAgentExecutionStatusEnum,
     figureOutXpert,
+    getXpertAgentRecursionLimit,
     IXpert
 } from '@xpert-ai/contracts'
-import { AgentRecursionLimit, isNil } from '@xpert-ai/copilot'
+import { isNil } from '@xpert-ai/copilot'
 import { RequestContext } from '@xpert-ai/server-core'
 import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
@@ -303,7 +304,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             }
         }
 
-        const recursionLimit = team.agentConfig?.recursionLimit ?? AgentRecursionLimit
+        const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
         const contentStream = from(
             graph.streamEvents(graphInput, {
                 version: 'v2',

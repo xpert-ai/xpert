@@ -5,6 +5,7 @@ import {
     IUser,
     IXpertAgentExecution,
     LongTermMemoryTypeEnum,
+    normalizeXpertAgentConfig,
     OrderTypeEnum,
     TFile,
     TFileDirectory,
@@ -27,7 +28,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
-import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
+import { DeepPartial, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
@@ -63,6 +64,16 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         const _entity = await super.findOne(id)
         assign(_entity, entity)
         return await this.repository.save(_entity)
+    }
+
+    async create(entity: DeepPartial<Xpert>, ...options: any[]) {
+        return await super.create(
+            {
+                ...entity,
+                agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
+            },
+            ...options
+        )
     }
 
     /**
@@ -219,7 +230,10 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
     }
 
     async save(entity: Xpert) {
-        return await this.repository.save(entity)
+        return await this.repository.save({
+            ...entity,
+            agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
+        })
     }
 
     async saveDraft(id: string, draft: TXpertTeamDraft) {

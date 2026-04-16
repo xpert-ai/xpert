@@ -4,6 +4,7 @@ import { XpertService } from './xpert.service'
 describe('XpertService command facade', () => {
 	function createService() {
 		const repository = {
+			create: jest.fn((entity) => entity),
 			findOne: jest.fn(),
 			save: jest.fn(),
 			find: jest.fn(),
@@ -46,6 +47,7 @@ describe('XpertService command facade', () => {
 		return {
 			service,
 			commandBus,
+			repository,
 			triggerRegistry
 		}
 	}
@@ -93,5 +95,57 @@ describe('XpertService command facade', () => {
 				name: 'schedule'
 			}
 		])
+	})
+
+	it('normalizes agentConfig recursionLimit on create', async () => {
+		const { repository, service } = createService()
+		repository.save.mockImplementation(async (entity) => entity)
+
+		const created = await service.create({
+			name: 'agent-defaults',
+			agentConfig: {
+				maxConcurrency: 4
+			}
+		} as any)
+
+		expect(repository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				name: 'agent-defaults',
+				agentConfig: {
+					maxConcurrency: 4,
+					recursionLimit: 1000
+				}
+			})
+		)
+		expect(created).toEqual(
+			expect.objectContaining({
+				agentConfig: {
+					maxConcurrency: 4,
+					recursionLimit: 1000
+				}
+			})
+		)
+	})
+
+	it('normalizes agentConfig recursionLimit on save', async () => {
+		const { repository, service } = createService()
+		repository.save.mockImplementation(async (entity) => entity)
+
+		await service.save({
+			id: 'xpert-1',
+			agentConfig: {
+				maxConcurrency: 2
+			}
+		} as any)
+
+		expect(repository.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'xpert-1',
+				agentConfig: {
+					maxConcurrency: 2,
+					recursionLimit: 1000
+				}
+			})
+		)
 	})
 })
