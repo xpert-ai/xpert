@@ -1501,7 +1501,12 @@
     },
     "Xpert": {
       "XpertUserGroups": "XPERT 用户组",
-      "Assistant": "助手"
+      "Assistant": "助手",
+      "ApiKeys": "API 密钥",
+      "WorkspaceApiKeys": "工作区 API 密钥",
+      "WorkspaceApiKeyDescription": "在这里创建的密钥属于当前工作区，可访问该工作区内已发布的专家。",
+      "CurrentWorkspace": "当前工作区",
+      "CreateWorkspaceSecretKey": "创建工作区密钥"
     },
     "Feature": {
       "Features": {
