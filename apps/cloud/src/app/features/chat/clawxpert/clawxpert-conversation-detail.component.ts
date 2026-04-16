@@ -5,8 +5,9 @@ import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
+import { FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
-import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage } from '../../../@core'
+import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage, injectToastr } from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertFacade } from './clawxpert.facade'
@@ -18,6 +19,27 @@ import {
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_REFRESH_INTERVAL_MS = 1000
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
+
+type ChatKitCodeComposerReference = {
+  type: 'code'
+  path: string
+  text: string
+  startLine: number
+  endLine: number
+  language?: string
+}
+
+type ChatKitReferenceComposerControl = {
+  element: unknown
+  setComposerValue(params: {
+    text?: string
+    reply?: string
+    attachments?: unknown[]
+    references?: ChatKitCodeComposerReference[]
+    appendReferences?: boolean
+  }): Promise<void>
+  focusComposer(): Promise<void>
+}
 
 @Component({
   standalone: true,
@@ -158,6 +180,7 @@ const CONVERSATION_DETAIL_RELATIONS = ['messages']
                         [xpertId]="facade.xpertId()"
                         [mode]="'editable'"
                         [reloadKey]="fileListReloadKey()"
+                        (referenceRequest)="handleWorkspaceReference($event)"
                       />
                     } @else if (activePanel() === 'computer') {
                       <xp-chat-computer-timeline
@@ -251,6 +274,7 @@ const CONVERSATION_DETAIL_RELATIONS = ['messages']
 export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
   readonly #conversationService = inject(ChatConversationService)
+  readonly #toastr = injectToastr()
   readonly #responseActive = signal(false)
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -424,6 +448,41 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
     this.facade.setActiveConversation(null)
+  }
+
+  async handleWorkspaceReference(request: FileWorkbenchReferenceRequest) {
+    const control = this.control() as ChatKitReferenceComposerControl | null
+    if (!control?.element) {
+      this.#toastr.warning('PAC.Chat.ClawXpert.ReferenceUnavailable', {
+        Default: 'Chat composer is not ready yet. Try again in a moment.'
+      })
+      return
+    }
+
+    try {
+      await control.setComposerValue({
+        references: [
+          {
+            type: 'code',
+            path: request.path,
+            text: request.text,
+            startLine: request.startLine,
+            endLine: request.endLine,
+            ...(request.language ? { language: request.language } : {})
+          }
+        ],
+        appendReferences: true
+      })
+      await control.focusComposer()
+    } catch (error) {
+      this.#toastr.danger(
+        getErrorMessage(error) || 'PAC.Chat.ClawXpert.ReferenceAttachFailed',
+        'PAC.TOASTR.TITLE.ERROR',
+        {
+          Default: 'Failed to attach the selected file reference.'
+        }
+      )
+    }
   }
 
   selectPanel(panel: 'files' | 'computer' | 'terminal') {

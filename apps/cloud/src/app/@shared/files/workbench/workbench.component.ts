@@ -11,6 +11,7 @@ import {
   inject,
   input,
   model,
+  output,
   signal,
   viewChild
 } from '@angular/core'
@@ -19,6 +20,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Observable, defaultIfEmpty, finalize, firstValueFrom, from, isObservable } from 'rxjs'
 import { getErrorMessage, injectToastr, TFile, TFileDirectory } from '../../../@core'
 import { FileTreeComponent } from '../tree/tree.component'
+import { FileEditorSelection, mapFileLanguageFromPath } from '../editor/editor.component'
 import {
   FileTreeNode,
   findPreferredFile,
@@ -43,6 +45,13 @@ export type FileWorkbenchDownloadPayload =
   | { kind: 'url'; url: string; fileName?: string }
   | { kind: 'blob'; blob: Blob; fileName?: string }
 export type FileWorkbenchFileDownloader = (path: string) => AsyncValue<FileWorkbenchDownloadPayload | null | undefined>
+export type FileWorkbenchReferenceRequest = {
+  path: string
+  text: string
+  startLine: number
+  endLine: number
+  language?: string
+}
 
 const DEFAULT_EDITABLE_EXTENSIONS = [
   'md',
@@ -91,7 +100,9 @@ export class FileWorkbenchComponent {
   readonly markdownExtensions = input<string[]>(DEFAULT_MARKDOWN_EXTENSIONS)
   readonly treeSize = input<FileTreeSizeVariants>('default')
   readonly reloadKey = input<unknown>(null)
+  readonly referenceable = input(false)
   readonly mobilePane = model<'tree' | 'file'>('tree')
+  readonly referenceRequest = output<FileWorkbenchReferenceRequest>()
 
   readonly unsavedChangesDialog = viewChild<TemplateRef<unknown>>('unsavedChangesDialog')
   readonly uploadInput = viewChild<ElementRef<HTMLInputElement>>('uploadInput')
@@ -165,20 +176,17 @@ export class FileWorkbenchComponent {
   #treeRequestToken = 0
   #fileRequestToken = 0
 
-  readonly #reloadRootEffect = effect(
-    () => {
-      const rootId = this.rootId()
-      this.reloadKey()
+  readonly #reloadRootEffect = effect(() => {
+    const rootId = this.rootId()
+    this.reloadKey()
 
-      if (!rootId) {
-        this.resetState()
-        return
-      }
+    if (!rootId) {
+      this.resetState()
+      return
+    }
 
-      void this.reloadRootTree(rootId)
-    },
-    { allowSignalWrites: true }
-  )
+    void this.reloadRootTree(rootId)
+  })
 
   isEditableFile(filePath: string | null | undefined) {
     return !!filePath && this.#editableExtensionSet().has(fileExtension(filePath))
@@ -242,6 +250,36 @@ export class FileWorkbenchComponent {
       return
     }
     this.panelMode.set(mode)
+  }
+
+  referenceActiveFile() {
+    const filePath = normalizeReferencePath(this.activeFilePath())
+    const text = this.draftContent()
+    if (!this.referenceable() || !filePath || !this.fileReadable() || !text.trim().length) {
+      this.#toastr.warning('PAC.Files.ReferenceUnavailable', {
+        Default: 'This file does not have any text content to reference yet.'
+      })
+      return
+    }
+
+    const lineCount = countTextLines(text)
+    this.referenceRequest.emit(createReferenceRequest(filePath, text, 1, lineCount))
+  }
+
+  referenceSelectedRange(selection: FileEditorSelection) {
+    const filePath = normalizeReferencePath(this.activeFilePath())
+    if (!this.referenceable() || !filePath || !this.fileReadable()) {
+      return
+    }
+
+    const text = selection.text
+    if (!text.trim().length) {
+      return
+    }
+
+    this.referenceRequest.emit(
+      createReferenceRequest(filePath, text, selection.startLine, selection.endLine)
+    )
   }
 
   discardActiveFileChanges() {
@@ -694,6 +732,10 @@ function fileExtension(filePath: string) {
   return filePath.split('.').pop()?.toLowerCase() ?? ''
 }
 
+function normalizeReferencePath(filePath?: string | null) {
+  return (filePath ?? '').trim().replace(/\\/g, '/') || null
+}
+
 function fileNameFromPath(filePath: string) {
   return filePath.split('/').pop() || filePath
 }
@@ -777,6 +819,27 @@ function triggerFileDownload(payload: FileWorkbenchDownloadPayload, fallbackPath
   anchor.click()
   document.body.removeChild(anchor)
   URL.revokeObjectURL(objectUrl)
+}
+
+function countTextLines(content: string) {
+  return content.split(/\r?\n/).length
+}
+
+function createReferenceRequest(
+  path: string,
+  text: string,
+  startLine: number,
+  endLine: number
+): FileWorkbenchReferenceRequest {
+  const language = mapFileLanguageFromPath(path)
+
+  return {
+    path,
+    text,
+    startLine,
+    endLine,
+    ...(language !== 'plaintext' ? { language } : {})
+  }
 }
 
 function readSelectedFiles(event: Event) {

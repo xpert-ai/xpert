@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core'
 import { ChatConversationService } from '../../../@core'
 import {
   FileWorkbenchComponent,
+  FileWorkbenchReferenceRequest,
   FileWorkbenchFileDeleter,
   FileWorkbenchFileLoader,
   FileWorkbenchFileSaver,
@@ -27,7 +28,9 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
       [fileDeleter]="mode() === 'editable' ? deleteConversationFile : null"
       [fileUploader]="mode() === 'editable' ? uploadConversationFile : null"
       [reloadKey]="reloadKey()"
+      [referenceable]="true"
       [treeSize]="'sm'"
+      (referenceRequest)="referenceRequest.emit($event)"
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,6 +45,7 @@ export class ClawXpertConversationFilesComponent {
   readonly xpertId = input<string | null | undefined>(null)
   readonly mode = input<ClawXpertConversationFilesMode>('editable')
   readonly reloadKey = input<number>(0)
+  readonly referenceRequest = output<FileWorkbenchReferenceRequest>()
 
   readonly loadConversationFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const conversationId = this.conversationId()

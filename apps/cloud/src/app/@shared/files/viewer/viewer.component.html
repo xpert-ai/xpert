@@ -23,6 +23,18 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
+      @if (canReferenceFile()) {
+        <button
+          type="button"
+          class="btn btn-secondary btn-small"
+          data-reference-button="file"
+          (click)="emitFileReference()"
+        >
+          <i class="ri-attachment-2 mr-1"></i>
+          {{ 'PAC.Files.ReferenceFile' | translate: { Default: 'Reference file' } }}
+        </button>
+      }
+
       <z-segmented [(ngModel)]="mode">
         <z-segmented-item [value]="'view'" [label]="'PAC.Chat.View' | translate: { Default: 'View' }" />
         <z-segmented-item [value]="'edit'" [label]="'PAC.Chat.Edit' | translate: { Default: 'Edit' }" [zDisabled]="!editable()" />
@@ -81,24 +93,42 @@
       } @else if (mode() === 'edit' && editable()) {
         <pac-file-editor
           class="h-full"
+          [referenceable]="editorReferenceable()"
           [editable]="true"
           lineNumbers
           wordWrap
           [fileName]="filePath() || ''"
           [content]="content()"
           (contentChange)="contentChange.emit($event)"
+          (referenceSelection)="referenceSelection.emit($event)"
         />
       } @else if (markdown()) {
-        <div class="h-full overflow-auto px-6 py-5">
+        <div #markdownPreviewHost class="relative h-full overflow-auto px-6 py-5">
           <markdown class="ngm-copilot-markdown block" [data]="content()" />
+
+          @if (markdownPreviewReference(); as previewSelection) {
+            <button
+              type="button"
+              class="xp-file-preview-reference-button btn btn-primary btn-small absolute z-10"
+              [style.left.px]="previewSelection.left"
+              [style.top.px]="previewSelection.top"
+              (mousedown)="$event.preventDefault()"
+              (click)="emitMarkdownPreviewReference()"
+            >
+              <i class="ri-code-box-line mr-1"></i>
+              {{ 'PAC.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
+            </button>
+          }
         </div>
       } @else {
         <pac-file-editor
           class="h-full"
+          [referenceable]="editorReferenceable()"
           lineNumbers
           wordWrap
           [fileName]="filePath() || ''"
           [content]="content()"
+          (referenceSelection)="referenceSelection.emit($event)"
         />
       }
 

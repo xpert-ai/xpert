@@ -413,6 +413,9 @@
       "LoadFilesFailed": "加载文件列表失败",
       "LoadFolderFailed": "加载文件夹失败",
       "LoadFileFailed": "加载文件失败",
+      "ReferenceFile": "引用文件",
+      "ReferenceSelection": "引用选中内容",
+      "ReferenceUnavailable": "当前没有可引用的文本内容",
       "DownloadUnavailable": "该文件暂时无法下载。",
       "DownloadFailed": "下载文件失败"
     },
@@ -3080,6 +3083,7 @@
         "ThreadDetailEyebrow": "会话详情",
         "Detail": "ClawXpert 详情",
         "Files": "文件",
+        "WorkspaceFiles": "工作区文件",
         "Computer": "电脑",
         "Terminal": "终端",
         "FilesTitle": "工作区文件浏览",
@@ -3113,6 +3117,8 @@
         "ThreadArtifactsDesc": "线程关联文件、生成产物和结构化输出会在线程检查器扩展后接入这里。",
         "ThreadNotesTitle": "备注占位区",
         "ThreadNotesDesc": "线程摘要、操作备注和额外上下文片段暂时先以占位形式保留。",
+        "ReferenceUnavailable": "聊天输入框尚未就绪，请稍后再试。",
+        "ReferenceAttachFailed": "附加所选文件引用失败。",
         "ConversationPreferenceSaveFailed": "保存 ClawXpert 会话偏好失败。"
       }
     },

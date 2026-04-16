@@ -4,7 +4,11 @@ jest.mock('../../../@core', () => ({
   },
   AiThreadService: class AiThreadService {},
   ChatConversationService: class ChatConversationService {},
-  getErrorMessage: (error: any) => error?.message ?? ''
+  getErrorMessage: (error: any) => error?.message ?? '',
+  injectToastr: () => ({
+    warning: jest.fn(),
+    danger: jest.fn()
+  })
 }))
 
 jest.mock('@xpert-ai/headless-ui', () => {
@@ -82,7 +86,7 @@ jest.mock('@xpert-ai/chatkit-angular', () => {
 })
 
 jest.mock('./clawxpert-conversation-files.component', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
+  const { Component, EventEmitter, Input, Output } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -94,6 +98,7 @@ jest.mock('./clawxpert-conversation-files.component', () => {
     @Input() xpertId?: string | null
     @Input() mode?: 'readonly' | 'editable'
     @Input() reloadKey?: number
+    @Output() referenceRequest = new EventEmitter()
   }
 
   return {
@@ -461,7 +466,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
       signal({
         element: {},
-        setThreadId: jest.fn().mockResolvedValue(undefined)
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue: jest.fn().mockResolvedValue(undefined),
+        focusComposer: jest.fn().mockResolvedValue(undefined)
       })
     )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -474,6 +481,49 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(1, 'busy')
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
+  })
+
+  it('appends workspace file references to the chatkit composer without sending a message', async () => {
+    const setComposerValue = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue,
+        focusComposer
+      })
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+
+    ;(filesPanel.componentInstance as ClawXpertConversationFilesComponent).referenceRequest.emit({
+      path: 'src/app.ts',
+      text: 'const y = 2',
+      startLine: 2,
+      endLine: 2,
+      language: 'typescript'
+    })
+    await settle(fixture)
+
+    expect(setComposerValue).toHaveBeenCalledWith({
+      references: [
+        {
+          type: 'code',
+          path: 'src/app.ts',
+          text: 'const y = 2',
+          startLine: 2,
+          endLine: 2,
+          language: 'typescript'
+        }
+      ],
+      appendReferences: true
+    })
+    expect(focusComposer).toHaveBeenCalled()
   })
 
   it('polls and refreshes conversation detail for the computer tab while responses are in flight', async () => {

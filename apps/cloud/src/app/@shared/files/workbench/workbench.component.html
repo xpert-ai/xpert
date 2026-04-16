@@ -46,6 +46,7 @@
   [markdown]="isMarkdownFile()"
   [dirty]="dirty()"
   [downloadable]="canDownloadActiveFile()"
+  [referenceable]="referenceable()"
   [mode]="panelMode()"
   [readOnlyHint]="
     'PAC.Files.ReadOnlyFileHint'
@@ -73,6 +74,8 @@
   (discard)="discardActiveFileChanges()"
   (save)="saveActiveFile()"
   (download)="downloadActiveFile()"
+  (referenceFile)="referenceActiveFile()"
+  (referenceSelection)="referenceSelectedRange($event)"
   (back)="mobilePane.set('tree')"
 />
 
