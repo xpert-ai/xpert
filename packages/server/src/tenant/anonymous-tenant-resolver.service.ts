@@ -19,25 +19,40 @@ export class AnonymousTenantResolverService {
   constructor(private readonly tenantService: TenantService) {}
 
   async resolve(request: Request): Promise<AnonymousTenantResolution> {
-    const candidateTenantName = this.readCandidateTenantName(request)
-    const primaryTenant = await this.findTenant(candidateTenantName)
+    const candidateSubdomain = this.readCandidateSubdomain(request)
+    const primaryTenant = await this.findTenantBySubdomain(candidateSubdomain)
 
     if (primaryTenant) {
       return this.createResolution(primaryTenant, false)
     }
 
-    const fallbackTenant = await this.findTenant(DEFAULT_TENANT)
-    return this.createResolution(fallbackTenant, candidateTenantName !== DEFAULT_TENANT)
+    const fallbackTenant = await this.findTenantByName(DEFAULT_TENANT)
+    return this.createResolution(fallbackTenant, candidateSubdomain !== DEFAULT_TENANT)
   }
 
-  private readCandidateTenantName(request: Request): string | null {
+  private readCandidateSubdomain(request: Request): string | null {
     const tenantDomain = request['tenant-domain']
     return typeof tenantDomain === 'string' && tenantDomain.trim().length > 0
       ? tenantDomain.trim()
       : null
   }
 
-  private async findTenant(name: string | null): Promise<Tenant | null> {
+  private async findTenantBySubdomain(subdomain: string | null): Promise<Tenant | null> {
+    if (!subdomain) {
+      return null
+    }
+
+    const result = await this.tenantService.findOneOrFailByOptions({
+      where: {
+        subdomain
+      },
+      relations: ['organizations', 'settings']
+    })
+
+    return result.success ? result.record : null
+  }
+
+  private async findTenantByName(name: string | null): Promise<Tenant | null> {
     if (!name) {
       return null
     }

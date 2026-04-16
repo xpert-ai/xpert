@@ -25,8 +25,8 @@ describe('AnonymousTenantResolverService', () => {
   })
 
   it('falls back to the default tenant when the candidate tenant is missing', async () => {
-    tenantService.findOneOrFailByOptions.mockImplementation(async ({ where: { name } }: any) => {
-      if (name === 'missing') {
+    tenantService.findOneOrFailByOptions.mockImplementation(async ({ where }: any) => {
+      if (where.subdomain === 'missing') {
         return { success: false }
       }
 
@@ -51,12 +51,41 @@ describe('AnonymousTenantResolverService', () => {
     })
   })
 
+  it('matches tenants strictly by subdomain before choosing an organization', async () => {
+    tenantService.findOneOrFailByOptions.mockImplementation(async ({ where }: any) => {
+      if (where.subdomain === 'dtt-saa') {
+        return {
+          success: true,
+          record: {
+            id: 'tenant-2',
+            name: 'dtt saa',
+            subdomain: 'dtt-saa',
+            settings: [],
+            organizations: [
+              { id: 'org-subdomain', isDefault: true, isActive: true, createdAt: '2024-04-01T00:00:00.000Z' }
+            ]
+          }
+        }
+      }
+
+      return { success: false }
+    })
+
+    await expect(service.resolve({ 'tenant-domain': 'dtt-saa' } as any)).resolves.toMatchObject({
+      tenantId: 'tenant-2',
+      tenantName: 'dtt saa',
+      organizationId: 'org-subdomain',
+      fallbackApplied: false
+    })
+  })
+
   it('prefers the active default organization and otherwise falls back to the earliest active organization', async () => {
     tenantService.findOneOrFailByOptions.mockResolvedValue({
       success: true,
       record: {
         id: 'tenant-1',
         name: 'tenant-1',
+        subdomain: 'tenant-1',
         settings: [],
         organizations: [
           { id: 'org-2', isDefault: false, isActive: true, createdAt: '2024-02-01T00:00:00.000Z' },

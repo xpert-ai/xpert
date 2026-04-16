@@ -172,10 +172,11 @@ export class TenantController extends CrudController<Tenant> {
 		if (defaultTenant.success) {
 			throw new BadRequestException('Tenant already exists');
 		}
+		const preparedEntity = await this.tenantService.prepareTenantCreateInput(entity)
 		await this.commandBus.execute(new LanguageInitCommand())
 		await this.commandBus.execute(new FeatureBulkCreateCommand())
 		const user = await this.commandBus.execute(new UserCreateCommand(entity.superAdmin))
-		return await this.tenantService.onboardTenant(entity, user);
+		return await this.tenantService.onboardTenant(preparedEntity, user, { skipSubdomainPreparation: true });
 	}
 
 	@ApiOperation({
@@ -203,7 +204,8 @@ export class TenantController extends CrudController<Tenant> {
 		if (id !== tenantId) {
 			throw new ForbiddenException();
 		}
-		await this.tenantService.update(id, entity);
+		const preparedEntity = await this.tenantService.prepareTenantUpdateInput(id, entity);
+		await this.tenantService.update(id, preparedEntity);
 		return await this.findById(id);
 	}
 
