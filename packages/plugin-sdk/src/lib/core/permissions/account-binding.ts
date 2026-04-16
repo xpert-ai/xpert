@@ -29,6 +29,7 @@ export interface BindCurrentUserInput {
 export interface ResolveBoundUserInput {
   provider: string
   subjectId: string
+  tenantId?: string
 }
 
 export interface BoundIdentityRef {
