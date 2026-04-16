@@ -15,6 +15,10 @@ module.exports = {
     ]
   },
   transformIgnorePatterns: ['node_modules/(?!lodash-es|nanoid|marked|@angular/common/locales|.*.mjs$)'],
+  moduleNameMapper: {
+    '^@cloud/environments/environment$': '<rootDir>/src/environments/environment.jest.ts',
+    '^(?:\\.{1,2}/)+environments/environment$': '<rootDir>/src/environments/environment.jest.ts'
+  },
   snapshotSerializers: [
     'jest-preset-angular/build/serializers/no-ng-attributes',
     'jest-preset-angular/build/serializers/ng-snapshot',
