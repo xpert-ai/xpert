@@ -107,6 +107,10 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 describe('SkillPackageService', () => {
 	let service: SkillPackageService
+	let repository: {
+		findOne: jest.Mock
+		softDelete: jest.Mock
+	}
 	let skillIndexService: {
 		findOneInOrganizationOrTenant: jest.Mock
 		findAll: jest.Mock
@@ -152,7 +156,12 @@ describe('SkillPackageService', () => {
 			uninstallSkillPackage: jest.fn().mockResolvedValue(undefined)
 		}
 
-		service = new SkillPackageService({ softDelete: jest.fn().mockResolvedValue({ affected: 1 }) } as any, skillRepositoryService as any, skillIndexService as any, {} as any)
+		repository = {
+			findOne: jest.fn().mockResolvedValue(null),
+			softDelete: jest.fn().mockResolvedValue({ affected: 1 })
+		}
+
+		service = new SkillPackageService(repository as any, skillRepositoryService as any, skillIndexService as any, {} as any)
 		;(service as any).skillSourceProviderRegistry = {
 			get: jest.fn().mockReturnValue(strategy)
 		}
@@ -242,6 +251,45 @@ describe('SkillPackageService', () => {
 		expect(result.metadata.version).toBeUndefined()
 	})
 
+	it('reuses an existing installed skill package for the same workspace and index', async () => {
+		repository.findOne.mockResolvedValue({
+			id: 'skill-existing-1',
+			workspaceId: 'workspace-1',
+			skillIndexId: 'index-1'
+		})
+		const installSpy = jest.spyOn(service, 'installSkillPackage')
+
+		const result = await service.ensureInstalledSkillPackage('workspace-1', 'index-1')
+
+		expect(repository.findOne).toHaveBeenCalledWith({
+			where: {
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-1'
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		expect(installSpy).not.toHaveBeenCalled()
+		expect(result).toEqual({
+			id: 'skill-existing-1',
+			workspaceId: 'workspace-1',
+			skillIndexId: 'index-1'
+		})
+	})
+
+	it('installs the skill package when no workspace copy exists yet', async () => {
+		repository.findOne.mockResolvedValue(null)
+		const installSpy = jest.spyOn(service, 'installSkillPackage').mockResolvedValue({
+			id: 'skill-installed-1'
+		} as any)
+
+		const result = await service.ensureInstalledSkillPackage('workspace-1', 'index-1')
+
+		expect(installSpy).toHaveBeenCalledWith('workspace-1', 'index-1')
+		expect(result).toEqual({
+			id: 'skill-installed-1'
+		})
+	})
+
 	it('creates a workspace skill package with a single SKILL.md file and persisted metadata', async () => {
 		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-'))
 		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
@@ -318,6 +366,64 @@ describe('SkillPackageService', () => {
 			})
 		).rejects.toThrow('SKILL.md frontmatter must include name and description')
 		expect(createSpy).not.toHaveBeenCalled()
+	})
+
+	it('publishes a template skill bundle from a directory and excludes bundle.yaml from installed files', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-'))
+		const workspaceRoot = join(tempRoot, 'workspace')
+		const sharedRoot = join(tempRoot, 'shared')
+		const bundleRoot = join(tempRoot, 'bundle')
+		const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+		await mkdir(bundleRoot, { recursive: true })
+		await writeFile(
+			join(bundleRoot, 'bundle.yaml'),
+			'provider: github\nrepositoryName: anthropics/skills\nskillId: skills/claude-api\n',
+			'utf8'
+		)
+		await writeFile(
+			join(bundleRoot, 'SKILL.md'),
+			'---\nname: Claude API\ndescription: Bundle skill.\nversion: 1.0.0\ntags:\n  - api\n---\n# Claude API\n',
+			'utf8'
+		)
+		await writeFile(join(bundleRoot, 'guide.md'), 'bundle guide\n', 'utf8')
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
+		;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
+			(_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
+		)
+		createSpy.mockImplementationOnce(async (item: any) => ({
+			id: 'skill-created-1',
+			...item
+		}))
+
+		await service.ensureSharedSkillPackageFromTemplateBundle('workspace-1', {
+			bundleRootPath: bundleRoot,
+			sharedSkillId
+		})
+
+		expect(createSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				workspaceId: 'workspace-1',
+				name: 'Claude API',
+				packagePath: 'claude-api',
+				metadata: expect.objectContaining({
+					name: 'Claude API',
+					version: '1.0.0',
+					tags: ['api']
+				})
+			})
+		)
+		await expect(readFile(join(workspaceRoot, 'claude-api', 'SKILL.md'), 'utf8')).resolves.toContain('# Claude API\n')
+		await expect(readFile(join(workspaceRoot, 'claude-api', 'bundle.yaml'), 'utf8')).rejects.toThrow()
+		await expect(readFile(join(sharedRoot, sharedSkillId, 'guide.md'), 'utf8')).resolves.toBe('bundle guide\n')
+		await expect(readFile(join(sharedRoot, sharedSkillId, 'bundle.yaml'), 'utf8')).rejects.toThrow()
+		expect(skillIndexService.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				repositoryId: 'repo-public',
+				skillId: sharedSkillId,
+				name: 'Claude API',
+				description: 'Bundle skill.'
+			})
+		)
 	})
 
 	it('lists workspace skill files from the installed package root', async () => {

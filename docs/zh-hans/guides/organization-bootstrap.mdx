@@ -121,7 +121,7 @@ flowchart TD
   E --> G["Run in organization request context"]
   F --> H["Run in organization request context"]
   G --> I["Create org default workspace and environment"]
-  I --> J["Register default skill repositories from YAML"]
+  I --> J["Register default skill repositories from template yaml"]
   J --> K["Sync organization members"]
   K --> L["Import template xperts"]
   E --> M["Enqueue org-skill-repository-sync jobs"]
@@ -134,6 +134,8 @@ flowchart TD
   S --> T["Optionally create personal workspace"]
   T --> U["Create personal default environment"]
   U --> V["Ensure user joins org default workspace"]
+  V --> W["Enqueue default workspace skills bootstrap"]
+  W --> X["Install configured default skills when indexes are ready"]
 ```
 
 ## `server-ai` 初始化职责
@@ -146,7 +148,7 @@ flowchart TD
 
 - 幂等创建组织默认 workspace
 - 为该 workspace 幂等创建默认 environment
-- 从仓库内固定 YAML 幂等注册默认 skill repositories
+- 从模板资产配置中幂等注册默认 skill repositories
 - 为这些 repositories 异步入队 full index sync 任务
 - 把当前组织成员全部加入组织默认 workspace
 - 按环境变量导入默认模板 xperts
@@ -160,10 +162,10 @@ flowchart TD
 
 ### 默认 skill repositories
 
-组织 bootstrap 还会从仓库内的固定文件补齐默认 skill repositories：
+组织 bootstrap 会从下面的模板文件补齐租户级默认 skill repositories：
 
 ```text
-packages/server-ai/src/initialization/default-skill-repositories.yaml
+${XPERT_TEMPLATE_DIR}/skill-repositories.yaml
 ```
 
 当前 YAML 结构如下：
@@ -175,14 +177,23 @@ repositories:
     options:
       url: https://github.com/anthropics/skills
       branch: main
+      path: skills
+  - name: clawhub/official
+    provider: clawhub
+    options:
+      registryUrl: https://clawhub.ai
+      officialOnly: true
+      maxSkills: 500
 ```
 
 说明：
 
+- 该文件会 seed 到 `XPERT_TEMPLATE_DIR`
+- 如果所有默认 skill 都通过 `skill-packages/*/` 提供，这个文件可以保持为空
 - 每个条目支持 `name`、`provider`、`options`、`credentials` 等 repository 字段
 - bootstrap 以 `name + provider` 为幂等键查找已有 repository
 - 若已存在则执行更新，不会重复创建
-- YAML 中后续删除的条目不会反向删除组织里已存在的自定义 repository
+- 模板配置中后续删除的条目不会反向删除组织里已存在的自定义 repository
 
 repository 注册完成后，会为每个 repository 单独入队一个异步 sync job，并执行 full index sync。这样既能保证组织创建主链路足够轻，也能让默认 skills 在 bootstrap 后尽快可用。
 
@@ -193,6 +204,7 @@ repository 注册完成后，会为每个 repository 单独入队一个异步 sy
 - 当 `bootstrapPersonalWorkspace=true` 时，为该用户在当前组织下幂等创建个人 workspace
 - 为个人 workspace 幂等创建默认 environment
 - 把该用户幂等加入组织默认 workspace
+- 异步把配置好的默认 skills 安装到个人 workspace
 
 个人 workspace 通过以下字段标记：
 
@@ -206,6 +218,28 @@ settings.system.userId = userId
 ```ts
 ${displayName || email} Workspace
 ```
+
+默认 workspace skills 通过外部模板资产目录中的文件配置：
+
+```text
+${XPERT_TEMPLATE_DIR}/workspace-defaults.yaml
+```
+
+当前 YAML 结构如下：
+
+```yaml
+userDefault:
+  skills: []
+```
+
+说明：
+
+- 该文件会和 `skills-market.yaml`、`skill-repositories.yaml` 一起 seed 到 `XPERT_TEMPLATE_DIR`
+- ref 只使用机器字段：`provider`、`repositoryName`、`skillId`
+- 只有同时出现在 `skills-market.yaml` 里的 ref 才会进入默认安装链路
+- 本地 bundle skill 从 `skill-packages/*/bundle.yaml` 读取，同目录放置 `SKILL.md` 和资源文件
+- 用户 bootstrap 会为这些安装动作单独入队异步 job，不会阻塞 workspace 创建主链路
+- 未解析到的 ref 会在 repository index 可用前持续重试，重复安装按 `workspaceId + skillIndexId` 幂等收敛
 
 ### 为什么要有 `ensureMember`
 

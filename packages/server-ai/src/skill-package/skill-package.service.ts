@@ -50,6 +50,8 @@ const EditableSkillExtensions = new Set([
 	'env'
 ])
 
+const TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE = 'bundle.yaml'
+
 type SkillPackageInstallMetadata = Partial<SkillMetadata> & {
 	skillMdPath?: string
 	skillPath?: string
@@ -63,6 +65,17 @@ type SharedSkillMetadataInput = {
 	tags: string[]
 	license?: string
 	version?: string
+}
+
+type PublishSharedSkillOptions = {
+	organizationId: string
+	tenantId: string
+	currentUser?: IUser | null
+	repository: {
+		id: string
+	}
+	sharedMetadata: SharedSkillMetadataInput
+	sharedSkillId: string
 }
 
 type WorkspaceSkillFrontmatter = {
@@ -201,6 +214,29 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	async ensureInstalledSkillPackage(workspaceId: string, indexId: string) {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		if (!indexId) {
+			throw new BadRequestException('indexId is required')
+		}
+
+		await this.assertWorkspaceAccess(workspaceId)
+		const existing = await this.repository.findOne({
+			where: {
+				workspaceId,
+				skillIndexId: indexId
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		if (existing) {
+			return existing
+		}
+
+		return this.installSkillPackage(workspaceId, indexId)
+	}
+
 	async createWorkspaceSkillPackage(
 		workspaceId: string,
 		input: CreateWorkspaceSkillPackageInput
@@ -293,49 +329,116 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 
 		const sharedMetadata = this.normalizeSharedSkillInput(skillPackage, input)
 		const sharedSkillId = skillPackage.sharedSkillId ?? `shared-skill-${uuid()}`
-		const sharedRoot = getOrganizationSharedSkillsRoot(tenantId, organizationId)
-		const sharedPath = getOrganizationSharedSkillPath(tenantId, organizationId, sharedSkillId)
 		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
 		const sourcePath = this.resolveInstalledPath(skillPackage, installDir)
 		if (!sourcePath) {
 			throw new BadRequestException('Unable to locate workspace skill package path')
 		}
 
-		await fs.mkdir(sharedRoot, { recursive: true })
-		await fs.rm(sharedPath, { recursive: true, force: true })
-		await fs.cp(sourcePath, sharedPath, { recursive: true })
-
 		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
 		const metadata = this.mergeSharedMetadata(skillPackage, sharedMetadata, currentUser)
-		const publisher = buildPublisherFromUser(currentUser) ?? buildPublisherFromUser({ name: metadata.author?.name })
-		const publishedAt = new Date()
-
-		await this.update(skillPackage.id, {
-			metadata,
-			sharedSkillId,
-			sharedPackagePath: sharedSkillId,
-			publishAt: publishedAt
-		})
-
-		const existingIndex = await this.findSharedSkillIndex(repository.id, sharedSkillId)
-		await this.skillIndexService.create({
-			id: existingIndex?.id,
-			repositoryId: repository.id,
-			skillId: sharedSkillId,
-			skillPath: sharedSkillId,
-			name: sharedMetadata.displayName,
-			description: sharedMetadata.description,
-			license: sharedMetadata.license,
-			tags: sharedMetadata.tags,
-			version: sharedMetadata.version,
-			publisher,
-			stats: buildSharedSkillStats(sharedMetadata.version)
+		await this.publishSharedSkillPackage(skillPackage, sourcePath, metadata, {
+			tenantId,
+			organizationId,
+			currentUser,
+			repository: {
+				id: repository.id
+			},
+			sharedMetadata,
+			sharedSkillId
 		})
 
 		return this.findOne(skillPackage.id, {
 			relations: ['skillIndex', 'skillIndex.repository'],
 			where: { workspaceId }
 		})
+	}
+
+	async ensureSharedSkillPackageFromTemplateBundle(
+		workspaceId: string,
+		input: {
+			bundleRootPath: string
+			sharedSkillId: string
+		}
+	) {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		if (!input.bundleRootPath?.trim()) {
+			throw new BadRequestException('bundleRootPath is required')
+		}
+		if (!input.sharedSkillId?.trim()) {
+			throw new BadRequestException('sharedSkillId is required')
+		}
+
+		await this.assertWorkspaceAccess(workspaceId)
+
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const currentUser = RequestContext.currentUser()
+		if (!tenantId || !organizationId) {
+			throw new BadRequestException('Organization context is required to publish template skill bundles')
+		}
+
+		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
+		const existingIndex = await this.findSharedSkillIndex(repository.id, input.sharedSkillId)
+		if (existingIndex) {
+			return existingIndex
+		}
+
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
+		const bundleRootPath = input.bundleRootPath.trim()
+		const skillMdPath = join(bundleRootPath, 'SKILL.md')
+		const skillMarkdown = await fs.readFile(skillMdPath, 'utf8').catch((error) => {
+			throw new BadRequestException(`Template skill bundle is missing SKILL.md: ${getErrorMessage(error)}`)
+		})
+		const frontmatter = parseWorkspaceSkillFrontmatter(skillMarkdown)
+		const skillBaseName = frontmatter.name?.trim() || basename(bundleRootPath)
+		const packagePath = await this.allocateWorkspaceSkillPackagePath(installDir, skillBaseName)
+		const absolutePackagePath = join(installDir, packagePath)
+		await fs.mkdir(installDir, { recursive: true })
+		await fs.cp(bundleRootPath, absolutePackagePath, {
+			recursive: true,
+			filter: (source) => {
+				const normalizedSource = resolve(source)
+				return normalizedSource !== resolve(join(bundleRootPath, TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE))
+			}
+		})
+
+		const skillPackage = await this.create({
+			workspaceId,
+			name: frontmatter.name?.trim() || skillBaseName,
+			packagePath,
+			metadata: this.buildMetadataForWorkspaceSkill(
+				frontmatter,
+				packagePath,
+				join(absolutePackagePath, 'SKILL.md'),
+				skillBaseName
+			)
+		})
+
+		try {
+			const sharedMetadata = this.normalizeTemplateSharedSkillInputFromFrontmatter(frontmatter, skillBaseName)
+			const metadata = this.mergeSharedMetadata(skillPackage, sharedMetadata, currentUser)
+			const sourcePath = absolutePackagePath
+
+			await this.publishSharedSkillPackage(skillPackage, sourcePath, metadata, {
+				tenantId,
+				organizationId,
+				currentUser,
+				repository: {
+					id: repository.id
+				},
+				sharedMetadata,
+				sharedSkillId: input.sharedSkillId.trim()
+			})
+
+			return this.findSharedSkillIndex(repository.id, input.sharedSkillId.trim())
+		} catch (error) {
+			await fs.rm(absolutePackagePath, { recursive: true, force: true })
+			await this.repository.softDelete(skillPackage.id)
+			throw error
+		}
 	}
 
 	private async uninstallResolvedSkillPackage(skillPackage: SkillPackage, expectedWorkspaceId?: string) {
@@ -629,6 +732,29 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	private normalizeTemplateSharedSkillInputFromFrontmatter(
+		frontmatter: WorkspaceSkillFrontmatter,
+		fallbackName: string
+	): SharedSkillMetadataInput {
+		const displayName = frontmatter.name?.trim() || fallbackName.trim()
+		if (!displayName) {
+			throw new BadRequestException('Template skill bundle is missing a skill name')
+		}
+
+		const description = frontmatter.description?.trim()
+		if (!description) {
+			throw new BadRequestException('Template skill bundle is missing a skill description')
+		}
+
+		return {
+			displayName,
+			description,
+			tags: normalizeTagList(frontmatter.tags),
+			license: frontmatter.license?.trim() || undefined,
+			version: frontmatter.version?.trim() || undefined
+		}
+	}
+
 	private mergeSharedMetadata(
 		skillPackage: Pick<SkillPackage, 'name' | 'metadata'>,
 		input: SharedSkillMetadataInput,
@@ -696,6 +822,59 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		if (existingIndex?.id) {
 			await this.skillIndexService.softDelete(existingIndex.id)
 		}
+	}
+
+	private async publishSharedSkillPackage(
+		skillPackage: Pick<SkillPackage, 'id' | 'name' | 'metadata'>,
+		sourcePath: string,
+		metadata: SkillMetadata,
+		options: PublishSharedSkillOptions
+	) {
+		const sharedRoot = getOrganizationSharedSkillsRoot(options.tenantId, options.organizationId)
+		const sharedPath = getOrganizationSharedSkillPath(options.tenantId, options.organizationId, options.sharedSkillId)
+		const publisher =
+			buildPublisherFromUser(options.currentUser) ?? buildPublisherFromUser({ name: metadata.author?.name })
+		const publishedAt = new Date()
+
+		await fs.mkdir(dirname(sharedPath), { recursive: true })
+		await fs.mkdir(sharedRoot, { recursive: true })
+		await fs.rm(sharedPath, { recursive: true, force: true })
+		await fs.cp(sourcePath, sharedPath, { recursive: true })
+
+		await this.update(skillPackage.id, {
+			metadata,
+			sharedSkillId: options.sharedSkillId,
+			sharedPackagePath: options.sharedSkillId,
+			publishAt: publishedAt
+		})
+
+		const existingIndex = await this.findSharedSkillIndex(options.repository.id, options.sharedSkillId)
+		await this.skillIndexService.create({
+			id: existingIndex?.id,
+			repositoryId: options.repository.id,
+			skillId: options.sharedSkillId,
+			skillPath: options.sharedSkillId,
+			name: options.sharedMetadata.displayName,
+			description: options.sharedMetadata.description,
+			license: options.sharedMetadata.license,
+			tags: options.sharedMetadata.tags,
+			version: options.sharedMetadata.version,
+			publisher,
+			stats: buildSharedSkillStats(options.sharedMetadata.version)
+		})
+	}
+
+	private async cleanupUploadedSkills(installDir: string, skills: IUploadedSkill[]) {
+		await Promise.all(
+			skills.map(async (skill) => {
+				const packagePath = this.resolveUploadPackagePath(skill, installDir)
+				if (!packagePath) {
+					return
+				}
+
+				await fs.rm(join(installDir, packagePath), { recursive: true, force: true })
+			})
+		)
 	}
 
 	private async findWorkspacePublicRepository() {

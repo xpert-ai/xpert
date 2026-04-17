@@ -15,7 +15,8 @@ jest.mock('@xpert-ai/server-core', () => ({
 
 import {
   AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
-  AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB
+  AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB,
+  AI_USER_DEFAULT_WORKSPACE_SKILLS_BOOTSTRAP_JOB
 } from './constants'
 import { ServerAIBootstrapProcessor } from './bootstrap.processor'
 
@@ -27,7 +28,10 @@ describe('ServerAIBootstrapProcessor', () => {
     const bootstrapService = {
       bootstrapOrganization: jest.fn(),
       bootstrapTenantSkillRepositories: jest.fn(),
-      bootstrapUserInOrganization: jest.fn(),
+      bootstrapUserInOrganization: jest.fn().mockResolvedValue({
+        workspaceId: 'workspace-1'
+      }),
+      bootstrapUserDefaultWorkspaceSkills: jest.fn(),
       syncSkillRepository: jest.fn()
     }
 
@@ -109,6 +113,79 @@ describe('ServerAIBootstrapProcessor', () => {
     )
   })
 
+  it('enqueues default workspace skills bootstrap after user workspace bootstrap completes', async () => {
+    const bootstrapQueue = {
+      add: jest.fn().mockResolvedValue(undefined)
+    }
+    const bootstrapService = {
+      bootstrapOrganization: jest.fn(),
+      bootstrapTenantSkillRepositories: jest.fn(),
+      bootstrapUserInOrganization: jest.fn().mockResolvedValue({
+        workspaceId: 'workspace-1'
+      }),
+      bootstrapUserDefaultWorkspaceSkills: jest.fn(),
+      syncSkillRepository: jest.fn()
+    }
+
+    const processor = new ServerAIBootstrapProcessor(bootstrapQueue as any, bootstrapService as any)
+
+    await processor.handleUserOrganizationBootstrap({
+      data: {
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        userId: 'user-1'
+      }
+    } as any)
+
+    expect(bootstrapService.bootstrapUserInOrganization).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      userId: 'user-1'
+    })
+    expect(bootstrapQueue.add).toHaveBeenCalledWith(
+      AI_USER_DEFAULT_WORKSPACE_SKILLS_BOOTSTRAP_JOB,
+      {
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1'
+      },
+      {
+        jobId: 'user-default-skills:workspace-1',
+        attempts: 8,
+        backoff: 30_000,
+        removeOnComplete: true
+      }
+    )
+  })
+
+  it('does not enqueue default workspace skills bootstrap when no personal workspace exists', async () => {
+    const bootstrapQueue = {
+      add: jest.fn().mockResolvedValue(undefined)
+    }
+    const bootstrapService = {
+      bootstrapOrganization: jest.fn(),
+      bootstrapTenantSkillRepositories: jest.fn(),
+      bootstrapUserInOrganization: jest.fn().mockResolvedValue({
+        workspaceId: null
+      }),
+      bootstrapUserDefaultWorkspaceSkills: jest.fn(),
+      syncSkillRepository: jest.fn()
+    }
+
+    const processor = new ServerAIBootstrapProcessor(bootstrapQueue as any, bootstrapService as any)
+
+    await processor.handleUserOrganizationBootstrap({
+      data: {
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        userId: 'owner-1'
+      }
+    } as any)
+
+    expect(bootstrapQueue.add).not.toHaveBeenCalled()
+  })
+
   it('keeps organization bootstrap focused on workspace initialization', async () => {
     const bootstrapQueue = {
       add: jest.fn()
@@ -119,6 +196,7 @@ describe('ServerAIBootstrapProcessor', () => {
       }),
       bootstrapTenantSkillRepositories: jest.fn(),
       bootstrapUserInOrganization: jest.fn(),
+      bootstrapUserDefaultWorkspaceSkills: jest.fn(),
       syncSkillRepository: jest.fn()
     }
 
@@ -148,6 +226,7 @@ describe('ServerAIBootstrapProcessor', () => {
       bootstrapOrganization: jest.fn(),
       bootstrapTenantSkillRepositories: jest.fn(),
       bootstrapUserInOrganization: jest.fn(),
+      bootstrapUserDefaultWorkspaceSkills: jest.fn(),
       syncSkillRepository: jest.fn().mockResolvedValue(undefined)
     }
 
@@ -167,6 +246,37 @@ describe('ServerAIBootstrapProcessor', () => {
       ownerUserId: 'owner-1',
       tenantId: 'tenant-1',
       repositoryId: 'repo-1'
+    })
+  })
+
+  it('delegates default workspace skills jobs back to the bootstrap service', async () => {
+    const bootstrapQueue = {
+      add: jest.fn()
+    }
+    const bootstrapService = {
+      bootstrapOrganization: jest.fn(),
+      bootstrapTenantSkillRepositories: jest.fn(),
+      bootstrapUserInOrganization: jest.fn(),
+      bootstrapUserDefaultWorkspaceSkills: jest.fn().mockResolvedValue(undefined),
+      syncSkillRepository: jest.fn()
+    }
+
+    const processor = new ServerAIBootstrapProcessor(bootstrapQueue as any, bootstrapService as any)
+
+    await processor.handleUserDefaultWorkspaceSkillsBootstrap({
+      data: {
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1'
+      }
+    } as any)
+
+    expect(bootstrapService.bootstrapUserDefaultWorkspaceSkills).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      workspaceId: 'workspace-1'
     })
   })
 })
