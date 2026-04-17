@@ -91,6 +91,7 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
       this.modelsByType.set(
         type,
         this.refresh$.pipe(
+          switchMap(() => this.selectOrganizationId()),
           switchMap(() =>
             this.httpClient.get<ICopilotWithProvider[]>(API_COPILOT + '/models', { params: toParams({ type }) })
           ),
