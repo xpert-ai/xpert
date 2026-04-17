@@ -39,6 +39,11 @@ import { SkillRepositoryIndexModule, SkillRepositoryModule } from './skill-repos
 import { SkillPackageModule } from './skill-package'
 import { FileUploadTargetsModule } from './shared'
 import { InitializationModule } from './initialization/initialization.module'
+import { ProjectCoreModule } from './project-core/project-core.module'
+import { ProjectOrchestratorModule } from './project-orchestrator/project-orchestrator.module'
+import { ProjectSprintModule } from './project-sprint/project-sprint.module'
+import { ProjectSwimlaneModule } from './project-swimlane/project-swimlane.module'
+import { ProjectTaskModule } from './project-task/project-task.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 
 @Module({
@@ -81,7 +86,12 @@ import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscr
         KnowledgeDocumentModule,
         RagVStoreModule,
         RagWebModule,
-        SandboxModule
+        SandboxModule,
+        ProjectCoreModule,
+        ProjectSprintModule,
+        ProjectSwimlaneModule,
+        ProjectTaskModule,
+        ProjectOrchestratorModule
     ],
     controllers: [],
     providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]

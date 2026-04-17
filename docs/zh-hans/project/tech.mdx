@@ -1,0 +1,264 @@
+# 📄 二、技术说明书（Tech Spec）
+
+---
+
+## 1. 系统架构
+
+```text
+User
+ ↓
+Main Agent（Planner）
+ ↓
+Task Graph（DAG）
+ ↓
+Swimlane Queues
+ ↓
+Orchestrator（Scheduler）
+ ↓
+Agent Pool + Environment Pool
+```
+
+---
+
+## 2. 核心模块划分（NestJS）
+
+```text
+modules/
+ ├── project
+ ├── sprint
+ ├── backlog
+ ├── task
+ ├── swimlane
+ ├── agent
+ ├── orchestrator
+ ├── environment
+```
+
+---
+
+## 3. 核心数据模型
+
+---
+
+### Project
+
+```ts
+Project {
+  id
+  goal
+  state
+}
+```
+
+---
+
+### Sprint
+
+```ts
+Sprint {
+  id
+  projectId
+
+  goal
+  status
+
+  startAt
+  endAt
+
+  retrospective
+}
+```
+
+---
+
+### Task
+
+```ts
+Task {
+  id
+  SprintId
+  swimlaneId
+
+  status
+  dependencies
+  assignedAgentId
+}
+```
+
+---
+
+### Swimlane
+
+```ts
+Swimlane {
+  id
+  SprintId
+
+  type
+  priority
+  weight
+
+  concurrencyLimit
+  wipLimit
+
+  role
+  environment
+}
+```
+
+---
+
+## 4. Orchestrator 设计（核心）
+
+---
+
+## 4.1 调度模型
+
+```text
+Swimlane = Queue
+Orchestrator = Scheduler
+```
+
+---
+
+## 4.2 调度循环
+
+```ts
+while (true) {
+  lanes.sort(by priority)
+
+  for (lane of lanes) {
+    if (lane.canRun()) {
+      task = lane.dequeue()
+      dispatch(task)
+    }
+  }
+}
+```
+
+---
+
+## 4.3 执行约束
+
+```ts
+lane.canRun() {
+  return (
+    running < concurrencyLimit &&
+    inProgress < wipLimit
+  )
+}
+```
+
+---
+
+## 4.4 Task 分发
+
+```ts
+dispatch(task) {
+  agent = selectAgent(task)
+  env = selectEnvironment(task)
+
+  execute(task, agent, env)
+}
+```
+
+---
+
+## 5. Agent 调度策略
+
+```ts
+selectAgent(task) {
+  return agentPool
+    .filter(a => a.role == task.lane.role)
+    .sort(by load, successRate)
+}
+```
+
+---
+
+## 6. Environment 调度
+
+```ts
+selectEnvironment(task) {
+  return environmentPool.find(e =>
+    e.type == lane.environment &&
+    e.available
+  )
+}
+```
+
+---
+
+## 7. 生命周期管理
+
+### 状态机
+
+```text
+QUEUED → RUNNING → SUCCESS
+                 → FAILED → RETRY
+```
+
+---
+
+## 8. Task Graph（DAG）
+
+```ts
+Task {
+  dependencies: string[]
+}
+```
+
+支持：
+
+* 并行执行
+* 阻塞依赖
+
+---
+
+## 9. Memory 设计
+
+### 三层：
+
+* Task Memory
+* Sprint Memory
+* Project Memory
+
+---
+
+## 10. 扩展点
+
+---
+
+### 10.1 动态调度（AI优化）
+
+```ts
+lane.priority = AI.evaluate(lane)
+```
+
+---
+
+### 10.2 自适应 Sprint
+
+* 自动调整任务数量
+* 自动拆分任务
+
+---
+
+### 10.3 插件化能力
+
+* Agent Strategy
+* Tool Strategy
+* Environment Provider
+
+---
+
+# 🔥 最后一段总结（给你用来内部讲）
+
+> 这次升级不是“项目管理功能增强”，
+> 而是把 XpertAI 从：
+>
+> 👉 Chat + Tools
+>
+> 升级为：
+>
+> 👉 **Agent驱动的项目执行操作系统（Project Execution OS）**

@@ -1,0 +1,253 @@
+# 📄 一、产品需求说明书（PRD）
+
+## 1. 产品背景
+
+当前 XpertAI 的 Project 功能以“任务容器”为主，缺乏：
+
+* 结构化项目推进能力
+* 多智能体协作机制
+* 可控执行节奏（Sprint）
+* 可视化与执行策略统一
+
+在 Agile 方法中：
+
+> Sprint 是一个**固定时间窗口内完成目标并产生可验证结果的执行周期** ([Agile Alliance][1])
+
+👉 本次升级目标：
+
+> 构建一个 **AI驱动的项目执行系统（Agentic Project OS）**
+
+---
+
+## 2. 产品目标
+
+### 🎯 核心目标
+
+* 将 Project 升级为 AI 驱动的任务执行系统
+* 引入 Sprint 实现“可控节奏 + 反馈闭环”
+* 引入 Swimlane 实现“执行策略分区”
+* 实现多 Agent 协作执行
+
+---
+
+## 3. 核心用户场景
+
+### 场景1：自动软件开发项目
+
+用户输入：
+
+```text
+帮我开发一个 SaaS 系统
+```
+
+系统自动：
+
+1. 创建 Project
+2. 生成 Backlog
+3. 创建 Sprint
+4. 拆分 Task
+5. 分配 Agent
+6. 自动执行（代码 / 测试 / 部署）
+
+---
+
+### 场景2：数据分析项目
+
+* Research Agent → 收集数据
+* Analyst Agent → 分析
+* Visualization Agent → 出报告
+
+---
+
+## 4. 核心功能模块
+
+---
+
+## 4.1 Project（项目）
+
+### 功能
+
+* 创建项目
+* 设置目标（Goal）
+* 管理 Backlog
+* 管理 Sprint
+
+---
+
+## 4.2 Sprint（迭代周期）
+
+### 核心能力
+
+* 设定目标（Sprint Goal）
+* 时间盒（Timebox）
+* 任务计划（Task Plan）
+* 自动复盘（Retrospective）
+
+### 生命周期
+
+```text
+Planned → Running → Review → Done
+```
+
+---
+
+## 4.3 Backlog（需求池）
+
+### 功能
+
+* 存储所有待执行需求
+* 支持优先级排序
+* 供 Sprint 选择
+
+---
+
+## 4.4 Task（任务）
+
+### 功能
+
+* 任务拆分（Agent 自动生成）
+* DAG 依赖关系
+* 执行状态管理
+
+### 状态
+
+```text
+Todo → Doing → Done / Failed
+```
+
+---
+
+## 4.5 Swimlane（泳道）
+
+### 核心定位（非常重要）
+
+> ❗ Swimlane = 执行策略容器（不是 UI 分组）
+
+### 支持类型
+
+| 类型         | 示例              |
+| ---------- | --------------- |
+| Agent Role | Coding / Review |
+| Work Type  | Feature / Bug   |
+| Priority   | High / Normal   |
+
+---
+
+### Swimlane 功能
+
+* 控制并发（Concurrency）
+* 控制 WIP（Work in Progress）
+* 绑定 Agent 类型
+* 绑定 Environment
+
+---
+
+## 4.6 Agent（智能体）
+
+### 类型
+
+* 主Agent（Project Manager）
+* 子Agent（Coder / Analyst / Reviewer）
+
+### 能力
+
+* Task 执行
+* 工具调用
+* 上下文记忆
+
+---
+
+## 4.7 Environment（执行环境）
+
+### 支持
+
+* Container（代码执行）
+* Browser（搜索）
+* Terminal（部署）
+
+---
+
+## 4.8 Orchestrator（调度核心）
+
+### 功能
+
+* Task 调度
+* Agent 分配
+* Environment 分配
+* 生命周期管理
+
+---
+
+## 5. 核心流程
+
+```text
+1. 用户输入目标
+2. 主Agent拆分 Backlog
+3. 创建 Sprint
+4. 选择任务 → Task Graph
+5. 分配 Swimlane
+6. Orchestrator 调度执行
+7. 完成 → Review → Retrospective
+8. 进入下一轮 Sprint
+```
+
+---
+
+## 6. 核心产品特性
+
+### 🚀 1. 自动项目推进
+
+无需人工管理任务
+
+---
+
+### 🚀 2. 多智能体协作
+
+不同 Agent 并行执行
+
+---
+
+### 🚀 3. 可控执行节奏
+
+Sprint 控制复杂度
+
+---
+
+### 🚀 4. 执行策略可配置
+
+Swimlane 控制：
+
+* 并发
+* 优先级
+* 环境
+
+---
+
+## 7. 可视化设计
+
+### 支持视图
+
+* Kanban（状态）
+* Swimlane（执行策略）
+* DAG（任务依赖）
+* Sprint Timeline
+
+---
+
+## 8. MVP范围
+
+### Phase 1（必须）
+
+* Project / Sprint / Task
+* 基础 Orchestrator
+* Agent 执行
+
+### Phase 2
+
+* Swimlane 调度
+* 多 Agent 协作
+
+### Phase 3
+
+* 可视化 + 报表
+* 自动优化

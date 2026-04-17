@@ -1,0 +1,98 @@
+# Agentic Project OS Phase 1.5
+
+## Summary
+- 新增一套独立的 Project OS 领域，不改现有 analytics 的 `/project` 和 `contracts` 里的 `IProject`，也不改现有 `xpert-project`。
+- `contracts` 新建 `packages/contracts/src/project` 子目录，所有新领域接口与枚举都放这里，并通过根 barrel 继续导出。
+- `server-ai` 新增 5 个模块目录，全部以 `project-` 为前缀：`project-core`、`project-sprint`、`project-swimlane`、`project-task`、`project-orchestrator`。
+- 本轮范围是后端 Phase 1.5：Project/Sprint/Task/Swimlane 的持久化与 API 全部落地，Sprint 创建时按策略自动生成 Swimlane；Orchestrator 先做可复用服务骨架，不做后台调度循环。
+
+## Public APIs / Contracts
+- `packages/contracts/src/project/index.ts` 统一导出以下新类型，避免与 analytics 的 `IProject` 冲突：
+  - `IProjectCore`
+  - `IProjectSprint`
+  - `IProjectTask`
+  - `IProjectSwimlane`
+  - `ProjectCoreStatusEnum`
+  - `ProjectSprintStatusEnum`
+  - `ProjectTaskStatusEnum`
+  - `ProjectSprintStrategyEnum`
+  - `ProjectExecutionEnvironmentType`
+  - `ProjectAgentRole`
+  - `IProjectSwimlaneTemplate`
+  - `IProjectSprintStrategyTemplate`
+- `IProjectCore` 代表 Project OS 根实体，字段固定为：`name`、`goal`、`description?`、`status`。
+- `IProjectSprint` 固定包含：`projectId`、`goal`、`status`、`strategyType`、`startAt?`、`endAt?`、`retrospective?`。
+- `IProjectSwimlane` 固定包含：`projectId`、`sprintId`、`key`、`name`、`priority`、`weight`、`concurrencyLimit`、`wipLimit`、`agentRole`、`environmentType`、`sortOrder`、`sourceStrategyType`。
+- `IProjectTask` 固定包含：`projectId`、`sprintId`、`swimlaneId`、`title`、`description?`、`status`、`dependencies: string[]`、`assignedAgentId?`。
+- 根 barrel `packages/contracts/src/index.ts` 追加 `export * from './project'`，但不新增第二个同名 `IProject`。
+
+## Implementation Changes
+- `project-core`
+  - 新建 `project_core` 实体、service、controller、module、index。
+  - 使用 `TenantOrganizationBaseEntity` / `TenantOrganizationAwareCrudService` / `CrudController`。
+  - 路由前缀使用 `/project-core`，避免与 analytics `/project` 冲突。
+- `project-sprint`
+  - 新建 `project_sprint` 实体与 CRUD 路由 `/project-sprint`。
+  - Sprint 创建接口要求 `strategyType`，创建成功后在同一事务中自动生成默认泳道。
+  - `strategyType` 在 v1 设为创建后不可变；如需换策略，创建新 Sprint。
+- `project-swimlane`
+  - 新建 `project_swimlane` 实体与 CRUD 路由 `/project-swimlane`。
+  - 在该模块内放策略注册表/模板解析器，供 `project-sprint` 调用。
+  - 首批内置两套模板：
+    - `software_delivery`: `planning`、`coding`、`review`、`release`
+    - `data_analysis`: `research`、`analysis`、`visualization`
+  - 默认 lane 配置直接固化在模板里：
+    - `software_delivery`
+      - `planning`: role=`planner`, env=`browser`, concurrency=`1`, wip=`1`
+      - `coding`: role=`coder`, env=`container`, concurrency=`2`, wip=`2`
+      - `review`: role=`reviewer`, env=`container`, concurrency=`1`, wip=`1`
+      - `release`: role=`operator`, env=`terminal`, concurrency=`1`, wip=`1`
+    - `data_analysis`
+      - `research`: role=`researcher`, env=`browser`, concurrency=`2`, wip=`2`
+      - `analysis`: role=`analyst`, env=`terminal`, concurrency=`1`, wip=`1`
+      - `visualization`: role=`visualizer`, env=`terminal`, concurrency=`1`, wip=`1`
+- `project-task`
+  - 新建 `project_task` 实体与 CRUD 路由 `/project-task`。
+  - Task 在本阶段必须是 Sprint 内任务：`projectId`、`sprintId`、`swimlaneId` 都必填。
+  - 创建/更新时强校验：
+    - `swimlaneId` 必须属于同一个 `sprintId`
+    - `sprintId` 必须属于同一个 `projectId`
+    - `dependencies` 只能引用同一个 Sprint 内的任务
+- `project-orchestrator`
+  - 新建模块与服务，不开独立 CRUD。
+  - 提供内部服务方法即可：
+    - `getSprintExecutionSnapshot(sprintId)`
+    - `pickRunnableTasks(sprintId)`
+  - 逻辑只实现 lane 优先级、`concurrencyLimit`、`wipLimit`、依赖阻塞判断，为后续真正调度器留接口。
+- Server 注册
+  - 在 `packages/server-ai/src/index.ts` 导出所有 `project-*` 模块。
+  - 在 `packages/server-ai/src/app.module.ts` 注册模块。
+  - 在 `packages/server-ai/src/core/entities/internal.ts` 导出新实体，供跨模块 relation 使用。
+- 非范围项
+  - 不新增 `project-backlog`、`project-agent`、`project-environment` 模块。
+  - 不修改 `xpert-project`。
+  - 不改 `apps/cloud` 现有 analytics project UI。
+
+## Test Plan
+- `contracts`
+  - 根出口可正常编译，且不会与 analytics 的 `IProject` 冲突。
+  - `ProjectSprintStrategyEnum` 与模板定义一一对应。
+- `server-ai`
+  - 创建 `software_delivery` Sprint 时，自动生成 4 条有序泳道。
+  - 创建 `data_analysis` Sprint 时，自动生成 3 条有序泳道。
+  - 缺少或传错 `strategyType` 时，Sprint 创建失败。
+  - 修改已创建 Sprint 的 `strategyType` 被拒绝。
+  - Task 创建时若 `swimlaneId`/`sprintId`/`projectId` 归属不一致，返回校验错误。
+  - Task 依赖跨 Sprint 时被拒绝。
+  - Orchestrator skeleton 在给定任务集下能正确过滤 blocked task，并按 lane 限流返回 runnable task。
+- 运行目标
+  - `pnpm nx lint contracts`
+  - `pnpm nx lint server-ai`
+  - `pnpm nx test contracts`
+  - `pnpm nx test server-ai`
+
+## Assumptions
+- 当前仓库已存在 analytics `/project` 路由和 `IProject` 合同，因此新域统一使用 `project-core` 命名来避冲突。
+- 当前 API/服务端配置里使用 TypeORM `synchronize: true`，本轮不单独补 migration 文件。
+- `agentRole` 与 `environmentType` 先作为稳定枚举字段存储，不直接关联现有 `IXpertAgent` / `IEnvironment` 实体。
+- 本轮不做前端页面接入，只保证后端和 contracts 具备可消费的稳定接口。
