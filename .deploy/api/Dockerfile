@@ -55,21 +55,21 @@ RUN pnpm nx build api --verbose
 #////////////////////////////////////////////////////////////////////////////////
 FROM node:20 AS production
 
-ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
-    NODE_ENV=${NODE_ENV:-production} \
-    API_BASE_URL=${API_BASE_URL:-http://localhost:3000} \
-    SENTRY_DSN=${SENTRY_DSN} \
-    DB_HOST=${DB_HOST:-db} \
-    DB_NAME=${DB_NAME:-postgres} \
-    DB_PORT=${DB_PORT:-5432} \
-    DB_USER=${DB_USER} \
-    DB_PASS=${DB_PASS} \
-    DB_TYPE=${DB_TYPE:-sqlite} \
-    DB_SSL_MODE=${DB_SSL_MODE} \
-    HOST=${HOST:-0.0.0.0} \
-    PORT=${PORT:-3000} \
-    DEMO=${DEMO:-false} \
-    LOG_LEVEL=${LOG_LEVEL}
+ENV NODE_OPTIONS="--max-old-space-size=2048" \
+    NODE_ENV=production \
+    API_BASE_URL=http://localhost:3000 \
+    SENTRY_DSN= \
+    DB_HOST=db \
+    DB_NAME=postgres \
+    DB_PORT=5432 \
+    DB_USER= \
+    DB_PASS= \
+    DB_TYPE=sqlite \
+    DB_SSL_MODE= \
+    HOST=0.0.0.0 \
+    PORT=3000 \
+    DEMO=false \
+    LOG_LEVEL=
 
 # Install sudo package
 RUN apt-get update && apt-get install -y sudo
