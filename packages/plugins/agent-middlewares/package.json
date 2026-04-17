@@ -7,7 +7,9 @@
       "level": "system"
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "node-pty": "^1.0.0"
+  },
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
