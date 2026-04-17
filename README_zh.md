@@ -18,7 +18,17 @@
 
 ## 💡 新功能
 
-**🚀 3.8 沙箱环境！**
+**🚀 3.9.0 ClawXpert 与 Skills！**
+
+XpertAI 3.9.0 进一步扩展了智能体工作区体验，重点带来 `ClawXpert` 和更完整的 `Skills` 工作流，覆盖绑定、安装、编辑、配置到运行时启用的完整链路。
+
+- `ClawXpert` 支持每个用户按组织绑定一个已发布的 Xpert，并在 `/chat/clawxpert` 中作为嵌入式助手入口持续使用。
+- 可以在同一套 ClawXpert shell 中维护 `SOUL.md`、`USER.md` 长期上下文，并统一管理会话、模型、触发器草稿、工具和技能偏好。
+- `Skills` 支持精选技能、仓库索引和工作区内的安装、上传、查看、编辑，形成更完整的技能工作台体验。
+- 支持通过 `skill-repositories.yaml`、`skills-market.yaml` 和 `workspace-defaults.yaml` 初始化租户级技能仓库与默认工作区技能。
+- 在空白 Xpert 向导中可以直接选择已安装的工作区技能，并通过 `Skills Middleware` 自动接入主智能体流程。
+
+**最近版本补充：3.8 沙箱环境**
 
 XpertAI 3.8 版本正式发布智能体沙箱功能，沙箱为智能体提供隔离的执行与文件操作环境，沙箱插件的核心能力之一是 Provider 插件机制。通过自定义 Provider，可以接入不同的运行时基础设施，例如：
 

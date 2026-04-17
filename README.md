@@ -38,7 +38,17 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
-**🚀 3.8 Sandbox Environment!**
+**🚀 3.9.0 ClawXpert & Skills!**
+
+XpertAI 3.9.0 expands the agent workspace with `ClawXpert`, a dedicated assistant shell built around published Xperts, and a more complete `Skills` workflow for discovery, installation, editing, and runtime enablement.
+
+- `ClawXpert` lets each user bind one published Xpert per organization and use it as an embedded assistant entry in `/chat/clawxpert`.
+- Keep long-term assistant context in `SOUL.md` and `USER.md`, continue conversations, and manage model, trigger draft, tool, and skill preferences from the same shell.
+- Browse featured skills and repository indexes, then install, upload, inspect, and edit workspace skills directly inside Xpert.
+- Bootstrap tenant skill repositories and default workspace skills through `skill-repositories.yaml`, `skills-market.yaml`, and `workspace-defaults.yaml`.
+- Enable installed workspace skills in the blank Xpert wizard, with `Skills Middleware` wiring them into the primary agent flow automatically.
+
+**Also in recent releases: 3.8 Sandbox Environment**
 
 XpertAI 3.8 releases the Agent Sandbox feature, providing an isolated execution and file operation environment for agents. One of the core capabilities of the sandbox plugin is the provider plugin mechanism. Through custom providers, you can integrate different runtime infrastructures, such as:
 

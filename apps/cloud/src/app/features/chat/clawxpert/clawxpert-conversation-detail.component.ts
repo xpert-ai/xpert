@@ -372,8 +372,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const viewState = this.facade.viewState()
       const loadingUserPreference = this.facade.loadingUserPreference()
 
-      console.log(`ThreadId:`, threadId, loadingUserPreference)
-
       this.facade.suppressAutoResume()
 
       if (!control || threadId || viewState !== 'ready' || loadingUserPreference) {

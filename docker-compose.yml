@@ -63,7 +63,7 @@ services:
       HOST: ${WEB_HOST:-webapp}
       NODE_ENV: ${NODE_ENV:-development}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
-      CHATKIT_FRAME_URL: ${CHATKIT_FRAME_URL:-/chatkit}
+      VITE_CHATKIT_FRAME_URL: ${VITE_CHATKIT_FRAME_URL:-/chatkit}
       CLIENT_BASE_URL: ${CLIENT_BASE_URL:-http://localhost:4200}
       SENTRY_DSN: ${SENTRY_DSN:-}
       DEFAULT_LATITUDE: ${DEFAULT_LATITUDE:-42.6459136}
