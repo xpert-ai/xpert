@@ -74,7 +74,6 @@ import {
     CompileGraphCommand,
     CompleteToolCallsQuery,
     createMapStreamEvents,
-    CreateSummarizeTitleAgentCommand,
     messageEvent
 } from '../../../xpert-agent'
 import {
@@ -112,7 +111,8 @@ import {
     ToolNode,
     translate,
     updateToolCalls,
-    VolumeClient
+    VolumeClient,
+    ConversationTitleService
 } from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
@@ -125,7 +125,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         private readonly checkpointSaver: CopilotCheckpointSaver,
         private readonly projectService: XpertProjectService,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly conversationTitleService: ConversationTitleService
     ) {}
 
     public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
@@ -1047,14 +1048,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 return END
             })
 
-        const titleAgent = await this.commandBus.execute(
-            new CreateSummarizeTitleAgentCommand({
-                threadId: thread_id,
-                copilot,
-                rootController: abortController,
-                rootExecutionId: execution.id,
-                channel: null
-            })
+        const titleAgent = RunnableLambda.from(
+            async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) =>
+                await this.conversationTitleService.generateStatePatch({
+                    channel: null,
+                    config,
+                    copilot,
+                    state
+                })
         )
 
         builder.addNode(GRAPH_NODE_TITLE_CONVERSATION, titleAgent).addEdge(GRAPH_NODE_TITLE_CONVERSATION, END)

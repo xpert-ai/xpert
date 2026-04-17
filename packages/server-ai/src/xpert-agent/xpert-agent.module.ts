@@ -7,17 +7,18 @@ import { AgentMiddlewareRegistry, WorkflowNodeRegistry, WorkflowTriggerRegistry 
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { EnvironmentModule } from '../environment'
+import { ConversationTitleService, ExecutionCancelModule } from '../shared'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { XpertModule } from '../xpert/xpert.module'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
+import { XpertTitleMiddlewareService } from './title/xpert-title.middleware'
 import { Validators } from './workflow'
 import { WorkflowCommandHandlers } from './workflow/handlers'
 import { XpertAgentController } from './xpert-agent.controller'
 import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
 import { Strategies, Validators as PluginValidators } from './plugins'
-import { ExecutionCancelModule } from '../shared'
 import { SkillPackageModule } from '../skill-package'
 
 @Module({
@@ -39,6 +40,8 @@ import { SkillPackageModule } from '../skill-package'
     controllers: [XpertAgentController],
     providers: [
         XpertAgentService,
+        ConversationTitleService,
+        XpertTitleMiddlewareService,
         WorkflowTriggerRegistry,
         WorkflowNodeRegistry,
         AgentMiddlewareRegistry,

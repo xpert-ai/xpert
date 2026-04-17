@@ -506,7 +506,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                       }
                                     : undefined,
                             memories,
-                            summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable,
                             checkpointId: checkpointId
                         })
                     )
