@@ -293,8 +293,18 @@
                     (ngModelChange)="toggleMiddleware(middleware.meta.name, $event)"
                   />
                   <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}
+                    <div class="flex flex-wrap items-center gap-2 font-medium text-text-primary">
+                      <span>{{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}</span>
+                      @if (middleware.unavailable) {
+                        <span
+                          class="inline-flex items-center rounded-md bg-components-input-bg-normal px-2 py-px text-xs text-text-warning"
+                        >
+                          {{
+                            'PAC.Xpert.TemplateMiddlewareUnavailable'
+                              | translate: { Default: 'Unavailable in current runtime' }
+                          }}
+                        </span>
+                      }
                     </div>
                     <div class="text-sm text-text-secondary">
                       {{ middleware.meta.description ? (middleware.meta.description | i18n) : middleware.meta.name }}

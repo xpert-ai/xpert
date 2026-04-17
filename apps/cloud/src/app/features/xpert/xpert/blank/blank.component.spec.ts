@@ -167,6 +167,83 @@ connections:
 `
 }
 
+function createLegacyAgentTemplateYaml() {
+  return `
+team:
+  name: template-agent
+  type: agent
+  title: Template Agent
+  description: Template agent description
+  agent:
+    key: Agent_primary
+nodes:
+  - type: agent
+    key: Agent_primary
+    position:
+      x: 360
+      y: 220
+    entity:
+      key: Agent_primary
+  - type: workflow
+    key: Middleware_model_retry
+    position:
+      x: 360
+      y: 420
+    entity:
+      key: Middleware_model_retry
+      type: middleware
+      provider: ModelRetryMiddleware
+      title: ModelRetryMiddleware
+  - type: workflow
+    key: Middleware_web_tools
+    position:
+      x: 360
+      y: 540
+    entity:
+      key: Middleware_web_tools
+      type: middleware
+      provider: WebTools
+      title: WebTools
+  - type: workflow
+    key: Middleware_summary
+    position:
+      x: 360
+      y: 660
+    entity:
+      key: Middleware_summary
+      type: middleware
+      provider: SummarizationMiddleware
+      title: SummarizationMiddleware
+  - type: workflow
+    key: Middleware_todo
+    position:
+      x: 360
+      y: 780
+    entity:
+      key: Middleware_todo
+      type: middleware
+      provider: todoListMiddleware
+      title: todoListMiddleware
+connections:
+  - key: Agent_primary/Middleware_model_retry
+    type: workflow
+    from: Agent_primary
+    to: Middleware_model_retry
+  - key: Agent_primary/Middleware_web_tools
+    type: workflow
+    from: Agent_primary
+    to: Middleware_web_tools
+  - key: Agent_primary/Middleware_summary
+    type: workflow
+    from: Agent_primary
+    to: Middleware_summary
+  - key: Agent_primary/Middleware_todo
+    type: workflow
+    from: Agent_primary
+    to: Middleware_todo
+`
+}
+
 async function createComponent(
   data: BlankXpertDialogData,
   options?: {
@@ -492,6 +569,72 @@ describe('XpertNewBlankComponent', () => {
     expect(component.selectedMiddlewares()).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
   })
 
+  it('surfaces template-selected middlewares even when the runtime no longer provides them', async () => {
+    const { component, fixture } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: {
+          export_data: createLegacyAgentTemplateYaml()
+        },
+        agentTemplates: [
+          {
+            id: 'template-agent',
+            name: 'template-agent',
+            title: 'Template Agent',
+            description: 'Template agent description',
+            category: 'Agent',
+            type: XpertTypeEnum.Agent
+          }
+        ],
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'SummarizationMiddleware',
+              label: {
+                en_US: 'Summarization Middleware'
+              }
+            }
+          },
+          {
+            meta: {
+              name: 'todoListMiddleware',
+              label: {
+                en_US: 'Todo List Middleware'
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    component.setStartMode('template')
+    component.selectedTemplateId.set('template-agent')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(component.selectedMiddlewares()).toEqual([
+      'ModelRetryMiddleware',
+      'WebTools',
+      'SummarizationMiddleware',
+      'todoListMiddleware'
+    ])
+    expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual([
+      'SummarizationMiddleware',
+      'todoListMiddleware',
+      'ModelRetryMiddleware',
+      'WebTools'
+    ])
+    expect(
+      component
+        .middlewareProviderOptions()
+        .filter((provider) => provider.unavailable)
+        .map((provider) => provider.meta.name)
+    ).toEqual(['ModelRetryMiddleware', 'WebTools'])
+  })
+
   it('syncs workspace public skills on first skills-step entry and defaults them on while leaving local skills opt-in', async () => {
     const workspaceSkills = [
       {
@@ -600,6 +743,32 @@ describe('XpertNewBlankComponent', () => {
     expect(skillPackageService.installPackage).toHaveBeenCalledWith('workspace-1', 'index-writer')
     expect(component.selectedSkills()).toEqual(['writer'])
     expect(component.selectedMiddlewares()).toEqual([BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('preserves non-skill middlewares when the workspace changes', async () => {
+    const { component, fixture } = await createComponent({
+      type: XpertTypeEnum.Agent
+    })
+
+    component.selectedExplicitSkills.set(['writer'])
+    component.selectedRepositoryDefault.set({
+      repositoryId: 'repo-public',
+      disabledSkillIds: []
+    })
+    component.selectedMiddlewares.set([
+      'guard',
+      'todoListMiddleware',
+      BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+    ])
+
+    component.workspaceId.set('workspace-2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(component.selectedSkills()).toEqual([])
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(component.selectedMiddlewares()).toEqual(['guard', 'todoListMiddleware'])
   })
 
   it('hides skills middleware from the middleware picker options', async () => {

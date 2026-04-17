@@ -125,6 +125,11 @@ type BlankWorkspaceSkillItem = {
   repositoryProvider?: string | null
 }
 
+type BlankMiddlewareProviderOption = {
+  meta: TAgentMiddlewareMeta
+  unavailable?: boolean
+}
+
 type BlankSkillState = {
   loading: boolean
   skills: BlankWorkspaceSkillItem[]
@@ -159,6 +164,11 @@ const EMPTY_BLANK_SKILL_STATE: BlankSkillState = {
   loading: false,
   skills: [],
   errorMessage: null
+}
+const UNAVAILABLE_TEMPLATE_MIDDLEWARE_DESCRIPTION: I18nObject = {
+  en_US:
+    'This middleware comes from the selected template, but is not available in the current runtime. Keep it selected to preserve it in the imported draft, or deselect it to remove it.',
+  zh_Hans: '该中间件来自所选模板，但当前运行时不可用。保留勾选会继续带入导入草稿，取消勾选会将其移除。'
 }
 const AGENT_SKILL_STEP_INDEX = 4
 
@@ -381,11 +391,33 @@ export class XpertNewBlankComponent {
       (provider) => provider.name
     )
   )
-  readonly middlewareProviderOptions = computed(() =>
-    uniqueByName<{ meta: TAgentMiddlewareMeta }>(this.middlewareProviders(), (provider) => provider.meta.name).filter(
-      (provider) => provider.meta.name !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
-    )
-  )
+  readonly middlewareProviderOptions = computed<BlankMiddlewareProviderOption[]>(() => {
+    const availableProviders = uniqueByName<BlankMiddlewareProviderOption>(
+      this.middlewareProviders().map(({ meta }) => ({ meta })),
+      (provider) => provider.meta.name
+    ).filter((provider) => provider.meta.name !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+    const availableNames = new Set(availableProviders.map((provider) => provider.meta.name))
+    const unavailableTemplateSelections = this.selectedMiddlewares()
+      .filter(
+        (provider) =>
+          !!provider &&
+          provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER &&
+          !availableNames.has(provider)
+      )
+      .map((provider) => ({
+        meta: {
+          name: provider,
+          label: {
+            en_US: provider,
+            zh_Hans: provider
+          },
+          description: UNAVAILABLE_TEMPLATE_MIDDLEWARE_DESCRIPTION
+        },
+        unavailable: true
+      }))
+
+    return [...availableProviders, ...unavailableTemplateSelections]
+  })
   readonly dataSourceProviderOptions = computed(() =>
     uniqueByName<{ meta: IDocumentSourceProvider; integration: { service: string } }>(
       this.dataSourceProviders(),
@@ -618,11 +650,7 @@ export class XpertNewBlankComponent {
       }
 
       previousSkillWorkspaceId = workspaceId
-      this.applyAgentSkillSelections({
-        skills: [],
-        repositoryDefault: null,
-        middlewares: []
-      })
+      this.clearWorkspaceScopedAgentSelections()
       this.skillRefreshTick.update((value) => value + 1)
     })
 
@@ -1323,6 +1351,16 @@ export class XpertNewBlankComponent {
         selections.repositoryDefault
       )
     )
+  }
+
+  private clearWorkspaceScopedAgentSelections() {
+    this.applyAgentSkillSelections({
+      skills: [],
+      repositoryDefault: null,
+      middlewares: this.selectedMiddlewares().filter(
+        (provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+      )
+    })
   }
 
   async onAgentStepChange(event: ZardStepperSelectionEvent) {
