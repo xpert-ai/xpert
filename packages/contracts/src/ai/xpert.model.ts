@@ -39,6 +39,11 @@ export type TXpertSandboxFeature = {
   provider?: string
 }
 
+export type TXpertTitleFeature = {
+  enabled: boolean
+  instruction?: string
+}
+
 export type TXpertFeatures = {
   opener: {
     enabled: boolean
@@ -78,6 +83,11 @@ export type TXpertFeatures = {
    * Sandbox feature
    */
   sandbox?: TXpertSandboxFeature
+
+  /**
+   * Conversation title generation feature
+   */
+  title?: TXpertTitleFeature
 }
 
 export type TXpertFeatureKey = keyof TXpertFeatures
@@ -315,14 +325,6 @@ export type TXpertAgentConfig = {
    * Retrieval params for every knowledgebase
    */
   retrievals?: Record<string, TKBRetrievalSettings>
-
-  /**
-   * Summarize the title of the conversation
-   */
-  summarizeTitle?: {
-    disable?: boolean
-    instruction?: string
-  }
 
   tools?: Record<
     string,
@@ -576,10 +578,6 @@ export type TChatOptions = {
    * Call from
    */
   from?: TChatFrom
-  /**
-   * Whether to summarize the conversation title
-   */
-  summarizeTitle?: boolean
   /**
    * Project ID, identify the project where the xpert invoked
    */

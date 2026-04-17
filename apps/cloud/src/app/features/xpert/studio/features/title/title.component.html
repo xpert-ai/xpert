@@ -11,8 +11,8 @@
     <button
       type="button"
       class="btn flex items-center h-8 rounded-lg"
-      [class.text-primary-500]="view() === 'title' && enableSummarizeTitle()"
-      [disabled]="disableSummarizeTitle()"
+      [class.text-primary-500]="view() === 'title' && enableTitle()"
+      [disabled]="!enableTitle()"
       (click)="toggleView('title')"
     >
       <i class="ri-settings-5-line text-lg"></i>
@@ -22,11 +22,11 @@
     </button>
     <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
-    <z-switch [(ngModel)]="enableSummarizeTitle" labelPosition="before" zSize="sm" />
+    <z-switch [(ngModel)]="enableTitle" labelPosition="before" zSize="sm" />
   </div>
 </div>
 
-@if (view() === 'title' && enableSummarizeTitle()) {
+@if (view() === 'title' && enableTitle()) {
   <div @heightChangeAnimation class="p-4">
     <copilot-prompt-editor
       class="relative ngm-card-border-gradient self-stretch"

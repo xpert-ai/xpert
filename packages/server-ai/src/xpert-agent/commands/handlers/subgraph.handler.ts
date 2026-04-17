@@ -36,7 +36,6 @@ import {
     getCurrentGraph,
     getWorkflowTriggers,
     GRAPH_NODE_SUMMARIZE_CONVERSATION,
-    GRAPH_NODE_TITLE_CONVERSATION,
     isAgentKey,
     IWFNAgentTool,
     IXpert,
@@ -119,11 +118,13 @@ import {
     orderNodesByKeyOrder,
     createAgentChannel
 } from '../../../shared'
-import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgenticWorkflowTypes } from '../../types'
 import { createThreadContextUsageEventHook } from '../../hooks/context-usage.hook'
 import { parseXmlString } from './types'
+import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
+
+const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
@@ -136,7 +137,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly i18nService: I18nService
+        private readonly i18nService: I18nService,
+        private readonly xpertTitleMiddlewareService: XpertTitleMiddlewareService
     ) {}
 
     public async execute(command: XpertAgentSubgraphCommand): Promise<TAgentSubgraphResult> {
@@ -146,7 +148,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             execution,
             leaderKey,
             channel: agentChannel,
-            summarizeTitle,
             subscriber,
             rootController,
             signal,
@@ -469,9 +470,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Channels of workflow
         const channels: TStateChannel[] = []
         const pathMap = []
-        if (summarizeTitle) {
-            pathMap.push(GRAPH_NODE_TITLE_CONVERSATION)
-        }
         if (summarize?.enabled) {
             pathMap.push(GRAPH_NODE_SUMMARIZE_CONVERSATION)
         }
@@ -684,7 +682,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             map.set(item.tool.name, item.tool)
             return map
         }, new Map())
-        const agentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(
+        const visibleMiddlewareNodes = orderNodesByKeyOrder(
+            getAgentMiddlewareNodes(graph, agent.key),
+            agent.options?.middlewares?.order || []
+        )
+        const visibleAgentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(
             graph,
             agent,
             this.agentMiddlewareRegistry,
@@ -704,8 +706,38 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 toolPreferences: options.toolPreferences
             }
         )
+        const shouldEnableTitleMiddleware = Boolean(
+            xpert.features?.title?.enabled &&
+                isStart &&
+                !hiddenAgent &&
+                !leaderKey &&
+                (!xpert.agent || xpert.agent.key === agent.key)
+        )
+        const titleMiddleware = shouldEnableTitleMiddleware
+            ? this.xpertTitleMiddlewareService.createMiddleware({
+                  agentChannel,
+                  xpert: team
+              })
+            : null
+        const middlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = [
+            ...(titleMiddleware
+                ? [
+                      {
+                          key: XPERT_TITLE_MIDDLEWARE_NODE_KEY,
+                          middleware: titleMiddleware
+                      }
+                  ]
+                : []),
+            ...visibleMiddlewareNodes.reduce<Array<{ key: string; middleware: AgentMiddleware }>>((acc, node, index) => {
+                const middleware = visibleAgentMiddlewares[index]
+                if (middleware) {
+                    acc.push({ key: node.key, middleware })
+                }
+                return acc
+            }, [])
+        ]
         // Middleware tools
-        const middlewareTools: TGraphTool[] = agentMiddlewares
+        const middlewareTools: TGraphTool[] = visibleAgentMiddlewares
             .filter((middleware) => middleware?.tools?.length)
             .flatMap((middleware) =>
                 middleware.tools.map((tool) => {
@@ -734,7 +766,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...(variables ?? []).map((variable) => variable.name),
             ...stateVariables.map((variable) => variable.name)
         ])
-        const middlewareStateAnnotations = agentMiddlewares.reduce<Record<string, ReturnType<typeof Annotation>>>(
+        const middlewareStateAnnotations = visibleAgentMiddlewares.reduce<Record<string, ReturnType<typeof Annotation>>>(
             (acc, middleware) => {
                 const shape = (middleware.stateSchema as any)?.shape
                 if (!shape) {
@@ -773,7 +805,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             afterModelHooks: userAfterModelHooks,
             afterAgentExecutionOrder,
             wrapToolCall
-        } = getModelHooks(graph, agent, agentMiddlewares)
+        } = getModelHooks(middlewareEntries)
         const afterModelHooks = [
             ...userAfterModelHooks,
             ...(!hiddenAgent ? [createThreadContextUsageEventHook(agent, thread_id, execution)] : [])
@@ -1044,7 +1076,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 return response
             }
-            const wrappedModelHandler = agentMiddlewares.reduceRight<WrapModelCallHandler>((next, middleware) => {
+            const wrappedModelHandler = middlewareEntries.reduceRight<WrapModelCallHandler>((next, { middleware }) => {
                 if (!middleware?.wrapModelCall) {
                     return next
                 }
@@ -1315,20 +1347,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             })
         }
 
-        if (summarizeTitle && !hiddenAgent) {
-            const titleAgent = await this.commandBus.execute(
-                new CreateSummarizeTitleAgentCommand({
-                    xpert: team,
-                    rootController: rootController,
-                    rootExecutionId: command.options.rootExecutionId,
-                    channel: agentChannel,
-                    threadId: thread_id
-                })
-            )
-            subgraphBuilder
-                .addNode(GRAPH_NODE_TITLE_CONVERSATION, titleAgent)
-                .addEdge(GRAPH_NODE_TITLE_CONVERSATION, END)
-        }
         if (summarize?.enabled) {
             subgraphBuilder
                 .addNode(GRAPH_NODE_SUMMARIZE_CONVERSATION, createSummarizeAgent(chatModel, summarize, agentKey))
@@ -1349,7 +1367,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 createAgentNavigator(
                     agentChannel,
                     summarize,
-                    summarizeTitle,
                     afterAgentEntryNode ? undefined : nextNodeKey,
                     isStart ? fail?.[0]?.key : undefined,
                     afterAgentEntryNode
@@ -1367,7 +1384,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     createAfterAgentNavigator(
                         agentChannel,
                         summarize,
-                        summarizeTitle,
                         nextNodeKey,
                         isStart ? fail?.[0]?.key : undefined
                     ),
@@ -1689,7 +1705,6 @@ function ensureSummarize(summarize?: TSummarize) {
  *
  * @param agentChannel Channel name of agent
  * @param summarize Summarize config
- * @param summarizeTitle Is title summarize enabled
  * @param nextNodes Next nodes after agent
  * @param fail Failure node of agent
  * @returns conditionalEdgesFun
@@ -1697,13 +1712,11 @@ function ensureSummarize(summarize?: TSummarize) {
 function createAgentNavigator(
     agentChannel: string,
     summarize: TSummarize,
-    summarizeTitle: boolean,
     nextNodes?: string[] | ((state, config) => string),
     fail?: string,
     exitNode?: string
 ) {
     return (state: typeof AgentStateAnnotation.State, config) => {
-        const { title } = state
         const subState = getChannelState(state, agentChannel)
         const messages = subState?.messages ?? []
         const lastMessage = messages[messages.length - 1]
@@ -1716,8 +1729,6 @@ function createAgentNavigator(
                 // If there are more than six messages, then we summarize the conversation
                 if (summarize?.enabled && messages.length > summarize.maxMessages) {
                     nexts.push(new Send(GRAPH_NODE_SUMMARIZE_CONVERSATION, state))
-                } else if (!title && summarizeTitle) {
-                    nexts.push(new Send(GRAPH_NODE_TITLE_CONVERSATION, state))
                 }
 
                 if (nextNodes && !subState?.error) {
@@ -1773,12 +1784,10 @@ function createAgentNavigator(
 function createAfterAgentNavigator(
     agentChannel: string,
     summarize: TSummarize,
-    summarizeTitle: boolean,
     nextNodes?: string[] | ((state, config) => string),
     fail?: string
 ) {
     return (state: typeof AgentStateAnnotation.State, config) => {
-        const { title } = state
         const subState = getChannelState(state, agentChannel)
         const messages = subState?.messages ?? []
         const lastMessage = messages[messages.length - 1]
@@ -1787,8 +1796,6 @@ function createAfterAgentNavigator(
             const nexts: Send[] = []
             if (summarize?.enabled && messages.length > summarize.maxMessages) {
                 nexts.push(new Send(GRAPH_NODE_SUMMARIZE_CONVERSATION, state))
-            } else if (!title && summarizeTitle) {
-                nexts.push(new Send(GRAPH_NODE_TITLE_CONVERSATION, state))
             }
 
             if (nextNodes && !subState?.error) {
@@ -1876,21 +1883,7 @@ function stringifyStructuredResponse(response: unknown) {
     }
 }
 
-function getModelHooks(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewares: AgentMiddleware[]) {
-    const middlewareNodes = orderNodesByKeyOrder(
-        getAgentMiddlewareNodes(graph, agent.key),
-        agent.options?.middlewares?.order || []
-    )
-    const middlewareWithKeys = middlewareNodes.reduce<Array<{ key: string; middleware: AgentMiddleware }>>(
-        (acc, node, index) => {
-            const middleware = agentMiddlewares[index]
-            if (middleware) {
-                acc.push({ key: node.key, middleware })
-            }
-            return acc
-        },
-        []
-    )
+function getModelHooks(middlewareWithKeys: Array<{ key: string; middleware: AgentMiddleware }>) {
     const beforeAgentHooks = middlewareWithKeys
         .map(({ key, middleware }) => {
             const hook =
@@ -1921,8 +1914,9 @@ function getModelHooks(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewares:
         })
         .filter(Boolean)
     const afterAgentExecutionOrder = [...afterAgentHooks].reverse()
-    const wrapToolCall = agentMiddlewares.some((middleware) => middleware?.wrapToolCall)
-        ? agentMiddlewares.reduceRight<WrapToolCallHook>(
+    const middlewares = middlewareWithKeys.map(({ middleware }) => middleware)
+    const wrapToolCall = middlewares.some((middleware) => middleware?.wrapToolCall)
+        ? middlewares.reduceRight<WrapToolCallHook>(
               (next, middleware) => {
                   if (!middleware?.wrapToolCall) {
                       return next
@@ -2028,20 +2022,15 @@ function createAfterAgentNode(
             if (errorHandling?.type === 'failBranch' && channelState?.error) {
                 return state
             }
-            let nextState: Record<string, any> = { ...channelState }
             if (hook) {
                 const result = await hook(state as any, config as any)
                 if (result && typeof result === 'object') {
                     const { jumpTo, ...partial } = result as any
-                    nextState = {
-                        ...nextState,
-                        ...partial
-                    }
                     if (jumpTo) {
                         ;(config as any) ??= {}
                         ;(config as any).jumpTo = jumpTo
                     }
-                    return { [agentChannel]: nextState }
+                    return partial
                 }
             }
             return null

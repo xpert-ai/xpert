@@ -6,6 +6,7 @@ import { CommandHandlers } from './commands/handlers'
 import { CopilotModule } from '../copilot'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { KnowledgebaseModule } from '../knowledgebase/'
+import { ConversationTitleService } from '../shared'
 import { XpertToolsetModule } from '../xpert-toolset/'
 import { XpertProjectModule } from '../xpert-project/project.module'
 
@@ -19,7 +20,7 @@ import { XpertProjectModule } from '../xpert-project/project.module'
 		XpertProjectModule
 	],
 	controllers: [ChatController],
-	providers: [ChatEventsGateway, ...CommandHandlers],
+	providers: [ChatEventsGateway, ConversationTitleService, ...CommandHandlers],
 	exports: []
 })
 export class ChatModule {}
