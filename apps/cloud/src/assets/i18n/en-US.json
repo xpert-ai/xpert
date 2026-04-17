@@ -52,7 +52,8 @@
     },
     "Chat": {
       "QuoteSelection": "Quote selection",
-      "RemoveReference": "Remove reference"
+      "RemoveReference": "Remove reference",
+      "ContextCompression": "Context compression..."
     },
     "MENU": {
       "AGENT": "Agent",

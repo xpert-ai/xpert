@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, input, signal } from '@angular/core'
 import { ListHeightStaggerAnimation } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IChatConversation, IChatMessage } from 'apps/cloud/src/app/@core'
+import { CONTEXT_COMPRESSION_COMPONENT_TYPE, IChatConversation, IChatMessage } from 'apps/cloud/src/app/@core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { MarkdownModule } from 'ngx-markdown'
 import { Copy2Component } from '../../../common'
+import { ChatContextCompressionChunkComponent } from '../../context-compression/context-compression.component'
 import { ChatToolCallChunkComponent } from '../../tool-call-chunk/tool-call-chunk.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -17,6 +18,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     MarkdownModule,
     Copy2Component,
     NgxJsonViewerModule,
+    ChatContextCompressionChunkComponent,
     ChatToolCallChunkComponent
   ],
   selector: 'xpert-preview-ai-message',
@@ -66,6 +68,7 @@ export class XpertPreviewAiMessageComponent {
   })
   readonly expandReason = signal(false)
   readonly expandSteps = signal(false)
+  readonly contextCompressionComponentType = CONTEXT_COMPRESSION_COMPONENT_TYPE
 
   readonly conversationStatus = computed(() => this.conversation()?.status)
 

@@ -3,6 +3,9 @@ import { I18nObject, IconDefinition, letterStartSUID } from "../types"
 import { TXpertFeatureKey, TXpertGraph, TXpertTeamNode } from "./xpert.model"
 import { JsonSchemaObjectType } from "./types"
 
+export const LEGACY_SANDBOX_COMPRESSION_MIDDLEWARE_NAME = 'SandboxCompressionMiddleware'
+export const CONTEXT_COMPRESSION_MIDDLEWARE_NAME = 'ContextCompressionMiddleware'
+
 export interface IWFNMiddleware extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.MIDDLEWARE
   provider: string
@@ -23,6 +26,38 @@ export function isMiddlewareToolEnabled(config?: TMiddlewareToolConfig | boolean
 
 export function genXpertMiddlewareKey() {
   return letterStartSUID('Middleware_')
+}
+
+export function normalizeMiddlewareProvider(provider?: string | null): string {
+  if (provider === LEGACY_SANDBOX_COMPRESSION_MIDDLEWARE_NAME) {
+    return CONTEXT_COMPRESSION_MIDDLEWARE_NAME
+  }
+
+  return provider ?? ''
+}
+
+export function normalizeMiddlewareNode<T extends TXpertTeamNode>(node: T): T {
+  if (node?.type !== 'workflow' || node.entity?.type !== WorkflowNodeTypeEnum.MIDDLEWARE) {
+    return node
+  }
+
+  const entity = node.entity as IWFNMiddleware
+  const provider = normalizeMiddlewareProvider(entity.provider)
+  if (provider === entity.provider) {
+    return node
+  }
+
+  return {
+    ...node,
+    entity: {
+      ...entity,
+      provider
+    }
+  } as T
+}
+
+export function normalizeMiddlewareNodes<T extends TXpertTeamNode>(nodes?: T[] | null): T[] {
+  return (nodes ?? []).map((node) => normalizeMiddlewareNode(node))
 }
 
 export type TAgentMiddlewareMeta = {

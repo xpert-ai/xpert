@@ -21,11 +21,13 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { REMOVE_ALL_MESSAGES } from '@langchain/langgraph'
 import {
-  ChatMessageStepCategory,
   ChatMessageTypeEnum,
+  CONTEXT_COMPRESSION_COMPONENT_TYPE,
+  CONTEXT_COMPRESSION_MIDDLEWARE_NAME,
+  TContextCompressionComponentData,
+  TContextCompressionComponentStatus,
   TAgentMiddlewareMeta,
   TAgentRunnableConfigurable,
-  TMessageComponent,
   TMessageContentComponent
 } from '@xpert-ai/contracts'
 import { v4 as uuid } from 'uuid'
@@ -81,9 +83,8 @@ export const PROTECTED_USER_TURNS = 2
  */
 export const PROTECTED_TOOLS = ['skill', 'task']
 
-const COMPRESSION_TOOL_NAME = 'compress_context'
 const CONTEXT_WINDOW_EXCEEDED_FINISH_REASON = 'model_context_window_exceeded'
-const CONTEXT_WINDOW_RETRY_STATE_KEY = '__sandboxCompressionContextWindowRetryApplied'
+const CONTEXT_WINDOW_RETRY_STATE_KEY = '__contextCompressionContextWindowRetryApplied'
 
 // ============================================================================
 // Utility Functions
@@ -384,7 +385,7 @@ ${messagesText}
 Now, carefully read all the messages above, think in your scratchpad, then generate the <state_snapshot>.`
 }
 
-export interface SandboxCompressionMiddlewareOptions {
+export interface ContextCompressionMiddlewareOptions {
   /**
    * Compression threshold (fraction of model token limit)
    */
@@ -420,7 +421,7 @@ export interface SandboxCompressionMiddlewareOptions {
   protectedUserTurns?: number
 }
 
-interface ResolvedSandboxCompressionOptions {
+interface ResolvedContextCompressionOptions {
   threshold: number
   preserveFraction: number
   toolOutputBudget: number
@@ -454,13 +455,13 @@ interface PromptWindowEstimate {
 }
 
 @Injectable()
-@AgentMiddlewareStrategy('SandboxCompressionMiddleware')
-export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
+@AgentMiddlewareStrategy(CONTEXT_COMPRESSION_MIDDLEWARE_NAME)
+export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
   readonly meta: TAgentMiddlewareMeta = {
-    name: 'SandboxCompressionMiddleware',
+    name: CONTEXT_COMPRESSION_MIDDLEWARE_NAME,
     label: {
-      en_US: 'Sandbox Compression Middleware',
-      zh_Hans: '沙箱压缩中间件'
+      en_US: 'Context Compression Middleware',
+      zh_Hans: '上下文压缩中间件'
     },
     icon: {
       type: 'svg',
@@ -526,7 +527,7 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
     }
   }
 
-  private readonly logger = new Logger(SandboxCompressionMiddleware.name)
+  private readonly logger = new Logger(ContextCompressionMiddleware.name)
   private truncationIdCounter = 0
 
   constructor(private readonly commandBus: CommandBus) {}
@@ -700,13 +701,12 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
     }
   }
 
-  private emitCompressionEvent(
+  private emitCompressionChunk(
     runtime: { configurable?: TAgentRunnableConfigurable },
     payload: {
       id: string
-      status: 'running' | 'success' | 'fail'
+      status: TContextCompressionComponentStatus
       message?: string
-      input?: Record<string, unknown>
       error?: string
     }
   ): void {
@@ -728,18 +728,15 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
           agentKey: configurable?.agentKey,
           data: {
             category: 'Tool',
-            type: ChatMessageStepCategory.Program,
-            toolset: this.meta.name,
-            tool: COMPRESSION_TOOL_NAME,
+            type: CONTEXT_COMPRESSION_COMPONENT_TYPE,
             title: 'Context compression',
             message: payload.message,
             status: payload.status,
             created_date: now,
             end_date: payload.status === 'running' ? null : now,
-            input: payload.input,
             error: payload.error
-          } as TMessageComponent
-        } as TMessageContentComponent
+          }
+        } as TMessageContentComponent<TContextCompressionComponentData>
       }
     } as MessageEvent)
   }
@@ -1028,7 +1025,7 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
   private async compressMessages(
     messages: BaseMessage[],
     runtime: { configurable?: TAgentRunnableConfigurable },
-    options: ResolvedSandboxCompressionOptions,
+    options: ResolvedContextCompressionOptions,
     execution: CompressionExecutionOptions
   ): Promise<BaseMessage[] | null> {
     if (!messages.length) {
@@ -1096,6 +1093,14 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
           : `Triggering compression: ${messages.length} messages, estimated prompt ${promptWindowEstimate.estimatedPromptTokens}, effective prompt budget ${promptWindowEstimate.effectivePromptBudget}, reserved output ${promptWindowEstimate.reservedOutputTokens}, projected total ${promptWindowEstimate.projectedTotalTokens}, limit ${tokenLimit}`
       )
 
+      const currentCompressionId = uuid()
+      compressionId = currentCompressionId
+      this.emitCompressionChunk(runtime, {
+        id: currentCompressionId,
+        status: 'running',
+        message: 'Generating context summary...'
+      })
+
       let currentMessages = messages
       let currentTokenCount = originalTokenCount
 
@@ -1127,6 +1132,11 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
             this.logger.log(
               `First layer pruning sufficient, no further compression needed: estimated prompt ${prunedWindowEstimate.estimatedPromptTokens} <= effective prompt budget ${prunedWindowEstimate.effectivePromptBudget}; reserved output ${prunedWindowEstimate.reservedOutputTokens}; projected total ${prunedWindowEstimate.projectedTotalTokens}/${tokenLimit}`
             )
+            this.emitCompressionChunk(runtime, {
+              id: currentCompressionId,
+              status: 'success',
+              message: 'Context compression completed.'
+            })
             return currentMessages
           }
         }
@@ -1147,42 +1157,16 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
 
       if (historyToCompress.length === 0) {
         this.logger.debug('No messages to compress')
+        this.emitCompressionChunk(runtime, {
+          id: currentCompressionId,
+          status: currentMessages !== messages ? 'success' : 'fail',
+          message: currentMessages !== messages ? 'Context compression completed.' : 'No messages available to compress.',
+          ...(currentMessages !== messages ? {} : { error: 'No messages available to compress.' })
+        })
         return currentMessages !== messages ? currentMessages : null
       }
 
       this.logger.log(`Compressing ${historyToCompress.length} messages, keeping ${historyToKeep.length} messages`)
-
-      const currentCompressionId = uuid()
-      compressionId = currentCompressionId
-      const baseInput = {
-        phase: 'summary',
-        triggerReason: execution.reason,
-        forceCompression: execution.force,
-        originalMessageCount: historyToCompress.length,
-        preservedMessageCount: historyToKeep.length,
-        originalTokenCount,
-        currentTokenCount,
-        tokenLimit,
-        threshold: options.threshold,
-        preserveFraction: options.preserveFraction,
-        toolOutputBudget: options.toolOutputBudget,
-        enableTwoPhase: options.enableTwoPhase,
-        estimatedPromptTokens: promptWindowEstimate.estimatedPromptTokens,
-        reservedOutputTokens: promptWindowEstimate.reservedOutputTokens,
-        availablePromptTokens: promptWindowEstimate.availablePromptTokens,
-        thresholdPromptTokens: promptWindowEstimate.thresholdPromptTokens,
-        effectivePromptBudget: promptWindowEstimate.effectivePromptBudget,
-        projectedTotalTokens: promptWindowEstimate.projectedTotalTokens,
-        anchorPromptTokens: promptWindowEstimate.anchorPromptTokens,
-        anchorSource: promptWindowEstimate.anchorSource,
-        deltaMessageTokens: promptWindowEstimate.deltaMessageTokens
-      }
-      this.emitCompressionEvent(runtime, {
-        id: currentCompressionId,
-        status: 'running',
-        message: 'Generating context summary...',
-        input: baseInput
-      })
 
       const compressionModel = await getCompressionModel()
 
@@ -1201,15 +1185,11 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
       if (newTokenCount >= currentTokenCount) {
         const failureMessage = `Compression failed: new token count (${newTokenCount}) >= current count (${currentTokenCount})`
         this.logger.warn(failureMessage)
-        this.emitCompressionEvent(runtime, {
+        this.emitCompressionChunk(runtime, {
           id: currentCompressionId,
           status: 'fail',
           message: failureMessage,
-          error: failureMessage,
-          input: {
-            ...baseInput,
-            newTokenCount
-          }
+          error: failureMessage
         })
         return currentMessages !== messages ? currentMessages : null
       }
@@ -1224,22 +1204,17 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
 
       this.logger.log(`✅ ${compressionStats}`)
 
-      this.emitCompressionEvent(runtime, {
+      this.emitCompressionChunk(runtime, {
         id: currentCompressionId,
         message: compressionStats,
-        status: 'success',
-        input: {
-          ...baseInput,
-          newTokenCount,
-          compressionRatio
-        }
+        status: 'success'
       })
 
       return newHistory
     } catch (error) {
       if (compressionId) {
         const errorMessage = error instanceof Error ? error.message : String(error)
-        this.emitCompressionEvent(runtime, {
+        this.emitCompressionChunk(runtime, {
           id: compressionId,
           status: 'fail',
           error: errorMessage,
@@ -1252,10 +1227,10 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
   }
 
   createMiddleware(
-    options: SandboxCompressionMiddlewareOptions,
+    options: ContextCompressionMiddlewareOptions,
     context: IAgentMiddlewareContext
   ): PromiseOrValue<AgentMiddleware> {
-    const resolvedOptions: ResolvedSandboxCompressionOptions = {
+    const resolvedOptions: ResolvedContextCompressionOptions = {
       threshold: options?.threshold ?? DEFAULT_COMPRESSION_TOKEN_THRESHOLD,
       preserveFraction: options?.preserveFraction ?? COMPRESSION_PRESERVE_THRESHOLD,
       toolOutputBudget: options?.toolOutputBudget ?? COMPRESSION_TOOL_RESPONSE_TOKEN_BUDGET,
@@ -1266,7 +1241,7 @@ export class SandboxCompressionMiddleware implements IAgentMiddlewareStrategy {
     }
 
     return {
-      name: 'SandboxCompressionMiddleware',
+      name: CONTEXT_COMPRESSION_MIDDLEWARE_NAME,
       tools: [],
       beforeModel: async (state, runtime) => {
         const messages = state.messages

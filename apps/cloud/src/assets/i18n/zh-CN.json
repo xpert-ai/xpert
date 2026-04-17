@@ -276,7 +276,8 @@
     },
     "Chat": {
       "QuoteSelection": "引用选中内容",
-      "RemoveReference": "移除引用"
+      "RemoveReference": "移除引用",
+      "ContextCompression": "上下文压缩..."
     },
     "MENU": {
       "Certification": "认证",
