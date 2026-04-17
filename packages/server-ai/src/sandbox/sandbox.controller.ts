@@ -27,7 +27,6 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import { Response } from 'express'
 import fs from 'fs'
 import { I18nService } from 'nestjs-i18n'
@@ -36,8 +35,8 @@ import { Observable } from 'rxjs'
 import { ChatConversationService } from '../chat-conversation'
 import { VolumeClient, getMediaTypeWithCharset } from '../shared'
 import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
-import { SandboxAcquireBackendCommand } from './commands'
 import { IChatConversation } from '@xpert-ai/contracts'
+import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 
 @ApiTags('Sandbox')
 @ApiBearerAuth()
@@ -49,7 +48,8 @@ export class SandboxController {
         private readonly i18n: I18nService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly conversationService: ChatConversationService
+        private readonly conversationService: ChatConversationService,
+        private readonly sandboxConversationContextService: SandboxConversationContextService
     ) {}
 
     @Public()
@@ -158,47 +158,12 @@ export class SandboxController {
         @Query('conversationId') conversationId: string,
         @Res() res: Response
     ) {
-        if (!conversationId) {
-            throw new ForbiddenException('Conversation is required')
-        }
-
-        const tenantId = RequestContext.currentTenantId()
-        const userId = RequestContext.currentUserId()
-        const conversation = await this.conversationService.findOne({
-            where: { id: conversationId },
-            relations: ['xpert']
+        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+            conversationId,
+            projectId
         })
-        const sandboxFeature = conversation?.xpert?.features?.sandbox
-        if (!sandboxFeature?.enabled) {
-            throw new ForbiddenException('Sandbox is not enabled for this conversation')
-        }
-        if (!sandboxFeature.provider?.trim()) {
-            throw new ForbiddenException('Sandbox provider is not configured for this conversation')
-        }
-
-        const effectiveProjectId = projectId ?? conversation?.projectId ?? null
-        const workspacePath = effectiveProjectId
-            ? await VolumeClient.getSharedWorkspacePath(tenantId, effectiveProjectId, userId)
-            : conversation?.xpertId
-              ? await VolumeClient.getXpertWorkspacePath(tenantId, conversation.xpertId, userId)
-              : null
-        if (!workspacePath) {
-            throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
-        }
-        const sandboxContext = await this.commandBus.execute(
-            new SandboxAcquireBackendCommand({
-                tenantId,
-                provider: sandboxFeature.provider,
-                workingDirectory: workspacePath,
-                workFor: effectiveProjectId
-                    ? { type: 'project', id: effectiveProjectId }
-                    : { type: 'user', id: userId }
-            })
-        )
-        const backend = resolveSandboxBackend(sandboxContext)
-        if (!backend) {
-            throw new ForbiddenException('Sandbox is not available')
-        }
+        const backend = resolved.backend
+        const effectiveProjectId = resolved.effectiveProjectId
 
         return new Observable<string>((subscriber) => {
             let active = true
