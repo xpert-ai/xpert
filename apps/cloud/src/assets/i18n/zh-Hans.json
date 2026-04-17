@@ -239,6 +239,12 @@
       "LocalProvider": "本地",
       "LocalAuthor": "本地上传",
       "SystemManagedRepository": "系统仓库",
+      "TenantSkillsDescription": "为当前组织初始化内置的公共技能仓库，然后统一上传 ZIP 技能包。",
+      "PublicRepositoryMissing": "公共技能仓库尚未初始化",
+      "InitializePublicRepository": "初始化公共技能仓库",
+      "PublicRepositoryReady": "公共技能仓库已就绪。",
+      "RepositoryManagement": "仓库管理",
+      "RepositoryManagementDescription": "查看当前组织可用的仓库。公共仓库由系统统一管理，其他仓库仍可手动注册。",
       "RegisterSkillRepositoryTitle": "注册技能仓库",
       "ChooseFile": "选择文件",
       "DeleteSelected": "删除所选"

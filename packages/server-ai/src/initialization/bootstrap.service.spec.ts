@@ -76,7 +76,7 @@ describe('ServerAIBootstrapService', () => {
       execute: jest.fn()
     }
     const configService = {
-      get: jest.fn(() => '')
+      get: jest.fn((_key?: string) => '')
     }
     const organizationService = {
       findAll: jest.fn().mockResolvedValue({
@@ -144,6 +144,10 @@ describe('ServerAIBootstrapService', () => {
       sync: jest.fn()
     }
     const skillPackageService = {
+      initializeWorkspacePublicRepository: jest.fn().mockResolvedValue({
+        id: 'repo-public',
+        provider: 'workspace-public'
+      }),
       ensureInstalledSkillPackage: jest.fn(),
       ensureSharedSkillPackageFromTemplateBundle: jest.fn()
     }
@@ -208,7 +212,8 @@ describe('ServerAIBootstrapService', () => {
       tenantId: 'tenant-1'
     } as any)
 
-    expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalledTimes(1)
+    expect(skillPackageService.initializeWorkspacePublicRepository).not.toHaveBeenCalled()
+    expect(skillRepositoryService.ensureWorkspacePublicRepository).not.toHaveBeenCalled()
     expect(skillPackageService.ensureSharedSkillPackageFromTemplateBundle).not.toHaveBeenCalled()
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()
@@ -220,7 +225,7 @@ describe('ServerAIBootstrapService', () => {
     })
   })
 
-  it('publishes template skill bundles into the workspace public repository during org bootstrap', async () => {
+  it('does not publish template skill bundles into the workspace public repository during org bootstrap', async () => {
     const { service, skillPackageService, xpertTemplateService } = createService()
     xpertTemplateService.getTemplateSkillBundles.mockResolvedValue([
       {
@@ -241,10 +246,8 @@ describe('ServerAIBootstrapService', () => {
       tenantId: 'tenant-1'
     } as any)
 
-    expect(skillPackageService.ensureSharedSkillPackageFromTemplateBundle).toHaveBeenCalledWith('workspace-1', {
-      bundleRootPath: '/tmp/template-skill-bundles/claude-api-bundle',
-      sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
-    })
+    expect(skillPackageService.initializeWorkspacePublicRepository).not.toHaveBeenCalled()
+    expect(skillPackageService.ensureSharedSkillPackageFromTemplateBundle).not.toHaveBeenCalled()
   })
 
   it('applies the available primary copilot default model to the default authoring assistant during org bootstrap', async () => {
@@ -422,7 +425,7 @@ connections: []`
   })
 
   it('registers default skill repositories from template yaml during tenant bootstrap', async () => {
-    const { organizationService, service, skillRepositoryService, userService, xpertTemplateService } = createService()
+    const { organizationService, service, skillPackageService, skillRepositoryService, userService, xpertTemplateService } = createService()
 
     const result = await service.bootstrapTenantSkillRepositories({
       tenantId: 'tenant-1',
@@ -431,6 +434,7 @@ connections: []`
 
     expect(userService.getAdminUsers).toHaveBeenCalledWith('tenant-1')
     expect(organizationService.findAll).not.toHaveBeenCalled()
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(xpertTemplateService.readSkillRepositories).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.findAll).toHaveBeenCalledWith({
       where: {
@@ -455,7 +459,7 @@ connections: []`
   })
 
   it('updates an existing default skill repository instead of creating a duplicate during tenant bootstrap', async () => {
-    const { service, skillRepositoryService } = createService()
+    const { service, skillPackageService, skillRepositoryService } = createService()
     skillRepositoryService.findAll.mockResolvedValue({
       items: [
         {
@@ -474,6 +478,7 @@ connections: []`
       tenantName: 'Acme Tenant'
     } as any)
 
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.register).toHaveBeenCalledWith({
       id: 'repo-1',
       name: 'anthropics/skills',
@@ -489,7 +494,7 @@ connections: []`
   })
 
   it('supports multiple template-defined repositories during tenant bootstrap', async () => {
-    const { service, skillRepositoryService, xpertTemplateService } = createService()
+    const { service, skillPackageService, skillRepositoryService, xpertTemplateService } = createService()
     xpertTemplateService.readSkillRepositories.mockResolvedValue({
       repositories: [
         {
@@ -507,6 +512,7 @@ connections: []`
       tenantName: 'Acme Tenant'
     } as any)
 
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.register).toHaveBeenCalledWith({
       name: 'clawhub/official',
       provider: 'clawhub',
@@ -519,7 +525,7 @@ connections: []`
   })
 
   it('continues initializing later repositories when one default repository fails', async () => {
-    const { service, skillRepositoryService, xpertTemplateService } = createService()
+    const { service, skillPackageService, skillRepositoryService, xpertTemplateService } = createService()
     xpertTemplateService.readSkillRepositories.mockResolvedValue({
       repositories: [
         {
@@ -553,6 +559,7 @@ connections: []`
       tenantName: 'Acme Tenant'
     } as any)
 
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.register).toHaveBeenNthCalledWith(1, {
       name: 'broken/source',
       provider: 'github',
@@ -574,7 +581,7 @@ connections: []`
   })
 
   it('skips repository registration during tenant bootstrap when the template config is empty', async () => {
-    const { organizationService, service, skillRepositoryService, userService, xpertTemplateService } = createService()
+    const { organizationService, service, skillPackageService, skillRepositoryService, userService, xpertTemplateService } = createService()
     xpertTemplateService.readSkillRepositories.mockResolvedValue({
       repositories: []
     })
@@ -584,8 +591,9 @@ connections: []`
       tenantName: 'Acme Tenant'
     } as any)
 
-    expect(userService.getAdminUsers).not.toHaveBeenCalled()
+    expect(userService.getAdminUsers).toHaveBeenCalledWith('tenant-1')
     expect(organizationService.findAll).not.toHaveBeenCalled()
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(xpertTemplateService.readSkillRepositories).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()

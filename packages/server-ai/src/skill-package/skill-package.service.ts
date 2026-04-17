@@ -35,6 +35,7 @@ import {
 } from '../skill-repository/plugins/zip'
 import { DEFAULT_ORGANIZATION_WORKSPACE_NAME } from '../initialization/constants'
 import { getMediaTypeWithCharset, listFiles } from '../shared/utils'
+import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { SkillPackage } from './skill-package.entity'
@@ -195,7 +196,8 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		private readonly skillRepositoryService: SkillRepositoryService,
 		private readonly skillIndexService: SkillRepositoryIndexService,
 		@InjectRepository(XpertWorkspace)
-		private readonly workspaceRepository: Repository<XpertWorkspace>
+		private readonly workspaceRepository: Repository<XpertWorkspace>,
+		private readonly xpertTemplateService: XpertTemplateService
 	) {
 		super(repository)
 	}
@@ -303,10 +305,11 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new BadRequestException('Tenant context is required to upload repository skills')
 		}
 
-		const repository = await this.skillRepositoryService.findOneInOrganizationOrTenant(repositoryId)
-		if (!isWorkspacePublicSkillRepositoryProvider(repository.provider)) {
+		const requestedRepository = await this.skillRepositoryService.findOneInOrganizationOrTenant(repositoryId)
+		if (!isWorkspacePublicSkillRepositoryProvider(requestedRepository.provider)) {
 			throw new BadRequestException('Only workspace public repositories support direct zip uploads')
 		}
+		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
 
 		const workspace = await this.findOrCreateScopeDefaultWorkspace(tenantId, organizationId, currentUserId)
 		const installDir = getWorkspaceSkillsRoot(tenantId, workspace.id)
@@ -338,6 +341,34 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		} finally {
 			await cleanupExtractedSkillArchive(tempDir)
 		}
+	}
+
+	async initializeWorkspacePublicRepository() {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const currentUserId = RequestContext.currentUserId()
+		if (!tenantId || !currentUserId) {
+			throw new BadRequestException('Tenant context is required to initialize the public skill repository')
+		}
+
+		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
+		const workspace = await this.findOrCreateScopeDefaultWorkspace(tenantId, organizationId, currentUserId)
+		const bundles = await this.xpertTemplateService.getTemplateSkillBundles()
+
+		for (const bundle of bundles) {
+			await this.ensureSharedSkillPackageFromTemplateBundle(
+				workspace.id,
+				{
+					bundleRootPath: bundle.directoryPath,
+					sharedSkillId: bundle.sharedSkillId
+				},
+				{
+					skipAccessCheck: true
+				}
+			)
+		}
+
+		return repository
 	}
 
 	async createWorkspaceSkillPackage(
@@ -462,6 +493,9 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		input: {
 			bundleRootPath: string
 			sharedSkillId: string
+		},
+		options?: {
+			skipAccessCheck?: boolean
 		}
 	) {
 		if (!workspaceId) {
@@ -474,7 +508,9 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new BadRequestException('sharedSkillId is required')
 		}
 
-		await this.assertWorkspaceAccess(workspaceId)
+		if (!options?.skipAccessCheck) {
+			await this.assertWorkspaceAccess(workspaceId)
+		}
 
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()

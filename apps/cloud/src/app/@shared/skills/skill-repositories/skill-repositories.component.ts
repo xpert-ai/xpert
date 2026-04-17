@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { afterNextRender, Component, effect, inject, input, model, signal } from '@angular/core'
+import { afterNextRender, Component, effect, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import {
@@ -34,6 +34,7 @@ export class XpertSkillRepositoriesComponent {
   readonly readonlyMode = input<boolean>(false, { alias: 'readonly' })
   readonly selectedRepositoryId = model<string | null>(null)
   readonly selectedRepository = model<ISkillRepository | null>(null)
+  readonly repositoriesLoaded = output<ISkillRepository[]>()
 
   readonly repositories = signal<ISkillRepository[]>([])
 
@@ -66,12 +67,15 @@ export class XpertSkillRepositoriesComponent {
       .pipe(finalize(() => this.loadingRepos.set(false)))
       .subscribe({
         next: ({ items }) => {
-          this.repositories.set(items ?? [])
+          const repositories = items ?? []
+          this.repositories.set(repositories)
+          this.repositoriesLoaded.emit(repositories)
           // if (!this.selectedRepositoryId() && items?.length) {
           //   this.selectedRepositoryId.set(items[0].id)
           // }
         },
         error: (err) => {
+          this.repositoriesLoaded.emit(this.repositories())
           this.toastr.error(getErrorMessage(err))
         }
       })

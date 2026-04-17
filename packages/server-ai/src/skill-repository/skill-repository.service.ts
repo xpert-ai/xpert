@@ -7,7 +7,7 @@ import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
-import { FindManyOptions, FindOneOptions, FindOptionsWhere, IsNull, Repository } from 'typeorm'
+import { EntityManager, FindManyOptions, FindOneOptions, IsNull, Repository } from 'typeorm'
 import { translate } from '../shared/translate'
 import { FILE_SKILL_SOURCE_PROVIDER } from './plugins/zip'
 import { SkillRepository } from './skill-repository.entity'
@@ -32,12 +32,10 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 	}
 
 	override async findAll(filter?: FindManyOptions<SkillRepository>): Promise<SkillRepositoryPage> {
-		await this.ensureWorkspacePublicRepositoryForCurrentScope()
 		return this.localizeRepositoryPage(await super.findAll(filter))
 	}
 
 	override async findAllInOrganizationOrTenant(options?: FindManyOptions<SkillRepository>): Promise<SkillRepositoryPage> {
-		await this.ensureWorkspacePublicRepositoryForCurrentScope()
 		return this.localizeRepositoryPage(await super.findAllInOrganizationOrTenant(options))
 	}
 
@@ -97,21 +95,29 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 			throw new BadRequestException('Tenant context is required to initialize the public skill repository.')
 		}
 
-		const organizationId = RequestContext.getOrganizationId()
-		const where: FindOptionsWhere<SkillRepository> = {
-			tenantId,
-			provider: WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
-			organizationId: organizationId ?? IsNull()
-		}
-		const existing = await this.repository.findOne({ where })
-		if (existing) {
-			return this.localizeRepository(existing)
-		}
+		return this.withWorkspacePublicRepositoryLock(tenantId, async (repositoryStore) => {
+			const existing = await repositoryStore.findOne({
+				where: {
+					tenantId,
+					provider: WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
+					organizationId: IsNull()
+				} as any
+			})
+			if (existing) {
+				return this.localizeRepository(existing)
+			}
 
-		return this.localizeRepository(await this.create({
-			name: this.getWorkspacePublicRepositoryName(),
-			provider: WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
-		}))
+			return this.localizeRepository(
+				await repositoryStore.save(
+					repositoryStore.create({
+						name: this.getWorkspacePublicRepositoryName(),
+						provider: WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
+						tenantId,
+						organizationId: null
+					} as Partial<SkillRepository>)
+				)
+			)
+		})
 	}
 
 	async deleteRepository(id: string) {
@@ -161,11 +167,30 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 		return translate(label ?? WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME)
 	}
 
-	private async ensureWorkspacePublicRepositoryForCurrentScope() {
-		if (!RequestContext.currentTenantId()) {
+	private async withWorkspacePublicRepositoryLock<T>(
+		tenantId: string,
+		callback: (repositoryStore: Repository<SkillRepository>) => Promise<T>
+	) {
+		const manager = this.repository.manager
+		if (!manager || typeof manager.transaction !== 'function') {
+			return callback(this.repository)
+		}
+
+		return manager.transaction(async (transactionManager) => {
+			await this.acquireWorkspacePublicRepositoryLock(transactionManager, tenantId)
+			return callback(transactionManager.getRepository(SkillRepository))
+		})
+	}
+
+	private async acquireWorkspacePublicRepositoryLock(manager: EntityManager, tenantId: string) {
+		const connectionType = manager.connection.options.type
+		if (connectionType !== 'postgres') {
 			return
 		}
 
-		await this.ensureWorkspacePublicRepository()
+		await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
+			tenantId,
+			WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
+		])
 	}
 }

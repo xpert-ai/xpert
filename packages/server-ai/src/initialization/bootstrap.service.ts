@@ -82,8 +82,6 @@ export class ServerAIBootstrapService {
 		await this.runInOrganizationContext(owner, event.organizationId, async () => {
 			const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
 			await this.ensureDefaultEnvironment(workspace.id)
-			await this.skillRepositoryService.ensureWorkspacePublicRepository()
-			await this.bootstrapTemplateSkillBundlesToPublicRepository(workspace.id)
 
 			for (const memberId of memberIds) {
 				await this.workspaceService.ensureMember(workspace.id, memberId)
@@ -105,14 +103,13 @@ export class ServerAIBootstrapService {
 
 	async bootstrapTenantSkillRepositories(event: TenantCreatedEvent): Promise<TenantSkillRepositoryBootstrapResult> {
 		const configuredRepositories = await this.loadDefaultSkillRepositories()
-		if (!configuredRepositories.length) {
-			return { repositoryIds: [] }
-		}
-
 		const owner = await this.resolveTenantBootstrapUser(event.tenantId)
-		const repositoryIds = await this.runInTenantContext(owner, async () =>
-			this.ensureTenantSkillRepositories(configuredRepositories, event.tenantId)
-		)
+		const repositoryIds = await this.runInTenantContext(owner, async () => {
+			await this.skillPackageService.initializeWorkspacePublicRepository()
+			return configuredRepositories.length
+				? this.ensureTenantSkillRepositories(configuredRepositories, event.tenantId)
+				: []
+		})
 
 		return { repositoryIds }
 	}
@@ -130,7 +127,7 @@ export class ServerAIBootstrapService {
 
 			const organizationWorkspace = await this.workspaceService.findOrganizationDefaultWorkspace(event.organizationId)
 			if (organizationWorkspace) {
-				await this.bootstrapTemplateSkillBundlesToPublicRepository(organizationWorkspace.id)
+				// await this.bootstrapTemplateSkillBundlesToPublicRepository(organizationWorkspace.id)
 				await this.workspaceService.ensureMember(organizationWorkspace.id, user.id)
 			}
 		})
@@ -407,20 +404,6 @@ export class ServerAIBootstrapService {
 			isDefault: true,
 			variables: []
 		})
-	}
-
-	private async bootstrapTemplateSkillBundlesToPublicRepository(workspaceId: string) {
-		const bundles = await this.xpertTemplateService.getTemplateSkillBundles()
-		if (!bundles.length) {
-			return
-		}
-
-		for (const bundle of bundles) {
-			await this.skillPackageService.ensureSharedSkillPackageFromTemplateBundle(workspaceId, {
-				bundleRootPath: bundle.directoryPath,
-				sharedSkillId: bundle.sharedSkillId
-			})
-		}
 	}
 
 	private async importDefaultTemplates({

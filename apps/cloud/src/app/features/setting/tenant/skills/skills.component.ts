@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, OnInit, inject, signal, viewChild } from '@angular/core'
+import { Component, inject, signal, viewChild } from '@angular/core'
 import {
   getErrorMessage,
   ISkillRepository,
@@ -20,7 +20,7 @@ import { XpertSkillUploadDialogComponent } from '../../../xpert/workspace/skills
   imports: [CommonModule, TranslateModule, XpertSkillRepositoriesComponent],
   templateUrl: './skills.component.html'
 })
-export class TenantSkillsComponent implements OnInit {
+export class TenantSkillsComponent {
   readonly #dialog = inject(Dialog)
   readonly #skillRepositoryService = inject(SkillRepositoryService)
   readonly #toastr = inject(ToastrService)
@@ -30,12 +30,8 @@ export class TenantSkillsComponent implements OnInit {
 
   readonly publicRepository = signal<ISkillRepository | null>(null)
   readonly selectedRepositoryId = signal<string | null>(null)
-  readonly loadingPublicRepository = signal(false)
+  readonly loadingPublicRepository = signal(true)
   readonly initializingPublicRepository = signal(false)
-
-  async ngOnInit() {
-    await this.loadPublicRepository()
-  }
 
   async initializePublicRepository() {
     await this.ensurePublicRepository()
@@ -73,20 +69,13 @@ export class TenantSkillsComponent implements OnInit {
     })
   }
 
-  private async loadPublicRepository() {
-    this.loadingPublicRepository.set(true)
-    try {
-      const { items } = await firstValueFrom(this.#skillRepositoryService.getAllInOrg())
-      const repository = items.find((item) => item.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER) ?? null
-      this.publicRepository.set(repository)
+  onRepositoriesLoaded(repositories: ISkillRepository[]) {
+    const repository = repositories.find((item) => item.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER) ?? null
+    this.publicRepository.set(repository)
+    this.loadingPublicRepository.set(false)
 
-      if (repository?.id && !this.selectedRepositoryId()) {
-        this.selectedRepositoryId.set(repository.id)
-      }
-    } catch (error) {
-      this.#toastr.danger(getErrorMessage(error))
-    } finally {
-      this.loadingPublicRepository.set(false)
+    if (repository?.id && !this.selectedRepositoryId()) {
+      this.selectedRepositoryId.set(repository.id)
     }
   }
 
@@ -120,7 +109,7 @@ export class TenantSkillsComponent implements OnInit {
   }
 
   private refreshRepositories() {
+    this.loadingPublicRepository.set(true)
     this.repositoriesRef()?.loadRepositories()
-    void this.loadPublicRepository()
   }
 }

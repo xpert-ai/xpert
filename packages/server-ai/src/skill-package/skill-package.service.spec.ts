@@ -88,6 +88,10 @@ jest.mock('../skill-repository/skill-repository.service', () => ({
 	SkillRepositoryService: class SkillRepositoryService {}
 }))
 
+jest.mock('../xpert-template/xpert-template.service', () => ({
+	XpertTemplateService: class XpertTemplateService {}
+}))
+
 jest.mock('../xpert-workspace', () => ({
 	XpertWorkspaceBaseService: class XpertWorkspaceBaseService<T> {
 		protected repository: any
@@ -155,6 +159,9 @@ describe('SkillPackageService', () => {
 		findAll: jest.Mock
 		findOneInOrganizationOrTenant: jest.Mock
 	}
+	let xpertTemplateService: {
+		getTemplateSkillBundles: jest.Mock
+	}
 	let workspaceRepository: {
 		create: jest.Mock
 		createQueryBuilder: jest.Mock
@@ -193,6 +200,9 @@ describe('SkillPackageService', () => {
 			findAll: jest.fn().mockResolvedValue({ items: [] }),
 			findOneInOrganizationOrTenant: jest.fn()
 		}
+		xpertTemplateService = {
+			getTemplateSkillBundles: jest.fn().mockResolvedValue([])
+		}
 		strategy = {
 			installSkillPackage: jest.fn().mockResolvedValue('clawhub/weather'),
 			uninstallSkillPackage: jest.fn().mockResolvedValue(undefined)
@@ -222,7 +232,8 @@ describe('SkillPackageService', () => {
 			repository as any,
 			skillRepositoryService as any,
 			skillIndexService as any,
-			workspaceRepository as any
+			workspaceRepository as any,
+			xpertTemplateService as any
 		)
 		;(service as any).skillSourceProviderRegistry = {
 			get: jest.fn().mockReturnValue(strategy)
@@ -468,7 +479,7 @@ describe('SkillPackageService', () => {
 			expect.objectContaining({
 				installDir: '/tmp/workspace-skills',
 				organizationId: null,
-				repositoryId: 'repo-public-tenant',
+				repositoryId: 'repo-public',
 				tenantId: 'tenant-1',
 				workspaceId: 'workspace-org-default'
 			})
@@ -490,6 +501,66 @@ describe('SkillPackageService', () => {
 		).rejects.toThrow('Only workspace public repositories support direct zip uploads')
 		expect(extractSkillsFromZip).not.toHaveBeenCalled()
 		expect(installUploadedSkills).not.toHaveBeenCalled()
+	})
+
+	it('initializes the tenant-scoped workspace public repository and imports template bundles into the default source workspace', async () => {
+		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+		xpertTemplateService.getTemplateSkillBundles.mockResolvedValue([
+			{
+				directoryPath: '/tmp/template-skill-bundles/claude-api-bundle',
+				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+			},
+			{
+				directoryPath: '/tmp/template-skill-bundles/github-bundle',
+				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fgithub'
+			}
+		])
+		const ensureSharedSkillPackageFromTemplateBundle = jest
+			.spyOn(service, 'ensureSharedSkillPackageFromTemplateBundle')
+			.mockResolvedValue({ id: 'index-public-1' } as any)
+
+		const result = await service.initializeWorkspacePublicRepository()
+
+		expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalledTimes(1)
+		expect(workspaceRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				name: 'Tenant Skills Workspace',
+				organizationId: null,
+				ownerId: 'user-1',
+				tenantId: 'tenant-1',
+				settings: {
+					system: {
+						kind: 'tenant-default'
+					}
+				}
+			})
+		)
+		expect(ensureSharedSkillPackageFromTemplateBundle).toHaveBeenNthCalledWith(
+			1,
+			'workspace-org-default',
+			{
+				bundleRootPath: '/tmp/template-skill-bundles/claude-api-bundle',
+				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+			},
+			{
+				skipAccessCheck: true
+			}
+		)
+		expect(ensureSharedSkillPackageFromTemplateBundle).toHaveBeenNthCalledWith(
+			2,
+			'workspace-org-default',
+			{
+				bundleRootPath: '/tmp/template-skill-bundles/github-bundle',
+				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fgithub'
+			},
+			{
+				skipAccessCheck: true
+			}
+		)
+		expect(result).toEqual({
+			id: 'repo-public',
+			provider: 'workspace-public'
+		})
 	})
 
 	it('creates a workspace skill package with a single SKILL.md file and persisted metadata', async () => {

@@ -42,7 +42,7 @@
         <button
           type="button"
           class="btn btn-secondary btn-medium"
-          [disabled]="initializingPublicRepository()"
+          [disabled]="initializingPublicRepository() || loadingPublicRepository() || !!publicRepository()"
           (click)="initializePublicRepository()"
         >
           <i class="ri-refresh-line mr-1"></i>
@@ -103,6 +103,7 @@
       #repositories
       [selectedRepositoryId]="selectedRepositoryId()"
       (selectedRepositoryIdChange)="selectedRepositoryId.set($event)"
+      (repositoriesLoaded)="onRepositoriesLoaded($event)"
     />
   </section>
 </div>

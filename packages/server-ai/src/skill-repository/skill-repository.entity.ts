@@ -2,9 +2,13 @@ import { ISkillRepository } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsDateString, IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, DeleteDateColumn, Entity } from 'typeorm'
+import { Column, DeleteDateColumn, Entity, Index } from 'typeorm'
 
 @Entity('skill_repository')
+@Index('IDX_skill_repository_workspace_public_tenant_unique', ['tenantId'], {
+	unique: true,
+	where: `"provider" = 'workspace-public' AND "organizationId" IS NULL AND "deletedAt" IS NULL`
+})
 export class SkillRepository extends TenantOrganizationBaseEntity implements ISkillRepository {
 	@ApiProperty({ type: () => String })
 	@IsString()

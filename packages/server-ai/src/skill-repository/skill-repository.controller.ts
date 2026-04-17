@@ -61,7 +61,7 @@ export class SkillRepositoryController extends CrudController<SkillRepository> {
 
 	@Post('workspace-public/ensure')
 	async ensureWorkspacePublicRepository() {
-		return this.service.ensureWorkspacePublicRepository()
+		return this.skillPackageService.initializeWorkspacePublicRepository()
 	}
 
 	@Post(':id/upload')

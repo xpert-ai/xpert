@@ -9,6 +9,7 @@ import { SkillPackage } from './skill-package.entity'
 import { SkillPackageService } from './skill-package.service'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
+import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { Strategies } from './plugins'
 
 @Module({
@@ -18,7 +19,8 @@ import { Strategies } from './plugins'
 		CqrsModule,
 		forwardRef(() => XpertWorkspaceModule),
 		forwardRef(() => SkillRepositoryModule),
-		SkillRepositoryIndexModule
+		SkillRepositoryIndexModule,
+		XpertTemplateModule
 	],
 	controllers: [SkillPackageController],
 	providers: [SkillPackageService, ...Strategies],
