@@ -1,0 +1,13 @@
+repositories:
+  - name: anthropics/skills
+    provider: github
+    options:
+      url: https://github.com/anthropics/skills
+      branch: main
+      path: skills
+  - name: clawhub/official
+    provider: clawhub
+    options:
+      registryUrl: https://clawhub.ai
+      officialOnly: true
+      maxSkills: 500
