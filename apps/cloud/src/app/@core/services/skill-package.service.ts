@@ -23,6 +23,13 @@ export class SkillPackageService extends XpertWorkspaceBaseCrudService<ISkillPac
     return this.httpClient.post<ISkillPackage[]>(`${this.apiBaseUrl}/workspace/${workspaceId}/upload`, formData)
   }
 
+  installRepositoryPackages(workspaceId: string, repositoryId: string) {
+    return this.httpClient.post<ISkillPackage[]>(
+      `${this.apiBaseUrl}/workspace/${workspaceId}/install-repository/${repositoryId}`,
+      {}
+    )
+  }
+
   sharePackage(workspaceId: string, id: string, input: IShareSkillPackageInput) {
     return this.httpClient.post<ISkillPackage>(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}/share`, input)
   }

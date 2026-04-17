@@ -1,5 +1,10 @@
 jest.mock('@xpert-ai/server-common', () => ({
 	getErrorMessage: (error: Error) => error?.message ?? String(error),
+	urlJoin: (...parts: string[]) =>
+		parts
+			.filter((part) => part.length > 0)
+			.map((part, index) => (index === 0 ? part.replace(/\/+$/g, '') : part.replace(/^\/+|\/+$/g, '')))
+			.join('/'),
 	yaml: {
 		parse: (value: string) => {
 			const lines = value.split('\n')
@@ -48,7 +53,13 @@ jest.mock('@xpert-ai/server-common', () => ({
 }))
 
 jest.mock('@nestjs/typeorm', () => ({
-	InjectRepository: () => () => undefined
+	InjectRepository: () => () => undefined,
+	TypeOrmModule: {
+		forFeature: () => ({}),
+		forFeatureAsync: () => ({}),
+		forRoot: () => ({}),
+		forRootAsync: () => ({})
+	}
 }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
@@ -62,13 +73,18 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 	SkillSourceProviderRegistry: class SkillSourceProviderRegistry {}
 }))
 
-jest.mock('../skill-repository', () => ({
+jest.mock('../skill-repository/types', () => ({
 	getWorkspaceSkillsRoot: jest.fn().mockReturnValue('/tmp/workspace-skills'),
 	getOrganizationSharedSkillsRoot: jest.fn().mockReturnValue('/tmp/shared-skills'),
 	getOrganizationSharedSkillPath: jest.fn((_tenantId: string, _organizationId: string, sharedSkillId: string) => `/tmp/shared-skills/${sharedSkillId}`),
-	isWorkspacePublicSkillRepositoryProvider: jest.fn((provider: string) => provider === 'workspace-public'),
+	isWorkspacePublicSkillRepositoryProvider: jest.fn((provider: string) => provider === 'workspace-public')
+}))
+
+jest.mock('../skill-repository/repository-index/skill-repository-index.service', () => ({
 	SkillRepositoryIndexService: class SkillRepositoryIndexService {}
-	,
+}))
+
+jest.mock('../skill-repository/skill-repository.service', () => ({
 	SkillRepositoryService: class SkillRepositoryService {}
 }))
 
@@ -98,12 +114,29 @@ jest.mock('../xpert-workspace/workspace.entity', () => ({
 	XpertWorkspace: class XpertWorkspace {}
 }))
 
-import { getOrganizationSharedSkillPath, getWorkspaceSkillsRoot } from '../skill-repository'
+jest.mock('./skill-package.entity', () => ({
+	SkillPackage: class SkillPackage {}
+}))
+
+jest.mock('../skill-repository/plugins/zip', () => ({
+	FILE_SKILL_SOURCE_PROVIDER: 'file',
+	cleanupExtractedSkillArchive: jest.fn().mockResolvedValue(undefined),
+	extractSkillsFromZip: jest.fn(),
+	installUploadedSkills: jest.fn(),
+	normalizeUploadedSkillPath: jest.fn((value: string) => value.trim().replace(/^\/+/, ''))
+}))
+
+import { getOrganizationSharedSkillPath, getWorkspaceSkillsRoot } from '../skill-repository/types'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { SkillPackageService } from './skill-package.service'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+	cleanupExtractedSkillArchive,
+	extractSkillsFromZip,
+	installUploadedSkills
+} from '../skill-repository/plugins/zip'
 
 describe('SkillPackageService', () => {
 	let service: SkillPackageService
@@ -120,6 +153,14 @@ describe('SkillPackageService', () => {
 	let skillRepositoryService: {
 		ensureWorkspacePublicRepository: jest.Mock
 		findAll: jest.Mock
+		findOneInOrganizationOrTenant: jest.Mock
+	}
+	let workspaceRepository: {
+		create: jest.Mock
+		createQueryBuilder: jest.Mock
+		findOne: jest.Mock
+		save: jest.Mock
+		update: jest.Mock
 	}
 	let strategy: {
 		installSkillPackage: jest.Mock
@@ -149,7 +190,8 @@ describe('SkillPackageService', () => {
 				id: 'repo-public',
 				provider: 'workspace-public'
 			}),
-			findAll: jest.fn().mockResolvedValue({ items: [] })
+			findAll: jest.fn().mockResolvedValue({ items: [] }),
+			findOneInOrganizationOrTenant: jest.fn()
 		}
 		strategy = {
 			installSkillPackage: jest.fn().mockResolvedValue('clawhub/weather'),
@@ -161,7 +203,27 @@ describe('SkillPackageService', () => {
 			softDelete: jest.fn().mockResolvedValue({ affected: 1 })
 		}
 
-		service = new SkillPackageService(repository as any, skillRepositoryService as any, skillIndexService as any, {} as any)
+		workspaceRepository = {
+			create: jest.fn((entity) => entity),
+			createQueryBuilder: jest.fn(() => ({
+				where: jest.fn().mockReturnThis(),
+				andWhere: jest.fn().mockReturnThis(),
+				getOne: jest.fn().mockResolvedValue(null)
+			})),
+			findOne: jest.fn().mockResolvedValue(null),
+			save: jest.fn(async (entity) => ({
+				id: 'workspace-org-default',
+				...entity
+			})),
+			update: jest.fn().mockResolvedValue({ affected: 1 })
+		}
+
+		service = new SkillPackageService(
+			repository as any,
+			skillRepositoryService as any,
+			skillIndexService as any,
+			workspaceRepository as any
+		)
 		;(service as any).skillSourceProviderRegistry = {
 			get: jest.fn().mockReturnValue(strategy)
 		}
@@ -242,8 +304,7 @@ describe('SkillPackageService', () => {
 
 		expect(strategy.installSkillPackage).toHaveBeenCalledWith(
 			expect.objectContaining({
-				id: 'index-2',
-				version: undefined
+				id: 'index-2'
 			}),
 			'/tmp/workspace-skills'
 		)
@@ -288,6 +349,147 @@ describe('SkillPackageService', () => {
 		expect(result).toEqual({
 			id: 'skill-installed-1'
 		})
+	})
+
+	it('installs every package from a repository into the workspace', async () => {
+		skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
+			id: 'repo-public',
+			provider: 'workspace-public'
+		})
+		skillIndexService.findAll.mockResolvedValue({
+			items: [{ id: 'index-1' }, { id: 'index-2' }]
+		})
+		const ensureInstalledSkillPackage = jest
+			.spyOn(service, 'ensureInstalledSkillPackage')
+			.mockResolvedValueOnce({ id: 'package-1' } as any)
+			.mockResolvedValueOnce({ id: 'package-2' } as any)
+
+		const result = await service.installRepositorySkillPackages('workspace-1', 'repo-public')
+
+		expect(skillRepositoryService.findOneInOrganizationOrTenant).toHaveBeenCalledWith('repo-public')
+		expect(skillIndexService.findAll).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					repositoryId: 'repo-public'
+				}
+			})
+		)
+		expect(ensureInstalledSkillPackage).toHaveBeenNthCalledWith(1, 'workspace-1', 'index-1')
+		expect(ensureInstalledSkillPackage).toHaveBeenNthCalledWith(2, 'workspace-1', 'index-2')
+		expect(result).toEqual([{ id: 'package-1' }, { id: 'package-2' }])
+	})
+
+	it('uploads zip packages only to the workspace public repository and publishes them from the org default workspace', async () => {
+		skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
+			id: 'repo-public',
+			provider: 'workspace-public'
+		})
+		;(extractSkillsFromZip as jest.Mock).mockResolvedValue({
+			tempDir: '/tmp/skill-archive',
+			skills: [
+				{
+					name: 'Weather Skill',
+					description: 'Shareable weather skill',
+					absolutePath: '/tmp/uploaded/weather',
+					skillPath: 'weather'
+				}
+			]
+		})
+		const publishUploadedWorkspacePublicSkill = jest
+			.spyOn(service as any, 'publishUploadedWorkspacePublicSkill')
+			.mockResolvedValue({ id: 'index-public-1' })
+
+		const result = await service.uploadWorkspacePublicRepositoryPackages('repo-public', {
+			buffer: Buffer.from('zip-file')
+		} as Express.Multer.File)
+
+		expect(skillRepositoryService.findOneInOrganizationOrTenant).toHaveBeenCalledWith('repo-public')
+		expect(workspaceRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				name: 'Default Workspace',
+				organizationId: 'org-1',
+				ownerId: 'user-1',
+				tenantId: 'tenant-1'
+			})
+		)
+		expect(publishUploadedWorkspacePublicSkill).toHaveBeenCalledWith(
+			expect.objectContaining({
+				installDir: '/tmp/workspace-skills',
+				organizationId: 'org-1',
+				repositoryId: 'repo-public',
+				tenantId: 'tenant-1',
+				workspaceId: 'workspace-org-default'
+			})
+		)
+		expect(cleanupExtractedSkillArchive).toHaveBeenCalledWith('/tmp/skill-archive')
+		expect(result).toEqual([{ id: 'index-public-1' }])
+	})
+
+	it('uploads zip packages to the tenant-scoped workspace public repository without organization context', async () => {
+		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+		skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
+			id: 'repo-public-tenant',
+			provider: 'workspace-public',
+			organizationId: null
+		})
+		;(extractSkillsFromZip as jest.Mock).mockResolvedValue({
+			tempDir: '/tmp/skill-archive-tenant',
+			skills: [
+				{
+					name: 'Tenant Skill',
+					description: 'Tenant scope skill',
+					absolutePath: '/tmp/uploaded/tenant-skill',
+					skillPath: 'tenant-skill'
+				}
+			]
+		})
+		const publishUploadedWorkspacePublicSkill = jest
+			.spyOn(service as any, 'publishUploadedWorkspacePublicSkill')
+			.mockResolvedValue({ id: 'index-public-tenant-1' })
+
+		const result = await service.uploadWorkspacePublicRepositoryPackages('repo-public-tenant', {
+			buffer: Buffer.from('zip-file')
+		} as Express.Multer.File)
+
+		expect(workspaceRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				name: 'Tenant Skills Workspace',
+				organizationId: null,
+				ownerId: 'user-1',
+				tenantId: 'tenant-1',
+				settings: {
+					system: {
+						kind: 'tenant-default'
+					}
+				}
+			})
+		)
+		expect(publishUploadedWorkspacePublicSkill).toHaveBeenCalledWith(
+			expect.objectContaining({
+				installDir: '/tmp/workspace-skills',
+				organizationId: null,
+				repositoryId: 'repo-public-tenant',
+				tenantId: 'tenant-1',
+				workspaceId: 'workspace-org-default'
+			})
+		)
+		expect(cleanupExtractedSkillArchive).toHaveBeenCalledWith('/tmp/skill-archive-tenant')
+		expect(result).toEqual([{ id: 'index-public-tenant-1' }])
+	})
+
+	it('rejects direct zip uploads for non workspace-public repositories', async () => {
+		skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
+			id: 'repo-github',
+			provider: 'github'
+		})
+
+		await expect(
+			service.uploadWorkspacePublicRepositoryPackages('repo-github', {
+				buffer: Buffer.from('zip-file')
+			} as Express.Multer.File)
+		).rejects.toThrow('Only workspace public repositories support direct zip uploads')
+		expect(extractSkillsFromZip).not.toHaveBeenCalled()
+		expect(installUploadedSkills).not.toHaveBeenCalled()
 	})
 
 	it('creates a workspace skill package with a single SKILL.md file and persisted metadata', async () => {

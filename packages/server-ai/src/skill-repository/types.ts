@@ -7,11 +7,15 @@ export function getWorkspaceSkillsRoot(tenantId: string, workspaceId: string): s
     return getWorkspaceRoot(tenantId, workspaceId) + '/skills'
 }
 
-export function getOrganizationSharedSkillsRoot(tenantId: string, organizationId: string): string {
-    return join(VolumeClient.getApiContainerSandboxVolumeRoot(tenantId), 'organizations', organizationId, 'skills', 'public')
+export function getOrganizationSharedSkillsRoot(tenantId: string, organizationId?: string | null): string {
+    if (organizationId) {
+        return join(VolumeClient.getApiContainerSandboxVolumeRoot(tenantId), 'organizations', organizationId, 'skills', 'public')
+    }
+
+    return join(VolumeClient.getApiContainerSandboxVolumeRoot(tenantId), 'skills', 'public')
 }
 
-export function getOrganizationSharedSkillPath(tenantId: string, organizationId: string, sharedSkillId: string): string {
+export function getOrganizationSharedSkillPath(tenantId: string, organizationId: string | null | undefined, sharedSkillId: string): string {
     return `${getOrganizationSharedSkillsRoot(tenantId, organizationId)}/${sharedSkillId}`
 }
 

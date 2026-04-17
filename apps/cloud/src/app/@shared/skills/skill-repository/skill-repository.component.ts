@@ -1,13 +1,20 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, inject, model, signal } from '@angular/core'
+import { Dialog } from '@angular/cdk/dialog'
+import { afterNextRender, Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { getErrorMessage, ISkillRepository, ISkillRepositoryIndex } from '@cloud/app/@core'
+import {
+  getErrorMessage,
+  ISkillRepository,
+  ISkillRepositoryIndex,
+  WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
+} from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardSegmentedComponent, ZardSegmentedItemComponent } from '@xpert-ai/headless-ui'
 import { SkillRepositoryIndexService, SkillRepositoryService, ToastrService } from '../../../@core/services'
 import { XpertSkillIndexesComponent } from '../indexes/indexes.component'
+import { XpertSkillUploadDialogComponent } from '../../../features/xpert/workspace/skills/skill-upload-dialog.component'
 
 @Component({
   standalone: true,
@@ -21,6 +28,7 @@ export class XpertSkillRepositoryComponent {
   readonly indexService = inject(SkillRepositoryIndexService)
   readonly toastr = inject(ToastrService)
   readonly #dialogRef = inject(DialogRef)
+  readonly #dialog = inject(Dialog)
   readonly #data = inject<{ repository: ISkillRepository }>(DIALOG_DATA)
 
   readonly repository = model<ISkillRepository>(this.#data?.repository)
@@ -30,9 +38,40 @@ export class XpertSkillRepositoryComponent {
   readonly loading = signal(false)
   readonly loadingIndexes = signal(false)
 
+  constructor() {
+    afterNextRender(() => {
+      const repositoryId = this.repository()?.id
+      if (repositoryId) {
+        this.loadIndexes(repositoryId)
+      }
+    })
+  }
 
   close() {
     this.#dialogRef.close()
+  }
+
+  get canUploadPackages() {
+    return this.repository()?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
+  }
+
+  openUploadDialog() {
+    const repositoryId = this.repository()?.id
+    if (!repositoryId) {
+      return
+    }
+
+    this.#dialog
+      .open<Array<ISkillRepositoryIndex> | null>(XpertSkillUploadDialogComponent, {
+        data: {
+          repositoryId
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result?.length) {
+          this.loadIndexes(repositoryId)
+        }
+      })
   }
 
   reloadIndexes() {

@@ -91,7 +91,7 @@ describe('SkillsMiddleware', () => {
       handler
     )) as any
 
-    expect(loadSkillMetadata).toHaveBeenCalledWith(runtimeSkillsRoot, ['skill-a'], 'workspace-1')
+    expect(loadSkillMetadata).toHaveBeenCalledWith(runtimeSkillsRoot, ['skill-a', 'skill-b'], 'workspace-1')
     expect(result.systemMessage.content).toContain('skill-a')
     expect(result.systemMessage.content).not.toContain('skill-b')
   })
@@ -145,7 +145,7 @@ describe('SkillsMiddleware', () => {
       handler
     )
 
-    expect(loadSkillMetadata).toHaveBeenCalledWith(runtimeSkillsRoot, ['skill-a'], 'workspace-1')
+    expect(loadSkillMetadata).toHaveBeenCalledWith(runtimeSkillsRoot, ['skill-a', 'skill-b'], 'workspace-1')
   })
 
   it('loads all workspace skills in blacklist mode when selectedSkillIds are absent', async () => {
@@ -224,6 +224,123 @@ describe('SkillsMiddleware', () => {
     )
     expect(result.systemMessage.content).toContain('skill-a')
     expect(result.systemMessage.content).not.toContain('skill-b')
+  })
+
+  it('loads repository-backed defaults, removes config blacklisted skills, and still applies runtime disabled skills last', async () => {
+    const middleware = createMiddleware()
+    ;(middleware as any).skillPackageRepository.find = jest.fn().mockResolvedValue([
+      {
+        id: 'skill-public-a',
+        workspaceId: 'workspace-1',
+        packagePath: 'skill-public-a',
+        metadata: {
+          name: 'skill-public-a',
+          skillPath: 'skill-public-a',
+          skillMdPath: `${runtimeSkillsRoot}/skill-public-a/SKILL.md`
+        },
+        skillIndex: {
+          repositoryId: 'repo-public',
+          repository: {
+            id: 'repo-public',
+            provider: 'workspace-public'
+          }
+        }
+      },
+      {
+        id: 'skill-public-b',
+        workspaceId: 'workspace-1',
+        packagePath: 'skill-public-b',
+        metadata: {
+          name: 'skill-public-b',
+          skillPath: 'skill-public-b',
+          skillMdPath: `${runtimeSkillsRoot}/skill-public-b/SKILL.md`
+        },
+        skillIndex: {
+          repositoryId: 'repo-public',
+          repository: {
+            id: 'repo-public',
+            provider: 'workspace-public'
+          }
+        }
+      },
+      {
+        id: 'skill-local-extra',
+        workspaceId: 'workspace-1',
+        packagePath: 'skill-local-extra',
+        metadata: {
+          name: 'skill-local-extra',
+          skillPath: 'skill-local-extra',
+          skillMdPath: `${runtimeSkillsRoot}/skill-local-extra/SKILL.md`
+        }
+      }
+    ])
+    jest.spyOn(middleware as any, 'parseSkillPackage').mockImplementation(async (_workspaceRoot: string, skillPackage: any) => ({
+      id: skillPackage.id,
+      name: skillPackage.metadata.name,
+      description: `${skillPackage.metadata.name} description`,
+      path: `${runtimeSkillsRoot}/${skillPackage.packagePath}/SKILL.md`,
+      packagePath: skillPackage.packagePath,
+      repositoryId: skillPackage.skillIndex?.repositoryId,
+      workspaceId: skillPackage.workspaceId,
+      version: '1'
+    }))
+    const loadSkillMetadata = jest.spyOn(middleware as any, 'loadSkillMetadata').mockImplementation(
+      async (_workspaceRoot: string, skillIds: string[], workspaceId: string) =>
+        skillIds.map((skillId) => ({
+          id: skillId,
+          name: skillId,
+          description: `${skillId} description`,
+          path: `${runtimeSkillsRoot}/${skillId}/SKILL.md`,
+          packagePath: skillId,
+          workspaceId,
+          version: '1'
+        }))
+    )
+
+    const instance = await middleware.createMiddleware(
+      {
+        skills: ['skill-local-extra'],
+        repositoryDefault: {
+          repositoryId: 'repo-public',
+          disabledSkillIds: ['skill-public-b']
+        }
+      },
+      {
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1',
+        projectId: null,
+        node: {} as any,
+        tools: new Map()
+      }
+    )
+
+    const handler = jest.fn(async (request) => request)
+    const result = (await instance.wrapModelCall(
+      {
+        runtime: {
+          configurable: {
+            sandbox: {
+              workingDirectory: runtimeWorkingDirectory
+            }
+          }
+        },
+        state: {
+          disabledSkillIds: ['skill-public-a']
+        },
+        systemMessage: new SystemMessage('base')
+      } as any,
+      handler
+    )) as any
+
+    expect(loadSkillMetadata).toHaveBeenCalledWith(
+      runtimeSkillsRoot,
+      ['skill-local-extra'],
+      'workspace-1'
+    )
+    expect(result.systemMessage.content).toContain('skill-local-extra')
+    expect(result.systemMessage.content).not.toContain('skill-public-a')
+    expect(result.systemMessage.content).not.toContain('skill-public-b')
   })
 
   it('copies synced skills into the runtime .xpert skills directory', async () => {

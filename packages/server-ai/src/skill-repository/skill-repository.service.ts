@@ -6,9 +6,10 @@ import { getErrorMessage } from '@xpert-ai/server-common'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
-import { FindManyOptions, FindOneOptions, FindOptionsWhere, Repository } from 'typeorm'
+import { RequestContext, SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { FindManyOptions, FindOneOptions, FindOptionsWhere, IsNull, Repository } from 'typeorm'
 import { translate } from '../shared/translate'
+import { FILE_SKILL_SOURCE_PROVIDER } from './plugins/zip'
 import { SkillRepository } from './skill-repository.entity'
 
 type SkillRepositoryPage = {
@@ -31,10 +32,12 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 	}
 
 	override async findAll(filter?: FindManyOptions<SkillRepository>): Promise<SkillRepositoryPage> {
+		await this.ensureWorkspacePublicRepositoryForCurrentScope()
 		return this.localizeRepositoryPage(await super.findAll(filter))
 	}
 
 	override async findAllInOrganizationOrTenant(options?: FindManyOptions<SkillRepository>): Promise<SkillRepositoryPage> {
+		await this.ensureWorkspacePublicRepositoryForCurrentScope()
 		return this.localizeRepositoryPage(await super.findAllInOrganizationOrTenant(options))
 	}
 
@@ -53,7 +56,7 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 		if (!entity?.name || !entity?.provider) {
 			throw new BadRequestException('Repository name and provider are required.')
 		}
-		if (entity.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER) {
+		if (entity.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER || entity.provider === FILE_SKILL_SOURCE_PROVIDER) {
 			throw new BadRequestException('System managed repositories cannot be registered manually.')
 		}
 
@@ -74,7 +77,11 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 	getSourceStrategies() {
 		return this.skillSourceProviderRegistry
 			.list()
-			.filter((strategy) => strategy.meta.name !== WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER)
+			.filter(
+				(strategy) =>
+					strategy.meta.name !== WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER &&
+					strategy.meta.name !== FILE_SKILL_SOURCE_PROVIDER
+			)
 			.map((strategy) => strategy.meta)
 	}
 
@@ -85,16 +92,20 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 	}
 
 	async ensureWorkspacePublicRepository() {
-		const where: FindOptionsWhere<SkillRepository> = {
-			provider: WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
+		const tenantId = RequestContext.currentTenantId()
+		if (!tenantId) {
+			throw new BadRequestException('Tenant context is required to initialize the public skill repository.')
 		}
-		const { items } = await this.findAll({
-			where,
-			take: 1
-		})
-		const existing = items[0]
+
+		const organizationId = RequestContext.getOrganizationId()
+		const where: FindOptionsWhere<SkillRepository> = {
+			tenantId,
+			provider: WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
+			organizationId: organizationId ?? IsNull()
+		}
+		const existing = await this.repository.findOne({ where })
 		if (existing) {
-			return existing
+			return this.localizeRepository(existing)
 		}
 
 		return this.localizeRepository(await this.create({
@@ -148,5 +159,13 @@ export class SkillRepositoryService extends TenantOrganizationAwareCrudService<S
 			?.meta?.label
 
 		return translate(label ?? WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME)
+	}
+
+	private async ensureWorkspacePublicRepositoryForCurrentScope() {
+		if (!RequestContext.currentTenantId()) {
+			return
+		}
+
+		await this.ensureWorkspacePublicRepository()
 	}
 }

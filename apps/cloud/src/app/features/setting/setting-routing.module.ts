@@ -282,14 +282,10 @@ const routes: Routes = [
       },
       {
         path: 'skill-repository',
-        loadChildren: () => import('./skill-repository').then((m) => m.routes),
-        canActivate: [NgxPermissionsGuard],
+        redirectTo: 'tenant/skills',
+        pathMatch: 'full',
         data: {
-          title: 'settings/skill-repository',
-          permissions: {
-            only: [RolesEnum.SUPER_ADMIN],
-            redirectTo
-          }
+          title: 'settings/skill-repository'
         }
       },
     ]

@@ -25,7 +25,7 @@ export interface IXpertWorkspace extends IBasePerTenantAndOrganizationEntityMode
 
 export type TXpertWorkspaceSettings = {
   system?: {
-    kind?: 'org-default' | 'user-default'
+    kind?: 'org-default' | 'tenant-default' | 'user-default'
     userId?: string
   }
 }

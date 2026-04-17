@@ -48,6 +48,10 @@ import { XpertWorkspace } from '../../../xpert-workspace/workspace.entity'
 export interface ISkillsMiddlewareOptions {
 	skills?: string[]
 	systemPrompt?: string
+	repositoryDefault?: {
+		repositoryId: string
+		disabledSkillIds: string[]
+	}
 }
 
 /**
@@ -72,6 +76,11 @@ type RuntimeSkillSelectionState = {
 	selectedSkillWorkspaceId?: string
 }
 
+type ConfigRepositoryDefaultSelection = {
+	repositoryId: string
+	disabledSkillIds: string[]
+}
+
 type SkillPromptMetadata = {
 	id: string
 	name: string
@@ -79,6 +88,7 @@ type SkillPromptMetadata = {
 	path?: string
 	source?: string
 	packagePath?: string
+	repositoryId?: string
 	workspaceId: string
 	version: string
 }
@@ -218,6 +228,37 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 						component: 'skills-select',
 						span: 2
 					}
+				},
+				repositoryDefault: {
+					type: 'object',
+					title: {
+						en_US: 'Repository Default Skills',
+						zh_Hans: '仓库默认技能集'
+					},
+					description: {
+						en_US: 'Default skill set backed by one repository, with disabledSkillIds acting as a blacklist.',
+						zh_Hans: '基于单个仓库的默认技能集合，disabledSkillIds 作为黑名单。'
+					},
+					properties: {
+						repositoryId: {
+							type: 'string',
+							title: {
+								en_US: 'Repository ID',
+								zh_Hans: '仓库 ID'
+							}
+						},
+						disabledSkillIds: {
+							type: 'array',
+							default: [],
+							title: {
+								en_US: 'Disabled Skill IDs',
+								zh_Hans: '禁用技能 ID'
+							},
+							items: {
+								type: 'string'
+							}
+						}
+					}
 				}
 			}
 		}
@@ -274,6 +315,20 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 		return typeof value === 'string' ? value.trim() : ''
 	}
 
+	private resolveConfiguredRepositoryDefault(
+		options?: ISkillsMiddlewareOptions | null
+	): ConfigRepositoryDefaultSelection | null {
+		const repositoryId = this.sanitizeWorkspaceId(options?.repositoryDefault?.repositoryId)
+		if (!repositoryId) {
+			return null
+		}
+
+		return {
+			repositoryId,
+			disabledSkillIds: this.sanitizeSkillIds(options?.repositoryDefault?.disabledSkillIds)
+		}
+	}
+
 	private resolveRuntimeSkillSelection(state: Record<string, unknown>): {
 		skillIds: string[]
 		workspaceId: string
@@ -295,15 +350,6 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			this.sanitizeWorkspaceId(startState.selectedSkillWorkspaceId)
 
 		return { skillIds, workspaceId, hasRuntimeSelection }
-	}
-
-	private filterSkillIds(skillIds: string[], disabledSkillIds: string[]) {
-		if (!disabledSkillIds.length) {
-			return skillIds
-		}
-
-		const disabledSkillIdSet = new Set(disabledSkillIds)
-		return skillIds.filter((skillId) => !disabledSkillIdSet.has(skillId))
 	}
 
 	private filterSkillMetadata(skills: SkillPromptMetadata[], disabledSkillIds: string[]) {
@@ -499,6 +545,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				const state = (request.state ?? {}) as Record<string, unknown>
 				const disabledSkillIds = this.resolveDisabledSkillIds(state)
 				const configuredSkillIds = this.sanitizeSkillIds(options?.skills)
+				const configuredRepositoryDefault = this.resolveConfiguredRepositoryDefault(options)
 				const {
 					skillIds: runtimeSkillIds,
 					workspaceId: stateWorkspaceId,
@@ -512,31 +559,37 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				)
 
 				const workspaceSkillSelections = new Map<string, Set<string>>()
-				const preferenceWorkspaceId = stateWorkspaceId || normalizedContextWorkspaceId
 				this.appendWorkspaceSkills(
 					workspaceSkillSelections,
 					normalizedContextWorkspaceId,
-					preferenceWorkspaceId === normalizedContextWorkspaceId
-						? this.filterSkillIds(configuredSkillIds, disabledSkillIds)
-						: configuredSkillIds
+					configuredSkillIds
 				)
 				if (hasRuntimeSelection && runtimeSkillIds.length > 0) {
-					this.appendWorkspaceSkills(
-						workspaceSkillSelections,
-						runtimeWorkspaceId,
-						preferenceWorkspaceId === runtimeWorkspaceId
-							? this.filterSkillIds(runtimeSkillIds, disabledSkillIds)
-							: runtimeSkillIds
-					)
+					this.appendWorkspaceSkills(workspaceSkillSelections, runtimeWorkspaceId, runtimeSkillIds)
 				}
 
 				const skills: SkillPromptMetadata[] = []
-				if (!hasRuntimeSelection && stateWorkspaceId && configuredSkillIds.length === 0) {
+				if (configuredRepositoryDefault) {
+					const workspaceSkills = await this.loadRepositoryWorkspaceSkillMetadata(
+						runtimeSkillsRootInContainer,
+						normalizedContextWorkspaceId,
+						configuredRepositoryDefault.repositoryId
+					)
+					skills.push(
+						...this.filterSkillMetadata(workspaceSkills, configuredRepositoryDefault.disabledSkillIds)
+					)
+				}
+				if (
+					!configuredRepositoryDefault &&
+					!hasRuntimeSelection &&
+					stateWorkspaceId &&
+					configuredSkillIds.length === 0
+				) {
 					const workspaceSkills = await this.loadWorkspaceSkillMetadata(
 						runtimeSkillsRootInContainer,
 						runtimeWorkspaceId
 					)
-					skills.push(...this.filterSkillMetadata(workspaceSkills, disabledSkillIds))
+					skills.push(...workspaceSkills)
 				}
 				for (const [workspaceId, ids] of workspaceSkillSelections.entries()) {
 					const workspaceSkills = await this.loadSkillMetadata(
@@ -546,11 +599,15 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 					)
 					skills.push(...workspaceSkills)
 				}
+				const effectiveSkills = this.filterSkillMetadata(
+					this.deduplicateSkillMetadata(skills),
+					disabledSkillIds
+				)
 
-				const syncKey = this.buildSyncKey(skills)
+				const syncKey = this.buildSyncKey(effectiveSkills)
 				if (!skillsSynced || syncKey !== lastSyncedKey) {
 					const sandbox = request.runtime.configurable.sandbox
-					for await (const skill of skills) {
+					for await (const skill of effectiveSkills) {
 						const packagePath = skill.packagePath?.trim()
 						if (!packagePath) {
 							continue
@@ -583,7 +640,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 					lastSyncedKey = syncKey
 				}
 
-				const skillsSection = this.buildSkillsSection(runtimeSkillsRootInContainer, skills)
+				const skillsSection = this.buildSkillsSection(runtimeSkillsRootInContainer, effectiveSkills)
 				const extraPrompt = [options?.systemPrompt, skillsSection].filter(Boolean).join('\n\n')
 
 				if (!extraPrompt) {
@@ -755,6 +812,27 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 		return skills
 	}
 
+	private async loadRepositoryWorkspaceSkillMetadata(
+		workspacePath: string,
+		workspaceId: string,
+		repositoryId: string
+	): Promise<SkillPromptMetadata[]> {
+		if (!workspaceId || !repositoryId) {
+			return []
+		}
+
+		const workspaceSkills = await this.loadWorkspaceSkillMetadata(workspacePath, workspaceId)
+		return workspaceSkills.filter((skill) => skill.repositoryId === repositoryId)
+	}
+
+	private deduplicateSkillMetadata(skills: SkillPromptMetadata[]) {
+		const deduped = new Map<string, SkillPromptMetadata>()
+		for (const skill of skills) {
+			deduped.set(`${skill.workspaceId}:${skill.id}`, skill)
+		}
+		return Array.from(deduped.values())
+	}
+
 	private async parseSkillPackage(
 		workspacePath: string,
 		skillPackage: SkillPackage
@@ -783,6 +861,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			path: promptSkillPath ?? skillMdPath ?? parsed?.path ?? localSkillMdPath ?? undefined,
 			source: skillIndex?.repository?.provider ?? metadata?.source,
 			packagePath: packagePath || null,
+			repositoryId: skillIndex?.repositoryId ?? skillIndex?.repository?.id ?? undefined,
 			workspaceId: skillPackage.workspaceId,
 			version: skillPackage.updatedAt?.toISOString() ?? ''
 		}

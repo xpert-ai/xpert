@@ -7,6 +7,7 @@ import {
   EnvironmentService,
   KnowledgebaseService,
   SkillPackageService,
+  SkillRepositoryService,
   ToastrService,
   XpertAgentService,
   XpertAPIService,
@@ -34,6 +35,10 @@ type BlankSpecContext = {
   skillPackageService: {
     getAllByWorkspace: jest.Mock
     installPackage: jest.Mock
+    installRepositoryPackages: jest.Mock
+  }
+  skillRepositoryService: {
+    getAllInOrg: jest.Mock
   }
   templateService: {
     getAll: jest.Mock
@@ -172,6 +177,7 @@ async function createComponent(
     installedSkillPackage?: any
     middlewareProviders?: any[]
     publishedXpert?: any
+    repositories?: any[]
     selectedWorkspace?: any | null
     teamResponse?: any
     triggerProviders?: any[]
@@ -187,6 +193,7 @@ async function createComponent(
   const publishedXpert = options?.publishedXpert ?? { ...createdXpert, version: '1.0.0' }
   const installedSkillPackage = options?.installedSkillPackage ?? { id: 'installed-skill' }
   const middlewareProviders = options?.middlewareProviders ?? []
+  const repositories = options?.repositories ?? [{ id: 'repo-public', provider: 'workspace-public', name: 'Workspace Shared Skills' }]
   const triggerProviders = options?.triggerProviders ?? []
   const workspaceSkills = options?.workspaceSkills ?? []
   const workspaces = options?.workspaces ?? []
@@ -208,7 +215,11 @@ async function createComponent(
   }
   const skillPackageService = {
     getAllByWorkspace: jest.fn(() => of({ items: workspaceSkills })),
-    installPackage: jest.fn(() => of(installedSkillPackage))
+    installPackage: jest.fn(() => of(installedSkillPackage)),
+    installRepositoryPackages: jest.fn(() => of([]))
+  }
+  const skillRepositoryService = {
+    getAllInOrg: jest.fn(() => of({ items: repositories }))
   }
   const templateService = {
     getAll: jest.fn(() => of({ categories: ['Agent'], recommendedApps: agentTemplates })),
@@ -275,6 +286,10 @@ async function createComponent(
         useValue: skillPackageService
       },
       {
+        provide: SkillRepositoryService,
+        useValue: skillRepositoryService
+      },
+      {
         provide: XpertTemplateService,
         useValue: templateService
       },
@@ -318,6 +333,7 @@ async function createComponent(
     fixture,
     knowledgebaseService,
     skillPackageService,
+    skillRepositoryService,
     templateService,
     toastr,
     workspaceService,
@@ -472,7 +488,79 @@ describe('XpertNewBlankComponent', () => {
       }
     ])
     expect(component.selectedSkills()).toEqual(['writer'])
+    expect(component.selectedRepositoryDefault()).toBeNull()
     expect(component.selectedMiddlewares()).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('syncs workspace public skills on first skills-step entry and defaults them on while leaving local skills opt-in', async () => {
+    const workspaceSkills = [
+      {
+        id: 'skill-local',
+        metadata: {
+          displayName: {
+            en_US: 'Local Skill'
+          }
+        }
+      }
+    ] as any[]
+    const { component, fixture, skillPackageService, skillRepositoryService } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent,
+        workspace: {
+          id: 'workspace-1',
+          name: 'Workspace One'
+        } as any
+      },
+      {
+        workspaceSkills
+      }
+    )
+
+    skillPackageService.installRepositoryPackages.mockImplementation(() => {
+      workspaceSkills.splice(
+        0,
+        workspaceSkills.length,
+        {
+          id: 'skill-public',
+          metadata: {
+            displayName: {
+              en_US: 'Public Skill'
+            }
+          },
+          skillIndex: {
+            repositoryId: 'repo-public',
+            repository: {
+              id: 'repo-public',
+              provider: 'workspace-public',
+              name: 'Workspace Shared Skills'
+            }
+          }
+        },
+        {
+          id: 'skill-local',
+          metadata: {
+            displayName: {
+              en_US: 'Local Skill'
+            }
+          }
+        }
+      )
+      return of([{ id: 'skill-public' }])
+    })
+
+    await component.onAgentStepChange({ selectedIndex: 4 } as any)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(skillRepositoryService.getAllInOrg).toHaveBeenCalled()
+    expect(skillPackageService.installRepositoryPackages).toHaveBeenCalledWith('workspace-1', 'repo-public')
+    expect(component.selectedRepositoryDefault()).toEqual({
+      repositoryId: 'repo-public',
+      disabledSkillIds: []
+    })
+    expect(component.selectedSkills()).toEqual(['skill-public'])
+    expect(component.selectedMiddlewares()).toEqual([BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
   })
 
   it('auto-adds and removes skills middleware when skills are toggled', async () => {

@@ -2,7 +2,8 @@ import { TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { SkillRepositoryIndexModule, SkillRepositoryModule } from '../skill-repository'
+import { SkillRepositoryIndexModule } from '../skill-repository/repository-index/skill-repository-index.module'
+import { SkillRepositoryModule } from '../skill-repository/skill-repository.module'
 import { SkillPackageController } from './skill-package.controller'
 import { SkillPackage } from './skill-package.entity'
 import { SkillPackageService } from './skill-package.service'
@@ -16,7 +17,7 @@ import { Strategies } from './plugins'
 		TenantModule,
 		CqrsModule,
 		forwardRef(() => XpertWorkspaceModule),
-		SkillRepositoryModule,
+		forwardRef(() => SkillRepositoryModule),
 		SkillRepositoryIndexModule
 	],
 	controllers: [SkillPackageController],

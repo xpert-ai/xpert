@@ -14,6 +14,7 @@ import {
 } from '@xpert-ai/contracts'
 import {
   BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
+  BlankRepositoryDefaultSelection,
   BlankTriggerSelection,
   buildBlankKnowledgeSelectionGraph,
   buildBlankXpertSelectionGraph,
@@ -78,7 +79,8 @@ export function extractAgentTemplateWizardState(draft: TXpertTeamDraft): BlankAg
     basic: extractTemplateBasicInfo(draft),
     selections: normalizeBlankWizardSelections({
       triggers: triggerNodes.map((node) => toTriggerSelection(node.entity)),
-      skills: extractSkillsFromMiddlewares(middlewareNodes),
+      skills: extractExplicitSkillsFromMiddlewares(middlewareNodes),
+      repositoryDefault: extractRepositoryDefaultFromMiddlewares(middlewareNodes),
       middlewares: middlewareNodes.map((node) => node.entity.provider).filter(Boolean)
     })
   }
@@ -277,7 +279,7 @@ function toTriggerSelection(trigger: IWFNTrigger): BlankTriggerSelection {
   return config === undefined ? { provider } : { provider, config }
 }
 
-function extractSkillsFromMiddlewares(nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>) {
+function extractExplicitSkillsFromMiddlewares(nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>) {
   return uniqueStrings(
     nodes.flatMap((node) =>
       node.entity.provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
@@ -287,11 +289,55 @@ function extractSkillsFromMiddlewares(nodes: Array<TXpertTeamNode<'workflow'> & 
   )
 }
 
+function extractRepositoryDefaultFromMiddlewares(nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>) {
+  for (const node of nodes) {
+    if (node.entity.provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER) {
+      continue
+    }
+
+    const selection = readSkillsMiddlewareRepositoryDefault(node.entity.options)
+    if (selection) {
+      return selection
+    }
+  }
+
+  return null
+}
+
 function readSkillsMiddlewareSelection(options: unknown) {
   const skills = (options as { skills?: unknown } | null)?.skills
   return Array.isArray(skills)
     ? uniqueStrings(skills.filter((skill): skill is string => typeof skill === 'string'))
     : []
+}
+
+function readSkillsMiddlewareRepositoryDefault(options: unknown): BlankRepositoryDefaultSelection | null {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    return null
+  }
+
+  const candidate = 'repositoryDefault' in options ? options.repositoryDefault : null
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return null
+  }
+
+  const repositoryId =
+    'repositoryId' in candidate && typeof candidate.repositoryId === 'string'
+      ? candidate.repositoryId.trim()
+      : ''
+  if (!repositoryId) {
+    return null
+  }
+
+  const disabledSkillIds =
+    'disabledSkillIds' in candidate && Array.isArray(candidate.disabledSkillIds)
+      ? uniqueStrings(candidate.disabledSkillIds.filter((skill): skill is string => typeof skill === 'string'))
+      : []
+
+  return {
+    repositoryId,
+    disabledSkillIds
+  }
 }
 
 function updateAgentMiddlewareOrder(

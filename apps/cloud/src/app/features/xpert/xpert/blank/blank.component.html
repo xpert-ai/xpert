@@ -90,6 +90,7 @@
         orientation="horizontal"
         zSize="sm"
         class="min-h-0 flex-1 overflow-visible px-4 pt-2 pb-2"
+        (selectionChange)="onAgentStepChange($event)"
       >
         <z-step [label]="'PAC.Xpert.StartFrom' | translate: { Default: 'Start from' }">
           <div class="px-4">
@@ -322,7 +323,7 @@
                     | translate
                       : {
                           Default:
-                            'Select installed workspace skills for the primary agent. Selected skills will be enabled through Skills Middleware. If you need more, open the install dialog and add them to this workspace first.'
+                            'The first time you open this step, we sync the built-in public skill repository into the workspace and enable it by default. Unchecked public skills become this Xpert’s blacklist, while other workspace skills stay opt-in.'
                         }
                 }}
               </div>

@@ -1,0 +1,108 @@
+<div class="flex h-full w-full flex-col gap-6 overflow-auto p-6">
+  <section class="rounded-2xl border border-divider-regular bg-components-card-bg p-5">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div class="space-y-3">
+        <div>
+          <div class="text-2xl font-semibold text-text-primary">
+            {{ 'PAC.KEY_WORDS.Skills' | translate: { Default: 'Skills' } }}
+          </div>
+          <p class="mt-2 max-w-3xl text-sm text-text-secondary">
+            {{
+              'PAC.Skill.TenantSkillsDescription'
+                | translate
+                  : {
+                      Default:
+                        'Initialize the built-in public skill repository for the current organization, then upload ZIP skill bundles into it from one place.'
+                    }
+            }}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-text-secondary">
+            <i class="ri-git-repository-line mr-2"></i>
+            @if (loadingPublicRepository()) {
+              {{ 'PAC.COMMON.Loading' | translate: { Default: 'Loading...' } }}
+            } @else if (publicRepository(); as repository) {
+              {{ repository.name || repository.id }}
+            } @else {
+              {{ 'PAC.Skill.PublicRepositoryMissing' | translate: { Default: 'Public repository not initialized yet' } }}
+            }
+          </span>
+
+          @if (publicRepository(); as repository) {
+            <span class="inline-flex items-center rounded-full border border-divider-regular px-3 py-1 text-text-tertiary">
+              {{ repository.provider }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="btn btn-secondary btn-medium"
+          [disabled]="initializingPublicRepository()"
+          (click)="initializePublicRepository()"
+        >
+          <i class="ri-refresh-line mr-1"></i>
+          {{
+            'PAC.Skill.InitializePublicRepository'
+              | translate: { Default: 'Initialize Public Skill Repo' }
+          }}
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary btn-medium"
+          [disabled]="initializingPublicRepository()"
+          (click)="uploadPublicSkills()"
+        >
+          <i class="ri-upload-cloud-2-line mr-1"></i>
+          {{ 'PAC.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border border-divider-regular bg-components-card-bg p-5">
+    <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <div>
+        <div class="text-lg font-semibold text-text-primary">
+          {{
+            'PAC.Skill.RepositoryManagement'
+              | translate: { Default: 'Repository Management' }
+          }}
+        </div>
+        <p class="mt-1 text-sm text-text-secondary">
+          {{
+            'PAC.Skill.RepositoryManagementDescription'
+              | translate
+                : {
+                    Default:
+                      'Review repositories available to the current organization. The public repository stays system-managed, while other repositories can still be registered manually.'
+                  }
+          }}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-secondary btn-medium"
+        (click)="openRegisterRepositoryModal()"
+      >
+        <i class="ri-add-line mr-1"></i>
+        {{
+          'Pro.RegisterSkillRepository'
+            | translate: { Default: 'Register Skill Repository' }
+        }}
+      </button>
+    </div>
+
+    <xp-skill-repositories
+      #repositories
+      [selectedRepositoryId]="selectedRepositoryId()"
+      (selectedRepositoryIdChange)="selectedRepositoryId.set($event)"
+    />
+  </section>
+</div>

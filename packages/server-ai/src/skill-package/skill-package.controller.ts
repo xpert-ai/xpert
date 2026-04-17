@@ -88,6 +88,15 @@ export class SkillPackageController {
 	}
 
 	@UseGuards(WorkspaceGuard)
+	@Post('workspace/:workspaceId/install-repository/:repositoryId')
+	async installRepositorySkillPackages(
+		@Param('workspaceId') workspaceId: string,
+		@Param('repositoryId') repositoryId: string
+	) {
+		return this.service.installRepositorySkillPackages(workspaceId, repositoryId)
+	}
+
+	@UseGuards(WorkspaceGuard)
 	@Post('workspace/:workspaceId/:id/share')
 	async shareSkillPackage(
 		@Param('workspaceId') workspaceId: string,

@@ -360,6 +360,7 @@ describe('blank template util', () => {
       }
     ])
     expect(state.selections.skills).toEqual(['writer'])
+    expect(state.selections.repositoryDefault).toBeNull()
     expect(state.selections.middlewares).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER, 'audit'])
   })
 
@@ -407,6 +408,7 @@ describe('blank template util', () => {
         }
       ],
       skills: ['rewriter'],
+      repositoryDefault: null,
       middlewares: ['guard']
     })
 
@@ -432,6 +434,48 @@ describe('blank template util', () => {
     expect(result.nodes.some((node) => node.key === 'Answer_keep')).toBe(true)
     expect(result.nodes.some((node) => node.key === 'Middleware_audit')).toBe(false)
     expect(result.team.agent?.options?.middlewares?.order).toEqual(middlewareNodes.map((node) => node.key))
+  })
+
+  it('extracts and reapplies repository-backed default skill selections', () => {
+    const draft = createAgentTemplateDraft()
+    const workflowNodes = draft.nodes.filter((node) => node.type === 'workflow')
+    const skillsMiddlewareNode = workflowNodes.find((node) => node.key === 'Middleware_skills')
+    ;(skillsMiddlewareNode!.entity as any).options = {
+      repositoryDefault: {
+        repositoryId: 'repo-public',
+        disabledSkillIds: ['skill-b']
+      }
+    }
+
+    const state = extractAgentTemplateWizardState(draft)
+    expect(state.selections.skills).toEqual([])
+    expect(state.selections.repositoryDefault).toEqual({
+      repositoryId: 'repo-public',
+      disabledSkillIds: ['skill-b']
+    })
+
+    const result = applyAgentTemplateWizardState(createAgentTemplateDraft(), {
+      triggers: [{ provider: 'chat' }],
+      skills: [],
+      repositoryDefault: {
+        repositoryId: 'repo-public',
+        disabledSkillIds: ['skill-c']
+      },
+      middlewares: []
+    })
+
+    const resultWorkflowNodes = result.nodes.filter((node) => node.type === 'workflow')
+    const resultSkillsMiddlewareNode = resultWorkflowNodes.find(
+      (node) => (node.entity as any).provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+    )
+
+    expect(resultSkillsMiddlewareNode).toBeDefined()
+    expect((resultSkillsMiddlewareNode!.entity as any).options).toEqual({
+      repositoryDefault: {
+        repositoryId: 'repo-public',
+        disabledSkillIds: ['skill-c']
+      }
+    })
   })
 
   it('applies knowledge wizard selections back onto the template while preserving unsupported nodes', () => {
