@@ -23,8 +23,8 @@ English | [中文](./README_zh.md)
   <a href="https://github.com/xpert-ai/xpert/" target="_blank">
     <img src="https://visitor-badge.laobi.icu/badge?page_id=meta-d.ocap" alt="Visitors">
   </a>
-  <a href="https://www.npmjs.com/@xpert-ai/ocap-core">
-    <img src="https://img.shields.io/npm/v/@xpert-ai/ocap-core.svg?logo=npm&logoColor=fff&label=NPM+package&color=limegreen" alt="ocap on npm" />
+  <a href="https://www.npmjs.com/@xpert-ai/contracts" target="_blank">
+    <img src="https://img.shields.io/npm/v/@xpert-ai/contracts.svg?logo=npm&logoColor=fff&label=NPM+package&color=limegreen" alt="contracts on npm" />
   </a>&nbsp;
   <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank">
     <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License: AGPL v3">

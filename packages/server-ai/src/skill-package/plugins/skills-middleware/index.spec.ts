@@ -15,7 +15,7 @@ jest.mock('../../../sandbox', () => ({
     constructor(public readonly payload: unknown) {}
   },
   SandboxCopyFileCommand: class SandboxCopyFileCommand {
-    constructor(public readonly payload: unknown) {}
+    constructor(public readonly sandbox: unknown, public readonly copyFile: unknown) {}
   }
 }))
 
@@ -23,6 +23,9 @@ import { SystemMessage } from '@langchain/core/messages'
 import { SkillsMiddleware } from './index'
 
 describe('SkillsMiddleware', () => {
+  const runtimeWorkingDirectory = '/workspace/runtime'
+  const runtimeSkillsRoot = '/workspace/runtime/.xpert/skills'
+
   function createMiddleware() {
     const middleware = new SkillsMiddleware(
       {
@@ -48,7 +51,7 @@ describe('SkillsMiddleware', () => {
           id: skillId,
           name: skillId,
           description: `${skillId} description`,
-          path: `/root/skills/${skillId}/SKILL.md`,
+          path: `${runtimeSkillsRoot}/${skillId}/SKILL.md`,
           packagePath: null,
           workspaceId,
           version: '1'
@@ -74,7 +77,9 @@ describe('SkillsMiddleware', () => {
       {
         runtime: {
           configurable: {
-            sandbox: {}
+            sandbox: {
+              workingDirectory: runtimeWorkingDirectory
+            }
           }
         },
         state: {
@@ -86,7 +91,7 @@ describe('SkillsMiddleware', () => {
       handler
     )) as any
 
-    expect(loadSkillMetadata).toHaveBeenCalledWith('/root/skills/', ['skill-a'], 'workspace-1')
+    expect(loadSkillMetadata).toHaveBeenCalledWith(runtimeSkillsRoot, ['skill-a'], 'workspace-1')
     expect(result.systemMessage.content).toContain('skill-a')
     expect(result.systemMessage.content).not.toContain('skill-b')
   })
@@ -99,7 +104,7 @@ describe('SkillsMiddleware', () => {
           id: skillId,
           name: skillId,
           description: `${skillId} description`,
-          path: `/root/skills/${skillId}/SKILL.md`,
+          path: `${runtimeSkillsRoot}/${skillId}/SKILL.md`,
           packagePath: null,
           workspaceId,
           version: '1'
@@ -125,7 +130,9 @@ describe('SkillsMiddleware', () => {
       {
         runtime: {
           configurable: {
-            sandbox: {}
+            sandbox: {
+              workingDirectory: runtimeWorkingDirectory
+            }
           }
         },
         state: {
@@ -138,7 +145,7 @@ describe('SkillsMiddleware', () => {
       handler
     )
 
-    expect(loadSkillMetadata).toHaveBeenCalledWith('/root/skills/', ['skill-a'], 'workspace-1')
+    expect(loadSkillMetadata).toHaveBeenCalledWith(runtimeSkillsRoot, ['skill-a'], 'workspace-1')
   })
 
   it('loads all workspace skills in blacklist mode when selectedSkillIds are absent', async () => {
@@ -151,7 +158,7 @@ describe('SkillsMiddleware', () => {
         metadata: {
           name: 'skill-a',
           skillPath: 'skill-a',
-          skillMdPath: '/root/skills/skill-a/SKILL.md'
+          skillMdPath: `${runtimeSkillsRoot}/skill-a/SKILL.md`
         }
       },
       {
@@ -161,7 +168,7 @@ describe('SkillsMiddleware', () => {
         metadata: {
           name: 'skill-b',
           skillPath: 'skill-b',
-          skillMdPath: '/root/skills/skill-b/SKILL.md'
+          skillMdPath: `${runtimeSkillsRoot}/skill-b/SKILL.md`
         }
       }
     ])
@@ -169,7 +176,7 @@ describe('SkillsMiddleware', () => {
       id: skillPackage.id,
       name: skillPackage.metadata.name,
       description: `${skillPackage.metadata.name} description`,
-      path: `/root/skills/${skillPackage.packagePath}/SKILL.md`,
+      path: `${runtimeSkillsRoot}/${skillPackage.packagePath}/SKILL.md`,
       packagePath: skillPackage.packagePath,
       workspaceId: skillPackage.workspaceId,
       version: '1'
@@ -194,7 +201,9 @@ describe('SkillsMiddleware', () => {
       {
         runtime: {
           configurable: {
-            sandbox: {}
+            sandbox: {
+              workingDirectory: runtimeWorkingDirectory
+            }
           }
         },
         state: {
@@ -215,5 +224,61 @@ describe('SkillsMiddleware', () => {
     )
     expect(result.systemMessage.content).toContain('skill-a')
     expect(result.systemMessage.content).not.toContain('skill-b')
+  })
+
+  it('copies synced skills into the runtime .xpert skills directory', async () => {
+    const middleware = createMiddleware()
+    const execute = jest.fn().mockResolvedValue({ ok: true })
+    ;(middleware as any).commandBus = { execute }
+    jest.spyOn(middleware as any, 'loadSkillMetadata').mockResolvedValue([
+      {
+        id: 'skill-a',
+        name: 'skill-a',
+        description: 'skill-a description',
+        path: `${runtimeSkillsRoot}/skill-a/SKILL.md`,
+        packagePath: 'skill-a',
+        workspaceId: 'workspace-1',
+        version: '2026-04-17T00:00:00.000Z'
+      }
+    ])
+    jest.spyOn(middleware as any, 'resolveLocalPackagePath').mockResolvedValue('/workspace-root/skills/skill-a')
+
+    const instance = await middleware.createMiddleware(
+      {
+        skills: ['skill-a']
+      },
+      {
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1',
+        projectId: null,
+        node: {} as any,
+        tools: new Map()
+      }
+    )
+
+    const handler = jest.fn(async (request) => request)
+    await instance.wrapModelCall(
+      {
+        runtime: {
+          configurable: {
+            sandbox: {
+              workingDirectory: runtimeWorkingDirectory
+            }
+          }
+        },
+        state: {},
+        systemMessage: new SystemMessage('base')
+      } as any,
+      handler
+    )
+
+    expect(execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        copyFile: expect.objectContaining({
+          containerPath: `${runtimeSkillsRoot}/skill-a`
+        })
+      })
+    )
   })
 })
