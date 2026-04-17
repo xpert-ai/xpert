@@ -9,6 +9,7 @@ import {
     ChatMessageTypeEnum,
     CopilotChatMessage,
     createMessageAppendContextTracker,
+    createFollowUpConsumedEvent,
     figureOutXpert,
     IAssistantBindingToolPreferences,
     IChatConversation,
@@ -45,7 +46,7 @@ import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
-import { findPendingFollowUpByClientMessageId } from '../../../shared/agent/persisted-follow-up'
+import { collectPendingFollowUpsByClientMessageId } from '../../../shared/agent/persisted-follow-up'
 import { normalizeChatState } from '../../../shared/agent/utils'
 import { normalizeReferences } from '../../../shared/agent'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
@@ -221,6 +222,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         let aiMessage: CopilotChatMessage
         let executionId: string
         let checkpointId: string = null
+        let queueFollowUpConsumedEvent: TFollowUpConsumedEvent | null = null
         // Resume continues an interrupted AI turn in place by reusing the existing
         // conversation, target AI message, and execution instead of creating a new run.
         if (request.action === 'resume') {
@@ -293,9 +295,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             let userMessage: IChatMessage = null
-            const persistedPendingFollowUp =
+            const persistedPendingFollowUpGroup =
                 request.action === 'send'
-                    ? findPendingFollowUpByClientMessageId(conversation.messages, request.message.clientMessageId)
+                    ? collectPendingFollowUpsByClientMessageId(conversation.messages, request.message.clientMessageId)
                     : null
             // Retry starts a fresh AI turn from the original human input by locating
             // the run's nearest `input` checkpoint, while still creating a new
@@ -357,25 +359,36 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
             if (request.action !== 'retry') {
                 const references = normalizeReferences(input.references)
-                if (persistedPendingFollowUp?.id) {
-                    userMessage = await this.commandBus.execute(
-                        new ChatMessageUpsertCommand({
-                            ...persistedPendingFollowUp,
-                            content: input.input,
-                            followUpStatus: 'consumed',
-                            visibleAt: new Date(),
-                            ...(references.length
-                                ? {
-                                      references
-                                  }
-                                : {}),
-                            ...(input.files
-                                ? {
-                                      attachments: input.files as IStorageFile[]
-                                  }
-                                : {})
-                        })
-                    )
+                if (persistedPendingFollowUpGroup?.matched?.id) {
+                    input = persistedPendingFollowUpGroup.mergedHumanInput
+                    state = normalizeChatState(request.state, input)
+
+                    const visibleAt = new Date()
+                    const consumedMessages: IChatMessage[] = []
+
+                    for (const pendingFollowUp of persistedPendingFollowUpGroup.items) {
+                        consumedMessages.push(
+                            await this.commandBus.execute(
+                                new ChatMessageUpsertCommand({
+                                    ...pendingFollowUp,
+                                    followUpStatus: 'consumed',
+                                    visibleAt
+                                })
+                            )
+                        )
+                    }
+
+                    userMessage =
+                        consumedMessages[consumedMessages.length - 1] ??
+                        conversation.messages.find((message) => message.id === persistedPendingFollowUpGroup.matched.id)
+
+                    queueFollowUpConsumedEvent = createFollowUpConsumedEvent({
+                        mode: 'queue',
+                        messageIds: persistedPendingFollowUpGroup.messageIds,
+                        clientMessageIds: persistedPendingFollowUpGroup.clientMessageIds,
+                        executionId: persistedPendingFollowUpGroup.targetExecutionId,
+                        visibleAt: visibleAt.toISOString()
+                    })
                 } else {
                     const _humanMessage: Partial<IChatMessage> = {
                         parent: conversation.messages[conversation.messages.length - 1],
@@ -427,6 +440,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     }
                 }
             } as MessageEvent)
+
+            if (queueFollowUpConsumedEvent) {
+                subscriber.next({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                        data: queueFollowUpConsumedEvent
+                    }
+                } as MessageEvent)
+            }
 
             subscriber.next({
                 data: {

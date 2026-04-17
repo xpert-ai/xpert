@@ -29,6 +29,7 @@ import {
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     CopilotChatMessage,
+    createFollowUpConsumedEvent,
     createMessageAppendContextTracker,
     GRAPH_NODE_TITLE_CONVERSATION,
     IChatConversation,
@@ -102,7 +103,7 @@ import {
     BaseTool,
     createHumanMessage,
     CreateMemoryStoreCommand,
-    findPendingFollowUpByClientMessageId,
+    collectPendingFollowUpsByClientMessageId,
     normalizeReferences,
     rejectGraph,
     stateToParameters,
@@ -189,6 +190,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         let aiMessage: IChatMessage = null
         let executionId: string
         let executionInputs: unknown = input
+        let queueFollowUpConsumedEvent: ReturnType<typeof createFollowUpConsumedEvent> | null = null
         // Continue thread when confirm or reject operation
         if (confirm) {
             if (isNil(request.conversationId)) {
@@ -254,9 +256,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 projectId ??= conversation.projectId
             }
 
-            const persistedPendingFollowUp =
+            const persistedPendingFollowUpGroup =
                 request.action === 'send'
-                    ? findPendingFollowUpByClientMessageId(conversation.messages, request.message.clientMessageId)
+                    ? collectPendingFollowUpsByClientMessageId(conversation.messages, request.message.clientMessageId)
                     : null
 
             if (retry) {
@@ -313,25 +315,36 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
             if (!userMessage) {
                 const references = normalizeReferences(input.references)
-                if (persistedPendingFollowUp?.id) {
-                    userMessage = await this.commandBus.execute(
-                        new ChatMessageUpsertCommand({
-                            ...persistedPendingFollowUp,
-                            content: input.input,
-                            followUpStatus: 'consumed',
-                            visibleAt: new Date(),
-                            ...(references.length
-                                ? {
-                                      references
-                                  }
-                                : {}),
-                            ...(input.files
-                                ? {
-                                      attachments: input.files as IStorageFile[]
-                                  }
-                                : {})
-                        })
-                    )
+                if (persistedPendingFollowUpGroup?.matched?.id) {
+                    input = persistedPendingFollowUpGroup.mergedHumanInput
+                    executionInputs = input
+
+                    const visibleAt = new Date()
+                    const consumedMessages: IChatMessage[] = []
+
+                    for (const pendingFollowUp of persistedPendingFollowUpGroup.items) {
+                        consumedMessages.push(
+                            await this.commandBus.execute(
+                                new ChatMessageUpsertCommand({
+                                    ...pendingFollowUp,
+                                    followUpStatus: 'consumed',
+                                    visibleAt
+                                })
+                            )
+                        )
+                    }
+
+                    userMessage =
+                        consumedMessages[consumedMessages.length - 1] ??
+                        conversation.messages.find((message) => message.id === persistedPendingFollowUpGroup.matched.id)
+
+                    queueFollowUpConsumedEvent = createFollowUpConsumedEvent({
+                        mode: 'queue',
+                        messageIds: persistedPendingFollowUpGroup.messageIds,
+                        clientMessageIds: persistedPendingFollowUpGroup.clientMessageIds,
+                        executionId: persistedPendingFollowUpGroup.targetExecutionId,
+                        visibleAt: visibleAt.toISOString()
+                    })
                 } else {
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
@@ -387,6 +400,16 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     }
                 }
             } as MessageEvent)
+
+            if (queueFollowUpConsumedEvent) {
+                subscriber.next({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                        data: queueFollowUpConsumedEvent
+                    }
+                } as MessageEvent)
+            }
 
             const reflect = RunnableLambda.from(async (input: TChatRequestHuman) => {
                 if (!aiMessage) {

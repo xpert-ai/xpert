@@ -33,7 +33,7 @@ type TerminalLine = {
   imports: [CommonModule, FormsModule, TranslateModule],
   template: `
     <div class="flex h-full min-h-0 flex-col overflow-hidden">
-      <div class="flex items-center justify-between border-b border-divider-regular px-4 py-3">
+      <div class="flex items-center justify-between border-b border-divider-regular px-4 py-2">
         <div class="flex items-center gap-2 text-sm font-medium text-text-primary">
           <i class="ri-terminal-window-line text-base text-text-secondary"></i>
           @if (mode() === 'interactive') {

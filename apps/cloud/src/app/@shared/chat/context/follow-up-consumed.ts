@@ -28,7 +28,8 @@ export function parseFollowUpConsumedEvent(value: unknown): TFollowUpConsumedEve
   }
 
   const raw = value as Record<string, unknown>
-  if (raw.type !== CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED || raw.mode !== 'steer') {
+  const mode = raw.mode === 'queue' || raw.mode === 'steer' ? raw.mode : null
+  if (raw.type !== CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED || !mode) {
     return null
   }
 
@@ -43,7 +44,7 @@ export function parseFollowUpConsumedEvent(value: unknown): TFollowUpConsumedEve
 
   return {
     type: CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED,
-    mode: 'steer',
+    mode,
     messageIds,
     ...(clientMessageIds.length ? { clientMessageIds } : {}),
     ...(executionId ? { executionId } : {}),

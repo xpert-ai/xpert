@@ -82,12 +82,78 @@ function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | n
   return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
 }
 
+function normalizePendingFollowUpTargetExecutionId(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalized = value.trim()
+  return normalized || null
+}
+
+function resolvePendingFollowUpTargetExecutionId(item: PendingFollowUp | null | undefined): string | null {
+  return normalizePendingFollowUpTargetExecutionId(item?.targetExecutionId)
+}
+
+function sortPendingFollowUps(items: PendingFollowUp[]): PendingFollowUp[] {
+  return [...items]
+}
+
+function getQueuedFollowUpGroup(items: PendingFollowUp[], target: PendingFollowUp | null | undefined): PendingFollowUp[] {
+  if (!target || target.mode !== 'queue') {
+    return []
+  }
+
+  const sortedQueueItems = sortPendingFollowUps(items).filter((item) => item.mode === 'queue')
+  const targetExecutionId = resolvePendingFollowUpTargetExecutionId(target)
+  if (!targetExecutionId) {
+    return sortedQueueItems.filter((item) => item.id === target.id)
+  }
+
+  return sortedQueueItems.filter((item) => resolvePendingFollowUpTargetExecutionId(item) === targetExecutionId)
+}
+
+function mergeQueuedFollowUpGroup(
+  items: PendingFollowUp[],
+  leadItemId?: string | null
+): MergedPendingFollowUpGroup | null {
+  const groupedItems = sortPendingFollowUps(items)
+  if (!groupedItems.length) {
+    return null
+  }
+
+  const leadItem = groupedItems.find((item) => item.id === leadItemId) ?? groupedItems[0]
+  const mergedInput = groupedItems
+    .map((item) => item.input)
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join('\n\n')
+  const files = groupedItems.flatMap((item) => item.files ?? [])
+  const references = groupedItems.flatMap((item) => item.references ?? [])
+
+  return {
+    items: groupedItems,
+    input: mergedInput,
+    ...(files.length ? { files } : {}),
+    ...(references.length ? { references } : {}),
+    targetExecutionId: resolvePendingFollowUpTargetExecutionId(leadItem)
+  }
+}
+
 type PendingFollowUp = {
   id: string
   input: string
   files?: IStorageFile[]
   references?: XpertChatReference[]
   mode: 'queue' | 'steer'
+  targetExecutionId?: string | null
+}
+
+type MergedPendingFollowUpGroup = {
+  items: PendingFollowUp[]
+  input: string
+  files?: IStorageFile[]
+  references?: XpertChatReference[]
+  targetExecutionId?: string | null
 }
 
 type QuoteSelectionState = {
@@ -375,6 +441,7 @@ export class ChatConversationPreviewComponent {
     files?: IStorageFile[]
     references?: XpertChatReference[]
     messageId?: string
+    queuedFollowUpGroup?: MergedPendingFollowUpGroup | null
     command?: TInterruptCommand
     /**
      * @deprecated use confirm with command resume instead
@@ -394,7 +461,8 @@ export class ChatConversationPreviewComponent {
         input: options.input ?? '',
         files: options?.files ?? this.files(),
         references: options?.references,
-        mode: options?.followUpBehavior ?? this.followUpBehavior()
+        mode: options?.followUpBehavior ?? this.followUpBehavior(),
+        targetExecutionId: this.currentMessage()?.executionId ?? this.lastMessage()?.executionId ?? null
       })
       return
     }
@@ -406,21 +474,38 @@ export class ChatConversationPreviewComponent {
     const requestFiles = options?.files ?? this.files()
     const shouldClearAttachments = !options?.files
     const references = options?.references ?? []
+    const queuedFollowUpGroup = options?.queuedFollowUpGroup
 
     const shouldAppendHuman = !!options?.input?.trim() || references.length > 0
     if (shouldAppendHuman) {
-      // Add to user message
-      this.appendMessage({
-        role: 'human',
-        content: options?.input ?? '',
-        id: uuid(),
-        ...(references.length
-          ? {
-              references
-            }
-          : {}),
-        attachments: requestFiles
-      })
+      if (queuedFollowUpGroup?.items?.length) {
+        queuedFollowUpGroup.items.forEach((item) => {
+          this.appendMessage({
+            role: 'human',
+            content: item.input ?? '',
+            id: item.id,
+            ...(item.references?.length
+              ? {
+                  references: item.references
+                }
+              : {}),
+            attachments: item.files
+          })
+        })
+      } else {
+        // Add to user message
+        this.appendMessage({
+          role: 'human',
+          content: options?.input ?? '',
+          id: uuid(),
+          ...(references.length
+            ? {
+                references
+              }
+            : {}),
+          attachments: requestFiles
+        })
+      }
       this.input.set('')
       this.references.set([])
       this.currentMessage.set({
@@ -576,12 +661,16 @@ export class ChatConversationPreviewComponent {
                     }
                     const followUpConsumedEvent = parseFollowUpConsumedEvent(event.data)
                     if (followUpConsumedEvent) {
-                      if (this.currentMessage()) {
-                        this.appendMessage({ ...this.currentMessage() })
-                        this.currentMessage.set(null)
+                      if (followUpConsumedEvent.mode === 'steer') {
+                        if (this.currentMessage()) {
+                          this.appendMessage({ ...this.currentMessage() })
+                          this.currentMessage.set(null)
+                        }
+                        this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
+                        this.shouldStartFreshAssistantMessageAfterSteer = true
+                      } else {
+                        this.removePendingQueuedFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
                       }
-                      this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
-                      this.shouldStartFreshAssistantMessageAfterSteer = true
                       break
                     }
                     this.currentMessage.update((state) => ({
@@ -833,6 +922,17 @@ export class ChatConversationPreviewComponent {
     )
   }
 
+  private removePendingQueuedFollowUps(ids: string[]) {
+    if (!ids.length) {
+      return
+    }
+
+    const idSet = new Set(ids)
+    this.pendingFollowUps.update((state) =>
+      (state ?? []).filter((item) => !(item.mode === 'queue' && idSet.has(item.id)))
+    )
+  }
+
   private downgradePendingSteerFollowUpsToQueue() {
     this.pendingFollowUps.update((state) =>
       (state ?? []).map((item) => (item.mode === 'steer' ? { ...item, mode: 'queue' } : item))
@@ -849,12 +949,20 @@ export class ChatConversationPreviewComponent {
       return
     }
 
-    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => item.id !== next.id))
+    const groupedItems = getQueuedFollowUpGroup(this.pendingFollowUps(), next)
+    const mergedGroup = mergeQueuedFollowUpGroup(groupedItems, next.id)
+    if (!mergedGroup) {
+      return
+    }
+
+    const groupedIds = new Set(mergedGroup.items.map((item) => item.id))
+    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => !groupedIds.has(item.id)))
     this.chat({
-      input: next.input,
-      files: next.files,
-      references: next.references,
-      messageId: next.id
+      input: mergedGroup.input,
+      files: mergedGroup.files,
+      references: mergedGroup.references,
+      messageId: next.id,
+      queuedFollowUpGroup: mergedGroup
     })
   }
 
