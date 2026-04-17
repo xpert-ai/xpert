@@ -23,4 +23,33 @@
     --mdc-slider-handle-width: 15px;
     --mdc-slider-handle-height: 15px;
   }
+
+  .copilot-model-picker {
+    > .grid {
+      width: var(--copilot-picker-rail-width, 88px);
+      min-width: var(--copilot-picker-rail-width, 88px);
+      flex-shrink: 0;
+    }
+
+    .z-tab-group__nav {
+      width: 100%;
+      min-width: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .z-tab-group__content {
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .z-tab-group__trigger {
+      width: 100%;
+      min-width: 0;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+  }
 }
