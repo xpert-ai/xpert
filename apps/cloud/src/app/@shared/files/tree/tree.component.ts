@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
-import { cx, mergeClasses, ZardButtonComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { cx, mergeClasses, ZardButtonComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { FILE_TREE_SIZE_PRESETS, type FileTreeSizeVariants } from './tree.component.variants'
 import { FileTreeNode, flattenFileTree } from './tree.utils'
@@ -12,7 +12,7 @@ export type FileTreeUploadKind = 'file' | 'folder'
   selector: 'pac-file-tree',
   templateUrl: './tree.component.html',
   styleUrls: ['./tree.component.css'],
-  imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardLoaderComponent],
+  imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardLoaderComponent, ...ZardTooltipImports],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[attr.data-size]': 'zSize()'
@@ -73,6 +73,13 @@ export class FileTreeComponent {
     mergeClasses(
       'inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60',
       this.sizePreset().subtitleText
+    )
+  )
+  readonly uploadActionClasses = computed(() =>
+    mergeClasses(
+      'inline-flex shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60',
+      this.sizePreset().controlSize,
+      this.sizePreset().itemText
     )
   )
   readonly emptyTitleClasses = computed(() =>

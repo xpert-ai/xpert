@@ -753,8 +753,11 @@ function parentDirectoryPath(filePath: string) {
   return index >= 0 ? normalized.slice(0, index) : ''
 }
 
+/**
+ * Formats relative directory path for display.
+ */
 function formatDirectoryPath(path: string) {
-  return path ? `/${path}` : '/'
+  return path ? `./${path}` : './'
 }
 
 function resolveUploadTargetPath(selection: { path: string; isDirectory: boolean } | null) {

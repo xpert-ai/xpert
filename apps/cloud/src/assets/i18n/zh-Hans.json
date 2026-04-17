@@ -415,6 +415,8 @@
       "LoadFilesFailed": "加载文件列表失败",
       "LoadFolderFailed": "加载文件夹失败",
       "LoadFileFailed": "加载文件失败",
+      "UploadFiles": "上传文件",
+      "UploadFolder": "上传文件夹",
       "ReferenceFile": "引用文件",
       "ReferenceSelection": "引用选中内容",
       "ReferenceUnavailable": "当前没有可引用的文本内容",

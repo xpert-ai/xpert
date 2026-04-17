@@ -18,24 +18,36 @@
       @if (canUpload()) {
         <div class="flex shrink-0 flex-col items-end gap-1">
           <div class="flex flex-wrap justify-end gap-2">
-            <button z-button zSize="sm" zType="ghost"
+            <button
+              z-button
+              zSize="sm"
+              zType="ghost"
               type="button"
-              [class]="sizePreset().itemText"
+              [class]="uploadActionClasses()"
+              [zTooltip]="'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' }"
+              zPosition="top"
+              [attr.aria-label]="'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' }"
               [disabled]="uploadDisabled() || uploading()"
               (click)="onUploadClick('file')"
             >
               <i class="ri-upload-2-line"></i>
-              <span>{{ 'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' } }}</span>
+              <span class="sr-only">{{ 'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' } }}</span>
             </button>
 
-            <button z-button zSize="sm" zType="ghost"
+            <button
+              z-button
+              zSize="sm"
+              zType="ghost"
               type="button"
-              [class]="sizePreset().itemText"
+              [class]="uploadActionClasses()"
+              [zTooltip]="'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
+              zPosition="top"
+              [attr.aria-label]="'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
               [disabled]="uploadDisabled() || uploading()"
               (click)="onUploadClick('folder')"
             >
               <i class="ri-folder-upload-line"></i>
-              <span>{{ 'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' } }}</span>
+              <span class="sr-only">{{ 'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' } }}</span>
             </button>
           </div>
 
