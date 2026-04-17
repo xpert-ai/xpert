@@ -2266,6 +2266,7 @@
     "Chat": {
       "QuoteSelection": "引用選取內容",
       "RemoveReference": "移除引用",
+      "ContextCompression": "上下文壓縮...",
       "Input": "輸入",
       "Output": "輸出",
       "Terminal": "終端",

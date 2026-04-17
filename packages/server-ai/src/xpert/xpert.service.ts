@@ -5,6 +5,7 @@ import {
     IUser,
     IXpertAgentExecution,
     LongTermMemoryTypeEnum,
+    normalizeMiddlewareNodes,
     normalizeXpertAgentConfig,
     OrderTypeEnum,
     TFile,
@@ -242,6 +243,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         const xpert = await this.findOne(id)
         xpert.draft = {
             ...draft,
+            nodes: normalizeMiddlewareNodes(draft.nodes),
             team: {
                 ...draft.team,
                 updatedAt: new Date(),
@@ -260,6 +262,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         xpert.draft = {
             ...(xpert.draft ?? {}),
             ...draft,
+            nodes: normalizeMiddlewareNodes(draft.nodes ?? xpert.draft?.nodes),
             team: {
                 ...(xpert.draft?.team ?? {}),
                 ...(draft.team ?? {}),
