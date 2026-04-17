@@ -42,6 +42,17 @@ export type TenantSkillRepositoryBootstrapResult = {
 
 export type UserOrganizationBootstrapResult = {
 	workspaceId: string | null
+	createdNewUserDefaultWorkspace: boolean
+}
+
+type EnsuredUserWorkspaceResult = {
+	workspace: WorkspaceWithId
+	created: boolean
+}
+
+type WorkspaceWithId = {
+	id: string
+	ownerId?: string | null
 }
 
 const DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY = 'xpert-authoring-assistant'
@@ -53,6 +64,9 @@ type BootstrapModelScanContext = {
 
 const isObjectValue = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const hasWorkspaceId = (workspace: { id?: string | null }): workspace is WorkspaceWithId =>
+	typeof workspace.id === 'string' && !!workspace.id
 
 @Injectable()
 export class ServerAIBootstrapService {
@@ -117,12 +131,14 @@ export class ServerAIBootstrapService {
 	async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent): Promise<UserOrganizationBootstrapResult> {
 		const user = await this.userService.findOne(event.userId, { relations: ['role'] })
 		let workspaceId: string | null = null
+		let createdNewUserDefaultWorkspace = false
 
 		await this.runInOrganizationContext(user, event.organizationId, async () => {
 			if (this.shouldBootstrapPersonalWorkspace(user)) {
-				const workspace = await this.ensureUserWorkspace(event.organizationId, user)
+				const { workspace, created } = await this.ensureUserWorkspace(event.organizationId, user)
 				await this.ensureDefaultEnvironment(workspace.id)
 				workspaceId = workspace.id
+				createdNewUserDefaultWorkspace = created
 			}
 
 			const organizationWorkspace = await this.workspaceService.findOrganizationDefaultWorkspace(event.organizationId)
@@ -133,7 +149,8 @@ export class ServerAIBootstrapService {
 		})
 
 		return {
-			workspaceId
+			workspaceId,
+			createdNewUserDefaultWorkspace
 		}
 	}
 
@@ -367,8 +384,9 @@ export class ServerAIBootstrapService {
 		return workspace
 	}
 
-	private async ensureUserWorkspace(organizationId: string, user: IUser) {
+	private async ensureUserWorkspace(organizationId: string, user: IUser): Promise<EnsuredUserWorkspaceResult> {
 		let workspace = await this.workspaceService.findUserDefaultWorkspace(organizationId, user.id)
+		let created = false
 
 		if (!workspace) {
 			workspace = await this.workspaceService.create({
@@ -382,10 +400,18 @@ export class ServerAIBootstrapService {
 					}
 				}
 			})
+			created = true
+		}
+
+		if (!hasWorkspaceId(workspace)) {
+			throw new Error(`User default workspace for '${user.id}' is missing an id`)
 		}
 
 		await this.workspaceService.ensureMember(workspace.id, user.id)
-		return workspace
+		return {
+			workspace,
+			created
+		}
 	}
 
 	private shouldBootstrapPersonalWorkspace(user: IUser) {

@@ -125,7 +125,7 @@ export class ServerAIBootstrapProcessor {
 	async handleUserOrganizationBootstrap(job: Job<UserOrganizationCreatedEvent>) {
 		try {
 			const result = await this.bootstrapService.bootstrapUserInOrganization(job.data)
-			if (result.workspaceId) {
+			if (result.workspaceId && result.createdNewUserDefaultWorkspace) {
 				await this.bootstrapQueue.add(
 					AI_USER_DEFAULT_WORKSPACE_SKILLS_BOOTSTRAP_JOB,
 					{

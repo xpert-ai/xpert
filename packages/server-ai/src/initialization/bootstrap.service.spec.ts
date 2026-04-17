@@ -640,7 +640,41 @@ connections: []`
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-2', 'member-1')
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'member-1')
     expect(result).toEqual({
-      workspaceId: 'workspace-2'
+      workspaceId: 'workspace-2',
+      createdNewUserDefaultWorkspace: true
+    })
+  })
+
+  it('reuses an existing personal workspace without marking it as newly created', async () => {
+    const { environmentService, service, userService, workspaceService } = createService()
+    userService.findOne.mockResolvedValue({
+      id: 'member-1',
+      preferredLanguage: 'en_US',
+      role: {
+        name: 'ADMIN'
+      }
+    })
+    workspaceService.findUserDefaultWorkspace.mockResolvedValue({
+      id: 'workspace-existing',
+      ownerId: 'member-1'
+    })
+    workspaceService.findOrganizationDefaultWorkspace.mockResolvedValue({
+      id: 'org-workspace-1'
+    })
+
+    const result = await service.bootstrapUserInOrganization({
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      userId: 'member-1'
+    } as any)
+
+    expect(workspaceService.create).not.toHaveBeenCalled()
+    expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-existing')
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-existing', 'member-1')
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'member-1')
+    expect(result).toEqual({
+      workspaceId: 'workspace-existing',
+      createdNewUserDefaultWorkspace: false
     })
   })
 
@@ -668,7 +702,8 @@ connections: []`
     expect(environmentService.getDefaultByWorkspace).not.toHaveBeenCalled()
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'owner-1')
     expect(result).toEqual({
-      workspaceId: null
+      workspaceId: null,
+      createdNewUserDefaultWorkspace: false
     })
   })
 
