@@ -5,7 +5,8 @@ export enum AssistantCode {
   CHAT_COMMON = 'chat_common',
   XPERT_SHARED = 'xpert_shared',
   CHATBI = 'chatbi',
-  CLAWXPERT = 'clawxpert'
+  CLAWXPERT = 'clawxpert',
+  PROJECT_MAIN = 'project_main'
 }
 
 export enum AssistantBindingScope {
@@ -92,7 +93,7 @@ export interface IAssistantBindingUserPreferenceUpsertInput {
   conversationPreferences?: IAssistantBindingConversationPreferences | null
 }
 
-const USER_MANAGED_ASSISTANTS = new Set<AssistantCode>([AssistantCode.CLAWXPERT])
+const USER_MANAGED_ASSISTANTS = new Set<AssistantCode>([AssistantCode.CLAWXPERT, AssistantCode.PROJECT_MAIN])
 
 export function getAssistantManagement(code: AssistantCode): AssistantManagement {
   return USER_MANAGED_ASSISTANTS.has(code) ? 'user' : 'system'

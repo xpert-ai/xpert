@@ -1,6 +1,7 @@
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
+        getOrganizationId: jest.fn(),
         getUser: jest.fn()
     },
     TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
@@ -43,6 +44,7 @@ jest.mock('./dto', () => ({
 }))
 
 import { TFile } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
@@ -54,6 +56,9 @@ import { ChatConversationService } from './conversation.service'
 
 describe('ChatConversationService workspace files', () => {
     let service: ChatConversationService
+    let repository: {
+        findOne: jest.Mock
+    }
     const conversation = {
         id: 'conversation-1',
         tenantId: 'tenant-1',
@@ -65,8 +70,13 @@ describe('ChatConversationService workspace files', () => {
     }
 
     beforeEach(() => {
+        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('organization-1')
+        repository = {
+            findOne: jest.fn()
+        }
         service = new ChatConversationService(
-            {} as Repository<ChatConversation>,
+            repository as unknown as Repository<ChatConversation>,
             {} as ChatMessageService,
             {} as CommandBus,
             {} as QueryBus,
@@ -131,5 +141,25 @@ describe('ChatConversationService workspace files', () => {
                 threadId: 'thread-1'
             }
         })
+    })
+
+    it('finds the latest conversation for a project and assistant within the current scope', async () => {
+        repository.findOne.mockResolvedValue(conversation as ChatConversation)
+
+        const result = await service.findLatestByProject('project-1', 'assistant-1')
+
+        expect(repository.findOne).toHaveBeenCalledWith({
+            where: {
+                projectId: 'project-1',
+                xpertId: 'assistant-1',
+                tenantId: 'tenant-1',
+                organizationId: 'organization-1'
+            },
+            order: {
+                updatedAt: 'DESC',
+                createdAt: 'DESC'
+            }
+        })
+        expect(result).toEqual(conversation)
     })
 })

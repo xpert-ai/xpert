@@ -25,6 +25,13 @@ export class ProjectCore extends TenantOrganizationBaseEntity implements IProjec
 	@Column({ type: 'text', nullable: true })
 	description?: string
 
+	@ApiPropertyOptional({ type: () => String, nullable: true })
+	@IsOptional()
+	@IsString()
+	@Index()
+	@Column({ type: 'uuid', nullable: true })
+	mainAssistantId: string | null
+
 	@ApiProperty({ enum: ProjectCoreStatusEnum })
 	@IsEnum(ProjectCoreStatusEnum)
 	@Index()

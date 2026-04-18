@@ -11,63 +11,111 @@
         'PAC.Project.CreateDialogDescription'
           | translate
             : {
-                Default: 'Capture the project identity and goal first. Sprint and swimlane setup will happen next.'
+                Default:
+                  'Capture the project identity, goal, and coordinating assistant first. Sprint and swimlane setup will happen next.'
               }
       }}
     </p>
   </div>
 
-  <form class="flex flex-col gap-5 px-6 py-6" [formGroup]="form" (ngSubmit)="submit()">
-    <div>
-      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-name">
-        {{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}
-      </label>
-      <input
-        id="project-create-name"
-        type="text"
-        formControlName="name"
-        class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
-        [class]="isInvalid(nameControl) ? 'border-destructive/60' : 'border-divider-regular'"
-        [placeholder]="'PAC.Project.NamePlaceholder' | translate: { Default: 'For example, Customer onboarding revamp' }"
-      />
-      @if (isInvalid(nameControl)) {
-        <p class="mt-2 text-sm text-text-destructive">
-          {{ 'PAC.Project.NameRequired' | translate: { Default: 'Project name is required.' } }}
-        </p>
-      }
-    </div>
+  <form class="flex flex-col px-6 py-6" [formGroup]="form" (ngSubmit)="submit()">
+    <nav
+      z-tab-nav-bar
+      [tabPanel]="tabPanel"
+      color="accent"
+      alignTabs="start"
+      stretchTabs="false"
+      disableRipple
+      zSize="default"
+      class="border-b border-divider-regular px-1"
+    >
+      <button z-tab-link type="button" [active]="activeTab() === 'basic'" (click)="selectTab('basic')">
+        {{ 'PAC.Project.CreateDialogTabBasic' | translate: { Default: 'Basic Properties' } }}
+      </button>
+      <button
+        z-tab-link
+        type="button"
+        [active]="activeTab() === 'assistantBinding'"
+        (click)="selectTab('assistantBinding')"
+      >
+        {{ 'PAC.Project.CreateDialogTabAssistantBinding' | translate: { Default: 'Assistant Binding' } }}
+      </button>
+    </nav>
 
-    <div>
-      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-goal">
-        {{ 'PAC.Project.Goal' | translate: { Default: 'Goal' } }}
-      </label>
-      <textarea
-        id="project-create-goal"
-        rows="4"
-        formControlName="goal"
-        class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
-        [class]="isInvalid(goalControl) ? 'border-destructive/60' : 'border-divider-regular'"
-        [placeholder]="'PAC.Project.GoalPlaceholder' | translate: { Default: 'Describe the outcome this project should achieve.' }"
-      ></textarea>
-      @if (isInvalid(goalControl)) {
-        <p class="mt-2 text-sm text-text-destructive">
-          {{ 'PAC.Project.GoalRequired' | translate: { Default: 'Project goal is required.' } }}
-        </p>
-      }
-    </div>
+    <z-tab-nav-panel #tabPanel class="flex flex-col overflow-hidden">
+      <div class="flex flex-col gap-5 py-5">
+        @if (activeTab() === 'basic') {
+          <div>
+            <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-name">
+              {{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}
+            </label>
+            <input
+              id="project-create-name"
+              type="text"
+              formControlName="name"
+              class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+              [class]="isInvalid(nameControl) ? 'border-destructive/60' : 'border-divider-regular'"
+              [placeholder]="'PAC.Project.NamePlaceholder' | translate: { Default: 'For example, Customer onboarding revamp' }"
+            />
+            @if (isInvalid(nameControl)) {
+              <p class="mt-2 text-sm text-text-destructive">
+                {{ 'PAC.Project.NameRequired' | translate: { Default: 'Project name is required.' } }}
+              </p>
+            }
+          </div>
 
-    <div>
-      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-description">
-        {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
-      </label>
-      <textarea
-        id="project-create-description"
-        rows="4"
-        formControlName="description"
-        class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
-        [placeholder]="'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional context, notes, or background for the team.' }"
-      ></textarea>
-    </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-goal">
+              {{ 'PAC.Project.Goal' | translate: { Default: 'Goal' } }}
+            </label>
+            <textarea
+              id="project-create-goal"
+              rows="4"
+              formControlName="goal"
+              class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+              [class]="isInvalid(goalControl) ? 'border-destructive/60' : 'border-divider-regular'"
+              [placeholder]="'PAC.Project.GoalPlaceholder' | translate: { Default: 'Describe the outcome this project should achieve.' }"
+            ></textarea>
+            @if (isInvalid(goalControl)) {
+              <p class="mt-2 text-sm text-text-destructive">
+                {{ 'PAC.Project.GoalRequired' | translate: { Default: 'Project goal is required.' } }}
+              </p>
+            }
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-description">
+              {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
+            </label>
+            <textarea
+              id="project-create-description"
+              rows="4"
+              formControlName="description"
+              class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+              [placeholder]="'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional context, notes, or background for the team.' }"
+            ></textarea>
+          </div>
+        } @else {
+          <div>
+            <label class="mb-2 block text-sm font-medium text-text-primary">
+              {{ 'PAC.Project.MainAgent' | translate: { Default: 'Main Agent' } }}
+            </label>
+            <xp-project-assistant-picker
+              [assistants]="assistants()"
+              [selectedAssistantId]="selectedAssistantId()"
+              [loading]="loadingAssistants()"
+              [error]="assistantsError()"
+              (assistantSelected)="selectAssistant($event)"
+            />
+            @if (isInvalid(mainAssistantIdControl)) {
+              <p class="mt-2 text-sm text-text-destructive">
+                {{ 'PAC.Project.MainAgentRequired' | translate: { Default: 'A main agent is required.' } }}
+              </p>
+            }
+          </div>
+        }
+      </div>
+    </z-tab-nav-panel>
 
     <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
       <button
@@ -82,7 +130,7 @@
       <button
         type="submit"
         class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="form.invalid || submitting()"
+        [disabled]="form.invalid || submitting() || loadingAssistants() || !assistants().length"
       >
         @if (submitting()) {
           {{ 'PAC.Project.Creating' | translate: { Default: 'Creating...' } }}

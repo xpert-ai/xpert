@@ -74,6 +74,20 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		return new ChatConversationPublicDTO(conversation)
 	}
 
+	@Get('project/:projectId/latest')
+	async findLatestByProject(
+		@Param('projectId', UUIDValidationPipe) projectId: string,
+		@Query('assistantId') assistantId: string
+	): Promise<ChatConversationSimpleDTO | null> {
+		const normalizedAssistantId = assistantId?.trim()
+		if (!normalizedAssistantId) {
+			return null
+		}
+
+		const conversation = await this.service.findLatestByProject(projectId, normalizedAssistantId)
+		return conversation ? new ChatConversationSimpleDTO(conversation) : null
+	}
+
 	@Get(':id')
 	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,

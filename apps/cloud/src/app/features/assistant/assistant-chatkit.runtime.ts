@@ -23,23 +23,28 @@ type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
 type AssistantChatKitOptions = Parameters<typeof createChatKit>[0]
 type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
 type AssistantChatKitEventHandlers = ChatKitEventHandlers
+type AssistantRequestOptions = NonNullable<AssistantChatKitOptions['request']> & {
+  projectId?: string | null
+}
 type AssistantHostedClientSecret =
   | string
   | {
       secret: string
       organizationId: string
     }
-type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> &
+type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api' | 'request'> &
   AssistantChatKitEventHandlers & {
   api: {
     apiUrl: string
     xpertId?: string
     getClientSecret: (currentClientSecret: string | null) => Promise<AssistantHostedClientSecret>
   }
+  request?: AssistantRequestOptions
 }
 
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
+  projectId?: Signal<string | null>
   requestContext?: Signal<Record<string, unknown> | null>
   history?: AssistantHostedChatKitOptions['history']
   initialThread?: Signal<string | null>
@@ -63,6 +68,7 @@ type AssistantHostedRuntimeInput = {
   identity: Signal<string | null>
   assistantId: Signal<string | null>
   frameUrl: Signal<string | null>
+  projectId?: Signal<string | null>
   requestContext?: Signal<Record<string, unknown> | null>
   history?: AssistantHostedChatKitOptions['history']
   initialThread?: Signal<string | null>
@@ -89,6 +95,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     identity: computed(() => (status() === 'ready' ? input.assistantCode() : null)),
     assistantId: computed(() => config()?.assistantId ?? null),
     frameUrl,
+    projectId: input.projectId,
     requestContext: input.requestContext,
     history: input.history,
     initialThread: input.initialThread,
@@ -241,12 +248,13 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const identity = input.identity()
     const assistantId = input.assistantId()
     const frameUrl = input.frameUrl()
+    const projectId = input.projectId?.() ?? ''
 
     if (!identity || !assistantId || !frameUrl) {
       return null
     }
 
-    return [identity, assistantId, frameUrl, fixedApiUrl, authToken() ?? '', organizationId() ?? ''].join(':')
+    return [identity, assistantId, projectId, frameUrl, fixedApiUrl, authToken() ?? '', organizationId() ?? ''].join(':')
   })
 
   effect(() => {
@@ -258,6 +266,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const currentToken = authToken() ?? ''
     const currentOrganizationId = organizationId()
     const initialThread = input.initialThread?.() ?? null
+    const projectId = input.projectId?.() ?? null
     const requestContext = input.requestContext?.() ?? null
 
     if (!key || !assistantId || !frameUrl) {
@@ -283,6 +292,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       },
       history: input.history,
       request: {
+        ...(projectId ? { projectId } : {}),
         context: requestContext ?? {}
       },
       onReady: input.onReady,

@@ -46,6 +46,6 @@ export class ZardToastComponent {
   readonly dir = input<'ltr' | 'rtl' | 'auto'>('auto');
 
   protected readonly classes = computed(() =>
-    mergeClasses('toaster group', toastVariants({ variant: this.variant() }), this.class()),
+    mergeClasses('toaster group z-[3000]', toastVariants({ variant: this.variant() }), this.class()),
   );
 }

@@ -58,6 +58,17 @@ export const ASSISTANT_REGISTRY: AssistantRegistryItem[] = [
     defaultTitle: 'ClawXpert',
     descriptionKey: 'PAC.Assistant.ClawXpert.Description',
     defaultDescription: 'User-configured assistant used by the ClawXpert page.'
+  },
+  {
+    code: AssistantCode.PROJECT_MAIN,
+    featureKeys: [AiFeatureEnum.FEATURE_XPERT],
+    management: 'user',
+    labelKey: 'PAC.Assistant.ProjectMain.Label',
+    defaultLabel: 'Project Main Agent',
+    titleKey: 'PAC.Project.MainAgentTitle',
+    defaultTitle: 'Project Main Agent',
+    descriptionKey: 'PAC.Assistant.ProjectMain.Description',
+    defaultDescription: 'User-configured assistant used as the main coordinating agent for a project.'
   }
 ]
 

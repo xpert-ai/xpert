@@ -39,6 +39,14 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
+  findLatestByProject(projectId: string, assistantId: string) {
+    return this.httpClient.get<IChatConversation | null>(this.apiBaseUrl + `/project/${projectId}/latest`, {
+      params: toParams({
+        assistantId
+      })
+    })
+  }
+
   getThreadState(id: string) {
     return this.httpClient.get<unknown>(this.apiBaseUrl + `/${id}/state`)
   }

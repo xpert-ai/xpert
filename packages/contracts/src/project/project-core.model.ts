@@ -9,5 +9,6 @@ export interface IProjectCore extends IBasePerTenantAndOrganizationEntityModel {
 	name: string
 	goal: string
 	description?: string
+	mainAssistantId: string | null
 	status: ProjectCoreStatusEnum
 }

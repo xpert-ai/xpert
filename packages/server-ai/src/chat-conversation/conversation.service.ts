@@ -40,6 +40,24 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		})
 	}
 
+	async findLatestByProject(projectId: string, assistantId: string) {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId() ?? null
+
+		return this.repository.findOne({
+			where: {
+				projectId,
+				xpertId: assistantId,
+				tenantId,
+				organizationId
+			},
+			order: {
+				updatedAt: 'DESC',
+				createdAt: 'DESC'
+			}
+		})
+	}
+
 	async findOneByThreadId(threadId: string) {
 		return this.findOne({
 			where: {

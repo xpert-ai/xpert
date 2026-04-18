@@ -1,0 +1,71 @@
+<div class="flex flex-col overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-xl">
+  <div class="border-b border-divider-regular px-6 py-5">
+    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+      {{ 'PAC.Project.BindMainAgentEyebrow' | translate: { Default: 'Main Agent' } }}
+    </div>
+    <h2 class="mt-2 text-2xl font-semibold text-text-primary">
+      {{ 'PAC.Project.BindMainAgentTitle' | translate: { Default: 'Bind the coordinating assistant' } }}
+    </h2>
+    <p class="mt-2 text-sm leading-6 text-text-secondary">
+      {{
+        'PAC.Project.BindMainAgentDescription'
+          | translate
+            : {
+                Default:
+                  'Choose the published assistant that should coordinate planning and execution for this project.'
+              }
+      }}
+    </p>
+  </div>
+
+  <form class="flex flex-col gap-5 px-6 py-6" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="rounded-[24px] border border-divider-regular bg-background-default-subtle px-4 py-4">
+      <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+        {{ 'PAC.Project.CurrentProject' | translate: { Default: 'Current Project' } }}
+      </div>
+      <div class="mt-2 text-lg font-semibold text-text-primary">{{ project.name }}</div>
+      <div class="mt-2 text-sm leading-6 text-text-secondary">{{ project.goal }}</div>
+    </div>
+
+    <div>
+      <label class="mb-2 block text-sm font-medium text-text-primary">
+        {{ 'PAC.Project.MainAgent' | translate: { Default: 'Main Agent' } }}
+      </label>
+      <xp-project-assistant-picker
+        [assistants]="assistants()"
+        [selectedAssistantId]="selectedAssistantId()"
+        [loading]="loadingAssistants()"
+        [error]="assistantsError()"
+        (assistantSelected)="selectAssistant($event)"
+      />
+      @if (form.controls.mainAssistantId.invalid && (form.controls.mainAssistantId.touched || form.controls.mainAssistantId.dirty)) {
+        <p class="mt-2 text-sm text-text-destructive">
+          {{ 'PAC.Project.MainAgentRequired' | translate: { Default: 'A main agent is required.' } }}
+        </p>
+      }
+    </div>
+
+    <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
+      <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="submitting()"
+        (click)="close()"
+      >
+        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+
+      <button
+        type="submit"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="form.invalid || submitting() || loadingAssistants() || !assistants().length"
+      >
+        @if (submitting()) {
+          {{ 'PAC.Project.UpdatingMainAgent' | translate: { Default: 'Saving...' } }}
+        } @else {
+          {{ 'PAC.Project.SaveMainAgent' | translate: { Default: 'Save Main Agent' } }}
+        }
+      </button>
+    </div>
+  </form>
+</div>

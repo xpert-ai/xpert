@@ -1,0 +1,104 @@
+<div class="flex flex-col gap-4">
+  <div>
+    <label class="mb-2 block text-sm font-medium text-text-primary" for="project-assistant-search">
+      {{ 'PAC.Project.MainAgentSearch' | translate: { Default: 'Search assistants' } }}
+    </label>
+    <input
+      #searchInput
+      id="project-assistant-search"
+      type="text"
+      class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+      [value]="search()"
+      [placeholder]="
+        'PAC.Project.MainAgentSearchPlaceholder'
+          | translate: { Default: 'Search published assistants by title, name, slug, or id' }
+      "
+      (input)="updateSearch(searchInput.value)"
+    />
+  </div>
+
+  <div class="rounded-[24px] border border-divider-regular bg-components-card-bg p-3">
+    @if (loading()) {
+      <div class="flex min-h-[16rem] items-center justify-center">
+        <ngm-spin />
+      </div>
+    } @else if (error()) {
+      <div class="rounded-[20px] border border-divider-regular bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
+        {{ error() }}
+      </div>
+    } @else if (!assistants().length) {
+      <div class="flex min-h-[16rem] flex-col items-center justify-center rounded-[20px] border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+        <i class="ri-robot-2-line text-3xl text-text-tertiary"></i>
+        <div class="mt-4 text-base font-semibold text-text-primary">
+          {{ 'PAC.Project.MainAgentEmptyTitle' | translate: { Default: 'No published assistants available' } }}
+        </div>
+        <div class="mt-2 max-w-sm text-sm leading-6 text-text-secondary">
+          {{
+            'PAC.Project.MainAgentEmptyDescription'
+              | translate
+                : {
+                    Default:
+                      'Publish an assistant first, then come back to bind it as the coordinating agent for this project.'
+                  }
+          }}
+        </div>
+        <a
+          routerLink="/xpert/w"
+          class="mt-5 inline-flex h-11 items-center justify-center rounded-2xl border border-divider-regular bg-components-card-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+        >
+          {{ 'PAC.Project.GoToWorkspace' | translate: { Default: 'Go to Workspace' } }}
+        </a>
+      </div>
+    } @else if (!filteredAssistants().length) {
+      <div class="flex min-h-[16rem] items-center justify-center rounded-[20px] border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center text-sm text-text-secondary">
+        {{ 'PAC.Project.MainAgentNoMatch' | translate: { Default: 'No assistants match your current search.' } }}
+      </div>
+    } @else {
+      <div class="grid gap-3 lg:grid-cols-2">
+        @for (assistant of filteredAssistants(); track assistant.id) {
+          <button
+            type="button"
+            class="w-full rounded-[22px] border p-4 text-left transition-colors"
+            [attr.aria-pressed]="selectedAssistantId() === assistant.id"
+            [class]="
+              selectedAssistantId() === assistant.id
+                ? 'border-primary bg-primary/5 shadow-sm'
+                : 'border-divider-regular bg-components-card-bg hover:border-divider-deep hover:bg-hover-bg'
+            "
+            (click)="selectAssistant(assistant.id)"
+          >
+            <div class="flex items-start gap-3">
+              <emoji-avatar
+                class="mt-0.5 shrink-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle shadow-sm"
+                [style.width.px]="48"
+                [style.height.px]="48"
+                [avatar]="assistant.avatar ?? null"
+                [alt]="getAssistantLabel(assistant)"
+                [fallbackLabel]="getAssistantLabel(assistant)"
+              />
+
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-semibold text-text-primary">
+                  {{ getAssistantLabel(assistant) }}
+                </div>
+                <div class="mt-1 text-xs text-text-tertiary">
+                  {{ assistant.slug || assistant.id }}
+                </div>
+                <div class="mt-2 line-clamp-3 text-sm leading-6 text-text-secondary">
+                  @if (assistant.description || assistant.titleCN) {
+                    {{ assistant.description || assistant.titleCN }}
+                  } @else {
+                    {{
+                      'PAC.Project.MainAgentPickerDescriptionFallback'
+                        | translate: { Default: 'This assistant does not have a public description yet.' }
+                    }}
+                  }
+                </div>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>

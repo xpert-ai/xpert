@@ -1,6 +1,6 @@
 import { IEnvironment, VERSION } from "./types"
 
-const API_BASE_URL = 'http://localhost:3000'
+const API_BASE_URL = getEnvValue('VITE_API_BASE_URL') || 'http://localhost:3300'
 const CHATKIT_FRAME_URL = getEnvValue('VITE_CHATKIT_FRAME_URL') || '/chatkit'
 
 export const environment: IEnvironment = {

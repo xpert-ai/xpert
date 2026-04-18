@@ -65,6 +65,10 @@ export class ProjectPageFacade {
     await this.#router.navigate(['/project', projectId])
   }
 
+  async refresh() {
+    await this.loadProjectPage(this.projectId())
+  }
+
   private async loadProjectPage(projectId: string | null) {
     const currentLoad = ++this.#loadVersion
     this.loading.set(true)
