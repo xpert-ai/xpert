@@ -7,7 +7,7 @@ import {
 } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator'
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { ProjectCore } from '../project-core/project-core.entity'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
@@ -70,6 +70,12 @@ export class ProjectTask extends TenantOrganizationBaseEntity implements IProjec
 	@IsString()
 	@Column({ type: 'text', nullable: true })
 	description?: string
+
+	@ApiProperty({ type: () => Number })
+	@IsInt()
+	@Min(0)
+	@Column({ type: 'int', default: 0 })
+	sortOrder: number
 
 	@ApiProperty({ enum: ProjectTaskStatusEnum })
 	@IsEnum(ProjectTaskStatusEnum)

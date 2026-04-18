@@ -44,6 +44,7 @@ import { ProjectOrchestratorModule } from './project-orchestrator/project-orches
 import { ProjectSprintModule } from './project-sprint/project-sprint.module'
 import { ProjectSwimlaneModule } from './project-swimlane/project-swimlane.module'
 import { ProjectTaskModule } from './project-task/project-task.module'
+import { ProjectAssistantModule } from './project-assistant/project-assistant.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 
 @Module({
@@ -91,7 +92,8 @@ import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscr
         ProjectSprintModule,
         ProjectSwimlaneModule,
         ProjectTaskModule,
-        ProjectOrchestratorModule
+        ProjectOrchestratorModule,
+        ProjectAssistantModule
     ],
     controllers: [],
     providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]

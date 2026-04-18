@@ -2,6 +2,7 @@ import {
 	IProjectSprintStrategyTemplate,
 	ProjectAgentRole,
 	ProjectExecutionEnvironmentType,
+	ProjectSwimlaneKindEnum,
 	ProjectSprintStrategyEnum
 } from '@xpert-ai/contracts'
 
@@ -13,6 +14,7 @@ export const PROJECT_SPRINT_STRATEGY_TEMPLATES: IProjectSprintStrategyTemplate[]
 			{
 				key: 'planning',
 				name: 'Planning',
+				kind: ProjectSwimlaneKindEnum.Execution,
 				priority: 4,
 				weight: 4,
 				concurrencyLimit: 1,
@@ -25,6 +27,7 @@ export const PROJECT_SPRINT_STRATEGY_TEMPLATES: IProjectSprintStrategyTemplate[]
 			{
 				key: 'coding',
 				name: 'Coding',
+				kind: ProjectSwimlaneKindEnum.Execution,
 				priority: 3,
 				weight: 3,
 				concurrencyLimit: 2,
@@ -37,6 +40,7 @@ export const PROJECT_SPRINT_STRATEGY_TEMPLATES: IProjectSprintStrategyTemplate[]
 			{
 				key: 'review',
 				name: 'Review',
+				kind: ProjectSwimlaneKindEnum.Execution,
 				priority: 2,
 				weight: 2,
 				concurrencyLimit: 1,
@@ -49,6 +53,7 @@ export const PROJECT_SPRINT_STRATEGY_TEMPLATES: IProjectSprintStrategyTemplate[]
 			{
 				key: 'release',
 				name: 'Release',
+				kind: ProjectSwimlaneKindEnum.Execution,
 				priority: 1,
 				weight: 1,
 				concurrencyLimit: 1,
@@ -67,6 +72,7 @@ export const PROJECT_SPRINT_STRATEGY_TEMPLATES: IProjectSprintStrategyTemplate[]
 			{
 				key: 'research',
 				name: 'Research',
+				kind: ProjectSwimlaneKindEnum.Execution,
 				priority: 3,
 				weight: 3,
 				concurrencyLimit: 2,
@@ -79,6 +85,7 @@ export const PROJECT_SPRINT_STRATEGY_TEMPLATES: IProjectSprintStrategyTemplate[]
 			{
 				key: 'analysis',
 				name: 'Analysis',
+				kind: ProjectSwimlaneKindEnum.Execution,
 				priority: 2,
 				weight: 2,
 				concurrencyLimit: 1,
@@ -91,6 +98,7 @@ export const PROJECT_SPRINT_STRATEGY_TEMPLATES: IProjectSprintStrategyTemplate[]
 			{
 				key: 'visualization',
 				name: 'Visualization',
+				kind: ProjectSwimlaneKindEnum.Execution,
 				priority: 1,
 				weight: 1,
 				concurrencyLimit: 1,

@@ -1,0 +1,6 @@
+export * from './project-assistant.module'
+export * from './project-assistant.controller'
+export * from './dto/project-assistant-action.dto'
+export * from './services/project-assistant.service'
+export * from './services/project-assistant-action.service'
+export * from './middlewares/project-management.middleware'

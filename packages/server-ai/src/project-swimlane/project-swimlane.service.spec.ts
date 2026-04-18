@@ -1,5 +1,9 @@
 import { BadRequestException } from '@nestjs/common'
-import { ProjectSprintStrategyEnum } from '@xpert-ai/contracts'
+import {
+	ProjectSprintStrategyEnum,
+	ProjectSwimlaneKindEnum,
+	ProjectSystemSwimlaneKeyEnum
+} from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
 import { ProjectSwimlane } from './project-swimlane.entity'
@@ -22,8 +26,22 @@ describe('ProjectSwimlaneService', () => {
 			strategyType: ProjectSprintStrategyEnum.SoftwareDelivery
 		})
 
-		expect(swimlanes.map(({ key }) => key)).toEqual(['planning', 'coding', 'review', 'release'])
-		expect(swimlanes).toHaveLength(4)
+		expect(swimlanes.map(({ key }) => key)).toEqual([
+			ProjectSystemSwimlaneKeyEnum.Backlog,
+			'planning',
+			'coding',
+			'review',
+			'release'
+		])
+		expect(swimlanes[0]).toEqual(
+			expect.objectContaining({
+				kind: ProjectSwimlaneKindEnum.Backlog,
+				sortOrder: 0,
+				concurrencyLimit: 0,
+				wipLimit: 0
+			})
+		)
+		expect(swimlanes).toHaveLength(5)
 	})
 
 	it('builds the default data analysis swimlanes', () => {
@@ -33,8 +51,13 @@ describe('ProjectSwimlaneService', () => {
 			strategyType: ProjectSprintStrategyEnum.DataAnalysis
 		})
 
-		expect(swimlanes.map(({ key }) => key)).toEqual(['research', 'analysis', 'visualization'])
-		expect(swimlanes).toHaveLength(3)
+		expect(swimlanes.map(({ key }) => key)).toEqual([
+			ProjectSystemSwimlaneKeyEnum.Backlog,
+			'research',
+			'analysis',
+			'visualization'
+		])
+		expect(swimlanes).toHaveLength(4)
 	})
 
 	it('rejects unsupported strategies', () => {

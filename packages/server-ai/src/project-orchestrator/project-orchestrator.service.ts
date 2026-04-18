@@ -1,4 +1,4 @@
-import { ProjectTaskStatusEnum } from '@xpert-ai/contracts'
+import { ProjectSwimlaneKindEnum, ProjectTaskStatusEnum } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -31,6 +31,9 @@ export function buildSprintExecutionSnapshot(
 	const tasksById = new Map(tasks.map((task) => [task.id, task]))
 	const doneTaskIds = new Set(tasks.filter((task) => task.status === ProjectTaskStatusEnum.Done).map((task) => task.id))
 	const tasksByLaneId = new Map<string, ProjectTask[]>()
+	const executionSwimlanes = swimlanes.filter(
+		(lane) => (lane.kind ?? ProjectSwimlaneKindEnum.Execution) === ProjectSwimlaneKindEnum.Execution
+	)
 
 	for (const task of tasks) {
 		const laneTasks = tasksByLaneId.get(task.swimlaneId) ?? []
@@ -38,7 +41,7 @@ export function buildSprintExecutionSnapshot(
 		tasksByLaneId.set(task.swimlaneId, laneTasks)
 	}
 
-	const sortedSwimlanes = [...swimlanes].sort(
+	const sortedSwimlanes = [...executionSwimlanes].sort(
 		(left, right) =>
 			right.priority - left.priority || right.weight - left.weight || left.sortOrder - right.sortOrder
 	)
@@ -46,9 +49,7 @@ export function buildSprintExecutionSnapshot(
 	const blockedTaskIds: string[] = []
 	const lanes = sortedSwimlanes.map((lane) => {
 		const laneTasks = [...(tasksByLaneId.get(lane.id) ?? [])].sort((left, right) => {
-			const leftTime = left.createdAt?.getTime() ?? 0
-			const rightTime = right.createdAt?.getTime() ?? 0
-			return leftTime - rightTime
+			return left.sortOrder - right.sortOrder || (left.createdAt?.getTime() ?? 0) - (right.createdAt?.getTime() ?? 0)
 		})
 		const inProgressCount = laneTasks.filter((task) => task.status === ProjectTaskStatusEnum.Doing).length
 		const queuedTasks = laneTasks.filter((task) => task.status === ProjectTaskStatusEnum.Todo)

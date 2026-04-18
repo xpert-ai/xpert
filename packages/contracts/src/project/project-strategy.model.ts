@@ -3,6 +3,15 @@ export enum ProjectSprintStrategyEnum {
 	DataAnalysis = 'data_analysis'
 }
 
+export enum ProjectSwimlaneKindEnum {
+	Backlog = 'backlog',
+	Execution = 'execution'
+}
+
+export enum ProjectSystemSwimlaneKeyEnum {
+	Backlog = 'backlog'
+}
+
 export enum ProjectExecutionEnvironmentType {
 	Browser = 'browser',
 	Container = 'container',
@@ -22,6 +31,7 @@ export enum ProjectAgentRole {
 export interface IProjectSwimlaneTemplate {
 	key: string
 	name: string
+	kind: ProjectSwimlaneKindEnum
 	priority: number
 	weight: number
 	concurrencyLimit: number

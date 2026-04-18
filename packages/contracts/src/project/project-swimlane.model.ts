@@ -4,6 +4,7 @@ import type { IProjectSprint } from './project-sprint.model'
 import {
 	ProjectAgentRole,
 	ProjectExecutionEnvironmentType,
+	ProjectSwimlaneKindEnum,
 	ProjectSprintStrategyEnum
 } from './project-strategy.model'
 
@@ -14,6 +15,7 @@ export interface IProjectSwimlane extends IBasePerTenantAndOrganizationEntityMod
 	sprint?: IProjectSprint
 	key: string
 	name: string
+	kind: ProjectSwimlaneKindEnum
 	priority: number
 	weight: number
 	concurrencyLimit: number

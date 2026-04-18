@@ -19,6 +19,7 @@ export interface IProjectTask extends IBasePerTenantAndOrganizationEntityModel {
 	swimlane?: IProjectSwimlane
 	title: string
 	description?: string
+	sortOrder: number
 	status: ProjectTaskStatusEnum
 	dependencies: string[]
 	assignedAgentId?: string

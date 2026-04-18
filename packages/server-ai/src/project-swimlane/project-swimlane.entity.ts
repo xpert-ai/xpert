@@ -4,6 +4,7 @@ import {
 	IProjectSwimlane,
 	ProjectAgentRole,
 	ProjectExecutionEnvironmentType,
+	ProjectSwimlaneKindEnum,
 	ProjectSprintStrategyEnum
 } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
@@ -54,6 +55,11 @@ export class ProjectSwimlane extends TenantOrganizationBaseEntity implements IPr
 	@IsString()
 	@Column()
 	name: string
+
+	@ApiProperty({ enum: ProjectSwimlaneKindEnum })
+	@IsEnum(ProjectSwimlaneKindEnum)
+	@Column({ type: 'varchar', default: ProjectSwimlaneKindEnum.Execution })
+	kind: ProjectSwimlaneKindEnum
 
 	@ApiProperty({ type: () => Number })
 	@IsInt()

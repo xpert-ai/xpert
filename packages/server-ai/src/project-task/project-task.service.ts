@@ -1,4 +1,8 @@
-import { IProjectTask, ProjectTaskStatusEnum } from '@xpert-ai/contracts'
+import {
+	IProjectTask,
+	ProjectSwimlaneKindEnum,
+	ProjectTaskStatusEnum
+} from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -32,6 +36,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		...options: unknown[]
 	): Promise<UpdateResult | ProjectTask> {
 		const current = await this.findOne(id)
+		const currentSwimlane = await this.loadSwimlaneOrFail(current.swimlaneId)
 		const nextProjectId =
 			typeof partialEntity.projectId === 'string' ? partialEntity.projectId : current.projectId
 		const nextSprintId =
@@ -46,6 +51,12 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 			sprintId: nextSprintId,
 			swimlaneId: nextSwimlaneId,
 			dependencies: nextDependencies,
+			sortOrder:
+				typeof partialEntity.sortOrder === 'number'
+					? partialEntity.sortOrder
+					: nextSwimlaneId === current.swimlaneId
+						? current.sortOrder
+						: undefined,
 			status:
 				typeof partialEntity.status === 'string'
 					? partialEntity.status
@@ -53,7 +64,8 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		}
 		const normalizedEntity = await this.normalizeTaskInput(
 			normalizedEntityInput,
-			id
+			current,
+			currentSwimlane
 		)
 
 		await super.update(
@@ -64,6 +76,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 				sprintId: normalizedEntity.sprintId,
 				swimlaneId: normalizedEntity.swimlaneId,
 				dependencies: normalizedEntity.dependencies,
+				sortOrder: normalizedEntity.sortOrder,
 				status: normalizedEntity.status
 			},
 			...options
@@ -72,7 +85,117 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		return this.findOne(id)
 	}
 
-	private async normalizeTaskInput(entity: Partial<IProjectTask>, currentTaskId?: string) {
+	async listByProjectContext(filters: {
+		projectId: string
+		sprintId?: string
+		swimlaneId?: string
+		status?: ProjectTaskStatusEnum
+		query?: string
+	}) {
+		const queryBuilder = this.repository.createQueryBuilder('task')
+		queryBuilder.where('task.projectId = :projectId', { projectId: filters.projectId })
+
+		if (filters.sprintId) {
+			queryBuilder.andWhere('task.sprintId = :sprintId', { sprintId: filters.sprintId })
+		}
+		if (filters.swimlaneId) {
+			queryBuilder.andWhere('task.swimlaneId = :swimlaneId', { swimlaneId: filters.swimlaneId })
+		}
+		if (filters.status) {
+			queryBuilder.andWhere('task.status = :status', { status: filters.status })
+		}
+		if (filters.query?.trim()) {
+			queryBuilder.andWhere('(task.title ILIKE :query OR task.description ILIKE :query)', {
+				query: `%${filters.query.trim()}%`
+			})
+		}
+
+		queryBuilder.orderBy('task.sortOrder', 'ASC').addOrderBy('task.createdAt', 'ASC')
+		return queryBuilder.getMany()
+	}
+
+	async reorderInLane(swimlaneId: string, orderedTaskIds: string[]) {
+		const tasks = await this.repository.find({
+			where: { swimlaneId },
+			order: { sortOrder: 'ASC', createdAt: 'ASC' }
+		})
+		const taskIdsInLane = new Set(tasks.map((task) => task.id))
+		const unknownTaskId = orderedTaskIds.find((taskId) => !taskIdsInLane.has(taskId))
+		if (unknownTaskId) {
+			throw new BadRequestException(`Task ${unknownTaskId} does not belong to swimlane ${swimlaneId}`)
+		}
+
+		const untouchedTasks = tasks.filter((task) => !orderedTaskIds.includes(task.id))
+		const nextOrder = [...orderedTaskIds, ...untouchedTasks.map((task) => task.id)]
+		const taskById = new Map(tasks.map((task) => [task.id, task]))
+
+		for (const [index, taskId] of nextOrder.entries()) {
+			const task = taskById.get(taskId)
+			if (!task || task.sortOrder === index) {
+				continue
+			}
+			task.sortOrder = index
+			await this.repository.save(task)
+		}
+
+		return this.repository.find({
+			where: { swimlaneId },
+			order: { sortOrder: 'ASC', createdAt: 'ASC' }
+		})
+	}
+
+	async moveTasks(taskIds: string[], targetSwimlaneId: string) {
+		if (!taskIds.length) {
+			return []
+		}
+
+		const targetSwimlane = await this.loadSwimlaneOrFail(targetSwimlaneId)
+		const tasks = await this.repository.findBy({
+			id: In(taskIds)
+		})
+		if (tasks.length !== taskIds.length) {
+			throw new BadRequestException('All moved tasks must reference existing tasks')
+		}
+
+		const targetLaneKind = targetSwimlane.kind ?? ProjectSwimlaneKindEnum.Execution
+		const targetSortBase = await this.getNextSortOrder(targetSwimlaneId)
+
+		for (const [index, task] of tasks.entries()) {
+			if (task.projectId !== targetSwimlane.projectId) {
+				throw new BadRequestException('Tasks can only be moved within the same project')
+			}
+
+			const sourceSwimlane = await this.loadSwimlaneOrFail(task.swimlaneId)
+			const sourceLaneKind = sourceSwimlane.kind ?? ProjectSwimlaneKindEnum.Execution
+			const isCrossSprintMove = task.sprintId !== targetSwimlane.sprintId
+
+			if (isCrossSprintMove && (sourceLaneKind !== ProjectSwimlaneKindEnum.Backlog || targetLaneKind !== ProjectSwimlaneKindEnum.Backlog)) {
+				throw new BadRequestException('Only backlog tasks can be carried over across sprints')
+			}
+
+			task.projectId = targetSwimlane.projectId
+			task.sprintId = targetSwimlane.sprintId
+			task.swimlaneId = targetSwimlane.id
+			task.sortOrder = targetSortBase + index
+
+			if (targetLaneKind === ProjectSwimlaneKindEnum.Backlog) {
+				task.dependencies = []
+				task.status = ProjectTaskStatusEnum.Todo
+			}
+
+			await this.repository.save(task)
+		}
+
+		return this.repository.findBy({
+			id: In(taskIds)
+		})
+	}
+
+	private async normalizeTaskInput(
+		entity: Partial<IProjectTask>,
+		currentTask?: Pick<ProjectTask, 'id' | 'projectId' | 'sprintId'>,
+		currentSwimlane?: ProjectSwimlane
+	) {
 		const projectId = entity.projectId
 		const sprintId = entity.sprintId
 		const swimlaneId = entity.swimlaneId
@@ -90,15 +213,30 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 			throw new BadRequestException('Task sprintId must belong to the same projectId')
 		}
 
-		const swimlane = await this.swimlaneRepository.findOneBy({ id: swimlaneId })
-		if (!swimlane) {
-			throw new BadRequestException(`Swimlane ${swimlaneId} was not found`)
-		}
+		const swimlane = await this.loadSwimlaneOrFail(swimlaneId)
 		if (swimlane.projectId !== projectId || swimlane.sprintId !== sprintId) {
 			throw new BadRequestException('Task swimlaneId must belong to the same projectId and sprintId')
 		}
 
-		await this.validateDependencies(dependencies, sprintId, currentTaskId)
+		if (currentTask && projectId !== currentTask.projectId) {
+			throw new BadRequestException('Changing a task projectId is not supported')
+		}
+
+		if (currentTask && currentSwimlane && sprintId !== currentTask.sprintId) {
+			const currentLaneKind = currentSwimlane.kind ?? ProjectSwimlaneKindEnum.Execution
+			const targetLaneKind = swimlane.kind ?? ProjectSwimlaneKindEnum.Execution
+			if (currentLaneKind !== ProjectSwimlaneKindEnum.Backlog || targetLaneKind !== ProjectSwimlaneKindEnum.Backlog) {
+				throw new BadRequestException('Only backlog tasks can be carried over across sprints')
+			}
+		}
+
+		await this.validateDependencies(dependencies, sprintId, currentTask?.id)
+		this.validateLaneSpecificRules(swimlane, dependencies, entity.status ?? ProjectTaskStatusEnum.Todo)
+
+		const sortOrder =
+			typeof entity.sortOrder === 'number' && entity.sortOrder >= 0
+				? entity.sortOrder
+				: await this.getNextSortOrder(swimlaneId, currentTask?.id)
 
 		return {
 			...entity,
@@ -106,8 +244,45 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 			sprintId,
 			swimlaneId,
 			dependencies,
+			sortOrder,
 			status: entity.status ?? ProjectTaskStatusEnum.Todo
 		}
+	}
+
+	private validateLaneSpecificRules(
+		swimlane: Pick<ProjectSwimlane, 'kind'>,
+		dependencies: string[],
+		status: ProjectTaskStatusEnum
+	) {
+		if ((swimlane.kind ?? ProjectSwimlaneKindEnum.Execution) !== ProjectSwimlaneKindEnum.Backlog) {
+			return
+		}
+
+		if (dependencies.length > 0) {
+			throw new BadRequestException('Backlog tasks cannot declare task dependencies')
+		}
+
+		if (status !== ProjectTaskStatusEnum.Todo) {
+			throw new BadRequestException('Backlog tasks must stay in todo status')
+		}
+	}
+
+	private async getNextSortOrder(swimlaneId: string, currentTaskId?: string) {
+		const tasks = await this.repository.find({
+			where: { swimlaneId },
+			order: { sortOrder: 'DESC', createdAt: 'DESC' },
+			take: 1
+		})
+		const [lastTask] = currentTaskId ? tasks.filter((task) => task.id !== currentTaskId) : tasks
+		return lastTask ? lastTask.sortOrder + 1 : 0
+	}
+
+	private async loadSwimlaneOrFail(swimlaneId: string) {
+		const swimlane = await this.swimlaneRepository.findOneBy({ id: swimlaneId })
+		if (!swimlane) {
+			throw new BadRequestException(`Swimlane ${swimlaneId} was not found`)
+		}
+		return swimlane
 	}
 
 	private async validateDependencies(dependencies: string[], sprintId: string, currentTaskId?: string) {
