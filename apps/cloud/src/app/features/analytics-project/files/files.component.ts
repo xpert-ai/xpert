@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, map, switchMap } from 'rxjs'
-import { IStorageFile, ProjectAPIService, Store, ToastrService } from '../../../@core'
+import { IStorageFile, AnalyticsProjectService, Store, ToastrService } from '../../../@core'
 import { SharedUiModule } from '../../../@shared/ui.module'
 import { userLabel } from '../../../@shared/pipes'
 import { ProjectFilesDialogComponent } from '../../../@shared/project'
@@ -30,7 +30,7 @@ export class ProjectFilesComponent {
   userLabel = userLabel
 
   // Injectors
-  private projectService = inject(ProjectAPIService)
+  private projectService = inject(AnalyticsProjectService)
   private projectComponent = inject(ProjectComponent)
   private store = inject(Store)
   private _dialog = inject(ZardDialogService)

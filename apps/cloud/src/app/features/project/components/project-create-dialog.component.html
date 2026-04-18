@@ -1,0 +1,95 @@
+<div class="flex flex-col overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-xl">
+  <div class="border-b border-divider-regular px-6 py-5">
+    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+      {{ 'PAC.Project.CreateDialogEyebrow' | translate: { Default: 'Create Project' } }}
+    </div>
+    <h2 class="mt-2 text-2xl font-semibold text-text-primary">
+      {{ 'PAC.Project.CreateDialogTitle' | translate: { Default: 'Start a new agentic project' } }}
+    </h2>
+    <p class="mt-2 text-sm leading-6 text-text-secondary">
+      {{
+        'PAC.Project.CreateDialogDescription'
+          | translate
+            : {
+                Default: 'Capture the project identity and goal first. Sprint and swimlane setup will happen next.'
+              }
+      }}
+    </p>
+  </div>
+
+  <form class="flex flex-col gap-5 px-6 py-6" [formGroup]="form" (ngSubmit)="submit()">
+    <div>
+      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-name">
+        {{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}
+      </label>
+      <input
+        id="project-create-name"
+        type="text"
+        formControlName="name"
+        class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+        [class]="isInvalid(nameControl) ? 'border-destructive/60' : 'border-divider-regular'"
+        [placeholder]="'PAC.Project.NamePlaceholder' | translate: { Default: 'For example, Customer onboarding revamp' }"
+      />
+      @if (isInvalid(nameControl)) {
+        <p class="mt-2 text-sm text-text-destructive">
+          {{ 'PAC.Project.NameRequired' | translate: { Default: 'Project name is required.' } }}
+        </p>
+      }
+    </div>
+
+    <div>
+      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-goal">
+        {{ 'PAC.Project.Goal' | translate: { Default: 'Goal' } }}
+      </label>
+      <textarea
+        id="project-create-goal"
+        rows="4"
+        formControlName="goal"
+        class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+        [class]="isInvalid(goalControl) ? 'border-destructive/60' : 'border-divider-regular'"
+        [placeholder]="'PAC.Project.GoalPlaceholder' | translate: { Default: 'Describe the outcome this project should achieve.' }"
+      ></textarea>
+      @if (isInvalid(goalControl)) {
+        <p class="mt-2 text-sm text-text-destructive">
+          {{ 'PAC.Project.GoalRequired' | translate: { Default: 'Project goal is required.' } }}
+        </p>
+      }
+    </div>
+
+    <div>
+      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-description">
+        {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
+      </label>
+      <textarea
+        id="project-create-description"
+        rows="4"
+        formControlName="description"
+        class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+        [placeholder]="'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional context, notes, or background for the team.' }"
+      ></textarea>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
+      <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="submitting()"
+        (click)="close()"
+      >
+        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+
+      <button
+        type="submit"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="form.invalid || submitting()"
+      >
+        @if (submitting()) {
+          {{ 'PAC.Project.Creating' | translate: { Default: 'Creating...' } }}
+        } @else {
+          {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+        }
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,46 @@
+<article class="rounded-[20px] border border-divider-regular bg-components-card-bg p-4 shadow-sm">
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0 flex-1">
+      <h3 class="truncate text-[15px] font-semibold text-text-primary">{{ task().title }}</h3>
+      @if (task().description) {
+        <p class="mt-2 line-clamp-3 text-sm leading-6 text-text-secondary">
+          {{ task().description }}
+        </p>
+      }
+    </div>
+
+    <span class="inline-flex shrink-0 items-center gap-2 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+      <span class="h-2.5 w-2.5 rounded-full" [class]="statusDotClass()"></span>
+      {{ statusLabel() }}
+    </span>
+  </div>
+
+  <div class="mt-4 flex flex-wrap gap-2 text-xs text-text-secondary">
+    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+      {{ task().dependencies.length }}
+      {{ 'PAC.Project.TaskDependencies' | translate: { Default: 'dependencies' } }}
+    </span>
+    @if (task().assignedAgentId) {
+      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+        {{ task().assignedAgentId }}
+      </span>
+    }
+  </div>
+
+  <div class="mt-4 grid grid-cols-2 gap-2">
+    <button
+      type="button"
+      class="inline-flex h-10 items-center justify-center rounded-xl border border-divider-regular px-3 text-sm font-medium text-text-tertiary opacity-70 cursor-not-allowed"
+      disabled
+    >
+      {{ 'PAC.Project.TaskDetails' | translate: { Default: 'Details' } }}
+    </button>
+    <button
+      type="button"
+      class="inline-flex h-10 items-center justify-center rounded-xl border border-divider-regular px-3 text-sm font-medium text-text-tertiary opacity-70 cursor-not-allowed"
+      disabled
+    >
+      {{ 'PAC.Project.TaskAction' | translate: { Default: 'Action' } }}
+    </button>
+  </div>
+</article>

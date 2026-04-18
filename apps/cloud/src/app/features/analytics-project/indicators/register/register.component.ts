@@ -19,7 +19,7 @@ import { injectParams } from 'ngxtension/inject-params'
 import { EMPTY, firstValueFrom } from 'rxjs'
 import { catchError, delayWhen, distinctUntilChanged, filter, map, startWith, tap } from 'rxjs/operators'
 import { IIndicator, isUUID, ToastrService } from '../../../../@core/index'
-import { ProjectService } from '../../project.service'
+import { AnalyticsProjectStateService } from '../../analytics-project.service'
 import { NewIndicatorCodePlaceholder } from '../../types'
 import { ProjectIndicatorsComponent } from '../indicators.component'
 import { IndicatorRegisterFormComponent } from '../register-form/register-form.component'
@@ -57,7 +57,7 @@ type AOA = any[][]
 export class IndicatorRegisterComponent implements OnDestroy, IsDirty {
   PERIODS = PERIODS
 
-  private projectService = inject(ProjectService)
+  private projectService = inject(AnalyticsProjectStateService)
   private indicatorsComponent? = inject(ProjectIndicatorsComponent, { optional: true })
   private indicatorsService = inject(IndicatorsService)
   readonly #store = inject(Store)

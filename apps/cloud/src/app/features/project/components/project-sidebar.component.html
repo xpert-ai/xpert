@@ -1,0 +1,63 @@
+<aside class="flex h-full w-full max-w-[320px] shrink-0 flex-col border-r border-divider-regular bg-sidebar px-4 py-4">
+  <xp-project-mode-tabs [activeTab]="'projects'" />
+
+  <div class="mt-5 flex min-h-0 flex-1 flex-col">
+    <div class="mb-4 flex items-center justify-between">
+      <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+        {{ 'PAC.Project.SidebarTitle' | translate: { Default: 'Project Board' } }}
+      </div>
+      <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary">
+        {{ projects().length }}
+      </span>
+    </div>
+
+    <button
+      type="button"
+      class="mb-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-components-card-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+      (click)="requestCreateProject()"
+    >
+      <i class="ri-add-line text-base"></i>
+      {{ 'PAC.Project.NewProject' | translate: { Default: 'New Project' } }}
+    </button>
+
+    <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto pr-1">
+      @for (project of projects(); track project.id) {
+        <xp-project-sidebar-item
+          [project]="project"
+          [active]="selectedProjectId() === project.id"
+          [selectedSprintLabel]="selectedProjectId() === project.id ? selectedSprintLabel() : ''"
+          [selectedTaskCount]="selectedProjectId() === project.id ? selectedTaskCount() : 0"
+          (projectSelected)="onProjectSelected($event)"
+        />
+      } @empty {
+        <div class="rounded-[24px] border border-dashed border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
+          {{ 'PAC.Project.SidebarEmpty' | translate: { Default: 'No projects available in this organization.' } }}
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="mt-5 rounded-[24px] border border-divider-regular bg-components-card-bg px-4 py-4">
+    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+      {{ 'PAC.Project.Shortcuts' | translate: { Default: 'Shortcuts' } }}
+    </div>
+    <div class="mt-3 space-y-3 text-sm text-text-secondary">
+      <div class="flex items-center justify-between gap-3">
+        <span>{{ 'PAC.Project.ShortcutNewTask' | translate: { Default: 'New task' } }}</span>
+        <span class="rounded-lg border border-divider-regular px-2 py-1 text-xs">C</span>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span>{{ 'PAC.Project.ShortcutBacklog' | translate: { Default: 'Start backlog tasks' } }}</span>
+        <span class="rounded-lg border border-divider-regular px-2 py-1 text-xs">⌘B</span>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span>{{ 'PAC.Project.ShortcutSettings' | translate: { Default: 'Settings' } }}</span>
+        <span class="rounded-lg border border-divider-regular px-2 py-1 text-xs">⌘S</span>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span>{{ 'PAC.Project.ShortcutLink' | translate: { Default: 'Hold to link tasks' } }}</span>
+        <span class="rounded-lg border border-divider-regular px-2 py-1 text-xs">⌘</span>
+      </div>
+    </div>
+  </div>
+</aside>

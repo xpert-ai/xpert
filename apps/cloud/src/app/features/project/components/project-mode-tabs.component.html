@@ -1,0 +1,18 @@
+<div class="grid grid-cols-2 gap-2 rounded-2xl border border-divider-regular bg-components-card-bg p-1">
+  <button
+    type="button"
+    class="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors cursor-pointer"
+    [class]="activeTab() === 'projects' ? 'bg-hover-bg text-text-primary' : 'text-text-secondary hover:bg-hover-bg'"
+    (click)="selectProjects()"
+  >
+    {{ 'PAC.Project.ModeProjects' | translate: { Default: 'Projects' } }}
+  </button>
+
+  <button
+    type="button"
+    class="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-text-tertiary opacity-60 cursor-not-allowed"
+    disabled
+  >
+    {{ 'PAC.Project.ModeKanbanAgent' | translate: { Default: 'Kanban Agent' } }}
+  </button>
+</div>

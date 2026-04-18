@@ -52,9 +52,9 @@ export class ChatProjectsComponent {
   addProject() {
     this.loading.set(true)
     this.projectSercice.create({ name: 'New Project' }).subscribe({
-      next: (project) => {
+      next: () => {
         this.loading.set(false)
-        this.#router.navigate(['/project', project.id])
+        this.#router.navigate(['/project'])
       },
       error: (err) => {
         this.loading.set(false)
@@ -94,8 +94,8 @@ export class ChatProjectsComponent {
 
   duplicateProject(project: IXpertProject) {
     this.projectSercice.duplicate(project.id).subscribe({
-      next: (newProject) => {
-        this.#router.navigate(['/project', newProject.id])
+      next: () => {
+        this.#router.navigate(['/project'])
       },
       error: (err) => {
         this.#toastr.error(getErrorMessage(err))
@@ -134,12 +134,12 @@ export class ChatProjectsComponent {
       data: {
         dsl
       }
-    }).closed.subscribe({
-      next: (result) => {
-        if (result) {
-          this.#router.navigate(['/project', result.id])
+      }).closed.subscribe({
+        next: (result) => {
+          if (result) {
+            this.#router.navigate(['/project'])
+          }
         }
-      }
-    })
+      })
   }
 }

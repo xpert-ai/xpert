@@ -32,7 +32,7 @@ export const routes: Routes = [
       },
       {
         path: 'project',
-        loadChildren: () => import('./chat/project/routes').then((m) => m.routes),
+        loadChildren: () => import('./project/routes').then((m) => m.routes),
         canActivate: [authGuard],
         data: {
           title: 'Project',

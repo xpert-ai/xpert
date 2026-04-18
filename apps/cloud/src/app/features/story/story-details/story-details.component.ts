@@ -23,7 +23,7 @@ import { cloneDeep } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Story, StoryModel, StoryOptions } from '@xpert-ai/story/core'
 import { Subject, combineLatestWith, filter, firstValueFrom, map, startWith, switchMap, tap } from 'rxjs'
-import { ISemanticModel, ProjectAPIService, ScreenshotService, ToastrService } from '../../../@core'
+import { ISemanticModel, AnalyticsProjectService, ScreenshotService, ToastrService } from '../../../@core'
 import { NgmHighlightDirective, NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
@@ -52,7 +52,7 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@xpert-ai/ocap-angula
 })
 export class StoryDetailsComponent implements OnInit {
   private readonly screenshotService = inject(ScreenshotService)
-  private readonly projectAPI = inject(ProjectAPIService)
+  private readonly projectAPI = inject(AnalyticsProjectService)
   public readonly toastrService = inject(ToastrService)
   public readonly data = inject<Story>(Z_MODAL_DATA)
   public dialogRef? = inject(ZardDialogRef<StoryDetailsComponent>)

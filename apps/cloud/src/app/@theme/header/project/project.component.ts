@@ -11,7 +11,7 @@ import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angula
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, startWith, switchMap } from 'rxjs/operators'
-import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } from '../../../@core'
+import { DefaultProject, IProject, AnalyticsProjectService, Store, ToastrService } from '../../../@core'
 
 @Component({
   standalone: true,
@@ -33,7 +33,7 @@ export class ProjectSelectorComponent {
   readonly navigateOnSelect = input(false)
   private _toastrService = inject(ToastrService)
   private _router = inject(Router)
-  private projectService = inject(ProjectAPIService)
+  private projectService = inject(AnalyticsProjectService)
   private translateService = inject(TranslateService)
   readonly store = inject(Store)
 

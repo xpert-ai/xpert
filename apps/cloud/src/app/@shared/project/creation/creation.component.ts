@@ -9,7 +9,7 @@ import { SemanticModelServerService, Store } from '@xpert-ai/cloud/state'
 import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { getErrorMessage, injectToastr, ISemanticModel, ProjectAPIService } from 'apps/cloud/src/app/@core'
+import { getErrorMessage, injectToastr, ISemanticModel, AnalyticsProjectService } from 'apps/cloud/src/app/@core'
 import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 import { combineLatest, debounceTime, map, startWith } from 'rxjs'
 
@@ -34,7 +34,7 @@ import { combineLatest, debounceTime, map, startWith } from 'rxjs'
 })
 export class ProjectCreationComponent {
   private modelsService = inject(SemanticModelServerService)
-  readonly projectAPI = inject(ProjectAPIService)
+  readonly projectAPI = inject(AnalyticsProjectService)
   readonly store = inject(Store)
   readonly #dialogRef = inject(DialogRef)
   readonly #toastr = injectToastr()

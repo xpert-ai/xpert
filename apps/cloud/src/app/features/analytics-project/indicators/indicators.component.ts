@@ -20,9 +20,9 @@ import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, Subject } from 'rxjs'
-import { IIndicator, ProjectAPIService, routeAnimations, ToastrService } from '../../../@core'
+import { IIndicator, AnalyticsProjectService, routeAnimations, ToastrService } from '../../../@core'
 import { ManageEntityBaseComponent } from '../../../@shared/directives'
-import { ProjectService } from '../project.service'
+import { AnalyticsProjectStateService } from '../analytics-project.service'
 import { NewIndicatorCodePlaceholder } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
 
@@ -48,11 +48,11 @@ import { IndicatorImportComponent } from './indicator-import/indicator-import.co
 export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndicator> {
   NewIndicatorCodePlaceholder = NewIndicatorCodePlaceholder
 
-  private projectService = inject(ProjectService)
+  private projectService = inject(AnalyticsProjectStateService)
   readonly #dialog = inject(Dialog)
   readonly #logger = inject(NGXLogger)
   readonly indicatorsService = inject(IndicatorsService)
-  readonly projectAPI = inject(ProjectAPIService)
+  readonly projectAPI = inject(AnalyticsProjectService)
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly wasmAgent = inject(WasmAgentService)
   readonly toastrService = inject(ToastrService)

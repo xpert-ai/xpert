@@ -1,0 +1,12 @@
+<div
+  class="flex w-full max-w-xl flex-col items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-8 py-10 text-center"
+>
+  <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle">
+    <i [class]="icon() + ' text-2xl text-text-secondary'"></i>
+  </div>
+  <h2 class="mt-5 text-xl font-semibold text-text-primary">{{ title() }}</h2>
+  <p class="mt-2 max-w-lg text-sm leading-6 text-text-secondary">{{ description() }}</p>
+  <div class="mt-6 flex items-center justify-center gap-3 empty:hidden">
+    <ng-content select="[projectEmptyStateActions]" />
+  </div>
+</div>

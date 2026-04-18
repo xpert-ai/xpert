@@ -160,7 +160,7 @@ export class ChatConversationsComponent {
   }
 
   private getProjectBasePath(projectId: string) {
-    return this.#basePath === '/project' ? `/project/${projectId}` : `${this.#basePath}/p/${projectId}`
+    return this.#basePath === '/project' ? '/project' : `${this.#basePath}/p/${projectId}`
   }
 
   deleteConv(id: string) {

@@ -8,10 +8,10 @@ import { IProject } from '../types'
 const API_PROJECT = API_PREFIX + '/project'
 
 /**
- * BI Project API Service
+ * Analytics Project API Service
  */
 @Injectable({ providedIn: 'root' })
-export class ProjectAPIService extends OrganizationBaseCrudService<IProject> {
+export class AnalyticsProjectService extends OrganizationBaseCrudService<IProject> {
   // private httpClient = inject(HttpClient)
   private refresh$ = new BehaviorSubject<void>(null)
   public deleted$ = new Subject<string>()

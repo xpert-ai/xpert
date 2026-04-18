@@ -16,7 +16,7 @@ import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { STORY_WIDGET_COMPONENTS } from '../../widgets'
 import { STORY_DESIGNER_COMPONENTS } from '../story/widgets'
-import { ProjectRoutingModule } from './project-routing.module'
+import { AnalyticsProjectRoutingModule } from './analytics-project-routing.module'
 import { provideLogger } from '../../@core'
 
 @NgModule({
@@ -24,7 +24,7 @@ import { provideLogger } from '../../@core'
   imports: [
     A11yModule,
     RouterModule,
-    ProjectRoutingModule,
+    AnalyticsProjectRoutingModule,
     NgxEchartsModule.forRoot({
       echarts: () => import('echarts')
     }),
@@ -53,4 +53,4 @@ import { provideLogger } from '../../@core'
     provideLogger()
   ]
 })
-export class ProjectModule {}
+export class AnalyticsProjectModule {}

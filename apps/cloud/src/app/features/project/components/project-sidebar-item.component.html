@@ -1,0 +1,39 @@
+<button
+  type="button"
+  class="w-full rounded-[24px] border p-4 text-left transition-all cursor-pointer"
+  [class]="
+    active()
+      ? 'border-primary bg-primary/5 shadow-sm'
+      : 'border-divider-regular bg-components-card-bg hover:border-divider-deep hover:bg-hover-bg'
+  "
+  (click)="selectProject()"
+>
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0 flex-1">
+      <div class="truncate text-base font-semibold text-text-primary">{{ project().name }}</div>
+      @if (goalPreview()) {
+        <p class="mt-2 line-clamp-2 text-sm leading-6 text-text-secondary">
+          {{ goalPreview() }}
+        </p>
+      }
+    </div>
+
+    <span class="inline-flex shrink-0 items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+      {{ statusLabel() }}
+    </span>
+  </div>
+
+  @if (active()) {
+    <div class="mt-4 flex flex-wrap gap-2">
+      <span class="inline-flex items-center rounded-full border border-divider-regular bg-components-card-bg px-2.5 py-1 text-xs font-medium text-text-secondary">
+        {{ selectedTaskCount() }}
+        {{ 'PAC.Project.SidebarTasks' | translate: { Default: 'tasks' } }}
+      </span>
+      @if (selectedSprintLabel()) {
+        <span class="inline-flex items-center rounded-full border border-divider-regular bg-components-card-bg px-2.5 py-1 text-xs font-medium text-text-secondary">
+          {{ selectedSprintLabel() }}
+        </span>
+      }
+    </div>
+  }
+</button>

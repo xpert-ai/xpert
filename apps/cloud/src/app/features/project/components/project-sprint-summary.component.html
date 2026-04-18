@@ -1,0 +1,38 @@
+<section class="rounded-[28px] border border-divider-regular bg-components-card-bg px-5 py-5">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0 flex-1">
+      <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+        {{ 'PAC.Project.CurrentSprint' | translate: { Default: 'Current Sprint' } }}
+      </div>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <h2 class="text-xl font-semibold text-text-primary">{{ sprint().goal }}</h2>
+        <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+          {{ sprintLabel() }}
+        </span>
+      </div>
+      @if (sprint().retrospective) {
+        <p class="mt-2 line-clamp-2 text-sm leading-6 text-text-secondary">
+          {{ sprint().retrospective }}
+        </p>
+      }
+      @if (dateRange()) {
+        <p class="mt-2 text-sm text-text-secondary">{{ dateRange() }}</p>
+      }
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 lg:min-w-[240px]">
+      <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+        <div class="text-xs uppercase tracking-[0.14em] text-text-tertiary">
+          {{ 'PAC.Project.SummaryLanes' | translate: { Default: 'Lanes' } }}
+        </div>
+        <div class="mt-1 text-lg font-semibold text-text-primary">{{ laneCount() }}</div>
+      </div>
+      <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+        <div class="text-xs uppercase tracking-[0.14em] text-text-tertiary">
+          {{ 'PAC.Project.SummaryTasks' | translate: { Default: 'Tasks' } }}
+        </div>
+        <div class="mt-1 text-lg font-semibold text-text-primary">{{ taskCount() }}</div>
+      </div>
+    </div>
+  </div>
+</section>

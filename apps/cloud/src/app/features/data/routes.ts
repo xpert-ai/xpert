@@ -14,7 +14,7 @@ export const routes: Routes = [
   },
   {
     path: 'project',
-    loadChildren: () => import('../project/project.module').then((m) => m.ProjectModule),
+    loadChildren: () => import('../analytics-project/analytics-project.module').then((m) => m.AnalyticsProjectModule),
     canActivate: [NgxPermissionsGuard],
     data: {
       title: 'Project',

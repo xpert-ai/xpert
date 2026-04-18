@@ -6,7 +6,7 @@ import { NgmConfirmDeleteService, NgmSearchComponent } from '@xpert-ai/ocap-angu
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subscription, firstValueFrom, of, startWith, switchMap, tap } from 'rxjs'
-import { IStorageFile, ProjectAPIService, StorageFileService, ToastrService, listAnimation } from '../../../@core'
+import { IStorageFile, AnalyticsProjectService, StorageFileService, ToastrService, listAnimation } from '../../../@core'
 import { SharedUiModule } from '../../ui.module'
 
 import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
@@ -32,7 +32,7 @@ export class ProjectFilesDialogComponent {
   private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   private readonly _data = inject<{ projectId: string }>(Z_MODAL_DATA)
   private readonly _toastrService = inject(ToastrService)
-  private readonly projectService = inject(ProjectAPIService)
+  private readonly projectService = inject(AnalyticsProjectService)
   private readonly storageFileService = inject(StorageFileService)
 
   readonly #files = signal<IStorageFile[]>([])

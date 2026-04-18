@@ -5,7 +5,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, switchMap } from 'rxjs'
-import { ICertification, IProject, IUser, ProjectAPIService, Store, ToastrService } from '../../../@core'
+import { ICertification, IProject, IUser, AnalyticsProjectService, Store, ToastrService } from '../../../@core'
 import { ProjectComponent } from '../project/project.component'
 import { uniq } from 'lodash-es'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -50,7 +50,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   userLabel = userLabel
 
   // Injectors
-  private projectAPI = inject(ProjectAPIService)
+  private projectAPI = inject(AnalyticsProjectService)
   private projectComponent = inject(ProjectComponent)
   private store = inject(Store)
   private _dialog = inject(ZardDialogService)

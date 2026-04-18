@@ -9,7 +9,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { StoriesService, WidgetsService } from '@xpert-ai/cloud/state'
 import { NgmDialogComponent } from '@xpert-ai/components/dialog'
 import { BehaviorSubject, combineLatest, distinctUntilChanged, firstValueFrom, map, of, startWith, switchMap, tap } from 'rxjs'
-import { DefaultProject, ISemanticModel, IStory, ProjectAPIService } from '../../../@core'
+import { DefaultProject, ISemanticModel, IStory, AnalyticsProjectService } from '../../../@core'
 import { LazyImgDirective } from '../../directives/lazy-img.directive'
 import { SharedUiModule } from '../../ui.module'
 import { CreatedByPipe } from '../../pipes'
@@ -51,7 +51,7 @@ export class StorySelectorComponent {
   private translateService = inject(TranslateService)
   private storiesService = inject(StoriesService)
   private widgetsService = inject(WidgetsService)
-  private projectService = inject(ProjectAPIService)
+  private projectService = inject(AnalyticsProjectService)
 
   @Input() get model(): ISemanticModel {
     return this._model$.value

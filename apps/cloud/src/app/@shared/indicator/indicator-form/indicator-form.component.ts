@@ -16,7 +16,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { getErrorMessage, injectToastr, ProjectAPIService } from '@cloud/app/@core'
+import { getErrorMessage, injectToastr, AnalyticsProjectService } from '@cloud/app/@core'
 import {
   convertIndicatorResult,
   ICertification,
@@ -81,7 +81,7 @@ export class XpIndicatorFormComponent {
   eIndicatorStatusEnum = IndicatorStatusEnum
 
   readonly indicatorAPI = inject(IndicatorsService)
-  readonly projectAPI = inject(ProjectAPIService)
+  readonly projectAPI = inject(AnalyticsProjectService)
   readonly #store = inject(Store)
   private toastrService = injectToastr()
   readonly translateService = injectI18nService()

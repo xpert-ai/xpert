@@ -800,7 +800,7 @@
             class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-text-primary"
             [class.bg-hover-bg]="currentPage().type === 'project' && currentPage().id === project.id"
             tabindex="-1"
-            [routerLink]="['/project', project.id]"
+            [routerLink]="['/project']"
           >
             <div>
               <emoji-avatar [avatar]="project.avatar" xs class="inline-flex overflow-hidden rounded-xl" />

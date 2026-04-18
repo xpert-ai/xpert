@@ -36,7 +36,7 @@ import {
 import {
   IProject,
   ISemanticModel,
-  ProjectAPIService,
+  AnalyticsProjectService,
   TagService,
   ToastrService,
   isUUID,
@@ -46,8 +46,8 @@ import { NewIndicatorCodePlaceholder, ProjectIndicatorsState } from './types'
 import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
 
 @Injectable()
-export class ProjectService {
-  readonly projectAPI = inject(ProjectAPIService)
+export class AnalyticsProjectStateService {
+  readonly projectAPI = inject(AnalyticsProjectService)
   readonly indicatorsService = inject(IndicatorsService)
   readonly businessAreasStore = inject(BusinessAreasService)
   readonly tagService = inject(TagService)

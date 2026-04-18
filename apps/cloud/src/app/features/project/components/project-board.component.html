@@ -1,0 +1,23 @@
+<section class="flex min-h-0 flex-1 flex-col rounded-[28px] border border-divider-regular bg-components-card-bg">
+  @if (!hasTasks()) {
+    <div class="border-b border-divider-regular px-5 py-4 text-sm text-text-secondary">
+      {{ 'PAC.Project.EmptyBoard' | translate: { Default: 'This sprint is ready, but no tasks have been created yet.' } }}
+    </div>
+  }
+
+  @if (columns().length) {
+    <div class="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-4 pb-4 pt-4">
+      <div class="flex min-h-full min-w-max gap-4">
+        @for (column of columns(); track column.lane.id; let isFirst = $first) {
+          <xp-project-swimlane-column [column]="column" [showCreateTask]="isFirst" />
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="flex min-h-0 flex-1 items-center justify-center p-6">
+      <div class="rounded-[24px] border border-dashed border-divider-regular bg-background-default-subtle px-8 py-10 text-center text-sm text-text-tertiary">
+        {{ 'PAC.Project.EmptySwimlanes' | translate: { Default: 'No swimlanes are configured for the active sprint.' } }}
+      </div>
+    </div>
+  }
+</section>

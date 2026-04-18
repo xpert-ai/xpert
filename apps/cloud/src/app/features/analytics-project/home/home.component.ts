@@ -8,7 +8,7 @@ import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/c
 import { Story } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, switchMap, tap } from 'rxjs'
-import { DefaultCollection, IStory, IStoryTemplate, ProjectAPIService, ToastrService, tryHttp } from '../../../@core'
+import { DefaultCollection, IStory, IStoryTemplate, AnalyticsProjectService, ToastrService, tryHttp } from '../../../@core'
 import { ProjectComponent } from '../project/project.component'
 import { StoryCardComponent, StoryCreationComponent, StoryTemplateComponent } from '../../../@shared/story'
 import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
@@ -36,7 +36,7 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xper
   ]
 })
 export class ProjectHomeComponent {
-  private projectService = inject(ProjectAPIService)
+  private projectService = inject(AnalyticsProjectService)
   private storiesService = inject(StoriesService)
   private _router = inject(Router)
   private _viewContainerRef = inject(ViewContainerRef)

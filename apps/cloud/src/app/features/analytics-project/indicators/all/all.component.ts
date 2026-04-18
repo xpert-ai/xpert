@@ -26,10 +26,10 @@ import {
   getErrorMessage,
   IIndicator,
   isUUID,
-  ProjectAPIService,
+  AnalyticsProjectService,
   ToastrService
 } from '../../../../@core/index'
-import { ProjectService } from '../../project.service'
+import { AnalyticsProjectStateService } from '../../analytics-project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
 import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -53,8 +53,8 @@ export class AllIndicatorComponent {
   eIndicatorStatusEnum = IndicatorStatusEnum
   isUUID = isUUID
 
-  private projectService = inject(ProjectService)
-  private projectAPI = inject(ProjectAPIService)
+  private projectService = inject(AnalyticsProjectStateService)
+  private projectAPI = inject(AnalyticsProjectService)
   private indicatorAPI = inject(IndicatorsService)
   private toastrService = inject(ToastrService)
   readonly #cdr = inject(ChangeDetectorRef)

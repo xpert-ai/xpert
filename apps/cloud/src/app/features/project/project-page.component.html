@@ -1,0 +1,98 @@
+<div class="flex h-full min-h-0 bg-background-default">
+  <xp-project-sidebar
+    [projects]="facade.projects()"
+    [selectedProjectId]="facade.projectId()"
+    [selectedSprintLabel]="facade.selectedSprintLabel()"
+    [selectedTaskCount]="facade.selectedTaskCount()"
+    (projectSelected)="facade.selectProject($event)"
+    (createRequested)="openCreateProject()"
+  />
+
+  <section class="flex min-w-0 flex-1 flex-col overflow-hidden bg-background-default-subtle">
+    @if (facade.loading()) {
+      <div class="flex min-h-0 flex-1 items-center justify-center">
+        <ngm-spin />
+      </div>
+    } @else if (facade.error()) {
+      <div class="flex min-h-0 flex-1 items-center justify-center p-6">
+        <xp-project-empty-state
+          icon="ri-error-warning-line"
+          [title]="'PAC.Project.LoadError' | translate: { Default: 'Failed to load project board' }"
+          [description]="facade.error()"
+        />
+      </div>
+    } @else {
+      <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 lg:p-5">
+        @if (!facade.hasProjects()) {
+          <div class="flex min-h-0 flex-1 items-center justify-center">
+            <xp-project-empty-state
+              icon="ri-layout-grid-line"
+              [title]="'PAC.Project.EmptyProjects' | translate: { Default: 'No projects yet' }"
+              [description]="
+                'PAC.Project.EmptyProjectsDescription'
+                  | translate: {
+                      Default: 'Once project-core records are available, the kanban board will appear here.'
+                    }
+              "
+            >
+              <button
+                projectEmptyStateActions
+                type="button"
+                class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep"
+                (click)="openCreateProject()"
+              >
+                <i class="ri-add-line text-base"></i>
+                {{ 'PAC.Project.NewProject' | translate: { Default: 'New Project' } }}
+              </button>
+            </xp-project-empty-state>
+          </div>
+        } @else if (!facade.selectedProject()) {
+          <div class="flex min-h-0 flex-1 items-center justify-center">
+            <xp-project-empty-state
+              icon="ri-building-line"
+              [title]="'PAC.Project.SelectProject' | translate: { Default: 'Select a project' }"
+              [description]="
+                'PAC.Project.SelectProjectDescription'
+                  | translate: {
+                      Default: 'Choose a project from the sidebar to inspect the current sprint and tasks.'
+                    }
+              "
+            />
+          </div>
+        } @else {
+          <xp-project-board-header
+            [project]="facade.selectedProject()"
+            [sprint]="facade.selectedSprint()"
+            [laneCount]="facade.selectedLaneCount()"
+            [taskCount]="facade.selectedTaskCount()"
+            [strategyLabel]="facade.selectedStrategyLabel()"
+          />
+
+          @if (!facade.hasSprint()) {
+            <div class="flex min-h-0 flex-1 items-center justify-center">
+              <xp-project-empty-state
+                icon="ri-calendar-schedule-line"
+                [title]="'PAC.Project.EmptySprint' | translate: { Default: 'No sprint ready yet' }"
+                [description]="
+                  'PAC.Project.EmptySprintDescription'
+                    | translate: {
+                        Default: 'Create or start a sprint to populate the swimlanes for this project.'
+                      }
+                "
+              />
+            </div>
+          } @else {
+            <xp-project-sprint-summary
+              [project]="facade.selectedProject()"
+              [sprint]="facade.selectedSprint()"
+              [laneCount]="facade.selectedLaneCount()"
+              [taskCount]="facade.selectedTaskCount()"
+            />
+
+            <xp-project-board [columns]="facade.boardColumns()" [hasTasks]="facade.hasTasks()" />
+          }
+        }
+      </div>
+    }
+  </section>
+</div>

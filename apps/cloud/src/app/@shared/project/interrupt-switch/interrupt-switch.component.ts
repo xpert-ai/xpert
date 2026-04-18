@@ -3,7 +3,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormControl, FormsModule } from '@angular/forms'
-import { ProjectAPIService } from '@cloud/app/@core'
+import { AnalyticsProjectService } from '@cloud/app/@core'
 import { IProject } from '@xpert-ai/cloud/state'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
@@ -23,7 +23,7 @@ import { ProjectCreationComponent } from '../creation/creation.component'
 })
 export class ProjectInterruptSwitchComponent extends AbstractInterruptComponent<{ name?: string }, {projectId?: string}> {
   readonly #dialog = inject(Dialog)
-  readonly projectAPI = inject(ProjectAPIService)
+  readonly projectAPI = inject(AnalyticsProjectService)
   readonly i18nService = injectI18nService()
 
   readonly #projects = myRxResource({

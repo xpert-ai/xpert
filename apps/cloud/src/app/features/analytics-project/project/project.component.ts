@@ -43,7 +43,7 @@ import {
   IFavorite,
   IProject,
   ISemanticModel,
-  ProjectAPIService,
+  AnalyticsProjectService,
   Store,
   StoryStatusEnum,
   ToastrService,
@@ -55,7 +55,7 @@ import { AppService } from '../../../app.service'
 import { ReleaseStoryDialog } from '../release-story.component'
 import { SelectModelDialog } from '../select-model.component'
 import { collectionId, treeDataSourceFactory } from '../types'
-import { ProjectService } from '../project.service'
+import { AnalyticsProjectStateService } from '../analytics-project.service'
 import { SharedUiModule } from '../../../@shared/ui.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -94,7 +94,7 @@ import { ProjectSelectorComponent } from '../../../@theme/header'
   styleUrls: ['project.component.scss'],
   animations: [routeAnimations],
   providers: [
-    ProjectService,
+    AnalyticsProjectStateService,
   ]
 })
 export class ProjectComponent extends TranslationBaseComponent {
@@ -102,7 +102,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   DefaultCollection = DefaultCollection
   StoryStatusEnum = StoryStatusEnum
 
-  readonly projectService = inject(ProjectService)
+  readonly projectService = inject(AnalyticsProjectStateService)
   readonly collectionService = inject(CollectionService)
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly wasmAgent = inject(WasmAgentService)
@@ -270,7 +270,7 @@ export class ProjectComponent extends TranslationBaseComponent {
     private store: Store,
     private storiesService: StoriesService,
     private favoritesService: FavoritesService,
-    private projectAPI: ProjectAPIService,
+    private projectAPI: AnalyticsProjectService,
     private _dialog: ZardDialogService,
     private _toastrService: ToastrService,
     private _cdr: ChangeDetectorRef,

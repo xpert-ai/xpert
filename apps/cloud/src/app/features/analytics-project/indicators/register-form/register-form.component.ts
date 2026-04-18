@@ -46,7 +46,7 @@ import {
   switchMap,
   tap
 } from 'rxjs'
-import { ProjectService } from '../../project.service'
+import { AnalyticsProjectStateService } from '../../analytics-project.service'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
 import {
@@ -106,7 +106,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   AGGREGATORS = INDICATOR_AGGREGATORS
   appearance: NgmFieldAppearance = 'fill'
 
-  readonly projectService = inject(ProjectService)
+  readonly projectService = inject(AnalyticsProjectStateService)
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly wasmAgent = inject(WasmAgentService)
   readonly fetchModelDetails = injectFetchModelDetails()
