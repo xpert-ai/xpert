@@ -21,7 +21,10 @@ import { injectEditorTheme } from '../../../@core'
   selector: 'pac-code-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
-  hostDirectives: [NgxControlValueAccessor]
+  hostDirectives: [NgxControlValueAccessor],
+  host: {
+    '[class.pac-code-editor--readonly]': 'isReadonly()'
+  }
 })
 export class CodeEditorComponent {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
@@ -54,6 +57,7 @@ export class CodeEditorComponent {
   }
 
   readonly editorTheme = injectEditorTheme()
+  readonly isReadonly = computed(() => this.readonly() || !this.editable())
 
   readonly editorOptions = computed(() => {
     return {
@@ -61,7 +65,7 @@ export class CodeEditorComponent {
       theme: this.editorTheme(),
       language:
         this.language() || (this.fileName() ? this.mapFileLanguage(this.fileName()) : this.defaultOptions.language),
-      readOnly: this.readonly() || !this.editable(),
+      readOnly: this.isReadonly(),
       lineNumbers: this.lineNumbers() ? 'on' : 'off',
       wordWrap: this.wordWrap()
     }

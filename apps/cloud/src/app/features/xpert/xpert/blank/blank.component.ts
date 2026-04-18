@@ -81,6 +81,7 @@ import {
   buildBlankWorkflowDraft,
   buildBlankXpertDraft,
   hasBlankWizardSelections,
+  mergeBlankMiddlewareRequiredFeatures,
   normalizeBlankMiddlewareSelections
 } from './blank-draft.util'
 import {
@@ -759,6 +760,12 @@ export class XpertNewBlankComponent {
   private async createBlankXpert(): Promise<BlankXpertWizardResult> {
     const selectedType = this.selectedType()
     const selectedMode = this.selectedMode()
+    const selectedMiddlewareDefinitions = this.getSelectedMiddlewareDefinitions()
+    const features = mergeBlankMiddlewareRequiredFeatures(
+      undefined,
+      this.selectedMiddlewares(),
+      selectedMiddlewareDefinitions
+    )
 
     const xpert = await firstValueFrom(
       this.xpertService.create({
@@ -770,6 +777,7 @@ export class XpertNewBlankComponent {
         latest: true,
         workspaceId: this.workspaceId() ?? undefined,
         avatar: this.avatar(),
+        ...(features ? { features } : {}),
         agent: {
           key: genAgentKey(),
           avatar: this.avatar(),
@@ -786,7 +794,13 @@ export class XpertNewBlankComponent {
         }
       })
     )
-    const preparedXpert = await this.provisionKnowledgebaseIfNeeded(xpert)
+    const mergedFeatures = features
+      ? mergeBlankMiddlewareRequiredFeatures(xpert.features, this.selectedMiddlewares(), selectedMiddlewareDefinitions)
+      : xpert.features
+    const preparedXpert = await this.provisionKnowledgebaseIfNeeded({
+      ...xpert,
+      ...(mergedFeatures ? { features: mergedFeatures } : {})
+    })
     return this.completeCreation(preparedXpert)
   }
 
@@ -988,6 +1002,13 @@ export class XpertNewBlankComponent {
       : this.isKnowledgeType()
         ? applyKnowledgeTemplateWizardState(draft, this.getKnowledgeSelections())
         : draft
+    const features = this.isAgentType()
+      ? mergeBlankMiddlewareRequiredFeatures(
+          finalDraft.team.features,
+          this.selectedMiddlewares(),
+          this.getSelectedMiddlewareDefinitions()
+        )
+      : finalDraft.team.features
 
     return {
       ...finalDraft,
@@ -1000,7 +1021,8 @@ export class XpertNewBlankComponent {
         title: this.title(),
         description: this.description(),
         avatar: this.avatar(),
-        copilotModel: this.copilotModel()
+        copilotModel: this.copilotModel(),
+        ...(features ? { features } : {})
       }
     }
   }
@@ -1294,7 +1316,8 @@ export class XpertNewBlankComponent {
     return this.middlewareProviders()
       .map(({ meta }) => ({
         name: meta.name,
-        configSchema: meta.configSchema
+        configSchema: meta.configSchema,
+        features: meta.features
       }))
       .filter((definition) => selected.has(definition.name))
   }

@@ -801,6 +801,53 @@ describe('XpertNewBlankComponent', () => {
     expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual(['guard'])
   })
 
+  it('auto-enables required middleware features when creating a blank xpert', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert,
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'FileMemorySystemMiddleware',
+              label: {
+                en_US: 'File Memory System'
+              },
+              features: ['sandbox']
+            }
+          }
+        ]
+      }
+    )
+
+    component.selectedMiddlewares.set(['FileMemorySystemMiddleware'])
+
+    component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        features: {
+          sandbox: {
+            enabled: true
+          }
+        }
+      })
+    )
+
+    const savedDraft = xpertService.saveDraft.mock.calls[0][1]
+    expect(savedDraft.team.features).toEqual({
+      sandbox: {
+        enabled: true
+      }
+    })
+  })
+
   it('closes with published status after a successful publish flow', async () => {
     const createdXpert = createAgentXpert('created-xpert')
     const publishedXpert = {
@@ -1001,6 +1048,62 @@ describe('XpertNewBlankComponent', () => {
       xpert: publishedXpert,
       status: 'published'
     })
+  })
+
+  it('auto-enables required middleware features when importing a template', async () => {
+    const importedXpert = createAgentXpert('imported-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplates: [
+          {
+            id: 'template-agent',
+            name: 'template-agent',
+            title: 'Template Agent',
+            description: 'Template agent description',
+            category: 'Agent',
+            type: XpertTypeEnum.Agent
+          }
+        ],
+        importedXpert,
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'guard',
+              label: {
+                en_US: 'Guard'
+              },
+              features: ['sandbox']
+            }
+          }
+        ]
+      }
+    )
+
+    component.setStartMode('template')
+    component.selectedTemplateId.set('template-agent')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.importDSL).toHaveBeenCalledWith(
+      expect.objectContaining({
+        team: expect.objectContaining({
+          features: {
+            sandbox: {
+              enabled: true
+            }
+          }
+        })
+      })
+    )
   })
 
   it('keeps the imported xpert as created when the imported checklist is blocked', async () => {

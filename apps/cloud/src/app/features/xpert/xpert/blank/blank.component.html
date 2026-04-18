@@ -280,6 +280,16 @@
                       }
               }}
             </div>
+            <div class="text-xs leading-5 text-text-secondary">
+              {{
+                'PAC.Xpert.MiddlewareFeaturesAutoEnabled'
+                  | translate
+                    : {
+                        Default:
+                          'If a middleware requires xpert features such as sandbox, they will be enabled automatically for this xpert.'
+                      }
+              }}
+            </div>
 
             <div class="grid gap-2 md:grid-cols-2">
               @for (middleware of middlewareProviderOptions(); track middleware.meta.name) {
