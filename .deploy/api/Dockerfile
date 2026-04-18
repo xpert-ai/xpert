@@ -9,7 +9,7 @@ LABEL org.opencontainers.image.source=https://github.com/xpert-ai/xpert
 
 ENV CI=true
 
-RUN apk --update add bash jq && npm i -g npm && \
+RUN apk --update add bash jq python3 make g++ && npm i -g npm && \
     corepack enable && corepack prepare pnpm@10.24.0 --activate
 RUN mkdir /srv/xpert && chown -R node:node /srv/xpert
 
@@ -71,14 +71,13 @@ ENV NODE_OPTIONS="--max-old-space-size=2048" \
     DEMO=false \
     LOG_LEVEL=
 
-# Install sudo package
-RUN apt-get update && apt-get install -y sudo
+# Install native build tools for runtime plugin dependencies such as node-pty.
+RUN apt-get update && apt-get install -y sudo build-essential python3 python3-pip
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node
 
 # Install python uvx
-RUN apt-get install -y python3-pip && \
-    python3 -m pip install uv --break-system-packages
+RUN python3 -m pip install uv --break-system-packages
 
 WORKDIR /srv/xpert
 

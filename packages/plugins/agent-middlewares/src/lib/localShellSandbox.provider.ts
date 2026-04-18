@@ -19,7 +19,6 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import type { SandboxTerminalAdapter, SandboxTerminalOpenOptions, SandboxTerminalSession } from '@xpert-ai/plugin-sdk'
 import type { TSandboxProviderMeta } from '@xpert-ai/contracts'
-import { spawn as spawnPty } from 'node-pty'
 import type { IPty } from 'node-pty'
 
 const LOCAL_SHELL_SANDBOX_PROVIDER = 'local-shell-sandbox'
@@ -116,6 +115,36 @@ const LOCAL_SHELL_SANDBOX_ICON = `<?xml version="1.0" encoding="utf-8"?>
 type ShellLaunchConfig = {
   args: string[]
   file: string
+}
+
+type NodePtyModule = Pick<typeof import('node-pty'), 'spawn'>
+
+let cachedNodePtyModule: NodePtyModule | null = null
+
+function buildNodePtyLoadError(error: unknown): Error {
+  const detail = error instanceof Error ? error.message : String(error)
+  return new Error(
+    `Failed to load terminal support dependency "node-pty". Install or rebuild it for ${process.platform}-${process.arch}. ` +
+      `In Docker images, ensure python3, make, and g++ are available during pnpm install. Original error: ${detail}`
+  )
+}
+
+function getNodePtyModule(): NodePtyModule {
+  if (cachedNodePtyModule) {
+    return cachedNodePtyModule
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const module = require('node-pty') as NodePtyModule
+    if (typeof module.spawn !== 'function') {
+      throw new Error('node-pty did not export a spawn function.')
+    }
+    cachedNodePtyModule = module
+    return module
+  } catch (error) {
+    throw buildNodePtyLoadError(error)
+  }
 }
 
 function tryEnsureNodePtySpawnHelperExecutable(): void {
@@ -244,8 +273,9 @@ export class LocalShellSandbox extends BaseSandbox implements SandboxTerminalAda
 
   async open(options: SandboxTerminalOpenOptions): Promise<SandboxTerminalSession> {
     tryEnsureNodePtySpawnHelperExecutable()
+    const { spawn } = getNodePtyModule()
     const shell = resolveTerminalShell()
-    const ptyProcess = spawnPty(shell.file, shell.args, {
+    const ptyProcess = spawn(shell.file, shell.args, {
       cwd: this.workingDirectory,
       cols: clampTerminalSize(options.cols, DEFAULT_TERMINAL_COLS),
       rows: clampTerminalSize(options.rows, DEFAULT_TERMINAL_ROWS),
