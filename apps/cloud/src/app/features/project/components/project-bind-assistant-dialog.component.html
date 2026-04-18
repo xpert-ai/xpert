@@ -4,17 +4,32 @@
       {{ 'PAC.Project.BindMainAgentEyebrow' | translate: { Default: 'Main Agent' } }}
     </div>
     <h2 class="mt-2 text-2xl font-semibold text-text-primary">
-      {{ 'PAC.Project.BindMainAgentTitle' | translate: { Default: 'Bind the coordinating assistant' } }}
+      @if (isReplacing()) {
+        {{ 'PAC.Project.ChangeMainAgentTitle' | translate: { Default: 'Change the coordinating assistant' } }}
+      } @else {
+        {{ 'PAC.Project.BindMainAgentTitle' | translate: { Default: 'Bind the coordinating assistant' } }}
+      }
     </h2>
     <p class="mt-2 text-sm leading-6 text-text-secondary">
-      {{
-        'PAC.Project.BindMainAgentDescription'
-          | translate
-            : {
-                Default:
-                  'Choose the published assistant that should coordinate planning and execution for this project.'
-              }
-      }}
+      @if (isReplacing()) {
+        {{
+          'PAC.Project.ChangeMainAgentDescription'
+            | translate
+              : {
+                  Default:
+                    'Choose another published assistant to take over planning, backlog management, and execution coordination for this project.'
+                }
+        }}
+      } @else {
+        {{
+          'PAC.Project.BindMainAgentDescription'
+            | translate
+              : {
+                  Default:
+                    'Choose the published assistant that should coordinate planning and execution for this project.'
+                }
+        }}
+      }
     </p>
   </div>
 
@@ -62,6 +77,8 @@
       >
         @if (submitting()) {
           {{ 'PAC.Project.UpdatingMainAgent' | translate: { Default: 'Saving...' } }}
+        } @else if (isReplacing()) {
+          {{ 'PAC.Project.ChangeMainAgent' | translate: { Default: 'Change Main Agent' } }}
         } @else {
           {{ 'PAC.Project.SaveMainAgent' | translate: { Default: 'Save Main Agent' } }}
         }

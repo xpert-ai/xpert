@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -26,6 +26,8 @@ type ProjectBindAssistantDialogData = {
       display: block;
       width: min(56rem, calc(100vw - 2rem));
       max-width: 100%;
+      max-height: 90vh;
+      overflow: auto;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -42,6 +44,7 @@ export class ProjectBindAssistantDialogComponent {
   readonly assistants = signal<IXpert[]>([])
   readonly submitting = signal(false)
   readonly project = this.#data.project
+  readonly isReplacing = computed(() => Boolean(this.project.mainAssistantId))
 
   readonly form = new FormGroup({
     mainAssistantId: new FormControl(this.#data.project.mainAssistantId ?? '', {

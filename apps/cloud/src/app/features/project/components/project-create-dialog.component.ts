@@ -24,7 +24,7 @@ type ProjectCreateTabKey = 'basic' | 'assistantBinding'
     :host {
       display: block;
       width: min(56rem, calc(100vw - 2rem));
-      max-height: 100vh;
+      max-height: 90vh;
       overflow: auto;
     }
   `,
