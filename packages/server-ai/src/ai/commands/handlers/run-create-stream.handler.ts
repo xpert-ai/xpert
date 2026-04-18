@@ -400,18 +400,12 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const threadId = command.threadId
         const runCreate = command.runCreate
 
-        this.#logger.warn(
-            `Received RunCreateStreamCommand for threadId ${threadId} with input: ${JSON.stringify(runCreate.input)}`
-        )
-
         // Find thread (conversation) and assistant (xpert)
         const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
         const runtimeContext = getRunCreateContext(runCreate.context)
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
-
-        this.#logger.warn(chatRequest, `validateRunCreateInput ${threadId}`)
 
         // Update conversation if xpertId is missing or sandboxEnvironmentId needs to be persisted
         let needsUpdate = false

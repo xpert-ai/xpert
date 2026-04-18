@@ -1,6 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { Store } from '@xpert-ai/cloud/state'
+import { TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import {
   AiModelTypeEnum,
@@ -86,6 +87,20 @@ function createAgentXpert(id = 'xpert-1') {
       }
     }
   } as any
+}
+
+function buildExpectedClawPrompt() {
+  return [
+    'When available, use the following runtime preference context to guide how you respond.',
+    '',
+    'Assistant soul:',
+    '{{sys.soul}}',
+    '',
+    'User profile:',
+    '{{sys.profile}}',
+    '',
+    'Treat the assistant soul as behavior guidance and use the user profile to personalize responses when relevant.'
+  ].join('\n')
 }
 
 function createAgentTemplateYaml() {
@@ -270,7 +285,9 @@ async function createComponent(
   const publishedXpert = options?.publishedXpert ?? { ...createdXpert, version: '1.0.0' }
   const installedSkillPackage = options?.installedSkillPackage ?? { id: 'installed-skill' }
   const middlewareProviders = options?.middlewareProviders ?? []
-  const repositories = options?.repositories ?? [{ id: 'repo-public', provider: 'workspace-public', name: 'Workspace Shared Skills' }]
+  const repositories = options?.repositories ?? [
+    { id: 'repo-public', provider: 'workspace-public', name: 'Workspace Shared Skills' }
+  ]
   const triggerProviders = options?.triggerProviders ?? []
   const workspaceSkills = options?.workspaceSkills ?? []
   const workspaces = options?.workspaces ?? []
@@ -323,6 +340,9 @@ async function createComponent(
     error: jest.fn(),
     success: jest.fn(),
     warning: jest.fn()
+  }
+  const translate = {
+    instant: jest.fn((key: string, params?: Record<string, string>) => params?.Default ?? key)
   }
   const store = {
     selectedWorkspace$: of(options?.selectedWorkspace ?? null)
@@ -385,6 +405,10 @@ async function createComponent(
       {
         provide: ToastrService,
         useValue: toastr
+      },
+      {
+        provide: TranslateService,
+        useValue: translate
       }
     ]
   }).compileComponents()
@@ -443,7 +467,7 @@ describe('XpertNewBlankComponent', () => {
     expect(component.workspaceSelectionInvalid()).toBe(true)
     expect(component.basicStepInvalid()).toBe(true)
 
-    component.create()
+    await component.create()
 
     expect(xpertService.create).not.toHaveBeenCalled()
   })
@@ -479,7 +503,7 @@ describe('XpertNewBlankComponent', () => {
 
     expect(component.selectedTriggersInvalid()).toBe(true)
 
-    component.create()
+    await component.create()
 
     expect(xpertService.create).not.toHaveBeenCalled()
   })
@@ -514,7 +538,7 @@ describe('XpertNewBlankComponent', () => {
 
     expect(component.startStepInvalid()).toBe(true)
 
-    component.create()
+    await component.create()
 
     expect(xpertService.create).not.toHaveBeenCalled()
     expect(xpertService.importDSL).not.toHaveBeenCalled()
@@ -747,6 +771,7 @@ describe('XpertNewBlankComponent', () => {
 
   it('preserves non-skill middlewares when the workspace changes', async () => {
     const { component, fixture } = await createComponent({
+      allowWorkspaceSelection: true,
       type: XpertTypeEnum.Agent
     })
 
@@ -755,11 +780,7 @@ describe('XpertNewBlankComponent', () => {
       repositoryId: 'repo-public',
       disabledSkillIds: []
     })
-    component.selectedMiddlewares.set([
-      'guard',
-      'todoListMiddleware',
-      BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
-    ])
+    component.selectedMiddlewares.set(['guard', 'todoListMiddleware', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
 
     component.workspaceId.set('workspace-2')
     fixture.detectChanges()
@@ -826,7 +847,7 @@ describe('XpertNewBlankComponent', () => {
 
     component.selectedMiddlewares.set(['FileMemorySystemMiddleware'])
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -865,7 +886,7 @@ describe('XpertNewBlankComponent', () => {
       }
     )
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -898,7 +919,7 @@ describe('XpertNewBlankComponent', () => {
       }
     )
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -912,6 +933,150 @@ describe('XpertNewBlankComponent', () => {
           checklist: []
         }
       },
+      status: 'created'
+    })
+  })
+
+  it('seeds a claw blank agent prompt with sys soul and profile placeholders', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        category: 'claw',
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+    const expectedPrompt = buildExpectedClawPrompt('Support workspace members with high-signal help.')
+
+    component.description.set('Support workspace members with high-signal help.')
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: expect.objectContaining({
+          prompt: expectedPrompt
+        })
+      })
+    )
+
+    const savedDraft = xpertService.saveDraft.mock.calls[0][1]
+    expect(savedDraft.team.agent.prompt).toBe(expectedPrompt)
+    expect(savedDraft.nodes.find((node: any) => node.type === 'agent')?.entity?.prompt).toBe(expectedPrompt)
+  })
+
+  it('normalizes claw dialog categories before seeding the blank agent prompt', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        category: ' ClAw ' as any,
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+    const expectedPrompt = buildExpectedClawPrompt('Support workspace members with high-signal help.')
+
+    component.description.set('Support workspace members with high-signal help.')
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: expect.objectContaining({
+          prompt: expectedPrompt
+        })
+      })
+    )
+  })
+
+  it('keeps the default blank agent prompt unchanged outside claw setup', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+
+    component.description.set('Support workspace members with high-signal help.')
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create.mock.calls[0][0].agent.prompt).toBeUndefined()
+    expect(xpertService.saveDraft.mock.calls[0][1].team.agent.prompt).toBeUndefined()
+  })
+
+  it('seeds a claw template agent prompt with sys soul and profile placeholders', async () => {
+    const importedXpert = createAgentXpert('imported-xpert')
+    const { component, dialogRef, fixture, xpertService } = await createComponent(
+      {
+        category: 'claw',
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplates: [
+          {
+            id: 'template-agent',
+            name: 'template-agent',
+            title: 'Template Agent',
+            description: 'Template agent description',
+            category: 'Agent',
+            type: XpertTypeEnum.Agent
+          }
+        ],
+        importedXpert
+      }
+    )
+    const expectedPrompt = buildExpectedClawPrompt('Template agent description')
+
+    component.setStartMode('template')
+    component.selectedTemplateId.set('template-agent')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.importDSL).toHaveBeenCalledWith(
+      expect.objectContaining({
+        team: expect.objectContaining({
+          agent: expect.not.objectContaining({
+            prompt: expect.anything()
+          })
+        }),
+        nodes: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'agent',
+            key: 'Agent_primary',
+            entity: expect.objectContaining({
+              prompt: expectedPrompt
+            })
+          })
+        ])
+      })
+    )
+
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      xpert: expect.objectContaining({
+        agent: expect.objectContaining({
+          prompt: expectedPrompt
+        })
+      }),
       status: 'created'
     })
   })
@@ -959,7 +1124,7 @@ describe('XpertNewBlankComponent', () => {
     } as any)
     component.selectedMiddlewares.set(['SummarizationMiddleware'])
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -1020,7 +1185,7 @@ describe('XpertNewBlankComponent', () => {
     await fixture.whenStable()
     await flushPromises()
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -1089,7 +1254,7 @@ describe('XpertNewBlankComponent', () => {
     await fixture.whenStable()
     await flushPromises()
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -1146,7 +1311,7 @@ describe('XpertNewBlankComponent', () => {
     await fixture.whenStable()
     await flushPromises()
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 

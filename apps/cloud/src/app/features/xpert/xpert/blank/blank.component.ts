@@ -144,13 +144,33 @@ export type BlankXpertWizardResult = {
   status: BlankXpertWizardStatus
 }
 
+export const BLANK_XPERT_DIALOG_CATEGORY = {
+  CLAW: 'claw'
+} as const
+
+export type BlankXpertDialogCategory =
+  (typeof BLANK_XPERT_DIALOG_CATEGORY)[keyof typeof BLANK_XPERT_DIALOG_CATEGORY]
+
+export function normalizeBlankXpertDialogCategory(
+  category: string | null | undefined
+): BlankXpertDialogCategory | null {
+  const value = category?.trim().toLowerCase()
+
+  switch (value) {
+    case BLANK_XPERT_DIALOG_CATEGORY.CLAW:
+      return value
+    default:
+      return null
+  }
+}
+
 export type BlankXpertDialogData = {
   workspace?: IXpertWorkspace | null
   type?: XpertTypeEnum | null
   allowWorkspaceSelection?: boolean
   allowedModes?: BlankXpertMode[] | null
   completionMode?: BlankXpertCompletionMode
-  category?: string | null
+  category?: BlankXpertDialogCategory | null
 }
 
 type DraftPreparationResult = {
@@ -166,6 +186,17 @@ const EMPTY_BLANK_SKILL_STATE: BlankSkillState = {
   skills: [],
   errorMessage: null
 }
+const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
+  'When available, use the following runtime preference context to guide how you respond.',
+  '',
+  'Assistant soul:',
+  '{{sys.soul}}',
+  '',
+  'User profile:',
+  '{{sys.profile}}',
+  '',
+  'Treat the assistant soul as behavior guidance and use the user profile to personalize responses when relevant.'
+].join('\n')
 const UNAVAILABLE_TEMPLATE_MIDDLEWARE_DESCRIPTION: I18nObject = {
   en_US:
     'This middleware comes from the selected template, but is not available in the current runtime. Keep it selected to preserve it in the imported draft, or deselect it to remove it.',
@@ -272,7 +303,7 @@ export class XpertNewBlankComponent {
   readonly requestedType = signal(this.#dialogData.type ?? null)
   readonly allowedModes = this.#dialogData.allowedModes ?? null
   readonly completionMode = this.#dialogData.completionMode ?? ('create' as BlankXpertCompletionMode)
-  readonly templateCategory = this.#dialogData.category?.trim() || null
+  readonly templateCategory = normalizeBlankXpertDialogCategory(this.#dialogData.category)
   readonly allowWorkspaceSelection = !!this.#dialogData.allowWorkspaceSelection
   readonly availableModes = computed(() => getBlankWizardAvailableModes(this.requestedType(), this.allowedModes))
   readonly types = model<BlankXpertMode[]>([getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)])
@@ -401,9 +432,7 @@ export class XpertNewBlankComponent {
     const unavailableTemplateSelections = this.selectedMiddlewares()
       .filter(
         (provider) =>
-          !!provider &&
-          provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER &&
-          !availableNames.has(provider)
+          !!provider && provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER && !availableNames.has(provider)
       )
       .map((provider) => ({
         meta: {
@@ -761,6 +790,7 @@ export class XpertNewBlankComponent {
     const selectedType = this.selectedType()
     const selectedMode = this.selectedMode()
     const selectedMiddlewareDefinitions = this.getSelectedMiddlewareDefinitions()
+    const primaryAgentPrompt = this.buildInitialPrimaryAgentPrompt()
     const features = mergeBlankMiddlewareRequiredFeatures(
       undefined,
       this.selectedMiddlewares(),
@@ -781,6 +811,7 @@ export class XpertNewBlankComponent {
         agent: {
           key: genAgentKey(),
           avatar: this.avatar(),
+          ...(primaryAgentPrompt ? { prompt: primaryAgentPrompt } : {}),
           options: {
             ...(shouldHideBlankWizardPrimaryAgent(selectedMode)
               ? {
@@ -794,11 +825,16 @@ export class XpertNewBlankComponent {
         }
       })
     )
+    const hydratedXpert = this.withInitialPrimaryAgentPrompt(xpert, primaryAgentPrompt)
     const mergedFeatures = features
-      ? mergeBlankMiddlewareRequiredFeatures(xpert.features, this.selectedMiddlewares(), selectedMiddlewareDefinitions)
-      : xpert.features
+      ? mergeBlankMiddlewareRequiredFeatures(
+          hydratedXpert.features,
+          this.selectedMiddlewares(),
+          selectedMiddlewareDefinitions
+        )
+      : hydratedXpert.features
     const preparedXpert = await this.provisionKnowledgebaseIfNeeded({
-      ...xpert,
+      ...hydratedXpert,
       ...(mergedFeatures ? { features: mergedFeatures } : {})
     })
     return this.completeCreation(preparedXpert)
@@ -810,9 +846,11 @@ export class XpertNewBlankComponent {
       throw new Error('Select a template before continuing.')
     }
 
-    const nextDraft = this.buildTemplateImportDraft(draft)
+    const primaryAgentPrompt = this.buildInitialPrimaryAgentPrompt()
+    const nextDraft = this.withInitialPrimaryAgentPromptInDraft(this.buildTemplateImportDraft(draft), primaryAgentPrompt)
     const xpert = await firstValueFrom(this.xpertService.importDSL(nextDraft))
-    const preparedXpert = await this.provisionKnowledgebaseIfNeeded(xpert)
+    const hydratedXpert = this.withInitialPrimaryAgentPrompt(xpert, primaryAgentPrompt)
+    const preparedXpert = await this.provisionKnowledgebaseIfNeeded(hydratedXpert)
     return this.completeImportedCreation(preparedXpert)
   }
 
@@ -923,9 +961,7 @@ export class XpertNewBlankComponent {
           disabledSkillIds
         })
       } else {
-        this.selectedExplicitSkills.set(
-          Array.from(new Set([...this.selectedExplicitSkills(), skillPackage.id]))
-        )
+        this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), skillPackage.id])))
       }
       this.refreshAgentSkillMiddlewareSelections()
       this.refreshSkills()
@@ -1311,6 +1347,50 @@ export class XpertNewBlankComponent {
     }
   }
 
+  private buildInitialPrimaryAgentPrompt(): string | undefined {
+    if (this.templateCategory !== BLANK_XPERT_DIALOG_CATEGORY.CLAW) {
+      return undefined
+    }
+
+    return CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE
+  }
+
+  private withInitialPrimaryAgentPromptInDraft(draft: TXpertTeamDraft, prompt?: string): TXpertTeamDraft {
+    const primaryAgentKey = draft.team?.agent?.key
+    if (!prompt || !primaryAgentKey) {
+      return draft
+    }
+
+    return {
+      ...draft,
+      nodes: draft.nodes.map((node) =>
+        node.type === 'agent' && node.key === primaryAgentKey
+          ? {
+              ...node,
+              entity: {
+                ...node.entity,
+                prompt: node.entity?.prompt || prompt
+              }
+            }
+          : node
+      )
+    }
+  }
+
+  private withInitialPrimaryAgentPrompt(xpert: IXpert, prompt?: string): IXpert {
+    if (!prompt || !xpert.agent) {
+      return xpert
+    }
+
+    return {
+      ...xpert,
+      agent: {
+        ...xpert.agent,
+        prompt: xpert.agent.prompt ?? prompt
+      }
+    }
+  }
+
   private getSelectedMiddlewareDefinitions(): BlankMiddlewareDefinition[] {
     const selected = new Set(this.selectedMiddlewares())
     return this.middlewareProviders()
@@ -1368,11 +1448,7 @@ export class XpertNewBlankComponent {
     this.selectedExplicitSkills.set(selections.skills)
     this.selectedRepositoryDefault.set(cloneRepositoryDefaultSelection(selections.repositoryDefault))
     this.selectedMiddlewares.set(
-      normalizeBlankMiddlewareSelections(
-        selections.middlewares,
-        selections.skills,
-        selections.repositoryDefault
-      )
+      normalizeBlankMiddlewareSelections(selections.middlewares, selections.skills, selections.repositoryDefault)
     )
   }
 
@@ -1380,9 +1456,7 @@ export class XpertNewBlankComponent {
     this.applyAgentSkillSelections({
       skills: [],
       repositoryDefault: null,
-      middlewares: this.selectedMiddlewares().filter(
-        (provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
-      )
+      middlewares: this.selectedMiddlewares().filter((provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
     })
   }
 
@@ -1454,8 +1528,8 @@ export class XpertNewBlankComponent {
   }
 
   private getRepositorySkillIds(repositoryId: string) {
-    return this.skillState().skills
-      .filter((skill) => skill.repositoryId === repositoryId)
+    return this.skillState()
+      .skills.filter((skill) => skill.repositoryId === repositoryId)
       .map((skill) => skill.id)
   }
 

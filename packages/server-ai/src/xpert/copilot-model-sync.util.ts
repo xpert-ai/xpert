@@ -33,11 +33,29 @@ type ResolvedTeamLlmSelection = {
 type ModelScanContext = {
     nodeType?: string
     workflowEntityType?: WorkflowNodeTypeEnum | string
+    middlewareProvider?: string
+    middlewareOptionPath?: string[]
 }
 
 type DraftObject = {
     [key: string]: unknown
 }
+
+type MiddlewareModelTarget = {
+    path: string
+    modelType?: AiModelTypeEnum
+}
+
+type MiddlewareSchemaSource = {
+    name?: string | null
+    configSchema?: unknown
+    meta?: {
+        name?: string | null
+        configSchema?: unknown
+    } | null
+}
+
+export type MiddlewareModelTargetCatalog = Record<string, MiddlewareModelTarget[]>
 
 const isDraftObject = (value: unknown): value is DraftObject =>
     value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -58,6 +76,78 @@ function isModelConfigShape(value: DraftObject | null) {
         Object.prototype.hasOwnProperty.call(value, 'modelType') ||
         Object.prototype.hasOwnProperty.call(value, 'options')
     )
+}
+
+function collectMiddlewareModelTargets(schema: DraftObject | null, prefix: string[] = []): MiddlewareModelTarget[] {
+    if (!schema) {
+        return []
+    }
+
+    const properties = isDraftObject(schema['properties']) ? schema['properties'] : null
+    if (!properties) {
+        return []
+    }
+
+    return Object.entries(properties).flatMap(([key, rawProperty]) => {
+        const property = isDraftObject(rawProperty) ? rawProperty : null
+        if (!property) {
+            return []
+        }
+
+        const path = [...prefix, key]
+        const xUi = isDraftObject(property['x-ui']) ? property['x-ui'] : null
+        const inputs = isDraftObject(xUi?.['inputs']) ? xUi['inputs'] : null
+        const modelType = readString(inputs?.['modelType'])
+        const targets =
+            readString(xUi?.['component']) === 'ai-model-select'
+                ? [
+                      {
+                          path: path.join('.'),
+                          ...(modelType ? { modelType: modelType as AiModelTypeEnum } : {})
+                      }
+                  ]
+                : []
+
+        return [...targets, ...collectMiddlewareModelTargets(property, path)]
+    })
+}
+
+export function buildMiddlewareModelTargetCatalog(sources: MiddlewareSchemaSource[]): MiddlewareModelTargetCatalog {
+    return sources.reduce<MiddlewareModelTargetCatalog>((catalog, source) => {
+        const provider = readString(source?.meta?.name) || readString(source?.name)
+        const schema = isDraftObject(source?.meta?.configSchema)
+            ? source.meta?.configSchema
+            : isDraftObject(source?.configSchema)
+              ? source.configSchema
+              : null
+
+        if (!provider || !schema) {
+            return catalog
+        }
+
+        const targets = collectMiddlewareModelTargets(schema).filter(
+            (target, index, list) => list.findIndex((candidate) => candidate.path === target.path) === index
+        )
+        if (!targets.length) {
+            return catalog
+        }
+
+        catalog[provider] = targets
+        return catalog
+    }, {})
+}
+
+function resolveMiddlewareModelTarget(
+    catalog: MiddlewareModelTargetCatalog,
+    context: ModelScanContext
+): MiddlewareModelTarget | null {
+    const provider = readString(context.middlewareProvider)
+    const path = context.middlewareOptionPath?.join('.')
+    if (!provider || !path) {
+        return null
+    }
+
+    return catalog[provider]?.find((target) => target.path === path) ?? null
 }
 
 function collectAvailableLlmModelItems(copilots: AvailableCopilotModelSource[]): AvailableLlmModelItem[] {
@@ -149,7 +239,23 @@ function extendModelScanContext(
         return {
             ...context,
             nodeType: readString(record['type']) || context.nodeType,
-            workflowEntityType: readString(child['type']) || context.workflowEntityType
+            workflowEntityType: readString(child['type']) || context.workflowEntityType,
+            middlewareProvider: readString(child['provider']),
+            middlewareOptionPath: undefined
+        }
+    }
+
+    if (key === 'options' && context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE) {
+        return {
+            ...context,
+            middlewareOptionPath: []
+        }
+    }
+
+    if (context.middlewareOptionPath) {
+        return {
+            ...context,
+            middlewareOptionPath: [...context.middlewareOptionPath, key]
         }
     }
 
@@ -160,11 +266,17 @@ function inferTargetModelType(
     label: string,
     key: string,
     context: ModelScanContext,
-    value: DraftObject | null
+    value: DraftObject | null,
+    middlewareModelTargetCatalog: MiddlewareModelTargetCatalog
 ): AiModelTypeEnum {
     const explicitModelType = readString(value?.['modelType'])
     if (explicitModelType) {
         return explicitModelType as AiModelTypeEnum
+    }
+
+    const middlewareTarget = resolveMiddlewareModelTarget(middlewareModelTargetCatalog, context)
+    if (middlewareTarget?.modelType) {
+        return middlewareTarget.modelType
     }
 
     if (key === 'rerankModel') {
@@ -200,16 +312,22 @@ function inferTargetFeatures(key: string) {
     return key === 'visionModel' ? [ModelFeature.VISION] : []
 }
 
-function shouldTreatAsModelTarget(key: string, child: unknown, context: ModelScanContext) {
+function shouldTreatAsModelTarget(
+    key: string,
+    child: unknown,
+    context: ModelScanContext,
+    middlewareModelTargetCatalog: MiddlewareModelTargetCatalog
+) {
+    if (resolveMiddlewareModelTarget(middlewareModelTargetCatalog, context)) {
+        return child == null || isDraftObject(child)
+    }
+
     if (key === 'model') {
-        if (child == null) {
-            return context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE
+        if (context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE) {
+            return false
         }
 
-        return (
-            isDraftObject(child) &&
-            (context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE || isModelConfigShape(child))
-        )
+        return isDraftObject(child) && isModelConfigShape(child)
     }
 
     return key.endsWith('Model')
@@ -277,7 +395,8 @@ export function syncPrimaryAgentModelWithTeamSelection(
 
 export function syncDraftLlmModelConfigsWithTeamSelection(
     draft: TXpertTeamDraft,
-    copilots: AvailableCopilotModelSource[]
+    copilots: AvailableCopilotModelSource[],
+    middlewareModelTargetCatalog: MiddlewareModelTargetCatalog = {}
 ) {
     const availableItems = collectAvailableLlmModelItems(copilots)
     const teamSelection = resolveTeamLlmSelection(draft?.team?.copilotModel, availableItems)
@@ -302,8 +421,14 @@ export function syncDraftLlmModelConfigsWithTeamSelection(
             const childRecord = isDraftObject(child) ? child : null
             const childContext = extendModelScanContext(value, key, childRecord, context)
 
-            if (shouldTreatAsModelTarget(key, child, childContext)) {
-                const modelType = inferTargetModelType(childPath, key, childContext, childRecord)
+            if (shouldTreatAsModelTarget(key, child, childContext, middlewareModelTargetCatalog)) {
+                const modelType = inferTargetModelType(
+                    childPath,
+                    key,
+                    childContext,
+                    childRecord,
+                    middlewareModelTargetCatalog
+                )
                 const requiredFeatures = inferTargetFeatures(key)
 
                 if (

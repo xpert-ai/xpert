@@ -33,6 +33,7 @@ import { XpertAgentService } from '../../xpert-agent/xpert-agent.service'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 import { XpertToolsetService } from '../../xpert-toolset/xpert-toolset.service'
 import { XpertExportCommand, XpertImportCommand } from '../commands'
+import { buildMiddlewareModelTargetCatalog, MiddlewareModelTargetCatalog } from '../copilot-model-sync.util'
 import { buildOverwriteDraftFromImportedDsl } from '../import-draft.utils'
 import { XpertService } from '../xpert.service'
 import {
@@ -104,6 +105,7 @@ type ModelScanContext = {
     nodeType?: string | null
     workflowEntityType?: string | null
     middlewareProvider?: string | null
+    middlewareOptionPath?: string[]
 }
 
 type ModelConfigTarget = {
@@ -939,7 +941,8 @@ export class XpertAuthoringService {
             }
         }
 
-        const targets = this.getModelConfigTargets(parsedDsl)
+        const middlewareModelTargetCatalog = buildMiddlewareModelTargetCatalog(this.xpertAgentService.getMiddlewareStrategies())
+        const targets = this.getModelConfigTargets(parsedDsl, middlewareModelTargetCatalog)
         let changed = false
         const errors: string[] = []
 
@@ -963,7 +966,7 @@ export class XpertAuthoringService {
         }
     }
 
-    private getModelConfigTargets(root: Record<string, unknown>) {
+    private getModelConfigTargets(root: Record<string, unknown>, middlewareModelTargetCatalog: MiddlewareModelTargetCatalog) {
         const targets: ModelConfigTarget[] = []
         const seen = new Set<string>()
 
@@ -986,13 +989,19 @@ export class XpertAuthoringService {
                 const childRecord = this.asRecord(child)
                 const childContext = this.extendModelScanContext(record, key, childRecord, context)
 
-                if (childRecord && this.shouldTreatAsModelTarget(key, childRecord, childContext)) {
+                if (childRecord && this.shouldTreatAsModelTarget(key, childRecord, childContext, middlewareModelTargetCatalog)) {
                     if (!seen.has(childPath)) {
                         targets.push({
                             owner: record,
                             key,
                             label: childPath,
-                            expectedModelType: this.inferTargetModelType(childPath, key, childContext, childRecord),
+                            expectedModelType: this.inferTargetModelType(
+                                childPath,
+                                key,
+                                childContext,
+                                childRecord,
+                                middlewareModelTargetCatalog
+                            ),
                             requiredFeatures: this.inferTargetModelFeatures(key)
                         })
                         seen.add(childPath)
@@ -1117,7 +1126,9 @@ export class XpertAuthoringService {
             return []
         }
 
-        return this.getModelConfigTargets(root)
+        const middlewareModelTargetCatalog = buildMiddlewareModelTargetCatalog(this.xpertAgentService.getMiddlewareStrategies())
+
+        return this.getModelConfigTargets(root, middlewareModelTargetCatalog)
             .map((target) => {
                 const config = this.asRecord(target.owner[target.key])
                 if (!config) {
@@ -1242,26 +1253,60 @@ export class XpertAuthoringService {
                 nodeKey: typeof record['key'] === 'string' ? record['key'] : context.nodeKey,
                 nodeType,
                 workflowEntityType: typeof child['type'] === 'string' ? child['type'] : context.workflowEntityType,
-                middlewareProvider: typeof child['provider'] === 'string' ? child['provider'] : context.middlewareProvider
+                middlewareProvider: typeof child['provider'] === 'string' ? child['provider'] : null,
+                middlewareOptionPath: undefined
             }
         }
 
         if (key === 'options' && context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE) {
             return {
-                ...context
+                ...context,
+                middlewareOptionPath: []
+            }
+        }
+
+        if (context.middlewareOptionPath) {
+            return {
+                ...context,
+                middlewareOptionPath: [...context.middlewareOptionPath, key]
             }
         }
 
         return context
     }
 
+    private resolveMiddlewareModelTarget(
+        middlewareModelTargetCatalog: MiddlewareModelTargetCatalog,
+        context: ModelScanContext
+    ) {
+        const provider =
+            typeof context.middlewareProvider === 'string' && context.middlewareProvider.trim()
+                ? context.middlewareProvider
+                : null
+        const path = context.middlewareOptionPath?.join('.')
+        if (!provider || !path) {
+            return null
+        }
+
+        return middlewareModelTargetCatalog[provider]?.find((target) => target.path === path) ?? null
+    }
+
     private shouldTreatAsModelTarget(
         key: string,
         value: Record<string, unknown>,
-        context: ModelScanContext
+        context: ModelScanContext,
+        middlewareModelTargetCatalog: MiddlewareModelTargetCatalog
     ) {
+        if (this.resolveMiddlewareModelTarget(middlewareModelTargetCatalog, context)) {
+            return true
+        }
+
         if (key === 'model') {
-            return this.isCopilotModelConfig(value) || context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE
+            if (context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE) {
+                return false
+            }
+
+            return this.isCopilotModelConfig(value)
         }
 
         if (key.endsWith('Model')) {
@@ -1275,7 +1320,8 @@ export class XpertAuthoringService {
         label: string,
         key: string,
         context: ModelScanContext,
-        value: Record<string, unknown>
+        value: Record<string, unknown>,
+        middlewareModelTargetCatalog: MiddlewareModelTargetCatalog
     ): AiModelTypeEnum {
         const explicitModelType =
             typeof value['modelType'] === 'string' && value['modelType'].trim()
@@ -1283,6 +1329,11 @@ export class XpertAuthoringService {
                 : null
         if (explicitModelType) {
             return explicitModelType
+        }
+
+        const middlewareTarget = this.resolveMiddlewareModelTarget(middlewareModelTargetCatalog, context)
+        if (middlewareTarget?.modelType) {
+            return middlewareTarget.modelType
         }
 
         if (key === 'rerankModel') {

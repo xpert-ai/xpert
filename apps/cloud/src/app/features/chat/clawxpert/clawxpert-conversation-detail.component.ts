@@ -287,7 +287,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
-      console.log(`Thread changed:`, threadId)
       this.facade.onChatThreadChange(threadId)
     },
     // onThreadLoadStart: ({ threadId }) => {
