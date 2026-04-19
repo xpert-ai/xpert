@@ -304,6 +304,7 @@ export class XpertNewBlankComponent {
   readonly allowedModes = this.#dialogData.allowedModes ?? null
   readonly completionMode = this.#dialogData.completionMode ?? ('create' as BlankXpertCompletionMode)
   readonly templateCategory = normalizeBlankXpertDialogCategory(this.#dialogData.category)
+  readonly usesWorkspaceSkillDefaults = computed(() => this.templateCategory === BLANK_XPERT_DIALOG_CATEGORY.CLAW)
   readonly allowWorkspaceSelection = !!this.#dialogData.allowWorkspaceSelection
   readonly availableModes = computed(() => getBlankWizardAvailableModes(this.requestedType(), this.allowedModes))
   readonly types = model<BlankXpertMode[]>([getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)])
@@ -516,6 +517,7 @@ export class XpertNewBlankComponent {
   readonly selectedUnderstandings = model<string[]>([])
   readonly selectedWorkflowNodes = model<BlankWorkflowStarterNodeKey[]>([])
   readonly preparedSkillWorkspaces = signal<Set<string>>(new Set())
+  readonly initializedWorkspaceSkillDefaultWorkspaces = signal<Set<string>>(new Set())
   readonly workflowActionNodeOptions = WORKFLOW_ACTION_NODE_OPTIONS
   readonly workflowTransformNodeOptions = WORKFLOW_TRANSFORM_NODE_OPTIONS
   readonly selectedMode = computed<BlankXpertMode>(
@@ -865,6 +867,12 @@ export class XpertNewBlankComponent {
   }
 
   toggleSkill(skillId: string, enabled: boolean) {
+    if (this.usesWorkspaceSkillDefaults()) {
+      this.selectedExplicitSkills.set(this.toggleValue(this.selectedExplicitSkills(), skillId, enabled))
+      this.refreshAgentSkillMiddlewareSelections()
+      return
+    }
+
     const skill = this.skillState().skills.find((item) => item.id === skillId)
     if (!skill) {
       this.selectedExplicitSkills.set(this.toggleValue(this.selectedExplicitSkills(), skillId, enabled))
@@ -949,7 +957,7 @@ export class XpertNewBlankComponent {
       const skillPackage = await firstValueFrom(
         this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1))
       )
-      if (item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER && item.repositoryId) {
+      if (!this.usesWorkspaceSkillDefaults() && item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER && item.repositoryId) {
         const repositoryDefault = this.selectedRepositoryDefault()
         const disabledSkillIds =
           repositoryDefault?.repositoryId === item.repositoryId
@@ -1453,6 +1461,7 @@ export class XpertNewBlankComponent {
   }
 
   private clearWorkspaceScopedAgentSelections() {
+    this.initializedWorkspaceSkillDefaultWorkspaces.set(new Set())
     this.applyAgentSkillSelections({
       skills: [],
       repositoryDefault: null,
@@ -1475,6 +1484,11 @@ export class XpertNewBlankComponent {
     }
 
     if (this.preparedSkillWorkspaces().has(workspaceId)) {
+      if (this.usesWorkspaceSkillDefaults()) {
+        this.applyWorkspaceSkillDefaults(workspaceId, this.getWorkspaceSkillIds())
+        return
+      }
+
       if (!this.selectedRepositoryDefault()?.repositoryId) {
         const repositoryId = await this.getWorkspacePublicRepositoryId()
         if (repositoryId) {
@@ -1491,12 +1505,18 @@ export class XpertNewBlankComponent {
     this.installingSkillPackage.set(true)
     try {
       const repositoryId = await this.getWorkspacePublicRepositoryId()
+      let installedSkillIds: string[] = []
       if (repositoryId) {
-        await firstValueFrom(
+        const installedSkillPackages = await firstValueFrom(
           this.#skillPackageService.installRepositoryPackages(workspaceId, repositoryId).pipe(take(1))
         )
+        installedSkillIds = installedSkillPackages
+          .map((item) => (typeof item?.id === 'string' ? item.id.trim() : ''))
+          .filter((id) => !!id)
 
-        if (!this.selectedRepositoryDefault()?.repositoryId) {
+        if (this.usesWorkspaceSkillDefaults()) {
+          this.selectedRepositoryDefault.set(null)
+        } else if (!this.selectedRepositoryDefault()?.repositoryId) {
           this.selectedRepositoryDefault.set({
             repositoryId,
             disabledSkillIds: []
@@ -1505,6 +1525,7 @@ export class XpertNewBlankComponent {
       }
 
       this.preparedSkillWorkspaces.update((value) => new Set([...value, workspaceId]))
+      this.applyWorkspaceSkillDefaults(workspaceId, [...this.getWorkspaceSkillIds(), ...installedSkillIds])
       this.refreshAgentSkillMiddlewareSelections()
       this.refreshSkills()
     } catch (error) {
@@ -1531,6 +1552,29 @@ export class XpertNewBlankComponent {
     return this.skillState()
       .skills.filter((skill) => skill.repositoryId === repositoryId)
       .map((skill) => skill.id)
+  }
+
+  private getWorkspaceSkillIds() {
+    return this.skillState().skills.map((skill) => skill.id)
+  }
+
+  private applyWorkspaceSkillDefaults(workspaceId: string, skillIds: string[]) {
+    if (!this.usesWorkspaceSkillDefaults()) {
+      return
+    }
+
+    if (this.initializedWorkspaceSkillDefaultWorkspaces().has(workspaceId)) {
+      return
+    }
+
+    const normalizedSkillIds = Array.from(
+      new Set(skillIds.map((skillId) => skillId?.trim()).filter((skillId): skillId is string => !!skillId))
+    )
+    if (normalizedSkillIds.length) {
+      this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), ...normalizedSkillIds])))
+    }
+    this.selectedRepositoryDefault.set(null)
+    this.initializedWorkspaceSkillDefaultWorkspaces.update((value) => new Set([...value, workspaceId]))
   }
 
   private refreshAgentSkillMiddlewareSelections() {

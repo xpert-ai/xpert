@@ -62,6 +62,7 @@ export interface ISkillsMiddlewareOptions {
  * - `selectedSkillWorkspaceId`: Workspace ID associated with runtime-selected skills. If provided,
  *   middleware verifies access and uses that workspace for runtime skill loading; otherwise it falls
  *   back to the current context workspace.
+ * - `skillSelectionMode`: Optional explicit runtime override for how workspace skills are resolved.
  *
  * Merge behavior with config:
  * - `options.skills` are always loaded for the current context workspace.
@@ -69,11 +70,17 @@ export interface ISkillsMiddlewareOptions {
  *   (`selectedSkillWorkspaceId` after access check / fallback).
  * - When `selectedSkillWorkspaceId` is present and runtime `selectedSkillIds` are absent, the
  *   middleware loads the full effective workspace skill set and filters it with `disabledSkillIds`.
+ * - When `skillSelectionMode` is `workspace_blacklist`, the middleware ignores configured and
+ *   runtime-selected skill IDs, loads the full effective workspace skill set, and filters it with
+ *   `disabledSkillIds`.
  */
+type RuntimeSkillSelectionMode = 'workspace_blacklist'
+
 type RuntimeSkillSelectionState = {
 	selectedSkillIds?: string[]
 	disabledSkillIds?: string[]
 	selectedSkillWorkspaceId?: string
+	skillSelectionMode?: RuntimeSkillSelectionMode
 }
 
 type ConfigRepositoryDefaultSelection = {
@@ -267,7 +274,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 	readonly stateSchema = z.object({
 		selectedSkillIds: z.array(z.string()).optional(),
 		disabledSkillIds: z.array(z.string()).optional(),
-		selectedSkillWorkspaceId: z.string().optional()
+		selectedSkillWorkspaceId: z.string().optional(),
+		skillSelectionMode: z.literal('workspace_blacklist').optional()
 	})
 
 	private asRecord(value: unknown): Record<string, unknown> {
@@ -350,6 +358,23 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			this.sanitizeWorkspaceId(startState.selectedSkillWorkspaceId)
 
 		return { skillIds, workspaceId, hasRuntimeSelection }
+	}
+
+	private resolveRuntimeSkillSelectionMode(
+		state: Record<string, unknown>
+	): RuntimeSkillSelectionMode | null {
+		const rootState = state as RuntimeSkillSelectionState
+		const startState = this.asRecord(state[START_STATE_KEY]) as RuntimeSkillSelectionState
+
+		if (rootState.skillSelectionMode === 'workspace_blacklist') {
+			return rootState.skillSelectionMode
+		}
+
+		if (startState.skillSelectionMode === 'workspace_blacklist') {
+			return startState.skillSelectionMode
+		}
+
+		return null
 	}
 
 	private filterSkillMetadata(skills: SkillPromptMetadata[], disabledSkillIds: string[]) {
@@ -556,8 +581,15 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				runtimeSkillsRootInContainer = this.resolveSkillsRootInContainer(runtimeSandbox)
 				const state = (request.state ?? {}) as Record<string, unknown>
 				const disabledSkillIds = this.resolveDisabledSkillIds(state)
-				const configuredSkillIds = this.sanitizeSkillIds(options?.skills)
-				const configuredRepositoryDefault = this.resolveConfiguredRepositoryDefault(options)
+				const runtimeSkillSelectionMode = this.resolveRuntimeSkillSelectionMode(state)
+				const configuredSkillIds =
+					runtimeSkillSelectionMode === 'workspace_blacklist'
+						? []
+						: this.sanitizeSkillIds(options?.skills)
+				const configuredRepositoryDefault =
+					runtimeSkillSelectionMode === 'workspace_blacklist'
+						? null
+						: this.resolveConfiguredRepositoryDefault(options)
 				const {
 					skillIds: runtimeSkillIds,
 					workspaceId: stateWorkspaceId,
@@ -571,17 +603,25 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				)
 
 				const workspaceSkillSelections = new Map<string, Set<string>>()
-				this.appendWorkspaceSkills(
-					workspaceSkillSelections,
-					normalizedContextWorkspaceId,
-					configuredSkillIds
-				)
-				if (hasRuntimeSelection && runtimeSkillIds.length > 0) {
-					this.appendWorkspaceSkills(workspaceSkillSelections, runtimeWorkspaceId, runtimeSkillIds)
+				if (runtimeSkillSelectionMode !== 'workspace_blacklist') {
+					this.appendWorkspaceSkills(
+						workspaceSkillSelections,
+						normalizedContextWorkspaceId,
+						configuredSkillIds
+					)
+					if (hasRuntimeSelection && runtimeSkillIds.length > 0) {
+						this.appendWorkspaceSkills(workspaceSkillSelections, runtimeWorkspaceId, runtimeSkillIds)
+					}
 				}
 
 				const skills: SkillPromptMetadata[] = []
-				if (configuredRepositoryDefault) {
+				if (runtimeSkillSelectionMode === 'workspace_blacklist' && stateWorkspaceId) {
+					const workspaceSkills = await this.loadWorkspaceSkillMetadata(
+						runtimeSkillsRootInContainer,
+						runtimeWorkspaceId
+					)
+					skills.push(...workspaceSkills)
+				} else if (configuredRepositoryDefault) {
 					const workspaceSkills = await this.loadRepositoryWorkspaceSkillMetadata(
 						runtimeSkillsRootInContainer,
 						normalizedContextWorkspaceId,

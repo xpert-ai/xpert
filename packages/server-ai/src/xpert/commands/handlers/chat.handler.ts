@@ -1,6 +1,8 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
 import {
+    AssistantBindingScope,
+    AssistantCode,
     appendMessageContent,
     appendMessagePlainText,
     CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED,
@@ -198,8 +200,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const timeStart = Date.now()
 
         const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent', 'knowledgebase'] })
-        const userPreference = await this.assistantBindingService.getUserPreferenceByAssistantId(xpertId)
+        const [userPreference, clawXpertBinding] = await Promise.all([
+            this.assistantBindingService.getUserPreferenceByAssistantId(xpertId),
+            this.assistantBindingService.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+        ])
         const latestXpert = figureOutXpert(xpert, options?.isDraft)
+        const forceWorkspaceSkillBlacklistMode = clawXpertBinding?.assistantId === xpertId
         const abortController = new AbortController()
         const memory = latestXpert.memory
         const memoryStore: BaseStore | null = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore | null>(
@@ -423,7 +429,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         }
         state ??= normalizeChatState(undefined, input)
         state = withPreferenceSystemState(state, userPreference)
-        state = withPreferenceSkillState(state, latestXpert?.workspaceId ?? xpert.workspaceId, userPreference?.toolPreferences)
+        state = withPreferenceSkillState(
+            state,
+            latestXpert?.workspaceId ?? xpert.workspaceId,
+            userPreference?.toolPreferences,
+            forceWorkspaceSkillBlacklistMode
+        )
 
         return new Observable<MessageEvent>((subscriber) => {
             // New conversation
@@ -848,14 +859,17 @@ function withPreferenceSystemState(
 function withPreferenceSkillState(
     state: Record<string, any>,
     workspaceId?: string | null,
-    toolPreferences?: IAssistantBindingToolPreferences | null
+    toolPreferences?: IAssistantBindingToolPreferences | null,
+    forceWorkspaceSkillBlacklistMode = false
 ) {
     const normalizedWorkspaceId = workspaceId?.trim() || undefined
 
     return {
         ...state,
         selectedSkillWorkspaceId: normalizedWorkspaceId,
-        disabledSkillIds: normalizedWorkspaceId ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences) : undefined
+        disabledSkillIds: normalizedWorkspaceId ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences) : undefined,
+        skillSelectionMode:
+            normalizedWorkspaceId && forceWorkspaceSkillBlacklistMode ? 'workspace_blacklist' : undefined
     }
 }
 

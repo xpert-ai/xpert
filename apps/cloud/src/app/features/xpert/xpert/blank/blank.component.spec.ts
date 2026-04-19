@@ -730,6 +730,112 @@ describe('XpertNewBlankComponent', () => {
     expect(component.selectedMiddlewares()).toEqual([BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
   })
 
+  it('defaults all loaded workspace skills to selected during claw setup', async () => {
+    const workspaceSkills = [
+      {
+        id: 'skill-local',
+        metadata: {
+          displayName: {
+            en_US: 'Local Skill'
+          }
+        }
+      }
+    ] as any[]
+    const { component, fixture, skillPackageService, skillRepositoryService } = await createComponent(
+      {
+        category: 'claw',
+        type: XpertTypeEnum.Agent,
+        workspace: {
+          id: 'workspace-1',
+          name: 'Workspace One'
+        } as any
+      },
+      {
+        workspaceSkills
+      }
+    )
+
+    skillPackageService.installRepositoryPackages.mockImplementation(() => {
+      workspaceSkills.splice(
+        0,
+        workspaceSkills.length,
+        {
+          id: 'skill-public',
+          metadata: {
+            displayName: {
+              en_US: 'Public Skill'
+            }
+          },
+          skillIndex: {
+            repositoryId: 'repo-public',
+            repository: {
+              id: 'repo-public',
+              provider: 'workspace-public',
+              name: 'Workspace Shared Skills'
+            }
+          }
+        },
+        {
+          id: 'skill-local',
+          metadata: {
+            displayName: {
+              en_US: 'Local Skill'
+            }
+          }
+        }
+      )
+      return of([{ id: 'skill-public' }])
+    })
+
+    await component.onAgentStepChange({ selectedIndex: 4 } as any)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(skillRepositoryService.getAllInOrg).toHaveBeenCalled()
+    expect(skillPackageService.installRepositoryPackages).toHaveBeenCalledWith('workspace-1', 'repo-public')
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(component.selectedSkills()).toEqual(['skill-local', 'skill-public'])
+    expect(component.selectedMiddlewares()).toEqual([BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('treats public workspace skills as explicit selections during claw setup', async () => {
+    const { component } = await createComponent(
+      {
+        category: 'claw',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        workspaceSkills: [
+          {
+            id: 'skill-public',
+            metadata: {
+              displayName: {
+                en_US: 'Public Skill'
+              }
+            },
+            skillIndex: {
+              repositoryId: 'repo-public',
+              repository: {
+                id: 'repo-public',
+                provider: 'workspace-public',
+                name: 'Workspace Shared Skills'
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    component.toggleSkill('skill-public', true)
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(component.selectedSkills()).toEqual(['skill-public'])
+
+    component.toggleSkill('skill-public', false)
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(component.selectedSkills()).toEqual([])
+  })
+
   it('auto-adds and removes skills middleware when skills are toggled', async () => {
     const { component } = await createComponent({
       type: XpertTypeEnum.Agent
