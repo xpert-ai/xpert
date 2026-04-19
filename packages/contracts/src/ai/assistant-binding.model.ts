@@ -57,7 +57,7 @@ export interface IAssistantBindingConversationPreferences {
 }
 
 export interface IAssistantBindingToolPreferences {
-  version: 1
+  version: number
   toolsets?: Record<string, IAssistantBindingToolsetPreference>
   middlewares?: Record<string, IAssistantBindingMiddlewarePreference>
   skills?: Record<string, IAssistantBindingSkillPreference>
