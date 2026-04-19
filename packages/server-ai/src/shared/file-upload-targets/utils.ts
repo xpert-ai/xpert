@@ -1,18 +1,14 @@
 import { FileUploadVolumeCatalog, IUploadFileVolumeTarget } from '@xpert-ai/contracts'
+import { normalizeUploadedFileName } from '@xpert-ai/server-common'
 import path from 'path'
 import {
-    getVolumeBaseUrl,
-    getVolumeRootPath,
-    getVolumeSubpath as getSharedVolumeSubpath
+    createRuntimeVolumeClient,
+    getVolumeSubpath as getSharedVolumeSubpath,
+    VolumeHandle
 } from '../volume/volume'
-import { getApiContainerSandboxVolumeRootPath } from '../volume/volume-layout'
 
 export function normalizeFileName(fileName: string) {
-    const normalized = path.basename(fileName).trim()
-    if (!normalized) {
-        throw new Error('Invalid file name')
-    }
-    return normalized
+    return normalizeUploadedFileName(fileName)
 }
 
 export function normalizeRelativePath(...segments: Array<string | undefined>) {
@@ -27,7 +23,7 @@ export function normalizeRelativePath(...segments: Array<string | undefined>) {
 }
 
 export function getApiContainerSandboxVolumeRoot(tenantId: string) {
-    return getApiContainerSandboxVolumeRootPath(tenantId)
+    return createRuntimeVolumeClient().resolveRoot(tenantId).serverRoot
 }
 
 export function getVolumeSubpath(
@@ -52,30 +48,23 @@ export function getVolumeSubpath(
     })
 }
 
-export function resolveVolumeTarget(target: IUploadFileVolumeTarget, request: { tenantId?: string; userId?: string }) {
+export function resolveVolumeTarget(
+    target: IUploadFileVolumeTarget,
+    request: { tenantId?: string; userId?: string }
+): VolumeHandle {
     const tenantId = target.tenantId || request.tenantId
     const userId = target.userId || request.userId
 
-    return {
-        rootPath: getVolumeRootPath(tenantId, {
-            catalog: target.catalog,
-            knowledgeId: target.knowledgeId,
-            projectId: target.projectId,
-            rootId: target.metadata?.rootId,
-            userId,
-            xpertId: target.xpertId,
-            isolateByUser: target.isolateByUser
-        }),
-        baseUrl: getVolumeBaseUrl({
-            catalog: target.catalog,
-            knowledgeId: target.knowledgeId,
-            projectId: target.projectId,
-            rootId: target.metadata?.rootId,
-            userId,
-            xpertId: target.xpertId,
-            isolateByUser: target.isolateByUser
-        })
-    }
+    return createRuntimeVolumeClient().resolve({
+        tenantId,
+        catalog: target.catalog,
+        knowledgeId: target.knowledgeId,
+        projectId: target.projectId,
+        rootId: target.metadata?.rootId,
+        userId,
+        xpertId: target.xpertId,
+        isolateByUser: target.isolateByUser
+    })
 }
 
 export function isUtf8Text(fileName: string, mimeType?: string) {

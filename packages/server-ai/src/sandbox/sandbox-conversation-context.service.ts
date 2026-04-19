@@ -4,11 +4,11 @@ import {
 import type { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import type { SandboxBackendProtocol } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/server-core'
 import { ChatConversationService } from '../chat-conversation'
-import { VolumeClient } from '../shared'
+import { VOLUME_CLIENT, VolumeClient, WorkspacePathMapperFactory } from '../shared'
 import { SandboxAcquireBackendCommand } from './commands'
 
 export type ResolvedConversationSandboxContext = {
@@ -19,6 +19,7 @@ export type ResolvedConversationSandboxContext = {
   sandbox: TSandboxConfigurable
   tenantId: string
   userId: string
+  volumePath: string
   workingDirectory: string
 }
 
@@ -26,7 +27,10 @@ export type ResolvedConversationSandboxContext = {
 export class SandboxConversationContextService {
   constructor(
     private readonly commandBus: CommandBus,
-    private readonly conversationService: ChatConversationService
+    private readonly conversationService: ChatConversationService,
+    @Inject(VOLUME_CLIENT)
+    private readonly volumeClient: VolumeClient,
+    private readonly workspacePathMapperFactory: WorkspacePathMapperFactory
   ) {}
 
   async resolveConversationSandbox(params: {
@@ -81,21 +85,37 @@ export class SandboxConversationContextService {
     }
 
     const effectiveProjectId = params.projectId ?? conversation.projectId ?? null
-    const workingDirectory = effectiveProjectId
-      ? await VolumeClient.getSharedWorkspacePath(tenantId, effectiveProjectId, userId)
+    const volumeScope = effectiveProjectId
+      ? {
+          tenantId,
+          catalog: 'projects' as const,
+          projectId: effectiveProjectId,
+          userId
+        }
       : conversation.xpertId
-        ? await VolumeClient.getXpertWorkspacePath(tenantId, conversation.xpertId, userId)
+        ? {
+            tenantId,
+            catalog: 'xperts' as const,
+            xpertId: conversation.xpertId,
+            userId,
+            isolateByUser: true
+          }
         : null
+    const volume = volumeScope ? await this.volumeClient.resolve(volumeScope).ensureRoot() : null
 
-    if (!workingDirectory) {
+    if (!volume) {
       throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
     }
+    const workspaceBinding = this.workspacePathMapperFactory.forProvider(provider).mapVolumeToWorkspace(volume)
+    const workingDirectory = workspaceBinding.workspacePath
 
     const sandbox = await this.commandBus.execute(
       new SandboxAcquireBackendCommand({
         tenantId,
         provider,
         workingDirectory,
+        workspaceBinding,
+        volumeScope: volumeScope ?? undefined,
         workFor: effectiveProjectId ? { type: 'project', id: effectiveProjectId } : { type: 'user', id: userId }
       })
     )
@@ -107,6 +127,8 @@ export class SandboxConversationContextService {
       })
     }
 
+    const resolvedWorkspacePath = sandbox.workingDirectory ?? workingDirectory
+
     return {
       backend,
       conversationId,
@@ -115,7 +137,8 @@ export class SandboxConversationContextService {
       sandbox,
       tenantId,
       userId,
-      workingDirectory
+      volumePath: volume.serverRoot,
+      workingDirectory: resolvedWorkspacePath
     }
   }
 }

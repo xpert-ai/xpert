@@ -39,7 +39,13 @@ describe('SandboxConversationContextService', () => {
 
     service = new SandboxConversationContextService(
       commandBus as unknown as CommandBus,
-      conversationService as unknown as ChatConversationService
+      conversationService as unknown as ChatConversationService,
+      {
+        resolve: jest.fn()
+      } as any,
+      {
+        forProvider: jest.fn()
+      } as any
     )
   })
 

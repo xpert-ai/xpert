@@ -8,7 +8,6 @@ import {
 import { Injectable } from '@nestjs/common'
 import fsPromises from 'fs/promises'
 import path from 'path'
-import { urlJoin } from '@xpert-ai/server-common'
 import { normalizeFileName, normalizeRelativePath, resolveVolumeTarget } from '../utils'
 
 @Injectable()
@@ -22,10 +21,10 @@ export class VolumeTargetStrategy implements IFileUploadTargetStrategy<IUploadFi
 		const volume = resolveVolumeTarget(target, context.request)
 		const fileName = normalizeFileName(target.fileName || source.originalName)
 		const filePath = normalizeRelativePath(target.folder, fileName)
-		const absolutePath = path.join(volume.rootPath, filePath)
+		const absolutePath = volume.path(filePath)
 		await fsPromises.mkdir(path.dirname(absolutePath), { recursive: true })
 		await fsPromises.writeFile(absolutePath, source.buffer)
-		const url = urlJoin(volume.baseUrl, filePath)
+		const url = volume.publicUrl(filePath)
 
 		return {
 			kind: 'volume',

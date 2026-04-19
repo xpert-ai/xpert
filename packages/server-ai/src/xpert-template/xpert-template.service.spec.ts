@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { LanguagesEnum } from '@xpert-ai/contracts'
+import { Logger } from '@nestjs/common'
 
 jest.mock('../skill-repository/skill-repository.service', () => ({
 	SkillRepositoryService: class SkillRepositoryService {}
@@ -267,6 +268,24 @@ describe('XpertTemplateService', () => {
 
 		await expect(service.readTemplatesFile()).rejects.toThrow(externalRoot)
 		await expect(service.readTemplatesFile()).rejects.toThrow('templates.json')
+	})
+
+	it('does not block module init when the builtin template source is missing', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const loggerSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: dataRoot
+		})
+
+		await expect(service.onModuleInit()).resolves.toBeUndefined()
+		await expect(service.readTemplatesFile()).rejects.toThrow('Built-in xpert template source')
+		await expect(service.readTemplatesFile()).rejects.toThrow(workspaceRoot)
+		expect(loggerSpy).toHaveBeenCalledWith(
+			expect.stringContaining('Skip xpert template bootstrap during module init:'),
+			expect.any(String)
+		)
 	})
 
 	it('preserves featured avatars from skills market config when resolving featured skills', async () => {
@@ -579,6 +598,7 @@ describe('XpertTemplateService', () => {
 
 	it('reuses repository path trimming when resolving default workspace skill refs', async () => {
 		const workspaceRoot = createTempDir()
+		seedBuiltinTemplates(workspaceRoot)
 		const { service, skillRepositoryIndexService, skillRepositoryService } = createService({
 			serverRoot: workspaceRoot,
 			dataPath: createTempDir()

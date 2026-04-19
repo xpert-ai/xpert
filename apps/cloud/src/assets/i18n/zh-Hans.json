@@ -3718,6 +3718,8 @@
       "Total": "总数"
     },
     "Xpert": {
+      "DefaultWorkspace": "默认",
+      "SetDefaultWorkspace": "设为默认",
       "ActionToReview": "需要您审核的操作",
       "ToolDescriptionPlaceholder": "描述需要审批的内容",
       "ToolCall": "工具调用",

@@ -26,7 +26,7 @@ import {
 import { isNil } from '@xpert-ai/copilot'
 import { RequestContext } from '@xpert-ai/server-core'
 import { getErrorMessage, omit } from '@xpert-ai/server-common'
-import { Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { format } from 'date-fns/format'
@@ -42,7 +42,7 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService, mergeRuntimeContextWithEnv } from '../../../environment'
-import { VolumeClient, ExecutionCancelService } from '../../../shared'
+import { ExecutionCancelService, VOLUME_CLIENT, VolumeClient, WorkspacePathMapperFactory } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
@@ -58,6 +58,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly envService: EnvironmentService,
         private readonly i18nService: I18nService,
         private readonly executionCancelService: ExecutionCancelService,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient,
+        private readonly workspacePathMapperFactory: WorkspacePathMapperFactory,
         @InjectRepository(ChatMessage)
         private readonly chatMessageRepository: Repository<ChatMessage>
     ) {}
@@ -104,16 +107,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         let unmutes = [] as TXpertAgentConfig['mute']
         const threadId = options.thread_id
         const latestXpert = figureOutXpert(xpert as IXpert, options?.isDraft)
-        const workspacePath = options.projectId
-            ? await VolumeClient.getSharedWorkspacePath(tenantId, options.projectId, userId)
-            : await VolumeClient.getXpertWorkspacePath(
-                  tenantId,
-                  resolveWorkspaceXpertId(latestXpert, xpert),
-                  userId
-              )
-        const workspaceUrl = options.projectId
-            ? VolumeClient.getSharedWorkspaceUrl(options.projectId, userId)
-            : VolumeClient.getXpertWorkspaceUrl(resolveWorkspaceXpertId(latestXpert, xpert), userId)
         const sandboxFeature = latestXpert.features?.sandbox
         const sandboxEnvironmentId = options?.sandboxEnvironmentId
         const sandboxWorkFor = {
@@ -122,6 +115,32 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         } as const
         const hasSandboxWorkForId = Boolean(sandboxWorkFor.id)
         const hasExplicitSandboxEnvironment = sandboxWorkFor.type === 'environment' && hasSandboxWorkForId
+        const volumeScope = sandboxEnvironmentId
+            ? ({
+                  tenantId,
+                  catalog: 'environment',
+                  environmentId: sandboxEnvironmentId,
+                  userId
+              } as const)
+            : options.projectId
+              ? ({
+                    tenantId,
+                    catalog: 'projects',
+                    projectId: options.projectId,
+                    userId
+                } as const)
+              : ({
+                    tenantId,
+                    catalog: 'xperts',
+                    xpertId: resolveWorkspaceXpertId(latestXpert, xpert),
+                    userId,
+                    isolateByUser: true
+                } as const)
+        const volume = await this.volumeClient.resolve(volumeScope).ensureRoot()
+        const initialWorkspaceBinding =
+            hasSandboxWorkForId && sandboxFeature?.provider
+                ? this.workspacePathMapperFactory.forProvider(sandboxFeature.provider).mapVolumeToWorkspace(volume)
+                : null
         let sandboxContext: TSandboxConfigurable | null = null
 
         if (hasSandboxWorkForId && (sandboxFeature?.enabled || hasExplicitSandboxEnvironment)) {
@@ -129,7 +148,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 sandboxContext = await this.commandBus.execute(
                     new SandboxAcquireBackendCommand({
                         provider: sandboxFeature?.provider,
-                        workingDirectory: sandboxEnvironmentId ? null : workspacePath,
+                        workingDirectory: sandboxEnvironmentId ? undefined : initialWorkspaceBinding?.workspacePath,
+                        workspaceBinding: initialWorkspaceBinding ?? undefined,
+                        volumeScope,
                         tenantId,
                         workFor: sandboxWorkFor
                     })
@@ -138,6 +159,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 this.#logger.warn(`Sandbox backend acquire failed: ${getErrorMessage(err)}`)
             }
         }
+        const volumePath = volume.serverRoot
+        const workspacePath = sandboxContext?.workingDirectory ?? initialWorkspaceBinding?.workspacePath ?? volumePath
+        const workspaceUrl = volume.publicBaseUrl
 
         // Env
         if (!options.environment && xpert.environmentId) {
@@ -249,7 +273,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             userEmail: user.email,
             timezone: user.timeZone || options.timeZone,
             threadId,
-            volume: workspacePath,
+            volume: volumePath,
             workspacePath,
             workspaceUrl
         })

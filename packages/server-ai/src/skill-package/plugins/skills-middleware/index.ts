@@ -402,6 +402,18 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			new SandboxAcquireBackendCommand({
 				tenantId,
 				workingDirectory,
+				volumeScope: projectId
+					? {
+							tenantId,
+							catalog: 'projects',
+							projectId,
+							userId
+					  }
+					: {
+							tenantId,
+							catalog: 'users',
+							userId
+					  },
 				workFor: projectId
 					? { type: 'project', id: projectId }
 					: { type: 'user', id: userId }

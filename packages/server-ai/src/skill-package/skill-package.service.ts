@@ -1,4 +1,4 @@
-import { getErrorMessage, yaml } from '@xpert-ai/server-common'
+import { getErrorMessage, normalizeUploadedFileName, yaml } from '@xpert-ai/server-common'
 import {
 	convertToUrlPath,
 	I18nObject,
@@ -703,8 +703,10 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	): Promise<TFile> {
 		const { rootPath } = await this.resolveSkillPackageRoot(workspaceId, id)
 		const relativeFolderPath = validateSkillRelativePath(rootPath, folderPath)
-		const fileName = basename(file.originalname || '')
-		if (!fileName) {
+		let fileName = ''
+		try {
+			fileName = normalizeUploadedFileName(file.originalname)
+		} catch {
 			throw new BadRequestException('File name is required')
 		}
 

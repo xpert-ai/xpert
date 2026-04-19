@@ -275,7 +275,7 @@
     <div class="max-h-96 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
       @for (item of filteredWorkspaces(); track item.id) {
         <div
-          class="workspace-item flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
+          class="workspace-item group/item flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
           [class.active]="item.id === selectedWorkspace()?.id"
           (click)="selectWorkspace(item)"
         >
@@ -295,12 +295,12 @@
               class="inline-flex shrink-0 items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary"
             >
               <i class="ri-star-fill text-[10px]"></i>
-              {{ 'PAC.Xpert.DefaultWorkspace' | translate: { Default: '默认' } }}
+              {{ 'PAC.Xpert.DefaultWorkspace' | translate: { Default: 'Default' } }}
             </span>
           } @else {
             <button
               type="button"
-              class="inline-flex shrink-0 items-center gap-1 rounded-full border border-transparent px-2 py-1 text-[11px] font-medium text-text-tertiary hover:border-divider-regular hover:bg-background-default-subtle hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              class="inline-flex shrink-0 items-center gap-1 rounded-full border border-transparent px-2 py-1 text-[11px] font-medium text-text-tertiary hover:border-divider-regular hover:bg-background-default-subtle hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60 opacity-0 group-hover/item:opacity-100 transition-opacity"
               [disabled]="settingDefaultWorkspaceId() === item.id"
               (click)="setDefaultWorkspace($event, item)"
             >
@@ -309,7 +309,7 @@
               } @else {
                 <i class="ri-star-line"></i>
               }
-              {{ 'PAC.Xpert.SetDefaultWorkspace' | translate: { Default: '设为默认' } }}
+              {{ 'PAC.Xpert.SetDefaultWorkspace' | translate: { Default: 'Set as Default' } }}
             </button>
           }
         </div>

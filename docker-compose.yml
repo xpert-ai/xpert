@@ -36,6 +36,8 @@ services:
     entrypoint: './entrypoint.compose.sh'
     command: [ 'pm2-runtime', 'main.js' ]
     restart: on-failure
+    group_add:
+      - "${DOCKER_SOCKET_GID:-0}"
     depends_on:
       - db
       - redis
@@ -44,6 +46,7 @@ services:
     ports:
       - '${API_PORT:-3000}:3000'
     volumes:
+      - ${DOCKER_SOCKET_SOURCE:-/var/run/docker.sock}:/var/run/docker.sock
       - ./docker/volumes/api/public:/srv/xpert/public
       - ./docker/volumes/api/ms-playwright:/ms-playwright
       - ./docker/volumes/api/sandbox/:/sandbox/

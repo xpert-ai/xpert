@@ -73,8 +73,9 @@ export function buildChunkTree<Metadata extends IDocChunkMetadata = IDocChunkMet
   // Step 1. Build a lookup map for quick access by chunkId
   const map = new Map<string, DocumentInterface<Metadata>>()
   for (const doc of documents) {
-    if (doc.metadata?.chunkId) {
-      map.set(doc.metadata.chunkId, { ...doc, metadata: { ...doc.metadata, children: [] } })
+    const chunkId = getChunkNodeId(doc)
+    if (chunkId) {
+      map.set(chunkId, { ...doc, metadata: { ...doc.metadata, chunkId, children: [] } })
     }
   }
 
@@ -93,6 +94,20 @@ export function buildChunkTree<Metadata extends IDocChunkMetadata = IDocChunkMet
   }
   
   return roots
+}
+
+function getChunkNodeId<Metadata extends IDocChunkMetadata>(
+  document: DocumentInterface<Metadata>
+): string | undefined {
+  if (document.metadata?.chunkId) {
+    return document.metadata.chunkId
+  }
+
+  if ('id' in document && typeof document.id === 'string' && document.id) {
+    return document.id
+  }
+
+  return undefined
 }
 
 /**

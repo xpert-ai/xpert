@@ -224,7 +224,14 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 	}
 
 	async onModuleInit() {
-		await this.ensureTemplateDirectoryReady()
+		try {
+			await this.ensureTemplateDirectoryReady()
+		} catch (error) {
+			this.#logger.error(
+				`Skip xpert template bootstrap during module init: ${getErrorMessage(error)}`,
+				error instanceof Error ? error.stack : undefined
+			)
+		}
 	}
 
 	async readTemplatesFile(): Promise<TXpertTemplatesCatalog> {

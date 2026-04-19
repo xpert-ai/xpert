@@ -15,6 +15,7 @@ import {
     ForbiddenException,
     Get,
     Header,
+    Inject,
     Logger,
     Param,
     Post,
@@ -33,9 +34,9 @@ import { I18nService } from 'nestjs-i18n'
 import { join } from 'path'
 import { Observable } from 'rxjs'
 import { ChatConversationService } from '../chat-conversation'
-import { VolumeClient, getMediaTypeWithCharset } from '../shared'
-import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
 import { IChatConversation } from '@xpert-ai/contracts'
+import { VOLUME_CLIENT, VolumeClient, getMediaTypeWithCharset } from '../shared'
+import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 
 @ApiTags('Sandbox')
@@ -49,7 +50,9 @@ export class SandboxController {
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly conversationService: ChatConversationService,
-        private readonly sandboxConversationContextService: SandboxConversationContextService
+        private readonly sandboxConversationContextService: SandboxConversationContextService,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient
     ) {}
 
     @Public()
@@ -134,8 +137,8 @@ export class SandboxController {
                     {
                         kind: 'sandbox',
                         mode: 'mounted_workspace',
-                        workspacePath: client.getVolumePath(workspace),
-                        workspaceUrl: client.getPublicUrl(workspace),
+                        workspacePath: client.path(workspace),
+                        workspaceUrl: client.publicUrl(workspace),
                         folder: path || ''
                     }
                 ]
@@ -216,7 +219,7 @@ export class SandboxController {
 
     private createConversationVolumeClient(conversation: Partial<IChatConversation>) {
         if (conversation?.projectId) {
-            return new VolumeClient({
+            return this.volumeClient.resolve({
                 tenantId: conversation.tenantId,
                 userId: conversation.createdById ?? RequestContext.currentUserId(),
                 catalog: 'projects',
@@ -225,7 +228,7 @@ export class SandboxController {
         }
 
         if (conversation?.xpertId) {
-            return new VolumeClient({
+            return this.volumeClient.resolve({
                 tenantId: conversation.tenantId,
                 userId: conversation.createdById ?? RequestContext.currentUserId(),
                 catalog: 'xperts',

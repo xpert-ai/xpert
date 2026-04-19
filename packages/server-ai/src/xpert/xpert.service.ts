@@ -23,7 +23,7 @@ import {
     transformWhere,
     UserGroupService
 } from '@xpert-ai/server-core'
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common'
+import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -33,7 +33,7 @@ import { DeepPartial, FindOptionsWhere, In, IsNull, Like, Not, Repository } from
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
-import { VolumeClient, WorkspaceVolumeClient } from '../shared/volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
@@ -55,7 +55,9 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         private readonly queryBus: QueryBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly triggerRegistry: WorkflowTriggerRegistry,
-        private readonly sandboxService: SandboxService
+        private readonly sandboxService: SandboxService,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient
     ) {
         super(repository)
     }
@@ -523,13 +525,13 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
     }
 
     private createWorkspaceVolumeClient(tenantId: string, userId: string, xpertId: string) {
-        return new WorkspaceVolumeClient(this.createVolumeClient(tenantId, userId, xpertId), {
+        return new VolumeSubtreeClient(this.createVolumeHandle(tenantId, userId, xpertId), {
             allowRootWorkspace: true
         })
     }
 
-    private createVolumeClient(tenantId: string, userId: string, xpertId: string) {
-        return new VolumeClient({
+    private createVolumeHandle(tenantId: string, userId: string, xpertId: string) {
+        return this.volumeClient.resolve({
             tenantId,
             catalog: 'xperts',
             userId,

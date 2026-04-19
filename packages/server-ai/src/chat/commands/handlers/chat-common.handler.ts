@@ -57,7 +57,7 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage, pick } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
-import { Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
@@ -111,6 +111,7 @@ import {
     ToolNode,
     translate,
     updateToolCalls,
+    VOLUME_CLIENT,
     VolumeClient,
     ConversationTitleService
 } from '../../../shared'
@@ -126,7 +127,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         private readonly projectService: XpertProjectService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly conversationTitleService: ConversationTitleService
+        private readonly conversationTitleService: ConversationTitleService,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient
     ) {}
 
     public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
@@ -226,8 +229,16 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 if (retry) {
                     throw new Error('Conversation ID is required for retry operation')
                 }
-                const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, projectId, userId)
-                const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(projectId, userId)
+                const volume = await this.volumeClient
+                    .resolve({
+                        tenantId,
+                        catalog: projectId ? 'projects' : 'users',
+                        projectId,
+                        userId
+                    })
+                    .ensureRoot()
+                const workspacePath = volume.serverRoot
+                const workspaceUrl = volume.publicBaseUrl
                 conversation = await this.commandBus.execute(
                     new ChatConversationUpsertCommand({
                         tenantId,

@@ -70,7 +70,10 @@ describe('ChatConversationService workspace files', () => {
             {} as ChatMessageService,
             {} as CommandBus,
             {} as QueryBus,
-            {} as Queue
+            {} as Queue,
+            {
+                resolve: jest.fn()
+            } as any
         )
         jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
     })

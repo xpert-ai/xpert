@@ -3,66 +3,80 @@ const mockEnvironment = {
         IS_DOCKER: 'true'
     },
     envName: 'prod',
-    baseUrl: 'http://localhost:3000'
+    baseUrl: 'http://localhost:3000',
+    sandboxConfig: {
+        volume: '/mnt/sandbox'
+    }
 }
 
 jest.mock('@xpert-ai/server-config', () => ({
     environment: mockEnvironment
 }))
 
-import fsPromises from 'fs/promises'
-import { VolumeClient } from './volume'
+import {
+    DockerVolumeClient,
+    DockerWorkspacePathMapper,
+    DevVolumeClient,
+    getVolumePublicBaseUrl
+} from './volume'
 
-describe('VolumeClient shared workspace helpers', () => {
-    afterEach(() => {
-        jest.restoreAllMocks()
+describe('Volume runtime clients', () => {
+    it('resolves docker project volumes as distinct server and host roots', () => {
+        const volume = new DockerVolumeClient().resolve({
+            tenantId: 'tenant-1',
+            catalog: 'projects',
+            projectId: 'project-1',
+            userId: 'user-1'
+        })
+
+        expect(volume.serverRoot).toBe('/sandbox/tenant-1/project/project-1')
+        expect(volume.hostRoot).toBe('/mnt/sandbox/tenant-1/project/project-1')
+        expect(volume.publicBaseUrl).toBe('http://localhost:3000/api/sandbox/volume/project/project-1')
     })
 
-    it('returns the shared project workspace root for project runs', async () => {
-        const mkdirSpy = jest.spyOn(fsPromises, 'mkdir').mockResolvedValue(undefined)
+    it('resolves docker xpert volumes with user isolation', () => {
+        const volume = new DockerVolumeClient().resolve({
+            tenantId: 'tenant-1',
+            catalog: 'xperts',
+            xpertId: 'xpert-1',
+            userId: 'user-1',
+            isolateByUser: true
+        })
 
-        await expect(VolumeClient.getSharedWorkspacePath('tenant-1', 'project-1', 'user-1')).resolves.toBe(
-            '/sandbox/tenant-1/project/project-1'
-        )
-        expect(VolumeClient.getSharedWorkspaceUrl('project-1', 'user-1')).toBe(
-            'http://localhost:3000/api/sandbox/volume/project/project-1'
-        )
-        expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/project/project-1', { recursive: true })
-    })
-
-    it('returns the shared user workspace root for non-project runs', async () => {
-        const mkdirSpy = jest.spyOn(fsPromises, 'mkdir').mockResolvedValue(undefined)
-
-        await expect(VolumeClient.getSharedWorkspacePath('tenant-1', undefined, 'user-1')).resolves.toBe(
-            '/sandbox/tenant-1/user/user-1'
-        )
-        expect(VolumeClient.getSharedWorkspaceUrl(undefined, 'user-1')).toBe(
-            'http://localhost:3000/api/sandbox/volume/user/user-1'
-        )
-        expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/user/user-1', { recursive: true })
-    })
-
-    it('returns the user-isolated xpert workspace root for non-project xpert runs', async () => {
-        const mkdirSpy = jest.spyOn(fsPromises, 'mkdir').mockResolvedValue(undefined)
-
-        await expect(
-            VolumeClient.getXpertWorkspacePath('tenant-1', 'xpert-1', 'user-1')
-        ).resolves.toBe('/sandbox/tenant-1/xpert/xpert-1/user/user-1')
-        expect(VolumeClient.getXpertWorkspaceUrl('xpert-1', 'user-1')).toBe(
+        expect(volume.serverRoot).toBe('/sandbox/tenant-1/xpert/xpert-1/user/user-1')
+        expect(volume.hostRoot).toBe('/mnt/sandbox/tenant-1/xpert/xpert-1/user/user-1')
+        expect(getVolumePublicBaseUrl({ catalog: 'xperts', xpertId: 'xpert-1', userId: 'user-1', isolateByUser: true })).toBe(
             'http://localhost:3000/api/sandbox/volume/xpert/xpert-1/user/user-1'
         )
-        expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/xpert/xpert-1/user/user-1', { recursive: true })
     })
 
-    it('returns the shared xpert workspace root when user isolation is disabled', async () => {
-        const mkdirSpy = jest.spyOn(fsPromises, 'mkdir').mockResolvedValue(undefined)
+    it('maps docker volumes to /workspace inside the sandbox container', () => {
+        const volume = new DockerVolumeClient().resolve({
+            tenantId: 'tenant-1',
+            catalog: 'projects',
+            projectId: 'project-1',
+            userId: 'user-1'
+        })
+        const binding = new DockerWorkspacePathMapper().mapVolumeToWorkspace(volume)
 
-        await expect(
-            VolumeClient.getXpertWorkspacePath('tenant-1', 'xpert-1', 'user-1', false)
-        ).resolves.toBe('/sandbox/tenant-1/xpert/xpert-1')
-        expect(VolumeClient.getXpertWorkspaceUrl('xpert-1', 'user-1', false)).toBe(
-            'http://localhost:3000/api/sandbox/volume/xpert/xpert-1'
-        )
-        expect(mkdirSpy).toHaveBeenCalledWith('/sandbox/tenant-1/xpert/xpert-1', { recursive: true })
+        expect(binding.volumeRoot).toBe('/sandbox/tenant-1/project/project-1')
+        expect(binding.bindSource).toBe('/mnt/sandbox/tenant-1/project/project-1')
+        expect(binding.workspaceRoot).toBe('/workspace')
+        expect(binding.workspacePath).toBe('/workspace')
+    })
+
+    it('keeps serverRoot and hostRoot identical for direct host runtime volumes', () => {
+        mockEnvironment.env.IS_DOCKER = 'false'
+        mockEnvironment.envName = 'dev'
+        mockEnvironment.sandboxConfig.volume = '/tmp/sandbox'
+
+        const volume = new DevVolumeClient().resolve({
+            tenantId: 'tenant-1',
+            catalog: 'users',
+            userId: 'user-1'
+        })
+
+        expect(volume.serverRoot).toBe('/tmp/sandbox/tenant-1/user/user-1')
+        expect(volume.hostRoot).toBe('/tmp/sandbox/tenant-1/user/user-1')
     })
 })
