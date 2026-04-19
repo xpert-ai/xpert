@@ -58,9 +58,57 @@ team:
         position:
           x: 882
           y: 342
+      Middleware_1tcPT6q0VR:
+        position:
+          x: 108
+          y: 232
+      Middleware_zOVW7Pzo8N:
+        position:
+          x: 108
+          y: 352
+      Middleware_mkPBzOxg9l:
+        position:
+          x: 108
+          y: 472
+      Middleware_Og6WsPgSJx:
+        position:
+          x: 108
+          y: 592
+      Middleware_gbVCRaDNrL:
+        position:
+          x: 108
+          y: 712
+      Middleware_Rwf5Mlc5Vp:
+        position:
+          x: 108
+          y: 832
+      Middleware_UrHWMDuqBe:
+        position:
+          x: 108
+          y: 952
+      Middleware_gY2jduTeWL:
+        position:
+          x: 108
+          y: 1072
+      Middleware_h23z8r4aNO:
+        position:
+          x: 108
+          y: 1192
+      Middleware_jNrKMo464z:
+        position:
+          x: 108
+          y: 1312
+      Middleware_W2UbxcpcDy:
+        position:
+          x: 108
+          y: 1432
+      Middleware_LrWwN2N1Kc:
+        position:
+          x: 108
+          y: 1552
     position:
-      x: 68
-      y: 315
+      x: 23
+      y: 266
     scale: 0.5325390624999995
   agentConfig:
     recursionLimit: 1000
@@ -74,7 +122,6 @@ team:
   agent:
     key: Agent_xtcQNJthR8
   copilotModel:
-    referencedId: null
     modelType: llm
     model: deepseek-chat
   knowledgebases: []
@@ -84,7 +131,7 @@ nodes:
   - type: agent
     key: Agent_xtcQNJthR8
     position:
-      x: 108
+      x: 113.53846153846155
       y: 12
     entity:
       key: Agent_xtcQNJthR8
@@ -92,7 +139,23 @@ nodes:
       title: Primary Agent
       description: null
       avatar: null
-      prompt: ""
+      prompt: >-
+        When available, use the following runtime preference context to guide
+        how you respond.
+
+
+        Assistant soul:
+
+        {{sys.soul}}
+
+
+        User profile:
+
+        {{sys.profile}}
+
+
+        Treat the assistant soul as behavior guidance and use the user profile
+        to personalize responses when relevant.
       promptTemplates: null
       parameters: null
       outputVariables: null
@@ -116,138 +179,183 @@ nodes:
       toolsetIds: []
       knowledgebaseIds: []
   - type: workflow
-    key: Middleware_jz1jzYUbrN
+    key: Middleware_1tcPT6q0VR
     position:
-      x: 2042
-      y: 342
+      x: 2912
+      y: 372
     entity:
-      id: Middleware_jz1jzYUbrN
+      id: Middleware_1tcPT6q0VR
       type: middleware
-      key: Middleware_jz1jzYUbrN
-      title: WebTools
-      provider: WebTools
-  - type: workflow
-    key: Middleware_2hkYOSGYiL
-    position:
-      x: 2332
-      y: 342
-    entity:
-      id: Middleware_2hkYOSGYiL
-      type: middleware
-      key: Middleware_2hkYOSGYiL
-      title: todoListMiddleware
-      provider: todoListMiddleware
-  - type: workflow
-    key: Middleware_NUThTeiDKi
-    position:
-      x: 12
-      y: 342
-    entity:
-      id: Middleware_NUThTeiDKi
-      type: middleware
-      key: Middleware_NUThTeiDKi
+      key: Middleware_1tcPT6q0VR
       title: ModelRetryMiddleware
       provider: ModelRetryMiddleware
   - type: workflow
-    key: Middleware_5XUDxT1cbv
+    key: Middleware_zOVW7Pzo8N
     position:
-      x: 592
-      y: 342
+      x: 3202
+      y: 372
     entity:
+      id: Middleware_zOVW7Pzo8N
       type: middleware
-      key: Middleware_5XUDxT1cbv
-      title: Middleware 4
-      provider: skillsMiddleware
-    hash: 932e32c5892ea71ac9cd7e59c04e58e62fdaa8ae4266fa1a88f28182b97b345a
+      key: Middleware_zOVW7Pzo8N
+      title: scheduler
+      provider: scheduler
   - type: workflow
-    key: Middleware_NkeAmzI1QN
+    key: Middleware_mkPBzOxg9l
     position:
-      x: 1462
-      y: 342
+      x: 12
+      y: 372
     entity:
+      id: Middleware_mkPBzOxg9l
       type: middleware
-      key: Middleware_NkeAmzI1QN
-      title: Middleware 5
-      provider: SandboxShell
-    hash: 8c233739ac57930de59013560931d42ca530443540e5198c0a7b0ebf89f741f8
+      key: Middleware_mkPBzOxg9l
+      title: FileMemorySystemMiddleware
+      provider: FileMemorySystemMiddleware
   - type: workflow
-    key: Middleware_UMpWOktjHh
-    position:
-      x: 1752
-      y: 342
-    entity:
-      type: middleware
-      key: Middleware_UMpWOktjHh
-      title: Middleware 6
-      provider: SandboxFile
-    hash: 6277bd078f017e784d0f9a3d73fda15a491b5d67eba4d899c1d61440d763b370
-  - type: workflow
-    key: Middleware_7nUo7dO2s8
+    key: Middleware_Og6WsPgSJx
     position:
       x: 1172
-      y: 342
+      y: 372
     entity:
+      id: Middleware_Og6WsPgSJx
       type: middleware
-      key: Middleware_7nUo7dO2s8
-      title: Middleware 7
+      key: Middleware_Og6WsPgSJx
+      title: ContextCompressionMiddleware
       provider: ContextCompressionMiddleware
-    hash: 48cbd255a05d4f2b7f0a4dde5231e2d05a89da425982cf48bcd65da4dd13feec
   - type: workflow
-    key: Middleware_wI7CU0hKO0
+    key: Middleware_gbVCRaDNrL
     position:
-      x: 302
-      y: 342
+      x: 2332
+      y: 372
     entity:
+      id: Middleware_gbVCRaDNrL
       type: middleware
-      key: Middleware_wI7CU0hKO0
-      title: Middleware 8
-      provider: scheduler
-    hash: c771eb93973366307bfa0ed19b830417eb0a5711f5298fa8f61b3676d48d5db6
+      key: Middleware_gbVCRaDNrL
+      title: SandboxShell
+      provider: SandboxShell
   - type: workflow
-    key: Middleware_257ePOgmpX
+    key: Middleware_Rwf5Mlc5Vp
+    position:
+      x: 2622
+      y: 372
+    entity:
+      id: Middleware_Rwf5Mlc5Vp
+      type: middleware
+      key: Middleware_Rwf5Mlc5Vp
+      title: SandboxFile
+      provider: SandboxFile
+  - type: workflow
+    key: Middleware_UrHWMDuqBe
+    position:
+      x: 2042
+      y: 372
+    entity:
+      id: Middleware_UrHWMDuqBe
+      type: middleware
+      key: Middleware_UrHWMDuqBe
+      title: WebTools
+      provider: WebTools
+  - type: workflow
+    key: Middleware_gY2jduTeWL
+    position:
+      x: 592
+      y: 372
+    entity:
+      id: Middleware_gY2jduTeWL
+      type: middleware
+      key: Middleware_gY2jduTeWL
+      title: todoListMiddleware
+      provider: todoListMiddleware
+  - type: workflow
+    key: Middleware_h23z8r4aNO
+    position:
+      x: 1462
+      y: 372
+    entity:
+      id: Middleware_h23z8r4aNO
+      type: middleware
+      key: Middleware_h23z8r4aNO
+      title: LoopGuardMiddleware
+      provider: LoopGuardMiddleware
+  - type: workflow
+    key: Middleware_jNrKMo464z
     position:
       x: 882
-      y: 342
+      y: 372
     entity:
+      id: Middleware_jNrKMo464z
       type: middleware
-      key: Middleware_257ePOgmpX
-      title: Middleware 9
-      provider: FileMemorySystemMiddleware
-    hash: e12835ffddf321382734edbb29f4c213459ba4782e9b994f6fc9dd8ec0f570af
+      key: Middleware_jNrKMo464z
+      title: ViewImageMiddleware
+      provider: ViewImageMiddleware
+  - type: workflow
+    key: Middleware_W2UbxcpcDy
+    position:
+      x: 302
+      y: 372
+    entity:
+      id: Middleware_W2UbxcpcDy
+      type: middleware
+      key: Middleware_W2UbxcpcDy
+      title: DanglingToolCallMiddleware
+      provider: DanglingToolCallMiddleware
+  - type: workflow
+    key: Middleware_LrWwN2N1Kc
+    position:
+      x: 1752
+      y: 372
+    entity:
+      id: Middleware_LrWwN2N1Kc
+      type: middleware
+      key: Middleware_LrWwN2N1Kc
+      title: skillsMiddleware
+      provider: skillsMiddleware
 connections:
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_jz1jzYUbrN
+    key: Agent_xtcQNJthR8/Middleware_1tcPT6q0VR
     from: Agent_xtcQNJthR8
-    to: Middleware_jz1jzYUbrN
+    to: Middleware_1tcPT6q0VR
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_2hkYOSGYiL
+    key: Agent_xtcQNJthR8/Middleware_zOVW7Pzo8N
     from: Agent_xtcQNJthR8
-    to: Middleware_2hkYOSGYiL
+    to: Middleware_zOVW7Pzo8N
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_NUThTeiDKi
+    key: Agent_xtcQNJthR8/Middleware_mkPBzOxg9l
     from: Agent_xtcQNJthR8
-    to: Middleware_NUThTeiDKi
+    to: Middleware_mkPBzOxg9l
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_5XUDxT1cbv
+    key: Agent_xtcQNJthR8/Middleware_Og6WsPgSJx
     from: Agent_xtcQNJthR8
-    to: Middleware_5XUDxT1cbv
+    to: Middleware_Og6WsPgSJx
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_NkeAmzI1QN
+    key: Agent_xtcQNJthR8/Middleware_gbVCRaDNrL
     from: Agent_xtcQNJthR8
-    to: Middleware_NkeAmzI1QN
+    to: Middleware_gbVCRaDNrL
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_UMpWOktjHh
+    key: Agent_xtcQNJthR8/Middleware_Rwf5Mlc5Vp
     from: Agent_xtcQNJthR8
-    to: Middleware_UMpWOktjHh
+    to: Middleware_Rwf5Mlc5Vp
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_7nUo7dO2s8
+    key: Agent_xtcQNJthR8/Middleware_UrHWMDuqBe
     from: Agent_xtcQNJthR8
-    to: Middleware_7nUo7dO2s8
+    to: Middleware_UrHWMDuqBe
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_wI7CU0hKO0
+    key: Agent_xtcQNJthR8/Middleware_gY2jduTeWL
     from: Agent_xtcQNJthR8
-    to: Middleware_wI7CU0hKO0
+    to: Middleware_gY2jduTeWL
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_257ePOgmpX
+    key: Agent_xtcQNJthR8/Middleware_h23z8r4aNO
     from: Agent_xtcQNJthR8
-    to: Middleware_257ePOgmpX
+    to: Middleware_h23z8r4aNO
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_jNrKMo464z
+    from: Agent_xtcQNJthR8
+    to: Middleware_jNrKMo464z
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_W2UbxcpcDy
+    from: Agent_xtcQNJthR8
+    to: Middleware_W2UbxcpcDy
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_LrWwN2N1Kc
+    from: Agent_xtcQNJthR8
+    to: Middleware_LrWwN2N1Kc

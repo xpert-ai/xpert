@@ -1,7 +1,7 @@
 team:
   name: Authoring Assistant
   type: agent
-  title: 创作助理
+  title: Authoring Assistant
   description: Execution-first authoring assistant profile for platform ChatKit
     workspace creation and Studio edits.
   avatar:
@@ -14,9 +14,9 @@ team:
   starters: null
   options:
     position:
-      x: 199.30318011834106
-      y: 57.88748383972563
-    scale: 1
+      x: 2.658649679903533
+      y: 251.8368199499307
+    scale: 0.7766000000000002
     agent:
       Agent_PlatformChatKitAuthoring:
         position:
@@ -38,8 +38,10 @@ team:
     stateVariables: []
   memory: null
   summarize: null
-  features: null
-  version: "11"
+  features:
+    sandbox:
+      enabled: true
+  version: null
   agent:
     key: Agent_PlatformChatKitAuthoring
   copilotModel:
@@ -59,13 +61,14 @@ nodes:
   - type: agent
     key: Agent_PlatformChatKitAuthoring
     position:
-      x: 20
-      y: 20
+      x: 112
+      y: 12
     entity:
       key: Agent_PlatformChatKitAuthoring
       name: Platform ChatKit Authoring Assistant
       title: Platform ChatKit Authoring Assistant
-      description: Create new experts, create workspace skills, and apply verified Studio draft mutations.
+      description: Create new experts, create workspace skills, and apply verified
+        Studio draft mutations.
       avatar: null
       prompt: >
         You are the platform ChatKit authoring assistant for Xpert Studio.
@@ -97,9 +100,9 @@ nodes:
         parseable/importable but still likely to fail validation or require the
         user to manually connect nodes.
 
-        - For workspace skill creation requests, your target is a concise,
-        valid skill package whose primary output is a usable `SKILL.md` with
-        YAML frontmatter.
+        - For workspace skill creation requests, your target is a concise, valid
+        skill package whose primary output is a usable `SKILL.md` with YAML
+        frontmatter.
 
 
         Non-negotiable rules:
@@ -540,6 +543,7 @@ nodes:
             - Middleware_XpertAuthoringPlatformChatKit
             - Middleware_Summarization
       copilotModel:
+        copilotId: b3773a50-8283-4600-a8a5-b47eb828b746
         referencedId: null
         modelType: llm
         model: glm-5
@@ -554,45 +558,172 @@ nodes:
       toolsetIds: []
       knowledgebaseIds: []
   - type: workflow
-    key: Middleware_XpertAuthoringPlatformChatKit
+    key: Middleware_W5fHgswzXV
+    position:
+      x: 2622
+      y: 362
+    entity:
+      id: Middleware_W5fHgswzXV
+      type: middleware
+      key: Middleware_W5fHgswzXV
+      title: XpertAuthoringMiddleware
+      provider: XpertAuthoringMiddleware
+  - type: workflow
+    key: Middleware_1hHK0MaBki
+    position:
+      x: 2912
+      y: 362
+    entity:
+      id: Middleware_1hHK0MaBki
+      type: middleware
+      key: Middleware_1hHK0MaBki
+      title: WebTools
+      provider: WebTools
+  - type: workflow
+    key: Middleware_KVCxpRxQTo
     position:
       x: 12
-      y: 272
+      y: 362
     entity:
+      id: Middleware_KVCxpRxQTo
       type: middleware
-      key: Middleware_XpertAuthoringPlatformChatKit
-      title: Xpert Authoring Middleware
-      provider: XpertAuthoringMiddleware
-      options:
-        mode: platform-chatkit
-      tools: {}
+      key: Middleware_KVCxpRxQTo
+      title: ModelRetryMiddleware
+      provider: ModelRetryMiddleware
   - type: workflow
-    key: Middleware_Summarization
+    key: Middleware_e8YHkPz0VI
     position:
-      x: 272
-      y: 272
+      x: 1172
+      y: 362
     entity:
+      id: Middleware_e8YHkPz0VI
       type: middleware
-      key: Middleware_Summarization
-      title: Context Compression Middleware
-      provider: SummarizationMiddleware
+      key: Middleware_e8YHkPz0VI
+      title: DanglingToolCallMiddleware
+      provider: DanglingToolCallMiddleware
+  - type: workflow
+    key: Middleware_GQZGTxlvXe
+    position:
+      x: 2042
+      y: 362
+    entity:
+      id: Middleware_GQZGTxlvXe
+      type: middleware
+      key: Middleware_GQZGTxlvXe
+      title: LoopGuardMiddleware
+      provider: LoopGuardMiddleware
+  - type: workflow
+    key: Middleware_4bIpVwP4Tk
+    position:
+      x: 2332
+      y: 362
+    entity:
+      id: Middleware_4bIpVwP4Tk
+      type: middleware
+      key: Middleware_4bIpVwP4Tk
+      title: ViewImageMiddleware
+      provider: ViewImageMiddleware
+  - type: workflow
+    key: Middleware_OuI263RdnH
+    position:
+      x: 1752
+      y: 362
+    entity:
+      id: Middleware_OuI263RdnH
+      type: middleware
+      key: Middleware_OuI263RdnH
+      title: ContextCompressionMiddleware
+      provider: ContextCompressionMiddleware
+  - type: workflow
+    key: Middleware_kibqEAnfAH
+    position:
+      x: 592
+      y: 362
+    entity:
+      id: Middleware_kibqEAnfAH
+      type: middleware
+      key: Middleware_kibqEAnfAH
+      title: SandboxShell
+      provider: SandboxShell
+  - type: workflow
+    key: Middleware_0ZHQnI6GD8
+    position:
+      x: 1462
+      y: 362
+    entity:
+      id: Middleware_0ZHQnI6GD8
+      type: middleware
+      key: Middleware_0ZHQnI6GD8
+      title: SandboxFile
+      provider: SandboxFile
+  - type: workflow
+    key: Middleware_3Fc7LSAypv
+    position:
+      x: 882
+      y: 362
+    entity:
+      id: Middleware_3Fc7LSAypv
+      type: middleware
+      key: Middleware_3Fc7LSAypv
+      title: FileMemorySystemMiddleware
+      provider: FileMemorySystemMiddleware
+  - type: workflow
+    key: Middleware_508rxLZJ7Q
+    position:
+      x: 302
+      y: 362
+    entity:
+      id: Middleware_508rxLZJ7Q
+      type: middleware
+      key: Middleware_508rxLZJ7Q
+      title: skillsMiddleware
+      provider: skillsMiddleware
       options:
-        model:
-          modelType: llm
-          model: deepseek-chat
-          options:
-            context_size: 64000
-        trigger:
-          messages: 30
-        keep:
-          messages: 12
-      tools: {}
+        repositoryDefault:
+          repositoryId: b753df01-a609-4c07-97a1-fb668d121fcb
+          disabledSkillIds: []
 connections:
   - type: workflow
-    key: Agent_PlatformChatKitAuthoring/Middleware_XpertAuthoringPlatformChatKit
+    key: Agent_PlatformChatKitAuthoring/Middleware_W5fHgswzXV
     from: Agent_PlatformChatKitAuthoring
-    to: Middleware_XpertAuthoringPlatformChatKit
+    to: Middleware_W5fHgswzXV
   - type: workflow
-    key: Agent_PlatformChatKitAuthoring/Middleware_Summarization
+    key: Agent_PlatformChatKitAuthoring/Middleware_1hHK0MaBki
     from: Agent_PlatformChatKitAuthoring
-    to: Middleware_Summarization
+    to: Middleware_1hHK0MaBki
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_KVCxpRxQTo
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_KVCxpRxQTo
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_e8YHkPz0VI
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_e8YHkPz0VI
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_GQZGTxlvXe
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_GQZGTxlvXe
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_4bIpVwP4Tk
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_4bIpVwP4Tk
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_OuI263RdnH
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_OuI263RdnH
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_kibqEAnfAH
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_kibqEAnfAH
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_0ZHQnI6GD8
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_0ZHQnI6GD8
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_3Fc7LSAypv
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_3Fc7LSAypv
+  - type: workflow
+    key: Agent_PlatformChatKitAuthoring/Middleware_508rxLZJ7Q
+    from: Agent_PlatformChatKitAuthoring
+    to: Middleware_508rxLZJ7Q
