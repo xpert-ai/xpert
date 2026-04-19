@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -17,8 +18,12 @@ import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardSegmentedComponent, ZardSegmentedItemComponent } from '@xpert-ai/headless-ui'
 import { MarkdownModule } from 'ngx-markdown'
+import { firstValueFrom } from 'rxjs'
+import { TFile } from '@xpert-ai/contracts'
 import { FileEditorComponent, FileEditorSelection } from '../editor/editor.component'
 import { FormsModule } from '@angular/forms'
+import { FilePreviewContentComponent } from '../preview/file-preview-content.component'
+import { createFilePreviewState, toFilePreviewSource } from '../preview/file-preview.utils'
 
 export type FilePanelMode = 'view' | 'edit'
 
@@ -33,12 +38,24 @@ type FileViewerPreviewSelection = {
   selector: 'pac-file-viewer',
   templateUrl: './viewer.component.html',
   styleUrls: ['./viewer.component.css'],
-  imports: [CommonModule, FormsModule, TranslateModule, MarkdownModule, NgmSpinComponent, ZardSegmentedComponent, ZardSegmentedItemComponent, FileEditorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    MarkdownModule,
+    NgmSpinComponent,
+    ZardSegmentedComponent,
+    ZardSegmentedItemComponent,
+    FileEditorComponent,
+    FilePreviewContentComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FileViewerComponent {
+  readonly #httpClient = inject(HttpClient)
   readonly #destroyRef = inject(DestroyRef)
 
+  readonly file = input<TFile | null>(null)
   readonly filePath = input<string | null>(null)
   readonly content = input<string>('')
   readonly loading = input(false)
@@ -49,6 +66,7 @@ export class FileViewerComponent {
   readonly dirty = input(false)
   readonly downloadable = input(false)
   readonly referenceable = input(false)
+  readonly previewUrl = input<string | null>(null)
   readonly mode = model<FilePanelMode>('view')
   readonly readOnlyHint = input(
     'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
@@ -60,14 +78,40 @@ export class FileViewerComponent {
 
   readonly displayFileName = computed(() => fileNameFromPath(this.filePath()))
   readonly canReferenceFile = computed(() => this.referenceable() && this.readable() && !!this.filePath())
+  readonly previewMode = signal<'preview' | 'code'>('preview')
+  readonly previewSource = computed(() =>
+    toFilePreviewSource({
+      ...(this.file() ?? {}),
+      contents:
+        this.readable() || this.mode() === 'edit'
+          ? this.content()
+          : typeof this.file()?.contents === 'string'
+            ? this.file()?.contents
+            : null,
+      filePath: this.filePath() || this.file()?.filePath || null,
+      name: this.filePath() || this.file()?.filePath || null,
+      url: this.previewUrl() || this.file()?.url || null,
+      fileUrl: this.previewUrl() || this.file()?.fileUrl || null
+    })
+  )
+  readonly previewState = createFilePreviewState(this.previewSource, (url) =>
+    firstValueFrom(this.#httpClient.get(url, { responseType: 'text' }))
+  )
+  readonly previewKind = this.previewState.previewKind
+  readonly previewData = this.previewState.previewData
+  readonly previewLoading = this.previewState.previewLoading
+  readonly canTogglePreview = this.previewState.canTogglePreview
+  readonly isPreviewMode = computed(
+    () => this.mode() === 'view' && (!this.canTogglePreview() || this.previewMode() === 'preview')
+  )
+  readonly showEnhancedPreview = computed(
+    () => this.isPreviewMode() && this.previewKind() !== 'unsupported' && !this.markdown()
+  )
   readonly editorReferenceable = computed(
-    () =>
-      this.referenceable() &&
-      this.readable() &&
-      (!this.markdown() || (this.mode() === 'edit' && this.editable()))
+    () => this.referenceable() && this.readable() && (this.mode() === 'edit' || !this.isPreviewMode())
   )
   readonly markdownPreviewReferenceable = computed(
-    () => this.referenceable() && this.readable() && this.markdown() && this.mode() !== 'edit'
+    () => this.referenceable() && this.readable() && this.markdown() && this.isPreviewMode()
   )
   readonly #markdownPreviewSelection = signal<FileViewerPreviewSelection | null>(null)
   readonly markdownPreviewReference = computed(() =>
@@ -88,8 +132,16 @@ export class FileViewerComponent {
     this.content()
     this.mode()
     this.markdown()
+    this.previewKind()
     this.referenceable()
     this.#markdownPreviewSelection.set(null)
+  })
+
+  readonly #resetPreviewModeEffect = effect(() => {
+    this.filePath()
+    this.mode()
+    this.previewKind()
+    this.previewMode.set('preview')
   })
 
   constructor() {
@@ -194,6 +246,10 @@ export class FileViewerComponent {
     }
 
     document.getSelection()?.removeAllRanges()
+  }
+
+  updatePreviewMode(mode: unknown) {
+    this.previewMode.set(mode === 'code' ? 'code' : 'preview')
   }
 }
 
