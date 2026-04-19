@@ -404,8 +404,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const runCreate = command.runCreate
 
         // Find thread (conversation) and assistant (xpert)
-        const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
+        const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
         const runtimeContext = getRunCreateContext(runCreate.context)
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
