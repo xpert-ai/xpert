@@ -10,10 +10,32 @@ import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { deserializePluginConfig } from './plugin-config.crypto'
 
+const PLUGIN_INSTANCE_TABLE = 'plugin_instance'
+
+interface PluginInstanceRow {
+	organizationId?: string | null
+	pluginName: string
+	packageName?: string | null
+	version?: string | null
+	source?: string | null
+	sourceConfig?: PluginSourceConfig | null
+	level?: PluginLevel
+	config: unknown
+}
+
 export interface OrganizationPluginConfig {
 	organizationId?: string
 	plugins: { name: string; version?: string; source?: string; level?: PluginLevel; sourceConfig?: PluginSourceConfig | null }[]
 	configs: Record<string, any>
+}
+
+async function hasPluginInstanceTable(dataSource: DataSource): Promise<boolean> {
+	const queryRunner = dataSource.createQueryRunner()
+	try {
+		return await queryRunner.hasTable(PLUGIN_INSTANCE_TABLE)
+	} finally {
+		await queryRunner.release()
+	}
 }
 
 /**
@@ -22,7 +44,7 @@ export interface OrganizationPluginConfig {
  *
  * @returns
  */
-export async function loadPluginInstances(): Promise<Array<Record<string, any>>> {
+export async function loadPluginInstances(): Promise<PluginInstanceRow[]> {
 	const cfg = getConfig()
 	const options = cfg.dbConnectionOptions as DataSourceOptions
 	const dataSource = new DataSource({
@@ -33,15 +55,19 @@ export async function loadPluginInstances(): Promise<Array<Record<string, any>>>
 	})
 	await dataSource.initialize()
 	try {
-		return await dataSource.query(
-			'SELECT "organizationId", "pluginName", "packageName", version, source, "sourceConfig", level, config FROM plugin_instance'
+		if (!(await hasPluginInstanceTable(dataSource))) {
+			return []
+		}
+
+		return await dataSource.query<PluginInstanceRow[]>(
+			`SELECT "organizationId", "pluginName", "packageName", version, source, "sourceConfig", level, config FROM ${PLUGIN_INSTANCE_TABLE}`
 		)
 	} finally {
 		await dataSource.destroy()
 	}
 }
 
-export function buildOrganizationPluginConfigs(instances: Array<Record<string, any>>): OrganizationPluginConfig[] {
+export function buildOrganizationPluginConfigs(instances: PluginInstanceRow[]): OrganizationPluginConfig[] {
 	const byOrg = new Map<string, OrganizationPluginConfig>()
 
 	for (const instance of instances) {
