@@ -148,7 +148,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 sandboxContext = await this.commandBus.execute(
                     new SandboxAcquireBackendCommand({
                         provider: sandboxFeature?.provider,
-                        workingDirectory: sandboxEnvironmentId ? undefined : initialWorkspaceBinding?.workspacePath,
+                        workingDirectory: initialWorkspaceBinding?.workspacePath,
                         workspaceBinding: initialWorkspaceBinding ?? undefined,
                         volumeScope,
                         tenantId,
@@ -615,7 +615,10 @@ function mergeCommandUpdateWithSystemState(update: unknown, systemState: Record<
     }
 }
 
-function resolveWorkspaceXpertId(latestXpert: Partial<IXpert> | null | undefined, xpert: Partial<IXpert> | null | undefined) {
+function resolveWorkspaceXpertId(
+    latestXpert: Partial<IXpert> | null | undefined,
+    xpert: Partial<IXpert> | null | undefined
+) {
     const candidate = latestXpert?.id ?? xpert?.id
     if (typeof candidate === 'string' && candidate.trim()) {
         return candidate

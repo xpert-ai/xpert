@@ -145,7 +145,6 @@ describe('XpertAgentInvokeHandler', () => {
             workspacePathMapperFactory as any,
             chatMessageRepository as any
         )
-
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
@@ -444,6 +443,79 @@ describe('XpertAgentInvokeHandler', () => {
                     workFor: {
                         type: 'user',
                         id: 'user-1'
+                    }
+                })
+            })
+        )
+    })
+
+    it('uses the mapped environment workspace when sandboxEnvironmentId is provided', async () => {
+        const graph = createGraph()
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof SandboxAcquireBackendCommand) {
+                return {
+                    provider: 'local-shell-sandbox',
+                    workingDirectory: '/tmp/xpert-workspace'
+                }
+            }
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Use the shared environment'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {
+                        sandbox: {
+                            enabled: true,
+                            provider: 'local-shell-sandbox'
+                        }
+                    }
+                } as any,
+                {
+                    isDraft: true,
+                    sandboxEnvironmentId: 'sandbox-env-1',
+                    thread_id: 'thread-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(volumeClient.resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            catalog: 'environment',
+            environmentId: 'sandbox-env-1',
+            userId: 'user-1'
+        })
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    provider: 'local-shell-sandbox',
+                    tenantId: 'tenant-1',
+                    workingDirectory: '/tmp/xpert-workspace',
+                    workFor: {
+                        type: 'environment',
+                        id: 'sandbox-env-1'
                     }
                 })
             })

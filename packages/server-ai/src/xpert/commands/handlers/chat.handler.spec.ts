@@ -248,6 +248,93 @@ describe('XpertChatHandler', () => {
         })
     })
 
+    it('forwards project scope to the agent sandbox options for project conversations', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        projectId: command.entity.projectId,
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    projectId: 'project-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return {
+                    id: 'execution-1',
+                    threadId: 'thread-1'
+                }
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            title: 'Generated title'
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    projectId: 'project-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello workspace'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+
+        expect(agentCommand.options.projectId).toBe('project-1')
+        expect(agentCommand.options.sandboxEnvironmentId).toBeUndefined()
+    })
+
     it('reuses a persisted pending follow-up instead of creating a duplicate human message on fallback send', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {

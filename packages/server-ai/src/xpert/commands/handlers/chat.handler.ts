@@ -24,6 +24,7 @@ import {
     STATE_VARIABLE_HUMAN,
     STATE_VARIABLE_SYS,
     TChatConversationStatus,
+    TChatRequest,
     TFollowUpConsumedEvent,
     TChatRequestHuman,
     TSensitiveOperation,
@@ -119,10 +120,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const { xpertId, taskId, from, fromEndUserId } = options ?? {}
         let { execution } = options ?? {}
         const userId = RequestContext.currentUserId()
-        const sendInput =
-            request.action === 'send'
-                ? request.message?.input
-                : null
+        const sendInput = request.action === 'send' ? request.message?.input : null
 
         if (request.action === 'send' && !sendInput) {
             throw new BadRequestException('Invalid send request: message.input is required')
@@ -229,6 +227,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         let executionId: string
         let checkpointId: string = null
         let queueFollowUpConsumedEvent: TFollowUpConsumedEvent | null = null
+        const requestedSandboxEnvironmentId = resolveRequestSandboxEnvironmentId(request)
         // Resume continues an interrupted AI turn in place by reusing the existing
         // conversation, target AI message, and execution instead of creating a new run.
         if (request.action === 'resume') {
@@ -268,6 +267,25 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     )
                 )
 
+                if (
+                    request.action === 'send' &&
+                    requestedSandboxEnvironmentId &&
+                    conversation.options?.sandboxEnvironmentId !== requestedSandboxEnvironmentId
+                ) {
+                    conversation = await this.commandBus.execute(
+                        new ChatConversationUpsertCommand(
+                            {
+                                id: conversation.id,
+                                options: {
+                                    ...(conversation.options ?? {}),
+                                    sandboxEnvironmentId: requestedSandboxEnvironmentId
+                                }
+                            },
+                            ['messages']
+                        )
+                    )
+                }
+
                 // Cancel summary job
                 if (memory?.enabled && memory.profile?.enabled) {
                     await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
@@ -285,7 +303,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             taskId,
                             xpert,
                             options: {
-                                parameters: input
+                                parameters: input,
+                                ...(requestedSandboxEnvironmentId
+                                    ? {
+                                          sandboxEnvironmentId: requestedSandboxEnvironmentId
+                                      }
+                                    : {})
                             },
                             from,
                             fromEndUserId
@@ -498,12 +521,19 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
                 if (!agentObservable) {
                     // No memory reply then create agents graph
+                    const { projectId: sandboxProjectId, sandboxEnvironmentId } = resolveAgentSandboxScope(
+                        request,
+                        conversation,
+                        options
+                    )
                     agentObservable = await this.commandBus.execute<
                         XpertAgentChatCommand,
                         Promise<Observable<MessageEvent>>
                     >(
                         new XpertAgentChatCommand(state, xpert.agent.key, xpert, {
                             ...(options ?? {}),
+                            projectId: sandboxProjectId,
+                            sandboxEnvironmentId,
                             store: memoryStore,
                             conversationId: conversation.id,
                             isDraft: options?.isDraft,
@@ -529,10 +559,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 concat(
                     agentObservable.pipe(
                         concatMap(async (event) => {
-                            if (
-                                pendingSteerAssistantParentId &&
-                                shouldStartAssistantMessageAfterSteer(event)
-                            ) {
+                            if (pendingSteerAssistantParentId && shouldStartAssistantMessageAfterSteer(event)) {
                                 aiMessage = await this.commandBus.execute(
                                     new ChatMessageUpsertCommand({
                                         parent: { id: pendingSteerAssistantParentId } as IChatMessage,
@@ -557,8 +584,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
                                 const { messageContext } = messageAppendContextTracker.resolve({
                                     incoming: event.data.data,
-                                    fallbackSource:
-                                        typeof event.data.data === 'string' ? 'memory_reply' : undefined,
+                                    fallbackSource: typeof event.data.data === 'string' ? 'memory_reply' : undefined,
                                     fallbackStreamId: aiMessage?.id ?? executionId
                                 })
 
@@ -600,7 +626,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                             } as MessageEvent)
 
                                             pendingSteerAssistantParentId =
-                                                event.data.data.messageIds[event.data.data.messageIds.length - 1] ?? null
+                                                event.data.data.messageIds[event.data.data.messageIds.length - 1] ??
+                                                null
                                         }
                                         break
                                     }
@@ -867,7 +894,9 @@ function withPreferenceSkillState(
     return {
         ...state,
         selectedSkillWorkspaceId: normalizedWorkspaceId,
-        disabledSkillIds: normalizedWorkspaceId ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences) : undefined,
+        disabledSkillIds: normalizedWorkspaceId
+            ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences)
+            : undefined,
         skillSelectionMode:
             normalizedWorkspaceId && forceWorkspaceSkillBlacklistMode ? 'workspace_blacklist' : undefined
     }
@@ -940,4 +969,34 @@ function findLastAiMessage(messages?: IChatMessage[] | null) {
 
     const message = [...messages].reverse().find((item) => item?.role === 'ai')
     return message ?? null
+}
+
+function resolveRequestProjectId(request: TChatRequest): string | undefined {
+    return 'projectId' in request ? request.projectId?.trim() || undefined : undefined
+}
+
+function resolveRequestSandboxEnvironmentId(request: TChatRequest): string | undefined {
+    return 'sandboxEnvironmentId' in request ? request.sandboxEnvironmentId?.trim() || undefined : undefined
+}
+
+function resolveAgentSandboxScope(
+    request: TChatRequest,
+    conversation: IChatConversation,
+    options?: XpertChatCommand['options']
+) {
+    const sandboxEnvironmentId =
+        options?.sandboxEnvironmentId?.trim() ||
+        resolveRequestSandboxEnvironmentId(request) ||
+        conversation.options?.sandboxEnvironmentId?.trim() ||
+        undefined
+
+    return {
+        sandboxEnvironmentId,
+        projectId: sandboxEnvironmentId
+            ? undefined
+            : options?.projectId?.trim() ||
+              resolveRequestProjectId(request) ||
+              conversation.projectId?.trim() ||
+              undefined
+    }
 }
