@@ -66,6 +66,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 	RequestContext: {
 		currentTenantId: jest.fn(),
 		getOrganizationId: jest.fn(),
+		getLanguageCode: jest.fn(),
 		currentUserId: jest.fn(),
 		currentUser: jest.fn()
 	},
@@ -179,6 +180,7 @@ describe('SkillPackageService', () => {
 	beforeEach(() => {
 		;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
 		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
+		;(RequestContext.getLanguageCode as jest.Mock).mockReturnValue('zh-Hans')
 		;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue({
 			id: 'user-1',
@@ -417,7 +419,7 @@ describe('SkillPackageService', () => {
 		expect(skillRepositoryService.findOneInOrganizationOrTenant).toHaveBeenCalledWith('repo-public')
 		expect(workspaceRepository.create).toHaveBeenCalledWith(
 			expect.objectContaining({
-				name: 'Default Workspace',
+				name: '组织工作空间',
 				organizationId: 'org-1',
 				ownerId: 'user-1',
 				tenantId: 'tenant-1'

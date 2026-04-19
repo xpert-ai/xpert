@@ -30,7 +30,7 @@ import { XpertImportCommand, XpertService } from '../xpert'
 import { EnvironmentService } from '../environment'
 import { TDefaultSkillRepositoryEntry, XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
-import { DEFAULT_ENVIRONMENT_NAME, DEFAULT_ORGANIZATION_WORKSPACE_NAME } from './constants'
+import { DEFAULT_ENVIRONMENT_NAME, getDefaultOrganizationWorkspaceName } from './constants'
 
 export type OrganizationBootstrapResult = {
 	repositoryIds: string[]
@@ -163,7 +163,7 @@ export class ServerAIBootstrapService {
 		const user = await this.userService.findOne(event.userId, { relations: ['role'] })
 
 		await this.runInOrganizationContext(user, event.organizationId, async () => {
-			const skillRefs = await this.xpertTemplateService.getUserDefaultSkillRefs()
+			const skillRefs = await this.xpertTemplateService.getBootstrapDefaultSkillRefs()
 			if (!skillRefs.length) {
 				return
 			}
@@ -365,7 +365,7 @@ export class ServerAIBootstrapService {
 
 		if (!workspace) {
 			workspace = await this.workspaceService.create({
-				name: DEFAULT_ORGANIZATION_WORKSPACE_NAME,
+				name: getDefaultOrganizationWorkspaceName(),
 				status: 'active',
 				ownerId,
 				settings: {

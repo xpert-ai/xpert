@@ -33,7 +33,7 @@ import {
 	IUploadedSkill,
 	normalizeUploadedSkillPath
 } from '../skill-repository/plugins/zip'
-import { DEFAULT_ORGANIZATION_WORKSPACE_NAME } from '../initialization/constants'
+import { getDefaultOrganizationWorkspaceName } from '../initialization/constants'
 import { getMediaTypeWithCharset, listFiles } from '../shared/utils'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
@@ -1132,7 +1132,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 
 	private async findOrCreateScopeDefaultWorkspace(tenantId: string, organizationId: string | null | undefined, ownerId: string) {
 		const workspaceKind = organizationId ? 'org-default' : 'tenant-default'
-		const workspaceName = organizationId ? DEFAULT_ORGANIZATION_WORKSPACE_NAME : DEFAULT_TENANT_SKILL_WORKSPACE_NAME
+		const workspaceName = organizationId ? getDefaultOrganizationWorkspaceName() : DEFAULT_TENANT_SKILL_WORKSPACE_NAME
 		const query = this.workspaceRepository
 			.createQueryBuilder('workspace')
 			.where('workspace.tenantId = :tenantId', { tenantId })

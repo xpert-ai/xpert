@@ -154,6 +154,8 @@ export class TenantDetailsComponent {
 
   model = {}
 
+  readonly navigating = signal(false)
+
   constructor() {
     effect(() => {
       const organizationId = this.selectedOrganization()?.id
@@ -319,7 +321,8 @@ export class TenantDetailsComponent {
   }
 
   navigateHome() {
-    this.router.navigate(['home'])
+    this.navigating.set(true)
+    this.router.navigate(['/chat/'])
   }
 
   compareTypeFn(a: IDataSourceType, b: IDataSourceType) {

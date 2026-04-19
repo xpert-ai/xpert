@@ -276,6 +276,7 @@
 
       <div class="p-8">
         <button type="button" class="flex justify-center items-center btn btn-large btn-primary hover:shadow-md"
+          [disabled]="navigating()"
           (click)="navigateHome()">
           {{ 'PAC.Onboarding.TakeMetoXpertAiPlatform' | translate: {Default: 'Take me to Xpert AI Platform'} }}
         </button>

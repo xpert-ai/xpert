@@ -115,6 +115,9 @@ const DEFAULT_SKILL_MARKET_FILTERS: ISkillMarketFilterGroups = {
 const TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE = 'bundle.yaml'
 const TEMPLATE_SKILL_BUNDLE_SEPARATOR = '__'
 const TEMPLATE_SKILL_BUNDLE_SHARED_PREFIX = 'template-bundle'
+const TEMPLATE_SKILL_BUNDLE_SKILL_FILE = 'SKILL.md'
+const TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER = 'local'
+const TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY = 'root/skills'
 
 const isObjectValue = (value: unknown): value is object =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -491,9 +494,14 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		return config
 	}
 
-	async getUserDefaultSkillRefs(): Promise<TWorkspaceDefaultSkillRef[]> {
+	async getBootstrapDefaultSkillRefs(): Promise<TWorkspaceDefaultSkillRef[]> {
 		const config = await this.readWorkspaceDefaults()
-		if (!config.userDefault.skills.length) {
+		return config.userDefault.skills
+	}
+
+	async getUserDefaultSkillRefs(): Promise<TWorkspaceDefaultSkillRef[]> {
+		const skillRefs = await this.getBootstrapDefaultSkillRefs()
+		if (!skillRefs.length) {
 			return []
 		}
 
@@ -501,7 +509,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		const matchedRefs: TWorkspaceDefaultSkillRef[] = []
 		const missingRefs: TWorkspaceDefaultSkillRef[] = []
 
-		for (const ref of config.userDefault.skills) {
+		for (const ref of skillRefs) {
 			const key = this.getSkillRefKey(ref)
 			const featuredRef = featuredRefsByKey.get(key)
 			if (featuredRef) {
@@ -1032,7 +1040,23 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 	private async readTemplateSkillBundle(directoryPath: string, directoryName: string): Promise<TTemplateSkillBundle | null> {
 		const manifestPath = path.join(directoryPath, TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE)
 		if (!(await this.pathExists(manifestPath))) {
-			return null
+			const skillFilePath = path.join(directoryPath, TEMPLATE_SKILL_BUNDLE_SKILL_FILE)
+			if (!(await this.pathExists(skillFilePath))) {
+				return null
+			}
+
+			const ref = {
+				provider: TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER,
+				repositoryName: TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY,
+				skillId: directoryName.trim()
+			} satisfies TWorkspaceDefaultSkillRef
+
+			return {
+				directoryName,
+				directoryPath,
+				ref,
+				sharedSkillId: this.buildTemplateSkillBundleSharedSkillId(ref)
+			}
 		}
 
 		const raw = await this.readYamlFromFile(manifestPath, `template skill bundle manifest '${directoryName}'`)

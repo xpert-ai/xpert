@@ -480,7 +480,80 @@ describe('XpertTemplateService', () => {
 		})
 	})
 
-	it('keeps workspace default skill refs aligned with skills-market featured refs', async () => {
+	it('returns bootstrap default skill refs without requiring skills-market featured entries', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(externalRoot, { recursive: true })
+		writeFileSync(
+			join(externalRoot, 'skills-market.yaml'),
+			[
+				'en-US:',
+				'  featured:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'  filters:',
+				'    roles:',
+				'      label: Roles',
+				'      options:',
+				'        - value: all',
+				'          label: All roles',
+				'    appTypes:',
+				'      label: Application types',
+				'      options:',
+				'        - value: all',
+				'          label: All types',
+				'    hot:',
+				'      label: Trending',
+				'      options:',
+				'        - value: all',
+				'          label: Default'
+			].join('\n'),
+			'utf8'
+		)
+		writeFileSync(
+			join(externalRoot, 'workspace-defaults.yaml'),
+			[
+				'userDefault:',
+				'  skills:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'    - provider: clawhub',
+				'      repositoryName: clawhub/official',
+				'      skillId: mcporter'
+			].join('\n'),
+			'utf8'
+		)
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		await expect(service.getBootstrapDefaultSkillRefs()).resolves.toEqual([
+			{
+				provider: 'github',
+				repositoryName: 'anthropics/skills',
+				skillId: 'skills/claude-api'
+			},
+			{
+				provider: 'clawhub',
+				repositoryName: 'clawhub/official',
+				skillId: 'mcporter'
+			}
+		])
+	})
+
+	it('keeps market-facing default skill refs aligned with skills-market featured refs', async () => {
 		const workspaceRoot = createTempDir()
 		const dataRoot = createTempDir()
 		const externalRoot = join(dataRoot, 'external-templates')
@@ -591,6 +664,48 @@ describe('XpertTemplateService', () => {
 					provider: 'github',
 					repositoryName: 'anthropics/skills',
 					skillId: 'skills/claude-api'
+				}
+			}
+		])
+	})
+
+	it('infers local template bundle refs from standard skill package directories', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+		const bundleRoot = join(externalRoot, 'skill-packages', 'slides')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(bundleRoot, { recursive: true })
+		writeJson(join(externalRoot, 'templates.json'), {
+			templates: {},
+			details: {}
+		})
+		writeJson(join(externalRoot, 'mcp-templates.json'), {})
+		writeJson(join(externalRoot, 'knowledge-pipelines.json'), {})
+		writeFileSync(join(externalRoot, 'skills-market.yaml'), 'en-US:\n  featured: []\n  filters:\n    roles:\n      label: Roles\n      options: []\n    appTypes:\n      label: Application types\n      options: []\n    hot:\n      label: Trending\n      options: []', 'utf8')
+		writeFileSync(join(externalRoot, 'workspace-defaults.yaml'), 'userDefault:\n  skills: []', 'utf8')
+		writeFileSync(join(bundleRoot, 'SKILL.md'), '---\nname: slides\ndescription: Example\n---\n', 'utf8')
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		await expect(service.getTemplateSkillBundles()).resolves.toEqual([
+			{
+				directoryName: 'slides',
+				directoryPath: bundleRoot,
+				sharedSkillId: 'template-bundle__local__root%2Fskills__slides',
+				ref: {
+					provider: 'local',
+					repositoryName: 'root/skills',
+					skillId: 'slides'
 				}
 			}
 		])

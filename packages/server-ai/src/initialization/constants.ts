@@ -1,3 +1,6 @@
+import { I18nObject, LanguagesEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+
 export const AI_BOOTSTRAP_QUEUE = 'server-ai-bootstrap'
 export const AI_ORGANIZATION_BOOTSTRAP_JOB = 'organization-bootstrap'
 export const AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB = 'tenant-skill-repository-bootstrap'
@@ -6,5 +9,14 @@ export const AI_USER_DEFAULT_WORKSPACE_SKILLS_BOOTSTRAP_JOB = 'user-default-work
 export const AI_USER_ORGANIZATION_CLEANUP_JOB = 'user-organization-cleanup'
 export const AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB = 'organization-skill-repository-sync'
 
-export const DEFAULT_ORGANIZATION_WORKSPACE_NAME = 'Default Workspace'
+export const DEFAULT_ORGANIZATION_WORKSPACE_NAME: I18nObject = {
+	en_US: 'Organization Workspace',
+	zh_Hans: '组织工作空间'
+}
 export const DEFAULT_ENVIRONMENT_NAME = 'Default'
+
+export function getDefaultOrganizationWorkspaceName(languageCode = RequestContext.getLanguageCode()) {
+	return [LanguagesEnum.Chinese, LanguagesEnum.SimplifiedChinese].includes(languageCode)
+		? (DEFAULT_ORGANIZATION_WORKSPACE_NAME.zh_Hans ?? DEFAULT_ORGANIZATION_WORKSPACE_NAME.en_US)
+		: DEFAULT_ORGANIZATION_WORKSPACE_NAME.en_US
+}

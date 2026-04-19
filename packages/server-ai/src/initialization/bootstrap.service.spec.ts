@@ -17,7 +17,8 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
 
   return {
     RequestContext: {
-      currentRequest: jest.fn(() => currentRequest)
+      currentRequest: jest.fn(() => currentRequest),
+      getLanguageCode: jest.fn(() => (currentRequest as { headers?: { language?: string } } | null)?.headers?.language ?? 'en')
     },
     runWithRequestContext: (req: unknown, _res: unknown, callback: () => unknown) => {
       currentRequest = req
@@ -161,6 +162,7 @@ describe('ServerAIBootstrapService', () => {
       getTemplateDetail: jest.fn(),
       readSkillRepositories: jest.fn().mockResolvedValue(defaultRepositories),
       getTemplateSkillBundles: jest.fn().mockResolvedValue([]),
+      getBootstrapDefaultSkillRefs: jest.fn().mockResolvedValue([]),
       getUserDefaultSkillRefs: jest.fn().mockResolvedValue([]),
       resolveSkillRefs: jest.fn().mockResolvedValue([])
     }
@@ -217,6 +219,16 @@ describe('ServerAIBootstrapService', () => {
     expect(skillPackageService.ensureSharedSkillPackageFromTemplateBundle).not.toHaveBeenCalled()
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()
+    expect(workspaceService.create).toHaveBeenCalledWith({
+      name: 'Organization Workspace',
+      status: 'active',
+      ownerId: 'owner-1',
+      settings: {
+        system: {
+          kind: 'org-default'
+        }
+      }
+    })
     expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'owner-1')
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'member-2')
@@ -728,6 +740,18 @@ connections: []`
         skillId: 'mcporter'
       }
     ])
+    xpertTemplateService.getBootstrapDefaultSkillRefs.mockResolvedValue([
+      {
+        provider: 'github',
+        repositoryName: 'anthropics/skills',
+        skillId: 'skills/claude-api'
+      },
+      {
+        provider: 'clawhub',
+        repositoryName: 'clawhub/official',
+        skillId: 'mcporter'
+      }
+    ])
     xpertTemplateService.resolveSkillRefs.mockResolvedValue([
       {
         ref: {
@@ -750,6 +774,8 @@ connections: []`
       })
     ).rejects.toThrow('Default workspace skill bootstrap incomplete')
 
+    expect(xpertTemplateService.getBootstrapDefaultSkillRefs).toHaveBeenCalledTimes(1)
+    expect(xpertTemplateService.getUserDefaultSkillRefs).not.toHaveBeenCalled()
     expect(skillPackageService.ensureInstalledSkillPackage).toHaveBeenCalledWith('workspace-1', 'skill-1')
   })
 
@@ -762,7 +788,7 @@ connections: []`
         name: 'ADMIN'
       }
     })
-    xpertTemplateService.getUserDefaultSkillRefs.mockResolvedValue([
+    xpertTemplateService.getBootstrapDefaultSkillRefs.mockResolvedValue([
       {
         provider: 'github',
         repositoryName: 'anthropics/skills',
@@ -803,7 +829,7 @@ connections: []`
         name: 'ADMIN'
       }
     })
-    xpertTemplateService.getUserDefaultSkillRefs.mockResolvedValue([
+    xpertTemplateService.getBootstrapDefaultSkillRefs.mockResolvedValue([
       {
         provider: 'github',
         repositoryName: 'anthropics/skills',

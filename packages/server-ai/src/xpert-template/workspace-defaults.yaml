@@ -3,3 +3,42 @@ userDefault:
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/claude-api
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/canvas-design
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/docx
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/mcp-builder
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/pdf
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/skill-creator
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/xlsx
+    - provider: github
+      repositoryName: obra/superpowers
+      skillId: skills/subagent-driven-development
+    - provider: github
+      repositoryName: obra/superpowers
+      skillId: skills/verification-before-completion
+    - provider: github
+      repositoryName: obra/superpowers
+      skillId: skills/writing-plans
+    - provider: github
+      repositoryName: obra/superpowers
+      skillId: skills/writing-skills
+    - provider: github
+      repositoryName: coreyhaines31/marketingskills
+      skillId: skills/schema-markup
+    - provider: github
+      repositoryName: coreyhaines31/marketingskills
+      skillId: skills/site-architecture
+    - provider: local
+      repositoryName: root/skills
+      skillId: slides
