@@ -325,6 +325,164 @@ describe('SkillPackageService', () => {
 		expect(result.metadata.version).toBeUndefined()
 	})
 
+	it('reuses an existing installed marketplace skill when the same version is already present', async () => {
+		skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
+			id: 'index-1',
+			repositoryId: 'repo-1',
+			skillId: 'weather',
+			name: 'Weather',
+			skillPath: 'weather',
+			version: '1.2.3',
+			repository: {
+				id: 'repo-1',
+				provider: 'clawhub',
+				tenantId: 'tenant-1'
+			}
+		})
+		repository.findOne.mockResolvedValue({
+			id: 'skill-existing-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			skillIndexId: 'index-1',
+			metadata: {
+				name: 'weather',
+				displayName: {
+					en_US: 'Weather',
+					zh_Hans: 'Weather'
+				},
+				version: '1.2.3',
+				visibility: 'private'
+			},
+			skillIndex: {
+				id: 'index-1',
+				repositoryId: 'repo-1',
+				skillId: 'weather',
+				repository: {
+					id: 'repo-1',
+					provider: 'clawhub',
+					tenantId: 'tenant-1'
+				}
+			}
+		})
+
+		const result = await service.installSkillPackage('workspace-1', 'index-1')
+
+		expect(repository.findOne).toHaveBeenCalledWith({
+			where: {
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-1'
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		expect(strategy.installSkillPackage).not.toHaveBeenCalled()
+		expect(createSpy).not.toHaveBeenCalled()
+		expect(service.update).not.toHaveBeenCalled()
+		expect(result).toMatchObject({
+			id: 'skill-existing-1',
+			skillIndexId: 'index-1',
+			metadata: {
+				version: '1.2.3'
+			}
+		})
+	})
+
+	it('updates an installed marketplace skill in place when a newer version is installed for the same skill id', async () => {
+		skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
+			id: 'index-2',
+			repositoryId: 'repo-1',
+			skillId: 'weather',
+			name: 'Weather',
+			skillPath: 'weather',
+			version: '2.0.0',
+			repository: {
+				id: 'repo-1',
+				provider: 'clawhub',
+				tenantId: 'tenant-1'
+			}
+		})
+		repository.findOne
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce({
+				id: 'skill-existing-1',
+				tenantId: 'tenant-1',
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-1',
+				packagePath: 'clawhub/weather',
+				metadata: {
+					name: 'weather',
+					version: '1.2.3',
+					visibility: 'private'
+				},
+				skillIndex: {
+					id: 'index-1',
+					repositoryId: 'repo-1',
+					skillId: 'weather',
+					repository: {
+						id: 'repo-1',
+						provider: 'clawhub',
+						tenantId: 'tenant-1'
+					}
+				}
+			})
+
+		const result = await service.installSkillPackage('workspace-1', 'index-2')
+
+		expect(repository.findOne).toHaveBeenNthCalledWith(1, {
+			where: {
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-2'
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		expect(repository.findOne).toHaveBeenNthCalledWith(2, {
+			where: {
+				workspaceId: 'workspace-1',
+				skillIndex: {
+					repositoryId: 'repo-1',
+					skillId: 'weather'
+				}
+			},
+			relations: ['skillIndex', 'skillIndex.repository'],
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		expect(strategy.uninstallSkillPackage).toHaveBeenCalledWith('/tmp/workspace-skills/clawhub/weather')
+		expect(strategy.installSkillPackage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'index-2',
+				skillId: 'weather',
+				version: '2.0.0'
+			}),
+			'/tmp/workspace-skills'
+		)
+		expect(service.update).toHaveBeenCalledWith(
+			'skill-existing-1',
+			expect.objectContaining({
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-2',
+				packagePath: 'clawhub/weather',
+				metadata: expect.objectContaining({
+					version: '2.0.0'
+				})
+			})
+		)
+		expect(createSpy).not.toHaveBeenCalled()
+		expect(result).toMatchObject({
+			id: 'skill-existing-1',
+			skillIndexId: 'index-2',
+			packagePath: 'clawhub/weather',
+			metadata: expect.objectContaining({
+				version: '2.0.0'
+			}),
+			skillIndex: expect.objectContaining({
+				id: 'index-2',
+				skillId: 'weather',
+				version: '2.0.0'
+			})
+		})
+	})
+
 	it('reuses an existing installed skill package for the same workspace and index', async () => {
 		repository.findOne.mockResolvedValue({
 			id: 'skill-existing-1',

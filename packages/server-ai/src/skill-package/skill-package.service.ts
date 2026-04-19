@@ -208,23 +208,80 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 		await this.assertWorkspaceAccess(workspaceId)
 		const index = await this.skillIndexService.findOneInOrganizationOrTenant(indexId, { relations: ['repository'] })
+		const metadata = this.buildMetadataFromIndex(index)
+		const existingSkillPackage = await this.findInstalledMarketplaceSkillPackage(workspaceId, {
+			id: index.id,
+			repositoryId: index.repositoryId,
+			skillId: index.skillId,
+			version: index.version
+		})
+		if (existingSkillPackage && !this.shouldRefreshInstalledMarketplaceSkillPackage(existingSkillPackage, index)) {
+			const mergedMetadata = this.mergeInstalledMetadata(existingSkillPackage.metadata, metadata)
+			if (
+				existingSkillPackage.skillIndexId === index.id &&
+				this.isInstalledMarketplaceSkillMetadataCurrent(existingSkillPackage.metadata, mergedMetadata)
+			) {
+				return existingSkillPackage
+			}
+
+			await this.update(existingSkillPackage.id, {
+				workspaceId,
+				skillIndexId: index.id,
+				metadata: mergedMetadata
+			})
+
+			return (
+				(await this.loadInstalledSkillPackageById(existingSkillPackage.id)) ?? {
+					...existingSkillPackage,
+					workspaceId,
+					skillIndexId: index.id,
+					metadata: mergedMetadata,
+					skillIndex: index
+				}
+			)
+		}
 		const strategy = this.skillSourceProviderRegistry.get(index.repository.provider)
 		try {
 			// Install directory
 			const installDir = getWorkspaceSkillsRoot(index.repository.tenantId, workspaceId)
+			if (existingSkillPackage) {
+				await this.uninstallInstalledSkillPackageFiles(existingSkillPackage)
+			}
 			const packagePath = this.normalizePackagePath(
 				await strategy.installSkillPackage(index, installDir),
 				installDir
 			)
-
-			// Install to database
-			const skillPackage = await this.create({
+			const payload = {
 				workspaceId,
 				name: index.name ?? index.skillPath.split('/').pop(),
 				skillIndexId: index.id,
 				packagePath,
-				metadata: this.buildMetadataFromIndex(index)
-			})
+				metadata
+			}
+
+			if (existingSkillPackage?.id) {
+				const mergedMetadata = this.mergeInstalledMetadata(existingSkillPackage.metadata, metadata)
+				await this.update(existingSkillPackage.id, {
+					workspaceId,
+					skillIndexId: index.id,
+					packagePath,
+					metadata: mergedMetadata
+				})
+
+				return (
+					(await this.loadInstalledSkillPackageById(existingSkillPackage.id)) ?? {
+						...existingSkillPackage,
+						workspaceId,
+						skillIndexId: index.id,
+						packagePath,
+						metadata: mergedMetadata,
+						skillIndex: index
+					}
+				)
+			}
+
+			// Install to database
+			const skillPackage = await this.create(payload)
 
 			return skillPackage
 		} catch (error) {
@@ -615,6 +672,25 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	private async uninstallInstalledSkillPackageFiles(skillPackage: SkillPackage) {
+		const metadata = this.getInstallMetadata(skillPackage)
+		const provider = skillPackage.skillIndex?.repository?.provider ?? metadata?.source ?? undefined
+		const tenantId = skillPackage.tenantId
+		const workspaceId = skillPackage.workspaceId
+		if (!provider || !tenantId || !workspaceId) {
+			return
+		}
+
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
+		const installPath = this.resolveInstalledPath(skillPackage, installDir)
+		if (!installPath) {
+			return
+		}
+
+		const strategy = this.skillSourceProviderRegistry.get(provider)
+		await strategy.uninstallSkillPackage(installPath)
+	}
+
 	/**
 	 * Upload and install skills from a zip archive directly into a workspace.
 	 */
@@ -818,6 +894,8 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	}
 
 	private buildMetadataFromIndex(index: {
+		skillId?: string
+		skillPath?: string
 		name?: string
 		description?: string
 		tags?: string[]
@@ -831,13 +909,16 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			index.publisher?.displayName?.trim() ||
 			index.publisher?.name?.trim() ||
 			index.publisher?.handle?.trim()
+		const metadataName = index.skillId?.trim() || index.skillPath?.trim() || displayName || 'skill'
 
 		return {
+			name: metadataName,
 			displayName: displayName ? toI18nObject(displayName) : undefined,
 			description: description ? toI18nObject(description) : undefined,
 			tags: normalizeTagList(index.tags),
 			license: index.license?.trim() || undefined,
 			version: index.version?.trim() || undefined,
+			visibility: 'private',
 			author: publisherName
 				? {
 					name: publisherName
@@ -1128,6 +1209,99 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		})
 
 		return items[0] ?? null
+	}
+
+	private async findInstalledMarketplaceSkillPackage(
+		workspaceId: string,
+		index: {
+			id?: string
+			repositoryId?: string
+			skillId?: string
+			version?: string
+		}
+	) {
+		if (index.id) {
+			const existingByIndexId = await this.repository.findOne({
+				where: {
+					workspaceId,
+					skillIndexId: index.id
+				},
+				relations: ['skillIndex', 'skillIndex.repository']
+			})
+			if (existingByIndexId) {
+				return existingByIndexId
+			}
+		}
+
+		if (!index.repositoryId || !index.skillId) {
+			return null
+		}
+
+		return this.repository.findOne({
+			where: {
+				workspaceId,
+				skillIndex: {
+					repositoryId: index.repositoryId,
+					skillId: index.skillId
+				}
+			},
+			relations: ['skillIndex', 'skillIndex.repository'],
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+	}
+
+	private async loadInstalledSkillPackageById(id: string) {
+		return this.repository.findOne({
+			where: {
+				id
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+	}
+
+	private mergeInstalledMetadata(
+		existingMetadata: SkillMetadata | undefined,
+		incomingMetadata: SkillPackageInstallMetadata
+	): SkillMetadata {
+		return {
+			name: incomingMetadata.name ?? existingMetadata?.name ?? 'skill',
+			version: incomingMetadata.version ?? existingMetadata?.version ?? '',
+			visibility: incomingMetadata.visibility ?? existingMetadata?.visibility ?? 'private',
+			...existingMetadata,
+			...incomingMetadata
+		}
+	}
+
+	private isInstalledMarketplaceSkillMetadataCurrent(
+		existingMetadata: SkillMetadata | undefined,
+		incomingMetadata: SkillMetadata
+	) {
+		return (
+			existingMetadata?.name === incomingMetadata.name &&
+			existingMetadata?.version === incomingMetadata.version &&
+			existingMetadata?.visibility === incomingMetadata.visibility &&
+			readI18nText(existingMetadata?.displayName) === readI18nText(incomingMetadata.displayName) &&
+			readI18nText(existingMetadata?.description) === readI18nText(incomingMetadata.description) &&
+			(existingMetadata?.license ?? undefined) === (incomingMetadata.license ?? undefined) &&
+			JSON.stringify(existingMetadata?.tags ?? []) === JSON.stringify(incomingMetadata.tags ?? []) &&
+			existingMetadata?.author?.name === incomingMetadata.author?.name &&
+			existingMetadata?.author?.email === incomingMetadata.author?.email &&
+			existingMetadata?.author?.org === incomingMetadata.author?.org
+		)
+	}
+
+	private shouldRefreshInstalledMarketplaceSkillPackage(
+		skillPackage: SkillPackage,
+		index: {
+			id?: string
+			version?: string
+		}
+	) {
+		const installedVersion = typeof skillPackage.metadata?.version === 'string' ? skillPackage.metadata.version.trim() : ''
+		const incomingVersion = typeof index.version === 'string' ? index.version.trim() : ''
+		return !!incomingVersion && installedVersion !== incomingVersion
 	}
 
 	private async findOrCreateScopeDefaultWorkspace(tenantId: string, organizationId: string | null | undefined, ownerId: string) {

@@ -278,7 +278,7 @@ export class XpertWorkspaceSkillsComponent {
       await firstValueFrom(this.skillPackageAPI.installPackage(workspaceId, indexId))
       this.#toastr.success(
         this.#translate.instant('PAC.Skill.SkillPackageInstalled', {
-          Default: 'Skill Package Installed'
+          Default: 'Skill is ready. Existing installs are reused, and newer versions update automatically.'
         })
       )
       this.#skillsResource.reload()

@@ -97,7 +97,9 @@ export class ExploreSkillInstallComponent {
       next: () => {
         this.loading.set(false)
         this.#toastr.success(
-          this.#translate.instant('PAC.Explore.SkillInstallSuccess', { Default: 'Skill installed successfully' })
+          this.#translate.instant('PAC.Explore.SkillInstallSuccess', {
+            Default: 'Skill is ready. Existing installs are reused, and newer versions update automatically.'
+          })
         )
         this.#dialogRef.close(this.item)
       },
