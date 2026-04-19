@@ -6,8 +6,8 @@ How to generate a new plugin library, replacing `my-plugin` with your plugin nam
 npx nx g @nx/js:lib packages/plugins/my-plugin --importPath=@xpert-ai/plugin-my-plugin --unitTestRunner=jest --publishable --bundler=rollup --linter=eslint
 ```
 
-- Add the corresponding build command `pnpm nx build my-plugin` to `build:plugins` in *package.json*.
-- Add the corresponding build command `pnpm nx build my-plugin` to `build:plugins` in *./.deploy/api/package.json*.
+- Add `my-plugin` to the `nx run-many ... --projects=...` list used by `build:plugins` in *package.json*.
+- Add `my-plugin` to the matching `build:plugins` project list in *./.deploy/api/package.json*.
 
 - Add external dependencies in plugin's *project.json*:
 

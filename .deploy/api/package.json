@@ -28,7 +28,7 @@
     "start": "nx serve",
     "build": "nx build",
     "test": "nx test",
-    "build:plugins": "pnpm nx build agent-middlewares && pnpm nx build integration-slack && pnpm nx build retriever-common && pnpm nx build textsplitter-common && pnpm nx build transformer-common && pnpm nx build trigger-schedule && pnpm nx build vlm-default && pnpm nx build draft"
+    "build:plugins": "pnpm nx run-many -t build -p agent-middlewares,integration-slack,retriever-common,textsplitter-common,transformer-common,trigger-schedule,vlm-default,draft --parallel=4"
   },
   "dependencies": {
     "@langchain/community": "0.3.53",

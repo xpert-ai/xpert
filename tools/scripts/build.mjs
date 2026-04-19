@@ -39,10 +39,10 @@ try {
 
     // 编译前端
     process.env.NODE_OPTIONS = '--max_old_space_size=8192';
-    execSync('pnpm nx build cloud --configuration=production --skip-nx-cache', { stdio: 'inherit' });
+    execSync('pnpm build:cloud:prod:no-cache', { stdio: 'inherit' });
     
     // 编译后端
-    execSync('pnpm nx build api', { stdio: 'inherit' });
+    execSync('pnpm build:api:prod', { stdio: 'inherit' });
     
     // copyDir('dist/packages', 'dist/apps/api/packages');
     fs.copyFileSync('.deploy/api/package-prod.json', 'dist/apps/api/package.json');
