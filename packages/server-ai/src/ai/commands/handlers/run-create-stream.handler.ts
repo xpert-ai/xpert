@@ -352,6 +352,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             ...principalUser,
             apiKey,
             ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
+            apiKeyUserId: currentUser?.apiKeyUserId ?? apiKey.userId ?? principalUser.id ?? null,
+            requestedUserId: currentUser?.requestedUserId ?? null,
+            requestedOrganizationId: currentUser?.requestedOrganizationId ?? null,
             principalType: currentUser?.principalType ?? 'api_key'
         }
     }

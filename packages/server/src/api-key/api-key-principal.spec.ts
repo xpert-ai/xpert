@@ -1,5 +1,6 @@
-import { API_PRINCIPAL_USER_ID_HEADER, UserType } from '@xpert-ai/contracts'
+import { API_PRINCIPAL_USER_ID_HEADER, RequestScopeLevel, UserType } from '@xpert-ai/contracts'
 import {
+	applyRequestedOrganizationScopeHeaders,
 	buildApiKeyPrincipal,
 	resolveApiKeyRequestedOrganizationId,
 	resolveApiKeyRequestedUserId
@@ -57,5 +58,31 @@ describe('api-key principal helpers', () => {
 				}
 			} as any)
 		).toBe('org-from-header')
+	})
+
+	it('restores organization scope headers when an organization is requested', () => {
+		const req = {
+			headers: {}
+		} as any
+
+		applyRequestedOrganizationScopeHeaders(req, ' org-1 ')
+
+		expect(req.headers).toMatchObject({
+			'organization-id': 'org-1',
+			'x-scope-level': RequestScopeLevel.ORGANIZATION
+		})
+	})
+
+	it('falls back to tenant scope headers when no organization is requested', () => {
+		const req = {
+			headers: {
+				'organization-id': 'org-1'
+			}
+		} as any
+
+		applyRequestedOrganizationScopeHeaders(req, null)
+
+		expect(req.headers['organization-id']).toBeUndefined()
+		expect(req.headers['x-scope-level']).toBe(RequestScopeLevel.TENANT)
 	})
 })

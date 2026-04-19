@@ -536,7 +536,9 @@ describe('RunCreateStreamHandler execute', () => {
             id: 'assistant-user-1',
             tenantId: 'tenant-1',
             principalType: 'api_key',
-            ownerUserId: 'owner-user-1'
+            ownerUserId: 'owner-user-1',
+            apiKeyUserId: 'assistant-user-1',
+            requestedOrganizationId: null
         })
     })
 

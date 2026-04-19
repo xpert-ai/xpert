@@ -145,7 +145,7 @@ export class AssistantBindingService
 
     async getUserPreferenceByAssistantId(assistantId: string): Promise<IAssistantBindingUserPreference | null> {
         const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
+        const organizationId = this.resolveRequestedUserOrganizationId()
         const userId = RequestContext.currentUserId()
         const normalizedAssistantId = assistantId?.trim()
 
@@ -727,7 +727,7 @@ export class AssistantBindingService
 
     private requireUserScope() {
         const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
+        const organizationId = this.resolveRequestedUserOrganizationId()
         const userId = RequestContext.currentUserId()
 
         if (!tenantId) {
@@ -745,6 +745,10 @@ export class AssistantBindingService
             organizationId,
             userId
         }
+    }
+
+    private resolveRequestedUserOrganizationId() {
+        return RequestContext.currentApiPrincipal()?.requestedOrganizationId ?? RequestContext.getOrganizationId()
     }
 
     private resolveSystemScopeContext(scope: SystemScope, requireOrganization: boolean): ScopeContext {

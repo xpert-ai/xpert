@@ -4,7 +4,7 @@ import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
 import { ApiKeyService } from '../api-key/api-key.service'
 import {
-	applyTenantScopeHeaders,
+	applyRequestedOrganizationScopeHeaders,
 	resolveApiKeyRequestedOrganizationId,
 } from '../api-key/api-key-principal'
 import { SecretTokenService } from './secret-token.service'
@@ -44,14 +44,13 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 					return this.fail(new UnauthorizedException('Invalid token'))
 				}
 
-				applyTenantScopeHeaders(req)
-				this.success(
-					await this.apiKeyService.resolvePrincipal(apiKey || secretToken, {
-						requestedUserId: secretToken.createdById,
-						requestedOrganizationId,
-						principalType: 'client_secret'
-					})
-				)
+				const principal = await this.apiKeyService.resolvePrincipal(apiKey || secretToken, {
+					requestedUserId: secretToken.createdById,
+					requestedOrganizationId,
+					principalType: 'client_secret'
+				})
+				applyRequestedOrganizationScopeHeaders(req, principal?.requestedOrganizationId)
+				this.success(principal)
 			})
 			.catch((err) => {
 				return this.error(new UnauthorizedException('Unauthorized', err.message))

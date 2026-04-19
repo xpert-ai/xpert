@@ -4,7 +4,7 @@ import { PassportStrategy } from '@nestjs/passport'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
 import {
-	applyTenantScopeHeaders,
+	applyRequestedOrganizationScopeHeaders,
 	resolveApiKeyRequestedOrganizationId,
 	resolveApiKeyRequestedUserId
 } from './api-key-principal'
@@ -44,13 +44,12 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 					return this.fail(new UnauthorizedException('Invalid token'))
 				}
 
-				applyTenantScopeHeaders(req)
-				this.success(
-					await this.apiKeyService.resolvePrincipal(apiKey, {
-						requestedUserId,
-						requestedOrganizationId
-					})
-				)
+				const principal = await this.apiKeyService.resolvePrincipal(apiKey, {
+					requestedUserId,
+					requestedOrganizationId
+				})
+				applyRequestedOrganizationScopeHeaders(req, principal?.requestedOrganizationId)
+				this.success(principal)
 			})
 			.catch((err) => {
 				// console.error(err)
