@@ -906,6 +906,61 @@ describe('XpertTemplateService', () => {
 		])
 	})
 
+	it('invalidates all cached template skill asset entries', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		seedBuiltinTemplates(workspaceRoot)
+
+		const { cacheManager, service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: dataRoot
+		})
+
+		await service.invalidateSkillTemplateCaches()
+
+		expect(cacheManager.del).toHaveBeenCalledTimes(4)
+		expect(cacheManager.del).toHaveBeenCalledWith('xpert:skills-market')
+		expect(cacheManager.del).toHaveBeenCalledWith('xpert:skill-repositories')
+		expect(cacheManager.del).toHaveBeenCalledWith('xpert:workspace-defaults')
+		expect(cacheManager.del).toHaveBeenCalledWith('xpert:template-skill-bundles')
+	})
+
+	it('updates the template asset fingerprint when yaml or bundled skill files change', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+		seedBuiltinTemplates(workspaceRoot)
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+		const initialFingerprint = await service.calculateSkillAssetFingerprint()
+
+		writeFileSync(
+			join(externalRoot, 'workspace-defaults.yaml'),
+			['userDefault:', '  skills:', '    - provider: github', '      repositoryName: anthropics/skills', '      skillId: skills/claude-api'].join('\n'),
+			'utf8'
+		)
+		const updatedYamlFingerprint = await service.calculateSkillAssetFingerprint()
+
+		mkdirSync(join(externalRoot, 'skill-packages', 'bundle-a'), { recursive: true })
+		writeFileSync(
+			join(externalRoot, 'skill-packages', 'bundle-a', 'SKILL.md'),
+			'---\nname: Bundle A\ndescription: Example bundle.\n---\n# Bundle A\n',
+			'utf8'
+		)
+		const updatedBundleFingerprint = await service.calculateSkillAssetFingerprint()
+
+		expect(updatedYamlFingerprint).not.toBe(initialFingerprint)
+		expect(updatedBundleFingerprint).not.toBe(updatedYamlFingerprint)
+	})
+
 	function createService({
 		serverRoot,
 		dataPath,
@@ -926,6 +981,9 @@ describe('XpertTemplateService', () => {
 			get: jest.fn(async (key: string) => cache.get(key)),
 			set: jest.fn(async (key: string, value: unknown) => {
 				cache.set(key, value)
+			}),
+			del: jest.fn(async (key: string) => {
+				cache.delete(key)
 			})
 		}
 		const service = new XpertTemplateService(

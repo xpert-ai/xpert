@@ -675,9 +675,12 @@ describe('SkillPackageService', () => {
 				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fgithub'
 			}
 		])
-		const ensureSharedSkillPackageFromTemplateBundle = jest
-			.spyOn(service, 'ensureSharedSkillPackageFromTemplateBundle')
-			.mockResolvedValue({ id: 'index-public-1' } as any)
+		const syncTemplateSkillBundle = jest.spyOn(service, 'syncTemplateSkillBundle').mockResolvedValue({
+			status: 'created',
+			hash: 'bundle-hash',
+			sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api',
+			index: { id: 'index-public-1' }
+		})
 
 		const result = await service.initializeWorkspacePublicRepository()
 
@@ -695,7 +698,7 @@ describe('SkillPackageService', () => {
 				}
 			})
 		)
-		expect(ensureSharedSkillPackageFromTemplateBundle).toHaveBeenNthCalledWith(
+		expect(syncTemplateSkillBundle).toHaveBeenNthCalledWith(
 			1,
 			'workspace-org-default',
 			{
@@ -706,7 +709,7 @@ describe('SkillPackageService', () => {
 				skipAccessCheck: true
 			}
 		)
-		expect(ensureSharedSkillPackageFromTemplateBundle).toHaveBeenNthCalledWith(
+		expect(syncTemplateSkillBundle).toHaveBeenNthCalledWith(
 			2,
 			'workspace-org-default',
 			{
@@ -857,6 +860,134 @@ describe('SkillPackageService', () => {
 				description: 'Bundle skill.'
 			})
 		)
+	})
+
+	it('skips template bundle republish when the stored bundle hash is still current', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-current-'))
+		const bundleRoot = join(tempRoot, 'bundle')
+		const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+		await mkdir(bundleRoot, { recursive: true })
+		await writeFile(
+			join(bundleRoot, 'SKILL.md'),
+			'---\nname: Claude API\ndescription: Bundle skill.\nversion: 1.0.0\ntags:\n  - api\n---\n# Claude API\n',
+			'utf8'
+		)
+
+		skillRepositoryService.findAll.mockResolvedValue({
+			items: [{ id: 'repo-public', provider: 'workspace-public' }]
+		})
+		const validationResult = await service.syncTemplateSkillBundle(
+			'workspace-1',
+			{
+				bundleRootPath: bundleRoot,
+				sharedSkillId
+			},
+			{
+				validateOnly: true
+			}
+		)
+
+		repository.findOne.mockResolvedValue({
+			id: 'skill-existing-1',
+			workspaceId: 'workspace-1',
+			sharedSkillId,
+			packagePath: 'claude-api',
+			metadata: {
+				name: 'Claude API',
+				provenance: {
+					templateBundleHash: validationResult.hash
+				}
+			}
+		})
+		skillIndexService.findAll.mockResolvedValue({
+			items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
+		})
+
+		const result = await service.syncTemplateSkillBundle('workspace-1', {
+			bundleRootPath: bundleRoot,
+			sharedSkillId
+		})
+
+		expect(result).toEqual({
+			status: 'unchanged',
+			hash: validationResult.hash,
+			sharedSkillId,
+			index: {
+				id: 'index-existing-1',
+				repositoryId: 'repo-public',
+				skillId: sharedSkillId
+			}
+		})
+		expect(createSpy).not.toHaveBeenCalled()
+		expect(service.update).not.toHaveBeenCalled()
+		expect(skillIndexService.create).not.toHaveBeenCalled()
+	})
+
+	it('republishes a template bundle when the bundle contents change but the shared skill id stays the same', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-update-'))
+		const workspaceRoot = join(tempRoot, 'workspace')
+		const sharedRoot = join(tempRoot, 'shared')
+		const bundleRoot = join(tempRoot, 'bundle')
+		const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+		await mkdir(bundleRoot, { recursive: true })
+		await writeFile(
+			join(bundleRoot, 'SKILL.md'),
+			'---\nname: Claude API\ndescription: Updated bundle skill.\nversion: 2.0.0\ntags:\n  - api\n  - updated\n---\n# Claude API\n',
+			'utf8'
+		)
+		await writeFile(join(bundleRoot, 'guide.md'), 'updated guide\n', 'utf8')
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
+		;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
+			(_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
+		)
+
+		skillIndexService.findAll.mockResolvedValue({
+			items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
+		})
+		repository.findOne.mockResolvedValue({
+			id: 'skill-existing-1',
+			workspaceId: 'workspace-1',
+			sharedSkillId,
+			packagePath: 'claude-api',
+			metadata: {
+				name: 'Claude API',
+				provenance: {
+					templateBundleHash: 'stale-hash'
+				}
+			}
+		})
+
+		const result = await service.syncTemplateSkillBundle('workspace-1', {
+			bundleRootPath: bundleRoot,
+			sharedSkillId
+		})
+
+		expect(result.status).toBe('updated')
+		expect(result.sharedSkillId).toBe(sharedSkillId)
+		expect(createSpy).not.toHaveBeenCalled()
+		expect(service.update).toHaveBeenCalledWith(
+			'skill-existing-1',
+			expect.objectContaining({
+				workspaceId: 'workspace-1',
+				packagePath: 'claude-api',
+				metadata: expect.objectContaining({
+					version: '2.0.0',
+					provenance: expect.objectContaining({
+						templateBundleHash: expect.any(String)
+					})
+				})
+			})
+		)
+		expect(skillIndexService.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'index-existing-1',
+				repositoryId: 'repo-public',
+				skillId: sharedSkillId,
+				description: 'Updated bundle skill.',
+				version: '2.0.0'
+			})
+		)
+		await expect(readFile(join(sharedRoot, sharedSkillId, 'guide.md'), 'utf8')).resolves.toBe('updated guide\n')
 	})
 
 	it('lists workspace skill files from the installed package root', async () => {

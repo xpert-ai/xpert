@@ -24,11 +24,12 @@ import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
 import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
-import { SkillRepositoryIndexService, SkillRepositoryService } from '../skill-repository'
+import { SkillRepositoryIndexService } from '../skill-repository'
 import { SkillPackageService } from '../skill-package'
 import { XpertImportCommand, XpertService } from '../xpert'
 import { EnvironmentService } from '../environment'
-import { TDefaultSkillRepositoryEntry, XpertTemplateService } from '../xpert-template/xpert-template.service'
+import { TemplateSkillSyncService } from '../xpert-template/template-skill-sync.service'
+import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
 import { DEFAULT_ENVIRONMENT_NAME, getDefaultOrganizationWorkspaceName } from './constants'
 
@@ -81,11 +82,11 @@ export class ServerAIBootstrapService {
 		private readonly userOrganizationService: UserOrganizationService,
 		private readonly workspaceService: XpertWorkspaceService,
 		private readonly environmentService: EnvironmentService,
-		private readonly skillRepositoryService: SkillRepositoryService,
 		private readonly skillRepositoryIndexService: SkillRepositoryIndexService,
 		private readonly skillPackageService: SkillPackageService,
 		private readonly xpertService: XpertService,
-		private readonly xpertTemplateService: XpertTemplateService
+		private readonly xpertTemplateService: XpertTemplateService,
+		private readonly templateSkillSyncService: TemplateSkillSyncService
 	) {}
 
 	async bootstrapOrganization(event: OrganizationCreatedEvent): Promise<OrganizationBootstrapResult> {
@@ -116,16 +117,17 @@ export class ServerAIBootstrapService {
 	}
 
 	async bootstrapTenantSkillRepositories(event: TenantCreatedEvent): Promise<TenantSkillRepositoryBootstrapResult> {
-		const configuredRepositories = await this.loadDefaultSkillRepositories()
 		const owner = await this.resolveTenantBootstrapUser(event.tenantId)
-		const repositoryIds = await this.runInTenantContext(owner, async () => {
-			await this.skillPackageService.initializeWorkspacePublicRepository()
-			return configuredRepositories.length
-				? this.ensureTenantSkillRepositories(configuredRepositories, event.tenantId)
-				: []
+		await this.runInTenantContext(owner, async () => {
+			await this.templateSkillSyncService.syncCurrentTenantSkillAssets({
+				mode: 'full',
+				validateOnly: false,
+				skipLock: true,
+				updateFingerprint: true
+			})
 		})
 
-		return { repositoryIds }
+		return { repositoryIds: [] }
 	}
 
 	async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent): Promise<UserOrganizationBootstrapResult> {
@@ -246,62 +248,6 @@ export class ServerAIBootstrapService {
 		await this.runInTenantContext(owner, async () => {
 			await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
 		})
-	}
-
-	private async ensureTenantSkillRepositories(repositories: TDefaultSkillRepositoryEntry[], tenantId?: string) {
-		if (!repositories.length) {
-			return []
-		}
-
-		return this.ensureDefaultSkillRepositories(repositories, `tenant '${tenantId ?? 'unknown'}'`)
-	}
-
-	private async ensureDefaultSkillRepositories(repositories: TDefaultSkillRepositoryEntry[], scopeLabel: string) {
-		const repositoryIds: string[] = []
-		for (const repository of repositories) {
-			const name = repository.name?.trim()
-			const provider = repository.provider?.trim()
-			if (!name || !provider) {
-				this.logger.warn(`Skipping invalid default skill repository entry: ${JSON.stringify(repository)}`)
-				continue
-			}
-
-			try {
-				const { items } = await this.skillRepositoryService.findAll({
-					where: {
-						name,
-						provider
-					},
-					take: 1
-				})
-				const existing = items[0]
-				const saved = await this.skillRepositoryService.register({
-					...(existing ? { id: existing.id } : {}),
-					name,
-					provider,
-					options: repository.options ?? null,
-					credentials: repository.credentials ?? null
-				})
-
-				if (saved?.id) {
-					repositoryIds.push(saved.id)
-				}
-			} catch (error) {
-				this.logger.error(
-					`Failed to initialize default skill repository '${name}' (${provider}) for ${scopeLabel}: ${getErrorMessage(
-						error
-					)}`,
-					error as Error
-				)
-			}
-		}
-
-		return repositoryIds
-	}
-
-	private async loadDefaultSkillRepositories() {
-		const config = await this.xpertTemplateService.readSkillRepositories()
-		return config.repositories
 	}
 
 	private async resolveBootstrapUser(organizationId: string, preferredUserId?: string | null) {

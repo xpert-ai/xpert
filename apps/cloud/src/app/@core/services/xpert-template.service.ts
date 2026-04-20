@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
+import { ITemplateSkillSyncResult, TemplateSkillSyncMode } from '@xpert-ai/contracts'
 import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { ISkillMarketConfig, IXpertMCPTemplate, IXpertTemplate, TXpertTemplate } from '../types'
@@ -39,5 +40,12 @@ export class XpertTemplateService {
 
   getSkillsMarket() {
     return this.#httpClient.get<ISkillMarketConfig>(API_PREFIX + `/xpert-template/skills-market`)
+  }
+
+  syncSkillAssets(body?: {
+    mode?: TemplateSkillSyncMode
+    validateOnly?: boolean
+  }) {
+    return this.#httpClient.post<ITemplateSkillSyncResult>(API_PREFIX + `/xpert-template/sync-skill-assets`, body ?? {})
   }
 }
