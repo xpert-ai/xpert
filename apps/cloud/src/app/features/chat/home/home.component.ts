@@ -127,7 +127,10 @@ export class ChatHomeComponent {
     const url = this.currentUrl()
     return url === '/chat' || url === '/chat/x/common' || url.startsWith('/chat/x/common/')
   })
-  readonly showLegacyHistory = computed(() => !this.isCommonAssistantRoute())
+  readonly showLegacyHistory = computed(() => {
+    const url = this.currentUrl()
+    return !isClawXpertRoute(url)
+  })
 
   readonly chatSidebar = attrModel(this.#preferences, 'chatSidebar')
   readonly sidebarState = linkedModel<PersistState['preferences']['chatSidebar']>({
@@ -354,6 +357,10 @@ export class ChatHomeComponent {
   }
 
   openConversations() {
+    if (!this.showLegacyHistory()) {
+      return
+    }
+
     this.#dialog
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
@@ -462,7 +469,7 @@ export class ChatHomeComponent {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'k' && this.showLegacyHistory()) {
       event.preventDefault() // Prevent the default action
       this.openConversations() // Execute the openConversations method
     }
