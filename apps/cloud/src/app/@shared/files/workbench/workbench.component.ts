@@ -918,7 +918,7 @@ function createDownloadPayload(
 function triggerFileDownload(payload: FileWorkbenchDownloadPayload, fallbackPath: string) {
   if (payload.kind === 'url') {
     const anchor = document.createElement('a')
-    anchor.href = payload.url
+    anchor.href = appendDownloadQuery(payload.url)
     anchor.target = '_blank'
     anchor.rel = 'noopener'
     anchor.download = payload.fileName || fileNameFromPath(fallbackPath)
@@ -936,6 +936,12 @@ function triggerFileDownload(payload: FileWorkbenchDownloadPayload, fallbackPath
   anchor.click()
   document.body.removeChild(anchor)
   URL.revokeObjectURL(objectUrl)
+}
+
+function appendDownloadQuery(url: string) {
+  const normalizedUrl = new URL(url, window.location.origin)
+  normalizedUrl.searchParams.set('download', '1')
+  return normalizedUrl.toString()
 }
 
 function countTextLines(content: string) {
