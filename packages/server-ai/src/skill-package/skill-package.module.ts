@@ -20,7 +20,7 @@ import { Strategies } from './plugins'
 		forwardRef(() => XpertWorkspaceModule),
 		forwardRef(() => SkillRepositoryModule),
 		SkillRepositoryIndexModule,
-		XpertTemplateModule
+		forwardRef(() => XpertTemplateModule)
 	],
 	controllers: [SkillPackageController],
 	providers: [SkillPackageService, ...Strategies],

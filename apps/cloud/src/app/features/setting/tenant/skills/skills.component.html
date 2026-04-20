@@ -42,6 +42,26 @@
         <button
           type="button"
           class="btn btn-secondary btn-medium"
+          [disabled]="syncingTemplateAssets()"
+          (click)="syncTemplateSkills()"
+        >
+          <i class="ri-refresh-line mr-1"></i>
+          {{ 'Pro.SyncSkillTemplates' | translate: { Default: 'Sync Template Skills' } }}
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-secondary btn-medium"
+          [disabled]="syncingTemplateAssets()"
+          (click)="forceSyncTemplateSkills()"
+        >
+          <i class="ri-loop-right-line mr-1"></i>
+          {{ 'Pro.ForceFullSkillSync' | translate: { Default: 'Force Full Sync' } }}
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-secondary btn-medium"
           [disabled]="initializingPublicRepository() || loadingPublicRepository() || !!publicRepository()"
           (click)="initializePublicRepository()"
         >
@@ -64,6 +84,80 @@
       </div>
     </div>
   </section>
+
+  @if (syncResult(); as result) {
+    <section class="rounded-2xl border border-divider-regular bg-components-card-bg p-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div class="text-lg font-semibold text-text-primary">
+            {{ 'Pro.SkillTemplateSyncSummary' | translate: { Default: 'Template Sync Summary' } }}
+          </div>
+          <p class="mt-1 text-sm text-text-secondary">
+            {{ 'Pro.SkillTemplateSyncMode' | translate: { Default: 'Mode' } }}:
+            <span class="font-medium text-text-primary">{{ result.mode }}</span>
+            <span class="mx-2">•</span>
+            {{ 'Pro.SkillTemplateSyncFingerprint' | translate: { Default: 'Fingerprint' } }}:
+            <span class="font-mono text-xs text-text-primary">{{ result.fingerprint.slice(0, 12) }}</span>
+          </p>
+        </div>
+
+        <div class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs font-medium text-text-secondary">
+          {{ 'Pro.SkillTemplateSyncWriteMode' | translate: { Default: 'Write Sync' } }}
+        </div>
+      </div>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        @for (card of syncSummaryCards(); track card.key) {
+          <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-4">
+            <div class="text-sm font-semibold text-text-primary">
+              {{ card.label | translate: { Default: card.defaultLabel } }}
+            </div>
+
+            <div class="mt-3 space-y-1 text-xs text-text-secondary">
+              <div class="flex items-center justify-between">
+                <span>{{ 'PAC.ACTIONS.Create' | translate: { Default: 'Created' } }}</span>
+                <span class="font-medium text-text-primary">{{ card.summary.created }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>{{ 'PAC.ACTIONS.Update' | translate: { Default: 'Updated' } }}</span>
+                <span class="font-medium text-text-primary">{{ card.summary.updated }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>{{ 'Pro.Unchanged' | translate: { Default: 'Unchanged' } }}</span>
+                <span class="font-medium text-text-primary">{{ card.summary.unchanged }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>{{ 'Pro.Missing' | translate: { Default: 'Missing' } }}</span>
+                <span class="font-medium text-text-primary">{{ card.summary.missing }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>{{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Failed' } }}</span>
+                <span class="font-medium text-text-primary">{{ card.summary.failed }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (unresolvedSkillRefs().length) {
+        <div class="mt-4 rounded-xl border border-divider-regular bg-background-default-subtle p-4">
+          <div class="text-sm font-semibold text-text-primary">
+            {{ 'Pro.UnresolvedTemplateSkillRefs' | translate: { Default: 'Unresolved template skill refs' } }}
+          </div>
+
+          <div class="mt-2 flex flex-wrap gap-2">
+            @for (item of unresolvedSkillRefs(); track item.provider + ':' + item.repositoryName + ':' + item.skillId) {
+              <div class="rounded-full border border-divider-regular bg-components-card-bg px-3 py-1 text-xs text-text-secondary">
+                <span class="font-medium text-text-primary">{{ item.provider }}/{{ item.repositoryName }}</span>
+                <span class="mx-1">•</span>
+                <span>{{ item.skillId }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
 
   <section class="rounded-2xl border border-divider-regular bg-components-card-bg p-5">
     <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
