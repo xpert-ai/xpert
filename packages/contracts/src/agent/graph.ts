@@ -89,6 +89,8 @@ export type TAgentRunnableConfigurable = {
    */
   projectId?: string
   xpertId?: string
+  environmentId?: string
+  sandboxEnvironmentId?: string
   // Caller
   agentKey: string
   xpertName?: string

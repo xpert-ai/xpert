@@ -41,6 +41,7 @@ import { FileUploadTargetsModule } from './shared'
 import { InitializationModule } from './initialization/initialization.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 import { VolumeModule } from './shared/volume'
+import { AcpRuntimeModule } from './acp-runtime'
 
 @Module({
     imports: [
@@ -63,6 +64,7 @@ import { VolumeModule } from './shared/volume'
         EnvironmentModule,
         GraphragModule,
         HandoffQueueModule,
+        AcpRuntimeModule,
         FileUploadTargetsModule,
         VolumeModule,
         XpertModule,

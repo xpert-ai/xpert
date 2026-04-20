@@ -4,6 +4,7 @@ import { IXpert, TXpertTeamNodeType } from './xpert.model'
 import { IXpertAgent } from './xpert-agent.model'
 import { TSensitiveOperation } from './chat.model'
 import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
+import { TAcpPermissionProfile, TAcpSessionStatus, THarnessType, TRuntimeKind } from './acp-session.model'
 
 export type TXpertExecution = {
   category?: TXpertTeamNodeType
@@ -122,4 +123,9 @@ export type TAgentExecutionMetadata = {
    * AI Model
    */
   model: string
+  runtimeKind?: TRuntimeKind
+  harnessType?: THarnessType
+  permissionProfile?: TAcpPermissionProfile
+  acpSessionId?: string
+  sessionStatus?: TAcpSessionStatus
 }

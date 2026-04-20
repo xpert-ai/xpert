@@ -7,12 +7,46 @@ import { XpertIdentiDto } from '../../xpert/dto'
 
 @Expose()
 export class XpertAgentExecutionDTO {
+	@Expose()
+	id?: string
 
-    @Expose()
+	@Expose()
+	title?: string
+
+	@Expose()
+	status?: string
+
+	@Expose()
+	error?: string
+
+	@Expose()
+	metadata?: Record<string, unknown>
+
+	@Expose()
+	get runtimeKind(): string | undefined {
+		return readMetadataString(this.metadata, 'runtimeKind')
+	}
+
+	@Expose()
+	get harnessType(): string | undefined {
+		return readMetadataString(this.metadata, 'harnessType')
+	}
+
+	@Expose()
+	get acpSessionId(): string | undefined {
+		return readMetadataString(this.metadata, 'acpSessionId')
+	}
+
+	@Expose()
+	get sessionStatus(): string | undefined {
+		return readMetadataString(this.metadata, 'sessionStatus')
+	}
+
+	@Expose()
 	tokens?: number
 
-    @Expose()
-    messages?: StoredMessage[]
+	@Expose()
+	messages?: StoredMessage[]
 
 	@Expose()
 	@Transform(({ value }) => value?.map((_) => new XpertAgentExecutionDTO(_)))
@@ -40,4 +74,13 @@ export class XpertAgentExecutionDTO {
 	constructor(partial: Partial<XpertAgentExecutionDTO>) {
 		Object.assign(this, partial)
 	}
+}
+
+function readMetadataString(metadata: Record<string, unknown> | undefined, key: string): string | undefined {
+	if (!metadata) {
+		return undefined
+	}
+
+	const value = metadata[key]
+	return typeof value === 'string' && value.length > 0 ? value : undefined
 }

@@ -346,6 +346,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     organizationId: organizationId,
                     language: languageCode,
                     userId,
+                    environmentId: options.environment?.id ?? xpert.environmentId ?? undefined,
+                    sandboxEnvironmentId,
                     executionId: execution.id,
                     rootExecutionId: options.rootExecutionId ?? execution.id,
                     xpertId: xpert.id,
