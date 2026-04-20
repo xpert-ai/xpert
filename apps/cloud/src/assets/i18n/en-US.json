@@ -42,7 +42,9 @@
       "SUCCEED": "Succeed",
       "Middleware": "Middleware",
       "Skills": "Skills",
-      "You": "You"
+      "You": "You",
+      "EnterPassword": "Enter password",
+      "ConfirmPassword": "Confirm password"
     },
     "Common": {
       "Tools": "Tools",
