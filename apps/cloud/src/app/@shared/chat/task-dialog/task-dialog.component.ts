@@ -3,13 +3,16 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, inject, model, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
   getErrorMessage,
   injectXperts,
   IXpert,
   IXpertTask,
+  RolesEnum,
   ScheduleTaskStatus,
+  Store,
   TaskFrequency,
   ToastrService,
   XpertTaskService
@@ -45,6 +48,7 @@ export class XpertTaskDialogComponent {
   readonly #data = inject<{ task?: Partial<IXpertTask>; total?: number; lockXpertSelection?: boolean }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef<IXpertTask | undefined>)
   readonly #toastr = inject(ToastrService)
+  readonly #store = inject(Store)
   readonly taskAPI = inject(XpertTaskService)
   readonly myXperts = injectXperts()
 
@@ -60,9 +64,22 @@ export class XpertTaskDialogComponent {
   readonly xpertId = attrModel(this.task, 'xpertId')
   readonly options = attrModel(this.task, 'options')
   readonly prompt = attrModel(this.task, 'prompt')
+  readonly user = toSignal(this.#store.user$, { initialValue: null })
 
   readonly xpert = computed(() => this.myXperts()?.find((xpert) => xpert.id === this.xpertId()))
   readonly lockXpertSelection = computed(() => !!this.#data?.lockXpertSelection)
+  readonly isTrialUser = computed(() => this.user()?.role?.name === RolesEnum.TRIAL)
+  readonly isCreateMode = computed(() => !this.task()?.id)
+  readonly isTrialTaskLimitPending = computed(() => this.isTrialUser() && this.isCreateMode() && this.total() == null)
+  readonly isTrialTaskLimitReached = computed(() => this.isTrialUser() && this.isCreateMode() && (this.total() ?? 0) >= 10)
+  readonly isSubmitDisabled = computed(
+    () =>
+      !this.prompt() ||
+      !this.xpertId() ||
+      this.loading() ||
+      this.isTrialTaskLimitPending() ||
+      this.isTrialTaskLimitReached()
+  )
 
   readonly loading = signal(false)
   readonly search = model<string>('')
@@ -80,6 +97,15 @@ export class XpertTaskDialogComponent {
   }
 
   createTask() {
+    if (this.isTrialTaskLimitPending()) {
+      return
+    }
+
+    if (this.isTrialTaskLimitReached()) {
+      this.#toastr.error('Trial users can schedule a maximum of 10 tasks')
+      return
+    }
+
     this.loading.set(true)
     this.taskAPI
       .upsert({
