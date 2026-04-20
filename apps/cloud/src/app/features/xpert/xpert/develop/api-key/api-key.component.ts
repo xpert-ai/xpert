@@ -1,8 +1,7 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MaskPipe } from '@xpert-ai/core'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
@@ -16,9 +15,15 @@ import {
   IApiKey,
   injectToastr
 } from 'apps/cloud/src/app/@core'
-import { BehaviorSubject, EMPTY } from 'rxjs'
-import { map, switchMap } from 'rxjs/operators'
+import { EMPTY, firstValueFrom } from 'rxjs'
+import { switchMap } from 'rxjs/operators'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { derivedAsync } from 'ngxtension/derived-async'
+
+type ApiKeyListItem = IApiKey & { copied?: boolean }
+
+const EMPTY_API_KEYS: ApiKeyListItem[] = []
+
 @Component({
   standalone: true,
   imports: [
@@ -30,37 +35,61 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     MaskPipe,
     DateFormatPipe,
     DateRelativePipe
-],
+  ],
   selector: 'xpert-develop-api-key',
   templateUrl: './api-key.component.html',
   styleUrl: 'api-key.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertDevelopApiKeyComponent {
-  readonly #dialogRef = inject(DialogRef)
+  readonly #dialogRef = inject(DialogRef, { optional: true })
   readonly #dialog = inject(Dialog)
-  readonly #data = inject<{ type: ApiKeyBindingType; id: string }>(DIALOG_DATA)
+  readonly #data = inject<{ type: ApiKeyBindingType; id: string } | null>(DIALOG_DATA, { optional: true })
   readonly apiKeyService = inject(ApiKeyService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
 
-  readonly refresh$ = new BehaviorSubject<void>(null)
-  readonly keys = toSignal<Array<IApiKey & { copied?: boolean }>>(
-    this.refresh$.pipe(
-      switchMap(() => this.apiKeyService.getAll({ where: { type: this.#data.type, entityId: this.#data.id } })),
-      map(({ items }) => items)
-    )
+  readonly bindingType = input<ApiKeyBindingType | null>(null)
+  readonly bindingId = input<string | null>(null)
+  readonly subjectName = input<string | null>(null)
+  readonly showCloseButton = input(true)
+
+  readonly resolvedBindingType = computed(() => this.bindingType() ?? this.#data?.type ?? null)
+  readonly resolvedBindingId = computed(() => this.bindingId() ?? this.#data?.id ?? null)
+  readonly isWorkspaceBinding = computed(() => this.resolvedBindingType() === ApiKeyBindingType.WORKSPACE)
+
+  readonly refreshVersion = signal(0)
+  readonly keys = derivedAsync<ApiKeyListItem[]>(
+    async () => {
+      this.refreshVersion()
+
+      const type = this.resolvedBindingType()
+      const entityId = this.resolvedBindingId()
+      if (!type || !entityId) {
+        return EMPTY_API_KEYS
+      }
+
+      const { items } = await firstValueFrom(this.apiKeyService.getAll({ where: { type, entityId } }))
+      return items.map((item) => ({ ...item }))
+    },
+    { initialValue: EMPTY_API_KEYS }
   )
 
   readonly loading = signal(false)
 
   createApiKey() {
+    const type = this.resolvedBindingType()
+    const entityId = this.resolvedBindingId()
+    if (!type || !entityId) {
+      return
+    }
+
     this.loading.set(true)
-    this.apiKeyService.create({ type: this.#data.type, entityId: this.#data.id }).subscribe({
-      next: (result) => {
+    this.apiKeyService.create({ type, entityId }).subscribe({
+      next: () => {
         this.loading.set(false)
-        this.refresh$.next()
+        this.refreshVersion.update((value) => value + 1)
       },
       error: (error) => {
         this.loading.set(false)
@@ -69,7 +98,7 @@ export class XpertDevelopApiKeyComponent {
     })
   }
 
-  delete(key: IApiKey & { copied?: boolean }) {
+  delete(key: ApiKeyListItem) {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
@@ -87,9 +116,9 @@ export class XpertDevelopApiKeyComponent {
         })
       )
       .subscribe({
-        next: (result) => {
+        next: () => {
           this.loading.set(false)
-          this.refresh$.next()
+          this.refreshVersion.update((value) => value + 1)
         },
         error: (error) => {
           this.loading.set(false)
@@ -98,13 +127,13 @@ export class XpertDevelopApiKeyComponent {
       })
   }
 
-  copy(key: IApiKey & { copied?: boolean }) {
+  copy(key: ApiKeyListItem) {
     this.#clipboard.copy(key.token)
     this.#toastr.info({ code: 'PAC.KEY_WORDS.Copied', default: 'Copied' })
     key.copied = true
   }
 
   close() {
-    this.#dialogRef.close()
+    this.#dialogRef?.close()
   }
 }

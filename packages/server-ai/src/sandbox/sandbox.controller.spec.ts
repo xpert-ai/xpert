@@ -7,6 +7,7 @@ import { firstValueFrom, toArray } from 'rxjs'
 import { RequestContext } from '@xpert-ai/server-core'
 import type { ChatConversationService } from '../chat-conversation'
 import { SandboxAcquireBackendCommand } from './commands'
+import type { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxController } from './sandbox.controller'
 
 jest.mock('@xpert-ai/server-core', () => ({
@@ -27,7 +28,8 @@ jest.mock('../chat-conversation', () => ({
 
 jest.mock('../shared', () => ({
     VolumeClient: {
-        getCurrentUserWorkspacePath: jest.fn().mockResolvedValue('/workspace/user-1')
+        getSharedWorkspacePath: jest.fn().mockResolvedValue('/workspace/project-1'),
+        getXpertWorkspacePath: jest.fn().mockResolvedValue('/workspace/xpert-1/user/user-1')
     },
     getMediaTypeWithCharset: jest.fn()
 }))
@@ -43,6 +45,9 @@ describe('SandboxController', () => {
     let conversationService: {
         findOne: jest.Mock
     }
+    let sandboxConversationContextService: {
+        resolveConversationSandbox: jest.Mock
+    }
 
     beforeEach(() => {
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
@@ -57,12 +62,16 @@ describe('SandboxController', () => {
         conversationService = {
             findOne: jest.fn()
         }
+        sandboxConversationContextService = {
+            resolveConversationSandbox: jest.fn()
+        }
 
         controller = new SandboxController(
             {} as unknown as I18nService,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus,
-            conversationService as unknown as ChatConversationService
+            conversationService as unknown as ChatConversationService,
+            sandboxConversationContextService as unknown as SandboxConversationContextService
         )
     })
 
@@ -92,44 +101,73 @@ describe('SandboxController', () => {
                 truncated: false
             })
         })
+        sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
+            effectiveProjectId: 'project-1',
+            provider: 'local-shell-sandbox',
+            sandbox: {
+                backend: {
+                    execute: jest.fn().mockResolvedValue({
+                        output: 'file-a',
+                        exitCode: 0,
+                        truncated: false
+                    })
+                }
+            },
+            workingDirectory: '/workspace/project-1'
+        })
 
         const res = new EventEmitter() as ResponseLike
         const stream$ = await controller.terminal({ cmd: 'ls' }, null, 'conversation-1', res as unknown as Response)
         const items = await firstValueFrom(stream$.pipe(toArray()))
 
-        expect(conversationService.findOne).toHaveBeenCalledWith({
-            where: { id: 'conversation-1' },
-            relations: ['xpert']
+        expect(sandboxConversationContextService.resolveConversationSandbox).toHaveBeenCalledWith({
+            conversationId: 'conversation-1',
+            projectId: null
         })
-        expect(commandBus.execute).toHaveBeenCalledWith(
-            expect.objectContaining({
-                params: expect.objectContaining({
-                    provider: 'local-shell-sandbox',
-                    workingDirectory: '/workspace/user-1',
-                    workFor: {
-                        type: 'project',
-                        id: 'project-1'
-                    }
-                })
-            })
-        )
         expect(items).toContain('file-a')
     })
 
-    it('rejects terminal access when the conversation sandbox feature is disabled', async () => {
+    it('uses the xpert workspace root for non-project conversations', async () => {
         conversationService.findOne.mockResolvedValue({
             id: 'conversation-1',
             threadId: 'thread-1',
-            projectId: 'project-1',
+            projectId: null,
+            xpertId: 'xpert-1',
             xpert: {
                 features: {
                     sandbox: {
-                        enabled: false,
+                        enabled: true,
                         provider: 'local-shell-sandbox'
                     }
                 }
             }
         })
+        sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
+            effectiveProjectId: null,
+            provider: 'local-shell-sandbox',
+            sandbox: {
+                backend: {
+                    execute: jest.fn().mockResolvedValue({
+                        output: 'file-b',
+                        exitCode: 0,
+                        truncated: false
+                    })
+                }
+            },
+            workingDirectory: '/workspace/xpert-1/user/user-1'
+        })
+
+        const res = new EventEmitter() as ResponseLike
+        const stream$ = await controller.terminal({ cmd: 'ls' }, null, 'conversation-1', res as unknown as Response)
+        const items = await firstValueFrom(stream$.pipe(toArray()))
+
+        expect(items).toContain('file-b')
+    })
+
+    it('rejects terminal access when the conversation sandbox feature is disabled', async () => {
+        sandboxConversationContextService.resolveConversationSandbox.mockRejectedValue(
+            new ForbiddenException('Sandbox is not enabled for this conversation')
+        )
 
         await expect(
             controller.terminal(

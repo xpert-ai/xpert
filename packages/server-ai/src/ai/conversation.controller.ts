@@ -22,7 +22,7 @@ import {
 	UUIDValidationPipe
 } from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
-import { FindOptionsOrder, FindOptionsWhere, Like } from 'typeorm'
+import { FindOptionsOrder, Like } from 'typeorm'
 import { IChatConversation, IChatMessage, IChatMessageFeedback } from '@xpert-ai/contracts'
 import { ChatConversationService } from '../chat-conversation'
 import { ChatMessageService } from '../chat-message/chat-message.service'
@@ -32,6 +32,7 @@ import { ChatMessageUpsertCommand } from '../chat-message/commands'
 import { ThreadDeleteCommand } from './commands'
 import { ChatMessageDTO, ChatMessageFeedbackDTO, ConversationDTO } from './dto'
 import { ChatConversation, ChatMessage, ChatMessageFeedback } from '../core/entities/internal'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 type ConversationSearchRequest = {
 	where?: Record<string, OperatorValue>
@@ -87,7 +88,11 @@ export class ConversationsController {
 		if (body.search) {
 			where['title'] = Like(`%${body.search}%`)
 		}
-		const result = await this.conversationService.findAll({
+		const currentUser = RequestContext.currentUserId()
+		if (currentUser) {
+			where['createdById'] = currentUser
+		}
+		const result = await this.conversationService.findAllInOrganizationOrTenant({
 			where,
 			order: body.order,
 			take: body.limit,
@@ -101,7 +106,7 @@ export class ConversationsController {
 
 	@Get(':conversation_id')
 	async getConversation(@Param('conversation_id', UUIDValidationPipe) id: string) {
-		const conversation = await this.conversationService.findOne(id)
+		const conversation = await this.conversationService.findOneInOrganizationOrTenant(id)
 		return new ConversationDTO(conversation)
 	}
 
@@ -110,7 +115,7 @@ export class ConversationsController {
 		@Param('conversation_id', UUIDValidationPipe) id: string,
 		@Body() body: Partial<IChatConversation>
 	) {
-		await this.conversationService.findOne(id)
+		await this.conversationService.findOneInOrganizationOrTenant(id)
 		const conversation = await this.commandBus.execute(new ChatConversationUpsertCommand({ ...body, id }))
 		return new ConversationDTO(conversation)
 	}
@@ -118,7 +123,7 @@ export class ConversationsController {
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Delete(':conversation_id')
 	async deleteConversation(@Param('conversation_id', UUIDValidationPipe) id: string) {
-		const conversation = await this.conversationService.findOne(id)
+		const conversation = await this.conversationService.findOneInOrganizationOrTenant(id)
 		await this.commandBus.execute(new ThreadDeleteCommand(conversation.threadId))
 	}
 
@@ -128,8 +133,8 @@ export class ConversationsController {
 		@Query('limit') limit?: number,
 		@Query('offset') offset?: number
 	) {
-		await this.conversationService.findOne(conversationId)
-		const result = await this.messageService.findAll({
+		await this.conversationService.findOneInOrganizationOrTenant(conversationId)
+		const result = await this.messageService.findAllInOrganizationOrTenant({
 			where: { conversationId },
 			order: { createdAt: 'ASC' },
 			take: limit,
@@ -147,12 +152,12 @@ export class ConversationsController {
 		@Param('conversation_id', UUIDValidationPipe) conversationId: string,
 		@Body() body: MessageSearchRequest
 	) {
-		await this.conversationService.findOne(conversationId)
+		await this.conversationService.findOneInOrganizationOrTenant(conversationId)
 		const where = {
 			...transformWhere(body.where ?? {}),
 			conversationId
 		}
-		const result = await this.messageService.findAll({
+		const result = await this.messageService.findAllInOrganizationOrTenant({
 			where,
 			order: body.order ?? { createdAt: 'ASC' },
 			take: body.limit,
@@ -169,7 +174,7 @@ export class ConversationsController {
 		@Param('conversation_id', UUIDValidationPipe) conversationId: string,
 		@Body() body: Partial<IChatMessage>
 	) {
-		await this.conversationService.findOne(conversationId)
+		await this.conversationService.findOneInOrganizationOrTenant(conversationId)
 		const message = await this.commandBus.execute(
 			new ChatMessageUpsertCommand({
 				...body,
@@ -184,7 +189,7 @@ export class ConversationsController {
 		@Param('conversation_id', UUIDValidationPipe) conversationId: string,
 		@Param('message_id', UUIDValidationPipe) messageId: string
 	) {
-		const message = await this.messageService.findOne(messageId, { where: { conversationId } })
+		const message = await this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
 		return new ChatMessageDTO(message)
 	}
 
@@ -194,7 +199,7 @@ export class ConversationsController {
 		@Param('message_id', UUIDValidationPipe) messageId: string,
 		@Body() body: Partial<IChatMessage>
 	) {
-		await this.messageService.findOne(messageId, { where: { conversationId } })
+		await this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
 		const message = await this.commandBus.execute(
 			new ChatMessageUpsertCommand({
 				...body,
@@ -211,7 +216,7 @@ export class ConversationsController {
 		@Param('conversation_id', UUIDValidationPipe) conversationId: string,
 		@Param('message_id', UUIDValidationPipe) messageId: string
 	) {
-		await this.messageService.findOne(messageId, { where: { conversationId } })
+		await this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
 		await this.messageService.delete(messageId)
 	}
 
@@ -223,7 +228,7 @@ export class ConversationsController {
 		@Query('offset') offset?: number
 	) {
 		await this.ensureMessage(conversationId, messageId)
-		const result = await this.feedbackService.findAll({
+		const result = await this.feedbackService.findAllInOrganizationOrTenant({
 			where: { conversationId, messageId },
 			order: { createdAt: 'ASC' },
 			take: limit,
@@ -248,7 +253,7 @@ export class ConversationsController {
 			conversationId,
 			messageId
 		}
-		const result = await this.feedbackService.findAll({
+		const result = await this.feedbackService.findAllInOrganizationOrTenant({
 			where,
 			order: body.order ?? { createdAt: 'ASC' },
 			take: body.limit,
@@ -282,7 +287,7 @@ export class ConversationsController {
 		@Param('message_id', UUIDValidationPipe) messageId: string,
 		@Param('feedback_id', UUIDValidationPipe) feedbackId: string
 	) {
-		const feedback = await this.feedbackService.findOne(feedbackId, { where: { conversationId, messageId } })
+		const feedback = await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
 		return new ChatMessageFeedbackDTO(feedback)
 	}
 
@@ -293,14 +298,14 @@ export class ConversationsController {
 		@Param('feedback_id', UUIDValidationPipe) feedbackId: string,
 		@Body() body: Partial<IChatMessageFeedback>
 	) {
-		await this.feedbackService.findOne(feedbackId, { where: { conversationId, messageId } })
+		await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
 		await this.feedbackService.update(feedbackId, {
 			...body,
 			conversationId,
 			messageId
 		})
 		// TODO: trigger summary job when feedback changes.
-		const feedback = await this.feedbackService.findOne(feedbackId, { where: { conversationId, messageId } })
+		const feedback = await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
 		return new ChatMessageFeedbackDTO(feedback)
 	}
 
@@ -311,12 +316,12 @@ export class ConversationsController {
 		@Param('message_id', UUIDValidationPipe) messageId: string,
 		@Param('feedback_id', UUIDValidationPipe) feedbackId: string
 	) {
-		await this.feedbackService.findOne(feedbackId, { where: { conversationId, messageId } })
+		await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
 		await this.feedbackService.delete(feedbackId)
 	}
 
 	private async ensureMessage(conversationId: string, messageId: string) {
-		await this.conversationService.findOne(conversationId)
-		return this.messageService.findOne(messageId, { where: { conversationId } })
+		await this.conversationService.findOneInOrganizationOrTenant(conversationId)
+		return this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
 	}
 }

@@ -205,7 +205,7 @@ description: 面向 server-ai 与 analytics 能力重构默认角色权限体系
 
 | 权限域 / 角色    | SUPER_ADMIN | ADMIN         | TRIAL | AI_BUILDER         | ANALYTICS_BUILDER                 | VIEWER                     |
 | ---------------- | ----------- | ------------- | ----- | ------------------ | --------------------------------- | -------------------------- |
-| 平台治理域       | Y           | Y，不含最高危 | 部分  | -                  | -                                 | -                          |
+| 平台治理域       | Y           | Y，不含最高危 | 部分  | 部分               | -                                 | -                          |
 | 工作区运营域     | Y           | Y             | Y     | 部分               | 部分                              | 只读                       |
 | 集成与消息域     | Y           | Y             | 部分  | 部分               | 部分                              | -                          |
 | AI 能力域        | Y           | Y             | Y     | Y                  | `CHAT_VIEW`，必要时 `XPERT_EDIT*` | `CHAT_VIEW` `COPILOT_VIEW` |
@@ -337,6 +337,7 @@ description: 面向 server-ai 与 analytics 能力重构默认角色权限体系
 - `PROFILE_EDIT`
 - `ADMIN_DASHBOARD_VIEW`
 - `CHANGE_SELECTED_ORGANIZATION`
+- `ORG_USERS_VIEW`
 - `ORG_INVITE_VIEW`
 - `ORG_CONTACT_VIEW`
 - `KNOWLEDGEBASE_EDIT`

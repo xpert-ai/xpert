@@ -24,6 +24,7 @@ import { KnowledgebaseTask } from './task/task.entity'
 import { Validators, Strategies } from './plugins'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowledgebase-view-host.definition'
+import { KnowledgebaseWriterMiddleware } from './knowledgebase-writer.middleware'
 
 @Module({
 	imports: [
@@ -51,6 +52,7 @@ import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowled
 		DocumentTransformerRegistry,
 		ImageUnderstandingRegistry,
 		KnowledgebaseViewHostDefinition,
+		KnowledgebaseWriterMiddleware,
 		...QueryHandlers,
 		...CommandHandlers,
 		...Strategies,

@@ -16,31 +16,30 @@
 }
 
 <div
+  #modelContainer
+  #mt="cdkMenuTriggerFor"
   class="container group/container flex items-center px-1 h-8 rounded-lg border border-divider-regular bg-components-input-bg-normal hover:border-divider-deep"
+  [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"
+  [cdkMenuTriggerData]="{ mt: mt }"
+  (cdkMenuOpened)="syncActiveCopilotTab()"
+  [cdkMenuPosition]="[
+    {
+      originX: 'start',
+      originY: 'bottom',
+      overlayX: 'start',
+      overlayY: 'top',
+      offsetY: 8
+    },
+    {
+      originX: 'start',
+      originY: 'top',
+      overlayX: 'start',
+      overlayY: 'bottom',
+      offsetY: -8
+    }
+  ]"
 >
-  <div
-    class="flex-1 relative flex items-center rounded-md px-1 overflow-hidden"
-    #modelTrigger
-    #mt="cdkMenuTriggerFor"
-    [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"
-    [cdkMenuTriggerData]="{ mt: mt }"
-    [cdkMenuPosition]="[
-      {
-        originX: 'start',
-        originY: 'bottom',
-        overlayX: 'start',
-        overlayY: 'top',
-        offsetY: 8
-      },
-      {
-        originX: 'start',
-        originY: 'top',
-        overlayX: 'start',
-        overlayY: 'bottom',
-        offsetY: -8
-      }
-    ]"
-  >
+  <div class="flex-1 relative flex items-center rounded-md px-1 overflow-hidden">
     @if (inheritModel()) {
       @if (isInherit()) {
         <i class="ri-skip-up-line mx-1" [zTooltip]="'PAC.Copilot.Inherited' | translate: { Default: 'Inherited' }"></i>
@@ -137,7 +136,9 @@
         }
       </div>
     } @else {
-      <div class="mr-1.5 flex items-center justify-center w-4 h-4 rounded-[5px] border border-dashed border-divider-regular">
+      <div
+        class="mr-1.5 flex items-center justify-center w-4 h-4 rounded-[5px] border border-dashed border-divider-regular"
+      >
         <svg
           width="16"
           height="17"
@@ -207,6 +208,7 @@
       #parametersTrigger="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="parametersMenu"
       [class.active]="parametersTrigger.isOpen()"
+      (click)="$event.stopPropagation()"
     >
       <svg
         width="24"
@@ -286,7 +288,15 @@
 </ng-template>
 
 <ng-template #modelsMenu let-mt="mt">
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2" [style.width.px]="modelTrigger.offsetWidth">
+  @let menuWidth = getMenuWidth(modelContainer);
+  @let menuRailWidth = getMenuRailWidth(menuWidth);
+  <div
+    #menu="cdkMenu"
+    cdkMenu
+    class="ngm-cdk-menu flex max-h-[min(560px,75vh)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden pl-2"
+    [style.width.px]="menuWidth"
+    [style.--copilot-picker-rail-width.px]="menuRailWidth"
+  >
     <div class="px-1 py-2 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-regular z-10">
       <div class="w-full relative">
         <i class="ri-search-2-line absolute left-1.5 top-1"></i>
@@ -300,112 +310,207 @@
       </div>
     </div>
 
-    <div class="pr-2">
-      @for (copilot of searchedModels(); track copilot.id) {
-        <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
-          <span>{{ copilot.providerWithModels?.label | i18n }}</span>
-          <span class="mx-1">•</span>
-          <div>
-            @if (copilot.name) {
-              <span>{{ copilot.name }}</span>
-            } @else {
-              <span class="uppercase">{{
-                'PAC.Copilot.Role_' + copilot.role | translate: { Default: copilot.role }
-              }}</span>
-            }
-          </div>
+    <div class="min-h-0 flex-1 overflow-hidden">
+      @if ((searchedModels()?.length ?? 0) === 0) {
+        <div class="flex h-full items-center justify-center p-6 text-sm text-text-tertiary">
+          {{ 'PAC.Copilot.NoMatchingModels' | translate: { Default: 'No matching models' } }}
         </div>
-        @for (item of copilot.providerWithModels?.models; track item.model) {
+      } @else {
+        <div class="relative flex h-full min-h-0 flex-col overflow-hidden">
+          <div
+            class="grid border-b border-divider-regular bg-components-panel-bg text-xs font-medium text-text-tertiary"
+            [style.grid-template-columns]="getMenuGridTemplateColumns(menuWidth)"
+          >
+            <div class="border-r border-divider-regular px-3 py-1.5">
+              {{ 'PAC.Copilot.Provider' | translate: { Default: 'Provider' } }}
+            </div>
+            <div class="px-3 py-1.5">
+              {{ 'PAC.Copilot.Models' | translate: { Default: 'Models' } }}
+            </div>
+          </div>
+
           <button
             type="button"
-            class="w-full flex justify-start items-center gap-1 px-4 py-2 rounded-xl cursor-pointer enabled:hover:bg-hover-bg hover:text-primary-500 disabled:cursor-not-allowed"
-            [ngClass]="
-              copilot.id === copilotId() && model() === item.model && modelType() === item.model_type
-                ? 'bg-components-card-bg text-primary-600 font-semibold'
-                : ''
-            "
-            [class.opacity-60]="item.deprecated"
-            [zTooltip]="item.deprecated ? ('PAC.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
-            zPosition="left"
-            [disabled]="item.deprecated"
-            (click)="setModel(copilot, item); mt.close()"
+            role="separator"
+            aria-orientation="vertical"
+            class="group/divider absolute inset-y-0 z-20 flex w-5 -translate-x-1/2 cursor-col-resize touch-none select-none items-stretch justify-center outline-none"
+            [style.left.px]="menuRailWidth"
+            [attr.aria-label]="'PAC.Copilot.ResizeProviderPanel' | translate: { Default: 'Resize provider panel' }"
+            [attr.aria-valuemin]="getMenuRailMinWidth(menuWidth)"
+            [attr.aria-valuemax]="getMenuRailMaxWidth(menuWidth)"
+            [attr.aria-valuenow]="menuRailWidth"
+            [class.bg-hover-bg]="isRailResizing()"
+            (mousedown)="startRailResize($event, modelContainer)"
+            (click)="$event.preventDefault(); $event.stopPropagation()"
+            (keydown)="onRailResizeKeydown($event, modelContainer)"
           >
-            @if (copilot.providerWithModels.icon_small) {
-              <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 inline-block" />
-            }
             <span
-              class="truncate"
-              [title]="item.model"
-              [ngmHighlight]="searchTerm()"
-              [content]="item.model"
-              customClasses="text-primary-600"
-              >{{ item.model }}</span
-            >
-            @switch (item.model_type) {
-              @case (eModelType.LLM) {
-                <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-                >
-                  {{ 'PAC.Copilot.Chat' | translate: { Default: 'Chat' } }}
-                </div>
-              }
-              @case (eModelType.RERANK) {
-                <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-                >
-                  <i class="ri-sort-number-asc"></i>
-                </div>
-              }
-              @case (eModelType.TEXT_EMBEDDING) {
-                <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-                >
-                  <i class="ri-text-block"></i>
-                </div>
-              }
-              @case (eModelType.SPEECH2TEXT) {
-                <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-                >
-                  <i class="ri-speech-to-text-line"></i>
-                </div>
-              }
-              @case (eModelType.TTS) {
-                <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-                >
-                  <i class="ri-text-to-speech-line"></i>
-                </div>
-              }
-            }
-            @if (
-              item.features?.includes(eModelFeature.TOOL_CALL) || item.features?.includes(eModelFeature.MULTI_TOOL_CALL)
-            ) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
-              >
-                <i class="ri-hammer-fill"></i>
-              </div>
-            }
-            @if (item.features?.includes(eModelFeature.VISION)) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
-              >
-                <i class="ri-eye-fill"></i>
-              </div>
-            }
+              class="pointer-events-none h-full w-[4px] rounded-full bg-divider-deep transition-colors group-hover/divider:bg-primary-500 group-focus-visible/divider:bg-primary-500"
+            ></span>
           </button>
-        }
+
+          <z-tab-group
+            class="copilot-model-picker flex-1 min-h-0 overflow-hidden"
+            zTabsPosition="left"
+            zActivePosition="left"
+            zSize="sm"
+            [disablePagination]="true"
+            [selectedIndex]="activeCopilotTabIndex()"
+            (selectedIndexChange)="selectCopilotTabByIndex($event)"
+          >
+            @for (copilot of searchedModels(); track copilot.id) {
+              <z-tab bodyClass="h-full min-w-0 shrink-0 overflow-y-auto pr-1">
+                <ng-template zTabLabel>
+                  <span class="flex w-full min-w-0 items-start justify-between gap-3 py-0.5">
+                    <span class="flex min-w-0 flex-1 items-start gap-2 text-left">
+                      @if (copilot.providerWithModels.icon_small) {
+                        <img [src]="copilot.providerWithModels.icon_small | i18n" class="mt-0.5 h-4 w-4 shrink-0" />
+                      } @else {
+                        <span
+                          class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border border-dashed border-divider-regular text-[9px] font-semibold uppercase text-text-quaternary"
+                        >
+                          P
+                        </span>
+                      }
+
+                      <span class="min-w-0 flex-1">
+                        <span class="block truncate text-[13px] font-semibold">
+                          {{ copilot.providerWithModels?.label | i18n }}
+                        </span>
+                        <span
+                          class="mt-0.5 block truncate text-[11px] uppercase tracking-[0.04em] text-text-quaternary"
+                        >
+                          {{ copilot.providerWithModels?.provider }}
+                        </span>
+                        <span class="mt-0.5 block truncate text-[11px] opacity-75">
+                          @if (copilot.name) {
+                            {{ copilot.name }}
+                          } @else {
+                            {{ 'PAC.Copilot.Role_' + copilot.role | translate: { Default: copilot.role } }}
+                          }
+                        </span>
+                      </span>
+                    </span>
+                    <span class="rounded-md border border-current/10 px-1.5 py-0.5 text-[10px] font-medium opacity-80">
+                      {{ getCopilotTabModelCount(copilot) }}
+                    </span>
+                  </span>
+                </ng-template>
+
+                <ng-container
+                  [ngTemplateOutlet]="copilotModels"
+                  [ngTemplateOutletContext]="{ $implicit: copilot, mt: mt }"
+                />
+              </z-tab>
+            }
+          </z-tab-group>
+        </div>
       }
     </div>
 
     <a
       href="/settings/copilot/basic"
       target="_blank"
-      class="sticky group bottom-0 flex cursor-pointer items-center rounded-b-lg border-t border-divider-subtle bg-components-panel-bg px-4 py-2 text-text-accent z-10"
+      class="group flex cursor-pointer items-center rounded-b-lg border-t border-divider-subtle bg-components-panel-bg px-4 py-2 text-text-accent"
     >
       <span class="system-xs-medium">{{ 'PAC.Copilot.ModelConfig' | translate: { Default: 'Model config' } }}</span>
       <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
     </a>
   </div>
+</ng-template>
+
+<ng-template #copilotModels let-copilot let-mt="mt">
+  <div class="sticky top-0 z-10 flex items-center bg-components-card-bg px-4 pb-3 pt-4 text-base font-semibold">
+    <div class="min-w-0 text-left">
+      <span>{{ copilot.providerWithModels?.label | i18n }}</span>
+      <span class="mx-1">•</span>
+      <span>
+        @if (copilot.name) {
+          <span>{{ copilot.name }}</span>
+        } @else {
+          <span class="uppercase">{{ 'PAC.Copilot.Role_' + copilot.role | translate: { Default: copilot.role } }}</span>
+        }
+      </span>
+    </div>
+  </div>
+
+  @for (item of copilot.providerWithModels?.models; track item.model) {
+    <button
+      type="button"
+      class="flex w-full min-w-0 items-center justify-start gap-0.5 rounded-xl px-2.5 py-2 text-left cursor-pointer enabled:hover:bg-hover-bg hover:text-primary-500 disabled:cursor-not-allowed"
+      [ngClass]="
+        copilot.id === copilotId() && model() === item.model && modelType() === item.model_type
+          ? 'bg-components-card-bg text-primary-600 font-semibold'
+          : ''
+      "
+      [class.opacity-60]="item.deprecated"
+      [zTooltip]="item.deprecated ? ('PAC.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
+      zPosition="left"
+      [disabled]="item.deprecated"
+      (click)="setModel(copilot, item); mt.close()"
+    >
+      @if (copilot.providerWithModels.icon_small) {
+        <img [src]="copilot.providerWithModels.icon_small | i18n" class="h-4 w-4 shrink-0 inline-block" />
+      }
+      <span
+        class="min-w-0 flex-1 truncate"
+        [title]="item.model"
+        [ngmHighlight]="searchTerm()"
+        [content]="item.model"
+        customClasses="text-primary-600"
+        >{{ item.model }}</span
+      >
+      @switch (item.model_type) {
+        @case (eModelType.LLM) {
+          <div
+            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
+          >
+            {{ 'PAC.Copilot.Chat' | translate: { Default: 'Chat' } }}
+          </div>
+        }
+        @case (eModelType.RERANK) {
+          <div
+            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
+          >
+            <i class="ri-sort-number-asc"></i>
+          </div>
+        }
+        @case (eModelType.TEXT_EMBEDDING) {
+          <div
+            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
+          >
+            <i class="ri-text-block"></i>
+          </div>
+        }
+        @case (eModelType.SPEECH2TEXT) {
+          <div
+            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
+          >
+            <i class="ri-speech-to-text-line"></i>
+          </div>
+        }
+        @case (eModelType.TTS) {
+          <div
+            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
+          >
+            <i class="ri-text-to-speech-line"></i>
+          </div>
+        }
+      }
+      @if (item.features?.includes(eModelFeature.TOOL_CALL) || item.features?.includes(eModelFeature.MULTI_TOOL_CALL)) {
+        <div
+          class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
+        >
+          <i class="ri-hammer-fill"></i>
+        </div>
+      }
+      @if (item.features?.includes(eModelFeature.VISION)) {
+        <div
+          class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
+        >
+          <i class="ri-eye-fill"></i>
+        </div>
+      }
+    </button>
+  }
 </ng-template>

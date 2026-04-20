@@ -2,6 +2,7 @@ import fsPromises from 'fs/promises'
 import os from 'os'
 import path from 'path'
 import { WorkspaceVolumeClient } from './workspace-volume'
+import { VolumeHandle } from './volume'
 
 describe('WorkspaceVolumeClient', () => {
     let tempRoot: string
@@ -10,14 +11,16 @@ describe('WorkspaceVolumeClient', () => {
 
     beforeEach(async () => {
         tempRoot = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'workspace-volume-'))
-        workspaceVolume = new WorkspaceVolumeClient({
-            getVolumePath: (filePath?: string) => (filePath ? path.join(tempRoot, filePath) : tempRoot),
-            getPublicUrl: (filePath: string) => (filePath ? `${baseUrl}/${filePath.replace(/^\/+/, '')}` : baseUrl)
-        })
+        workspaceVolume = new WorkspaceVolumeClient(
+            new VolumeHandle(
+                { tenantId: 'tenant-1', catalog: 'users', userId: 'user-1' },
+                tempRoot,
+                tempRoot,
+                baseUrl
+            )
+        )
 
-        await fsPromises.mkdir(path.join(tempRoot, 'docs'), { recursive: true })
-        await fsPromises.writeFile(path.join(tempRoot, 'README.md'), '# User Root\n', 'utf8')
-        await fsPromises.writeFile(path.join(tempRoot, 'docs', 'root-guide.md'), '# Root Guide\n', 'utf8')
+        await fsPromises.writeFile(path.join(tempRoot, 'MEMORY.md'), '# Memory\n', 'utf8')
         await fsPromises.mkdir(path.join(tempRoot, 'thread-1', 'docs'), { recursive: true })
         await fsPromises.writeFile(path.join(tempRoot, 'thread-1', 'README.md'), '# Workspace\n', 'utf8')
         await fsPromises.writeFile(path.join(tempRoot, 'thread-1', 'docs', 'guide.md'), '# Guide\n', 'utf8')
@@ -34,16 +37,6 @@ describe('WorkspaceVolumeClient', () => {
 
         expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/README.md', '/docs', '/binary.bin']))
         expect(files.find((file) => file.filePath === 'README.md')?.url).toContain('/thread-1/README.md')
-    })
-
-    it('supports using the volume root as the workspace root', async () => {
-        const files = await workspaceVolume.list('')
-
-        expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/README.md', '/docs', '/thread-1']))
-        await expect(workspaceVolume.readFile('', 'README.md')).resolves.toMatchObject({
-            filePath: 'README.md',
-            contents: '# User Root\n'
-        })
     })
 
     it('reads text files and keeps binary files read-only', async () => {
@@ -85,6 +78,49 @@ describe('WorkspaceVolumeClient', () => {
         )
         await expect(workspaceVolume.list('thread-1', { path: '../outside' })).rejects.toThrow(
             'Invalid conversation file path'
+        )
+    })
+
+    it('supports root-scoped workspaces when explicitly enabled', async () => {
+        const rootWorkspaceVolume = new WorkspaceVolumeClient(
+            new VolumeHandle(
+                { tenantId: 'tenant-1', catalog: 'users', userId: 'user-1' },
+                tempRoot,
+                tempRoot,
+                baseUrl
+            ),
+            { allowRootWorkspace: true }
+        )
+
+        const files = await rootWorkspaceVolume.list('')
+        expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/MEMORY.md', '/thread-1']))
+
+        await expect(rootWorkspaceVolume.readFile('', 'MEMORY.md')).resolves.toMatchObject({
+            filePath: 'MEMORY.md',
+            contents: '# Memory\n'
+        })
+
+        await expect(rootWorkspaceVolume.saveFile('', 'MEMORY.md', '# Updated Memory\n')).resolves.toMatchObject({
+            filePath: 'MEMORY.md',
+            contents: '# Updated Memory\n'
+        })
+    })
+
+    it('decodes mojibake upload file names before saving into the workspace', async () => {
+        const mojibakeName = Buffer.from('中文文件.md', 'utf8').toString('latin1')
+
+        const uploaded = await workspaceVolume.uploadFile('thread-1', 'docs', {
+            originalname: mojibakeName,
+            buffer: Buffer.from('# 中文文件\n', 'utf8'),
+            mimetype: 'text/markdown'
+        })
+
+        expect(uploaded).toMatchObject({
+            filePath: 'docs/中文文件.md',
+            contents: '# 中文文件\n'
+        })
+        await expect(fsPromises.readFile(path.join(tempRoot, 'thread-1', 'docs', '中文文件.md'), 'utf8')).resolves.toBe(
+            '# 中文文件\n'
         )
     })
 })

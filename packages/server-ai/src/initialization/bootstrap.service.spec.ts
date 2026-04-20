@@ -12,9 +12,28 @@ jest.mock('@xpert-ai/server-core', () => ({
   runWithRequestContext: (_context: unknown, callback: () => unknown) => callback()
 }))
 
+jest.mock('@xpert-ai/plugin-sdk', () => {
+  let currentRequest: unknown
+
+  return {
+    RequestContext: {
+      currentRequest: jest.fn(() => currentRequest),
+      getLanguageCode: jest.fn(() => (currentRequest as { headers?: { language?: string } } | null)?.headers?.language ?? 'en')
+    },
+    runWithRequestContext: (req: unknown, _res: unknown, callback: () => unknown) => {
+      currentRequest = req
+      return callback()
+    }
+  }
+})
+
 jest.mock('../skill-repository', () => ({
   SkillRepositoryIndexService: class SkillRepositoryIndexService {},
   SkillRepositoryService: class SkillRepositoryService {}
+}))
+
+jest.mock('../skill-package', () => ({
+  SkillPackageService: class SkillPackageService {}
 }))
 
 jest.mock('../xpert', () => ({
@@ -36,18 +55,19 @@ import { ServerAIBootstrapService } from './bootstrap.service'
 import { XpertImportCommand } from '../xpert'
 
 describe('ServerAIBootstrapService', () => {
-  const defaultRepositories = JSON.stringify({
+  const defaultRepositories = {
     repositories: [
       {
         name: 'anthropics/skills',
         provider: 'github',
         options: {
           url: 'https://github.com/anthropics/skills',
-          branch: 'main'
+          branch: 'main',
+          path: 'skills'
         }
       }
     ]
-  })
+  }
 
   function createService() {
     const commandBus = {
@@ -57,7 +77,7 @@ describe('ServerAIBootstrapService', () => {
       execute: jest.fn()
     }
     const configService = {
-      get: jest.fn((key: string) => (key === 'AI_DEFAULT_SKILL_REPOSITORIES' ? defaultRepositories : ''))
+      get: jest.fn((_key?: string) => '')
     }
     const organizationService = {
       findAll: jest.fn().mockResolvedValue({
@@ -124,6 +144,14 @@ describe('ServerAIBootstrapService', () => {
     const skillRepositoryIndexService = {
       sync: jest.fn()
     }
+    const skillPackageService = {
+      initializeWorkspacePublicRepository: jest.fn().mockResolvedValue({
+        id: 'repo-public',
+        provider: 'workspace-public'
+      }),
+      ensureInstalledSkillPackage: jest.fn(),
+      ensureSharedSkillPackageFromTemplateBundle: jest.fn()
+    }
     const xpertService = {
       repository: {
         createQueryBuilder: jest.fn()
@@ -131,7 +159,12 @@ describe('ServerAIBootstrapService', () => {
       validateName: jest.fn().mockResolvedValue(true)
     }
     const xpertTemplateService = {
-      getTemplateDetail: jest.fn()
+      getTemplateDetail: jest.fn(),
+      readSkillRepositories: jest.fn().mockResolvedValue(defaultRepositories),
+      getTemplateSkillBundles: jest.fn().mockResolvedValue([]),
+      getBootstrapDefaultSkillRefs: jest.fn().mockResolvedValue([]),
+      getUserDefaultSkillRefs: jest.fn().mockResolvedValue([]),
+      resolveSkillRefs: jest.fn().mockResolvedValue([])
     }
 
     const service = new ServerAIBootstrapService(
@@ -145,6 +178,7 @@ describe('ServerAIBootstrapService', () => {
       environmentService as any,
       skillRepositoryService as any,
       skillRepositoryIndexService as any,
+      skillPackageService as any,
       xpertService as any,
       xpertTemplateService as any
     )
@@ -161,6 +195,7 @@ describe('ServerAIBootstrapService', () => {
       queryBus,
       service,
       skillRepositoryIndexService,
+      skillPackageService,
       skillRepositoryService,
       userOrganizationService,
       userService,
@@ -171,7 +206,7 @@ describe('ServerAIBootstrapService', () => {
   }
 
   it('keeps organization bootstrap focused on workspace and membership setup', async () => {
-    const { environmentService, service, skillRepositoryService, workspaceService } = createService()
+    const { environmentService, service, skillPackageService, skillRepositoryService, workspaceService } = createService()
 
     const result = await service.bootstrapOrganization({
       organizationId: 'org-1',
@@ -179,9 +214,21 @@ describe('ServerAIBootstrapService', () => {
       tenantId: 'tenant-1'
     } as any)
 
-    expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalledTimes(1)
+    expect(skillPackageService.initializeWorkspacePublicRepository).not.toHaveBeenCalled()
+    expect(skillRepositoryService.ensureWorkspacePublicRepository).not.toHaveBeenCalled()
+    expect(skillPackageService.ensureSharedSkillPackageFromTemplateBundle).not.toHaveBeenCalled()
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()
+    expect(workspaceService.create).toHaveBeenCalledWith({
+      name: 'Organization Workspace',
+      status: 'active',
+      ownerId: 'owner-1',
+      settings: {
+        system: {
+          kind: 'org-default'
+        }
+      }
+    })
     expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'owner-1')
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'member-2')
@@ -190,14 +237,35 @@ describe('ServerAIBootstrapService', () => {
     })
   })
 
+  it('does not publish template skill bundles into the workspace public repository during org bootstrap', async () => {
+    const { service, skillPackageService, xpertTemplateService } = createService()
+    xpertTemplateService.getTemplateSkillBundles.mockResolvedValue([
+      {
+        directoryName: 'claude-api-bundle',
+        directoryPath: '/tmp/template-skill-bundles/claude-api-bundle',
+        sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api',
+        ref: {
+          provider: 'github',
+          repositoryName: 'anthropics/skills',
+          skillId: 'skills/claude-api'
+        }
+      }
+    ])
+
+    await service.bootstrapOrganization({
+      organizationId: 'org-1',
+      ownerUserId: 'owner-1',
+      tenantId: 'tenant-1'
+    } as any)
+
+    expect(skillPackageService.initializeWorkspacePublicRepository).not.toHaveBeenCalled()
+    expect(skillPackageService.ensureSharedSkillPackageFromTemplateBundle).not.toHaveBeenCalled()
+  })
+
   it('applies the available primary copilot default model to the default authoring assistant during org bootstrap', async () => {
     const { commandBus, configService, queryBus, service, xpertService, xpertTemplateService } = createService()
     configService.get.mockImplementation((key: string) =>
-      key === 'AI_DEFAULT_SKILL_REPOSITORIES'
-        ? defaultRepositories
-        : key === 'ORG_DEFAULT_XPERT_TEMPLATE_KEYS'
-          ? 'xpert-authoring-assistant'
-          : ''
+      key === 'ORG_DEFAULT_XPERT_TEMPLATE_KEYS' ? 'xpert-authoring-assistant' : ''
     )
     xpertTemplateService.getTemplateDetail.mockResolvedValue({
       id: 'xpert-authoring-assistant',
@@ -301,11 +369,7 @@ connections: []`
   it('skips primary model injection when the primary default model is not available', async () => {
     const { commandBus, configService, queryBus, service, xpertService, xpertTemplateService } = createService()
     configService.get.mockImplementation((key: string) =>
-      key === 'AI_DEFAULT_SKILL_REPOSITORIES'
-        ? defaultRepositories
-        : key === 'ORG_DEFAULT_XPERT_TEMPLATE_KEYS'
-          ? 'xpert-authoring-assistant'
-          : ''
+      key === 'ORG_DEFAULT_XPERT_TEMPLATE_KEYS' ? 'xpert-authoring-assistant' : ''
     )
     xpertTemplateService.getTemplateDetail.mockResolvedValue({
       id: 'xpert-authoring-assistant',
@@ -372,8 +436,8 @@ connections: []`
     expect(importCommand.draft.team.copilotModel.copilotId).toBeUndefined()
   })
 
-  it('registers default skill repositories from env JSON during tenant bootstrap', async () => {
-    const { organizationService, service, skillRepositoryService, userService } = createService()
+  it('registers default skill repositories from template yaml during tenant bootstrap', async () => {
+    const { organizationService, service, skillPackageService, skillRepositoryService, userService, xpertTemplateService } = createService()
 
     const result = await service.bootstrapTenantSkillRepositories({
       tenantId: 'tenant-1',
@@ -382,6 +446,8 @@ connections: []`
 
     expect(userService.getAdminUsers).toHaveBeenCalledWith('tenant-1')
     expect(organizationService.findAll).not.toHaveBeenCalled()
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
+    expect(xpertTemplateService.readSkillRepositories).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.findAll).toHaveBeenCalledWith({
       where: {
         name: 'anthropics/skills',
@@ -394,7 +460,8 @@ connections: []`
       provider: 'github',
       options: {
         url: 'https://github.com/anthropics/skills',
-        branch: 'main'
+        branch: 'main',
+        path: 'skills'
       },
       credentials: null
     })
@@ -404,7 +471,7 @@ connections: []`
   })
 
   it('updates an existing default skill repository instead of creating a duplicate during tenant bootstrap', async () => {
-    const { service, skillRepositoryService } = createService()
+    const { service, skillPackageService, skillRepositoryService } = createService()
     skillRepositoryService.findAll.mockResolvedValue({
       items: [
         {
@@ -423,40 +490,41 @@ connections: []`
       tenantName: 'Acme Tenant'
     } as any)
 
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.register).toHaveBeenCalledWith({
       id: 'repo-1',
       name: 'anthropics/skills',
       provider: 'github',
       options: {
         url: 'https://github.com/anthropics/skills',
-        branch: 'main'
+        branch: 'main',
+        path: 'skills'
       },
       credentials: null
     })
     expect(result.repositoryIds).toEqual(['repo-1'])
   })
 
-  it('supports env JSON arrays for default repositories during tenant bootstrap', async () => {
-    const { configService, service, skillRepositoryService } = createService()
-    configService.get.mockImplementation((key: string) =>
-      key === 'AI_DEFAULT_SKILL_REPOSITORIES'
-        ? JSON.stringify([
-            {
-              name: 'clawhub/official',
-              provider: 'clawhub',
-              options: {
-                registryUrl: 'https://clawhub.ai'
-              }
-            }
-          ])
-        : ''
-    )
+  it('supports multiple template-defined repositories during tenant bootstrap', async () => {
+    const { service, skillPackageService, skillRepositoryService, xpertTemplateService } = createService()
+    xpertTemplateService.readSkillRepositories.mockResolvedValue({
+      repositories: [
+        {
+          name: 'clawhub/official',
+          provider: 'clawhub',
+          options: {
+            registryUrl: 'https://clawhub.ai'
+          }
+        }
+      ]
+    })
 
     const result = await service.bootstrapTenantSkillRepositories({
       tenantId: 'tenant-1',
       tenantName: 'Acme Tenant'
     } as any)
 
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.register).toHaveBeenCalledWith({
       name: 'clawhub/official',
       provider: 'clawhub',
@@ -469,30 +537,26 @@ connections: []`
   })
 
   it('continues initializing later repositories when one default repository fails', async () => {
-    const { configService, service, skillRepositoryService } = createService()
-    configService.get.mockImplementation((key: string) =>
-      key === 'AI_DEFAULT_SKILL_REPOSITORIES'
-        ? JSON.stringify({
-            repositories: [
-              {
-                name: 'broken/source',
-                provider: 'github',
-                options: {
-                  url: 'https://github.com/example/broken',
-                  branch: 'main'
-                }
-              },
-              {
-                name: 'clawhub/official',
-                provider: 'clawhub',
-                options: {
-                  registryUrl: 'https://clawhub.ai'
-                }
-              }
-            ]
-          })
-        : ''
-    )
+    const { service, skillPackageService, skillRepositoryService, xpertTemplateService } = createService()
+    xpertTemplateService.readSkillRepositories.mockResolvedValue({
+      repositories: [
+        {
+          name: 'broken/source',
+          provider: 'github',
+          options: {
+            url: 'https://github.com/example/broken',
+            branch: 'main'
+          }
+        },
+        {
+          name: 'clawhub/official',
+          provider: 'clawhub',
+          options: {
+            registryUrl: 'https://clawhub.ai'
+          }
+        }
+      ]
+    })
     skillRepositoryService.findAll
       .mockResolvedValueOnce({ items: [] })
       .mockResolvedValueOnce({ items: [] })
@@ -507,6 +571,7 @@ connections: []`
       tenantName: 'Acme Tenant'
     } as any)
 
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.register).toHaveBeenNthCalledWith(1, {
       name: 'broken/source',
       provider: 'github',
@@ -527,19 +592,21 @@ connections: []`
     expect(result.repositoryIds).toEqual(['repo-2'])
   })
 
-  it('ignores invalid env JSON and skips repository registration during tenant bootstrap', async () => {
-    const { configService, organizationService, service, skillRepositoryService, userService } = createService()
-    configService.get.mockImplementation((key: string) =>
-      key === 'AI_DEFAULT_SKILL_REPOSITORIES' ? '{invalid-json' : ''
-    )
+  it('skips repository registration during tenant bootstrap when the template config is empty', async () => {
+    const { organizationService, service, skillPackageService, skillRepositoryService, userService, xpertTemplateService } = createService()
+    xpertTemplateService.readSkillRepositories.mockResolvedValue({
+      repositories: []
+    })
 
     const result = await service.bootstrapTenantSkillRepositories({
       tenantId: 'tenant-1',
       tenantName: 'Acme Tenant'
     } as any)
 
-    expect(userService.getAdminUsers).not.toHaveBeenCalled()
+    expect(userService.getAdminUsers).toHaveBeenCalledWith('tenant-1')
     expect(organizationService.findAll).not.toHaveBeenCalled()
+    expect(skillPackageService.initializeWorkspacePublicRepository).toHaveBeenCalledTimes(1)
+    expect(xpertTemplateService.readSkillRepositories).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()
     expect(result.repositoryIds).toEqual([])
@@ -563,7 +630,7 @@ connections: []`
       ownerId: 'member-1'
     })
 
-    await service.bootstrapUserInOrganization({
+    const result = await service.bootstrapUserInOrganization({
       tenantId: 'tenant-1',
       organizationId: 'org-1',
       userId: 'member-1'
@@ -584,6 +651,43 @@ connections: []`
     expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-2')
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-2', 'member-1')
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'member-1')
+    expect(result).toEqual({
+      workspaceId: 'workspace-2',
+      createdNewUserDefaultWorkspace: true
+    })
+  })
+
+  it('reuses an existing personal workspace without marking it as newly created', async () => {
+    const { environmentService, service, userService, workspaceService } = createService()
+    userService.findOne.mockResolvedValue({
+      id: 'member-1',
+      preferredLanguage: 'en_US',
+      role: {
+        name: 'ADMIN'
+      }
+    })
+    workspaceService.findUserDefaultWorkspace.mockResolvedValue({
+      id: 'workspace-existing',
+      ownerId: 'member-1'
+    })
+    workspaceService.findOrganizationDefaultWorkspace.mockResolvedValue({
+      id: 'org-workspace-1'
+    })
+
+    const result = await service.bootstrapUserInOrganization({
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      userId: 'member-1'
+    } as any)
+
+    expect(workspaceService.create).not.toHaveBeenCalled()
+    expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-existing')
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-existing', 'member-1')
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'member-1')
+    expect(result).toEqual({
+      workspaceId: 'workspace-existing',
+      createdNewUserDefaultWorkspace: false
+    })
   })
 
   it('skips personal workspace bootstrap for super admins while still joining the org workspace', async () => {
@@ -599,7 +703,7 @@ connections: []`
       id: 'org-workspace-1'
     })
 
-    await service.bootstrapUserInOrganization({
+    const result = await service.bootstrapUserInOrganization({
       tenantId: 'tenant-1',
       organizationId: 'org-1',
       userId: 'owner-1'
@@ -609,6 +713,153 @@ connections: []`
     expect(workspaceService.create).not.toHaveBeenCalled()
     expect(environmentService.getDefaultByWorkspace).not.toHaveBeenCalled()
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'owner-1')
+    expect(result).toEqual({
+      workspaceId: null,
+      createdNewUserDefaultWorkspace: false
+    })
+  })
+
+  it('installs resolved default workspace skills and retries when some refs are not ready yet', async () => {
+    const { service, skillPackageService, userService, xpertTemplateService } = createService()
+    userService.findOne.mockResolvedValue({
+      id: 'member-1',
+      preferredLanguage: 'en_US',
+      role: {
+        name: 'ADMIN'
+      }
+    })
+    xpertTemplateService.getUserDefaultSkillRefs.mockResolvedValue([
+      {
+        provider: 'github',
+        repositoryName: 'anthropics/skills',
+        skillId: 'skills/claude-api'
+      },
+      {
+        provider: 'clawhub',
+        repositoryName: 'clawhub/official',
+        skillId: 'mcporter'
+      }
+    ])
+    xpertTemplateService.getBootstrapDefaultSkillRefs.mockResolvedValue([
+      {
+        provider: 'github',
+        repositoryName: 'anthropics/skills',
+        skillId: 'skills/claude-api'
+      },
+      {
+        provider: 'clawhub',
+        repositoryName: 'clawhub/official',
+        skillId: 'mcporter'
+      }
+    ])
+    xpertTemplateService.resolveSkillRefs.mockResolvedValue([
+      {
+        ref: {
+          provider: 'github',
+          repositoryName: 'anthropics/skills',
+          skillId: 'skills/claude-api'
+        },
+        skill: {
+          id: 'skill-1'
+        }
+      }
+    ])
+
+    await expect(
+      service.bootstrapUserDefaultWorkspaceSkills({
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        userId: 'member-1',
+        workspaceId: 'workspace-1'
+      })
+    ).rejects.toThrow('Default workspace skill bootstrap incomplete')
+
+    expect(xpertTemplateService.getBootstrapDefaultSkillRefs).toHaveBeenCalledTimes(1)
+    expect(xpertTemplateService.getUserDefaultSkillRefs).not.toHaveBeenCalled()
+    expect(skillPackageService.ensureInstalledSkillPackage).toHaveBeenCalledWith('workspace-1', 'skill-1')
+  })
+
+  it('installs all resolved default workspace skills when references are ready', async () => {
+    const { service, skillPackageService, userService, xpertTemplateService } = createService()
+    userService.findOne.mockResolvedValue({
+      id: 'member-1',
+      preferredLanguage: 'en_US',
+      role: {
+        name: 'ADMIN'
+      }
+    })
+    xpertTemplateService.getBootstrapDefaultSkillRefs.mockResolvedValue([
+      {
+        provider: 'github',
+        repositoryName: 'anthropics/skills',
+        skillId: 'skills/claude-api'
+      }
+    ])
+    xpertTemplateService.resolveSkillRefs.mockResolvedValue([
+      {
+        ref: {
+          provider: 'github',
+          repositoryName: 'anthropics/skills',
+          skillId: 'skills/claude-api'
+        },
+        skill: {
+          id: 'skill-1'
+        }
+      }
+    ])
+
+    await expect(
+      service.bootstrapUserDefaultWorkspaceSkills({
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        userId: 'member-1',
+        workspaceId: 'workspace-1'
+      })
+    ).resolves.toBeUndefined()
+
+    expect(skillPackageService.ensureInstalledSkillPackage).toHaveBeenCalledWith('workspace-1', 'skill-1')
+  })
+
+  it('includes install failure reasons in the aggregated bootstrap error', async () => {
+    const { service, skillPackageService, userService, xpertTemplateService } = createService()
+    userService.findOne.mockResolvedValue({
+      id: 'member-1',
+      preferredLanguage: 'en_US',
+      role: {
+        name: 'ADMIN'
+      }
+    })
+    xpertTemplateService.getBootstrapDefaultSkillRefs.mockResolvedValue([
+      {
+        provider: 'github',
+        repositoryName: 'anthropics/skills',
+        skillId: 'skills/claude-api'
+      }
+    ])
+    xpertTemplateService.resolveSkillRefs.mockResolvedValue([
+      {
+        ref: {
+          provider: 'github',
+          repositoryName: 'anthropics/skills',
+          skillId: 'skills/claude-api'
+        },
+        skill: {
+          id: 'skill-1'
+        }
+      }
+    ])
+    skillPackageService.ensureInstalledSkillPackage.mockRejectedValue(new Error('GitHub API error: 403 rate limit exceeded'))
+
+    await expect(
+      service.bootstrapUserDefaultWorkspaceSkills({
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        userId: 'member-1',
+        workspaceId: 'workspace-1'
+      })
+    ).rejects.toThrow(
+      "Default workspace skill bootstrap incomplete for 'workspace-1' (failed: github:anthropics/skills:skills/claude-api (GitHub API error: 403 rate limit exceeded))"
+    )
   })
 
   it('removes the user from non-personal org workspaces on membership deletion', async () => {

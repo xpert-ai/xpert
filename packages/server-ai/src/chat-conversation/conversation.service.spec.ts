@@ -43,6 +43,7 @@ jest.mock('./dto', () => ({
 }))
 
 import { TFile } from '@xpert-ai/contracts'
+import { BadRequestException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import { Repository } from 'typeorm'
@@ -57,8 +58,11 @@ describe('ChatConversationService workspace files', () => {
         id: 'conversation-1',
         tenantId: 'tenant-1',
         createdById: 'user-1',
-        threadId: 'thread-1'
-    } satisfies Pick<ChatConversation, 'id' | 'tenantId' | 'createdById' | 'threadId'>
+        threadId: 'thread-1',
+        xpertId: 'xpert-1'
+    } satisfies Pick<ChatConversation, 'id' | 'tenantId' | 'createdById' | 'threadId'> & {
+        xpertId: string
+    }
 
     beforeEach(() => {
         service = new ChatConversationService(
@@ -66,7 +70,10 @@ describe('ChatConversationService workspace files', () => {
             {} as ChatMessageService,
             {} as CommandBus,
             {} as QueryBus,
-            {} as Queue
+            {} as Queue,
+            {
+                resolve: jest.fn()
+            } as any
         )
         jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
     })
@@ -108,6 +115,15 @@ describe('ChatConversationService workspace files', () => {
 
         expect(service.findOne).toHaveBeenCalledWith('conversation-1')
         expect(saveWorkspaceFile).toHaveBeenCalledWith('', 'README.md', '# Updated\n')
+    })
+
+    it('rejects non-project workspace access when the conversation is not bound to an xpert', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            xpertId: null
+        } as ChatConversation)
+
+        await expect(service.getWorkspaceFiles('conversation-1')).rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('finds the conversation by thread id inside the current scope', async () => {

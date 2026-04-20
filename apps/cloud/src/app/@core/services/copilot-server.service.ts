@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { ICopilotModel, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { toParams } from '@xpert-ai/core'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, Observable, shareReplay, switchMap } from 'rxjs'
+import { BehaviorSubject, filter, firstValueFrom, Observable, shareReplay, switchMap } from 'rxjs'
 import { API_COPILOT } from '../constants/app.constants'
 import {
   AiModelTypeEnum,
@@ -22,9 +22,8 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
   readonly refresh$ = new BehaviorSubject(false)
 
   private readonly modelsByType = new Map<AiModelTypeEnum, Observable<ICopilotWithProvider[]>>()
-  private readonly aiProviders$ = this.httpClient
-    .get<IAiProviderEntity[]>(API_COPILOT + `/providers`)
-    .pipe(shareReplay(1))
+  private readonly aiProviders$ = new BehaviorSubject<IAiProviderEntity[] | null>(null)
+  private aiProvidersRequest: Promise<IAiProviderEntity[]> | null = null
 
   /**
    * All available copilots (enabled or tenant free quota)
@@ -55,7 +54,30 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
   }
 
   getAiProviders() {
-    return this.aiProviders$
+    if (this.aiProviders$.value === null) {
+      void this.refreshAiProviders().catch((error) => {
+        this.#logger.error('Failed to load AI providers', error)
+      })
+    }
+
+    return this.aiProviders$.pipe(filter((providers): providers is IAiProviderEntity[] => providers !== null))
+  }
+
+  async refreshAiProviders() {
+    if (this.aiProvidersRequest) {
+      return this.aiProvidersRequest
+    }
+
+    this.aiProvidersRequest = firstValueFrom(this.httpClient.get<IAiProviderEntity[]>(API_COPILOT + `/providers`))
+      .then((providers) => {
+        this.aiProviders$.next(providers)
+        return providers
+      })
+      .finally(() => {
+        this.aiProvidersRequest = null
+      })
+
+    return this.aiProvidersRequest
   }
 
   /**
@@ -69,6 +91,7 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
       this.modelsByType.set(
         type,
         this.refresh$.pipe(
+          switchMap(() => this.selectOrganizationId()),
           switchMap(() =>
             this.httpClient.get<ICopilotWithProvider[]>(API_COPILOT + '/models', { params: toParams({ type }) })
           ),

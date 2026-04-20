@@ -4,7 +4,11 @@ jest.mock('../../../@core', () => ({
   },
   AiThreadService: class AiThreadService {},
   ChatConversationService: class ChatConversationService {},
-  getErrorMessage: (error: any) => error?.message ?? ''
+  getErrorMessage: (error: any) => error?.message ?? '',
+  injectToastr: () => ({
+    warning: jest.fn(),
+    danger: jest.fn()
+  })
 }))
 
 jest.mock('@xpert-ai/headless-ui', () => {
@@ -82,7 +86,7 @@ jest.mock('@xpert-ai/chatkit-angular', () => {
 })
 
 jest.mock('./clawxpert-conversation-files.component', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
+  const { Component, EventEmitter, Input, Output } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -91,8 +95,10 @@ jest.mock('./clawxpert-conversation-files.component', () => {
   })
   class ClawXpertConversationFilesComponent {
     @Input() conversationId?: string | null
+    @Input() xpertId?: string | null
     @Input() mode?: 'readonly' | 'editable'
     @Input() reloadKey?: number
+    @Output() referenceRequest = new EventEmitter()
   }
 
   return {
@@ -208,6 +214,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     loadingUserPreference: ReturnType<typeof signal<boolean>>
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
+    xpertId: ReturnType<typeof signal<string | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
     suppressAutoResume: ReturnType<typeof signal<boolean>>
@@ -239,6 +246,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       loadingUserPreference: signal(false),
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
+      xpertId: signal('assistant-1'),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
       suppressAutoResume: signal(false),
@@ -328,6 +336,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
     fixture.detectChanges()
@@ -434,6 +443,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
   })
 
   it('clears the shared active conversation when the thread is reset or the component is destroyed', async () => {
@@ -456,7 +466,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
       signal({
         element: {},
-        setThreadId: jest.fn().mockResolvedValue(undefined)
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue: jest.fn().mockResolvedValue(undefined),
+        focusComposer: jest.fn().mockResolvedValue(undefined)
       })
     )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -469,6 +481,49 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(1, 'busy')
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
+  })
+
+  it('appends workspace file references to the chatkit composer without sending a message', async () => {
+    const setComposerValue = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue,
+        focusComposer
+      })
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+
+    ;(filesPanel.componentInstance as ClawXpertConversationFilesComponent).referenceRequest.emit({
+      path: 'src/app.ts',
+      text: 'const y = 2',
+      startLine: 2,
+      endLine: 2,
+      language: 'typescript'
+    })
+    await settle(fixture)
+
+    expect(setComposerValue).toHaveBeenCalledWith({
+      references: [
+        {
+          type: 'code',
+          path: 'src/app.ts',
+          text: 'const y = 2',
+          startLine: 2,
+          endLine: 2,
+          language: 'typescript'
+        }
+      ],
+      appendReferences: true
+    })
+    expect(focusComposer).toHaveBeenCalled()
   })
 
   it('polls and refreshes conversation detail for the computer tab while responses are in flight', async () => {

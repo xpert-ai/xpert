@@ -11,6 +11,7 @@ import { LocalShellSandboxProvider } from './localShellSandbox.provider';
 import { StructuredOutputMiddleware } from './structuredOutput';
 import { SandboxShellMiddleware } from './sandboxShell';
 import { SandboxFileMiddleware } from './sandboxFile';
+import { ContextCompressionMiddleware } from './contextCompression';
 
 @XpertServerPlugin({
 	/**
@@ -29,6 +30,7 @@ import { SandboxFileMiddleware } from './sandboxFile';
 		SandboxFileMiddleware,
 		LocalShellSandboxProvider,
 		StructuredOutputMiddleware,
+		ContextCompressionMiddleware
     ],
 })
 export class AgentMiddlewaresModule implements IOnPluginBootstrap, IOnPluginDestroy {

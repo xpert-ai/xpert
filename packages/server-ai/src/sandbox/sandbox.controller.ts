@@ -9,11 +9,13 @@ import {
     getFileAssetDestination
 } from '@xpert-ai/server-core'
 import {
+    BadRequestException,
     Body,
     Controller,
     ForbiddenException,
     Get,
     Header,
+    Inject,
     Logger,
     Param,
     Post,
@@ -26,15 +28,16 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import { Response } from 'express'
 import fs from 'fs'
 import { I18nService } from 'nestjs-i18n'
 import { join } from 'path'
 import { Observable } from 'rxjs'
 import { ChatConversationService } from '../chat-conversation'
-import { VolumeClient, getMediaTypeWithCharset } from '../shared'
-import { SandboxAcquireBackendCommand } from './commands'
+import { IChatConversation } from '@xpert-ai/contracts'
+import { VOLUME_CLIENT, VolumeClient, getMediaTypeWithCharset } from '../shared'
+import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
+import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 
 @ApiTags('Sandbox')
 @ApiBearerAuth()
@@ -46,7 +49,10 @@ export class SandboxController {
         private readonly i18n: I18nService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly conversationService: ChatConversationService
+        private readonly conversationService: ChatConversationService,
+        private readonly sandboxConversationContextService: SandboxConversationContextService,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient
     ) {}
 
     @Public()
@@ -63,11 +69,7 @@ export class SandboxController {
         const volume = VolumeClient.getApiContainerSandboxVolumeRoot(tenant)
 
         if (environment.envName === 'dev') {
-            // Remove leading "/user/{uuid}/" or "/project/{uuid}/" from path if present
-            const leadingPathRegex = /^(user|project|knowledges)\/[0-9a-fA-F-]{36}\//
-            if (leadingPathRegex.test(subpath)) {
-                subpath = subpath.replace(leadingPathRegex, '')
-            }
+            subpath = normalizeSandboxPublicVolumeSubpath(subpath)
         }
 
         const filePath = join(volume, subpath)
@@ -117,16 +119,13 @@ export class SandboxController {
     @Post('file')
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(
-        @Body('workspace') _workspace: string,
-        @Body('conversationId') _conversationId: string,
+        @Body('workspace') workspace: string,
+        @Body('conversationId') conversationId: string,
         @Body('path') path: string,
         @UploadedFile() file: Express.Multer.File
     ) {
-        const client = new VolumeClient({
-            tenantId: RequestContext.currentTenantId(),
-            userId: RequestContext.currentUserId(),
-            catalog: 'users'
-        })
+        const conversation = await this.conversationService.findOne({ where: { id: conversationId } })
+        const client = this.createConversationVolumeClient(conversation)
 
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
@@ -138,8 +137,8 @@ export class SandboxController {
                     {
                         kind: 'sandbox',
                         mode: 'mounted_workspace',
-                        workspacePath: client.getVolumePath(),
-                        workspaceUrl: client.getPublicUrl(''),
+                        workspacePath: client.path(workspace),
+                        workspaceUrl: client.publicUrl(workspace),
                         folder: path || ''
                     }
                 ]
@@ -162,40 +161,12 @@ export class SandboxController {
         @Query('conversationId') conversationId: string,
         @Res() res: Response
     ) {
-        if (!conversationId) {
-            throw new ForbiddenException('Conversation is required')
-        }
-
-        const tenantId = RequestContext.currentTenantId()
-        const userId = RequestContext.currentUserId()
-        const conversation = await this.conversationService.findOne({
-            where: { id: conversationId },
-            relations: ['xpert']
+        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+            conversationId,
+            projectId
         })
-        const sandboxFeature = conversation?.xpert?.features?.sandbox
-        if (!sandboxFeature?.enabled) {
-            throw new ForbiddenException('Sandbox is not enabled for this conversation')
-        }
-        if (!sandboxFeature.provider?.trim()) {
-            throw new ForbiddenException('Sandbox provider is not configured for this conversation')
-        }
-
-        const effectiveProjectId = projectId ?? conversation?.projectId ?? null
-        const workspacePath = await VolumeClient.getCurrentUserWorkspacePath(tenantId, userId)
-        const sandboxContext = await this.commandBus.execute(
-            new SandboxAcquireBackendCommand({
-                tenantId,
-                provider: sandboxFeature.provider,
-                workingDirectory: workspacePath,
-                workFor: effectiveProjectId
-                    ? { type: 'project', id: effectiveProjectId }
-                    : { type: 'user', id: userId }
-            })
-        )
-        const backend = resolveSandboxBackend(sandboxContext)
-        if (!backend) {
-            throw new ForbiddenException('Sandbox is not available')
-        }
+        const backend = resolved.backend
+        const effectiveProjectId = resolved.effectiveProjectId
 
         return new Observable<string>((subscriber) => {
             let active = true
@@ -226,7 +197,7 @@ export class SandboxController {
 
                     const fallbackMessage = effectiveProjectId
                         ? 'Command failed in the project workspace.'
-                        : 'Command failed in the user workspace.'
+                        : 'Command failed in the xpert workspace.'
                     subscriber.error(result.output || fallbackMessage)
                 } catch (error) {
                     if (active) {
@@ -244,6 +215,29 @@ export class SandboxController {
                 keepAlive(30000),
                 takeUntilClose(res)
             )
+    }
+
+    private createConversationVolumeClient(conversation: Partial<IChatConversation>) {
+        if (conversation?.projectId) {
+            return this.volumeClient.resolve({
+                tenantId: conversation.tenantId,
+                userId: conversation.createdById ?? RequestContext.currentUserId(),
+                catalog: 'projects',
+                projectId: conversation.projectId
+            })
+        }
+
+        if (conversation?.xpertId) {
+            return this.volumeClient.resolve({
+                tenantId: conversation.tenantId,
+                userId: conversation.createdById ?? RequestContext.currentUserId(),
+                catalog: 'xperts',
+                xpertId: conversation.xpertId,
+                isolateByUser: true
+            })
+        }
+
+        throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
     }
 
 }

@@ -9,6 +9,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { TCopilotChatMessage } from '../../types'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { getReferenceKey, getReferenceLabel, getReferenceSource } from '../../../@shared/chat/references'
 @Component({
   standalone: true,
   imports: [
@@ -34,6 +35,10 @@ export class ChatHumanMessageComponent {
 
   // States
   readonly attachments = computed(() => this.message()?.attachments?.map((storageFile) => ({ storageFile })))
+  readonly references = computed(() => this.message()?.references ?? [])
+  readonly referenceKey = getReferenceKey
+  readonly referenceLabel = getReferenceLabel
+  readonly referenceSource = getReferenceSource
 
   constructor() {
     effect(() => {

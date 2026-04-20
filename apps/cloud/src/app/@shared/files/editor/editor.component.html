@@ -1,7 +1,23 @@
-<ngx-monaco-editor class="!h-full w-full max-h-full"
-  [options]="editorOptions()"
-  [ngModel]="content()"
-  (ngModelChange)="onChange($event)"
-  (resized)="onResized()"
-  (onInit)="onInit($event)"
-/>
+<div class="relative h-full">
+  <ngx-monaco-editor class="!h-full w-full max-h-full"
+    [options]="editorOptions()"
+    [ngModel]="content()"
+    (ngModelChange)="onChange($event)"
+    (resized)="onResized()"
+    (onInit)="onInit($event)"
+  />
+
+  @if (floatingReferenceButtonPosition(); as buttonPosition) {
+    <button
+      type="button"
+      class="xp-file-editor-reference-button btn btn-primary btn-small absolute z-10"
+      [style.left.px]="buttonPosition.left"
+      [style.top.px]="buttonPosition.top"
+      (mousedown)="$event.preventDefault()"
+      (click)="emitReferenceSelection()"
+    >
+      <i class="ri-code-box-line mr-1"></i>
+      {{ 'PAC.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
+    </button>
+  }
+</div>

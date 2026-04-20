@@ -7,7 +7,7 @@ export WAIT_HOSTS=$API_HOST:$API_PORT
 
 # In production we should replace some values in generated JS code
 sed -i "s#DOCKER_API_BASE_URL#$API_BASE_URL#g" *.js
-sed -i "s#DOCKER_CHATKIT_FRAME_URL#$CHATKIT_FRAME_URL#g" *.js
+sed -i "s#DOCKER_CHATKIT_FRAME_URL#$VITE_CHATKIT_FRAME_URL#g" *.js
 sed -i "s#\"DOCKER_ENABLE_LOCAL_AGENT\"#$ENABLE_LOCAL_AGENT#g" *.js
 sed -i "s#DOCKER_CLIENT_BASE_URL#$CLIENT_BASE_URL#g" *.js
 sed -i "s#DOCKER_SENTRY_DSN#$SENTRY_DSN#g" *.js

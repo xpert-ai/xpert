@@ -5,6 +5,8 @@ import {
     IUser,
     IXpertAgentExecution,
     LongTermMemoryTypeEnum,
+    normalizeMiddlewareNodes,
+    normalizeXpertAgentConfig,
     OrderTypeEnum,
     TFile,
     TFileDirectory,
@@ -21,17 +23,17 @@ import {
     transformWhere,
     UserGroupService
 } from '@xpert-ai/server-core'
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common'
+import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
-import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
+import { DeepPartial, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
-import { VolumeClient, WorkspaceVolumeClient } from '../shared/volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
@@ -39,6 +41,8 @@ import { GetXpertMemoryEmbeddingsQuery } from './queries'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
 import { FreeNodeValidator } from './validators'
 import { Xpert } from './xpert.entity'
+
+const XPERT_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 
 @Injectable()
 export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
@@ -51,7 +55,9 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         private readonly queryBus: QueryBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly triggerRegistry: WorkflowTriggerRegistry,
-        private readonly sandboxService: SandboxService
+        private readonly sandboxService: SandboxService,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient
     ) {
         super(repository)
     }
@@ -63,6 +69,16 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         const _entity = await super.findOne(id)
         assign(_entity, entity)
         return await this.repository.save(_entity)
+    }
+
+    async create(entity: DeepPartial<Xpert>, ...options: any[]) {
+        return await super.create(
+            {
+                ...entity,
+                agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
+            },
+            ...options
+        )
     }
 
     /**
@@ -219,13 +235,17 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
     }
 
     async save(entity: Xpert) {
-        return await this.repository.save(entity)
+        return await this.repository.save({
+            ...entity,
+            agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
+        })
     }
 
     async saveDraft(id: string, draft: TXpertTeamDraft) {
         const xpert = await this.findOne(id)
         xpert.draft = {
             ...draft,
+            nodes: normalizeMiddlewareNodes(draft.nodes),
             team: {
                 ...draft.team,
                 updatedAt: new Date(),
@@ -244,6 +264,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         xpert.draft = {
             ...(xpert.draft ?? {}),
             ...draft,
+            nodes: normalizeMiddlewareNodes(draft.nodes ?? xpert.draft?.nodes),
             team: {
                 ...(xpert.draft?.team ?? {}),
                 ...(draft.team ?? {}),
@@ -446,8 +467,8 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
     async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).list(
-            getXpertMemoryWorkspacePath(),
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).list(
+            XPERT_MEMORY_WORKSPACE_PATH,
             {
                 path,
                 deepth
@@ -457,18 +478,39 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
     async getMemoryFile(id: string, filePath: string): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).readFile(
-            getXpertMemoryWorkspacePath(),
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).readFile(
+            XPERT_MEMORY_WORKSPACE_PATH,
             filePath
         )
     }
 
     async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).saveFile(
-            getXpertMemoryWorkspacePath(),
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).saveFile(
+            XPERT_MEMORY_WORKSPACE_PATH,
             filePath,
             content
+        )
+    }
+
+    async uploadMemoryFile(
+        id: string,
+        folderPath: string,
+        file: { originalname: string; buffer: Buffer; mimetype?: string }
+    ): Promise<TFile> {
+        const xpert = await this.findOne(id)
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).uploadFile(
+            XPERT_MEMORY_WORKSPACE_PATH,
+            folderPath,
+            file
+        )
+    }
+
+    async deleteMemoryFile(id: string, filePath: string): Promise<void> {
+        const xpert = await this.findOne(id)
+        await this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).deleteFile(
+            XPERT_MEMORY_WORKSPACE_PATH,
+            filePath
         )
     }
 
@@ -482,19 +524,19 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         return this.sandboxService.listProviders()
     }
 
-    private createWorkspaceVolumeClient(tenantId: string, userId: string) {
-        return new WorkspaceVolumeClient(this.createVolumeClient(tenantId, userId))
-    }
-
-    private createVolumeClient(tenantId: string, userId: string) {
-        return new VolumeClient({
-            tenantId,
-            catalog: 'users',
-            userId
+    private createWorkspaceVolumeClient(tenantId: string, userId: string, xpertId: string) {
+        return new VolumeSubtreeClient(this.createVolumeHandle(tenantId, userId, xpertId), {
+            allowRootWorkspace: true
         })
     }
-}
 
-function getXpertMemoryWorkspacePath() {
-    return ['.xpert', 'memory'].join('/')
+    private createVolumeHandle(tenantId: string, userId: string, xpertId: string) {
+        return this.volumeClient.resolve({
+            tenantId,
+            catalog: 'xperts',
+            userId,
+            xpertId,
+            isolateByUser: true
+        })
+    }
 }

@@ -10,18 +10,20 @@ import { QueryHandlers } from './queries/handlers/index'
 import { CopilotService } from './copilot.service'
 import { AIModelModule } from '../ai-model'
 import { CommandHandlers } from './commands/handlers'
+import { CopilotProviderModule } from '../copilot-provider'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/copilot', module: CopilotModule }]),
-		TypeOrmModule.forFeature([Copilot]),
-		TenantModule,
-		CqrsModule,
-		UserModule,
-		AIModelModule
-	],
-	controllers: [CopilotController],
-	providers: [CopilotService, ...QueryHandlers, ...CommandHandlers],
-	exports: [CopilotService]
+    imports: [
+        RouterModule.register([{ path: '/copilot', module: CopilotModule }]),
+        TypeOrmModule.forFeature([Copilot]),
+        TenantModule,
+        CqrsModule,
+        UserModule,
+        AIModelModule,
+        CopilotProviderModule
+    ],
+    controllers: [CopilotController],
+    providers: [CopilotService, ...QueryHandlers, ...CommandHandlers],
+    exports: [CopilotService]
 })
 export class CopilotModule {}

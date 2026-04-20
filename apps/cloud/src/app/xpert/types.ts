@@ -4,11 +4,13 @@ import { isWithinInterval } from 'date-fns/isWithinInterval'
 import { isYesterday } from 'date-fns/isYesterday'
 import { subDays } from 'date-fns/subDays'
 import { IChatConversation, IChatMessage, IXpertAgentExecution } from '../@core/types'
+import { XpertChatReference } from '../@shared/chat/references'
 
 export type TCopilotChatMessage = IChatMessage & {
   error?: string
   expanded?: boolean
   executions?: IXpertAgentExecution[]
+  references?: XpertChatReference[]
 }
 
 export function groupConversations(conversations: IChatConversation[]) {

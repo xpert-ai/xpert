@@ -1,9 +1,10 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { Router, RouterModule } from '@angular/router'
-import { AssistantCode, IXpert } from '../../../@core'
+import { RouterModule } from '@angular/router'
+import { AssistantCode, IXpert, RolesEnum, Store } from '../../../@core'
 import { provideOcap } from '../../../@core/providers/ocap'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { ChatService, XpertChatAppComponent, XpertOcapService } from '../../../xpert'
@@ -14,13 +15,6 @@ import { injectAssistantBindingRuntimeState } from '../../assistant/assistant-ch
 import { ChatHomeService } from '../home.service'
 import { ChatXpertsComponent } from '../xperts/xperts.component'
 import { ChatCommonService } from './common-chat.service'
-import { clearChatCommonPendingInput, consumeChatCommonPendingInput } from './pending-input.util'
-
-type PendingCommonConversation = {
-  id: number
-  text: string
-  attempts: number
-}
 
 @Component({
   standalone: true,
@@ -47,9 +41,9 @@ type PendingCommonConversation = {
   ]
 })
 export class ChatCommonAssistantComponent {
-  readonly #router = inject(Router)
   readonly #homeService = inject(ChatHomeService)
   readonly #chatService = inject(ChatCommonService)
+  readonly #store = inject(Store)
 
   readonly definition = getAssistantRegistryItem(AssistantCode.CHAT_COMMON) ?? {
     code: AssistantCode.CHAT_COMMON,
@@ -64,8 +58,7 @@ export class ChatCommonAssistantComponent {
   }
   readonly assistantsRoute = ['/settings/assistants']
   readonly assistantCode = signal(AssistantCode.CHAT_COMMON)
-  readonly pendingConversation = signal<PendingCommonConversation | null>(this.readPendingConversation())
-  readonly startingConversationId = signal<number | null>(null)
+  readonly user = toSignal(this.#store.user$, { initialValue: null })
   readonly currentXpert = this.#chatService.xpert
   readonly xperts = this.#homeService.sortedXperts
   readonly searchControl = new FormControl('', { nonNullable: true })
@@ -75,6 +68,11 @@ export class ChatCommonAssistantComponent {
   })
 
   readonly status = this.runtime.status
+  readonly canManageAssistantSettings = computed(() => {
+    const roleName = this.user()?.role?.name
+    return roleName === RolesEnum.SUPER_ADMIN || roleName === RolesEnum.ADMIN
+  })
+  readonly showChangeSettingsAction = this.canManageAssistantSettings
   readonly filteredXperts = computed(() => {
     const allXperts = this.xperts() || []
     const searchText = this.searchText().toLowerCase()
@@ -100,107 +98,13 @@ export class ChatCommonAssistantComponent {
     effect(() => {
       void this.#chatService.setAssistantId(this.runtime.config()?.assistantId ?? null)
     })
-
-    effect((onCleanup) => {
-      const pendingConversation = this.pendingConversation()
-      const assistantId = this.#chatService.assistantId()
-
-      if (
-        !pendingConversation ||
-        this.status() !== 'ready' ||
-        !assistantId ||
-        this.startingConversationId() === pendingConversation.id
-      ) {
-        return
-      }
-
-      let cancelled = false
-      const timer = setTimeout(() => {
-        if (cancelled) {
-          return
-        }
-
-        void this.beginPendingConversation(pendingConversation)
-      })
-
-      onCleanup(() => {
-        cancelled = true
-        clearTimeout(timer)
-      })
-    })
   }
 
   newConv() {
-    this.pendingConversation.set(null)
     this.#chatService.newConv()
   }
 
   newXpertConv(xpert?: IXpert) {
-    this.pendingConversation.set(null)
     this.#chatService.newConv(xpert)
-  }
-
-  private readPendingConversation(): PendingCommonConversation | null {
-    const navigationInput = this.readPendingInputFromState(this.#router.getCurrentNavigation()?.extras.state)
-    if (navigationInput) {
-      clearChatCommonPendingInput()
-      return {
-        id: Date.now(),
-        text: navigationInput,
-        attempts: 0
-      }
-    }
-
-    const input = consumeChatCommonPendingInput()
-    if (typeof input !== 'string' || !input.trim()) {
-      return null
-    }
-
-    return {
-      id: Date.now(),
-      text: input.trim(),
-      attempts: 0
-    }
-  }
-
-  private readPendingInputFromState(state: unknown): string | null {
-    if (!state || typeof state !== 'object' || !('input' in state)) {
-      return null
-    }
-
-    const { input } = state
-    return typeof input === 'string' && input.trim() ? input.trim() : null
-  }
-
-  private async beginPendingConversation(pendingConversation: PendingCommonConversation) {
-    if (this.pendingConversation()?.id !== pendingConversation.id) {
-      return
-    }
-
-    if (pendingConversation.attempts >= 3) {
-      this.pendingConversation.set(null)
-      return
-    }
-
-    this.startingConversationId.set(pendingConversation.id)
-
-    try {
-      this.#chatService.newConv()
-      this.#chatService.ask(pendingConversation.text, { files: [] })
-
-      if (this.pendingConversation()?.id === pendingConversation.id) {
-        this.pendingConversation.set(null)
-      }
-    } catch {
-      if (this.pendingConversation()?.id === pendingConversation.id) {
-        this.pendingConversation.update((state) =>
-          state && state.id === pendingConversation.id ? { ...state, attempts: state.attempts + 1 } : state
-        )
-      }
-    } finally {
-      if (this.startingConversationId() === pendingConversation.id) {
-        this.startingConversationId.set(null)
-      }
-    }
   }
 }

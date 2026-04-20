@@ -1,4 +1,4 @@
-import { IApiPrincipal } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, IApiPrincipal } from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { uniq } from 'lodash'
@@ -46,8 +46,22 @@ export class PublishedXpertAccessService {
         return userId
     }
 
+    private currentApiPrincipal() {
+        return RequestContext.currentApiPrincipal()
+    }
+
+    private currentWorkspaceApiKeyWorkspaceId() {
+        const apiKey = this.currentApiPrincipal()?.apiKey
+        if (apiKey?.type !== ApiKeyBindingType.WORKSPACE) {
+            return null
+        }
+
+        const workspaceId = apiKey.entityId?.trim()
+        return workspaceId || null
+    }
+
     private currentOrganizationId() {
-        const apiPrincipal = RequestContext.currentApiPrincipal() as IApiPrincipal | null
+        const apiPrincipal = this.currentApiPrincipal() as IApiPrincipal | null
         const organizationId = apiPrincipal?.requestedOrganizationId ?? RequestContext.getOrganizationId()
         if (!organizationId) {
             throw new ForbiddenException('Organization context is required to access published assistants.')
@@ -82,7 +96,41 @@ export class PublishedXpertAccessService {
         return qb
     }
 
+    private buildWorkspaceBoundQuery(workspaceId: string, options?: PublishedXpertQueryOptions) {
+        const tenantId = this.currentTenantId()
+        const qb = this.repository
+            .createQueryBuilder('xpert')
+            .where('xpert.tenantId = :tenantId', {
+                tenantId
+            })
+            .andWhere('xpert.publishAt IS NOT NULL')
+            .andWhere('xpert.workspaceId = :workspaceId', {
+                workspaceId
+            })
+
+        this.applyPublishedFilters(qb, options?.where)
+
+        if (options?.order) {
+            Object.entries(options.order).forEach(([name, direction]) => {
+                qb.addOrderBy(`xpert.${name}`, direction?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC')
+            })
+        }
+        if (options?.take != null) {
+            qb.take(options.take)
+        }
+        if (options?.skip != null) {
+            qb.skip(options.skip)
+        }
+
+        return qb
+    }
+
     private buildAccessibleQuery(options?: PublishedXpertQueryOptions) {
+        const workspaceId = this.currentWorkspaceApiKeyWorkspaceId()
+        if (workspaceId) {
+            return this.buildWorkspaceBoundQuery(workspaceId, options)
+        }
+
         const tenantId = this.currentTenantId()
         const organizationId = this.currentOrganizationId()
         const userId = this.currentUserId()
@@ -195,9 +243,7 @@ export class PublishedXpertAccessService {
     }
 
     async findAccessiblePublishedXperts(options?: PublishedXpertQueryOptions) {
-        const query = this.buildAccessibleQuery(options)
-            .select('xpert.id', 'id')
-            .distinct(true)
+        const query = this.buildAccessibleQuery(options).select('xpert.id', 'id').distinct(true)
 
         Object.keys(options?.order ?? {}).forEach((name) => {
             query.addSelect(`xpert.${name}`, `order_${name}`)
@@ -212,8 +258,17 @@ export class PublishedXpertAccessService {
     }
 
     async getAccessiblePublishedXpert(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {
-        const userId = this.currentUserId()
         const xpert = await this.getPublishedXpertInTenant(id, options)
+        const workspaceId = this.currentWorkspaceApiKeyWorkspaceId()
+
+        if (workspaceId) {
+            if (xpert.workspaceId !== workspaceId) {
+                throw new ForbiddenException('You do not have access to this assistant.')
+            }
+            return xpert
+        }
+
+        const userId = this.currentUserId()
 
         if (!xpert.organizationId) {
             return xpert

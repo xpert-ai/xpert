@@ -10,8 +10,16 @@ jest.mock('../../models/copilot-provider-model.service', () => ({
 	CopilotProviderModelService: class CopilotProviderModelService {}
 }))
 
+jest.mock('@xpert-ai/server-core', () => ({
+	RequestContext: {
+		getLanguageCode: jest.fn()
+	}
+}))
+
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { NotFoundException } from '@nestjs/common'
+import { RequestContext } from '@xpert-ai/server-core'
+import { I18nService } from 'nestjs-i18n'
 import { CopilotProviderModelParameterRulesHandler } from './model-parameter-rules.handler'
 import { CopilotProviderModelParameterRulesQuery } from '../model-parameter-rules.query'
 
@@ -19,6 +27,7 @@ describe('CopilotProviderModelParameterRulesHandler', () => {
 	let service: { findOneInOrganizationOrTenant: jest.Mock }
 	let modelService: { findOneOrFailByWhereOptions: jest.Mock }
 	let providersService: { getProvider: jest.Mock }
+	let i18nService: { t: jest.Mock }
 	let handler: CopilotProviderModelParameterRulesHandler
 
 	beforeEach(() => {
@@ -31,28 +40,46 @@ describe('CopilotProviderModelParameterRulesHandler', () => {
 		providersService = {
 			getProvider: jest.fn()
 		}
+		i18nService = {
+			t: jest.fn()
+		}
+
+		;(RequestContext.getLanguageCode as jest.Mock).mockReturnValue('en')
 
 		handler = new CopilotProviderModelParameterRulesHandler(
 			service as any,
 			modelService as any,
 			providersService as any,
-			{} as any
+			{} as any,
+			i18nService as unknown as I18nService
 		)
 	})
 
-	it('throws a Http error when the copilot provider is missing', async () => {
+	it('throws a translated Http error when the copilot provider is missing', async () => {
 		service.findOneInOrganizationOrTenant.mockResolvedValue(null)
+		i18nService.t.mockResolvedValue("Copilot provider 'provider-id' was not found")
 
-		await expect(
-			handler.execute(
+		let error: unknown
+		try {
+			await handler.execute(
 				new CopilotProviderModelParameterRulesQuery(
 					'provider-id',
 					AiModelTypeEnum.LLM,
 					'doubao-seed-2-0-pro-260215'
 				)
 			)
-		).rejects.toBeInstanceOf(NotFoundException)
+		} catch (err) {
+			error = err
+		}
 
+		expect(error).toBeInstanceOf(NotFoundException)
+		expect((error as NotFoundException).getResponse()).toMatchObject({
+			message: "Copilot provider 'provider-id' was not found"
+		})
+		expect(i18nService.t).toHaveBeenCalledWith('copilot.Error.CopilotProviderNotFound', {
+			lang: 'en',
+			args: { providerId: 'provider-id' }
+		})
 		expect(providersService.getProvider).not.toHaveBeenCalled()
 	})
 

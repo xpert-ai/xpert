@@ -6,6 +6,7 @@ import { ConfigService } from '@xpert-ai/server-config'
 import { loadYamlFile } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { IAIModel, IAIModelProviderStrategy, IRerank, RerankModel } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 import * as path from 'path'
 import { AIModel } from './ai-model'
 import { AIProviderRegistry } from './registry'
@@ -79,7 +80,7 @@ export abstract class ModelProvider implements IAIModelProviderStrategy {
 		const modelInstance = this.modelManagers.get(modelType)
 
 		if (!modelInstance) {
-			throw new AiModelNotFoundException(`Missing AIModel instance for model type ${modelType}`)
+			throw new AiModelNotFoundException(t('server-ai:Error.AIModelInstanceNotFound', { modelType }))
 		}
 
 		return modelInstance as T

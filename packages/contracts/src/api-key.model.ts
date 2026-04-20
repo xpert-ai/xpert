@@ -14,6 +14,7 @@ export interface IApiKey extends IBasePerTenantAndOrganizationEntityModel {
   /**
    * Stable binding target id/code. Examples:
    * - assistant => xpertId
+   * - workspace => workspaceId
    * - integration => integrationId
    * - client => clientCode
    */
@@ -40,6 +41,7 @@ export const API_PRINCIPAL_USER_ID_HEADER = 'x-principal-user-id'
  */
 export enum ApiKeyBindingType {
   ASSISTANT = 'assistant',
+  WORKSPACE = 'workspace',
   INTEGRATION = 'integration',
   CLIENT = 'client',
   /**

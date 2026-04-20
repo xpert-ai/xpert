@@ -5,9 +5,11 @@ import {
 	ISkillMarketFeaturedSkill,
 	ISkillMarketFilterGroup,
 	ISkillMarketFilterGroups,
+	ISkillRepositoryIndex,
 	ISkillRepository,
 	IXpertMCPTemplate,
 	LanguagesEnum,
+	WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
 	TKnowledgePipelineTemplate
 } from '@xpert-ai/contracts'
 import { getErrorMessage, omit, yaml } from '@xpert-ai/server-common'
@@ -28,8 +30,15 @@ import { XpertTemplate } from './xpert-template.entity'
 const builtinTemplatePath = 'packages/server-ai/src/xpert-template'
 const fallbackLanguage = 'en-US'
 const templateDirectoryName = 'xpert-template'
-const templateDirectories = ['templates', 'pipelines'] as const
-const templateFiles = ['templates.json', 'mcp-templates.json', 'knowledge-pipelines.json', 'skills-market.yaml'] as const
+const templateDirectories = ['templates', 'pipelines', 'skill-packages'] as const
+const templateFiles = [
+	'templates.json',
+	'mcp-templates.json',
+	'knowledge-pipelines.json',
+	'skills-market.yaml',
+	'skill-repositories.yaml',
+	'workspace-defaults.yaml'
+] as const
 
 type TXpertTemplateDescriptor = {
 	id: string
@@ -57,6 +66,37 @@ type TSkillMarketLocaleConfig = {
 
 type TLocalizedSkillMarketCatalog = Record<string, TSkillMarketLocaleConfig>
 
+export type TDefaultSkillRepositoryEntry = Pick<ISkillRepository, 'name' | 'provider'> &
+	Partial<Pick<ISkillRepository, 'options' | 'credentials'>>
+
+export type TDefaultSkillRepositoriesConfig = {
+	repositories: TDefaultSkillRepositoryEntry[]
+}
+
+export type TWorkspaceDefaultSkillRef = {
+	provider: string
+	repositoryName: string
+	skillId: string
+}
+
+export type TWorkspaceDefaultsConfig = {
+	userDefault: {
+		skills: TWorkspaceDefaultSkillRef[]
+	}
+}
+
+export type TResolvedSkillRef = {
+	ref: TWorkspaceDefaultSkillRef
+	skill: ISkillRepositoryIndex
+}
+
+export type TTemplateSkillBundle = {
+	ref: TWorkspaceDefaultSkillRef
+	directoryName: string
+	directoryPath: string
+	sharedSkillId: string
+}
+
 const DEFAULT_SKILL_MARKET_FILTERS: ISkillMarketFilterGroups = {
 	roles: {
 		label: 'Roles',
@@ -71,6 +111,13 @@ const DEFAULT_SKILL_MARKET_FILTERS: ISkillMarketFilterGroups = {
 		options: []
 	}
 }
+
+const TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE = 'bundle.yaml'
+const TEMPLATE_SKILL_BUNDLE_SEPARATOR = '__'
+const TEMPLATE_SKILL_BUNDLE_SHARED_PREFIX = 'template-bundle'
+const TEMPLATE_SKILL_BUNDLE_SKILL_FILE = 'SKILL.md'
+const TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER = 'local'
+const TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY = 'root/skills'
 
 const isObjectValue = (value: unknown): value is object =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -142,6 +189,22 @@ const isSkillMarketFilterGroup = (value: unknown): value is ISkillMarketFilterGr
 	Array.isArray(Reflect.get(value, 'options')) &&
 	(Reflect.get(value, 'options') as unknown[]).every(isSkillMarketFilterOption)
 
+const isWorkspaceDefaultSkillRef = (value: unknown): value is TWorkspaceDefaultSkillRef =>
+	isObjectValue(value) &&
+	typeof Reflect.get(value, 'provider') === 'string' &&
+	typeof Reflect.get(value, 'repositoryName') === 'string' &&
+	typeof Reflect.get(value, 'skillId') === 'string'
+
+const isOptionalRepositoryPayload = (value: unknown): value is ISkillRepository['options'] | null | undefined =>
+	typeof value === 'undefined' || value === null || isObjectValue(value)
+
+const isDefaultSkillRepositoryEntry = (value: unknown): value is TDefaultSkillRepositoryEntry =>
+	isObjectValue(value) &&
+	typeof Reflect.get(value, 'name') === 'string' &&
+	typeof Reflect.get(value, 'provider') === 'string' &&
+	isOptionalRepositoryPayload(Reflect.get(value, 'options')) &&
+	isOptionalRepositoryPayload(Reflect.get(value, 'credentials'))
+
 @Injectable()
 export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> implements OnModuleInit {
 	readonly #logger = new Logger(XpertTemplateService.name)
@@ -164,7 +227,14 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 	}
 
 	async onModuleInit() {
-		await this.ensureTemplateDirectoryReady()
+		try {
+			await this.ensureTemplateDirectoryReady()
+		} catch (error) {
+			this.#logger.error(
+				`Skip xpert template bootstrap during module init: ${getErrorMessage(error)}`,
+				error instanceof Error ? error.stack : undefined
+			)
+		}
 	}
 
 	async readTemplatesFile(): Promise<TXpertTemplatesCatalog> {
@@ -394,6 +464,91 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		await this.cacheManager.set('xpert:skills-market', config, 10 * 1000)
 
 		return config
+	}
+
+	async readSkillRepositories(): Promise<TDefaultSkillRepositoriesConfig> {
+		let config = await this.cacheManager.get<TDefaultSkillRepositoriesConfig>('xpert:skill-repositories')
+		if (config) {
+			return config
+		}
+
+		const filePath = await this.getExternalTemplatePath('skill-repositories.yaml')
+		const raw = await this.readYamlFromFile(filePath, 'skill repositories config')
+		config = this.normalizeSkillRepositories(raw)
+		await this.cacheManager.set('xpert:skill-repositories', config, 10 * 1000)
+
+		return config
+	}
+
+	async readWorkspaceDefaults(): Promise<TWorkspaceDefaultsConfig> {
+		let config = await this.cacheManager.get<TWorkspaceDefaultsConfig>('xpert:workspace-defaults')
+		if (config) {
+			return config
+		}
+
+		const filePath = await this.getExternalTemplatePath('workspace-defaults.yaml')
+		const raw = await this.readYamlFromFile(filePath, 'workspace defaults config')
+		config = this.normalizeWorkspaceDefaults(raw)
+		await this.cacheManager.set('xpert:workspace-defaults', config, 10 * 1000)
+
+		return config
+	}
+
+	async getBootstrapDefaultSkillRefs(): Promise<TWorkspaceDefaultSkillRef[]> {
+		const config = await this.readWorkspaceDefaults()
+		return config.userDefault.skills
+	}
+
+	async getUserDefaultSkillRefs(): Promise<TWorkspaceDefaultSkillRef[]> {
+		const skillRefs = await this.getBootstrapDefaultSkillRefs()
+		if (!skillRefs.length) {
+			return []
+		}
+
+		const featuredRefsByKey = await this.getSkillsMarketFeaturedRefsByKey()
+		const matchedRefs: TWorkspaceDefaultSkillRef[] = []
+		const missingRefs: TWorkspaceDefaultSkillRef[] = []
+
+		for (const ref of skillRefs) {
+			const key = this.getSkillRefKey(ref)
+			const featuredRef = featuredRefsByKey.get(key)
+			if (featuredRef) {
+				matchedRefs.push(featuredRef)
+				continue
+			}
+
+			missingRefs.push(ref)
+		}
+
+		if (missingRefs.length) {
+			this.#logger.warn(
+				`Skipping workspace default skills missing from skills-market.yaml: ${missingRefs
+					.map((ref) => this.getSkillRefKey(ref))
+					.join(', ')}`
+			)
+		}
+
+		return matchedRefs
+	}
+
+	async resolveSkillRefs(skillRefs: TWorkspaceDefaultSkillRef[]): Promise<TResolvedSkillRef[]> {
+		if (!skillRefs.length) {
+			return []
+		}
+
+		const repositoriesByKey = await this.getRepositoriesByKey()
+		const resolved: TResolvedSkillRef[] = []
+		for (const ref of skillRefs) {
+			const skill = await this.resolveSkillRef(ref, repositoriesByKey)
+			if (skill) {
+				resolved.push({
+					ref,
+					skill
+				})
+			}
+		}
+
+		return resolved
 	}
 
 	private ensureTemplateDirectoryReady() {
@@ -664,48 +819,11 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 			return []
 		}
 
-		const { items: repositories } = await this.skillRepositoryService.findAllInOrganizationOrTenant()
-		const repositoriesByKey = new Map<string, ISkillRepository>()
-
-		for (const repository of repositories) {
-			const key = `${repository.provider}:${repository.name}`
-			const existing = repositoriesByKey.get(key)
-			if (!existing) {
-				repositoriesByKey.set(key, repository)
-				continue
-			}
-
-			if (!existing.organizationId && repository.organizationId) {
-				repositoriesByKey.set(key, repository)
-			}
-		}
+		const repositoriesByKey = await this.getRepositoriesByKey()
 
 		const featured: ISkillMarketFeaturedSkill[] = []
 		for (const ref of featuredRefs) {
-			const repository = repositoriesByKey.get(`${ref.provider}:${ref.repositoryName}`)
-			if (!repository?.id) {
-				continue
-			}
-
-			let skill = null
-			for (const skillId of this.resolveFeaturedSkillIds(ref.skillId, repository)) {
-				const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
-					where: {
-						repositoryId: repository.id,
-						skillId
-					},
-					relations: ['repository'],
-					take: 1,
-					order: {
-						updatedAt: 'DESC'
-					}
-				})
-				if (items[0]) {
-					skill = items[0]
-					break
-				}
-			}
-
+			const skill = await this.resolveSkillRef(ref, repositoriesByKey)
 			if (!skill) {
 				continue
 			}
@@ -717,6 +835,62 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		}
 
 		return featured
+	}
+
+	async getTemplateSkillBundles(): Promise<TTemplateSkillBundle[]> {
+		let bundles = await this.cacheManager.get<TTemplateSkillBundle[]>('xpert:template-skill-bundles')
+		if (bundles) {
+			return bundles
+		}
+
+		const directoryPath = await this.getExternalTemplatePath('skill-packages')
+		const entries = await fs.promises.readdir(directoryPath, { withFileTypes: true }).catch(() => [])
+		const bundleCandidates = entries.filter((entry) => entry.isDirectory())
+		bundles = (
+			await Promise.all(
+				bundleCandidates.map((entry) =>
+					this.readTemplateSkillBundle(path.join(directoryPath, entry.name), entry.name)
+				)
+			)
+		).filter((bundle): bundle is TTemplateSkillBundle => !!bundle)
+
+		await this.cacheManager.set('xpert:template-skill-bundles', bundles, 10 * 1000)
+		return bundles
+	}
+
+	private async getSkillsMarketFeaturedRefsByKey() {
+		const catalog = await this.readSkillsMarketCatalog()
+		const refs = new Map<string, TWorkspaceDefaultSkillRef>()
+
+		for (const localeConfig of Object.values(catalog)) {
+			for (const ref of localeConfig.featured) {
+				const normalizedRef: TWorkspaceDefaultSkillRef = {
+					provider: ref.provider.trim(),
+					repositoryName: ref.repositoryName.trim(),
+					skillId: ref.skillId.trim()
+				}
+				const key = this.getSkillRefKey(normalizedRef)
+				if (!refs.has(key)) {
+					refs.set(key, normalizedRef)
+				}
+			}
+		}
+
+		return refs
+	}
+
+	private async getTemplateSkillBundlesByRefKey() {
+		const bundles = await this.getTemplateSkillBundles()
+		const bundlesByKey = new Map<string, TTemplateSkillBundle>()
+
+		for (const bundle of bundles) {
+			const key = this.getSkillRefKey(bundle.ref)
+			if (!bundlesByKey.has(key)) {
+				bundlesByKey.set(key, bundle)
+			}
+		}
+
+		return bundlesByKey
 	}
 
 	private resolveFeaturedSkillIds(skillId: string, repository: ISkillRepository) {
@@ -734,6 +908,196 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		}
 
 		return Array.from(skillIds)
+	}
+
+	private normalizeWorkspaceDefaults(value: unknown): TWorkspaceDefaultsConfig {
+		const normalizedSkills = isObjectValue(value) && isObjectValue(Reflect.get(value, 'userDefault'))
+			? Reflect.get(Reflect.get(value, 'userDefault'), 'skills')
+			: undefined
+
+		const skills = Array.isArray(normalizedSkills)
+			? normalizedSkills.filter(isWorkspaceDefaultSkillRef).map((item) => ({
+				provider: item.provider.trim(),
+				repositoryName: item.repositoryName.trim(),
+				skillId: item.skillId.trim()
+			})).filter((item) => item.provider && item.repositoryName && item.skillId)
+			: []
+
+		return {
+			userDefault: {
+				skills
+			}
+		}
+	}
+
+	private normalizeSkillRepositories(value: unknown): TDefaultSkillRepositoriesConfig {
+		const normalizedRepositories = isObjectValue(value) ? Reflect.get(value, 'repositories') : undefined
+		const repositories = Array.isArray(normalizedRepositories)
+			? normalizedRepositories
+					.filter(isDefaultSkillRepositoryEntry)
+					.map((item) => ({
+						name: item.name.trim(),
+						provider: item.provider.trim(),
+						...(typeof item.options !== 'undefined' ? { options: item.options } : {}),
+						...(typeof item.credentials !== 'undefined' ? { credentials: item.credentials } : {})
+					}))
+					.filter((item) => item.name && item.provider)
+			: []
+
+		return { repositories }
+	}
+
+	private async getRepositoriesByKey() {
+		const { items: repositories } = await this.skillRepositoryService.findAllInOrganizationOrTenant()
+		const repositoriesByKey = new Map<string, ISkillRepository>()
+
+		for (const repository of repositories) {
+			const key = `${repository.provider}:${repository.name}`
+			const existing = repositoriesByKey.get(key)
+			if (!existing) {
+				repositoriesByKey.set(key, repository)
+				continue
+			}
+
+			if (!existing.organizationId && repository.organizationId) {
+				repositoriesByKey.set(key, repository)
+			}
+		}
+
+		return repositoriesByKey
+	}
+
+	private async resolveSkillRef(
+		ref: Pick<ISkillMarketFeaturedRef, 'provider' | 'repositoryName' | 'skillId'>,
+		repositoriesByKey: Map<string, ISkillRepository>
+	) {
+		const bundledSkill = await this.resolveBundledSkillRef(ref, repositoriesByKey)
+		if (bundledSkill) {
+			return bundledSkill
+		}
+
+		const repository = repositoriesByKey.get(`${ref.provider}:${ref.repositoryName}`)
+		if (!repository?.id) {
+			return null
+		}
+
+		for (const skillId of this.resolveFeaturedSkillIds(ref.skillId, repository)) {
+			const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
+				where: {
+					repositoryId: repository.id,
+					skillId
+				},
+				relations: ['repository'],
+				take: 1,
+				order: {
+					updatedAt: 'DESC'
+				}
+			})
+			if (items[0]) {
+				return items[0]
+			}
+		}
+
+		return null
+	}
+
+	private async resolveBundledSkillRef(
+		ref: Pick<ISkillMarketFeaturedRef, 'provider' | 'repositoryName' | 'skillId'>,
+		repositoriesByKey: Map<string, ISkillRepository>
+	) {
+		const bundlesByKey = await this.getTemplateSkillBundlesByRefKey()
+		const bundle = bundlesByKey.get(this.getSkillRefKey(ref))
+		if (!bundle) {
+			return null
+		}
+
+		const repository = Array.from(repositoriesByKey.values()).find(
+			(candidate) => candidate.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
+		)
+		if (!repository?.id) {
+			return null
+		}
+
+		const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
+			where: {
+				repositoryId: repository.id,
+				skillId: bundle.sharedSkillId
+			},
+			relations: ['repository'],
+			take: 1,
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+
+		return items[0] ?? null
+	}
+
+	private getSkillRefKey(ref: Pick<ISkillMarketFeaturedRef, 'provider' | 'repositoryName' | 'skillId'>) {
+		return `${ref.provider}:${ref.repositoryName}:${ref.skillId}`
+	}
+
+	private async readTemplateSkillBundle(directoryPath: string, directoryName: string): Promise<TTemplateSkillBundle | null> {
+		const manifestPath = path.join(directoryPath, TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE)
+		if (!(await this.pathExists(manifestPath))) {
+			const skillFilePath = path.join(directoryPath, TEMPLATE_SKILL_BUNDLE_SKILL_FILE)
+			if (!(await this.pathExists(skillFilePath))) {
+				return null
+			}
+
+			const ref = {
+				provider: TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER,
+				repositoryName: TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY,
+				skillId: directoryName.trim()
+			} satisfies TWorkspaceDefaultSkillRef
+
+			return {
+				directoryName,
+				directoryPath,
+				ref,
+				sharedSkillId: this.buildTemplateSkillBundleSharedSkillId(ref)
+			}
+		}
+
+		const raw = await this.readYamlFromFile(manifestPath, `template skill bundle manifest '${directoryName}'`)
+		if (!isWorkspaceDefaultSkillRef(raw)) {
+			this.#logger.warn(`Skipping invalid template skill bundle manifest '${manifestPath}'`)
+			return null
+		}
+
+		const provider = raw.provider.trim()
+		const repositoryName = raw.repositoryName.trim()
+		const skillId = raw.skillId.trim()
+		if (!provider || !repositoryName || !skillId) {
+			this.#logger.warn(`Skipping empty template skill bundle manifest '${manifestPath}'`)
+			return null
+		}
+
+		const ref = {
+			provider,
+			repositoryName,
+			skillId
+		} satisfies TWorkspaceDefaultSkillRef
+
+		return {
+			directoryName,
+			directoryPath,
+			ref,
+			sharedSkillId: this.buildTemplateSkillBundleSharedSkillId(ref)
+		}
+	}
+
+	private buildTemplateSkillBundleSharedSkillId(ref: TWorkspaceDefaultSkillRef) {
+		return [
+			TEMPLATE_SKILL_BUNDLE_SHARED_PREFIX,
+			ref.provider,
+			this.encodeTemplateSkillBundleSegment(ref.repositoryName),
+			this.encodeTemplateSkillBundleSegment(ref.skillId)
+		].join(TEMPLATE_SKILL_BUNDLE_SEPARATOR)
+	}
+
+	private encodeTemplateSkillBundleSegment(value: string) {
+		return encodeURIComponent(value.trim())
 	}
 
 	private async readJsonFromFile<T>(filePath: string) {

@@ -40,6 +40,7 @@ import { SkillPackageModule } from './skill-package'
 import { FileUploadTargetsModule } from './shared'
 import { InitializationModule } from './initialization/initialization.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
+import { VolumeModule } from './shared/volume'
 
 @Module({
     imports: [
@@ -63,6 +64,7 @@ import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscr
         GraphragModule,
         HandoffQueueModule,
         FileUploadTargetsModule,
+        VolumeModule,
         XpertModule,
         XpertAgentModule,
         XpertAgentExecutionModule,

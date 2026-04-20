@@ -25,6 +25,7 @@ import { XpertToolsetModule } from '../xpert-toolset'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
 import { AssistantBindingModule } from '../assistant-binding/assistant-binding.module'
 import { AgentViewHostDefinition } from '../view-extension/hosts/agent-view-host.definition'
+import { SkillPackageModule } from '../skill-package'
 
 @Module({
     imports: [
@@ -42,6 +43,7 @@ import { AgentViewHostDefinition } from '../view-extension/hosts/agent-view-host
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => EnvironmentModule),
         forwardRef(() => AssistantBindingModule),
+        SkillPackageModule,
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,

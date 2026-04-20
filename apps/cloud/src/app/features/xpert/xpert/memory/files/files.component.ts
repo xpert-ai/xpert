@@ -1,6 +1,13 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core'
-import { FileWorkbenchComponent, FileWorkbenchFileLoader, FileWorkbenchFileSaver, FileWorkbenchFilesLoader } from '@cloud/app/@shared/files'
+import {
+  FileWorkbenchComponent,
+  FileWorkbenchFileDeleter,
+  FileWorkbenchFileLoader,
+  FileWorkbenchFileSaver,
+  FileWorkbenchFileUploader,
+  FileWorkbenchFilesLoader
+} from '@cloud/app/@shared/files'
 import { injectFileMemoryAPI } from '@cloud/app/@core'
 import { XpertComponent } from '../../xpert.component'
 
@@ -20,9 +27,8 @@ export class XpertMemoryFilesComponent {
 
   readonly xpertId = this.xpertComponent.paramId
   readonly xpert = computed(() => this.xpertComponent.xpert() ?? this.xpertComponent.latestXpert())
-  readonly workspaceId = computed(() => this.xpert()?.workspaceId ?? null)
-  readonly rootLabel = computed(() => '.xpert/memory')
-  readonly reloadKey = computed(() => this.workspaceId() ?? '__hosted__')
+  readonly rootLabel = computed(() => this.xpert()?.title || this.xpert()?.name || 'Memory files')
+  readonly reloadKey = computed(() => this.xpertId() ?? '__hosted__')
 
   readonly loadMemoryFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const xpertId = this.xpertId()
@@ -30,7 +36,7 @@ export class XpertMemoryFilesComponent {
       return []
     }
 
-    return this.#fileMemoryAPI.getFiles(xpertId, this.workspaceId(), path ?? '')
+    return this.#fileMemoryAPI.getFiles(xpertId, path ?? '')
   }
 
   readonly loadMemoryFile: FileWorkbenchFileLoader = (path: string) => {
@@ -39,7 +45,7 @@ export class XpertMemoryFilesComponent {
       throw new Error('Xpert context is required')
     }
 
-    return this.#fileMemoryAPI.getFile(xpertId, this.workspaceId(), path)
+    return this.#fileMemoryAPI.getFile(xpertId, path)
   }
 
   readonly saveMemoryFile: FileWorkbenchFileSaver = (path: string, content: string) => {
@@ -48,12 +54,40 @@ export class XpertMemoryFilesComponent {
       throw new Error('Xpert context is required')
     }
 
-    return this.#fileMemoryAPI.saveFile(xpertId, this.workspaceId(), path, content)
+    return this.#fileMemoryAPI.saveFile(xpertId, path, content)
+  }
+
+  readonly uploadMemoryFile: FileWorkbenchFileUploader = (file: File, path: string) => {
+    const xpertId = this.xpertId()
+    if (!xpertId) {
+      throw new Error('Xpert context is required')
+    }
+
+    return this.#fileMemoryAPI.uploadFile(xpertId, file, path)
+  }
+
+  readonly deleteMemoryFile: FileWorkbenchFileDeleter = (path: string) => {
+    const xpertId = this.xpertId()
+    if (!xpertId) {
+      throw new Error('Xpert context is required')
+    }
+
+    return this.#fileMemoryAPI.deleteFile(xpertId, path)
   }
 
   readonly effectiveFileSaver = computed<FileWorkbenchFileSaver | null>(() => {
     const activePath = this.fileWorkbench()?.activeFilePath()
     return isManagedMemoryIndexPath(activePath) ? null : this.saveMemoryFile
+  })
+
+  readonly effectiveFileDeleter = computed<FileWorkbenchFileDeleter | null>(() => {
+    const activePath = this.fileWorkbench()?.activeFilePath()
+    return isManagedMemoryIndexPath(activePath) ? null : this.deleteMemoryFile
+  })
+
+  readonly effectiveFileUploader = computed<FileWorkbenchFileUploader | null>(() => {
+    const activePath = this.fileWorkbench()?.activeFilePath()
+    return isManagedMemoryIndexPath(activePath) ? null : this.uploadMemoryFile
   })
 }
 

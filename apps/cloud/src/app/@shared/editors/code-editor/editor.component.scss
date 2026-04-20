@@ -4,10 +4,43 @@
 }
 
 :host::ng-deep {
+  .code-editor {
+    display: block;
+    transition: border-color 150ms ease, opacity 150ms ease;
+  }
+
   .monaco-editor {
     .margin,
     .monaco-editor-background {
       background-color: var(--ngm-monaco-editor-bg, var(--sidebar-surface-primary));
+    }
+  }
+
+  .code-editor.code-editor--readonly {
+    border: 1px solid var(--ngm-color-outline-variant);
+    border-radius: 0.5rem;
+    overflow: hidden;
+
+    .monaco-editor,
+    .monaco-editor .overflow-guard,
+    .monaco-editor .margin,
+    .monaco-editor .monaco-editor-background {
+      background-color: var(--ngm-color-surface-container-low);
+    }
+
+    .monaco-editor .view-lines,
+    .monaco-editor .monaco-mouse-cursor-text {
+      cursor: default !important;
+    }
+
+    .monaco-editor .cursor,
+    .monaco-editor .current-line,
+    .monaco-editor .current-line-margin {
+      opacity: 0;
+    }
+
+    .monaco-editor .line-numbers {
+      opacity: 0.65;
     }
   }
 }

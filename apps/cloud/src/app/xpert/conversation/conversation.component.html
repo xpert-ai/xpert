@@ -28,20 +28,27 @@
 }
 
 @for (message of messages(); track message.id) {
-  @switch (message.role) {
-    @case ('user') {
-      <chat-human-message class="w-full flex justify-end mb-4" [message]="message" />
+  <div
+    data-chat-reference-message="true"
+    [attr.data-message-id]="message.id"
+    [attr.data-message-role]="message.role"
+    [attr.data-message-source]="getMessageSourceLabel(message.role)"
+  >
+    @switch (message.role) {
+      @case ('user') {
+        <chat-human-message class="w-full flex justify-end my-4" [message]="message" />
+      }
+      @case ('human') {
+        <chat-human-message class="w-full flex justify-end my-4" [message]="message" />
+      }
+      @case ('assistant') {
+        <pac-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
+      }
+      @case ('ai') {
+        <pac-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
+      }
     }
-    @case ('human') {
-      <chat-human-message class="w-full flex justify-end mb-4" [message]="message" />
-    }
-    @case ('assistant') {
-      <pac-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
-    }
-    @case ('ai') {
-      <pac-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
-    }
-  }
+  </div>
 } @empty {
   @if (!loadingConv() && xpert()) {
     <div class="flex-1 w-full h-full flex flex-col justify-center items-center gap-4">
@@ -77,6 +84,21 @@
       }
     </div>
   }
+}
+
+@if (quoteSelection(); as selection) {
+  <button
+    type="button"
+    class="fixed z-60 inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-3 py-2 text-sm font-medium text-text-primary shadow-lg transition-colors hover:bg-hover-bg"
+    [style.left.px]="selection.left"
+    [style.top.px]="selection.top"
+    [style.transform]="'translate(-50%, 0)'"
+    (mousedown)="$event.preventDefault()"
+    (click)="quoteSelectedText()"
+  >
+    <i class="ri-double-quotes-l text-base"></i>
+    <span>{{ 'PAC.Chat.QuoteSelection' | translate: { Default: 'Quote selection' } }}</span>
+  </button>
 }
 
 @if (suggestion_enabled()) {

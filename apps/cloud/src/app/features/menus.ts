@@ -209,15 +209,6 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
-      path: 'skill-repository',
-      label: 'Skills Repository',
-      icon: 'hammer',
-      scopeContext: 'tenant-only',
-      data: {
-        permissionKeys: [RolesEnum.SUPER_ADMIN]
-      }
-    },
-    {
       path: 'tenant',
       label: 'Tenant',
       icon: 'storage',
@@ -246,18 +237,18 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
         permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
       }
     },
-    {
-      title: 'Project',
-      icon: 'ri-building-line',
-      link: '/project',
-      pathMatch: 'prefix',
-      scopeContext: 'dual-scope',
-      data: {
-        translationKey: 'Project',
-        featureKey: AiFeatureEnum.FEATURE_XPERT,
-        permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
-      }
-    },
+    // {
+    //   title: 'Project',
+    //   icon: 'ri-building-line',
+    //   link: '/project',
+    //   pathMatch: 'prefix',
+    //   scopeContext: 'dual-scope',
+    //   data: {
+    //     translationKey: 'Project',
+    //     featureKey: AiFeatureEnum.FEATURE_XPERT,
+    //     permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
+    //   }
+    // },
     {
       title: 'Explore Xperts',
       icon: 'ri-book-shelf-line',

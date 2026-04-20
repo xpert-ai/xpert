@@ -48,7 +48,7 @@
   <div class="relative flex flex-col flex-1 px-2 w-full max-w-full mx-auto lg:w-[800px] lg:px-8">
     @if (!conversationId() && !messages()?.length) {
       <div @ifAnimationTrigger class="flex-1 h-full flex flex-col justify-center items-center gap-4">
-        @if (xpert()) {
+        @if (xpert() && idleLayout() !== 'welcome') {
           <emoji-avatar [avatar]="xpert().avatar" large class="rounded-xl overflow-hidden shadow-sm" />
 
           <div class="w-full flex flex-col items-center gap-2 text-center">
@@ -97,8 +97,6 @@
 
             <ng-content></ng-content>
 
-            <!-- <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" /> -->
-
             <div
               class="will-change-[mask-image] @sm:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)] @sm:hidden"
             ></div>
@@ -112,6 +110,7 @@
         class="w-full"
         [xpert]="xpert()"
         (chat)="chatInput.ask($event)"
+        (reference)="chatInput.addReferences($event)"
       />
     }
   </div>

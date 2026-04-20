@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core'
 import { ChatConversationService } from '../../../@core'
 import {
   FileWorkbenchComponent,
+  FileWorkbenchReferenceRequest,
+  FileWorkbenchFileDeleter,
   FileWorkbenchFileLoader,
   FileWorkbenchFileSaver,
+  FileWorkbenchFileUploader,
   FileWorkbenchFilesLoader
 } from '../../../@shared/files'
 import { TranslateModule } from '@ngx-translate/core'
@@ -17,13 +20,17 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
   imports: [CommonModule, TranslateModule, FileWorkbenchComponent],
   template: `
     <pac-file-workbench
-      [rootId]="conversationId()"
+      [rootId]="xpertId() || conversationId()"
       [rootLabel]="'PAC.Chat.ClawXpert.WorkspaceFiles' | translate: { Default: 'Workspace files' }"
       [filesLoader]="loadConversationFiles"
       [fileLoader]="loadConversationFile"
       [fileSaver]="mode() === 'editable' ? saveConversationFile : null"
+      [fileDeleter]="mode() === 'editable' ? deleteConversationFile : null"
+      [fileUploader]="mode() === 'editable' ? uploadConversationFile : null"
       [reloadKey]="reloadKey()"
+      [referenceable]="true"
       [treeSize]="'sm'"
+      (referenceRequest)="referenceRequest.emit($event)"
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,8 +42,10 @@ export class ClawXpertConversationFilesComponent {
   readonly #conversationService = inject(ChatConversationService)
 
   readonly conversationId = input<string | null | undefined>(null)
+  readonly xpertId = input<string | null | undefined>(null)
   readonly mode = input<ClawXpertConversationFilesMode>('editable')
   readonly reloadKey = input<number>(0)
+  readonly referenceRequest = output<FileWorkbenchReferenceRequest>()
 
   readonly loadConversationFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const conversationId = this.conversationId()
@@ -63,5 +72,23 @@ export class ClawXpertConversationFilesComponent {
     }
 
     return this.#conversationService.saveFile(conversationId, path, content)
+  }
+
+  readonly uploadConversationFile: FileWorkbenchFileUploader = (file: File, path: string) => {
+    const conversationId = this.conversationId()
+    if (!conversationId) {
+      throw new Error('Conversation context is required')
+    }
+
+    return this.#conversationService.uploadFile(conversationId, file, path)
+  }
+
+  readonly deleteConversationFile: FileWorkbenchFileDeleter = (path: string) => {
+    const conversationId = this.conversationId()
+    if (!conversationId) {
+      throw new Error('Conversation context is required')
+    }
+
+    return this.#conversationService.deleteFile(conversationId, path)
   }
 }

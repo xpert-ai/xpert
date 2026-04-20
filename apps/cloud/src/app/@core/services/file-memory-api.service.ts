@@ -9,29 +9,41 @@ export class FileMemoryApiService {
   readonly #httpClient = inject(HttpClient)
   readonly #apiBaseUrl = `${API_PREFIX}/xpert`
 
-  getFiles(xpertId: string, workspaceId?: string | null, path = '') {
+  getFiles(xpertId: string, path = '') {
     return this.#httpClient.get<TFileDirectory[]>(`${this.#apiBaseUrl}/${xpertId}/memory/files`, {
       params: toParams({
-        workspaceId: workspaceId ?? undefined,
         path
       })
     })
   }
 
-  getFile(xpertId: string, workspaceId: string | null | undefined, path: string) {
+  getFile(xpertId: string, path: string) {
     return this.#httpClient.get<TFile>(`${this.#apiBaseUrl}/${xpertId}/memory/file`, {
       params: toParams({
-        workspaceId: workspaceId ?? undefined,
         path
       })
     })
   }
 
-  saveFile(xpertId: string, workspaceId: string | null | undefined, path: string, content: string) {
+  saveFile(xpertId: string, path: string, content: string) {
     return this.#httpClient.put<TFile>(`${this.#apiBaseUrl}/${xpertId}/memory/file`, {
-      workspaceId: workspaceId ?? null,
       path,
       content
+    })
+  }
+
+  uploadFile(xpertId: string, file: File, path = '') {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('path', path)
+    return this.#httpClient.post<TFile>(`${this.#apiBaseUrl}/${xpertId}/memory/file/upload`, formData)
+  }
+
+  deleteFile(xpertId: string, path: string) {
+    return this.#httpClient.delete<void>(`${this.#apiBaseUrl}/${xpertId}/memory/file`, {
+      params: toParams({
+        path
+      })
     })
   }
 }

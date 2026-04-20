@@ -29,6 +29,8 @@ import {
   ICopilotModel,
   IXpert,
   JsonSchemaObjectType,
+  TXpertFeatureKey,
+  TXpertFeatures,
   TXpertTeamConnection,
   TXpertTeamDraft,
   TXpertTeamNode,
@@ -91,10 +93,16 @@ export type BlankTriggerSelection = {
   config?: Record<string, unknown> | null
 }
 
+export type BlankRepositoryDefaultSelection = {
+  repositoryId: string
+  disabledSkillIds: string[]
+}
+
 export type XpertBlankWizardSelections = {
   triggers?: BlankTriggerSelection[]
   triggerProviders?: string[]
   skills?: string[]
+  repositoryDefault?: BlankRepositoryDefaultSelection | null
   middlewares?: string[]
 }
 
@@ -127,6 +135,7 @@ export type BlankKnowledgeSelectionGraph = {
 export type BlankMiddlewareDefinition = {
   name: string
   configSchema?: JsonSchemaObjectType
+  features?: TXpertFeatureKey[]
 }
 
 export type BlankXpertDraftBuildOptions = {
@@ -138,17 +147,24 @@ export function normalizeBlankWizardSelections(
   selections?: XpertBlankWizardSelections
 ): Required<XpertBlankWizardSelections> {
   const skills = uniqueStrings(selections?.skills)
+  const repositoryDefault = normalizeBlankRepositoryDefaultSelection(selections?.repositoryDefault)
   return {
     triggers: normalizeBlankTriggerSelections(selections?.triggers, selections?.triggerProviders),
     triggerProviders: uniqueStrings(selections?.triggerProviders),
     skills,
-    middlewares: normalizeBlankMiddlewareSelections(selections?.middlewares, skills)
+    repositoryDefault,
+    middlewares: normalizeBlankMiddlewareSelections(selections?.middlewares, skills, repositoryDefault)
   }
 }
 
 export function hasBlankWizardSelections(selections?: XpertBlankWizardSelections): boolean {
   const normalized = normalizeBlankWizardSelections(selections)
-  return !!(normalized.triggers.length || normalized.skills.length || normalized.middlewares.length)
+  return !!(
+    normalized.triggers.length ||
+    normalized.skills.length ||
+    normalized.middlewares.length ||
+    normalized.repositoryDefault
+  )
 }
 
 export function normalizeKnowledgeBlankWizardSelections(
@@ -180,6 +196,11 @@ export async function buildBlankXpertDraft(
   options?: BlankXpertDraftBuildOptions
 ): Promise<TXpertTeamDraft> {
   const normalized = normalizeBlankWizardSelections(selections)
+  const teamFeatures = mergeBlankMiddlewareRequiredFeatures(
+    xpert.features,
+    normalized.middlewares,
+    options?.middlewareDefinitions ?? []
+  )
   const { agents, ...team } = xpert
   const nodes = [...createXpertNodes(xpert, { x: 0, y: 0 }).nodes]
   const connections = createBaseConnections(xpert)
@@ -208,6 +229,7 @@ export async function buildBlankXpertDraft(
   const draft: TXpertTeamDraft = {
     team: {
       ...team,
+      ...(teamFeatures ? { features: teamFeatures } : {}),
       agent: {
         ...xpert.agent,
         options: {
@@ -269,6 +291,7 @@ export function buildBlankXpertSelectionGraph(
     agentNode,
     normalized.middlewares,
     normalized.skills,
+    normalized.repositoryDefault,
     options?.middlewareDefinitions ?? [],
     options?.defaultCopilotModel ?? null
   )
@@ -731,6 +754,7 @@ function createMiddlewareNodes(
   agentNode: TXpertTeamNode<'agent'>,
   middlewares: string[],
   skills: string[],
+  repositoryDefault: BlankRepositoryDefaultSelection | null,
   middlewareDefinitions: BlankMiddlewareDefinition[],
   defaultCopilotModel: ICopilotModel | null
 ): TXpertTeamNode<'workflow'>[] {
@@ -740,7 +764,12 @@ function createMiddlewareNodes(
     const key = genXpertMiddlewareKey()
     const middlewareOptions = mergeOptionObjects(
       createDefaultMiddlewareOptions(definitions.get(provider)?.configSchema, defaultCopilotModel),
-      provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER && skills.length ? { skills: [...skills] } : undefined
+      provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+        ? {
+            ...(skills.length ? { skills: [...skills] } : {}),
+            ...(repositoryDefault ? { repositoryDefault: cloneRepositoryDefaultSelection(repositoryDefault) } : {})
+          }
+        : undefined
     )
 
     return {
@@ -804,13 +833,18 @@ export function normalizeBlankTriggerSelections(
   return Array.from(deduped.values())
 }
 
-export function normalizeBlankMiddlewareSelections(middlewares?: string[] | null, skills?: string[] | null): string[] {
+export function normalizeBlankMiddlewareSelections(
+  middlewares?: string[] | null,
+  skills?: string[] | null,
+  repositoryDefault?: BlankRepositoryDefaultSelection | null
+): string[] {
   const normalized = uniqueStrings(middlewares)
   const hasSkillsMiddleware = normalized.includes(BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
   const visibleMiddlewares = normalized.filter((provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+  const hasSkillSelection = !!skills?.length || !!normalizeBlankRepositoryDefaultSelection(repositoryDefault)
 
   return uniqueStrings(
-    skills?.length
+    hasSkillSelection
       ? hasSkillsMiddleware
         ? normalized
         : [...visibleMiddlewares, BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
@@ -818,8 +852,93 @@ export function normalizeBlankMiddlewareSelections(middlewares?: string[] | null
   )
 }
 
+export function mergeBlankMiddlewareRequiredFeatures(
+  features: TXpertFeatures | null | undefined,
+  middlewares: string[] | null | undefined,
+  middlewareDefinitions: BlankMiddlewareDefinition[]
+): TXpertFeatures | undefined {
+  const requiredFeatures = collectBlankMiddlewareRequiredFeatures(middlewares, middlewareDefinitions)
+  if (!requiredFeatures.length) {
+    return features ?? undefined
+  }
+
+  const nextFeatures = { ...(features ?? {}) } as TXpertFeatures
+  const mutableFeatures = nextFeatures as Partial<
+    Record<TXpertFeatureKey, NonNullable<TXpertFeatures[TXpertFeatureKey]>>
+  >
+
+  for (const feature of requiredFeatures) {
+    mutableFeatures[feature] = {
+      ...getBlankRequiredFeatureDefaults(feature),
+      ...(nextFeatures[feature] ?? {}),
+      enabled: true
+    } as NonNullable<TXpertFeatures[TXpertFeatureKey]>
+  }
+
+  return nextFeatures
+}
+
 function uniqueStrings(values?: string[]) {
   return Array.from(new Set((values ?? []).map((value) => value?.trim()).filter((value): value is string => !!value)))
+}
+
+function collectBlankMiddlewareRequiredFeatures(
+  middlewares: string[] | null | undefined,
+  middlewareDefinitions: BlankMiddlewareDefinition[]
+): TXpertFeatureKey[] {
+  const definitions = new Map(middlewareDefinitions.map((definition) => [definition.name, definition]))
+
+  return Array.from(
+    new Set(
+      uniqueStrings(middlewares).flatMap((provider) => definitions.get(provider)?.features ?? [])
+    )
+  )
+}
+
+function getBlankRequiredFeatureDefaults(
+  feature: TXpertFeatureKey
+): NonNullable<TXpertFeatures[TXpertFeatureKey]> {
+  switch (feature) {
+    case 'opener':
+      return {
+        enabled: true,
+        message: '',
+        prompt: '',
+        questions: []
+      }
+    case 'suggestion':
+      return {
+        enabled: true,
+        prompt: ''
+      }
+    default:
+      return {
+        enabled: true
+      }
+  }
+}
+
+function normalizeBlankRepositoryDefaultSelection(
+  selection?: BlankRepositoryDefaultSelection | null
+): BlankRepositoryDefaultSelection | null {
+  const repositoryId = selection?.repositoryId?.trim()
+  if (!repositoryId) {
+    return null
+  }
+
+  return {
+    repositoryId,
+    disabledSkillIds: uniqueStrings(selection.disabledSkillIds)
+  }
+}
+
+function cloneRepositoryDefaultSelection(
+  selection: BlankRepositoryDefaultSelection
+): BlankRepositoryDefaultSelection {
+  return {
+    repositoryId: selection.repositoryId,
+    disabledSkillIds: [...selection.disabledSkillIds]
+  }
 }
 
 function createDefaultMiddlewareOptions(

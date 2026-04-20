@@ -9,6 +9,7 @@ import {
   effect,
   ElementRef,
   HostListener,
+  input,
   inject,
   model,
   signal,
@@ -67,6 +68,7 @@ export class XpertChatAppComponent {
   readonly #elementRef = inject(ElementRef)
   readonly #destroyRef = inject(DestroyRef)
 
+  readonly idleLayout = input<'xpert' | 'welcome'>('xpert')
   readonly paramRole = injectParams('name')
   readonly paramConvId = injectParams('id')
 
@@ -106,9 +108,16 @@ export class XpertChatAppComponent {
 
   readonly primaryAgent = computed(() => this.xpert()?.agent)
   readonly parameters = computed(
-    () =>
-      this.xpert()?.agentConfig?.parameters ??
-      (this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters)
+    () => {
+      if (this.idleLayout() === 'welcome') {
+        return null
+      }
+
+      return (
+        this.xpert()?.agentConfig?.parameters ??
+        (this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters)
+      )
+    }
   )
   readonly parametersValue = model<Record<string, unknown>>()
 

@@ -1,5 +1,6 @@
-import { getErrorMessage } from '@xpert-ai/server-common'
+import { getErrorMessage, normalizeUploadedFileName, yaml } from '@xpert-ai/server-common'
 import {
+	convertToUrlPath,
 	I18nObject,
 	IShareSkillPackageInput,
 	ISkillRepositoryIndexPublisher,
@@ -20,12 +21,21 @@ import {
 	getOrganizationSharedSkillPath,
 	getOrganizationSharedSkillsRoot,
 	getWorkspaceSkillsRoot,
-	isWorkspacePublicSkillRepositoryProvider,
-	SkillRepositoryIndexService,
-	SkillRepositoryService
-} from '../skill-repository'
-import { FILE_SKILL_SOURCE_PROVIDER, IUploadedSkill, ZipSkillSourceProvider } from '../skill-repository/plugins/zip'
+	isWorkspacePublicSkillRepositoryProvider
+} from '../skill-repository/types'
+import { SkillRepositoryIndexService } from '../skill-repository/repository-index/skill-repository-index.service'
+import { SkillRepositoryService } from '../skill-repository/skill-repository.service'
+import {
+	cleanupExtractedSkillArchive,
+	extractSkillsFromZip,
+	FILE_SKILL_SOURCE_PROVIDER,
+	installUploadedSkills,
+	IUploadedSkill,
+	normalizeUploadedSkillPath
+} from '../skill-repository/plugins/zip'
+import { getDefaultOrganizationWorkspaceName } from '../initialization/constants'
 import { getMediaTypeWithCharset, listFiles } from '../shared/utils'
+import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { SkillPackage } from './skill-package.entity'
@@ -49,6 +59,11 @@ const EditableSkillExtensions = new Set([
 	'env'
 ])
 
+const TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE = 'bundle.yaml'
+const WORKSPACE_PUBLIC_SOURCE_PACKAGE_PREFIX = 'workspace-public'
+const WORKSPACE_PUBLIC_SOURCE_SKILL_PREFIX = 'workspace-public-upload'
+const DEFAULT_TENANT_SKILL_WORKSPACE_NAME = 'Tenant Skills Workspace'
+
 type SkillPackageInstallMetadata = Partial<SkillMetadata> & {
 	skillMdPath?: string
 	skillPath?: string
@@ -62,6 +77,43 @@ type SharedSkillMetadataInput = {
 	tags: string[]
 	license?: string
 	version?: string
+}
+
+type PublishSharedSkillOptions = {
+	organizationId?: string | null
+	tenantId: string
+	currentUser?: IUser | null
+	repository: {
+		id: string
+	}
+	sharedMetadata: SharedSkillMetadataInput
+	sharedSkillId: string
+}
+
+type SharedSkillPackageSource = {
+	id?: string | null
+	name?: string
+	metadata?: Partial<SkillMetadata> | null
+}
+
+type WorkspaceSkillFrontmatter = {
+	name: string
+	description: string
+	version?: string
+	license?: string
+	tags?: string[]
+}
+
+type CreateWorkspaceSkillPackageInput = {
+	userIntent: string
+	skillName?: string
+	skillMarkdown: string
+}
+
+type CreateWorkspaceSkillPackageResult = {
+	skillPackage: SkillPackage
+	packagePath: string
+	skillMdPath: string
 }
 
 const buildSharedSkillStats = (version?: string | null) => ({
@@ -144,7 +196,8 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		private readonly skillRepositoryService: SkillRepositoryService,
 		private readonly skillIndexService: SkillRepositoryIndexService,
 		@InjectRepository(XpertWorkspace)
-		private readonly workspaceRepository: Repository<XpertWorkspace>
+		private readonly workspaceRepository: Repository<XpertWorkspace>,
+		private readonly xpertTemplateService: XpertTemplateService
 	) {
 		super(repository)
 	}
@@ -155,28 +208,275 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 		await this.assertWorkspaceAccess(workspaceId)
 		const index = await this.skillIndexService.findOneInOrganizationOrTenant(indexId, { relations: ['repository'] })
+		const metadata = this.buildMetadataFromIndex(index)
+		const existingSkillPackage = await this.findInstalledMarketplaceSkillPackage(workspaceId, {
+			id: index.id,
+			repositoryId: index.repositoryId,
+			skillId: index.skillId,
+			version: index.version
+		})
+		if (existingSkillPackage && !this.shouldRefreshInstalledMarketplaceSkillPackage(existingSkillPackage, index)) {
+			const mergedMetadata = this.mergeInstalledMetadata(existingSkillPackage.metadata, metadata)
+			if (
+				existingSkillPackage.skillIndexId === index.id &&
+				this.isInstalledMarketplaceSkillMetadataCurrent(existingSkillPackage.metadata, mergedMetadata)
+			) {
+				return existingSkillPackage
+			}
+
+			await this.update(existingSkillPackage.id, {
+				workspaceId,
+				skillIndexId: index.id,
+				metadata: mergedMetadata
+			})
+
+			return (
+				(await this.loadInstalledSkillPackageById(existingSkillPackage.id)) ?? {
+					...existingSkillPackage,
+					workspaceId,
+					skillIndexId: index.id,
+					metadata: mergedMetadata,
+					skillIndex: index
+				}
+			)
+		}
 		const strategy = this.skillSourceProviderRegistry.get(index.repository.provider)
 		try {
 			// Install directory
 			const installDir = getWorkspaceSkillsRoot(index.repository.tenantId, workspaceId)
+			if (existingSkillPackage) {
+				await this.uninstallInstalledSkillPackageFiles(existingSkillPackage)
+			}
 			const packagePath = this.normalizePackagePath(
 				await strategy.installSkillPackage(index, installDir),
 				installDir
 			)
-
-			// Install to database
-			const skillPackage = await this.create({
+			const payload = {
 				workspaceId,
 				name: index.name ?? index.skillPath.split('/').pop(),
 				skillIndexId: index.id,
 				packagePath,
-				metadata: this.buildMetadataFromIndex(index)
-			})
+				metadata
+			}
+
+			if (existingSkillPackage?.id) {
+				const mergedMetadata = this.mergeInstalledMetadata(existingSkillPackage.metadata, metadata)
+				await this.update(existingSkillPackage.id, {
+					workspaceId,
+					skillIndexId: index.id,
+					packagePath,
+					metadata: mergedMetadata
+				})
+
+				return (
+					(await this.loadInstalledSkillPackageById(existingSkillPackage.id)) ?? {
+						...existingSkillPackage,
+						workspaceId,
+						skillIndexId: index.id,
+						packagePath,
+						metadata: mergedMetadata,
+						skillIndex: index
+					}
+				)
+			}
+
+			// Install to database
+			const skillPackage = await this.create(payload)
 
 			return skillPackage
 		} catch (error) {
 			this.#logger.error(`Failed to install skill package: ${getErrorMessage(error)}`)
 			throw new BadRequestException(`Failed to install skill package: ${getErrorMessage(error)}`)
+		}
+	}
+
+	async ensureInstalledSkillPackage(workspaceId: string, indexId: string) {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		if (!indexId) {
+			throw new BadRequestException('indexId is required')
+		}
+
+		await this.assertWorkspaceAccess(workspaceId)
+		const existing = await this.repository.findOne({
+			where: {
+				workspaceId,
+				skillIndexId: indexId
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		if (existing) {
+			return existing
+		}
+
+		return this.installSkillPackage(workspaceId, indexId)
+	}
+
+	async installRepositorySkillPackages(workspaceId: string, repositoryId: string) {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		if (!repositoryId) {
+			throw new BadRequestException('repositoryId is required')
+		}
+
+		await this.assertWorkspaceAccess(workspaceId)
+		await this.skillRepositoryService.findOneInOrganizationOrTenant(repositoryId)
+
+		const { items } = await this.skillIndexService.findAll({
+			where: {
+				repositoryId
+			} as any,
+			relations: ['repository'],
+			order: {
+				updatedAt: 'DESC'
+			} as any
+		} as any)
+
+		const packages: SkillPackage[] = []
+		for (const item of items ?? []) {
+			if (!item?.id) {
+				continue
+			}
+
+			packages.push(await this.ensureInstalledSkillPackage(workspaceId, item.id))
+		}
+
+		return packages
+	}
+
+	async uploadWorkspacePublicRepositoryPackages(repositoryId: string, file: Express.Multer.File) {
+		if (!repositoryId) {
+			throw new BadRequestException('repositoryId is required')
+		}
+		if (!file?.buffer) {
+			throw new BadRequestException('A valid zip file is required')
+		}
+
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const currentUser = RequestContext.currentUser()
+		const currentUserId = RequestContext.currentUserId()
+		if (!tenantId || !currentUserId) {
+			throw new BadRequestException('Tenant context is required to upload repository skills')
+		}
+
+		const requestedRepository = await this.skillRepositoryService.findOneInOrganizationOrTenant(repositoryId)
+		if (!isWorkspacePublicSkillRepositoryProvider(requestedRepository.provider)) {
+			throw new BadRequestException('Only workspace public repositories support direct zip uploads')
+		}
+		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
+
+		const workspace = await this.findOrCreateScopeDefaultWorkspace(tenantId, organizationId, currentUserId)
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspace.id)
+		const { skills, tempDir } = await extractSkillsFromZip(file.buffer)
+
+		try {
+			if (!skills.length) {
+				throw new BadRequestException('No skills found in the uploaded archive')
+			}
+
+			const indexes = []
+			for (const skill of skills) {
+				const index = await this.publishUploadedWorkspacePublicSkill({
+					currentUser,
+					installDir,
+					organizationId,
+					repositoryId: repository.id,
+					skill,
+					tenantId,
+					workspaceId: workspace.id
+				})
+				indexes.push(index)
+			}
+
+			return indexes
+		} catch (error) {
+			this.#logger.error(`Failed to upload workspace public repository skills: ${getErrorMessage(error)}`)
+			throw new BadRequestException(`Failed to upload skill package: ${getErrorMessage(error)}`)
+		} finally {
+			await cleanupExtractedSkillArchive(tempDir)
+		}
+	}
+
+	async initializeWorkspacePublicRepository() {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const currentUserId = RequestContext.currentUserId()
+		if (!tenantId || !currentUserId) {
+			throw new BadRequestException('Tenant context is required to initialize the public skill repository')
+		}
+
+		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
+		const workspace = await this.findOrCreateScopeDefaultWorkspace(tenantId, organizationId, currentUserId)
+		const bundles = await this.xpertTemplateService.getTemplateSkillBundles()
+
+		for (const bundle of bundles) {
+			await this.ensureSharedSkillPackageFromTemplateBundle(
+				workspace.id,
+				{
+					bundleRootPath: bundle.directoryPath,
+					sharedSkillId: bundle.sharedSkillId
+				},
+				{
+					skipAccessCheck: true
+				}
+			)
+		}
+
+		return repository
+	}
+
+	async createWorkspaceSkillPackage(
+		workspaceId: string,
+		input: CreateWorkspaceSkillPackageInput
+	): Promise<CreateWorkspaceSkillPackageResult> {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		await this.assertWorkspaceAccess(workspaceId)
+
+		const tenantId = RequestContext.currentTenantId()
+		if (!tenantId) {
+			throw new BadRequestException('Tenant context is missing')
+		}
+
+		const rawSkillMarkdown = typeof input.skillMarkdown === 'string' ? input.skillMarkdown : ''
+		if (!rawSkillMarkdown.trim()) {
+			throw new BadRequestException('skillMarkdown is required')
+		}
+
+		const frontmatter = parseWorkspaceSkillFrontmatter(rawSkillMarkdown)
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
+		const skillBaseName = input.skillName?.trim() || frontmatter.name || input.userIntent?.trim() || 'skill'
+		const packagePath = await this.allocateWorkspaceSkillPackagePath(installDir, skillBaseName)
+		const absolutePackagePath = join(installDir, packagePath)
+		const skillMdPath = join(absolutePackagePath, 'SKILL.md')
+		const normalizedSkillMarkdown = ensureTrailingNewline(rawSkillMarkdown)
+		const metadata = this.buildMetadataForWorkspaceSkill(frontmatter, packagePath, skillMdPath, skillBaseName)
+
+		await fs.mkdir(absolutePackagePath, { recursive: true })
+		await fs.writeFile(skillMdPath, normalizedSkillMarkdown, 'utf8')
+
+		try {
+			const skillPackage = await this.create({
+				workspaceId,
+				name: metadata.name ?? skillBaseName,
+				skillIndexId: null,
+				visibility: 'private',
+				packagePath,
+				metadata
+			})
+
+			return {
+				skillPackage,
+				packagePath,
+				skillMdPath
+			}
+		} catch (error) {
+			await fs.rm(absolutePackagePath, { recursive: true, force: true })
+			throw error
 		}
 	}
 
@@ -205,8 +505,8 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const currentUser = RequestContext.currentUser()
-		if (!tenantId || !organizationId) {
-			throw new BadRequestException('Organization context is required to share workspace skills')
+		if (!tenantId) {
+			throw new BadRequestException('Tenant context is required to share workspace skills')
 		}
 
 		await this.assertWorkspaceAccess(workspaceId)
@@ -220,49 +520,121 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 
 		const sharedMetadata = this.normalizeSharedSkillInput(skillPackage, input)
 		const sharedSkillId = skillPackage.sharedSkillId ?? `shared-skill-${uuid()}`
-		const sharedRoot = getOrganizationSharedSkillsRoot(tenantId, organizationId)
-		const sharedPath = getOrganizationSharedSkillPath(tenantId, organizationId, sharedSkillId)
 		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
 		const sourcePath = this.resolveInstalledPath(skillPackage, installDir)
 		if (!sourcePath) {
 			throw new BadRequestException('Unable to locate workspace skill package path')
 		}
 
-		await fs.mkdir(sharedRoot, { recursive: true })
-		await fs.rm(sharedPath, { recursive: true, force: true })
-		await fs.cp(sourcePath, sharedPath, { recursive: true })
-
 		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
 		const metadata = this.mergeSharedMetadata(skillPackage, sharedMetadata, currentUser)
-		const publisher = buildPublisherFromUser(currentUser) ?? buildPublisherFromUser({ name: metadata.author?.name })
-		const publishedAt = new Date()
-
-		await this.update(skillPackage.id, {
-			metadata,
-			sharedSkillId,
-			sharedPackagePath: sharedSkillId,
-			publishAt: publishedAt
-		})
-
-		const existingIndex = await this.findSharedSkillIndex(repository.id, sharedSkillId)
-		await this.skillIndexService.create({
-			id: existingIndex?.id,
-			repositoryId: repository.id,
-			skillId: sharedSkillId,
-			skillPath: sharedSkillId,
-			name: sharedMetadata.displayName,
-			description: sharedMetadata.description,
-			license: sharedMetadata.license,
-			tags: sharedMetadata.tags,
-			version: sharedMetadata.version,
-			publisher,
-			stats: buildSharedSkillStats(sharedMetadata.version)
+		await this.publishSharedSkillPackage(skillPackage, sourcePath, metadata, {
+			tenantId,
+			organizationId,
+			currentUser,
+			repository: {
+				id: repository.id
+			},
+			sharedMetadata,
+			sharedSkillId
 		})
 
 		return this.findOne(skillPackage.id, {
 			relations: ['skillIndex', 'skillIndex.repository'],
 			where: { workspaceId }
 		})
+	}
+
+	async ensureSharedSkillPackageFromTemplateBundle(
+		workspaceId: string,
+		input: {
+			bundleRootPath: string
+			sharedSkillId: string
+		},
+		options?: {
+			skipAccessCheck?: boolean
+		}
+	) {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		if (!input.bundleRootPath?.trim()) {
+			throw new BadRequestException('bundleRootPath is required')
+		}
+		if (!input.sharedSkillId?.trim()) {
+			throw new BadRequestException('sharedSkillId is required')
+		}
+
+		if (!options?.skipAccessCheck) {
+			await this.assertWorkspaceAccess(workspaceId)
+		}
+
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const currentUser = RequestContext.currentUser()
+		if (!tenantId) {
+			throw new BadRequestException('Tenant context is required to publish template skill bundles')
+		}
+
+		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
+		const existingIndex = await this.findSharedSkillIndex(repository.id, input.sharedSkillId)
+		if (existingIndex) {
+			return existingIndex
+		}
+
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
+		const bundleRootPath = input.bundleRootPath.trim()
+		const skillMdPath = join(bundleRootPath, 'SKILL.md')
+		const skillMarkdown = await fs.readFile(skillMdPath, 'utf8').catch((error) => {
+			throw new BadRequestException(`Template skill bundle is missing SKILL.md: ${getErrorMessage(error)}`)
+		})
+		const frontmatter = parseWorkspaceSkillFrontmatter(skillMarkdown)
+		const skillBaseName = frontmatter.name?.trim() || basename(bundleRootPath)
+		const packagePath = await this.allocateWorkspaceSkillPackagePath(installDir, skillBaseName)
+		const absolutePackagePath = join(installDir, packagePath)
+		await fs.mkdir(installDir, { recursive: true })
+		await fs.cp(bundleRootPath, absolutePackagePath, {
+			recursive: true,
+			filter: (source) => {
+				const normalizedSource = resolve(source)
+				return normalizedSource !== resolve(join(bundleRootPath, TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE))
+			}
+		})
+
+		const skillPackage = await this.create({
+			workspaceId,
+			name: frontmatter.name?.trim() || skillBaseName,
+			packagePath,
+			metadata: this.buildMetadataForWorkspaceSkill(
+				frontmatter,
+				packagePath,
+				join(absolutePackagePath, 'SKILL.md'),
+				skillBaseName
+			)
+		})
+
+		try {
+			const sharedMetadata = this.normalizeTemplateSharedSkillInputFromFrontmatter(frontmatter, skillBaseName)
+			const metadata = this.mergeSharedMetadata(skillPackage, sharedMetadata, currentUser)
+			const sourcePath = absolutePackagePath
+
+			await this.publishSharedSkillPackage(skillPackage, sourcePath, metadata, {
+				tenantId,
+				organizationId,
+				currentUser,
+				repository: {
+					id: repository.id
+				},
+				sharedMetadata,
+				sharedSkillId: input.sharedSkillId.trim()
+			})
+
+			return this.findSharedSkillIndex(repository.id, input.sharedSkillId.trim())
+		} catch (error) {
+			await fs.rm(absolutePackagePath, { recursive: true, force: true })
+			await this.repository.softDelete(skillPackage.id)
+			throw error
+		}
 	}
 
 	private async uninstallResolvedSkillPackage(skillPackage: SkillPackage, expectedWorkspaceId?: string) {
@@ -300,6 +672,25 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	private async uninstallInstalledSkillPackageFiles(skillPackage: SkillPackage) {
+		const metadata = this.getInstallMetadata(skillPackage)
+		const provider = skillPackage.skillIndex?.repository?.provider ?? metadata?.source ?? undefined
+		const tenantId = skillPackage.tenantId
+		const workspaceId = skillPackage.workspaceId
+		if (!provider || !tenantId || !workspaceId) {
+			return
+		}
+
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
+		const installPath = this.resolveInstalledPath(skillPackage, installDir)
+		if (!installPath) {
+			return
+		}
+
+		const strategy = this.skillSourceProviderRegistry.get(provider)
+		await strategy.uninstallSkillPackage(installPath)
+	}
+
 	/**
 	 * Upload and install skills from a zip archive directly into a workspace.
 	 */
@@ -318,31 +709,31 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 
 		try {
-			const strategy = this.skillSourceProviderRegistry.get(FILE_SKILL_SOURCE_PROVIDER) as ZipSkillSourceProvider
-			if (!strategy?.installFromZip) {
-				throw new BadRequestException('File upload strategy is not available')
-			}
-
 			const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
-			const uploadedSkills = await strategy.installFromZip(file.buffer, installDir)
-			if (!uploadedSkills.length) {
-				throw new BadRequestException('No skills found in the uploaded archive')
-			}
-			const packages: SkillPackage[] = []
+			const { skills, tempDir } = await extractSkillsFromZip(file.buffer)
+			try {
+				const uploadedSkills = await installUploadedSkills(skills, installDir)
+				if (!uploadedSkills.length) {
+					throw new BadRequestException('No skills found in the uploaded archive')
+				}
+				const packages: SkillPackage[] = []
 
-			for (const skill of uploadedSkills) {
-				const packagePath = this.resolveUploadPackagePath(skill, installDir)
-				packages.push(
-					await this.create({
-						workspaceId,
-						name: skill.name,
-						packagePath,
-						metadata: this.buildMetadataForUpload(skill)
-					})
-				)
-			}
+				for (const skill of uploadedSkills) {
+					const packagePath = this.resolveUploadPackagePath(skill, installDir)
+					packages.push(
+						await this.create({
+							workspaceId,
+							name: skill.name,
+							packagePath,
+							metadata: this.buildMetadataForUpload(skill)
+						})
+					)
+				}
 
-			return packages
+				return packages
+			} finally {
+				await cleanupExtractedSkillArchive(tempDir)
+			}
 		} catch (error) {
 			this.#logger.error(`Failed to upload skill package: ${getErrorMessage(error)}`)
 			throw new BadRequestException(`Failed to upload skill package: ${getErrorMessage(error)}`)
@@ -380,6 +771,33 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	async uploadSkillPackageFile(
+		workspaceId: string,
+		id: string,
+		folderPath: string,
+		file: { originalname: string; buffer: Buffer; mimetype?: string }
+	): Promise<TFile> {
+		const { rootPath } = await this.resolveSkillPackageRoot(workspaceId, id)
+		const relativeFolderPath = validateSkillRelativePath(rootPath, folderPath)
+		let fileName = ''
+		try {
+			fileName = normalizeUploadedFileName(file.originalname)
+		} catch {
+			throw new BadRequestException('File name is required')
+		}
+
+		const relativeFilePath = [relativeFolderPath, fileName].filter(Boolean).join('/')
+		const absolutePath = resolve(rootPath, relativeFilePath)
+		const resolvedRelativePath = relative(rootPath, absolutePath)
+		if (resolvedRelativePath.startsWith('..') || isAbsolute(resolvedRelativePath)) {
+			throw new BadRequestException('Invalid skill file path')
+		}
+
+		await fs.mkdir(dirname(absolutePath), { recursive: true })
+		await fs.writeFile(absolutePath, file.buffer)
+		return this.readSkillPackageFile(workspaceId, id, resolvedRelativePath.replace(/\\/g, '/'))
+	}
+
 	async saveSkillPackageFile(workspaceId: string, id: string, filePath: string, content: string): Promise<TFile> {
 		const normalizedPath = normalizeSkillFilePath(filePath)
 		if (!normalizedPath) {
@@ -399,6 +817,30 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		return this.readSkillPackageFile(workspaceId, id, normalizedPath)
 	}
 
+	async deleteSkillPackageFile(workspaceId: string, id: string, filePath: string): Promise<void> {
+		const { absolutePath } = await this.resolveSkillPackageFilePath(workspaceId, id, filePath)
+		const stat = await fs.stat(absolutePath).catch(() => null)
+		if (!stat?.isFile()) {
+			throw new BadRequestException('Skill file not found')
+		}
+
+		await fs.unlink(absolutePath)
+	}
+
+	async getSkillPackageFileDownload(workspaceId: string, id: string, filePath: string) {
+		const { absolutePath, relativePath } = await this.resolveSkillPackageFilePath(workspaceId, id, filePath)
+		const stat = await fs.stat(absolutePath).catch(() => null)
+		if (!stat?.isFile()) {
+			throw new BadRequestException('Skill file not found')
+		}
+
+		return {
+			absolutePath,
+			fileName: basename(relativePath),
+			mimeType: getMediaTypeWithCharset(relativePath)
+		}
+	}
+
 	private buildMetadataForUpload(skill: IUploadedSkill): SkillPackageInstallMetadata {
 		const normalizedSkillPath = this.normalizeRelativePackagePath(skill.skillPath ?? '')
 		return {
@@ -416,7 +858,44 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	private buildSharedMetadataFromUpload(skill: IUploadedSkill): SharedSkillMetadataInput {
+		const displayName = skill.name?.trim() || normalizeUploadedSkillPath(skill.skillPath || 'skill')
+
+		return {
+			displayName,
+			description: skill.description?.trim() || '',
+			tags: normalizeTagList(skill.tags),
+			license: skill.license?.trim() || undefined,
+			version: skill.version?.trim() || undefined
+		}
+	}
+
+	private buildMetadataForWorkspaceSkill(
+		frontmatter: WorkspaceSkillFrontmatter,
+		packagePath: string,
+		skillMdPath: string,
+		skillName: string
+	): SkillPackageInstallMetadata {
+		const displayName = frontmatter.name?.trim() || skillName.trim()
+		const description = frontmatter.description?.trim()
+
+		return {
+			name: displayName || packagePath,
+			displayName: displayName ? toI18nObject(displayName) : undefined,
+			description: description ? toI18nObject(description) : undefined,
+			tags: normalizeTagList(frontmatter.tags),
+			license: frontmatter.license?.trim() || undefined,
+			version: frontmatter.version?.trim() || undefined,
+			visibility: 'private',
+			skillPath: packagePath,
+			source: FILE_SKILL_SOURCE_PROVIDER,
+			skillMdPath
+		}
+	}
+
 	private buildMetadataFromIndex(index: {
+		skillId?: string
+		skillPath?: string
 		name?: string
 		description?: string
 		tags?: string[]
@@ -430,19 +909,47 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			index.publisher?.displayName?.trim() ||
 			index.publisher?.name?.trim() ||
 			index.publisher?.handle?.trim()
+		const metadataName = index.skillId?.trim() || index.skillPath?.trim() || displayName || 'skill'
 
 		return {
+			name: metadataName,
 			displayName: displayName ? toI18nObject(displayName) : undefined,
 			description: description ? toI18nObject(description) : undefined,
 			tags: normalizeTagList(index.tags),
 			license: index.license?.trim() || undefined,
 			version: index.version?.trim() || undefined,
+			visibility: 'private',
 			author: publisherName
 				? {
 					name: publisherName
 				}
 				: undefined
 		} satisfies Partial<SkillMetadata>
+	}
+
+	private buildWorkspacePublicSourceIdentifiers(skill: IUploadedSkill) {
+		const normalizedSkillPath = normalizeUploadedSkillPath(skill.skillPath || skill.name || 'skill')
+		const sharedSkillId = `${WORKSPACE_PUBLIC_SOURCE_SKILL_PREFIX}__${encodeURIComponent(normalizedSkillPath || 'skill')}`
+
+		return {
+			normalizedSkillPath,
+			packagePath: `${WORKSPACE_PUBLIC_SOURCE_PACKAGE_PREFIX}/${sharedSkillId}`,
+			sharedSkillId
+		}
+	}
+
+	private async allocateWorkspaceSkillPackagePath(installDir: string, skillName: string) {
+		const baseSlug = toWorkspaceSkillSlug(skillName)
+
+		for (let index = 1; index < 100; index++) {
+			const candidate = index === 1 ? baseSlug : `${baseSlug}-${index}`
+			const absoluteCandidate = join(installDir, candidate)
+			if (!(await pathExists(absoluteCandidate))) {
+				return candidate
+			}
+		}
+
+		return `${baseSlug}-${Date.now()}`
 	}
 
 	private normalizeSharedSkillInput(skillPackage: SkillPackage, input: IShareSkillPackageInput): SharedSkillMetadataInput {
@@ -470,8 +977,31 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	private normalizeTemplateSharedSkillInputFromFrontmatter(
+		frontmatter: WorkspaceSkillFrontmatter,
+		fallbackName: string
+	): SharedSkillMetadataInput {
+		const displayName = frontmatter.name?.trim() || fallbackName.trim()
+		if (!displayName) {
+			throw new BadRequestException('Template skill bundle is missing a skill name')
+		}
+
+		const description = frontmatter.description?.trim()
+		if (!description) {
+			throw new BadRequestException('Template skill bundle is missing a skill description')
+		}
+
+		return {
+			displayName,
+			description,
+			tags: normalizeTagList(frontmatter.tags),
+			license: frontmatter.license?.trim() || undefined,
+			version: frontmatter.version?.trim() || undefined
+		}
+	}
+
 	private mergeSharedMetadata(
-		skillPackage: Pick<SkillPackage, 'name' | 'metadata'>,
+		skillPackage: SharedSkillPackageSource,
 		input: SharedSkillMetadataInput,
 		currentUser?: IUser | null
 	): SkillMetadata {
@@ -516,7 +1046,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		const tenantId = skillPackage.tenantId
 		const organizationId = skillPackage.organizationId
 		const sharedSkillId = skillPackage.sharedSkillId
-		if (!tenantId || !organizationId || !sharedSkillId) {
+		if (!tenantId || !sharedSkillId) {
 			return
 		}
 
@@ -539,6 +1069,137 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
+	private async publishSharedSkillPackage(
+		skillPackage: SharedSkillPackageSource,
+		sourcePath: string,
+		metadata: SkillMetadata,
+		options: PublishSharedSkillOptions
+	) {
+		if (!skillPackage.id) {
+			throw new BadRequestException('Missing skill package id for shared publication')
+		}
+
+		const sharedRoot = getOrganizationSharedSkillsRoot(options.tenantId, options.organizationId)
+		const sharedPath = getOrganizationSharedSkillPath(options.tenantId, options.organizationId, options.sharedSkillId)
+		const publisher =
+			buildPublisherFromUser(options.currentUser) ?? buildPublisherFromUser({ name: metadata.author?.name })
+		const publishedAt = new Date()
+
+		await fs.mkdir(dirname(sharedPath), { recursive: true })
+		await fs.mkdir(sharedRoot, { recursive: true })
+		await fs.rm(sharedPath, { recursive: true, force: true })
+		await fs.cp(sourcePath, sharedPath, { recursive: true })
+
+		await this.update(skillPackage.id, {
+			metadata,
+			sharedSkillId: options.sharedSkillId,
+			sharedPackagePath: options.sharedSkillId,
+			publishAt: publishedAt
+		})
+
+		const existingIndex = await this.findSharedSkillIndex(options.repository.id, options.sharedSkillId)
+		return this.skillIndexService.create({
+			id: existingIndex?.id,
+			repositoryId: options.repository.id,
+			skillId: options.sharedSkillId,
+			skillPath: options.sharedSkillId,
+			name: options.sharedMetadata.displayName,
+			description: options.sharedMetadata.description,
+			license: options.sharedMetadata.license,
+			tags: options.sharedMetadata.tags,
+			version: options.sharedMetadata.version,
+			publisher,
+			stats: buildSharedSkillStats(options.sharedMetadata.version)
+		})
+	}
+
+	private async publishUploadedWorkspacePublicSkill(input: {
+		currentUser?: IUser | null
+		installDir: string
+		organizationId?: string | null
+		repositoryId: string
+		skill: IUploadedSkill
+		tenantId: string
+		workspaceId: string
+	}) {
+		const identifiers = this.buildWorkspacePublicSourceIdentifiers(input.skill)
+		const sourcePath = join(input.installDir, identifiers.packagePath)
+		const existingSkillPackage = await this.repository.findOne({
+			where: {
+				workspaceId: input.workspaceId,
+				sharedSkillId: identifiers.sharedSkillId
+			}
+		})
+
+		if (existingSkillPackage?.packagePath && existingSkillPackage.packagePath !== identifiers.packagePath) {
+			await fs.rm(join(input.installDir, existingSkillPackage.packagePath), {
+				recursive: true,
+				force: true
+			})
+		}
+
+		await fs.mkdir(dirname(sourcePath), { recursive: true })
+		await fs.rm(sourcePath, { recursive: true, force: true })
+		await fs.cp(input.skill.absolutePath, sourcePath, { recursive: true })
+
+		const metadata = this.buildMetadataForUpload({
+			...input.skill,
+			absolutePath: join(sourcePath, 'SKILL.md'),
+			skillPath: identifiers.packagePath
+		})
+
+		let skillPackage: {
+			id: string
+			name?: string
+			metadata?: Partial<SkillMetadata> | null
+		}
+		if (existingSkillPackage) {
+			await this.repository.save({
+				...existingSkillPackage,
+				name: input.skill.name,
+				packagePath: identifiers.packagePath,
+				sharedSkillId: identifiers.sharedSkillId,
+				sharedPackagePath: identifiers.sharedSkillId,
+				visibility: 'private',
+				metadata
+			})
+			skillPackage = {
+				id: existingSkillPackage.id,
+				name: input.skill.name,
+				metadata
+			}
+		} else {
+			const createdSkillPackage = await this.create({
+				workspaceId: input.workspaceId,
+				name: input.skill.name,
+				packagePath: identifiers.packagePath,
+				sharedSkillId: identifiers.sharedSkillId,
+				sharedPackagePath: identifiers.sharedSkillId,
+				visibility: 'private',
+				metadata
+			})
+			skillPackage = {
+				id: createdSkillPackage.id,
+				name: createdSkillPackage.name,
+				metadata: createdSkillPackage.metadata
+			}
+		}
+
+		const sharedMetadata = this.buildSharedMetadataFromUpload(input.skill)
+		const mergedMetadata = this.mergeSharedMetadata(skillPackage, sharedMetadata, input.currentUser)
+
+		return this.publishSharedSkillPackage(skillPackage, sourcePath, mergedMetadata, {
+			currentUser: input.currentUser,
+			organizationId: input.organizationId,
+			repository: {
+				id: input.repositoryId
+			},
+			sharedMetadata,
+			sharedSkillId: identifiers.sharedSkillId,
+			tenantId: input.tenantId
+		})
+	}
+
 	private async findWorkspacePublicRepository() {
 		const { items } = await this.skillRepositoryService.findAll({
 			where: {
@@ -548,6 +1209,146 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		})
 
 		return items[0] ?? null
+	}
+
+	private async findInstalledMarketplaceSkillPackage(
+		workspaceId: string,
+		index: {
+			id?: string
+			repositoryId?: string
+			skillId?: string
+			version?: string
+		}
+	) {
+		if (index.id) {
+			const existingByIndexId = await this.repository.findOne({
+				where: {
+					workspaceId,
+					skillIndexId: index.id
+				},
+				relations: ['skillIndex', 'skillIndex.repository']
+			})
+			if (existingByIndexId) {
+				return existingByIndexId
+			}
+		}
+
+		if (!index.repositoryId || !index.skillId) {
+			return null
+		}
+
+		return this.repository.findOne({
+			where: {
+				workspaceId,
+				skillIndex: {
+					repositoryId: index.repositoryId,
+					skillId: index.skillId
+				}
+			},
+			relations: ['skillIndex', 'skillIndex.repository'],
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+	}
+
+	private async loadInstalledSkillPackageById(id: string) {
+		return this.repository.findOne({
+			where: {
+				id
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+	}
+
+	private mergeInstalledMetadata(
+		existingMetadata: SkillMetadata | undefined,
+		incomingMetadata: SkillPackageInstallMetadata
+	): SkillMetadata {
+		return {
+			name: incomingMetadata.name ?? existingMetadata?.name ?? 'skill',
+			version: incomingMetadata.version ?? existingMetadata?.version ?? '',
+			visibility: incomingMetadata.visibility ?? existingMetadata?.visibility ?? 'private',
+			...existingMetadata,
+			...incomingMetadata
+		}
+	}
+
+	private isInstalledMarketplaceSkillMetadataCurrent(
+		existingMetadata: SkillMetadata | undefined,
+		incomingMetadata: SkillMetadata
+	) {
+		return (
+			existingMetadata?.name === incomingMetadata.name &&
+			existingMetadata?.version === incomingMetadata.version &&
+			existingMetadata?.visibility === incomingMetadata.visibility &&
+			readI18nText(existingMetadata?.displayName) === readI18nText(incomingMetadata.displayName) &&
+			readI18nText(existingMetadata?.description) === readI18nText(incomingMetadata.description) &&
+			(existingMetadata?.license ?? undefined) === (incomingMetadata.license ?? undefined) &&
+			JSON.stringify(existingMetadata?.tags ?? []) === JSON.stringify(incomingMetadata.tags ?? []) &&
+			existingMetadata?.author?.name === incomingMetadata.author?.name &&
+			existingMetadata?.author?.email === incomingMetadata.author?.email &&
+			existingMetadata?.author?.org === incomingMetadata.author?.org
+		)
+	}
+
+	private shouldRefreshInstalledMarketplaceSkillPackage(
+		skillPackage: SkillPackage,
+		index: {
+			id?: string
+			version?: string
+		}
+	) {
+		const installedVersion = typeof skillPackage.metadata?.version === 'string' ? skillPackage.metadata.version.trim() : ''
+		const incomingVersion = typeof index.version === 'string' ? index.version.trim() : ''
+		return !!incomingVersion && installedVersion !== incomingVersion
+	}
+
+	private async findOrCreateScopeDefaultWorkspace(tenantId: string, organizationId: string | null | undefined, ownerId: string) {
+		const workspaceKind = organizationId ? 'org-default' : 'tenant-default'
+		const workspaceName = organizationId ? getDefaultOrganizationWorkspaceName() : DEFAULT_TENANT_SKILL_WORKSPACE_NAME
+		const query = this.workspaceRepository
+			.createQueryBuilder('workspace')
+			.where('workspace.tenantId = :tenantId', { tenantId })
+			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
+				kind: workspaceKind
+			})
+
+		if (organizationId) {
+			query.andWhere('workspace.organizationId = :organizationId', { organizationId })
+		} else {
+			query.andWhere('workspace.organizationId IS NULL')
+		}
+
+		let workspace = await query.getOne()
+
+		if (!workspace) {
+			workspace = this.workspaceRepository.create({
+				name: workspaceName,
+				tenantId,
+				organizationId,
+				ownerId,
+				status: 'active',
+				settings: {
+					system: {
+						kind: workspaceKind
+					}
+				}
+			})
+			workspace = await this.workspaceRepository.save(workspace)
+		}
+
+		if (!workspace.ownerId) {
+			await this.workspaceRepository.update(workspace.id, { ownerId })
+			workspace =
+				(await this.workspaceRepository.findOne({
+					where: {
+						id: workspace.id
+					}
+				})) ?? workspace
+		}
+
+		return workspace
 	}
 
 	private resolveInstalledPath(skillPackage: SkillPackage, installDir: string) {
@@ -685,6 +1486,72 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new ForbiddenException('Access denied to workspace')
 		}
 	}
+}
+
+function parseWorkspaceSkillFrontmatter(skillMarkdown: string): WorkspaceSkillFrontmatter {
+	const frontmatterMatch = /^---\s*\r?\n([\s\S]*?)\r?\n---(?:\s*\r?\n|$)/.exec(skillMarkdown)
+	if (!frontmatterMatch) {
+		throw new BadRequestException('SKILL.md frontmatter is required')
+	}
+
+	let parsedFrontmatter: unknown
+	try {
+		parsedFrontmatter = yaml.parse(frontmatterMatch[1])
+	} catch {
+		throw new BadRequestException('SKILL.md frontmatter is invalid')
+	}
+
+	if (!parsedFrontmatter || typeof parsedFrontmatter !== 'object' || Array.isArray(parsedFrontmatter)) {
+		throw new BadRequestException('SKILL.md frontmatter is invalid')
+	}
+
+	const candidate = parsedFrontmatter as {
+		name?: unknown
+		description?: unknown
+		version?: unknown
+		license?: unknown
+		tags?: unknown
+	}
+	const name = typeof candidate.name === 'string' ? candidate.name.trim() : ''
+	const description = typeof candidate.description === 'string' ? candidate.description.trim() : ''
+	if (!name || !description) {
+		throw new BadRequestException('SKILL.md frontmatter must include name and description')
+	}
+
+	return {
+		name,
+		description,
+		version: typeof candidate.version === 'string' && candidate.version.trim() ? candidate.version.trim() : undefined,
+		license: typeof candidate.license === 'string' && candidate.license.trim() ? candidate.license.trim() : undefined,
+		tags: Array.isArray(candidate.tags)
+			? candidate.tags
+					.map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+					.filter((tag): tag is string => Boolean(tag))
+			: undefined
+	}
+}
+
+async function pathExists(path: string) {
+	try {
+		await fs.access(path)
+		return true
+	} catch {
+		return false
+	}
+}
+
+function ensureTrailingNewline(value: string) {
+	return value.endsWith('\n') ? value : `${value}\n`
+}
+
+function toWorkspaceSkillSlug(value: string) {
+	const normalized = convertToUrlPath(value).replace(/^\/+|\/+$/g, '')
+	const flattened = normalized
+		.split('/')
+		.map((segment) => segment.trim())
+		.filter(Boolean)
+		.join('-')
+	return flattened || 'skill'
 }
 
 function normalizeSkillFilePath(filePath?: string | null) {

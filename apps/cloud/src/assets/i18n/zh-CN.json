@@ -102,7 +102,9 @@
       "SkillFileSaved": "文件已保存",
       "LoadFilesFailed": "加载文件列表失败",
       "LoadFolderFailed": "加载文件夹失败",
-      "LoadFileFailed": "加载文件失败"
+      "LoadFileFailed": "加载文件失败",
+      "UploadFiles": "上传文件",
+      "UploadFolder": "上传文件夹"
     },
     "KEY_WORDS": {
       "Ask": "提问",
@@ -182,6 +184,7 @@
       "SAVE": "保存",
       "Refresh": "刷新",
       "Management": "管理",
+      "You": "你",
       "User": "用户",
       "Users": "用户",
       "Action": "操作",
@@ -270,6 +273,11 @@
       "Enabled": "启用",
       "NoTools": "无工具",
       "NoFields": "暂无字段"
+    },
+    "Chat": {
+      "QuoteSelection": "引用选中内容",
+      "RemoveReference": "移除引用",
+      "ContextCompression": "上下文压缩..."
     },
     "MENU": {
       "Certification": "认证",
@@ -1495,7 +1503,13 @@
       "Joined": "加入时间"
     },
     "Xpert": {
-      "XpertUserGroups": "XPERT 用户组"
+      "XpertUserGroups": "XPERT 用户组",
+      "Assistant": "助手",
+      "ApiKeys": "API 密钥",
+      "WorkspaceApiKeys": "工作区 API 密钥",
+      "WorkspaceApiKeyDescription": "在这里创建的密钥属于当前工作区，可访问该工作区内已发布的专家。",
+      "CurrentWorkspace": "当前工作区",
+      "CreateWorkspaceSecretKey": "创建工作区密钥"
     },
     "Feature": {
       "Features": {

@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { LanguagesEnum } from '@xpert-ai/contracts'
+import { Logger } from '@nestjs/common'
 
 jest.mock('../skill-repository/skill-repository.service', () => ({
 	SkillRepositoryService: class SkillRepositoryService {}
@@ -123,6 +124,12 @@ describe('XpertTemplateService', () => {
 		expect(readFileSync(join(externalRoot, 'skills-market.yaml'), 'utf8')).toBe(
 			readFileSync(join(builtinRoot, 'skills-market.yaml'), 'utf8')
 		)
+		expect(readFileSync(join(externalRoot, 'skill-repositories.yaml'), 'utf8')).toBe(
+			readFileSync(join(builtinRoot, 'skill-repositories.yaml'), 'utf8')
+		)
+		expect(readFileSync(join(externalRoot, 'workspace-defaults.yaml'), 'utf8')).toBe(
+			readFileSync(join(builtinRoot, 'workspace-defaults.yaml'), 'utf8')
+		)
 		expect(readFileSync(join(externalRoot, 'pipelines', 'pipeline-1.yaml'), 'utf8')).toBe(
 			readFileSync(join(builtinRoot, 'pipelines', 'pipeline-1.yaml'), 'utf8')
 		)
@@ -228,6 +235,7 @@ describe('XpertTemplateService', () => {
 		const templateDetail = await service.getTemplateDetail('template-1', LanguagesEnum.English)
 		const knowledgePipeline = await service.getKnowledgePipeline(LanguagesEnum.English, 'pipeline-1')
 		const skillsMarket = await service.getSkillsMarket(LanguagesEnum.English)
+		const workspaceDefaults = await service.readWorkspaceDefaults()
 
 		expect(templatesFile.templates['en-US'].categories).toEqual(['external'])
 		expect(mcpTemplates['en-US'].templates[0].name).toBe('External MCP')
@@ -237,6 +245,7 @@ describe('XpertTemplateService', () => {
 		expect(knowledgePipeline.export_data).toBe('source: external-pipeline\n')
 		expect(skillsMarket.filters.roles.label).toBe('Roles')
 		expect(skillsMarket.featured).toEqual([])
+		expect(workspaceDefaults.userDefault.skills).toEqual([])
 	})
 
 	it('throws a clear error when an external template file is missing after initialization', async () => {
@@ -259,6 +268,24 @@ describe('XpertTemplateService', () => {
 
 		await expect(service.readTemplatesFile()).rejects.toThrow(externalRoot)
 		await expect(service.readTemplatesFile()).rejects.toThrow('templates.json')
+	})
+
+	it('does not block module init when the builtin template source is missing', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const loggerSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: dataRoot
+		})
+
+		await expect(service.onModuleInit()).resolves.toBeUndefined()
+		await expect(service.readTemplatesFile()).rejects.toThrow('Built-in xpert template source')
+		await expect(service.readTemplatesFile()).rejects.toThrow(workspaceRoot)
+		expect(loggerSpy).toHaveBeenCalledWith(
+			expect.stringContaining('Skip xpert template bootstrap during module init:'),
+			expect.any(String)
+		)
 	})
 
 	it('preserves featured avatars from skills market config when resolving featured skills', async () => {
@@ -341,6 +368,544 @@ describe('XpertTemplateService', () => {
 		expect(skillsMarket.featured[0].skill.id).toBe('skill-1')
 	})
 
+	it('normalizes workspace defaults config and trims invalid entries', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(externalRoot, { recursive: true })
+		writeFileSync(
+			join(externalRoot, 'workspace-defaults.yaml'),
+			[
+				'userDefault:',
+				'  skills:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'    - provider: "  "',
+				'      repositoryName: ignored/repo',
+				'      skillId: ignored-skill',
+				'    - provider: clawhub',
+				'      repositoryName: clawhub/official',
+				'      skillId: mcporter'
+			].join('\n'),
+			'utf8'
+		)
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		await expect(service.readWorkspaceDefaults()).resolves.toEqual({
+			userDefault: {
+				skills: [
+					{
+						provider: 'github',
+						repositoryName: 'anthropics/skills',
+						skillId: 'skills/claude-api'
+					},
+					{
+						provider: 'clawhub',
+						repositoryName: 'clawhub/official',
+						skillId: 'mcporter'
+					}
+				]
+			}
+		})
+	})
+
+	it('normalizes skill repository config and trims invalid entries', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(externalRoot, { recursive: true })
+		writeFileSync(
+			join(externalRoot, 'skill-repositories.yaml'),
+			[
+				'repositories:',
+				'  - name: " anthropics/skills "',
+				'    provider: " github "',
+				'    options:',
+				'      url: https://github.com/anthropics/skills',
+				'      branch: main',
+				'  - provider: github',
+				'  - name: clawhub/official',
+				'    provider: clawhub',
+				'    credentials: invalid',
+				'  - name: clawhub/official',
+				'    provider: clawhub',
+				'    credentials:',
+				'      token: abc'
+			].join('\n'),
+			'utf8'
+		)
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		await expect(service.readSkillRepositories()).resolves.toEqual({
+			repositories: [
+				{
+					name: 'anthropics/skills',
+					provider: 'github',
+					options: {
+						url: 'https://github.com/anthropics/skills',
+						branch: 'main'
+					}
+				},
+				{
+					name: 'clawhub/official',
+					provider: 'clawhub',
+					credentials: {
+						token: 'abc'
+					}
+				}
+			]
+		})
+	})
+
+	it('returns bootstrap default skill refs without requiring skills-market featured entries', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(externalRoot, { recursive: true })
+		writeFileSync(
+			join(externalRoot, 'skills-market.yaml'),
+			[
+				'en-US:',
+				'  featured:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'  filters:',
+				'    roles:',
+				'      label: Roles',
+				'      options:',
+				'        - value: all',
+				'          label: All roles',
+				'    appTypes:',
+				'      label: Application types',
+				'      options:',
+				'        - value: all',
+				'          label: All types',
+				'    hot:',
+				'      label: Trending',
+				'      options:',
+				'        - value: all',
+				'          label: Default'
+			].join('\n'),
+			'utf8'
+		)
+		writeFileSync(
+			join(externalRoot, 'workspace-defaults.yaml'),
+			[
+				'userDefault:',
+				'  skills:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'    - provider: clawhub',
+				'      repositoryName: clawhub/official',
+				'      skillId: mcporter'
+			].join('\n'),
+			'utf8'
+		)
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		await expect(service.getBootstrapDefaultSkillRefs()).resolves.toEqual([
+			{
+				provider: 'github',
+				repositoryName: 'anthropics/skills',
+				skillId: 'skills/claude-api'
+			},
+			{
+				provider: 'clawhub',
+				repositoryName: 'clawhub/official',
+				skillId: 'mcporter'
+			}
+		])
+	})
+
+	it('keeps market-facing default skill refs aligned with skills-market featured refs', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(externalRoot, { recursive: true })
+		writeFileSync(
+			join(externalRoot, 'skills-market.yaml'),
+			[
+				'en-US:',
+				'  featured:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'  filters:',
+				'    roles:',
+				'      label: Roles',
+				'      options:',
+				'        - value: all',
+				'          label: All roles',
+				'    appTypes:',
+				'      label: Application types',
+				'      options:',
+				'        - value: all',
+				'          label: All types',
+				'    hot:',
+				'      label: Trending',
+				'      options:',
+				'        - value: all',
+				'          label: Default'
+			].join('\n'),
+			'utf8'
+		)
+		writeFileSync(
+			join(externalRoot, 'workspace-defaults.yaml'),
+			[
+				'userDefault:',
+				'  skills:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'    - provider: clawhub',
+				'      repositoryName: clawhub/official',
+				'      skillId: mcporter'
+			].join('\n'),
+			'utf8'
+		)
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		await expect(service.getUserDefaultSkillRefs()).resolves.toEqual([
+			{
+				provider: 'github',
+				repositoryName: 'anthropics/skills',
+				skillId: 'skills/claude-api'
+			}
+		])
+	})
+
+	it('parses template skill bundle directories using bundle.yaml', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+		const bundleRoot = join(externalRoot, 'skill-packages', 'claude-api-bundle')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(bundleRoot, { recursive: true })
+		writeJson(join(externalRoot, 'templates.json'), {
+			templates: {},
+			details: {}
+		})
+		writeJson(join(externalRoot, 'mcp-templates.json'), {})
+		writeJson(join(externalRoot, 'knowledge-pipelines.json'), {})
+		writeFileSync(join(externalRoot, 'skills-market.yaml'), 'en-US:\n  featured: []\n  filters:\n    roles:\n      label: Roles\n      options: []\n    appTypes:\n      label: Application types\n      options: []\n    hot:\n      label: Trending\n      options: []', 'utf8')
+		writeFileSync(join(externalRoot, 'workspace-defaults.yaml'), 'userDefault:\n  skills: []', 'utf8')
+		writeFileSync(
+			join(bundleRoot, 'bundle.yaml'),
+			'provider: github\nrepositoryName: anthropics/skills\nskillId: skills/claude-api\n',
+			'utf8'
+		)
+		writeFileSync(join(bundleRoot, 'SKILL.md'), '---\nname: Claude API\ndescription: Example\n---\n', 'utf8')
+		writeFileSync(join(externalRoot, 'skill-packages', 'README.md'), 'ignore me', 'utf8')
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		await expect(service.getTemplateSkillBundles()).resolves.toEqual([
+			{
+				directoryName: 'claude-api-bundle',
+				directoryPath: bundleRoot,
+				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api',
+				ref: {
+					provider: 'github',
+					repositoryName: 'anthropics/skills',
+					skillId: 'skills/claude-api'
+				}
+			}
+		])
+	})
+
+	it('infers local template bundle refs from standard skill package directories', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+		const bundleRoot = join(externalRoot, 'skill-packages', 'slides')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(bundleRoot, { recursive: true })
+		writeJson(join(externalRoot, 'templates.json'), {
+			templates: {},
+			details: {}
+		})
+		writeJson(join(externalRoot, 'mcp-templates.json'), {})
+		writeJson(join(externalRoot, 'knowledge-pipelines.json'), {})
+		writeFileSync(join(externalRoot, 'skills-market.yaml'), 'en-US:\n  featured: []\n  filters:\n    roles:\n      label: Roles\n      options: []\n    appTypes:\n      label: Application types\n      options: []\n    hot:\n      label: Trending\n      options: []', 'utf8')
+		writeFileSync(join(externalRoot, 'workspace-defaults.yaml'), 'userDefault:\n  skills: []', 'utf8')
+		writeFileSync(join(bundleRoot, 'SKILL.md'), '---\nname: slides\ndescription: Example\n---\n', 'utf8')
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		await expect(service.getTemplateSkillBundles()).resolves.toEqual([
+			{
+				directoryName: 'slides',
+				directoryPath: bundleRoot,
+				sharedSkillId: 'template-bundle__local__root%2Fskills__slides',
+				ref: {
+					provider: 'local',
+					repositoryName: 'root/skills',
+					skillId: 'slides'
+				}
+			}
+		])
+	})
+
+	it('reuses repository path trimming when resolving default workspace skill refs', async () => {
+		const workspaceRoot = createTempDir()
+		seedBuiltinTemplates(workspaceRoot)
+		const { service, skillRepositoryIndexService, skillRepositoryService } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: createTempDir()
+		})
+
+		skillRepositoryService.findAllInOrganizationOrTenant.mockResolvedValue({
+			items: [
+				{
+					id: 'repo-org',
+					provider: 'github',
+					name: 'obra/superpowers',
+					organizationId: 'org-1',
+					options: {
+						path: 'skills'
+					}
+				},
+				{
+					id: 'repo-tenant',
+					provider: 'github',
+					name: 'obra/superpowers',
+					organizationId: null,
+					options: {
+						path: 'skills'
+					}
+				}
+			]
+		})
+		skillRepositoryIndexService.findAllInOrganizationOrTenant
+			.mockResolvedValueOnce({ items: [] })
+			.mockResolvedValueOnce({
+				items: [
+					{
+						id: 'skill-1',
+						repositoryId: 'repo-org',
+						skillId: 'mcporter',
+						skillPath: 'mcporter',
+						name: 'MCPorter',
+						repository: {
+							id: 'repo-org',
+							provider: 'github',
+							name: 'obra/superpowers'
+						}
+					}
+				]
+			})
+
+		const result = await service.resolveSkillRefs([
+			{
+				provider: 'github',
+				repositoryName: 'obra/superpowers',
+				skillId: 'skills/mcporter'
+			}
+		])
+
+		expect(skillRepositoryIndexService.findAllInOrganizationOrTenant).toHaveBeenNthCalledWith(1, {
+			where: {
+				repositoryId: 'repo-org',
+				skillId: 'skills/mcporter'
+			},
+			relations: ['repository'],
+			take: 1,
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		expect(skillRepositoryIndexService.findAllInOrganizationOrTenant).toHaveBeenNthCalledWith(2, {
+			where: {
+				repositoryId: 'repo-org',
+				skillId: 'mcporter'
+			},
+			relations: ['repository'],
+			take: 1,
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		expect(result).toEqual([
+			{
+				ref: {
+					provider: 'github',
+					repositoryName: 'obra/superpowers',
+					skillId: 'skills/mcporter'
+				},
+				skill: expect.objectContaining({
+					id: 'skill-1',
+					repositoryId: 'repo-org',
+					skillId: 'mcporter'
+				})
+			}
+		])
+	})
+
+	it('prefers template bundle backed public repository skills for matching refs', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+		const bundleRoot = join(externalRoot, 'skill-packages', 'claude-api-bundle')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(bundleRoot, { recursive: true })
+		writeJson(join(externalRoot, 'templates.json'), {
+			templates: {},
+			details: {}
+		})
+		writeJson(join(externalRoot, 'mcp-templates.json'), {})
+		writeJson(join(externalRoot, 'knowledge-pipelines.json'), {})
+		writeFileSync(join(externalRoot, 'skills-market.yaml'), 'en-US:\n  featured: []\n  filters:\n    roles:\n      label: Roles\n      options: []\n    appTypes:\n      label: Application types\n      options: []\n    hot:\n      label: Trending\n      options: []', 'utf8')
+		writeFileSync(join(externalRoot, 'workspace-defaults.yaml'), 'userDefault:\n  skills: []', 'utf8')
+		writeFileSync(
+			join(bundleRoot, 'bundle.yaml'),
+			'provider: github\nrepositoryName: anthropics/skills\nskillId: skills/claude-api\n',
+			'utf8'
+		)
+		writeFileSync(join(bundleRoot, 'SKILL.md'), '---\nname: Claude API\ndescription: Example\n---\n', 'utf8')
+
+		const { service, skillRepositoryIndexService, skillRepositoryService } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		skillRepositoryService.findAllInOrganizationOrTenant.mockResolvedValue({
+			items: [
+				{
+					id: 'repo-public',
+					provider: 'workspace-public',
+					name: 'Workspace Shared Skills',
+					organizationId: 'org-1'
+				},
+				{
+					id: 'repo-github',
+					provider: 'github',
+					name: 'anthropics/skills',
+					organizationId: 'org-1'
+				}
+			]
+		})
+		skillRepositoryIndexService.findAllInOrganizationOrTenant.mockResolvedValueOnce({
+			items: [
+				{
+					id: 'skill-public-1',
+					repositoryId: 'repo-public',
+					skillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api',
+					skillPath: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api',
+					name: 'Claude API',
+					repository: {
+						id: 'repo-public',
+						provider: 'workspace-public',
+						name: 'Workspace Shared Skills'
+					}
+				}
+			]
+		})
+
+		await service.onModuleInit()
+
+		const result = await service.resolveSkillRefs([
+			{
+				provider: 'github',
+				repositoryName: 'anthropics/skills',
+				skillId: 'skills/claude-api'
+			}
+		])
+
+		expect(skillRepositoryIndexService.findAllInOrganizationOrTenant).toHaveBeenCalledWith({
+			where: {
+				repositoryId: 'repo-public',
+				skillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+			},
+			relations: ['repository'],
+			take: 1,
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		expect(result).toEqual([
+			{
+				ref: {
+					provider: 'github',
+					repositoryName: 'anthropics/skills',
+					skillId: 'skills/claude-api'
+				},
+				skill: expect.objectContaining({
+					id: 'skill-public-1',
+					repositoryId: 'repo-public'
+				})
+			}
+		])
+	})
+
 	function createService({
 		serverRoot,
 		dataPath,
@@ -406,6 +971,8 @@ describe('XpertTemplateService', () => {
 			mcpTemplatesJson?: Record<string, unknown>
 			knowledgePipelinesJson?: Record<string, unknown>
 			skillsMarketYaml?: string
+			skillRepositoriesYaml?: string
+			workspaceDefaultsYaml?: string
 			templateYaml?: string
 			pipelineYaml?: string
 		} = {}
@@ -413,6 +980,7 @@ describe('XpertTemplateService', () => {
 		const builtinRoot = join(serverRoot, 'packages', 'server-ai', 'src', 'xpert-template')
 		mkdirSync(join(builtinRoot, 'templates'), { recursive: true })
 		mkdirSync(join(builtinRoot, 'pipelines'), { recursive: true })
+		mkdirSync(join(builtinRoot, 'skill-packages'), { recursive: true })
 
 		writeJson(
 			join(builtinRoot, 'templates.json'),
@@ -464,6 +1032,29 @@ describe('XpertTemplateService', () => {
 			'utf8'
 		)
 		writeFileSync(
+			join(builtinRoot, 'skill-repositories.yaml'),
+			overrides.skillRepositoriesYaml ??
+				[
+					'repositories:',
+					'  - name: anthropics/skills',
+					'    provider: github',
+					'    options:',
+					'      url: https://github.com/anthropics/skills',
+					'      branch: main',
+					'      path: skills'
+				].join('\n'),
+			'utf8'
+		)
+		writeFileSync(
+			join(builtinRoot, 'workspace-defaults.yaml'),
+			overrides.workspaceDefaultsYaml ??
+				[
+					'userDefault:',
+					'  skills: []'
+				].join('\n'),
+			'utf8'
+		)
+		writeFileSync(
 			join(builtinRoot, 'templates', 'template-1.yaml'),
 			overrides.templateYaml ?? 'source: builtin-template\n',
 			'utf8'
@@ -473,6 +1064,7 @@ describe('XpertTemplateService', () => {
 			overrides.pipelineYaml ?? 'source: builtin-pipeline\n',
 			'utf8'
 		)
+		writeFileSync(join(builtinRoot, 'skill-packages', '.gitkeep'), '', 'utf8')
 
 		return builtinRoot
 	}

@@ -1,0 +1,3 @@
+provider: github
+repositoryName: anthropics/skills
+skillId: skills/claude-api

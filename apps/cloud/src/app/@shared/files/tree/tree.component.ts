@@ -1,17 +1,18 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
-import { cx, mergeClasses } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { cx, mergeClasses, ZardButtonComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { FILE_TREE_SIZE_PRESETS, type FileTreeSizeVariants } from './tree.component.variants'
 import { FileTreeNode, flattenFileTree } from './tree.utils'
+
+export type FileTreeUploadKind = 'file' | 'folder'
 
 @Component({
   standalone: true,
   selector: 'pac-file-tree',
   templateUrl: './tree.component.html',
   styleUrls: ['./tree.component.css'],
-  imports: [CommonModule, TranslateModule, NgmSpinComponent],
+  imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardLoaderComponent, ...ZardTooltipImports],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[attr.data-size]': 'zSize()'
@@ -27,6 +28,14 @@ export class FileTreeComponent {
   readonly activePath = input<string | null>(null)
   readonly loading = input(false)
   readonly loadingPaths = input<Set<string>>(new Set())
+  readonly canDownload = input(false)
+  readonly canDelete = input(false)
+  readonly canUpload = input(false)
+  readonly uploadDisabled = input(false)
+  readonly uploading = input(false)
+  readonly uploadTargetHint = input<string | null>(null)
+  readonly downloadingPaths = input<Set<string>>(new Set())
+  readonly deletingPaths = input<Set<string>>(new Set())
 
   readonly emptyTitle = input<string>('No files found yet.')
   readonly emptyHint = input<string>(
@@ -60,6 +69,19 @@ export class FileTreeComponent {
   readonly itemIconClasses = computed(() =>
     mergeClasses('shrink-0 text-text-tertiary', this.sizePreset().itemText)
   )
+  readonly itemActionClasses = computed(() =>
+    mergeClasses(
+      'inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60',
+      this.sizePreset().subtitleText
+    )
+  )
+  readonly uploadActionClasses = computed(() =>
+    mergeClasses(
+      'inline-flex shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60',
+      this.sizePreset().controlSize,
+      this.sizePreset().itemText
+    )
+  )
   readonly emptyTitleClasses = computed(() =>
     mergeClasses('font-semibold text-text-primary', this.sizePreset().emptyTitleText)
   )
@@ -67,6 +89,9 @@ export class FileTreeComponent {
 
   readonly fileSelect = output<FileTreeNode>()
   readonly directoryToggle = output<FileTreeNode>()
+  readonly fileDownload = output<FileTreeNode>()
+  readonly fileDelete = output<FileTreeNode>()
+  readonly uploadRequest = output<FileTreeUploadKind>()
 
   isActiveItem(item: FileTreeNode) {
     return this.activePath() === (item.fullPath || item.filePath)
@@ -90,5 +115,40 @@ export class FileTreeComponent {
 
   isDirectoryLoading(filePath: string | null | undefined) {
     return !!filePath && this.loadingPaths().has(filePath)
+  }
+
+  isDownloading(filePath: string | null | undefined) {
+    return !!filePath && this.downloadingPaths().has(filePath)
+  }
+
+  isDeleting(filePath: string | null | undefined) {
+    return !!filePath && this.deletingPaths().has(filePath)
+  }
+
+  showActions(item: FileTreeNode) {
+    return !item.hasChildren && (this.canDownload() || this.canDelete())
+  }
+
+  onItemClick(item: FileTreeNode) {
+    this.fileSelect.emit(item)
+  }
+
+  onDirectoryToggle(event: MouseEvent, item: FileTreeNode) {
+    event.stopPropagation()
+    this.directoryToggle.emit(item)
+  }
+
+  onFileDownload(event: MouseEvent, item: FileTreeNode) {
+    event.stopPropagation()
+    this.fileDownload.emit(item)
+  }
+
+  onFileDelete(event: MouseEvent, item: FileTreeNode) {
+    event.stopPropagation()
+    this.fileDelete.emit(item)
+  }
+
+  onUploadClick(kind: FileTreeUploadKind) {
+    this.uploadRequest.emit(kind)
   }
 }

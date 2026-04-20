@@ -14,12 +14,7 @@
 				"main": "packages/server-ai/src/index.ts",
 				"assets": [
 					{
-						"glob": "**/*.(csv|json|svg|png|jpg|yaml|yml)",
-						"input": "packages/server-ai/",
-						"output": "./"
-					},
-					{
-						"glob": "*.md",
+						"glob": "**/*.(csv|json|js|svg|png|jpg|yaml|yml|py|sh|md|txt)",
 						"input": "packages/server-ai/",
 						"output": "./"
 					}

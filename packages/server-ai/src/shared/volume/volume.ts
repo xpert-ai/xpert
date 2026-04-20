@@ -1,143 +1,297 @@
-import { urlJoin } from '@xpert-ai/server-common'
+import { FileUploadVolumeCatalog } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
+import { normalizeUploadedFileName, urlJoin } from '@xpert-ai/server-common'
 import fsPromises from 'fs/promises'
-import path, { join } from 'path'
-import { getWorkspace, listFiles, sandboxVolume, sandboxVolumeUrl } from '../utils'
+import path from 'path'
+import { listFiles } from '../utils'
+import {
+    getApiContainerSandboxVolumeRootPath,
+    getDockerHostSandboxVolumeRootPath,
+    getLocalSandboxDataRoot,
+    hasConfiguredSandboxVolume,
+    normalizeSandboxPublicVolumeSubpath,
+    runsInsideDockerApiContainer,
+    usesFlattenedSandboxVolumeLayout
+} from './volume-layout'
 
-export class VolumeClient {
+export type VolumeCatalog = FileUploadVolumeCatalog | 'workspaces' | 'environment'
+
+export type VolumeScope = {
     tenantId: string
-    userId: string
+    catalog: VolumeCatalog
+    environmentId?: string
+    knowledgeId?: string
+    organizationId?: string | null
     projectId?: string
+    rootId?: string
+    userId?: string
+    workspaceId?: string
+    xpertId?: string
+    isolateByUser?: boolean
+}
 
-    protected volumePath: string
-    protected baseUrl: string
+export type VolumeRootResolution = {
+    serverRoot: string
+    hostRoot: string
+}
+
+export type WorkspaceBinding = {
+    bindSource?: string
+    containerMountPath?: string
+    volumeRoot: string
+    workspacePath: string
+    workspaceRoot: string
+}
+
+export type WorkspaceMappingOptions = {
+    serverPath?: string
+}
+
+export interface WorkspacePathMapper {
+    mapVolumeToWorkspace(volume: VolumeHandle, options?: WorkspaceMappingOptions): WorkspaceBinding
+    mapWorkspaceToVolume(binding: WorkspaceBinding, workspacePath: string): string
+}
+
+export abstract class VolumeClient {
+    abstract resolve(scope: VolumeScope): VolumeHandle
+    abstract resolveRoot(tenantId: string): VolumeRootResolution
 
     static getApiContainerSandboxVolumeRoot(tenantId: string) {
-        const homeDir = process.env.HOME || process.env.USERPROFILE
-        if (environment.envName === 'dev') {
-            // Host is sandbox
-            return path.join(homeDir, 'data') // `~/data` is the default directory in sandbox
-        } else {
-            // Production container binds host volume
-            return `/sandbox/${tenantId}`
+        return createRuntimeVolumeClient().resolveRoot(tenantId).serverRoot
+    }
+
+    static async getSharedWorkspacePath(tenantId: string, projectId: string | undefined, userId: string) {
+        return (
+            await createRuntimeVolumeClient()
+                .resolve({
+                    tenantId,
+                    catalog: projectId ? 'projects' : 'users',
+                    projectId,
+                    userId
+                })
+                .ensureRoot()
+        ).serverRoot
+    }
+
+    static getSharedWorkspaceUrl(projectId: string | undefined, userId: string) {
+        return getVolumePublicBaseUrl({
+            catalog: projectId ? 'projects' : 'users',
+            projectId,
+            userId
+        })
+    }
+
+    static async getXpertWorkspacePath(tenantId: string, xpertId: string, userId: string, isolateByUser = true) {
+        return (
+            await createRuntimeVolumeClient()
+                .resolve({
+                    tenantId,
+                    catalog: 'xperts',
+                    xpertId,
+                    userId,
+                    isolateByUser
+                })
+                .ensureRoot()
+        ).serverRoot
+    }
+
+    static getXpertWorkspaceUrl(xpertId: string, userId: string, isolateByUser = true) {
+        return getVolumePublicBaseUrl({
+            catalog: 'xperts',
+            xpertId,
+            userId,
+            isolateByUser
+        })
+    }
+
+    static _getWorkspaceRoot(tenantId: string, type: VolumeCatalog | string, id: string) {
+        switch (type) {
+            case 'environment':
+                return createRuntimeVolumeClient().resolve({
+                    tenantId,
+                    catalog: 'environment',
+                    environmentId: id
+                }).serverRoot
+            case 'knowledges':
+                return createRuntimeVolumeClient().resolve({
+                    tenantId,
+                    catalog: 'knowledges',
+                    knowledgeId: id,
+                    userId: 'legacy'
+                }).serverRoot
+            case 'projects':
+                return createRuntimeVolumeClient().resolve({
+                    tenantId,
+                    catalog: 'projects',
+                    projectId: id,
+                    userId: 'legacy'
+                }).serverRoot
+            case 'skills':
+                return createRuntimeVolumeClient().resolve({
+                    tenantId,
+                    catalog: 'skills',
+                    rootId: id,
+                    userId: 'legacy'
+                }).serverRoot
+            case 'users':
+                return createRuntimeVolumeClient().resolve({
+                    tenantId,
+                    catalog: 'users',
+                    userId: id
+                }).serverRoot
+            case 'workspaces':
+                return createRuntimeVolumeClient().resolve({
+                    tenantId,
+                    catalog: 'workspaces',
+                    workspaceId: id
+                }).serverRoot
+            default:
+                return path.join(createRuntimeVolumeClient().resolveRoot(tenantId).serverRoot, type, id)
         }
     }
+}
 
-    /**
-     * @deprecated Prefer `getApiContainerSandboxVolumeRoot()` to make the path layer explicit.
-     */
-    static getSandboxVolumeRoot(tenantId: string) {
-        return VolumeClient.getApiContainerSandboxVolumeRoot(tenantId)
+export const VOLUME_CLIENT = Symbol('VOLUME_CLIENT')
+const DOCKER_SANDBOX_PROVIDER_TYPE = 'docker-sandbox'
+
+function getXpertUserIsolation(isolateByUser?: boolean) {
+    return isolateByUser !== false
+}
+
+function trimLeadingSlash(value: string) {
+    return value.replace(/^\/+/, '')
+}
+
+function normalizeRelativePathForVolume(relativePath?: string | null) {
+    if (!relativePath) {
+        return ''
     }
 
-    // static getSandboxVolumePath(tenantId: string, userId: string, projectId: string): string {
-    // 	const root = VolumeClient.getApiContainerSandboxVolumeRoot(tenantId)
-    // 	if (environment.envName === 'dev') {
-    // 		return root
-    // 	}
-    // 	return path.join(root, sandboxVolume(projectId, userId))
-    // }
+    const normalized = path.posix.normalize(`${relativePath}`.replace(/\\/g, '/').replace(/^\/+/, ''))
+    if (normalized === '.' || !normalized) {
+        return ''
+    }
+    if (normalized.startsWith('..') || path.posix.isAbsolute(normalized)) {
+        throw new Error('Invalid relative path')
+    }
+    return normalized
+}
 
-    static getWorkspaceRoot(tenantId: string, projectId: string, userId: string) {
-        if (environment.env.IS_DOCKER === 'true') {
-            return path.join(`/sandbox/${tenantId}`, sandboxVolume(projectId, userId))
-        } else {
-            return path.join(process.env.HOME || process.env.USERPROFILE, 'data')
+function ensurePathWithinRoot(root: string, candidate: string) {
+    const relativePath = path.relative(root, candidate)
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+        throw new Error('Resolved path is outside of the volume root')
+    }
+}
+
+export function getVolumeSubpath(scope: Omit<VolumeScope, 'tenantId'>) {
+    switch (scope.catalog) {
+        case 'environment':
+            if (!scope.environmentId) {
+                throw new Error('environmentId is required for environment volume access')
+            }
+            return `/environment/${scope.environmentId}`
+        case 'knowledges':
+            if (!scope.knowledgeId) {
+                throw new Error('knowledgeId is required for knowledge volume access')
+            }
+            return `/knowledges/${scope.knowledgeId}`
+        case 'projects':
+            if (!scope.projectId) {
+                throw new Error('projectId is required for project volume access')
+            }
+            return `/project/${scope.projectId}`
+        case 'skills':
+            if (!scope.rootId) {
+                throw new Error('rootId is required for skill volume access')
+            }
+            return `/skills/${scope.rootId}`
+        case 'users':
+            if (!scope.userId) {
+                throw new Error('userId is required for user volume access')
+            }
+            return `/user/${scope.userId}`
+        case 'workspaces':
+            if (!scope.workspaceId) {
+                throw new Error('workspaceId is required for workspace volume access')
+            }
+            return `/workspaces/${scope.workspaceId}`
+        case 'xperts':
+            if (!scope.xpertId) {
+                throw new Error('xpertId is required for xpert volume access')
+            }
+            if (!getXpertUserIsolation(scope.isolateByUser)) {
+                return `/xpert/${scope.xpertId}`
+            }
+            if (!scope.userId) {
+                throw new Error('userId is required for user-isolated xpert volume access')
+            }
+            return `/xpert/${scope.xpertId}/user/${scope.userId}`
+    }
+}
+
+export function getVolumePublicBaseUrl(scope: Omit<VolumeScope, 'tenantId'>) {
+    return urlJoin(
+        environment.baseUrl,
+        '/api/sandbox/volume',
+        normalizeSandboxPublicVolumeSubpath(trimLeadingSlash(getVolumeSubpath(scope)))
+    )
+}
+
+export function getVolumeRootPath(client: VolumeClient, scope: VolumeScope) {
+    return client.resolve(scope).serverRoot
+}
+
+export class VolumeHandle {
+    constructor(
+        public readonly scope: VolumeScope,
+        public readonly serverRoot: string,
+        public readonly hostRoot: string,
+        public readonly publicBaseUrl: string
+    ) {}
+
+    async ensureRoot() {
+        await fsPromises.mkdir(this.serverRoot, { recursive: true })
+        return this
+    }
+
+    path(relativePath?: string | null) {
+        const normalizedRelativePath = normalizeRelativePathForVolume(relativePath)
+        if (!normalizedRelativePath) {
+            return this.serverRoot
         }
+
+        const resolvedPath = path.resolve(this.serverRoot, normalizedRelativePath)
+        ensurePathWithinRoot(this.serverRoot, resolvedPath)
+        return resolvedPath
     }
 
-    static _getWorkspaceRoot(tenantId: string, type: 'projects' | 'users' | 'knowledges' | string, id: string) {
-        if (environment.env.IS_DOCKER === 'true') {
-            return path.join(`/sandbox/${tenantId}`, `/${type}/${id}`)
-        } else {
-            return path.join(process.env.HOME || process.env.USERPROFILE, 'data')
-        }
-    }
-
-    /**
-     * @deprecated Prefer `getSharedWorkspacePath`
-     */
-    static async getWorkspacePath(
-        tenantId: string,
-        projectId: string,
-        userId: string,
-        conversationId?: string
-    ): Promise<string> {
-        const dist = path.join(
-            VolumeClient.getWorkspaceRoot(tenantId, projectId, userId),
-            getWorkspace(projectId, conversationId) || ''
-        )
-        await fsPromises.mkdir(dist, { recursive: true })
-        return dist
-    }
-
-    static async getSharedWorkspacePath(tenantId: string, projectId: string, userId: string): Promise<string> {
-        const dist = VolumeClient.getWorkspaceRoot(tenantId, projectId, userId)
-        await fsPromises.mkdir(dist, { recursive: true })
-        return dist
-    }
-
-    static async getCurrentUserWorkspacePath(tenantId: string, userId: string): Promise<string> {
-        const dist = VolumeClient._getWorkspaceRoot(tenantId, 'user', userId)
-        await fsPromises.mkdir(dist, { recursive: true })
-        return dist
-    }
-
-    static getWorkspaceUrl(projectId: string, userId: string, conversationId?: string) {
-        return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId) + '/')
-    }
-
-    static getSharedWorkspaceUrl(projectId: string, userId: string) {
-        return sandboxVolumeUrl(sandboxVolume(projectId, userId))
-    }
-
-    static getCurrentUserWorkspaceUrl(userId: string) {
-        return sandboxVolumeUrl(`/user/${userId}`)
-    }
-
-    constructor(params: {
-        tenantId: string
-        catalog: 'projects' | 'users' | 'knowledges' | 'skills'
-        userId: string
-        knowledgeId?: string
-        projectId?: string
-    }) {
-        this.tenantId = params.tenantId
-        this.userId = params.userId
-        this.projectId = params.projectId
-
-        const subpath =
-            params.catalog === 'knowledges'
-                ? `/${params.catalog}/${params.knowledgeId}`
-                : sandboxVolume(params.projectId, params.userId)
-        this.baseUrl = sandboxVolumeUrl(subpath)
-
-        const root = VolumeClient.getApiContainerSandboxVolumeRoot(params.tenantId)
-        if (environment.envName === 'dev') {
-            this.volumePath = root
-        } else {
-            this.volumePath = path.join(root, subpath)
-        }
+    publicUrl(relativePath?: string | null) {
+        const normalizedRelativePath = normalizeRelativePathForVolume(relativePath)
+        return normalizedRelativePath ? urlJoin(this.publicBaseUrl, normalizedRelativePath) : this.publicBaseUrl
     }
 
     async putFile(
         folder = '',
-        file: { originalname: string; buffer: Buffer; mimetype?: string } /*Express.Multer.File*/
+        file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<string> {
-        const targetFolder = path.join(this.volumePath, folder)
-        const filePath = path.join(targetFolder, file.originalname)
+        const normalizedFolder = normalizeRelativePathForVolume(folder)
+        const fileName = normalizeUploadedFileName(file.originalname)
+
+        const targetFolder = this.path(normalizedFolder)
+        const filePath = path.join(targetFolder, fileName)
         await fsPromises.mkdir(targetFolder, { recursive: true })
-        await fsPromises.writeFile(filePath, file.buffer as unknown as string)
-        return urlJoin(this.baseUrl, path.join(folder, file.originalname))
+        await fsPromises.writeFile(filePath, file.buffer)
+        const publicRelativePath = path.posix.join(normalizedFolder, fileName)
+        return this.publicUrl(publicRelativePath)
     }
 
     async readFile(filePath: string) {
-        const fullPath = path.join(this.volumePath, filePath)
-        return await fsPromises.readFile(fullPath, 'utf-8')
+        return await fsPromises.readFile(this.path(filePath), 'utf-8')
     }
 
     async deleteFile(filePath: string): Promise<void> {
-        const fullPath = path.join(this.volumePath, filePath)
+        const fullPath = this.path(filePath)
         try {
             const stat = await fsPromises.stat(fullPath)
             if (stat.isDirectory()) {
@@ -145,23 +299,137 @@ export class VolumeClient {
             } else {
                 await fsPromises.unlink(fullPath)
             }
-        } catch (error: any) {
-            if (error.code !== 'ENOENT') {
-                throw error // Re-throw if it's not a "file not found" error
+        } catch (error: unknown) {
+            if (!(error instanceof Error) || !('code' in error) || error.code !== 'ENOENT') {
+                throw error
             }
         }
     }
 
     async list(params: { path?: string; deepth?: number }) {
-        const { path: folder, deepth } = params
-        return await listFiles(folder || '/', deepth ?? 1, 0, { root: this.volumePath, baseUrl: this.baseUrl })
+        return await listFiles(params.path || '/', params.deepth ?? 1, 0, {
+            root: this.serverRoot,
+            baseUrl: this.publicBaseUrl
+        })
+    }
+}
+
+abstract class BaseRuntimeVolumeClient extends VolumeClient {
+    abstract resolveRoot(tenantId: string): VolumeRootResolution
+
+    resolve(scope: VolumeScope): VolumeHandle {
+        const { tenantId, ...subscope } = scope
+        const roots = this.resolveRoot(tenantId)
+        const subpath = getVolumeSubpath(subscope)
+        const flattened = usesFlattenedSandboxVolumeLayout()
+
+        return new VolumeHandle(
+            scope,
+            flattened ? roots.serverRoot : path.join(roots.serverRoot, trimLeadingSlash(subpath)),
+            flattened ? roots.hostRoot : path.join(roots.hostRoot, trimLeadingSlash(subpath)),
+            getVolumePublicBaseUrl(subscope)
+        )
+    }
+}
+
+export class DevVolumeClient extends BaseRuntimeVolumeClient {
+    resolveRoot(tenantId: string): VolumeRootResolution {
+        if (usesFlattenedSandboxVolumeLayout()) {
+            const localRoot = getLocalSandboxDataRoot()
+            return {
+                serverRoot: localRoot,
+                hostRoot: localRoot
+            }
+        }
+
+        const resolvedRoot = hasConfiguredSandboxVolume()
+            ? getDockerHostSandboxVolumeRootPath(tenantId)
+            : path.join(getLocalSandboxDataRoot(), tenantId)
+        return {
+            serverRoot: resolvedRoot,
+            hostRoot: resolvedRoot
+        }
+    }
+}
+
+export class DockerVolumeClient extends BaseRuntimeVolumeClient {
+    resolveRoot(tenantId: string): VolumeRootResolution {
+        return {
+            serverRoot: getApiContainerSandboxVolumeRootPath(tenantId),
+            hostRoot: getDockerHostSandboxVolumeRootPath(tenantId)
+        }
+    }
+}
+
+export class LocalShellWorkspacePathMapper implements WorkspacePathMapper {
+    mapVolumeToWorkspace(volume: VolumeHandle, options?: WorkspaceMappingOptions): WorkspaceBinding {
+        const serverPath = options?.serverPath ? volume.path(options.serverPath) : volume.serverRoot
+        return {
+            volumeRoot: volume.serverRoot,
+            workspaceRoot: volume.serverRoot,
+            workspacePath: serverPath
+        }
     }
 
-    getVolumePath(path?: string) {
-        return path ? join(this.volumePath, path) : this.volumePath
+    mapWorkspaceToVolume(binding: WorkspaceBinding, workspacePath: string): string {
+        const normalizedPath = path.resolve(workspacePath)
+        const workspaceRoot = path.resolve(binding.workspaceRoot)
+        ensurePathWithinRoot(workspaceRoot, normalizedPath)
+        return normalizedPath
+    }
+}
+
+export class DockerWorkspacePathMapper implements WorkspacePathMapper {
+    mapVolumeToWorkspace(volume: VolumeHandle, options?: WorkspaceMappingOptions): WorkspaceBinding {
+        const workspaceRoot = '/workspace'
+        const serverPath = options?.serverPath ? volume.path(options.serverPath) : volume.serverRoot
+        const relativePath = path.relative(volume.serverRoot, serverPath).replace(/\\/g, '/')
+        if (relativePath.startsWith('..') || path.posix.isAbsolute(relativePath)) {
+            throw new Error('Resolved workspace path is outside of the mapped volume root')
+        }
+
+        return {
+            bindSource: volume.hostRoot,
+            containerMountPath: workspaceRoot,
+            volumeRoot: volume.serverRoot,
+            workspaceRoot,
+            workspacePath:
+                relativePath && relativePath !== '.'
+                    ? path.posix.join(workspaceRoot, relativePath)
+                    : workspaceRoot
+        }
     }
 
-    getPublicUrl(filePath: string) {
-        return filePath ? urlJoin(this.baseUrl, filePath) : this.baseUrl
+    mapWorkspaceToVolume(binding: WorkspaceBinding, workspacePath: string): string {
+        const normalizedWorkspaceRoot = path.posix.normalize(binding.workspaceRoot)
+        const normalizedWorkspacePath = path.posix.normalize(workspacePath)
+        const relativePath = path.posix.relative(normalizedWorkspaceRoot, normalizedWorkspacePath)
+        if (relativePath.startsWith('..') || path.posix.isAbsolute(relativePath)) {
+            throw new Error('Resolved workspace path is outside of the mounted workspace root')
+        }
+
+        return relativePath && relativePath !== '.'
+            ? path.join(binding.volumeRoot, relativePath)
+            : binding.volumeRoot
     }
+}
+
+export function createRuntimeVolumeClient(): VolumeClient {
+    return runsInsideDockerApiContainer() ? new DockerVolumeClient() : new DevVolumeClient()
+}
+
+export function getWorkspacePathMapperForProvider(provider?: string | null): WorkspacePathMapper {
+    return provider === DOCKER_SANDBOX_PROVIDER_TYPE ? new DockerWorkspacePathMapper() : new LocalShellWorkspacePathMapper()
+}
+
+export function resolveRuntimeVolume(scope: VolumeScope) {
+    return createRuntimeVolumeClient().resolve(scope)
+}
+
+export function resolveRuntimeWorkspaceBinding(
+    provider: string | null | undefined,
+    scope: VolumeScope,
+    options?: WorkspaceMappingOptions
+) {
+    return getWorkspacePathMapperForProvider(provider).mapVolumeToWorkspace(resolveRuntimeVolume(scope), options)
 }

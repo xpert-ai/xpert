@@ -8,18 +8,30 @@
     {{ 'PAC.Copilot.ModelProviders' | translate: { Default: 'Model Providers' } }}
   </div>
 
-  <div class="mb-2 flex items-center pt-2">
-    <span class="system-sm-regular pr-1 text-text-tertiary">
-      {{ 'PAC.Copilot.DiscoverMoreAt' | translate: { Default: 'Discover more at' } }}
-    </span>
-    <a
-      target="_blank"
-      class="system-sm-medium inline-flex items-center text-text-accent hover:underline"
-      href="/settings/plugins?category=marketplace"
+  <div class="flex flex-wrap items-center justify-end gap-3">
+    <button
+      type="button"
+      class="btn btn-secondary btn-medium h-8 shrink-0"
+      [disabled]="busy()"
+      (click)="refreshProviders()"
     >
-      Xpert {{ 'PAC.Copilot.PluginMarketplace' | translate: { Default: 'Plugin Marketplace' } }}
-      <i class="ri-corner-right-up-line"></i>
-    </a>
+      <i class="ri-refresh-line mr-1" [class.animate-spin]="refreshing()"></i>
+      {{ 'PAC.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+    </button>
+
+    <div class="flex items-center">
+      <span class="system-sm-regular pr-1 text-text-tertiary">
+        {{ 'PAC.Copilot.DiscoverMoreAt' | translate: { Default: 'Discover more at' } }}
+      </span>
+      <a
+        target="_blank"
+        class="system-sm-medium inline-flex items-center text-text-accent hover:underline"
+        href="/settings/plugins?category=marketplace"
+      >
+        Xpert {{ 'PAC.Copilot.PluginMarketplace' | translate: { Default: 'Plugin Marketplace' } }}
+        <i class="ri-corner-right-up-line"></i>
+      </a>
+    </div>
   </div>
 </div>
 

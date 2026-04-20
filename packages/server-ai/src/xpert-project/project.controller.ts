@@ -24,6 +24,7 @@ import {
     Delete,
     Get,
     HttpStatus,
+    Inject,
     Logger,
     Param,
     Post,
@@ -44,7 +45,7 @@ import { XpertProjectIdentiDto } from './dto/project-identi.dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
 import { XpertProjectService } from './project.service'
-import { VolumeClient } from '../shared'
+import { VOLUME_CLIENT, VolumeClient } from '../shared'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -55,7 +56,9 @@ export class XpertProjectController extends CrudController<XpertProject> {
     constructor(
         private readonly service: XpertProjectService,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient
     ) {
         super(service)
     }
@@ -187,12 +190,14 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @Get(':id/files')
     async readFiles(@Param('id') id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
         const project = await this.service.findOne(id, { relations: ['createdBy'] })
-        const client = new VolumeClient({
+        const client = await this.volumeClient
+            .resolve({
             tenantId: project.tenantId,
             userId: project.ownerId,
             catalog: 'projects',
             projectId: project.id
-        })
+            })
+            .ensureRoot()
 
         return await client.list({ path, deepth })
     }
@@ -238,12 +243,14 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @UseGuards(XpertProjectGuard)
     @Delete(':id/file')
     async deleteFile(@Param('id') id: string, @Query('path') filePath: string) {
-        const client = new VolumeClient({
-            tenantId: RequestContext.currentTenantId(),
-            userId: RequestContext.currentUserId(),
-            catalog: 'projects',
-            projectId: id
-        })
+        const client = await this.volumeClient
+            .resolve({
+                tenantId: RequestContext.currentTenantId(),
+                userId: RequestContext.currentUserId(),
+                catalog: 'projects',
+                projectId: id
+            })
+            .ensureRoot()
         try {
             await client.deleteFile(filePath)
         } catch (error) {
