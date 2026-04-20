@@ -57,7 +57,12 @@ export class SandboxController {
 
     @Public()
     @Get('volume/*path')
-    async getVolumeFile(@Param('path') paths: string[], @Query('tenant') tenant: string, @Res() res: Response) {
+    async getVolumeFile(
+        @Param('path') paths: string[],
+        @Query('tenant') tenant: string,
+        @Query('download') download: string,
+        @Res() res: Response
+    ) {
         let subpath = paths.join('/')
         if (!tenant) {
             tenant = RequestContext.currentTenantId()
@@ -76,6 +81,7 @@ export class SandboxController {
         // Extract the file extension
         const fileName = subpath.split('?')[0].split('/').pop() || ''
         const mediaType = getMediaTypeWithCharset(filePath) || 'text/plain; charset=utf-8'
+        const shouldForceDownload = ['1', 'true', 'yes'].includes((download ?? '').trim().toLowerCase())
 
         // Set the Content-Type header
         res.setHeader('Content-Type', mediaType)
@@ -89,11 +95,12 @@ export class SandboxController {
             mediaType === 'application/x-www-form-urlencoded' ||
             mediaType === 'application/markdown' ||
             mediaType === 'application/pdf'
-        if (!isPlainText) {
+        if (shouldForceDownload || !isPlainText) {
             const encodedFilename = encodeURIComponent(fileName)
+            const disposition = shouldForceDownload ? 'attachment' : 'inline; attachment'
             res.setHeader(
                 'Content-Disposition',
-                `inline; attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+                `${disposition}; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
             )
         }
 
