@@ -5,7 +5,7 @@ export function createPluginLogger(scope: string, baseMeta: Record<string, any> 
   const nestLogger = new Logger(scope);
   const wrap = (level: keyof Logger, msg: string, meta?: any) => {
     const payload = meta ? { ...baseMeta, ...meta } : baseMeta;
-    // 保持与 Nest Logger 接口对齐
+    // Maintain alignment with the Nest Logger interface
     (nestLogger as any)[level]?.(msg + (Object.keys(payload).length ? ` ${JSON.stringify(payload)}` : ''));
   };
   return {
