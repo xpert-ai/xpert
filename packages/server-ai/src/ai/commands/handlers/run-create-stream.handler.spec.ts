@@ -43,6 +43,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 import { EMPTY, of } from 'rxjs'
 import { ApiKeyBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { hydrateSendRequestHumanInput } from '../../../shared/agent'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
@@ -50,6 +51,186 @@ import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-str
 const conversation = {
     id: 'conversation-1'
 } as any
+
+describe('hydrateSendRequestHumanInput', () => {
+    it('hydrates reference-only send payloads into both message and human state', () => {
+        const referenceText = ['const region = "cn"', 'const workspace = "workspace-1"'].join('\n')
+
+        expect(
+            hydrateSendRequestHumanInput({
+                action: 'send',
+                message: {
+                    input: {
+                        input: '',
+                        references: [
+                            {
+                                path: 'src/example.ts',
+                                startLine: 10,
+                                endLine: 11,
+                                text: referenceText,
+                                taskId: 'task-1'
+                            }
+                        ]
+                    }
+                },
+                state: {
+                    human: {
+                        input: ''
+                    }
+                }
+            })
+        ).toEqual({
+            action: 'send',
+            message: {
+                input: {
+                    input: `Referenced code:\n[src/example.ts:10-11]\n\`\`\`\n${referenceText}\n\`\`\``,
+                    references: [
+                        {
+                            path: 'src/example.ts',
+                            startLine: 10,
+                            endLine: 11,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
+                }
+            },
+            state: {
+                human: {
+                    input: `Referenced code:\n[src/example.ts:10-11]\n\`\`\`\n${referenceText}\n\`\`\``,
+                    references: [
+                        {
+                            path: 'src/example.ts',
+                            startLine: 10,
+                            endLine: 11,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
+                }
+            }
+        })
+    })
+
+    it('appends structured quote references when the sender requests platform composition', () => {
+        expect(
+            hydrateSendRequestHumanInput({
+                action: 'send',
+                message: {
+                    input: {
+                        input: 'Summarize the discussion.',
+                        referenceComposition: 'compose',
+                        references: [
+                            {
+                                type: 'quote',
+                                text: 'The pipeline failed because the sandbox volume was missing.',
+                                source: 'Assistant',
+                                messageId: 'message-2'
+                            }
+                        ]
+                    }
+                }
+            })
+        ).toEqual({
+            action: 'send',
+            message: {
+                input: {
+                    input: 'Summarize the discussion.\n\nReferenced content:\n[Assistant]\n> The pipeline failed because the sandbox volume was missing.',
+                    referenceComposition: 'compose',
+                    references: [
+                        {
+                            type: 'quote',
+                            text: 'The pipeline failed because the sandbox volume was missing.',
+                            source: 'Assistant',
+                            messageId: 'message-2'
+                        }
+                    ]
+                }
+            }
+        })
+    })
+
+    it('preserves an existing human reference array when synthesizing input', () => {
+        const result = hydrateSendRequestHumanInput({
+            action: 'send',
+            message: {
+                input: {
+                    input: '',
+                    references: [
+                        {
+                            path: 'src/example.ts',
+                            startLine: 3,
+                            endLine: 3,
+                            text: 'const answer = 42'
+                        }
+                    ]
+                }
+            },
+            state: {
+                human: {
+                    input: '',
+                    references: [
+                        {
+                            path: 'src/existing.ts',
+                            startLine: 1,
+                            endLine: 1,
+                            text: 'keep me'
+                        }
+                    ]
+                }
+            }
+        })
+
+        expect(result).toMatchObject({
+            state: {
+                human: {
+                    references: [
+                        {
+                            path: 'src/existing.ts',
+                            startLine: 1,
+                            endLine: 1,
+                            text: 'keep me'
+                        }
+                    ]
+                }
+            }
+        })
+    })
+
+    it('keeps an explicit input untouched when references are present but composition was not requested', () => {
+        expect(
+            hydrateSendRequestHumanInput({
+                action: 'send',
+                message: {
+                    input: {
+                        input: 'Keep this exactly as-is.',
+                        references: [
+                            {
+                                type: 'quote',
+                                text: 'Do not duplicate me.',
+                                source: 'Assistant'
+                            }
+                        ]
+                    }
+                }
+            })
+        ).toEqual({
+            action: 'send',
+            message: {
+                input: {
+                    input: 'Keep this exactly as-is.',
+                    references: [
+                        {
+                            type: 'quote',
+                            text: 'Do not duplicate me.',
+                            source: 'Assistant'
+                        }
+                    ]
+                }
+            }
+        })
+    })
+})
 
 describe('validateRunCreateInput', () => {
     beforeEach(() => {
@@ -145,6 +326,91 @@ describe('validateRunCreateInput', () => {
             state: {
                 human: {
                     input: 'Tell me a joke.'
+                }
+            }
+        })
+    })
+
+    it('hydrates legacy reference-only payloads into real human input', () => {
+        const referenceText = [
+            'gramming Language :: Python :: 3.12",',
+            '    "Programming Language :: Python",',
+            '    "Topic :: Software Development",',
+            ']',
+            'requires-python = ">=3.10,<3.13"',
+            'dynamic = ["dependencies", "optional-dependencies", "version"]',
+            ' ',
+            '[project.urls]'
+        ].join('\n')
+
+        const result = validateRunCreateInput(
+            {
+                conversationId: 'conversation-1',
+                input: {
+                    input: '',
+                    references: [
+                        {
+                            label: 'pyproject.toml 14-21',
+                            path: 'pyproject.toml',
+                            startLine: 14,
+                            endLine: 21,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
+                },
+                state: {
+                    human: {
+                        input: '',
+                        references: [
+                            {
+                                label: 'pyproject.toml 14-21',
+                                path: 'pyproject.toml',
+                                startLine: 14,
+                                endLine: 21,
+                                text: referenceText,
+                                taskId: 'task-1'
+                            }
+                        ]
+                    }
+                }
+            },
+            conversation
+        )
+
+        const synthesizedInput = `Referenced code:\n[pyproject.toml:14-21]\n\`\`\`\n${referenceText}\n\`\`\``
+
+        expect(result).toEqual({
+            action: 'send',
+            conversationId: 'conversation-1',
+            message: {
+                input: {
+                    input: synthesizedInput,
+                    references: [
+                        {
+                            label: 'pyproject.toml 14-21',
+                            path: 'pyproject.toml',
+                            startLine: 14,
+                            endLine: 21,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
+                }
+            },
+            state: {
+                human: {
+                    input: synthesizedInput,
+                    references: [
+                        {
+                            label: 'pyproject.toml 14-21',
+                            path: 'pyproject.toml',
+                            startLine: 14,
+                            endLine: 21,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
                 }
             }
         })
