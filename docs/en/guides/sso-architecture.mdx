@@ -45,7 +45,7 @@ Characteristics:
 - pending binding state is stored by the host in Redis
 - local Xpert tokens are always issued by the host, not by the plugin
 
-Today, the concrete provider implementation is the Lark identity plugin.
+Today, the concrete provider implementation is the Lark SSO plugin.
 
 ### 2. Mainline `xpert` account binding compatibility layer
 
@@ -617,9 +617,9 @@ This matches the intended model:
 - anonymous first-login bind endpoints are public
 - current-user confirmation endpoints require an authenticated local session
 
-## Current Provider Implementation: Lark Identity Plugin
+## Current Provider Implementation: Lark SSO Plugin
 
-The current concrete provider implementation lives in `xpert-plugins/xpertai/integrations/lark-identity/`.
+The current concrete provider implementation lives in `xpert-plugins/xpertai/integrations/lark-sso/`.
 
 ### Plugin Declaration
 
@@ -716,7 +716,7 @@ If `union_id` is missing, the callback fails.
 
 ## Lark End-To-End Login Flow
 
-The main behavior lives in `lark-identity.service.ts`.
+The main behavior lives in `lark-sso.service.ts`.
 
 ### Login Start
 
@@ -797,7 +797,7 @@ This prevents open redirects in the current provider implementation.
 
 ## Lark Plugin Routes
 
-`lark-identity.controller.ts` exposes:
+`lark-sso.controller.ts` exposes:
 
 | Endpoint | Visibility | Purpose |
 | --- | --- | --- |
@@ -1041,7 +1041,7 @@ Behavior:
 
 ### Why This Is Not The Main Current SSO Path
 
-This flow differs from the plugin-driven Lark identity system in almost every architectural choice:
+This flow differs from the plugin-driven Lark SSO system in almost every architectural choice:
 
 | Legacy Feishu Social Auth | Current Plugin-Driven Lark SSO |
 | --- | --- |

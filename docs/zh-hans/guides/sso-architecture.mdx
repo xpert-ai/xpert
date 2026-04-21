@@ -1,6 +1,6 @@
 ---
 title: SSO 技术架构调研
-description: 基于当前仓库实现，系统梳理 Xpert 主线 SSO、Lark 身份插件、xpert-pro OIDC / Keycloak，以及遗留 Feishu social auth 的边界与机制。
+description: 基于当前仓库实现，系统梳理 Xpert 主线 SSO、Lark SSO 插件、xpert-pro OIDC / Keycloak，以及遗留 Feishu social auth 的边界与机制。
 ---
 
 # SSO 技术架构调研
@@ -697,11 +697,11 @@ Lark 插件做了这件事，但这是“插件责任”，不是“宿主统一
 - 匿名首次登录绑定流程是公开入口
 - 当前用户确认绑定流程必须依赖已有本地登录态
 
-## 十六、当前真正落地的 provider：Lark Identity 插件
+## 十六、当前真正落地的 provider：Lark SSO 插件
 
 当前 provider 实现位于：
 
-- `xpert-plugins/xpertai/integrations/lark-identity/`
+- `xpert-plugins/xpertai/integrations/lark-sso/`
 
 关键文件包括：
 
@@ -709,8 +709,8 @@ Lark 插件做了这件事，但这是“插件责任”，不是“宿主统一
 - `lark-sso-provider.strategy.ts`
 - `lark-state.service.ts`
 - `lark-oauth.service.ts`
-- `lark-identity.service.ts`
-- `lark-identity.controller.ts`
+- `lark-sso.service.ts`
+- `lark-sso.controller.ts`
 
 ### 16.1 插件声明
 
@@ -799,7 +799,7 @@ payload 当前会携带：
 
 这部分是整条主线的核心，全部在：
 
-- `lark-identity.service.ts`
+- `lark-sso.service.ts`
 
 当前完整行为是：
 
@@ -862,7 +862,7 @@ Lark 插件当前接受的 `returnTo` 只有两类：
 
 ## 二十一、Lark 插件对外暴露哪些路由
 
-`lark-identity.controller.ts` 当前提供：
+`lark-sso.controller.ts` 当前提供：
 
 | 路由 | 是否公开 | 当前用途 |
 | --- | --- | --- |
