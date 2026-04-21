@@ -1,7 +1,15 @@
-import type { TChatCodeReference, TChatQuoteReference, TChatReference } from '@xpert-ai/contracts'
+import type {
+  TChatCodeReference,
+  TChatElementReference,
+  TChatElementReferenceCandidateFields,
+  TChatQuoteReference,
+  TChatReference
+} from '@xpert-ai/contracts'
 import type { TChatRequestHuman } from '@cloud/app/@core'
 
 export type XpertCodeReference = TChatCodeReference
+
+export type XpertElementReference = TChatElementReference
 
 export type XpertQuoteReference = TChatQuoteReference
 
@@ -19,20 +27,25 @@ export type XpertChatRequestHuman = TChatRequestHuman & {
   referenceComposition?: XpertReferenceCompositionMode
 }
 
-type ChatReferenceCandidate = {
+type ChatReferenceCandidate = TChatElementReferenceCandidateFields & {
+  endLine?: unknown
   type?: unknown
   id?: unknown
   label?: unknown
-  text?: unknown
-  path?: unknown
-  startLine?: unknown
-  endLine?: unknown
   language?: unknown
-  taskId?: unknown
   messageId?: unknown
+  path?: unknown
   source?: unknown
+  startLine?: unknown
+  taskId?: unknown
+  text?: unknown
   input?: unknown
   references?: unknown
+}
+
+type ChatElementAttributeCandidate = {
+  name?: unknown
+  value?: unknown
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -45,6 +58,15 @@ function isOptionalString(value: unknown): value is string | undefined {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isElementAttribute(value: unknown): value is { name: string; value: string } {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as ChatElementAttributeCandidate
+  return isNonEmptyString(candidate.name) && typeof candidate.value === 'string'
 }
 
 function isCodeReference(value: unknown): value is XpertCodeReference {
@@ -88,13 +110,39 @@ function isQuoteReference(value: unknown): value is XpertQuoteReference {
   )
 }
 
+function isElementReference(value: unknown): value is XpertElementReference {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as ChatReferenceCandidate
+  if (candidate.type !== 'element') {
+    return false
+  }
+
+  return (
+    isNonEmptyString(candidate.text) &&
+    isNonEmptyString(candidate.serviceId) &&
+    isNonEmptyString(candidate.pageUrl) &&
+    isNonEmptyString(candidate.selector) &&
+    isNonEmptyString(candidate.tagName) &&
+    isNonEmptyString(candidate.outerHtml) &&
+    Array.isArray(candidate.attributes) &&
+    candidate.attributes.every((attribute) => isElementAttribute(attribute)) &&
+    isOptionalString(candidate.id) &&
+    isOptionalString(candidate.label) &&
+    isOptionalString(candidate.pageTitle) &&
+    isOptionalString(candidate.role)
+  )
+}
+
 export function normalizeReferences(value: unknown): XpertChatReference[] {
   if (!Array.isArray(value)) {
     return []
   }
 
   return value.filter((reference): reference is XpertChatReference => {
-    return isCodeReference(reference) || isQuoteReference(reference)
+    return isCodeReference(reference) || isQuoteReference(reference) || isElementReference(reference)
   })
 }
 
@@ -123,6 +171,10 @@ export function getReferenceKey(reference: XpertChatReference): string {
 
   if (reference.type === 'code') {
     return [reference.type, reference.path, reference.startLine, reference.endLine, reference.text].join(':')
+  }
+
+  if (reference.type === 'element') {
+    return [reference.type, reference.serviceId, reference.pageUrl, reference.selector, reference.text].join(':')
   }
 
   return [reference.type, reference.messageId ?? '', reference.source ?? '', reference.text].join(':')
@@ -160,6 +212,10 @@ export function getReferenceLabel(reference: XpertChatReference): string {
     return `${reference.path}:${getCodeReferenceRange(reference)}`
   }
 
+  if (reference.type === 'element') {
+    return `${reference.tagName.toLowerCase()} ${reference.selector}`
+  }
+
   const normalized = reference.text.replace(/\s+/g, ' ').trim()
   if (normalized.length <= 32) {
     return normalized
@@ -171,6 +227,10 @@ export function getReferenceLabel(reference: XpertChatReference): string {
 export function getReferenceSource(reference: XpertChatReference): string | null {
   if (reference.type === 'code') {
     return reference.language?.trim() || null
+  }
+
+  if (reference.type === 'element') {
+    return reference.pageTitle?.trim() || reference.pageUrl.trim()
   }
 
   if (isNonEmptyString(reference.source)) {

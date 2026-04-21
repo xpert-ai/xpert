@@ -106,6 +106,24 @@ jest.mock('./clawxpert-conversation-files.component', () => {
   }
 })
 
+jest.mock('./clawxpert-conversation-preview.component', () => {
+  const { Component, EventEmitter, Input, Output } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'pac-clawxpert-conversation-preview',
+    template: ''
+  })
+  class ClawXpertConversationPreviewComponent {
+    @Input() conversationId?: string | null
+    @Output() referenceRequest = new EventEmitter()
+  }
+
+  return {
+    ClawXpertConversationPreviewComponent
+  }
+})
+
 jest.mock('../../../@shared/chat/terminal/terminal.component', () => {
   const { Component, Input } = jest.requireActual('@angular/core')
 
@@ -158,6 +176,7 @@ import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-ti
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
+import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 
 jest.mock('../../assistant/assistant-chatkit.runtime', () => {
@@ -373,6 +392,18 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((computerTimeline.componentInstance as ChatComputerTimelineComponent).projectId).toBe('project-1')
   })
 
+  it('renders the preview panel with the resolved conversation context', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    fixture.nativeElement.querySelector('[data-panel-button="preview"]').click()
+    await settle(fixture)
+
+    const preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
+    expect(preview).not.toBeNull()
+    expect((preview.componentInstance as ClawXpertConversationPreviewComponent).conversationId).toBe('conversation-1')
+  })
+
   it('transitions the layout into a main workspace with a right-side chat dialog when a panel opens', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
@@ -519,6 +550,69 @@ describe('ClawXpertConversationDetailComponent', () => {
           startLine: 2,
           endLine: 2,
           language: 'typescript'
+        }
+      ],
+      appendReferences: true
+    })
+    expect(focusComposer).toHaveBeenCalled()
+  })
+
+  it('appends selected preview element references to the chatkit composer', async () => {
+    const setComposerValue = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue,
+        focusComposer
+      })
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    fixture.nativeElement.querySelector('[data-panel-button="preview"]').click()
+    await settle(fixture)
+
+    const preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
+    expect(preview).not.toBeNull()
+
+    ;(preview.componentInstance as ClawXpertConversationPreviewComponent).referenceRequest.emit({
+      attributes: [
+        {
+          name: 'data-testid',
+          value: 'hero-title'
+        }
+      ],
+      outerHtml: '<h1 data-testid="hero-title">Hello</h1>',
+      pageTitle: 'Preview Page',
+      pageUrl: 'http://localhost:4173/',
+      selector: 'main > h1',
+      serviceId: 'service-1',
+      tagName: 'h1',
+      text: 'Hello',
+      type: 'element'
+    })
+    await settle(fixture)
+
+    expect(setComposerValue).toHaveBeenCalledWith({
+      references: [
+        {
+          attributes: [
+            {
+              name: 'data-testid',
+              value: 'hero-title'
+            }
+          ],
+          outerHtml: '<h1 data-testid="hero-title">Hello</h1>',
+          pageTitle: 'Preview Page',
+          pageUrl: 'http://localhost:4173/',
+          selector: 'main > h1',
+          serviceId: 'service-1',
+          tagName: 'h1',
+          text: 'Hello',
+          type: 'element'
         }
       ],
       appendReferences: true
