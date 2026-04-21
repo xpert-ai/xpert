@@ -5,6 +5,7 @@ import { Component, computed, HostListener, inject, model, signal, ViewContainer
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
+import { DEFAULT_XPERT_AGENT_RECURSION_LIMIT } from '@xpert-ai/contracts'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, linkedModel, nonBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -111,7 +112,7 @@ export class XpertStudioHeaderComponent {
     }
   })
   readonly maxConcurrency = attrModel(this.agentConfig, 'maxConcurrency')
-  readonly recursionLimit = attrModel(this.agentConfig, 'recursionLimit', 1000)
+  readonly recursionLimit = attrModel(this.agentConfig, 'recursionLimit', DEFAULT_XPERT_AGENT_RECURSION_LIMIT)
 
   // Executions
   readonly xpertId$ = toObservable(this.team).pipe(

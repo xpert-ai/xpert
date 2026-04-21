@@ -37,14 +37,15 @@ import { XpertSkillRepositoriesComponent } from '../skill-repositories/skill-rep
         </div>
         <div class="min-w-0">
           <h4 class="text-lg font-semibold text-text-primary">
-            {{ 'PAC.Xpert.InstallWorkspaceSkillsTitle' | translate: { Default: 'Install skills into this workspace' } }}
+            {{ 'PAC.Xpert.InstallWorkspaceSkillsTitle' | translate: { Default: 'Install or update skills in this workspace' } }}
           </h4>
           <p class="mt-1 text-sm leading-6 text-text-secondary">
             {{
               'PAC.Xpert.InstallWorkspaceSkillsDialogDesc'
                 | translate
                   : {
-                      Default: 'Browse repositories, pick a skill, and install it into the current workspace.'
+                      Default:
+                        'Browse repositories, pick a skill, and install it into the current workspace. Existing installs are reused, and newer versions update in place.'
                     }
             }}
           </p>

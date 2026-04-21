@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { TMessageComponent, TMessageContentMemory } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -13,10 +14,12 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 })
 export class ChatComponentMemoriesComponent {
   // Inputs
-  readonly memories = input<any[]>()
+  readonly message = input<TMessageComponent>()
 
   // States
   readonly expand = signal(false)
+
+  readonly memories = computed(() => (<TMessageComponent<TMessageContentMemory>>this.message())?.data)
 
   toggleExand() {
     this.expand.update((state) => !state)

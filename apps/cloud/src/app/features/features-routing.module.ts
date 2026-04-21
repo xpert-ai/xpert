@@ -71,19 +71,19 @@ export const routes: Routes = [
       },
 
       // BI Routers
-      {
-        path: 'dashboard',
-        canActivate: [authGuard],
-        data: {
-          title: 'Dashboard',
-          scopeContext: 'dual-scope',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.STORIES_VIEW],
-            redirectTo
-          }
-        },
-        loadChildren: () => import('./home/home.module').then((m) => m.HomeModule)
-      },
+      // {
+      //   path: 'dashboard',
+      //   canActivate: [authGuard],
+      //   data: {
+      //     title: 'Dashboard',
+      //     scopeContext: 'dual-scope',
+      //     permissions: {
+      //       only: [AnalyticsPermissionsEnum.STORIES_VIEW],
+      //       redirectTo
+      //     }
+      //   },
+      //   loadChildren: () => import('./home/home.module').then((m) => m.HomeModule)
+      // },
       {
         path: 'story',
         loadChildren: () => import('./story/story.module').then((m) => m.PACStoryModule),
@@ -97,11 +97,6 @@ export const routes: Routes = [
           }
         }
       },
-      // {
-      //   path: 'subscription',
-      //   loadChildren: () => import('./subscription/subscription.module').then((m) => m.PACSubscriptionModule),
-      //   canActivate: [authGuard]
-      // },
       {
         path: 'indicator-app',
         loadChildren: () => import('@xpert-ai/cloud/indicator-market').then((m) => m.IndicatorMarketModule),

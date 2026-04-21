@@ -1,7 +1,6 @@
 import {
 	AiModelTypeEnum,
 	AiProviderRole,
-	ISkillRepository,
 	LanguagesEnum,
 	RolesEnum,
 	TCopilotModel,
@@ -13,27 +12,26 @@ import { getErrorMessage, yaml } from '@xpert-ai/server-common'
 import {
 	OrganizationCreatedEvent,
 	OrganizationService,
-	runWithRequestContext,
 	TenantCreatedEvent,
 	UserOrganizationCreatedEvent,
 	UserOrganizationDeletedEvent,
 	UserOrganizationService,
-	UserService
+	UserService,
+	runWithRequestContext as runWithLegacyRequestContext
 } from '@xpert-ai/server-core'
+import { RequestContext, runWithRequestContext } from '@xpert-ai/plugin-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
 import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
-import { SkillRepositoryIndexService, SkillRepositoryService } from '../skill-repository'
+import { SkillRepositoryIndexService } from '../skill-repository'
+import { SkillPackageService } from '../skill-package'
 import { XpertImportCommand, XpertService } from '../xpert'
 import { EnvironmentService } from '../environment'
+import { TemplateSkillSyncService } from '../xpert-template/template-skill-sync.service'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
-import { DEFAULT_ENVIRONMENT_NAME, DEFAULT_ORGANIZATION_WORKSPACE_NAME } from './constants'
-
-type DefaultSkillRepositoryConfig = {
-	repositories?: Array<Pick<ISkillRepository, 'name' | 'provider'> & Partial<Pick<ISkillRepository, 'options' | 'credentials'>>>
-}
+import { DEFAULT_ENVIRONMENT_NAME, getDefaultOrganizationWorkspaceName } from './constants'
 
 export type OrganizationBootstrapResult = {
 	repositoryIds: string[]
@@ -43,22 +41,33 @@ export type TenantSkillRepositoryBootstrapResult = {
 	repositoryIds: string[]
 }
 
-const DEFAULT_SKILL_REPOSITORIES_ENV = 'AI_DEFAULT_SKILL_REPOSITORIES'
-const DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY = 'xpert-authoring-assistant'
+export type UserOrganizationBootstrapResult = {
+	workspaceId: string | null
+	createdNewUserDefaultWorkspace: boolean
+}
 
-type DefaultSkillRepositoryEntry = Pick<ISkillRepository, 'name' | 'provider'> &
-	Partial<Pick<ISkillRepository, 'options' | 'credentials'>>
+type EnsuredUserWorkspaceResult = {
+	workspace: WorkspaceWithId
+	created: boolean
+}
+
+type WorkspaceWithId = {
+	id: string
+	ownerId?: string | null
+}
+
+const DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY = 'xpert-authoring-assistant'
 
 type BootstrapModelScanContext = {
 	nodeType?: string
 	workflowEntityType?: WorkflowNodeTypeEnum | string
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isObjectValue = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const isDefaultSkillRepositoryEntry = (value: unknown): value is DefaultSkillRepositoryEntry =>
-	isRecord(value) && typeof value.name === 'string' && typeof value.provider === 'string'
+const hasWorkspaceId = (workspace: { id?: string | null }): workspace is WorkspaceWithId =>
+	typeof workspace.id === 'string' && !!workspace.id
 
 @Injectable()
 export class ServerAIBootstrapService {
@@ -73,10 +82,11 @@ export class ServerAIBootstrapService {
 		private readonly userOrganizationService: UserOrganizationService,
 		private readonly workspaceService: XpertWorkspaceService,
 		private readonly environmentService: EnvironmentService,
-		private readonly skillRepositoryService: SkillRepositoryService,
 		private readonly skillRepositoryIndexService: SkillRepositoryIndexService,
+		private readonly skillPackageService: SkillPackageService,
 		private readonly xpertService: XpertService,
-		private readonly xpertTemplateService: XpertTemplateService
+		private readonly xpertTemplateService: XpertTemplateService,
+		private readonly templateSkillSyncService: TemplateSkillSyncService
 	) {}
 
 	async bootstrapOrganization(event: OrganizationCreatedEvent): Promise<OrganizationBootstrapResult> {
@@ -87,7 +97,6 @@ export class ServerAIBootstrapService {
 		await this.runInOrganizationContext(owner, event.organizationId, async () => {
 			const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
 			await this.ensureDefaultEnvironment(workspace.id)
-			await this.skillRepositoryService.ensureWorkspacePublicRepository()
 
 			for (const memberId of memberIds) {
 				await this.workspaceService.ensureMember(workspace.id, memberId)
@@ -108,31 +117,107 @@ export class ServerAIBootstrapService {
 	}
 
 	async bootstrapTenantSkillRepositories(event: TenantCreatedEvent): Promise<TenantSkillRepositoryBootstrapResult> {
-		const configuredRepositories = this.loadDefaultSkillRepositories()
-		if (!configuredRepositories.length) {
-			return { repositoryIds: [] }
-		}
-
 		const owner = await this.resolveTenantBootstrapUser(event.tenantId)
-		const repositoryIds = await this.runInTenantContext(owner, async () =>
-			this.ensureTenantSkillRepositories(configuredRepositories, event.tenantId)
-		)
+		await this.runInTenantContext(owner, async () => {
+			await this.templateSkillSyncService.syncCurrentTenantSkillAssets({
+				mode: 'full',
+				validateOnly: false,
+				skipLock: true,
+				updateFingerprint: true
+			})
+		})
 
-		return { repositoryIds }
+		return { repositoryIds: [] }
 	}
 
-	async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent) {
+	async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent): Promise<UserOrganizationBootstrapResult> {
 		const user = await this.userService.findOne(event.userId, { relations: ['role'] })
+		let workspaceId: string | null = null
+		let createdNewUserDefaultWorkspace = false
 
 		await this.runInOrganizationContext(user, event.organizationId, async () => {
 			if (this.shouldBootstrapPersonalWorkspace(user)) {
-				const workspace = await this.ensureUserWorkspace(event.organizationId, user)
+				const { workspace, created } = await this.ensureUserWorkspace(event.organizationId, user)
 				await this.ensureDefaultEnvironment(workspace.id)
+				workspaceId = workspace.id
+				createdNewUserDefaultWorkspace = created
 			}
 
 			const organizationWorkspace = await this.workspaceService.findOrganizationDefaultWorkspace(event.organizationId)
 			if (organizationWorkspace) {
+				// await this.bootstrapTemplateSkillBundlesToPublicRepository(organizationWorkspace.id)
 				await this.workspaceService.ensureMember(organizationWorkspace.id, user.id)
+			}
+		})
+
+		return {
+			workspaceId,
+			createdNewUserDefaultWorkspace
+		}
+	}
+
+	async bootstrapUserDefaultWorkspaceSkills(event: {
+		tenantId: string
+		organizationId: string
+		userId: string
+		workspaceId: string
+	}) {
+		const user = await this.userService.findOne(event.userId, { relations: ['role'] })
+
+		await this.runInOrganizationContext(user, event.organizationId, async () => {
+			const skillRefs = await this.xpertTemplateService.getBootstrapDefaultSkillRefs()
+			if (!skillRefs.length) {
+				return
+			}
+
+			const resolvedSkills = await this.xpertTemplateService.resolveSkillRefs(skillRefs)
+			const resolvedKeys = new Set(
+				resolvedSkills.map(({ ref }) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
+			)
+			const unresolvedRefs = skillRefs.filter(
+				(ref) => !resolvedKeys.has(`${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
+			)
+			const failedInstalls: Array<{ label: string; reason: string }> = []
+
+			for (const { ref, skill } of resolvedSkills) {
+				try {
+					await this.skillPackageService.ensureInstalledSkillPackage(event.workspaceId, skill.id)
+				} catch (error) {
+					const label = `${ref.provider}:${ref.repositoryName}:${ref.skillId}`
+					const reason = getErrorMessage(error)
+					failedInstalls.push({ label, reason })
+					this.logger.error(
+						`Failed installing default workspace skill '${label}' into '${event.workspaceId}': ${reason}`,
+						error as Error
+					)
+				}
+			}
+
+			if (unresolvedRefs.length) {
+				const unresolvedLabels = unresolvedRefs.map(
+					(ref) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`
+				)
+				this.logger.warn(
+					`Default workspace skills are not ready for '${event.workspaceId}', waiting for repository indexes: ${unresolvedLabels.join(
+						', '
+					)}`
+				)
+			}
+
+			if (failedInstalls.length || unresolvedRefs.length) {
+				const reasons = [
+					unresolvedRefs.length
+						? `unresolved: ${unresolvedRefs
+								.map((ref) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
+								.join(', ')}`
+						: null,
+					failedInstalls.length
+						? `failed: ${failedInstalls
+								.map(({ label, reason }) => `${label} (${reason})`)
+								.join(', ')}`
+						: null
+				].filter(Boolean)
+				throw new Error(`Default workspace skill bootstrap incomplete for '${event.workspaceId}' (${reasons.join('; ')})`)
 			}
 		})
 	}
@@ -163,80 +248,6 @@ export class ServerAIBootstrapService {
 		await this.runInTenantContext(owner, async () => {
 			await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
 		})
-	}
-
-	private async ensureTenantSkillRepositories(repositories = this.loadDefaultSkillRepositories(), tenantId?: string) {
-		if (!repositories.length) {
-			return []
-		}
-
-		return this.ensureDefaultSkillRepositories(repositories, `tenant '${tenantId ?? 'unknown'}'`)
-	}
-
-	private async ensureDefaultSkillRepositories(repositories: DefaultSkillRepositoryEntry[], scopeLabel: string) {
-		const repositoryIds: string[] = []
-		for (const repository of repositories) {
-			const name = repository.name?.trim()
-			const provider = repository.provider?.trim()
-			if (!name || !provider) {
-				this.logger.warn(`Skipping invalid default skill repository entry: ${JSON.stringify(repository)}`)
-				continue
-			}
-
-			try {
-				const { items } = await this.skillRepositoryService.findAll({
-					where: {
-						name,
-						provider
-					},
-					take: 1
-				})
-				const existing = items[0]
-				const saved = await this.skillRepositoryService.register({
-					...(existing ? { id: existing.id } : {}),
-					name,
-					provider,
-					options: repository.options ?? null,
-					credentials: repository.credentials ?? null
-				})
-
-				if (saved?.id) {
-					repositoryIds.push(saved.id)
-				}
-			} catch (error) {
-				this.logger.error(
-					`Failed to initialize default skill repository '${name}' (${provider}) for ${scopeLabel}: ${getErrorMessage(
-						error
-					)}`,
-					error as Error
-				)
-			}
-		}
-
-		return repositoryIds
-	}
-
-	private loadDefaultSkillRepositories() {
-		try {
-			const content = this.configService.get<string>(DEFAULT_SKILL_REPOSITORIES_ENV)?.trim()
-			if (!content) {
-				return []
-			}
-
-			const parsed = JSON.parse(content) as DefaultSkillRepositoryConfig | DefaultSkillRepositoryEntry[]
-			const repositories = Array.isArray(parsed)
-				? parsed
-				: Array.isArray(parsed?.repositories)
-					? parsed.repositories
-					: []
-
-			return repositories.filter(isDefaultSkillRepositoryEntry)
-		} catch (error) {
-			this.logger.warn(
-				`Failed to load default skill repositories from env '${DEFAULT_SKILL_REPOSITORIES_ENV}': ${getErrorMessage(error)}`
-			)
-			return []
-		}
 	}
 
 	private async resolveBootstrapUser(organizationId: string, preferredUserId?: string | null) {
@@ -300,7 +311,7 @@ export class ServerAIBootstrapService {
 
 		if (!workspace) {
 			workspace = await this.workspaceService.create({
-				name: DEFAULT_ORGANIZATION_WORKSPACE_NAME,
+				name: getDefaultOrganizationWorkspaceName(),
 				status: 'active',
 				ownerId,
 				settings: {
@@ -319,8 +330,9 @@ export class ServerAIBootstrapService {
 		return workspace
 	}
 
-	private async ensureUserWorkspace(organizationId: string, user: IUser) {
+	private async ensureUserWorkspace(organizationId: string, user: IUser): Promise<EnsuredUserWorkspaceResult> {
 		let workspace = await this.workspaceService.findUserDefaultWorkspace(organizationId, user.id)
+		let created = false
 
 		if (!workspace) {
 			workspace = await this.workspaceService.create({
@@ -334,10 +346,18 @@ export class ServerAIBootstrapService {
 					}
 				}
 			})
+			created = true
+		}
+
+		if (!hasWorkspaceId(workspace)) {
+			throw new Error(`User default workspace for '${user.id}' is missing an id`)
 		}
 
 		await this.workspaceService.ensureMember(workspace.id, user.id)
-		return workspace
+		return {
+			workspace,
+			created
+		}
 	}
 
 	private shouldBootstrapPersonalWorkspace(user: IUser) {
@@ -494,12 +514,12 @@ export class ServerAIBootstrapService {
 				return
 			}
 
-			if (!isRecord(value)) {
+			if (!isObjectValue(value)) {
 				return
 			}
 
 			for (const [key, child] of Object.entries(value)) {
-				const childRecord = isRecord(child) ? child : null
+				const childRecord = isObjectValue(child) ? child : null
 				const nextContext = this.extendBootstrapModelScanContext(value, key, childRecord, context)
 
 				if (childRecord && this.shouldTreatAsBootstrapModelTarget(key, childRecord, nextContext)) {
@@ -511,7 +531,7 @@ export class ServerAIBootstrapService {
 						childRecord['copilotId'] = selection.copilotId
 						childRecord['model'] = selection.model
 						childRecord['modelType'] = selection.modelType
-						if (!isRecord(childRecord['options']) && selection.options) {
+						if (!isObjectValue(childRecord['options']) && selection.options) {
 							childRecord['options'] = structuredClone(selection.options)
 						}
 						changed = true
@@ -632,33 +652,45 @@ export class ServerAIBootstrapService {
 	}
 
 	private async runInOrganizationContext<T>(user: IUser, organizationId: string, callback: () => Promise<T>) {
-		return new Promise<T>((resolve, reject) => {
-			runWithRequestContext(
-				{
-					user,
-					headers: {
-						['organization-id']: organizationId,
-						language: user.preferredLanguage ?? LanguagesEnum.English
-					}
-				},
-				() => {
-					callback().then(resolve).catch(reject)
-				}
-			)
-		})
+		return this.runInRequestContext(
+			user,
+			{
+				['organization-id']: organizationId,
+				language: user.preferredLanguage ?? LanguagesEnum.English
+			},
+			callback
+		)
 	}
 
 	private async runInTenantContext<T>(user: IUser, callback: () => Promise<T>) {
+		return this.runInRequestContext(
+			user,
+			{
+				language: user.preferredLanguage ?? LanguagesEnum.English
+			},
+			callback
+		)
+	}
+
+	private async runInRequestContext<T>(
+		user: IUser,
+		headers: Record<string, string>,
+		callback: () => Promise<T>
+	) {
+		const request = {
+			user,
+			headers
+		}
+
 		return new Promise<T>((resolve, reject) => {
 			runWithRequestContext(
-				{
-					user,
-					headers: {
-						language: user.preferredLanguage ?? LanguagesEnum.English
-					}
-				},
+				request,
+				{},
 				() => {
-					callback().then(resolve).catch(reject)
+					const scopedRequest = RequestContext.currentRequest() ?? request
+					runWithLegacyRequestContext(scopedRequest, () => {
+						callback().then(resolve).catch(reject)
+					})
 				}
 			)
 		})

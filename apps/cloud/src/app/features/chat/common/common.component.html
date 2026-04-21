@@ -1,11 +1,31 @@
 <section class="min-h-0 flex-1 flex h-full flex-col overflow-hidden">
   @switch (status()) {
     @case ('ready') {
-      <xpert-webapp class="block h-full min-h-0 overflow-y-auto">
-        @if (!currentXpert()) {
-          <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
-        }
+      <xpert-webapp class="block h-full min-h-0 overflow-y-auto" idleLayout="welcome">
+        <div class="flex w-full flex-col items-center gap-6">
+          @if (showChangeSettingsAction()) {
+            <div class="flex w-full justify-end">
+              <a
+                class="inline-flex shrink-0 items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
+                [routerLink]="assistantsRoute"
+              >
+                {{ 'PAC.Assistant.ChangeSettings' | translate: { Default: 'Change Settings' } }}
+              </a>
+            </div>
+          }
 
+          <div class="max-w-3xl text-center text-sm leading-6 text-text-secondary">
+            {{
+              'PAC.Chat.CommonWelcomeDescription'
+                | translate
+                  : {
+                      Default: 'Choose a digital expert from your workspace, or start directly in the common chat.'
+                    }
+            }}
+          </div>
+
+          <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
+        </div>
         <button
           action
           class="inline-flex h-9 max-w-[160px] items-center justify-center gap-2 truncate rounded-xl border border-button-outline-border px-3.5 py-2 pl-3 pr-2.5 text-base font-medium leading-[normal] text-text-primary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50 sm:border-0 sm:px-3"

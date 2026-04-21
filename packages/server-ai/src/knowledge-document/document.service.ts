@@ -16,6 +16,17 @@ import { LoadStorageFileCommand } from '../shared'
 import { KnowledgeDocumentPage } from '../core/entities/internal'
 import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 
+function isCountableDocument(document: Pick<IKnowledgeDocument, 'sourceType' | 'metadata'> | null | undefined) {
+	if (!document || document.sourceType === KDocumentSourceType.FOLDER) {
+		return false
+	}
+
+	if (!document.metadata || typeof document.metadata !== 'object') {
+		return true
+	}
+
+	return !('systemManaged' in document.metadata) || document.metadata.systemManaged !== true
+}
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
@@ -355,13 +366,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		const document = await this.findOne(id, {
 			relations: ['knowledgebase', 'knowledgebase.documents'],
 			select: {
-				knowledgebase: { id: true, documentNum: true, documents: { id: true, sourceType: true } }
+				knowledgebase: { id: true, documentNum: true, documents: { id: true, sourceType: true, metadata: true } }
 			}
 		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase, false)
 		await vectorStore.deleteKnowledgeDocument(document)
 
-		document.knowledgebase.documentNum = document.knowledgebase.documents.filter((doc) => doc.sourceType !== KDocumentSourceType.FOLDER).length - 1
+		const nextDocumentNum =
+			document.knowledgebase.documents.filter(isCountableDocument).length -
+			(isCountableDocument(document) ? 1 : 0)
+		document.knowledgebase.documentNum = nextDocumentNum
 		await this.knowledgebaseService.update(document.knowledgebaseId, {
 			documentNum: document.knowledgebase.documentNum
 		})

@@ -38,6 +38,13 @@ import { ChatService, PendingFollowUp } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { FileIconComponent } from '@cloud/app/@shared/files'
 import {
+  getReferenceKey,
+  getReferenceLabel,
+  getReferenceSource,
+  mergeReferences,
+  XpertChatReference
+} from '../../@shared/chat/references'
+import {
   buildContextUsageTooltip,
   getHistoricalContextTokens,
   resolveContextUsage,
@@ -147,6 +154,12 @@ export class ChatInputComponent {
   )
 
   readonly isComposing = signal(false)
+  readonly references = signal<XpertChatReference[]>([])
+  readonly hasReferences = computed(() => this.references().length > 0)
+  readonly canSend = computed(() => (!!this.draftPrompt() || this.hasReferences()) && !this.disabled())
+  readonly referenceKey = getReferenceKey
+  readonly referenceLabel = getReferenceLabel
+  readonly referenceSource = getReferenceSource
 
   // Attachments
   readonly features = computed(() => this.xpert()?.features)
@@ -196,11 +209,11 @@ export class ChatInputComponent {
 
   send() {
     const content = this.draftPrompt()
-    if (!content) {
+    if (!content && !this.hasReferences()) {
       return
     }
 
-    this.ask(content)
+    this.ask(content ?? '')
   }
 
   // askWebsocket() {
@@ -216,10 +229,16 @@ export class ChatInputComponent {
   // }
 
   ask(content: string) {
+    const references = this.references()
+    if (!content && !references.length) {
+      return
+    }
+
     const id = uuid()
     this.chatService.sendMessage({
       id,
       content,
+      references,
       followUpMode: this.followUpBehavior(),
       files: this.files()?.map((file) => ({
         id: file.id,
@@ -237,6 +256,7 @@ export class ChatInputComponent {
 
     // Clear
     this.attachments.set([])
+    this.references.set([])
 
     this.asked.emit(content)
   }
@@ -253,9 +273,9 @@ export class ChatInputComponent {
     if (event.key === 'Enter') {
       event.preventDefault()
       const text = this.draftPrompt()
-      if (text) {
+      if (text || this.hasReferences()) {
         setTimeout(() => {
-          this.ask(text)
+          this.ask(text ?? '')
         })
       }
       return
@@ -318,13 +338,19 @@ export class ChatInputComponent {
     this.chatService.updatePendingFollowUp(item)
   }
 
-  editPendingFollowUp(item?: { id?: string; content: string; mode: 'queue' | 'steer' }) {
-    if (!item?.content) {
+  editPendingFollowUp(item?: {
+    id?: string
+    content: string
+    references?: XpertChatReference[]
+    mode: 'queue' | 'steer'
+  }) {
+    if (!item || (!item.content && !item.references?.length)) {
       return
     }
 
     this.followUpBehavior.set(item.mode)
     this.promptControl.setValue(item.content)
+    this.references.set(item.references ?? [])
     this.removePendingFollowUp(item.id)
 
     queueMicrotask(() => {
@@ -336,6 +362,19 @@ export class ChatInputComponent {
 
   clearPendingFollowUps() {
     this.chatService.clearPendingFollowUps()
+  }
+
+  addReferences(references: XpertChatReference[]) {
+    if (!references.length) {
+      return
+    }
+
+    this.references.update((current) => mergeReferences(current, references))
+  }
+
+  removeReference(reference: XpertChatReference) {
+    const key = this.referenceKey(reference)
+    this.references.update((current) => current.filter((item) => this.referenceKey(item) !== key))
   }
 
   // Attachments

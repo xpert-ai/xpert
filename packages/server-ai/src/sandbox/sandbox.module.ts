@@ -4,8 +4,10 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { CommandHandlers } from './commands/handlers'
+import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxService } from './sandbox.service'
 import { SandboxController } from './sandbox.controller'
+import { SandboxTerminalGateway } from './sandbox-terminal.gateway'
 import { ChatConversationModule } from '../chat-conversation'
 
 @Module({
@@ -18,7 +20,13 @@ import { ChatConversationModule } from '../chat-conversation'
 		ChatConversationModule
 	],
 	controllers: [SandboxController],
-	providers: [SandboxService, SandboxProviderRegistry, ...CommandHandlers],
-	exports: [SandboxService, SandboxProviderRegistry]
+	providers: [
+		SandboxService,
+		SandboxProviderRegistry,
+		SandboxConversationContextService,
+		SandboxTerminalGateway,
+		...CommandHandlers
+	],
+	exports: [SandboxService, SandboxProviderRegistry, SandboxConversationContextService]
 })
 export class SandboxModule {}

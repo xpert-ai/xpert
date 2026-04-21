@@ -291,7 +291,7 @@
                         "background": "rgba(254, 247, 195, 0.8)"
                     },
                     "id": "xpert-my-claw-xpert",
-                    "category": "Claw",
+                    "category": "claw",
                     "copyright": null,
                     "privacyPolicy": null,
                     "copilotModel": {

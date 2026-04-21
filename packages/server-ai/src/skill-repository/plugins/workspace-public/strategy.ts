@@ -11,7 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { ISkillSourceProvider, SkillSourceProviderStrategy } from '@xpert-ai/plugin-sdk'
 import { cp, mkdir, rm, stat } from 'fs/promises'
 import { join } from 'path'
-import { IsNull, Not, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { SkillPackage } from '../../../skill-package/skill-package.entity'
 import { getOrganizationSharedSkillPath } from '../../types'
 
@@ -72,8 +72,8 @@ export class WorkspacePublicSkillSourceProvider implements ISkillSourceProvider 
 			zh_Hans: '工作区共享技能'
 		},
 		description: {
-			en_US: 'System managed repository for workspace skills shared to the current organization.',
-			zh_Hans: '系统管理的工作区技能共享仓库。'
+			en_US: 'System managed repository for workspace skills shared to the current scope.',
+			zh_Hans: '系统管理的当前作用域工作区技能共享仓库。'
 		},
 		icon: { type: 'svg', value: '' }
 	}
@@ -90,23 +90,26 @@ export class WorkspacePublicSkillSourceProvider implements ISkillSourceProvider 
 	async listSkills(repository: ISkillRepository): Promise<ISkillRepositoryIndex[]> {
 		const tenantId = repository.tenantId
 		const organizationId = repository.organizationId
-		if (!tenantId || !organizationId || !repository.id) {
+		if (!tenantId || !repository.id) {
 			return []
 		}
 
-		const skillPackages = await this.skillPackageRepository.find({
-			where: {
-				tenantId,
-				organizationId,
-				skillIndexId: IsNull(),
-				sharedSkillId: Not(IsNull()),
-				sharedPackagePath: Not(IsNull()),
-				publishAt: Not(IsNull())
-			},
-			order: {
-				updatedAt: 'DESC'
-			}
-		})
+		const query = this.skillPackageRepository
+			.createQueryBuilder('skill_package')
+			.where('skill_package.tenantId = :tenantId', { tenantId })
+			.andWhere('skill_package.skillIndexId IS NULL')
+			.andWhere('skill_package.sharedSkillId IS NOT NULL')
+			.andWhere('skill_package.sharedPackagePath IS NOT NULL')
+			.andWhere('skill_package.publishAt IS NOT NULL')
+			.orderBy('skill_package.updatedAt', 'DESC')
+
+		if (organizationId) {
+			query.andWhere('skill_package.organizationId = :organizationId', { organizationId })
+		} else {
+			query.andWhere('skill_package.organizationId IS NULL')
+		}
+
+		const skillPackages = await query.getMany()
 
 		return skillPackages
 			.filter((skillPackage) => !!skillPackage.sharedSkillId && !!skillPackage.sharedPackagePath)
@@ -135,8 +138,8 @@ export class WorkspacePublicSkillSourceProvider implements ISkillSourceProvider 
 	async installSkillPackage(index: ISkillRepositoryIndex, installDir: string): Promise<string> {
 		const tenantId = index.repository?.tenantId ?? index.tenantId
 		const organizationId = index.repository?.organizationId ?? index.organizationId
-		if (!tenantId || !organizationId) {
-			throw new Error('Missing tenant or organization context for shared skill install')
+		if (!tenantId) {
+			throw new Error('Missing tenant context for shared skill install')
 		}
 
 		const sourcePath = getOrganizationSharedSkillPath(tenantId, organizationId, index.skillId)

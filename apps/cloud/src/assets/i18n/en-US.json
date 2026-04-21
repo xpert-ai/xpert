@@ -41,13 +41,21 @@
       "USER": "User",
       "SUCCEED": "Succeed",
       "Middleware": "Middleware",
-      "Skills": "Skills"
+      "Skills": "Skills",
+      "You": "You",
+      "EnterPassword": "Enter password",
+      "ConfirmPassword": "Confirm password"
     },
     "Common": {
       "Tools": "Tools",
       "Loading": "Loading...",
       "Enabled": "Enabled",
       "NoTools": "No tools"
+    },
+    "Chat": {
+      "QuoteSelection": "Quote selection",
+      "RemoveReference": "Remove reference",
+      "ContextCompression": "Context compression..."
     },
     "MENU": {
       "AGENT": "Agent",
@@ -479,6 +487,7 @@
       "NoMiddlewaresAvailable": "No middleware providers available"
     },
     "Xpert": {
+      "Assistant": "Assistant",
       "StartFrom": "Start from",
       "BlankStart": "Blank",
       "TemplateStart": "Template",
@@ -526,7 +535,12 @@
       "ImportTypeMismatch": "DSL type does not match the current xpert",
       "ImportPrimaryAgentMissing": "Primary agent not found in the DSL file",
       "ImportCurrentPrimaryAgentMissing": "Current xpert primary agent not found",
-      "XpertUserGroups": "Xpert User Groups"
+      "XpertUserGroups": "Xpert User Groups",
+      "ApiKeys": "API Keys",
+      "WorkspaceApiKeys": "Workspace API Keys",
+      "WorkspaceApiKeyDescription": "Keys created here belong to the current workspace and can access published assistants in this workspace.",
+      "CurrentWorkspace": "Current workspace",
+      "CreateWorkspaceSecretKey": "Create workspace secret key"
     },
     "UserGroup": {
       "Title": "User Groups",

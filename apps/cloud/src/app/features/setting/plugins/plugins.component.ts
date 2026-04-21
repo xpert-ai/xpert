@@ -1,7 +1,7 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import {
@@ -22,6 +22,7 @@ import { injectConfirmDelete, NgmHighlightDirective, NgmSpinComponent } from '@x
 import { debouncedSignal, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
+import { firstValueFrom } from 'rxjs'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
@@ -48,6 +49,7 @@ import { TInstalledPlugin } from './types'
   animations: [routeAnimations, ...OverlayAnimations]
 })
 export class PluginsComponent {
+  #latestVersionsRequestId = 0
   readonly isDevEnvironment = !environment.production
   readonly router = inject(Router)
   readonly #dialog = inject(Dialog)
@@ -85,17 +87,13 @@ export class PluginsComponent {
     return error ? getErrorMessage(error) : null
   })
 
-  readonly plugins = linkedModel({
-    initialValue: [] as Array<TInstalledPlugin>,
-    compute: () =>
-      (this.#plugins.value() ?? []).map((plugin, index) => ({
-        ...plugin,
-        __trackId: this.buildPluginTrackId(plugin, index)
-      })),
-    update: () => {
-      // No-op
-    }
-  })
+  readonly #basePlugins = computed(() =>
+    (this.#plugins.value() ?? []).map((plugin, index) => ({
+      ...plugin,
+      __trackId: this.buildPluginTrackId(plugin, index)
+    }))
+  )
+  readonly plugins = signal<Array<TInstalledPlugin>>([])
   readonly removing = signal('')
   readonly updating = signal('')
   readonly refreshing = signal('')
@@ -178,6 +176,32 @@ export class PluginsComponent {
   //   })
   // }
 
+  constructor() {
+    effect(
+      () => {
+        const basePlugins = this.#basePlugins()
+        this.plugins.set(basePlugins)
+
+        const requestId = ++this.#latestVersionsRequestId
+        const pluginNames = Array.from(
+          new Set(
+            basePlugins
+              .filter((plugin) => plugin.canUpdate)
+              .map((plugin) => plugin.name)
+              .filter((name): name is string => !!name)
+          )
+        )
+
+        if (!pluginNames.length) {
+          return
+        }
+
+        void this.loadLatestPluginVersions(pluginNames, requestId)
+      },
+      { allowSignalWrites: true }
+    )
+  }
+
   private buildPluginTrackId(plugin: TInstalledPlugin, index: number): string {
     const name =
       typeof plugin?.name === 'string'
@@ -202,7 +226,7 @@ export class PluginsComponent {
   }
 
   reload() {
-    this.#plugins.reload()
+    this.reloadInstalledPlugins()
   }
 
   configure(plugin: TInstalledPlugin) {
@@ -230,7 +254,7 @@ export class PluginsComponent {
     ).subscribe({
       next: () => {
         this.removing.set('')
-        this.plugins.update((plugins) => plugins.filter((item) => item.name !== plugin.name))
+        this.reloadInstalledPlugins()
         this.refreshStrategyCaches()
       },
       error: () => {
@@ -244,7 +268,7 @@ export class PluginsComponent {
     this.pluginAPI.update(plugin.name).subscribe({
       next: (result) => {
         this.updating.set('')
-        this.#plugins.reload()
+        this.reloadInstalledPlugins()
         this.refreshStrategyCaches()
         if (result.updated) {
           this.#toastr.success(
@@ -269,7 +293,7 @@ export class PluginsComponent {
     this.pluginAPI.refresh(plugin.name).subscribe({
       next: () => {
         this.refreshing.set('')
-        this.#plugins.reload()
+        this.reloadInstalledPlugins()
         this.refreshStrategyCaches()
         this.#toastr.success('PAC.Plugin.RefreshPluginSuccess', {
           Default: `${plugin.meta?.displayName || plugin.name} reloaded from local workspace`
@@ -376,8 +400,61 @@ export class PluginsComponent {
 
   private handleInstallSuccess(dialogRef: DialogRef) {
     dialogRef.close()
-    this.#plugins.reload()
+    this.reloadInstalledPlugins()
     this.refreshStrategyCaches()
+  }
+
+  private reloadInstalledPlugins() {
+    this.#latestVersionsRequestId += 1
+    this.plugins.update((plugins) =>
+      plugins.map((plugin) => ({
+        ...plugin,
+        latestVersion: undefined,
+        hasUpdate: false
+      }))
+    )
+    this.#plugins.reload()
+  }
+
+  private buildPluginVersionStatusKey(organizationId: string | undefined, name: string) {
+    return `${organizationId ?? ''}:${name}`
+  }
+
+  private async loadLatestPluginVersions(pluginNames: string[], requestId: number) {
+    try {
+      const latestVersions = await firstValueFrom(this.pluginAPI.getLatestVersions(pluginNames))
+      if (requestId !== this.#latestVersionsRequestId) {
+        return
+      }
+
+      const latestVersionMap = new Map(
+        latestVersions.map((plugin) => [
+          this.buildPluginVersionStatusKey(plugin.organizationId, plugin.name),
+          plugin
+        ])
+      )
+
+      this.plugins.update((plugins) =>
+        plugins.map((plugin) => {
+          const latestVersion = latestVersionMap.get(
+            this.buildPluginVersionStatusKey(plugin.organizationId, plugin.name)
+          )
+          if (!latestVersion) {
+            return plugin
+          }
+
+          return {
+            ...plugin,
+            latestVersion: latestVersion.latestVersion,
+            hasUpdate: latestVersion.hasUpdate
+          }
+        })
+      )
+    } catch {
+      if (requestId !== this.#latestVersionsRequestId) {
+        return
+      }
+    }
   }
 
   /**

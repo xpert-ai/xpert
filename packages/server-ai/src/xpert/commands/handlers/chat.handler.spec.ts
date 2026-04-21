@@ -33,7 +33,10 @@ import { XpertChatHandler } from './chat.handler'
 
 describe('XpertChatHandler', () => {
     let xpertService: { findOne: jest.Mock }
-    let assistantBindingService: { getUserPreferenceByAssistantId: jest.Mock }
+    let assistantBindingService: {
+        getBinding: jest.Mock
+        getUserPreferenceByAssistantId: jest.Mock
+    }
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let handler: XpertChatHandler
@@ -54,6 +57,9 @@ describe('XpertChatHandler', () => {
             findOne: jest.fn().mockResolvedValue(xpert)
         }
         assistantBindingService = {
+            getBinding: jest.fn().mockResolvedValue({
+                assistantId: 'xpert-1'
+            }),
             getUserPreferenceByAssistantId: jest.fn().mockResolvedValue({
                 soul: '# Rules',
                 profile: '# Profile',
@@ -224,6 +230,7 @@ describe('XpertChatHandler', () => {
         )
         expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
         expect(agentCommand.state.disabledSkillIds).toEqual(['skill-2'])
+        expect(agentCommand.state.skillSelectionMode).toBe('workspace_blacklist')
         expect(agentCommand.options.toolPreferences).toEqual({
             version: 1,
             toolsets: {
@@ -239,6 +246,93 @@ describe('XpertChatHandler', () => {
                 }
             }
         })
+    })
+
+    it('forwards project scope to the agent sandbox options for project conversations', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        projectId: command.entity.projectId,
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    projectId: 'project-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return {
+                    id: 'execution-1',
+                    threadId: 'thread-1'
+                }
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            title: 'Generated title'
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    projectId: 'project-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello workspace'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+
+        expect(agentCommand.options.projectId).toBe('project-1')
+        expect(agentCommand.options.sandboxEnvironmentId).toBeUndefined()
     })
 
     it('reuses a persisted pending follow-up instead of creating a duplicate human message on fallback send', async () => {
@@ -356,6 +450,211 @@ describe('XpertChatHandler', () => {
         expect(humanCommands[0].entity.visibleAt).toBeInstanceOf(Date)
     })
 
+    it('merges queued pending follow-ups for the same target execution into one send turn', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [
+                        {
+                            id: 'ai-parent-1',
+                            role: 'ai',
+                            content: 'Previous reply',
+                            executionId: 'execution-prev'
+                        },
+                        {
+                            id: 'follow-up-1',
+                            parentId: 'ai-parent-1',
+                            role: 'human',
+                            content: 'Please continue',
+                            conversationId: 'conversation-1',
+                            createdAt: '2026-04-17T00:00:00.000Z',
+                            followUpMode: 'queue',
+                            followUpStatus: 'pending',
+                            targetExecutionId: 'execution-prev',
+                            references: [
+                                {
+                                    type: 'quote',
+                                    text: 'ref-1'
+                                }
+                            ],
+                            attachments: [
+                                {
+                                    id: 'file-1'
+                                }
+                            ],
+                            thirdPartyMessage: {
+                                followUpClientMessageId: 'client-1',
+                                followUpInput: {
+                                    input: 'Please continue',
+                                    references: [
+                                        {
+                                            type: 'quote',
+                                            text: 'ref-1'
+                                        }
+                                    ],
+                                    files: [
+                                        {
+                                            id: 'file-1'
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            id: 'follow-up-2',
+                            parentId: 'follow-up-1',
+                            role: 'human',
+                            content: 'And add detail',
+                            conversationId: 'conversation-1',
+                            createdAt: '2026-04-17T00:00:01.000Z',
+                            followUpMode: 'queue',
+                            followUpStatus: 'pending',
+                            targetExecutionId: 'execution-prev',
+                            thirdPartyMessage: {
+                                followUpClientMessageId: 'client-2',
+                                followUpInput: {
+                                    input: 'And add detail',
+                                    custom: 'latest'
+                                }
+                            }
+                        }
+                    ],
+                    status: command.entity.status,
+                    title: null,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: {}
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.id === 'follow-up-1' || command.entity.id === 'follow-up-2') {
+                    return {
+                        ...command.entity
+                    }
+                }
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-1',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            title: 'Generated title'
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    conversationId: 'conversation-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Please continue'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        const events = await lastValueFrom(stream.pipe(toArray()))
+
+        const humanCommands = commands.filter(
+            (command) =>
+                command instanceof ChatMessageUpsertCommand &&
+                command.entity.role === 'human' &&
+                (command.entity.id === 'follow-up-1' || command.entity.id === 'follow-up-2')
+        ) as ChatMessageUpsertCommand[]
+
+        expect(humanCommands).toHaveLength(2)
+        expect(humanCommands.map((command) => command.entity.id)).toEqual(['follow-up-1', 'follow-up-2'])
+        expect(humanCommands.every((command) => command.entity.followUpStatus === 'consumed')).toBe(true)
+        expect(humanCommands.every((command) => command.entity.visibleAt instanceof Date)).toBe(true)
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.state.human).toEqual({
+            input: 'Please continue\n\nAnd add detail',
+            references: [
+                {
+                    type: 'quote',
+                    text: 'ref-1'
+                }
+            ],
+            files: [
+                {
+                    id: 'file-1'
+                }
+            ],
+            custom: 'latest'
+        })
+
+        const aiPlaceholderCommand = commands.find(
+            (command) =>
+                command instanceof ChatMessageUpsertCommand &&
+                command.entity.role === 'ai' &&
+                command.entity.status === 'thinking'
+        ) as ChatMessageUpsertCommand
+        expect(aiPlaceholderCommand.entity.parent).toEqual(
+            expect.objectContaining({
+                id: 'follow-up-2'
+            })
+        )
+
+        expect(events).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                        data: expect.objectContaining({
+                            type: 'follow_up_consumed',
+                            mode: 'queue',
+                            clientMessageIds: ['client-1', 'client-2'],
+                            messageIds: ['follow-up-1', 'follow-up-2'],
+                            executionId: 'execution-prev'
+                        })
+                    })
+                })
+            ])
+        )
+    })
+
     it('rejects send requests with a null message payload', async () => {
         await expect(
             handler.execute(
@@ -471,6 +770,104 @@ describe('XpertChatHandler', () => {
         expect(agentCommand.options.toolPreferences).toBeNull()
         expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
         expect(agentCommand.state.disabledSkillIds).toEqual([])
+        expect(agentCommand.state.skillSelectionMode).toBe('workspace_blacklist')
+    })
+
+    it('keeps the default skills middleware mode when the xpert is not bound through clawxpert', async () => {
+        const commands: any[] = []
+        assistantBindingService.getBinding.mockResolvedValue(null)
+        assistantBindingService.getUserPreferenceByAssistantId.mockResolvedValue(null)
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.role === 'human') {
+                    return {
+                        id: 'human-1',
+                        ...command.entity
+                    }
+                }
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-1',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello world'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
+        expect(agentCommand.state.disabledSkillIds).toEqual([])
+        expect(agentCommand.state.skillSelectionMode).toBeUndefined()
     })
 
     it('reuses the interrupted ai message and execution for resume', async () => {

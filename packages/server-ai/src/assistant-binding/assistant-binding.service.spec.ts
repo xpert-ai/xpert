@@ -33,6 +33,7 @@ jest.mock('@xpert-ai/contracts', () => ({
 
 jest.mock('@xpert-ai/server-core', () => ({
   RequestContext: {
+    currentApiPrincipal: jest.fn(),
     currentTenantId: jest.fn(),
     getOrganizationId: jest.fn(),
     currentUserId: jest.fn(),
@@ -128,6 +129,7 @@ describe('AssistantBindingService', () => {
     )
 
     ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
+    ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(null)
     ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
     ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
     ;(RequestContext.hasRole as jest.Mock).mockImplementation((role) => role === RolesEnum.SUPER_ADMIN)
@@ -303,6 +305,30 @@ describe('AssistantBindingService', () => {
     )
   })
 
+  it('uses requestedOrganizationId for user bindings when execution scope has switched to the assistant org', async () => {
+    ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+      requestedOrganizationId: 'org-requested'
+    })
+    ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-assistant')
+    repository.findOne.mockResolvedValueOnce({
+      id: 'binding-1',
+      code: AssistantCode.CLAWXPERT,
+      scope: AssistantBindingScope.USER
+    })
+
+    await service.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+
+    expect(repository.findOne).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        tenantId: 'tenant-1',
+        organizationId: 'org-requested',
+        userId: 'user-1',
+        scope: AssistantBindingScope.USER,
+        code: AssistantCode.CLAWXPERT
+      })
+    })
+  })
+
   it('reads user markdown preferences for a bound clawxpert assistant', async () => {
     repository.findOne.mockResolvedValueOnce({
       id: 'binding-1',
@@ -357,6 +383,10 @@ describe('AssistantBindingService', () => {
   })
 
   it('reads user markdown preferences by assistant id for the current clawxpert binding', async () => {
+    ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+      requestedOrganizationId: 'org-requested'
+    })
+    ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-assistant')
     repository.findOne.mockResolvedValueOnce({
       id: 'binding-1',
       assistantId: 'xpert-1',
@@ -385,6 +415,7 @@ describe('AssistantBindingService', () => {
         assistantId: 'xpert-1',
         code: AssistantCode.CLAWXPERT,
         scope: AssistantBindingScope.USER,
+        organizationId: 'org-requested',
         userId: 'user-1'
       })
     })

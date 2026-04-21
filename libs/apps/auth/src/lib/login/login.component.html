@@ -37,7 +37,6 @@
               id="email"
               formControlName="userName"
               [placeholder]="'AUTH.LOGIN.USERNAME' | translate: {Default: 'Username / Email'}"
-              class="bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
               required
             >
           </div>
@@ -51,8 +50,7 @@
               name="password"
               id="password"
               formControlName="password"
-              placeholder="••••••••"
-              class="bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+              [placeholder]="'PAC.KEY_WORDS.EnterPassword' | translate: {Default: 'Enter password'}"
               required
             >
           </div>

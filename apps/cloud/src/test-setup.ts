@@ -1,6 +1,10 @@
 import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone'
 import { ReadableStream, TransformStream, WritableStream } from 'node:stream/web'
 
+if (typeof globalThis.structuredClone !== 'function') {
+  globalThis.structuredClone = <T>(value: T) => JSON.parse(JSON.stringify(value)) as T
+}
+
 if (!(globalThis as any).ReadableStream) {
   ;(globalThis as any).ReadableStream = ReadableStream
 }

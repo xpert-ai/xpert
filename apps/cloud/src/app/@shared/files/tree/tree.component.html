@@ -1,12 +1,63 @@
 <section class="xp-file-pane">
   <div [class]="headerClasses()">
     <div class="min-w-0">
-      <div [class]="titleClasses()">
-        {{ title() }}
+      <div class="flex gap-1">
+        <div [class]="titleClasses()">
+          {{ title() }}
+        </div>
+        @if (loading() || uploading()) {
+          <z-loader zSize="sm" class="shrink-0" />
+        }
       </div>
       <div [class]="subtitleClasses()">
         {{ subtitle() || '' }}
       </div>
+    </div>
+
+    <div class="flex shrink-0 items-start gap-2">
+      @if (canUpload()) {
+        <div class="flex shrink-0 flex-col items-end gap-1">
+          <div class="flex flex-wrap justify-end gap-2">
+            <button
+              z-button
+              zSize="sm"
+              zType="ghost"
+              type="button"
+              [class]="uploadActionClasses()"
+              [zTooltip]="'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' }"
+              zPosition="top"
+              [attr.aria-label]="'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' }"
+              [disabled]="uploadDisabled() || uploading()"
+              (click)="onUploadClick('file')"
+            >
+              <i class="ri-upload-2-line"></i>
+              <span class="sr-only">{{ 'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' } }}</span>
+            </button>
+
+            <button
+              z-button
+              zSize="sm"
+              zType="ghost"
+              type="button"
+              [class]="uploadActionClasses()"
+              [zTooltip]="'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
+              zPosition="top"
+              [attr.aria-label]="'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
+              [disabled]="uploadDisabled() || uploading()"
+              (click)="onUploadClick('folder')"
+            >
+              <i class="ri-folder-upload-line"></i>
+              <span class="sr-only">{{ 'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' } }}</span>
+            </button>
+          </div>
+
+          @if (uploadTargetHint()) {
+            <div class="max-w-[14rem] text-right text-xs text-text-tertiary">
+              {{ uploadTargetHint() }}
+            </div>
+          }
+        </div>
+      }
     </div>
   </div>
 
@@ -15,7 +66,7 @@
       @if (flatItems().length) {
         <div [class]="cx('flex flex-col', sizePreset().listGap)">
           @for (item of flatItems(); track item.fullPath ?? item.filePath) {
-            <div [class]="cx(itemRowClasses(item), 'hover:bg-hover-bg')" (click)="fileSelect.emit(item)">
+            <div [class]="cx(itemRowClasses(item), 'relative hover:bg-hover-bg')">
               @for (level of item.levels; track $index) {
                 <div [class]="cx('flex h-full shrink-0 justify-center', sizePreset().indentWidth)">
                   <div class="w-px bg-divider-regular"></div>
@@ -26,7 +77,7 @@
                 <button
                   type="button"
                   [class]="toggleClasses()"
-                  (click)="directoryToggle.emit(item)"
+                  (click)="onDirectoryToggle($event, item)"
                 >
                   @if (isDirectoryLoading(item.fullPath || item.filePath)) {
                     <i class="ri-loader-4-line animate-spin"></i>
@@ -40,7 +91,7 @@
                 <span [class]="togglePlaceholderClasses()"></span>
               }
 
-              <button type="button" [class]="itemContentClasses()">
+              <button type="button" [class]="itemContentClasses()" (click)="onItemClick(item)">
                 <i
                   [class]="itemIconClasses()"
                   [class.ri-folder-open-line]="item.hasChildren && item.expanded"
@@ -51,6 +102,46 @@
                   {{ item.filePath }}
                 </span>
               </button>
+
+              @if (showActions(item)) {
+                <div
+                  class="absolute right-1 ml-auto flex shrink-0 items-center gap-1 p-0.5 rounded-lg opacity-100 transition-opacity bg-components-panel-bg md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"
+                >
+                  @if (canDownload()) {
+                    <button
+                      type="button"
+                      [class]="itemActionClasses()"
+                      [disabled]="isDownloading(item.fullPath || item.filePath)"
+                      [attr.aria-label]="'PAC.Files.Download' | translate: { Default: 'Download' }"
+                      (click)="onFileDownload($event, item)"
+                    >
+                      @if (isDownloading(item.fullPath || item.filePath)) {
+                        <i class="ri-loader-4-line animate-spin"></i>
+                      } @else {
+                        <i class="ri-download-2-line"></i>
+                      }
+                      <span>{{ 'PAC.Files.Download' | translate: { Default: 'Download' } }}</span>
+                    </button>
+                  }
+
+                  @if (canDelete()) {
+                    <button
+                      type="button"
+                      [class]="cx(itemActionClasses(), 'hover:text-text-destructive')"
+                      [disabled]="isDeleting(item.fullPath || item.filePath)"
+                      [attr.aria-label]="'PAC.Files.Delete' | translate: { Default: 'Delete' }"
+                      (click)="onFileDelete($event, item)"
+                    >
+                      @if (isDeleting(item.fullPath || item.filePath)) {
+                        <i class="ri-loader-4-line animate-spin"></i>
+                      } @else {
+                        <i class="ri-delete-bin-line"></i>
+                      }
+                      <span>{{ 'PAC.Files.Delete' | translate: { Default: 'Delete' } }}</span>
+                    </button>
+                  }
+                </div>
+              }
             </div>
           }
         </div>
@@ -76,7 +167,4 @@
     }
   </div>
 
-  @if (loading()) {
-    <ngm-spin class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/30 backdrop-blur-sm" />
-  }
 </section>

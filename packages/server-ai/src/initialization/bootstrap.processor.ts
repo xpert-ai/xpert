@@ -10,6 +10,7 @@ import {
 	AI_ORGANIZATION_BOOTSTRAP_JOB,
 	AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
 	AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB,
+	AI_USER_DEFAULT_WORKSPACE_SKILLS_BOOTSTRAP_JOB,
 	AI_USER_ORGANIZATION_BOOTSTRAP_JOB,
 	AI_USER_ORGANIZATION_CLEANUP_JOB
 } from './constants'
@@ -20,6 +21,13 @@ type SkillRepositorySyncJob = {
 	organizationId?: string | null
 	repositoryId: string
 	ownerUserId?: string | null
+}
+
+type UserDefaultWorkspaceSkillsBootstrapJob = {
+	tenantId: string
+	organizationId: string
+	userId: string
+	workspaceId: string
 }
 
 @Processor(AI_BOOTSTRAP_QUEUE)
@@ -87,24 +95,7 @@ export class ServerAIBootstrapProcessor {
 	@Process(AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB)
 	async handleTenantSkillRepositoryBootstrap(job: Job<TenantCreatedEvent>) {
 		try {
-			const result = await this.bootstrapService.bootstrapTenantSkillRepositories(job.data)
-			await Promise.all(
-				(result.repositoryIds ?? []).map((repositoryId) =>
-					this.bootstrapQueue.add(
-						AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
-						{
-							tenantId: job.data.tenantId,
-							repositoryId
-						},
-						{
-							jobId: `skill-repository-sync:tenant:${job.data.tenantId}:${repositoryId}`,
-							attempts: 3,
-							backoff: 10_000,
-							removeOnComplete: true
-						}
-					)
-				)
-			)
+			await this.bootstrapService.bootstrapTenantSkillRepositories(job.data)
 		} catch (error) {
 			this.logger.error(
 				`Failed tenant skill repository bootstrap for '${job.data.tenantId}': ${error instanceof Error ? error.stack : error}`
@@ -116,10 +107,41 @@ export class ServerAIBootstrapProcessor {
 	@Process(AI_USER_ORGANIZATION_BOOTSTRAP_JOB)
 	async handleUserOrganizationBootstrap(job: Job<UserOrganizationCreatedEvent>) {
 		try {
-			await this.bootstrapService.bootstrapUserInOrganization(job.data)
+			const result = await this.bootstrapService.bootstrapUserInOrganization(job.data)
+			if (result.workspaceId && result.createdNewUserDefaultWorkspace) {
+				await this.bootstrapQueue.add(
+					AI_USER_DEFAULT_WORKSPACE_SKILLS_BOOTSTRAP_JOB,
+					{
+						tenantId: job.data.tenantId,
+						organizationId: job.data.organizationId,
+						userId: job.data.userId,
+						workspaceId: result.workspaceId
+					},
+					{
+						jobId: `user-default-skills:${result.workspaceId}`,
+						attempts: 8,
+						backoff: 30_000,
+						removeOnComplete: true
+					}
+				)
+			}
 		} catch (error) {
 			this.logger.error(
 				`Failed user organization bootstrap for '${job.data.organizationId}:${job.data.userId}': ${
+					error instanceof Error ? error.stack : error
+				}`
+			)
+			throw error
+		}
+	}
+
+	@Process(AI_USER_DEFAULT_WORKSPACE_SKILLS_BOOTSTRAP_JOB)
+	async handleUserDefaultWorkspaceSkillsBootstrap(job: Job<UserDefaultWorkspaceSkillsBootstrapJob>) {
+		try {
+			await this.bootstrapService.bootstrapUserDefaultWorkspaceSkills(job.data)
+		} catch (error) {
+			this.logger.error(
+				`Failed default workspace skills bootstrap for '${job.data.workspaceId}': ${
 					error instanceof Error ? error.stack : error
 				}`
 			)

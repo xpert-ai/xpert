@@ -73,6 +73,7 @@ describe('blank draft util', () => {
       ],
       triggerProviders: [],
       skills: ['Skill A'],
+      repositoryDefault: null,
       middlewares: ['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
     })
 
@@ -86,6 +87,7 @@ describe('blank draft util', () => {
       triggers: [],
       triggerProviders: [],
       skills: [],
+      repositoryDefault: null,
       middlewares: ['guard']
     })
     expect(
@@ -122,6 +124,34 @@ describe('blank draft util', () => {
     ).toEqual({
       nodes: BLANK_WORKFLOW_NODE_ORDER.filter((node) => ['answer', 'http', 'knowledge'].includes(node))
     })
+  })
+
+  it('normalizes repository-backed default skill selections and keeps skills middleware enabled', () => {
+    expect(
+      normalizeBlankWizardSelections({
+        repositoryDefault: {
+          repositoryId: ' repo-public ',
+          disabledSkillIds: ['skill-b', 'skill-b', ' ']
+        }
+      })
+    ).toEqual({
+      triggers: [],
+      triggerProviders: [],
+      skills: [],
+      repositoryDefault: {
+        repositoryId: 'repo-public',
+        disabledSkillIds: ['skill-b']
+      },
+      middlewares: [BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
+    })
+    expect(
+      hasBlankWizardSelections({
+        repositoryDefault: {
+          repositoryId: 'repo-public',
+          disabledSkillIds: []
+        }
+      })
+    ).toBe(true)
   })
 
   it('should keep the base draft when no extra selections are provided', async () => {
@@ -181,6 +211,63 @@ describe('blank draft util', () => {
     expect(skillsMiddlewareNode!.position.y).toBeGreaterThan(primaryAgentNode.position.y)
     expect(middlewareNodes[0].position.y).toBeGreaterThan(primaryAgentNode.position.y)
     expect(draft.team.agent.options.middlewares.order).toEqual(middlewareNodes.map((node) => node.key))
+  })
+
+  it('auto-enables required middleware features while preserving existing feature settings', async () => {
+    const xpert = createXpert()
+    xpert.features = {
+      sandbox: {
+        enabled: false,
+        provider: 'e2b'
+      }
+    } as any
+
+    const draft = await buildBlankXpertDraft(
+      xpert,
+      {
+        middlewares: ['FileMemorySystemMiddleware']
+      },
+      {
+        middlewareDefinitions: [
+          {
+            name: 'FileMemorySystemMiddleware',
+            features: ['sandbox']
+          }
+        ]
+      }
+    )
+
+    expect(draft.team.features).toEqual({
+      sandbox: {
+        enabled: true,
+        provider: 'e2b'
+      }
+    })
+  })
+
+  it('stores repository defaults on skills middleware nodes without expanding them into options.skills', async () => {
+    const draft = await buildBlankXpertDraft(createXpert(), {
+      repositoryDefault: {
+        repositoryId: 'repo-public',
+        disabledSkillIds: ['skill-b']
+      }
+    })
+
+    const middlewareNodes = draft.nodes.filter(
+      (node): node is (typeof draft.nodes)[number] =>
+        node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE
+    )
+    const skillsMiddlewareNode = middlewareNodes.find(
+      (node) => (node.entity as any).provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+    )
+
+    expect(skillsMiddlewareNode).toBeDefined()
+    expect((skillsMiddlewareNode!.entity as any).options).toEqual({
+      repositoryDefault: {
+        repositoryId: 'repo-public',
+        disabledSkillIds: ['skill-b']
+      }
+    })
   })
 
   it('should seed ai-model-select middleware options from the selected primary model', async () => {

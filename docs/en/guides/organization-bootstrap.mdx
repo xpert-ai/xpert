@@ -121,12 +121,12 @@ flowchart TD
   E --> G["Run in organization request context"]
   F --> H["Run in organization request context"]
   G --> I["Create org default workspace and environment"]
-  I --> J["Register default skill repositories from YAML"]
+  I --> J["Register default skill repositories from template yaml"]
   J --> K["Sync organization members"]
   K --> L["Import template xperts"]
   E --> M["Enqueue org-skill-repository-sync jobs"]
   M --> N["Async full index sync for each repository"]
-  H --> V["Initialize semantic model data"]
+  H --> X["Initialize semantic model data"]
 
   O["Create UserOrganization"] --> P["Emit user.organization.created"]
   P --> Q["server-ai enqueue user-org-bootstrap:{organizationId}:{userId}"]
@@ -134,6 +134,8 @@ flowchart TD
   R --> S["Optionally create personal workspace"]
   S --> T["Create personal default environment"]
   T --> U["Ensure user joins org default workspace"]
+  U --> V["Enqueue default workspace skills bootstrap"]
+  V --> W["Install configured default skills when indexes are ready"]
 ```
 
 ## `server-ai` responsibilities
@@ -146,7 +148,7 @@ Responsibilities:
 
 - idempotently create the organization default workspace
 - idempotently create the default environment for that workspace
-- idempotently register default skill repositories from a fixed YAML file
+- idempotently register default skill repositories from template assets
 - enqueue async full index sync jobs for those repositories
 - add current organization members into the default workspace
 - import default template xperts based on environment configuration
@@ -164,10 +166,10 @@ workspace.settings.system.kind = 'org-default'
 
 ### Default skill repositories
 
-Organization bootstrap also seeds skill repositories from the repo-local file:
+Organization bootstrap seeds tenant-level skill repositories from:
 
 ```text
-packages/server-ai/src/initialization/default-skill-repositories.yaml
+${XPERT_TEMPLATE_DIR}/skill-repositories.yaml
 ```
 
 Current YAML shape:
@@ -179,14 +181,23 @@ repositories:
     options:
       url: https://github.com/anthropics/skills
       branch: main
+      path: skills
+  - name: clawhub/official
+    provider: clawhub
+    options:
+      registryUrl: https://clawhub.ai
+      officialOnly: true
+      maxSkills: 500
 ```
 
 Notes:
 
+- this file is seeded into `XPERT_TEMPLATE_DIR`
+- if every referenced skill is provided by `skill-packages/*/`, this file can stay empty
 - each entry supports repository fields such as `name`, `provider`, `options`, and `credentials`
 - bootstrap matches existing repositories by `name + provider`
 - when a match exists, bootstrap updates that repository instead of creating a duplicate
-- repositories removed from YAML are not deleted from existing organizations
+- repositories removed from the template config are not deleted from existing organizations
 
 After registration, bootstrap enqueues a separate async sync job per repository, and each job calls a full repository index sync. That keeps organization creation fast while still making new skills discoverable shortly after bootstrap.
 
@@ -197,6 +208,7 @@ When a user joins an organization, `server-ai`:
 - idempotently creates the personal workspace when `bootstrapPersonalWorkspace=true`
 - idempotently creates the personal default environment
 - idempotently adds the user into the organization default workspace
+- asynchronously installs configured default skills into the personal workspace when that workspace is newly created
 
 The personal workspace is marked with:
 
@@ -210,6 +222,29 @@ The personal workspace name is:
 ```ts
 ${displayName || email} Workspace
 ```
+
+Default workspace skills are configured from the external template asset directory:
+
+```text
+${XPERT_TEMPLATE_DIR}/workspace-defaults.yaml
+```
+
+Current YAML shape:
+
+```yaml
+userDefault:
+  skills: []
+```
+
+Notes:
+
+- this file is seeded into `XPERT_TEMPLATE_DIR` alongside `skills-market.yaml` and `skill-repositories.yaml`
+- refs use machine fields only: `provider`, `repositoryName`, and `skillId`
+- only refs that also exist in `skills-market.yaml` are eligible for default installation
+- existing personal workspaces are not backfilled automatically; the default install job only runs for newly created `user-default` workspaces
+- local bundled skills are loaded from `skill-packages/*/bundle.yaml`, with `SKILL.md` and resources in the same folder
+- user bootstrap enqueues a separate async job for these installs, so workspace creation is not blocked by repository sync timing
+- unresolved refs are retried until repository indexes are available, and repeated installs are idempotent per `workspaceId + skillIndexId`
 
 ### Why `ensureMember` exists
 

@@ -388,7 +388,7 @@ export class ExploreSkillsComponent {
       await firstValueFrom(this.#skillPackageService.installPackage(workspaceId, item.id))
       this.#toastr.success(
         this.#translate.instant('PAC.Explore.SkillInstallSuccess', {
-          Default: 'Skill installed successfully'
+          Default: 'Skill is ready. Existing installs are reused, and newer versions update automatically.'
         })
       )
     } catch (error) {

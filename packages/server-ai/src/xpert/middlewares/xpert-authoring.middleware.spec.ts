@@ -28,6 +28,7 @@ describe('XpertAuthoringMiddleware', () => {
         getAvailableKnowledgebasesFromContext: jest.Mock
         getAvailableSkillsFromContext: jest.Mock
         newXpertFromContext: jest.Mock
+        newSkillFromContext: jest.Mock
         editXpertFromContext: jest.Mock
     }
     let strategy: XpertAuthoringMiddleware
@@ -42,6 +43,7 @@ describe('XpertAuthoringMiddleware', () => {
             getAvailableKnowledgebasesFromContext: jest.fn(),
             getAvailableSkillsFromContext: jest.fn(),
             newXpertFromContext: jest.fn(),
+            newSkillFromContext: jest.fn(),
             editXpertFromContext: jest.fn()
         }
         strategy = new XpertAuthoringMiddleware(service as any)
@@ -59,6 +61,7 @@ describe('XpertAuthoringMiddleware', () => {
             'getAvailableKnowledgebases',
             'getAvailableSkills',
             'newXpert',
+            'newSkill',
             'editXpert'
         ])
 
@@ -503,6 +506,60 @@ describe('XpertAuthoringMiddleware', () => {
                 })
             })
         )
+    })
+
+    it('invokes newSkill with the resolved workspace context and returns the service payload', async () => {
+        const resultPayload = {
+            status: 'applied',
+            toolName: 'newSkill',
+            summary: 'Created skill "Workspace Skill".',
+            diagnostics: null,
+            syncMode: 'none',
+            conflictType: null,
+            requiresRefresh: false,
+            committedDraftHash: null,
+            updatedDraftFragment: {
+                skill: {
+                    id: 'skill-1',
+                    packagePath: 'workspace-skill'
+                }
+            },
+            warnings: []
+        } satisfies AssistantDraftMutationResult
+        service.newSkillFromContext.mockResolvedValue(resultPayload)
+
+        const result = await getTool('newSkill').invoke(
+            {
+                userIntent: 'Create a workspace skill',
+                skillName: 'Workspace Skill',
+                skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps the workspace.\n---\n'
+            },
+            {
+                configurable: {
+                    context: {
+                        workspaceId: 'assistant-workspace',
+                        env: {
+                            workspaceId: 'workspace-1'
+                        }
+                    }
+                }
+            } as any
+        )
+
+        expect(service.newSkillFromContext).toHaveBeenCalledWith(
+            {
+                workspaceId: 'assistant-workspace',
+                env: {
+                    workspaceId: 'workspace-1'
+                }
+            },
+            {
+                userIntent: 'Create a workspace skill',
+                skillName: 'Workspace Skill',
+                skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps the workspace.\n---\n'
+            }
+        )
+        expect(result).toEqual(resultPayload)
     })
 
     it('stores xpertId into middleware state after newXpert succeeds inside graph execution', async () => {

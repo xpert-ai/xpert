@@ -10,6 +10,7 @@ import {
 	Post,
 	Put,
 	Query,
+	Res,
 	UploadedFile,
 	UseGuards,
 	UseInterceptors
@@ -18,6 +19,8 @@ import { ApiTags } from '@nestjs/swagger'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { FileInterceptor } from '@nestjs/platform-express'
+import { createReadStream } from 'fs'
+import type { Response } from 'express'
 import { SkillPackage } from './skill-package.entity'
 import { SkillPackageService } from './skill-package.service'
 import { WorkspaceGuard } from '../xpert-workspace'
@@ -85,6 +88,15 @@ export class SkillPackageController {
 	}
 
 	@UseGuards(WorkspaceGuard)
+	@Post('workspace/:workspaceId/install-repository/:repositoryId')
+	async installRepositorySkillPackages(
+		@Param('workspaceId') workspaceId: string,
+		@Param('repositoryId') repositoryId: string
+	) {
+		return this.service.installRepositorySkillPackages(workspaceId, repositoryId)
+	}
+
+	@UseGuards(WorkspaceGuard)
 	@Post('workspace/:workspaceId/:id/share')
 	async shareSkillPackage(
 		@Param('workspaceId') workspaceId: string,
@@ -120,6 +132,36 @@ export class SkillPackageController {
 	}
 
 	@UseGuards(WorkspaceGuard)
+	@Post('workspace/:workspaceId/:id/file/upload')
+	@UseInterceptors(FileInterceptor('file'))
+	async uploadSkillPackageFile(
+		@Param('workspaceId') workspaceId: string,
+		@Param('id') id: string,
+		@Body('path') path: string,
+		@UploadedFile() file: Express.Multer.File
+	) {
+		return this.service.uploadSkillPackageFile(workspaceId, id, path, file)
+	}
+
+	@UseGuards(WorkspaceGuard)
+	@Get('workspace/:workspaceId/:id/file/download')
+	async downloadSkillPackageFile(
+		@Param('workspaceId') workspaceId: string,
+		@Param('id') id: string,
+		@Query('path') path: string,
+		@Res() res: Response
+	) {
+		const file = await this.service.getSkillPackageFileDownload(workspaceId, id, path)
+		const encodedFilename = encodeURIComponent(file.fileName)
+		res.setHeader('Content-Type', file.mimeType)
+		res.setHeader(
+			'Content-Disposition',
+			`attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+		)
+		createReadStream(file.absolutePath).pipe(res)
+	}
+
+	@UseGuards(WorkspaceGuard)
 	@Put('workspace/:workspaceId/:id/file')
 	async saveSkillPackageFile(
 		@Param('workspaceId') workspaceId: string,
@@ -127,5 +169,15 @@ export class SkillPackageController {
 		@Body() body: { path: string; content: string }
 	) {
 		return this.service.saveSkillPackageFile(workspaceId, id, body?.path, body?.content)
+	}
+
+	@UseGuards(WorkspaceGuard)
+	@Delete('workspace/:workspaceId/:id/file')
+	async deleteSkillPackageFile(
+		@Param('workspaceId') workspaceId: string,
+		@Param('id') id: string,
+		@Query('path') path: string
+	) {
+		return this.service.deleteSkillPackageFile(workspaceId, id, path)
 	}
 }

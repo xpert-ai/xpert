@@ -1,13 +1,15 @@
 {
   "name": "@xpert-ai/plugin-agent-middlewares",
-  "version": "0.0.2-beta.1",
+  "version": "0.0.2",
   "private": true,
   "xpert": {
     "plugin": {
       "level": "system"
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "node-pty": "^1.0.0"
+  },
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {

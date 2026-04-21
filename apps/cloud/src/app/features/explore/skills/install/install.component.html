@@ -8,7 +8,10 @@
       | translate
         : {
             name: item.name || item.skillId || item.skillPath,
-            Default: 'Select a target workspace for skill "' + (item.name || item.skillId || item.skillPath) + '".'
+            Default:
+              'Select a target workspace for skill "' +
+              (item.name || item.skillId || item.skillPath) +
+              '". If it is already installed there, we will reuse it. If a newer version is available, we will update it in place.'
           }
   }}
 </p>
@@ -56,7 +59,7 @@
     [disabled]="!workspace() || loading()"
     (click)="install()"
   >
-    {{ 'PAC.Explore.InstallNow' | translate: { Default: 'Install Now' } }}
+    {{ 'PAC.Explore.InstallOrUpdate' | translate: { Default: 'Install or Update' } }}
   </button>
   <button type="button" class="btn btn-secondary btn-medium disabled:btn-disabled" [disabled]="loading()" (click)="close()">
     {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}

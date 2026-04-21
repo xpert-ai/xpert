@@ -109,11 +109,15 @@ describe('XpertImportHandler', () => {
         const queryBus = {
             execute: jest.fn().mockResolvedValue([])
         }
+        const xpertAgentService = {
+            getMiddlewareStrategies: jest.fn().mockReturnValue([])
+        }
 
         return {
             xpertService,
             queryBus,
-            handler: new XpertImportHandler(xpertService as any, i18n as any, queryBus as any)
+            xpertAgentService,
+            handler: new XpertImportHandler(xpertService as any, i18n as any, queryBus as any, xpertAgentService as any)
         }
     }
 
@@ -317,8 +321,29 @@ describe('XpertImportHandler', () => {
                 }
             }
         ]
-        const { handler, xpertService, queryBus } = buildHandler()
+        const { handler, xpertService, queryBus, xpertAgentService } = buildHandler()
         queryBus.execute.mockResolvedValue(availableCopilots)
+        xpertAgentService.getMiddlewareStrategies.mockReturnValue([
+            {
+                meta: {
+                    name: 'SummarizationMiddleware',
+                    configSchema: {
+                        type: 'object',
+                        properties: {
+                            model: {
+                                type: 'object',
+                                'x-ui': {
+                                    component: 'ai-model-select',
+                                    inputs: {
+                                        modelType: 'llm'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ])
 
         await handler.execute(
             new XpertImportCommand({
@@ -419,6 +444,108 @@ describe('XpertImportHandler', () => {
                                     copilotId: 'copilot-glm',
                                     model: 'glm-5',
                                     modelType: 'llm'
+                                })
+                            })
+                        })
+                    })
+                ])
+            })
+        )
+    })
+
+    it('does not sync middleware options.model when the schema does not use ai-model-select', async () => {
+        const availableCopilots = [
+            {
+                id: 'copilot-glm',
+                providerWithModels: {
+                    models: [
+                        {
+                            model: 'glm-5',
+                            model_type: 'llm',
+                            features: []
+                        }
+                    ]
+                }
+            }
+        ]
+        const { handler, xpertService, queryBus, xpertAgentService } = buildHandler()
+        queryBus.execute.mockResolvedValue(availableCopilots)
+        xpertAgentService.getMiddlewareStrategies.mockReturnValue([
+            {
+                meta: {
+                    name: 'CustomMiddleware',
+                    configSchema: {
+                        type: 'object',
+                        properties: {
+                            model: {
+                                type: 'object',
+                                'x-ui': {
+                                    component: 'json-editor'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ])
+
+        await handler.execute(
+            new XpertImportCommand({
+                team: {
+                    name: 'Imported Expert',
+                    title: 'Imported Expert',
+                    type: 'agent',
+                    copilotModel: {
+                        copilotId: 'copilot-glm',
+                        modelType: 'llm',
+                        model: 'glm-5'
+                    },
+                    agent: {
+                        key: 'Agent_imported'
+                    }
+                },
+                nodes: [
+                    {
+                        type: 'agent',
+                        key: 'Agent_imported',
+                        entity: {
+                            key: 'Agent_imported',
+                            name: 'Imported Expert'
+                        }
+                    },
+                    {
+                        type: 'workflow',
+                        key: 'Middleware_custom',
+                        entity: {
+                            type: 'middleware',
+                            provider: 'CustomMiddleware',
+                            options: {
+                                model: {
+                                    copilotId: 'missing-copilot',
+                                    modelType: 'llm',
+                                    model: 'glm-5'
+                                }
+                            }
+                        }
+                    }
+                ],
+                connections: [],
+                memories: []
+            } as any)
+        )
+
+        expect(xpertService.saveDraft).toHaveBeenCalledWith(
+            'new-xpert',
+            expect.objectContaining({
+                nodes: expect.arrayContaining([
+                    expect.objectContaining({
+                        key: 'Middleware_custom',
+                        entity: expect.objectContaining({
+                            options: expect.objectContaining({
+                                model: expect.objectContaining({
+                                    copilotId: 'missing-copilot',
+                                    modelType: 'llm',
+                                    model: 'glm-5'
                                 })
                             })
                         })

@@ -67,17 +67,99 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { filterLatestMessages } from '../filter-latest-messages'
 import { buildResumeDecision, extractInterruptPatch } from '../interrupt-request'
 import { isThreadContextUsageEvent } from '../context/thread-context-usage'
+import {
+  createReferenceHumanInput,
+  getReferenceKey,
+  getReferenceLabel,
+  getReferenceSource,
+  mergeReferences,
+  XpertChatReference,
+  XpertQuoteReference
+} from '../references'
 import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../context/follow-up-consumed'
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
   return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
 }
 
+function normalizePendingFollowUpTargetExecutionId(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalized = value.trim()
+  return normalized || null
+}
+
+function resolvePendingFollowUpTargetExecutionId(item: PendingFollowUp | null | undefined): string | null {
+  return normalizePendingFollowUpTargetExecutionId(item?.targetExecutionId)
+}
+
+function sortPendingFollowUps(items: PendingFollowUp[]): PendingFollowUp[] {
+  return [...items]
+}
+
+function getQueuedFollowUpGroup(items: PendingFollowUp[], target: PendingFollowUp | null | undefined): PendingFollowUp[] {
+  if (!target || target.mode !== 'queue') {
+    return []
+  }
+
+  const sortedQueueItems = sortPendingFollowUps(items).filter((item) => item.mode === 'queue')
+  const targetExecutionId = resolvePendingFollowUpTargetExecutionId(target)
+  if (!targetExecutionId) {
+    return sortedQueueItems.filter((item) => item.id === target.id)
+  }
+
+  return sortedQueueItems.filter((item) => resolvePendingFollowUpTargetExecutionId(item) === targetExecutionId)
+}
+
+function mergeQueuedFollowUpGroup(
+  items: PendingFollowUp[],
+  leadItemId?: string | null
+): MergedPendingFollowUpGroup | null {
+  const groupedItems = sortPendingFollowUps(items)
+  if (!groupedItems.length) {
+    return null
+  }
+
+  const leadItem = groupedItems.find((item) => item.id === leadItemId) ?? groupedItems[0]
+  const mergedInput = groupedItems
+    .map((item) => item.input)
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join('\n\n')
+  const files = groupedItems.flatMap((item) => item.files ?? [])
+  const references = groupedItems.flatMap((item) => item.references ?? [])
+
+  return {
+    items: groupedItems,
+    input: mergedInput,
+    ...(files.length ? { files } : {}),
+    ...(references.length ? { references } : {}),
+    targetExecutionId: resolvePendingFollowUpTargetExecutionId(leadItem)
+  }
+}
+
 type PendingFollowUp = {
   id: string
   input: string
   files?: IStorageFile[]
+  references?: XpertChatReference[]
   mode: 'queue' | 'steer'
+  targetExecutionId?: string | null
+}
+
+type MergedPendingFollowUpGroup = {
+  items: PendingFollowUp[]
+  input: string
+  files?: IStorageFile[]
+  references?: XpertChatReference[]
+  targetExecutionId?: string | null
+}
+
+type QuoteSelectionState = {
+  left: number
+  top: number
+  reference: XpertQuoteReference
 }
 
 @Component({
@@ -115,6 +197,7 @@ export class ChatConversationPreviewComponent {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly #clipboard = inject(Clipboard)
+  readonly #elementRef = inject<ElementRef<HTMLElement>>(ElementRef)
   readonly #store = inject(Store)
   readonly confirmDel = injectConfirmDelete()
   readonly #audioRecorder = inject(AudioRecorderService)
@@ -171,6 +254,12 @@ export class ChatConversationPreviewComponent {
   readonly speechToText_enabled = computed(() => this.xpert()?.features?.speechToText?.enabled)
   readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
   readonly inputLength = computed(() => this.input()?.length ?? 0)
+  readonly references = signal<XpertChatReference[]>([])
+  readonly hasReferences = computed(() => this.references().length > 0)
+  readonly canSend = computed(() => !!this.input()?.trim() || this.hasReferences())
+  readonly referenceKey = getReferenceKey
+  readonly referenceLabel = getReferenceLabel
+  readonly referenceSource = getReferenceSource
   readonly loading = signal(false)
   readonly pendingFollowUps = signal<PendingFollowUp[]>([])
   readonly followUpBehavior = signal<'queue' | 'steer'>(this.readPersistedFollowUpBehavior())
@@ -213,6 +302,7 @@ export class ChatConversationPreviewComponent {
   })
 
   readonly copiedMessages = signal<Record<string, boolean>>({})
+  readonly quoteSelection = signal<QuoteSelectionState | null>(null)
   readonly feedbackReady = (message: IChatMessage) => {
     const status = message?.status as XpertAgentExecutionStatusEnum | string
     const endedStatuses = new Set<XpertAgentExecutionStatusEnum | string>([
@@ -291,6 +381,21 @@ export class ChatConversationPreviewComponent {
     effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert))
     effect(() => this.input.set(this.#audioRecorder.text()))
 
+    if (typeof document !== 'undefined') {
+      const selectionHandler = () => this.updateQuoteSelection()
+      const clearHandler = () => this.clearQuoteSelection()
+
+      document.addEventListener('selectionchange', selectionHandler)
+      window.addEventListener('resize', clearHandler)
+      window.addEventListener('scroll', clearHandler, true)
+
+      this.#destroyRef.onDestroy(() => {
+        document.removeEventListener('selectionchange', selectionHandler)
+        window.removeEventListener('resize', clearHandler)
+        window.removeEventListener('scroll', clearHandler, true)
+      })
+    }
+
     this.#destroyRef.onDestroy(() => {
       this.#destroyed = true
     })
@@ -316,11 +421,27 @@ export class ChatConversationPreviewComponent {
     })
   }
 
+  sendMessage(input: string | null | undefined, options?: { references?: XpertChatReference[]; followUpBehavior?: 'queue' | 'steer' }) {
+    const content = input?.trim() ?? ''
+    const references = options?.references ?? []
+    if (!content && !references.length) {
+      return
+    }
+
+    this.chat({
+      input: content,
+      references,
+      followUpBehavior: options?.followUpBehavior
+    })
+  }
+
   chat(options?: {
     input?: string
     confirm?: boolean
     files?: IStorageFile[]
+    references?: XpertChatReference[]
     messageId?: string
+    queuedFollowUpGroup?: MergedPendingFollowUpGroup | null
     command?: TInterruptCommand
     /**
      * @deprecated use confirm with command resume instead
@@ -331,15 +452,17 @@ export class ChatConversationPreviewComponent {
     followUpBehavior?: 'queue' | 'steer'
   }) {
     if (this.loading()) {
-      if (!options?.input || this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+      if ((!options?.input && !options?.references?.length) || this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
         return
       }
 
       void this.enqueueFollowUp({
         id: options?.messageId ?? uuid(),
-        input: options.input,
+        input: options.input ?? '',
         files: options?.files ?? this.files(),
-        mode: options?.followUpBehavior ?? this.followUpBehavior()
+        references: options?.references,
+        mode: options?.followUpBehavior ?? this.followUpBehavior(),
+        targetExecutionId: this.currentMessage()?.executionId ?? this.lastMessage()?.executionId ?? null
       })
       return
     }
@@ -350,17 +473,41 @@ export class ChatConversationPreviewComponent {
 
     const requestFiles = options?.files ?? this.files()
     const shouldClearAttachments = !options?.files
+    const references = options?.references ?? []
+    const queuedFollowUpGroup = options?.queuedFollowUpGroup
 
-    const shouldAppendHuman = !!options?.input
+    const shouldAppendHuman = !!options?.input?.trim() || references.length > 0
     if (shouldAppendHuman) {
-      // Add to user message
-      this.appendMessage({
-        role: 'human',
-        content: options.input,
-        id: uuid(),
-        attachments: requestFiles
-      })
+      if (queuedFollowUpGroup?.items?.length) {
+        queuedFollowUpGroup.items.forEach((item) => {
+          this.appendMessage({
+            role: 'human',
+            content: item.input ?? '',
+            id: item.id,
+            ...(item.references?.length
+              ? {
+                  references: item.references
+                }
+              : {}),
+            attachments: item.files
+          })
+        })
+      } else {
+        // Add to user message
+        this.appendMessage({
+          role: 'human',
+          content: options?.input ?? '',
+          id: uuid(),
+          ...(references.length
+            ? {
+                references
+              }
+            : {}),
+          attachments: requestFiles
+        })
+      }
       this.input.set('')
+      this.references.set([])
       this.currentMessage.set({
         id: uuid(),
         role: 'ai',
@@ -423,17 +570,20 @@ export class ChatConversationPreviewComponent {
           clientMessageId: options?.messageId,
           input: {
             ...(this.parameterValue() ?? {}),
-            input: options?.input,
-            files: requestFiles?.map((file) => ({
-              id: file.id,
-              originalName: file.originalName,
-              name: file.originalName,
-              filePath: file.file,
-              fileUrl: file.url,
-              mimeType: file.mimetype,
-              size: file.size,
-              extension: file.originalName.split('.').pop()
-            }))
+            ...createReferenceHumanInput({
+              content: options?.input ?? '',
+              references,
+              files: requestFiles?.map((file) => ({
+                id: file.id,
+                originalName: file.originalName,
+                name: file.originalName,
+                filePath: file.file,
+                fileUrl: file.url,
+                mimeType: file.mimetype,
+                size: file.size,
+                extension: file.originalName.split('.').pop()
+              }))
+            })
           }
         }
       } as TChatRequest
@@ -511,12 +661,16 @@ export class ChatConversationPreviewComponent {
                     }
                     const followUpConsumedEvent = parseFollowUpConsumedEvent(event.data)
                     if (followUpConsumedEvent) {
-                      if (this.currentMessage()) {
-                        this.appendMessage({ ...this.currentMessage() })
-                        this.currentMessage.set(null)
+                      if (followUpConsumedEvent.mode === 'steer') {
+                        if (this.currentMessage()) {
+                          this.appendMessage({ ...this.currentMessage() })
+                          this.currentMessage.set(null)
+                        }
+                        this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
+                        this.shouldStartFreshAssistantMessageAfterSteer = true
+                      } else {
+                        this.removePendingQueuedFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
                       }
-                      this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
-                      this.shouldStartFreshAssistantMessageAfterSteer = true
                       break
                     }
                     this.currentMessage.update((state) => ({
@@ -609,6 +763,30 @@ export class ChatConversationPreviewComponent {
     this.sendMessage(question)
   }
 
+  addReferences(references: XpertChatReference[]) {
+    if (!references.length) {
+      return
+    }
+
+    this.references.update((current) => mergeReferences(current, references))
+  }
+
+  removeReference(reference: XpertChatReference) {
+    const key = this.referenceKey(reference)
+    this.references.update((current) => current.filter((item) => this.referenceKey(item) !== key))
+  }
+
+  quoteSelectedText() {
+    const selection = this.quoteSelection()
+    if (!selection) {
+      return
+    }
+
+    this.addReferences([selection.reference])
+    this.clearBrowserSelection()
+    this.clearQuoteSelection()
+  }
+
   appendMessage(message: Partial<IChatMessage>) {
     this._messages.update((state) => {
       const messages = state?.filter((_) => _.id !== message.id)
@@ -636,10 +814,13 @@ export class ChatConversationPreviewComponent {
       }
 
       if (event.shiftKey && (event.metaKey || event.ctrlKey)) {
-        if (!this.input()) {
+        if (!this.input() && !this.hasReferences()) {
           return
         }
-        this.sendMessage(this.input(), this.followUpBehavior() === 'queue' ? 'steer' : 'queue')
+        this.sendMessage(this.input(), {
+          references: this.references(),
+          followUpBehavior: this.followUpBehavior() === 'queue' ? 'steer' : 'queue'
+        })
         event.preventDefault()
         return
       }
@@ -648,7 +829,7 @@ export class ChatConversationPreviewComponent {
         return
       }
 
-      this.sendMessage(this.input())
+      this.sendMessage(this.input(), { references: this.references() })
       event.preventDefault()
     }
   }
@@ -657,14 +838,11 @@ export class ChatConversationPreviewComponent {
     this.followUpBehavior.set(behavior)
   }
 
-  sendMessage(input: string, followUpBehavior?: 'queue' | 'steer') {
-    this.chat({ input, followUpBehavior })
-  }
-
   private async enqueueFollowUp(item: PendingFollowUp) {
     this.pendingFollowUps.update((state) => [...(state ?? []).filter((entry) => entry.id !== item.id), item])
     this.input.set('')
     this.attachments.set([])
+    this.references.set([])
 
     if (item.mode !== 'steer') {
       return
@@ -682,17 +860,20 @@ export class ChatConversationPreviewComponent {
         clientMessageId: item.id,
         input: {
           ...(this.parameterValue() ?? {}),
-          input: item.input,
-          files: item.files?.map((file) => ({
-            id: file.id,
-            originalName: file.originalName,
-            name: file.originalName,
-            filePath: file.file,
-            fileUrl: file.url,
-            mimeType: file.mimetype,
-            size: file.size,
-            extension: file.originalName.split('.').pop()
-          }))
+          ...createReferenceHumanInput({
+            content: item.input,
+            references: item.references,
+            files: item.files?.map((file) => ({
+              id: file.id,
+              originalName: file.originalName,
+              name: file.originalName,
+              filePath: file.file,
+              fileUrl: file.url,
+              mimeType: file.mimetype,
+              size: file.size,
+              extension: file.originalName.split('.').pop()
+            }))
+          })
         }
       }
     } as TChatRequest
@@ -732,11 +913,23 @@ export class ChatConversationPreviewComponent {
         role: 'human',
         content: item.input,
         conversationId: this.conversation()?.id,
+        ...(item.references?.length ? { references: item.references } : {}),
         attachments: item.files
       })
     })
     this.pendingFollowUps.update((state) =>
       (state ?? []).filter((item) => !(item.mode === 'steer' && idSet.has(item.id)))
+    )
+  }
+
+  private removePendingQueuedFollowUps(ids: string[]) {
+    if (!ids.length) {
+      return
+    }
+
+    const idSet = new Set(ids)
+    this.pendingFollowUps.update((state) =>
+      (state ?? []).filter((item) => !(item.mode === 'queue' && idSet.has(item.id)))
     )
   }
 
@@ -756,11 +949,20 @@ export class ChatConversationPreviewComponent {
       return
     }
 
-    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => item.id !== next.id))
+    const groupedItems = getQueuedFollowUpGroup(this.pendingFollowUps(), next)
+    const mergedGroup = mergeQueuedFollowUpGroup(groupedItems, next.id)
+    if (!mergedGroup) {
+      return
+    }
+
+    const groupedIds = new Set(mergedGroup.items.map((item) => item.id))
+    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => !groupedIds.has(item.id)))
     this.chat({
-      input: next.input,
-      files: next.files,
-      messageId: next.id
+      input: mergedGroup.input,
+      files: mergedGroup.files,
+      references: mergedGroup.references,
+      messageId: next.id,
+      queuedFollowUpGroup: mergedGroup
     })
   }
 
@@ -855,6 +1057,8 @@ export class ChatConversationPreviewComponent {
     this.conversation.set(null)
     this._messages.set([])
     this.parameterValue.set({})
+    this.references.set([])
+    this.clearQuoteSelection()
     this.suggestionQuestions.set([])
     this.restart.emit()
   }
@@ -937,6 +1141,91 @@ export class ChatConversationPreviewComponent {
     this.retryMessage(message.id)
   }
 
+  getMessageSourceLabel(role: string | undefined): string {
+    if (role === 'user' || role === 'human') {
+      return this.#translate.instant('PAC.KEY_WORDS.You', { Default: 'You' })
+    }
+
+    return (
+      this.xpert()?.title ||
+      this.xpert()?.name ||
+      this.#translate.instant('PAC.Xpert.Assistant', { Default: 'Assistant' })
+    )
+  }
+
+  private updateQuoteSelection() {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return
+    }
+
+    const selection = document.getSelection()
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const text = selection.toString().trim()
+    if (!text) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const host = this.#elementRef.nativeElement
+    const anchorElement = toSelectionElement(selection.anchorNode)
+    const focusElement = toSelectionElement(selection.focusNode)
+
+    if (!anchorElement || !focusElement || !host.contains(anchorElement) || !host.contains(focusElement)) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const anchorMessage = anchorElement.closest<HTMLElement>('[data-chat-reference-message="true"]')
+    const focusMessage = focusElement.closest<HTMLElement>('[data-chat-reference-message="true"]')
+    if (!anchorMessage || anchorMessage !== focusMessage) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const range = selection.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    if (!rect.width && !rect.height) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const source =
+      anchorMessage.dataset.messageSource?.trim() ||
+      this.xpert()?.title ||
+      this.xpert()?.name ||
+      this.#translate.instant('PAC.Xpert.Assistant', { Default: 'Assistant' })
+    const messageId = anchorMessage.dataset.messageId?.trim() || undefined
+    const left = clamp(rect.left + rect.width / 2, 88, window.innerWidth - 88)
+    const top = Math.max(16, rect.top - 48)
+
+    this.quoteSelection.set({
+      left,
+      top,
+      reference: {
+        type: 'quote',
+        text,
+        ...(messageId ? { messageId } : {}),
+        source
+      }
+    })
+  }
+
+  private clearQuoteSelection() {
+    this.quoteSelection.set(null)
+  }
+
+  private clearBrowserSelection() {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    document.getSelection()?.removeAllRanges()
+  }
+
   readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading
   readonly isPlaying = this.#synthesizeService.isPlaying
   readAloud(message: IChatMessage) {
@@ -981,4 +1270,20 @@ export class ChatConversationPreviewComponent {
   onAttachCreated(file: IStorageFile) {
     //
   }
+}
+
+function toSelectionElement(node: Node | null): HTMLElement | null {
+  if (!node) {
+    return null
+  }
+
+  if (node instanceof HTMLElement) {
+    return node
+  }
+
+  return node.parentElement
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
 }

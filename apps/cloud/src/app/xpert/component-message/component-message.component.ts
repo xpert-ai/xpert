@@ -5,13 +5,14 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
+import { ChatContextCompressionChunkComponent, ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
 import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
 import { TimeGranularity } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatMessageStepCategory,
+  CONTEXT_COMPRESSION_COMPONENT_TYPE,
   IXpertTask,
   TMessageComponent,
   TMessageComponentStep,
@@ -40,7 +41,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     DragDropModule,
     CdkMenuModule,
-    RouterModule,
     TranslateModule,
     ...ZardTooltipImports,
 
@@ -49,6 +49,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ChatComponentMemoriesComponent,
     ChatComponentMessageFilesComponent,
     ChatComponentMessageIframeComponent,
+    ChatContextCompressionChunkComponent,
     ChatToolCallChunkComponent
   ],
   selector: 'chat-component-message',
@@ -60,6 +61,7 @@ export class ChatComponentMessageComponent {
   eSlicersCapacity = SlicersCapacity
   eTimeGranularity = TimeGranularity
   eChatMessageStepCategory = ChatMessageStepCategory
+  readonly contextCompressionComponentType = CONTEXT_COMPRESSION_COMPONENT_TYPE
 
   readonly #dialog = inject(Dialog)
   readonly dsCore = inject(NgmDSCoreService)
@@ -73,7 +75,7 @@ export class ChatComponentMessageComponent {
   readonly message = input<TMessageContentComponent>()
 
   // States
-  readonly data = computed(() => this.message()?.data as TMessageComponent<{ data?: any }>)
+  readonly data = computed(() => this.message()?.data as TMessageComponent)
   readonly category = computed(() => this.data()?.category || 'Tool')
 
   readonly tasks = computed(() => (<TMessageComponent<{ tasks: IXpertTask[] }>>this.data())?.tasks)

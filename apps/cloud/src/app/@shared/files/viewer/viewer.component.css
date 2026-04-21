@@ -27,3 +27,7 @@
 .xp-empty-state {
   @apply flex h-full min-h-[240px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle/60 px-6 py-8 text-center;
 }
+
+.xp-file-preview-reference-button {
+  transform: translate(-50%, -100%);
+}

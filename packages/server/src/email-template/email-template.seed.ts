@@ -4,6 +4,7 @@ import { EmailTemplate } from './email-template.entity';
 import mjml2html from 'mjml';
 import path from 'path';
 import { ITenant } from '@xpert-ai/contracts';
+import { resolveDefaultEmailTemplateFolder } from './default-email-template-path';
 
 /**
  * Note: This seed file assumes the following directory structure in seeds/data/email/default-email-templates/ folder
@@ -19,22 +20,17 @@ export const createDefaultEmailTemplates = async (
 	tenant: ITenant
 ): Promise<any> => {
 	try {
-		const templatePath = [
-			'core',
-			'seeds',
-			'data',
-			'default-email-templates'
-		];
+		const folderPath = resolveDefaultEmailTemplateFolder();
+		if (!folderPath) {
+			console.warn(
+				'Default email templates directory not found. Skipping tenant email template seed.'
+			);
+			return;
+		}
 
-		const files = [];
+		const files: string[] = [];
 
-		let FOLDER_PATH = path.join(__dirname, '../', ...templatePath);
-
-		FOLDER_PATH = fs.existsSync(FOLDER_PATH)
-			? FOLDER_PATH
-			: path.resolve('.', ...templatePath.slice(2));
-
-		findInDir(FOLDER_PATH, files);
+		findInDir(folderPath, files);
 
 		await fileToTemplate(connection, tenant, files);
 	} catch (error) {
@@ -43,7 +39,7 @@ export const createDefaultEmailTemplates = async (
 	}
 };
 
-function findInDir(dir, fileList = []) {
+function findInDir(dir: string, fileList: string[] = []): string[] {
 	const files = fs.readdirSync(dir);
 
 	files.forEach((file) => {
@@ -56,9 +52,15 @@ function findInDir(dir, fileList = []) {
 			fileList.push(filePath);
 		}
 	});
+
+	return fileList;
 }
 
-const fileToTemplate = async (connection, tenant: ITenant, files) => {
+const fileToTemplate = async (
+	connection: Connection,
+	tenant: ITenant,
+	files: string[]
+): Promise<void> => {
 	for (const file of files) {
 		const template = await pathToEmailTemplate(file);
 		if (template && template.hbs) {
@@ -82,7 +84,7 @@ const insertTemplate = async (
 
 const pathToEmailTemplate = async (
 	fullPath: string
-): Promise<EmailTemplate> => {
+): Promise<EmailTemplate | undefined> => {
 	try {
 		const template = new EmailTemplate();
 		// default template access for tenant organizations

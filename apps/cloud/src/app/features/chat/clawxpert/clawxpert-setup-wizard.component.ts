@@ -9,7 +9,12 @@ import { ZardButtonComponent, ZardCardImports, ZardIconComponent, ZardInputDirec
 import { startWith } from 'rxjs'
 import { IXpert, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/xpert'
+import {
+  BLANK_XPERT_DIALOG_CATEGORY,
+  BlankXpertDialogData,
+  BlankXpertWizardResult,
+  XpertNewBlankComponent
+} from '../../xpert/xpert'
 import { ClawXpertFacade } from './clawxpert.facade'
 
 @Component({
@@ -299,17 +304,19 @@ export class ClawXpertSetupWizardComponent {
       return
     }
 
+    const dialogData = {
+      allowWorkspaceSelection: true,
+      allowedModes: [XpertTypeEnum.Agent],
+      category: BLANK_XPERT_DIALOG_CATEGORY.CLAW,
+      completionMode: 'publish',
+      type: XpertTypeEnum.Agent
+    } satisfies BlankXpertDialogData
+
     this.creatingXpert.set(true)
     this.#dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
         disableClose: true,
-        data: {
-          allowWorkspaceSelection: true,
-          allowedModes: [XpertTypeEnum.Agent],
-          category: 'Claw',
-          completionMode: 'publish',
-          type: XpertTypeEnum.Agent
-        }
+        data: dialogData
       })
       .closed.subscribe(async (result) => {
         try {

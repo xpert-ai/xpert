@@ -1,0 +1,117 @@
+<div class="h-full flex flex-1 flex-col overflow-hidden">
+  @if (loading()) {
+    <ngm-spin class="flex flex-1 items-center justify-center" />
+  } @else if (showUnsupportedState()) {
+    <div class="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+      <div class="flex w-[280px] items-center gap-3 rounded-[10px] bg-background-default-subtle px-3 py-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-components-card-bg text-text-primary">
+          <i class="ri-file-3-line text-2xl"></i>
+        </div>
+
+        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div class="truncate text-base text-text-primary">{{ fileName() }}</div>
+          <div class="truncate text-sm text-text-tertiary">{{ previewKind() }}</div>
+        </div>
+      </div>
+
+      <div class="text-center text-base text-text-tertiary">
+        {{ 'PAC.Chat.FormatCannotPreviewed' | translate: { Default: 'This format cannot be previewed.' } }}
+        <br />{{
+          'PAC.Chat.DownloadFiletoView'
+            | translate: { Default: 'Please download the file to view its contents.' }
+        }}
+      </div>
+
+      @if (downloadable()) {
+        <button
+          type="button"
+          class="btn btn-primary inline-flex h-9 items-center justify-center gap-1 rounded-[10px] px-3 hover:opacity-90"
+          (click)="download.emit()"
+        >
+          <i class="ri-download-2-line"></i>
+          <span class="text-sm text-white">{{ 'PAC.Chat.Download' | translate: { Default: 'Download' } }}</span>
+        </button>
+      }
+    </div>
+  } @else {
+    @switch (previewKind()) {
+      @case ('text') {
+        <markdown
+          clipboard
+          class="ngm-copilot-markdown flex-1 overflow-auto px-8 py-4"
+          lineNumbers
+          [start]="5"
+          [data]="content() ?? ''"
+        />
+      }
+      @case ('code') {
+        <pre class="flex-1 overflow-auto p-4 text-sm whitespace-pre-wrap"><code>{{ content() ?? '' }}</code></pre>
+      }
+      @case ('html') {
+        <iframe
+          [src]="url() | safe: 'resourceUrl'"
+          [srcdoc]="!url() ? content() ?? '' : null"
+          class="h-full w-full border-none bg-components-panel-bg"
+        ></iframe>
+      }
+      @case ('image') {
+        <div class="flex flex-1 items-center justify-center overflow-auto bg-components-panel-bg p-6">
+          <img [src]="url()" [alt]="fileName()" class="h-auto max-w-full rounded-xl object-contain shadow-sm" />
+        </div>
+      }
+      @case ('pdf') {
+        <iframe [src]="url() | safe: 'resourceUrl'" class="h-full w-full border-none bg-components-panel-bg"></iframe>
+      }
+      @case ('audio') {
+        <div class="flex flex-1 items-center justify-center bg-components-panel-bg p-6">
+          <audio class="w-full max-w-2xl" controls [src]="url()"></audio>
+        </div>
+      }
+      @case ('video') {
+        <div class="flex flex-1 items-center justify-center overflow-auto bg-components-panel-bg p-6">
+          <video class="max-h-full max-w-full rounded-xl bg-black shadow-sm" controls [src]="url()"></video>
+        </div>
+      }
+      @case ('spreadsheet') {
+        <div class="flex h-full min-h-0 flex-col">
+          @if (spreadsheet()?.sheets?.length > 1) {
+            <div class="flex gap-2 overflow-x-auto border-b border-divider-regular px-4 py-3">
+              @for (sheet of spreadsheet()?.sheets; track sheet.name; let index = $index) {
+                <button
+                  type="button"
+                  class="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                  [class]="
+                    selectedSheetIndex() === index
+                      ? 'bg-components-card-bg text-text-primary shadow-sm'
+                      : 'bg-transparent text-text-tertiary hover:bg-background-default-subtle'
+                  "
+                  (click)="selectedSheetIndex.set(index)"
+                >
+                  {{ sheet.name }}
+                </button>
+              }
+            </div>
+          }
+
+          <div class="border-b border-divider-regular px-4 py-2 text-xs text-text-tertiary">
+            {{
+              'PAC.Chat.PreviewTopRows'
+                | translate: {
+                    Default: 'Previewing the first {{count}} rows per sheet.',
+                    count: spreadsheet()?.rowLimit
+                  }
+            }}
+          </div>
+
+          <div class="min-h-0 flex-1 overflow-auto p-4">
+            <ngm-table
+              class="h-full max-w-full striped"
+              [columns]="activeSheet()?.columns ?? []"
+              [data]="activeSheet()?.rows ?? []"
+            />
+          </div>
+        </div>
+      }
+    }
+  }
+</div>

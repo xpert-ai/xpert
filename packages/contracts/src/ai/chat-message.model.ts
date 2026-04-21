@@ -17,6 +17,29 @@ export type TSummaryJob = Record<
   }
 >
 
+export type TChatReferenceBase = {
+  id?: string
+  label?: string
+  text: string
+}
+
+export type TChatCodeReference = TChatReferenceBase & {
+  type: 'code'
+  path: string
+  startLine: number
+  endLine: number
+  language?: string
+  taskId?: string
+}
+
+export type TChatQuoteReference = TChatReferenceBase & {
+  type: 'quote'
+  messageId?: string
+  source?: string
+}
+
+export type TChatReference = TChatCodeReference | TChatQuoteReference
+
 /**
  * Chat message entity type
  */
@@ -31,6 +54,10 @@ export interface IChatMessage
    * Files
    */
   attachments?: IStorageFile[]
+  /**
+   * Structured references associated with the human input
+   */
+  references?: TChatReference[]
   /**
    * Job of summary
    */

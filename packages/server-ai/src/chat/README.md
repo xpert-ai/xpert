@@ -115,3 +115,81 @@ await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
     end_date: new Date().toISOString(),
 } as TChatEventMessage)
 ```
+
+## Follow-up merge and consumed event
+
+`follow_up_consumed` 事件现在区分 `queue` 和 `steer` 两种模式：
+
+- `mode: 'queue'`：表示 queued follow-up 已经在发送阶段被成组消费，客户端只需要移除对应的 pending follow-up。
+- `mode: 'steer'`：表示 steer follow-up 已经在 pre-turn 阶段被注入当前运行的 state，客户端除了移除 pending follow-up，还需要让下一段 assistant 回复开启新的 AI message。
+
+之所以从只支持 `steer` 扩展为 `mode: 'queue' | 'steer'`，是因为 queue 路径现在也支持“同一运行内的 follow-up 合并消费”，服务端会发出同一个 `follow_up_consumed` 事件。
+
+### Queue follow-up merged send
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Client
+    participant S as Server
+    participant A as Agent or Model
+
+    U->>C: Send follow-up while run is active
+    C->>C: Store pending queue follow-up with targetExecutionId
+    C->>C: Group queued pending follow-ups by targetExecutionId
+    C->>C: Merge input with \\n\\n, append files and references in order
+    C->>C: Keep transcript visible as separate human follow-ups
+    C->>S: Send one merged request
+
+    S->>S: Find matched pending follow-up by clientMessageId
+    S->>S: Collect pending follow-ups in same conversation and targetExecutionId
+    S->>S: Merge with the same rules
+    S->>S: Mark all grouped follow-ups consumed with one visibleAt
+    S->>S: Attach AI reply to the latest consumed human message
+    S-->>C: Emit follow_up_consumed(mode=queue)
+    S->>A: Start one backend run with one merged human input
+
+    C->>C: Remove matching queued pending items only
+```
+
+### Steer follow-up pre-turn consume
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Client
+    participant S as Server
+    participant G as Agent State
+
+    U->>C: Send follow-up while run is active
+    C->>C: Store pending steer follow-up with targetExecutionId
+
+    Note over S,G: Next pre-turn node
+    S->>S: Load pending steer follow-ups by conversationId and executionId
+    S->>G: Stage them into pending follow-up state
+    G->>G: Merge input with \\n\\n, append files and references in order
+    S->>S: Mark all grouped follow-ups consumed with one visibleAt
+    S-->>C: Emit follow_up_consumed(mode=steer)
+    G->>G: Inject merged human input into current run state
+
+    C->>C: Flush pending steer follow-ups
+    C->>C: Start next assistant reply in a fresh AI message
+```
+
+### Merge rules
+
+- Merge boundary: same conversation and same active `targetExecutionId`.
+- Keep created-time order stable.
+- `input`: join non-empty strings with `\n\n`.
+- `files`: concatenate in order.
+- `references`: concatenate in order.
+- Other human-input fields: later values override earlier values.
+- Visible transcript stays as individual follow-up messages; only backend run creation and model input are merged.
+
+### What will not merge
+
+- Follow-ups from different `targetExecutionId` values.
+- Follow-ups from different conversations.
+- Follow-ups with different modes (`queue` and `steer` never merge with each other).
+- Messages that are not in `pending` status.
+- Queued follow-ups without a usable `targetExecutionId`; these are sent individually by default.

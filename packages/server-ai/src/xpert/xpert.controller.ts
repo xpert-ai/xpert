@@ -50,7 +50,8 @@ import {
     InternalServerErrorException,
     Res,
     NotFoundException,
-    BadRequestException
+    BadRequestException,
+    UploadedFile as NestUploadedFile
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { UploadedFile } from '@xpert-ai/contracts'
@@ -402,8 +403,7 @@ export class XpertController extends CrudController<Xpert> {
     async getMemoryFiles(
         @Param('id', UUIDValidationPipe) id: string,
         @Query('deepth') deepth: number,
-        @Query('path') path: string,
-        @Query('workspaceId') _workspaceId?: string
+        @Query('path') path: string
     ) {
         return await this.service.getMemoryFiles(id, path, deepth)
     }
@@ -412,8 +412,7 @@ export class XpertController extends CrudController<Xpert> {
     @Get(':id/memory/file')
     async getMemoryFile(
         @Param('id', UUIDValidationPipe) id: string,
-        @Query('path') path: string,
-        @Query('workspaceId') _workspaceId?: string
+        @Query('path') path: string
     ) {
         return await this.service.getMemoryFile(id, path)
     }
@@ -426,10 +425,29 @@ export class XpertController extends CrudController<Xpert> {
         body: {
             path: string
             content: string
-            workspaceId?: string | null
         }
     ) {
         return await this.service.saveMemoryFile(id, body?.path, body?.content ?? '')
+    }
+
+    @UseGuards(XpertGuard)
+    @Post(':id/memory/file/upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body('path') path: string,
+        @NestUploadedFile() file: Express.Multer.File
+    ) {
+        return await this.service.uploadMemoryFile(id, path, file)
+    }
+
+    @UseGuards(XpertGuard)
+    @Delete(':id/memory/file')
+    async deleteMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('path') path: string
+    ) {
+        return await this.service.deleteMemoryFile(id, path)
     }
 
     @Post(':id/memory/bulk')

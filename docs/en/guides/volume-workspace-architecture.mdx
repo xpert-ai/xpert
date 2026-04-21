@@ -1,0 +1,338 @@
+# Volume / Workspace Architecture
+
+This guide documents the current Volume / Workspace split in `xpert`.
+
+There are only two core rules:
+
+- `Volume` always means a filesystem path visible to the server process.
+- `Workspace` always means a filesystem path visible to a sandbox.
+
+They are related, but they are not the same thing.
+
+## Why the split exists
+
+The same underlying data can appear differently depending on where code is running:
+
+- when the server runs directly on a developer machine, it sees local host paths
+- when the server runs inside the API Docker container, it sees container paths
+- when the sandbox runs in a local shell or a sibling container, it sees its own working directory
+
+If all of those are called `workspacePath`, it becomes very easy to mix up:
+
+- server-visible paths
+- Docker bind sources
+- sandbox working directories
+
+The new architecture separates those layers and reconnects them through an explicit mapping.
+
+## Core types
+
+### `VolumeScope`
+
+`VolumeScope` in `packages/server-ai/src/shared/volume/volume.ts` describes only the logical volume identity. It does not describe sandbox or provider behavior.
+
+Main fields:
+
+- `tenantId`
+- `catalog`
+- `projectId`
+- `userId`
+- `xpertId`
+- `knowledgeId`
+- `workspaceId`
+- `environmentId`
+- `rootId`
+- `isolateByUser`
+
+### `VolumeClient`
+
+`VolumeClient` is responsible for server-side path resolution.
+
+Main API:
+
+- `resolve(scope): VolumeHandle`
+- `resolveRoot(tenantId): { serverRoot, hostRoot }`
+
+It does not manage sandbox lifecycle and it does not infer container working directories by itself.
+
+### `VolumeHandle`
+
+`VolumeHandle` is a resolved server-side volume.
+
+Key fields:
+
+- `scope`
+- `serverRoot`
+- `hostRoot`
+- `publicBaseUrl`
+
+Key methods:
+
+- `ensureRoot()`
+- `path(relative?)`
+- `publicUrl(relative?)`
+- `readFile()`
+- `putFile()`
+- `deleteFile()`
+- `list()`
+
+Semantically:
+
+- `serverRoot` is the path the current server runtime can access directly
+- `hostRoot` is the host path needed for Docker bind mounts
+- `publicBaseUrl` is the URL prefix consumed by browsers and frontend links
+
+### `WorkspacePathMapper`
+
+`WorkspacePathMapper` converts a Volume into a Workspace view.
+
+Main API:
+
+- `mapVolumeToWorkspace(volume, options?)`
+- `mapWorkspaceToVolume(binding, workspacePath)`
+
+`WorkspaceBinding` describes one explicit mapping:
+
+- `volumeRoot`
+- `workspaceRoot`
+- `workspacePath`
+- `bindSource`
+- `containerMountPath`
+
+## Runtime implementations
+
+### `DevVolumeClient`
+
+`DevVolumeClient` represents the server running directly against the local filesystem.
+
+In that case:
+
+- `serverRoot === hostRoot`
+
+Root rules:
+
+- in `dev` without `SANDBOX_VOLUME`, use `~/data`
+- otherwise prefer `${SANDBOX_VOLUME}/${tenantId}`
+- if `SANDBOX_VOLUME` is still unavailable, fall back to `~/data/${tenantId}`
+
+### `DockerVolumeClient`
+
+`DockerVolumeClient` represents the server running inside the API Docker container.
+
+In that case:
+
+- `serverRoot` uses the API-container view, such as `/sandbox/${tenantId}`
+- `hostRoot` uses the host view, such as `${SANDBOX_VOLUME}/${tenantId}`
+
+### `LocalShellWorkspacePathMapper`
+
+A local shell sandbox works directly against server-visible paths.
+
+So:
+
+- `workspaceRoot === volume.serverRoot`
+- `workspacePath === volume.serverRoot` or one of its descendants
+
+### `DockerWorkspacePathMapper`
+
+A Docker sandbox mounts one precise Volume root into `/workspace` inside the container.
+
+So:
+
+- `bindSource === volume.hostRoot`
+- `containerMountPath === '/workspace'`
+- `workspaceRoot === '/workspace'`
+- `workspacePath` is the server-side subpath translated into `/workspace/...`
+
+## Root path matrix
+
+Root calculation is centralized in [packages/server-ai/src/shared/volume/volume-layout.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-layout.ts:1).
+
+### API-container root
+
+`getApiContainerSandboxVolumeRootPath(tenantId)`:
+
+| Scenario | Value |
+| --- | --- |
+| `dev` without `SANDBOX_VOLUME` | `~/data` |
+| `dev`, server not in Docker, `SANDBOX_VOLUME` configured | `${SANDBOX_VOLUME}/${tenantId}` |
+| `dev`, server in Docker | `/sandbox/${tenantId}` |
+| non-`dev` | `/sandbox/${tenantId}` |
+
+### Host root
+
+`getDockerHostSandboxVolumeRootPath(tenantId)`:
+
+| Scenario | Value |
+| --- | --- |
+| `dev` without `SANDBOX_VOLUME` | `~/data` |
+| `SANDBOX_VOLUME` configured | `${SANDBOX_VOLUME}/${tenantId}` |
+| no `SANDBOX_VOLUME` outside flattened dev | falls back to the API-container root |
+
+### Flattened local development
+
+Flattened mode is enabled when both are true:
+
+- `environment.envName === 'dev'`
+- `SANDBOX_VOLUME` is not configured
+
+In that mode:
+
+- `serverRoot` and `hostRoot` both collapse to `~/data`
+- all logical catalogs share that one root
+- public URLs are normalized by `normalizeSandboxPublicVolumeSubpath()`
+
+That is the main reason why local-development disk roots and logical public URLs may not look identical.
+
+## Logical Volume subpaths
+
+`getVolumeSubpath()` defines the logical subpaths:
+
+| `catalog` | Subpath |
+| --- | --- |
+| `environment` | `/environment/${environmentId}` |
+| `knowledges` | `/knowledges/${knowledgeId}` |
+| `projects` | `/project/${projectId}` |
+| `skills` | `/skills/${rootId}` |
+| `users` | `/user/${userId}` |
+| `workspaces` | `/workspaces/${workspaceId}` |
+| `xperts` shared | `/xpert/${xpertId}` |
+| `xperts` user-isolated | `/xpert/${xpertId}/user/${userId}` |
+
+From that subpath we derive:
+
+- the Volume path: `volume.serverRoot`
+- the public URL: `getVolumePublicBaseUrl(scope)`
+
+Examples:
+
+| Logical object | Server path | Public URL |
+| --- | --- | --- |
+| Project | `/sandbox/${tenantId}/project/${projectId}` | `/api/sandbox/volume/project/${projectId}` |
+| User | `/sandbox/${tenantId}/user/${userId}` | `/api/sandbox/volume/user/${userId}` |
+| Shared Xpert volume | `/sandbox/${tenantId}/xpert/${xpertId}` | `/api/sandbox/volume/xpert/${xpertId}` |
+| User-isolated Xpert volume | `/sandbox/${tenantId}/xpert/${xpertId}/user/${userId}` | `/api/sandbox/volume/xpert/${xpertId}/user/${userId}` |
+| Workspace | `/sandbox/${tenantId}/workspaces/${workspaceId}` | `/api/sandbox/volume/workspaces/${workspaceId}` |
+
+## Additional path families
+
+### Workspace paths
+
+From [packages/server-ai/src/xpert-workspace/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/xpert-workspace/types.ts:1):
+
+- workspace root: `${volumeRoot}/workspaces/${workspaceId}`
+
+From [packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/skill-repository/types.ts:1):
+
+- workspace skills root: `${workspaceRoot}/skills`
+
+### Organization shared skill paths
+
+Also from [packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/skill-repository/types.ts:1):
+
+- organization shared skills root: `${volumeRoot}/organizations/${organizationId}/skills/public`
+- global shared skills root: `${volumeRoot}/skills/public`
+
+## Mapping Volume into Workspace
+
+The recommended flow is now two-step:
+
+1. resolve a Volume
+2. map it into a Workspace
+
+Example:
+
+```ts
+const volume = await this.volumeClient
+  .resolve({
+    tenantId,
+    catalog: 'xperts',
+    xpertId,
+    userId,
+    isolateByUser: true
+  })
+  .ensureRoot()
+
+const binding = this.workspacePathMapperFactory
+  .forProvider(provider)
+  .mapVolumeToWorkspace(volume)
+```
+
+The result means:
+
+- `volume.serverRoot` is for server-side file access
+- `binding.workspacePath` is for sandbox working-directory usage
+- `binding.bindSource` matters only for Docker sandboxes
+
+## Field semantics in runtime flows
+
+Under the new model, the common runtime fields should keep these meanings:
+
+- `sys.volume`: server-side Volume path
+- `sys.workspace_path`: sandbox-side Workspace path
+- `sandbox.workingDirectory`: sandbox-side Workspace path
+- `workspaceBinding`: explicit mapping between Volume and Workspace
+
+Do not pass a server path such as `/sandbox/...` directly into a Docker sandbox `workingDirectory`.
+
+## File-upload semantics
+
+Three target modes matter most here:
+
+### `volume`
+
+- the destination path is a server-side Volume
+- the returned link is a public URL
+
+### `sandbox:mounted_workspace`
+
+- `workspacePath` now means a server-visible mounted path
+- in practice it writes directly into the Volume mounted into the server
+
+### `sandbox:backend_upload`
+
+- `workspaceId` and backend `workspace_id` refer to the sandbox-side working directory
+- the actual file write happens inside the sandbox backend
+
+Those path families should not be mixed together.
+
+## `VolumeSubtreeClient`
+
+The older `WorkspaceVolumeClient` has been reframed as `VolumeSubtreeClient`, defined in [packages/server-ai/src/shared/volume/volume-subtree.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-subtree.ts:1).
+
+Its job is not to represent a full Workspace. Instead it:
+
+- browses a subtree below a `VolumeHandle`
+- reads and writes text files in a constrained subtree
+- generates file URLs relative to that subtree
+
+It is a good fit for:
+
+- conversation file directories
+- xpert memory file directories
+- controlled subdirectories inside projects or workspaces
+
+## Dependency injection entry points
+
+The new architecture is exposed through [packages/server-ai/src/shared/volume/volume.module.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume.module.ts:1):
+
+- `VOLUME_CLIENT`
+- `WorkspacePathMapperFactory`
+
+Recommended usage:
+
+```ts
+@Inject(VOLUME_CLIENT)
+private readonly volumeClient: VolumeClient
+```
+
+instead of manually creating `new VolumeClient(...)` inside business logic.
+
+## Recommended usage
+
+- Decide first whether you need a Volume or a Workspace.
+- Use `VolumeHandle` when the server must read or write files.
+- Use `WorkspacePathMapper` when a sandbox needs an execution path.
+- Use `VolumeSubtreeClient` when you need a controlled subtree browser.
+- Keep the old static helpers only for compatibility, not as the main entry point for new code.
+

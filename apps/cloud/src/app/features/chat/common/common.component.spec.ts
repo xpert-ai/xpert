@@ -1,11 +1,11 @@
+import { inject, input, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
-import { signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { BehaviorSubject } from 'rxjs'
 import { ChatCommonAssistantComponent } from './common.component'
 import { ChatCommonService } from './common-chat.service'
 import { ChatHomeService } from '../home.service'
-import { clearChatCommonPendingInput, storeChatCommonPendingInput } from './pending-input.util'
 
 jest.mock('apps/cloud/src/app/@core', () => {
   return {
@@ -19,7 +19,12 @@ jest.mock('apps/cloud/src/app/@core', () => {
       FEATURE_XPERT: 'FEATURE_XPERT',
       FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
       FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
-    }
+    },
+    RolesEnum: {
+      SUPER_ADMIN: 'SUPER_ADMIN',
+      ADMIN: 'ADMIN'
+    },
+    Store: class Store {}
   }
 })
 
@@ -34,14 +39,33 @@ jest.mock('@xpert-ai/ocap-angular/core', () => ({
 jest.mock('../../../xpert', () => {
   const angularCore = jest.requireActual('@angular/core')
 
-  class ChatService {}
+  class ChatService {
+    readonly conversationId = signal<string | null>(null)
+    readonly messages = signal<unknown[]>([])
+  }
   class XpertOcapService {}
-  class XpertChatAppComponent {}
+  class XpertChatAppComponent {
+    readonly idleLayout = input<'xpert' | 'welcome'>('xpert')
+    readonly chatService = inject(ChatService)
+  }
 
   angularCore.Component({
     selector: 'xpert-webapp',
     standalone: true,
-    template: ''
+    template: `
+      <div data-testid="xpert-webapp" [attr.data-idle-layout]="idleLayout()">
+        <div data-testid="xpert-webapp-content">
+          @if (!chatService.conversationId() && !chatService.messages().length) {
+            <ng-content></ng-content>
+          } @else {
+            <div data-testid="conversation-view"></div>
+          }
+        </div>
+        <div data-testid="xpert-webapp-action">
+          <ng-content select="[action]"></ng-content>
+        </div>
+      </div>
+    `
   })(XpertChatAppComponent)
 
   return {
@@ -105,10 +129,14 @@ jest.mock('./common-chat.service', () => {
   const { signal } = jest.requireActual('@angular/core')
 
   class ChatCommonService {
+    readonly conversationId = signal<string | null>(null)
+    readonly messages = signal<unknown[]>([])
     readonly assistantId = signal<string | null>(null)
     readonly xpert = signal(null)
-    readonly ask = jest.fn()
-    readonly newConv = jest.fn()
+    readonly newConv = jest.fn(() => {
+      this.conversationId.set(null)
+      this.messages.set([])
+    })
     readonly setAssistantId = jest.fn(async (assistantId: string | null) => {
       this.assistantId.set(assistantId)
     })
@@ -126,26 +154,37 @@ const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime
   loading: ReturnType<typeof import('@angular/core').signal<boolean>>
   status: ReturnType<typeof import('@angular/core').signal<string>>
 }
+const { RolesEnum, Store } = jest.requireMock('apps/cloud/src/app/@core') as {
+  RolesEnum: {
+    SUPER_ADMIN: string
+    ADMIN: string
+  }
+  Store: new (...args: unknown[]) => unknown
+}
 
 describe('ChatCommonAssistantComponent', () => {
   let router: Router
+  let user$: BehaviorSubject<{
+    role?: {
+      name?: string | null
+    } | null
+  } | null>
   let service: ChatCommonService & {
-    ask: jest.Mock
     newConv: jest.Mock
     setAssistantId: jest.Mock
+    conversationId: ReturnType<typeof import('@angular/core').signal<string | null>>
+    messages: ReturnType<typeof import('@angular/core').signal<unknown[]>>
     assistantId: ReturnType<typeof import('@angular/core').signal<string | null>>
     xpert: ReturnType<typeof import('@angular/core').signal<unknown>>
   }
 
   beforeEach(() => {
-    jest.useFakeTimers()
-
     runtimeState.config.set(null)
     runtimeState.hasSource.set(false)
     runtimeState.isConfigured.set(false)
     runtimeState.loading.set(false)
     runtimeState.status.set('missing')
-    clearChatCommonPendingInput()
+    user$ = new BehaviorSubject(null)
 
     TestBed.resetTestingModule()
     TestBed.configureTestingModule({
@@ -157,13 +196,18 @@ describe('ChatCommonAssistantComponent', () => {
           useValue: {
             sortedXperts: signal([])
           }
+        },
+        {
+          provide: Store,
+          useValue: {
+            user$: user$.asObservable()
+          }
         }
       ]
     })
 
     router = TestBed.inject(Router)
     service = TestBed.inject(ChatCommonService) as typeof service
-    jest.spyOn(router, 'getCurrentNavigation').mockReturnValue(null)
     Object.defineProperty(router, 'url', {
       configurable: true,
       get: () => '/chat/x/common'
@@ -171,9 +215,6 @@ describe('ChatCommonAssistantComponent', () => {
   })
 
   afterEach(() => {
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-    clearChatCommonPendingInput()
     TestBed.resetTestingModule()
     jest.clearAllMocks()
   })
@@ -187,19 +228,46 @@ describe('ChatCommonAssistantComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.MissingTitle')
   })
 
-  it('renders the legacy xpert chat app when ready', () => {
+  it('renders a disabled assistant empty state', () => {
+    runtimeState.status.set('disabled')
+
+    const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.DisabledTitle')
+  })
+
+  it('renders an error empty state when the assistant config fails to load', () => {
+    runtimeState.status.set('error')
+
+    const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.LoadFailed')
+  })
+
+  it('renders the merged common shell with welcome content when ready', () => {
     runtimeState.status.set('ready')
     runtimeState.config.set({
       assistantId: 'assistant-1',
       sourceScope: 'tenant',
       enabled: true
     })
+    service.xpert.set({
+      id: 'assistant-1',
+      title: 'Common Assistant'
+    })
 
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
     expect(service.setAssistantId).toHaveBeenCalledWith('assistant-1')
-    expect(fixture.nativeElement.querySelector('xpert-webapp')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="xpert-webapp"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="xpert-webapp"]').getAttribute('data-idle-layout')).toBe(
+      'welcome'
+    )
+    expect(fixture.nativeElement.querySelector('pac-chat-xperts')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.CommonWelcomeDescription')
   })
 
   it('starts a new assistant thread without leaving the common route', () => {
@@ -211,69 +279,51 @@ describe('ChatCommonAssistantComponent', () => {
     expect(service.newConv).toHaveBeenCalled()
   })
 
-  it('reads a pending common conversation from router state input', () => {
-    jest.spyOn(router, 'getCurrentNavigation').mockReturnValue({
-      extras: {
-        state: {
-          input: 'Help me summarize this quarter'
-        }
+  it('shows the change settings action to admins in the idle welcome content', () => {
+    runtimeState.status.set('ready')
+    user$.next({
+      role: {
+        name: RolesEnum.ADMIN
       }
-    } as never)
+    })
 
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.componentInstance.pendingConversation()?.text).toBe('Help me summarize this quarter')
+    expect(fixture.componentInstance.canManageAssistantSettings()).toBe(true)
+    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.ChangeSettings')
   })
 
-  it('reads a pending common conversation from storage when navigation state is unavailable', () => {
-    storeChatCommonPendingInput('Draft the weekly recap')
+  it('hides the change settings action from members in the idle welcome content', () => {
+    runtimeState.status.set('ready')
+    user$.next({
+      role: {
+        name: 'MEMBER'
+      }
+    })
 
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.componentInstance.pendingConversation()?.text).toBe('Draft the weekly recap')
+    expect(fixture.componentInstance.canManageAssistantSettings()).toBe(false)
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.Assistant.ChangeSettings')
   })
 
-  it('converts router-state input into the first legacy chat message', async () => {
+  it('hides the projected welcome content once a conversation is active', () => {
     runtimeState.status.set('ready')
     runtimeState.config.set({
       assistantId: 'assistant-1',
       sourceScope: 'tenant',
       enabled: true
     })
-    jest.spyOn(router, 'getCurrentNavigation').mockReturnValue({
-      extras: {
-        state: {
-          input: 'Help me summarize this quarter'
-        }
-      }
-    } as never)
 
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
-    await Promise.resolve()
-    jest.runOnlyPendingTimers()
-
-    expect(service.newConv).toHaveBeenCalled()
-    expect(service.ask).toHaveBeenCalledWith('Help me summarize this quarter', { files: [] })
-    expect(fixture.componentInstance.pendingConversation()).toBeNull()
-  })
-
-  it('converts stored input into the first legacy chat message', async () => {
-    runtimeState.status.set('ready')
-    runtimeState.config.set({
-      assistantId: 'assistant-1',
-      sourceScope: 'tenant',
-      enabled: true
-    })
-    storeChatCommonPendingInput('Draft the weekly recap')
-
-    const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
+    service.conversationId.set('conv-1')
     fixture.detectChanges()
-    await Promise.resolve()
-    jest.runOnlyPendingTimers()
 
-    expect(service.ask).toHaveBeenCalledWith('Draft the weekly recap', { files: [] })
+    expect(fixture.nativeElement.querySelector('pac-chat-xperts')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.Assistant.ChangeSettings')
+    expect(fixture.nativeElement.querySelector('[data-testid="conversation-view"]')).not.toBeNull()
   })
 })

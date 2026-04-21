@@ -20,8 +20,16 @@ jest.mock('../../xpert-toolset/xpert-toolset.service', () => ({
     XpertToolsetService: class XpertToolsetService {}
 }))
 
+jest.mock('../../skill-package', () => ({
+    SkillPackageService: class SkillPackageService {}
+}))
+
+jest.mock('../../assistant-binding/assistant-binding.service', () => ({
+    AssistantBindingService: class AssistantBindingService {}
+}))
+
 import { RequestContext } from '@xpert-ai/server-core'
-import { AiModelTypeEnum, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, AssistantBindingScope, AssistantCode, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { FindCopilotModelsQuery } from '../../copilot/queries'
 import { XpertExportCommand, XpertImportCommand } from '../commands'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
@@ -69,6 +77,8 @@ describe('XpertAuthoringService', () => {
             xpertAgentService?: Record<string, any>
             xpertToolsetService?: Record<string, any>
             knowledgebaseService?: Record<string, any>
+            skillPackageService?: Record<string, any>
+            assistantBindingService?: Record<string, any>
         } = {}
     ) => {
         const persistedXpert = buildPersistedXpert()
@@ -120,6 +130,16 @@ describe('XpertAuthoringService', () => {
             getAllByWorkspace: jest.fn().mockResolvedValue({ items: [] }),
             ...overrides.knowledgebaseService
         }
+        const skillPackageService = {
+            createWorkspaceSkillPackage: jest.fn(),
+            ...overrides.skillPackageService
+        }
+        const assistantBindingService = {
+            getBinding: jest.fn().mockResolvedValue({ id: 'binding-1' }),
+            getBindingPreference: jest.fn().mockResolvedValue(null),
+            upsertBindingPreference: jest.fn().mockResolvedValue({ id: 'pref-1' }),
+            ...overrides.assistantBindingService
+        }
 
         return {
             xpertService,
@@ -128,13 +148,17 @@ describe('XpertAuthoringService', () => {
             xpertAgentService,
             xpertToolsetService,
             knowledgebaseService,
+            skillPackageService,
+            assistantBindingService,
             service: new XpertAuthoringService(
                 xpertService as any,
                 commandBus as any,
                 queryBus as any,
                 xpertAgentService as any,
                 xpertToolsetService as any,
-                knowledgebaseService as any
+                knowledgebaseService as any,
+                skillPackageService as any,
+                assistantBindingService as any
             )
         }
     }
@@ -250,6 +274,166 @@ describe('XpertAuthoringService', () => {
             })
         )
         expect(xpertService.create).not.toHaveBeenCalled()
+    })
+
+    it('creates a workspace skill package and ensures the clawxpert workspace preference exists', async () => {
+        const createdSkill = {
+            skillPackage: {
+                id: 'skill-1',
+                name: 'Workspace Skill',
+                workspaceId: 'workspace-1',
+                metadata: {
+                    name: 'Workspace Skill',
+                    displayName: {
+                        en_US: 'Workspace Skill'
+                    }
+                }
+            },
+            packagePath: 'workspace-skill',
+            skillMdPath: '/tmp/workspace-skill/SKILL.md'
+        }
+        const { service, skillPackageService, assistantBindingService } = createService({
+            skillPackageService: {
+                createWorkspaceSkillPackage: jest.fn().mockResolvedValue(createdSkill)
+            },
+            assistantBindingService: {
+                getBinding: jest.fn().mockResolvedValue({ id: 'binding-1' }),
+                getBindingPreference: jest.fn().mockResolvedValue({
+                    toolPreferences: {
+                        version: 1,
+                        skills: {
+                            'workspace-2': {
+                                workspaceId: 'workspace-2',
+                                disabledSkillIds: ['skill-disabled']
+                            }
+                        }
+                    }
+                }),
+                upsertBindingPreference: jest.fn().mockResolvedValue({ id: 'pref-1' })
+            }
+        })
+
+        const result = await service.newSkillFromContext(
+            {
+                workspaceId: 'assistant-workspace',
+                env: {
+                    workspaceId: 'workspace-1'
+                }
+            },
+            {
+                userIntent: 'Create a workspace helper',
+                skillName: 'Workspace Skill',
+                skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n'
+            }
+        )
+
+        expect(skillPackageService.createWorkspaceSkillPackage).toHaveBeenCalledWith('workspace-1', {
+            userIntent: 'Create a workspace helper',
+            skillName: 'Workspace Skill',
+            skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n'
+        })
+        expect(assistantBindingService.getBinding).toHaveBeenCalledWith(
+            AssistantCode.CLAWXPERT,
+            AssistantBindingScope.USER
+        )
+        expect(assistantBindingService.upsertBindingPreference).toHaveBeenCalledWith(
+            AssistantCode.CLAWXPERT,
+            expect.objectContaining({
+                scope: AssistantBindingScope.USER,
+                toolPreferences: {
+                    version: 1,
+                    skills: {
+                        'workspace-2': {
+                            workspaceId: 'workspace-2',
+                            disabledSkillIds: ['skill-disabled']
+                        },
+                        'workspace-1': {
+                            workspaceId: 'workspace-1',
+                            disabledSkillIds: []
+                        }
+                    }
+                }
+            })
+        )
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: 'applied',
+                toolName: 'newSkill',
+                summary: 'Created skill "Workspace Skill" in this workspace. It will be available from the next round.',
+                updatedDraftFragment: {
+                    skill: {
+                        id: 'skill-1',
+                        name: 'Workspace Skill',
+                        workspaceId: 'workspace-1',
+                        packagePath: 'workspace-skill',
+                        skillMdPath: '/tmp/workspace-skill/SKILL.md'
+                    }
+                },
+                warnings: []
+            })
+        )
+    })
+
+    it('warns when the clawxpert binding is missing while still creating the skill', async () => {
+        const { service, assistantBindingService } = createService({
+            skillPackageService: {
+                createWorkspaceSkillPackage: jest.fn().mockResolvedValue({
+                    skillPackage: {
+                        id: 'skill-1',
+                        name: 'Workspace Skill',
+                        workspaceId: 'workspace-1',
+                        metadata: {
+                            name: 'Workspace Skill'
+                        }
+                    },
+                    packagePath: 'workspace-skill',
+                    skillMdPath: '/tmp/workspace-skill/SKILL.md'
+                })
+            },
+            assistantBindingService: {
+                getBinding: jest.fn().mockResolvedValue(null),
+                getBindingPreference: jest.fn(),
+                upsertBindingPreference: jest.fn()
+            }
+        })
+
+        const result = await service.newSkillFromContext(
+            {
+                workspaceId: 'workspace-1'
+            },
+            {
+                userIntent: 'Create a workspace helper',
+                skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n'
+            }
+        )
+
+        expect(assistantBindingService.upsertBindingPreference).not.toHaveBeenCalled()
+        expect(result.warnings).toEqual([
+            'ClawXpert binding was not found, so skill preferences were not updated.'
+        ])
+    })
+
+    it('rejects workspace skill creation when skillMarkdown is missing', async () => {
+        const { service, skillPackageService } = createService()
+
+        const result = await service.newSkillFromContext(
+            {
+                workspaceId: 'workspace-1'
+            },
+            {
+                userIntent: 'Create a workspace helper',
+                skillMarkdown: '   '
+            }
+        )
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: 'rejected',
+                toolName: 'newSkill',
+                summary: 'Missing skillMarkdown for workspace skill creation.'
+            })
+        )
+        expect(skillPackageService.createWorkspaceSkillPackage).not.toHaveBeenCalled()
     })
 
     it('falls back to top-level workspaceId when env.workspaceId is absent', async () => {
@@ -1627,7 +1811,30 @@ connections: []`
                     findOne: jest.fn().mockResolvedValue(persistedXpert)
                 }
             },
-            commandBus
+            commandBus,
+            xpertAgentService: {
+                getMiddlewareStrategies: jest.fn().mockReturnValue([
+                    {
+                        meta: {
+                            name: 'SummarizationMiddleware',
+                            configSchema: {
+                                type: 'object',
+                                properties: {
+                                    model: {
+                                        type: 'object',
+                                        'x-ui': {
+                                            component: 'ai-model-select',
+                                            inputs: {
+                                                modelType: AiModelTypeEnum.LLM
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ])
+            }
         })
 
         await service.editXpertFromContext(
@@ -1703,6 +1910,167 @@ connections: []`
                 model: 'gpt-4.1'
             })
         )
+    })
+
+    it('does not normalize middleware options.model when the schema is not ai-model-select', async () => {
+        const currentDraft = {
+            team: {
+                id: 'xpert-model-custom-middleware',
+                name: 'Support Expert',
+                type: 'agent',
+                agent: {
+                    key: 'Agent_1'
+                }
+            },
+            nodes: [
+                {
+                    type: 'agent',
+                    key: 'Agent_1',
+                    position: { x: 0, y: 0 },
+                    entity: {
+                        key: 'Agent_1',
+                        name: 'Support Expert'
+                    }
+                },
+                {
+                    type: 'workflow',
+                    key: 'Middleware_Custom',
+                    position: { x: 240, y: 0 },
+                    entity: {
+                        key: 'Middleware_Custom',
+                        type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                        provider: 'CustomMiddleware',
+                        options: {
+                            model: {
+                                modelType: 'llm',
+                                model: 'gpt-4.1'
+                            }
+                        }
+                    }
+                }
+            ],
+            connections: []
+        }
+        const persistedXpert = buildPersistedXpert({
+            id: 'xpert-model-custom-middleware',
+            draft: currentDraft
+        })
+        const commandBus = {
+            execute: jest.fn().mockImplementation((command) => {
+                if (command instanceof XpertImportCommand) {
+                    return Promise.resolve(persistedXpert)
+                }
+
+                if (command instanceof XpertExportCommand) {
+                    return Promise.resolve(currentDraft)
+                }
+
+                return Promise.resolve(persistedXpert)
+            })
+        }
+        const { service } = createService({
+            xpertService: {
+                validate: jest.fn().mockResolvedValue([]),
+                repository: {
+                    findOne: jest.fn().mockResolvedValue(persistedXpert)
+                }
+            },
+            commandBus,
+            xpertAgentService: {
+                getMiddlewareStrategies: jest.fn().mockReturnValue([
+                    {
+                        meta: {
+                            name: 'CustomMiddleware',
+                            configSchema: {
+                                type: 'object',
+                                properties: {
+                                    model: {
+                                        type: 'object',
+                                        'x-ui': {
+                                            component: 'json-editor'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ])
+            }
+        })
+
+        await service.editXpertFromContext(
+            {
+                targetXpertId: 'xpert-model-custom-middleware',
+                baseDraftHash: (service as any).calculateDraftHash(currentDraft)
+            },
+            {
+                dslYaml: `team:
+  name: Support Expert
+  type: agent
+  agent:
+    key: Agent_1
+nodes:
+  - type: agent
+    key: Agent_1
+    position:
+      x: 0
+      y: 0
+    entity:
+      key: Agent_1
+      name: Support Expert
+  - type: workflow
+    key: Middleware_Custom
+    position:
+      x: 240
+      y: 0
+    entity:
+      key: Middleware_Custom
+      type: middleware
+      provider: CustomMiddleware
+      options:
+        model:
+          modelType: llm
+          model: gpt-4.1
+connections: []`
+            },
+            {
+                targetXpertId: 'xpert-model-custom-middleware',
+                currentCopilotId: 'copilot-openai',
+                currentProvider: 'openai',
+                currentModelId: 'gpt-4o',
+                availableModelIds: ['gpt-4o', 'gpt-4.1'],
+                items: [
+                    {
+                        copilotId: 'copilot-openai',
+                        provider: 'openai',
+                        modelType: AiModelTypeEnum.LLM,
+                        model: 'gpt-4o',
+                        label: 'GPT-4o',
+                        isCurrentProvider: true,
+                        isCurrentModel: true
+                    },
+                    {
+                        copilotId: 'copilot-openai',
+                        provider: 'openai',
+                        modelType: AiModelTypeEnum.LLM,
+                        model: 'gpt-4.1',
+                        label: 'GPT-4.1',
+                        isCurrentProvider: true,
+                        isCurrentModel: false
+                    }
+                ]
+            }
+        )
+
+        const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+        const middlewareNode = importCommand.draft.nodes.find((node) => node.key === 'Middleware_Custom')
+        expect(middlewareNode.entity.options.model).toEqual(
+            expect.objectContaining({
+                modelType: 'llm',
+                model: 'gpt-4.1'
+            })
+        )
+        expect(middlewareNode.entity.options.model.copilotId).toBeUndefined()
     })
 
     it('rejects editXpert when speech-to-text is enabled without a speech model', async () => {

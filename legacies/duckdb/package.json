@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/ocap-duckdb",
-  "version": "3.9.0-beta.1",
+  "version": "3.9.0",
   "private": true,
   "keywords": [
     "XpertAI",

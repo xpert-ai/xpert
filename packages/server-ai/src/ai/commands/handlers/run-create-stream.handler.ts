@@ -1,4 +1,5 @@
 import {
+    ApiKeyBindingType,
     IApiKey,
     IApiPrincipal,
     IChatConversation,
@@ -18,6 +19,7 @@ import { ChatConversationUpsertCommand } from '../../../chat-conversation/comman
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { AssistantBindingService } from '../../../assistant-binding'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
+import { hydrateSendRequestHumanInput } from '../../../shared/agent'
 import { PublishedXpertAccessService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
@@ -252,17 +254,17 @@ function normalizeRunCreateInput(input: unknown, options?: { isConversationBusy?
     }
 
     if (isLegacyChatRequest(input)) {
-        return normalizeLegacyChatRequest(input, options)
+        return hydrateSendRequestHumanInput(normalizeLegacyChatRequest(input, options))
     }
 
     if (!input.action) {
-        return {
+        return hydrateSendRequestHumanInput({
             ...input,
             action: 'send'
-        }
+        })
     }
 
-    return input
+    return hydrateSendRequestHumanInput(input)
 }
 
 function getChatRequestEnvironmentId(chatRequest: TChatRequestV2): string | undefined {
@@ -350,6 +352,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             ...principalUser,
             apiKey,
             ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
+            apiKeyUserId: currentUser?.apiKeyUserId ?? apiKey.userId ?? principalUser.id ?? null,
+            requestedUserId: currentUser?.requestedUserId ?? null,
+            requestedOrganizationId: currentUser?.requestedOrganizationId ?? null,
             principalType: currentUser?.principalType ?? 'api_key'
         }
     }
@@ -357,8 +362,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
     private async resolveAssistantForRun(assistantId: string) {
         const apiKey = RequestContext.currentApiKey()
 
-        // For assistant-bound keys, entityId is the allowed xpert id.
-        if (apiKey?.type === 'assistant' && apiKey.entityId && apiKey.entityId !== assistantId) {
+        if (apiKey?.type === ApiKeyBindingType.ASSISTANT && apiKey.entityId && apiKey.entityId !== assistantId) {
             throw new ForbiddenException('API key is not allowed to access this assistant.')
         }
 
@@ -369,6 +373,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             : await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
                   relations: ['user', 'createdBy']
               })
+
+        if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
+            throw new ForbiddenException('API key is not allowed to access this workspace assistant.')
+        }
 
         this.applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
         this.applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)
@@ -395,18 +403,12 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const threadId = command.threadId
         const runCreate = command.runCreate
 
-        this.#logger.warn(
-            `Received RunCreateStreamCommand for threadId ${threadId} with input: ${JSON.stringify(runCreate.input)}`
-        )
-
         // Find thread (conversation) and assistant (xpert)
-        const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
+        const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
         const runtimeContext = getRunCreateContext(runCreate.context)
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
-
-        this.#logger.warn(chatRequest, `validateRunCreateInput ${threadId}`)
 
         // Update conversation if xpertId is missing or sandboxEnvironmentId needs to be persisted
         let needsUpdate = false

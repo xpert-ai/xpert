@@ -23,8 +23,8 @@ English | [中文](./README_zh.md)
   <a href="https://github.com/xpert-ai/xpert/" target="_blank">
     <img src="https://visitor-badge.laobi.icu/badge?page_id=meta-d.ocap" alt="Visitors">
   </a>
-  <a href="https://www.npmjs.com/@xpert-ai/ocap-core">
-    <img src="https://img.shields.io/npm/v/@xpert-ai/ocap-core.svg?logo=npm&logoColor=fff&label=NPM+package&color=limegreen" alt="ocap on npm" />
+  <a href="https://www.npmjs.com/@xpert-ai/contracts" target="_blank">
+    <img src="https://img.shields.io/npm/v/@xpert-ai/contracts.svg?logo=npm&logoColor=fff&label=NPM+package&color=limegreen" alt="contracts on npm" />
   </a>&nbsp;
   <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank">
     <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License: AGPL v3">
@@ -38,7 +38,17 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
-**🚀 3.8 Sandbox Environment!**
+**🚀 3.9.0 ClawXpert & Skills!**
+
+XpertAI 3.9.0 expands the agent workspace with `ClawXpert`, a dedicated assistant shell built around published Xperts, and a more complete `Skills` workflow for discovery, installation, editing, and runtime enablement.
+
+- `ClawXpert` lets each user bind one published Xpert per organization and use it as an embedded assistant entry in `/chat/clawxpert`.
+- Keep long-term assistant context in `SOUL.md` and `USER.md`, continue conversations, and manage model, trigger draft, tool, and skill preferences from the same shell.
+- Browse featured skills and repository indexes, then install, upload, inspect, and edit workspace skills directly inside Xpert.
+- Bootstrap tenant skill repositories and default workspace skills through `skill-repositories.yaml`, `skills-market.yaml`, and `workspace-defaults.yaml`.
+- Enable installed workspace skills in the blank Xpert wizard, with `Skills Middleware` wiring them into the primary agent flow automatically.
+
+**Also in recent releases: 3.8 Sandbox Environment**
 
 XpertAI 3.8 releases the Agent Sandbox feature, providing an isolated execution and file operation environment for agents. One of the core capabilities of the sandbox plugin is the provider plugin mechanism. Through custom providers, you can integrate different runtime infrastructures, such as:
 

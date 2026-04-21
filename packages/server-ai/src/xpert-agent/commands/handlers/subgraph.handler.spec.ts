@@ -40,7 +40,7 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
         expect(node).toBeInstanceOf(RunnableLambda)
 
         const result = await node.invoke(
-            {},
+            {} as any,
             {
                 configurable: {
                     executionId: 'child-execution-1',
@@ -111,18 +111,42 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
                         messageId: 'db-message-1',
                         clientMessageId: 'client-message-1',
                         human: {
-                            input: 'steer input 1'
+                            input: 'steer input 1',
+                            files: [
+                                {
+                                    id: 'file-1'
+                                }
+                            ] as any,
+                            references: [
+                                {
+                                    type: 'quote',
+                                    text: 'ref-1'
+                                }
+                            ],
+                            custom: 'early'
                         }
                     },
                     {
                         messageId: 'db-message-2',
                         clientMessageId: 'client-message-2',
                         human: {
-                            input: 'steer input 2'
+                            input: 'steer input 2',
+                            files: [
+                                {
+                                    id: 'file-2'
+                                }
+                            ] as any,
+                            references: [
+                                {
+                                    type: 'quote',
+                                    text: 'ref-2'
+                                }
+                            ],
+                            custom: 'late'
                         }
                     }
                 ]
-            },
+            } as any,
             {
                 configurable: {
                     executionId: 'child-execution-1',
@@ -136,7 +160,26 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
             expect.objectContaining({
                 input: 'steer input 1\n\nsteer input 2',
                 [STATE_VARIABLE_HUMAN]: {
-                    input: 'steer input 1\n\nsteer input 2'
+                    input: 'steer input 1\n\nsteer input 2',
+                    files: [
+                        expect.objectContaining({
+                            id: 'file-1'
+                        }),
+                        expect.objectContaining({
+                            id: 'file-2'
+                        })
+                    ],
+                    references: [
+                        expect.objectContaining({
+                            type: 'quote',
+                            text: 'ref-1'
+                        }),
+                        expect.objectContaining({
+                            type: 'quote',
+                            text: 'ref-2'
+                        })
+                    ],
+                    custom: 'late'
                 },
                 [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [],
                 messages: [
@@ -188,4 +231,3 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
         )
     })
 })
-

@@ -5,16 +5,18 @@ import {
   Component,
   computed,
   DestroyRef,
+  ElementRef,
   effect,
   inject,
   input,
   model,
-  output
+  output,
+  signal
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CopilotChatMessage, injectToastr, IXpert, TInterruptCommand, XpertAgentExecutionStatusEnum } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { XpertParametersCardComponent } from '../../@shared/xpert'
@@ -24,6 +26,13 @@ import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { ChatHumanMessageComponent } from './human-message/message.component'
 import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
+import { XpertChatReference, XpertQuoteReference } from '../../@shared/chat/references'
+
+type QuoteSelectionState = {
+  left: number
+  top: number
+  reference: XpertQuoteReference
+}
 
 @Component({
   standalone: true,
@@ -50,6 +59,8 @@ export class ChatConversationComponent {
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
+  readonly #elementRef = inject<ElementRef<HTMLElement>>(ElementRef)
+  readonly #translate = inject(TranslateService)
   private destroyRef = inject(DestroyRef)
 
   readonly #toastr = injectToastr()
@@ -62,6 +73,7 @@ export class ChatConversationComponent {
 
   // Outputs
   readonly chat = output<string>()
+  readonly reference = output<XpertChatReference[]>()
 
   // States
   readonly messages = this.chatService.messages
@@ -92,6 +104,7 @@ export class ChatConversationComponent {
   readonly suggestion_enabled = this.chatService.suggestion_enabled
   readonly suggesting = this.chatService.suggesting
   readonly suggestionQuestions = this.chatService.suggestionQuestions
+  readonly quoteSelection = signal<QuoteSelectionState | null>(null)
 
   // Task
   readonly task = computed(() => this.conversation()?.task)
@@ -106,6 +119,21 @@ export class ChatConversationComponent {
     this.destroyRef.onDestroy(() => {
       this.homeService.canvasOpened.set(null)
     })
+
+    if (typeof document !== 'undefined') {
+      const selectionHandler = () => this.updateQuoteSelection()
+      const clearHandler = () => this.clearQuoteSelection()
+
+      document.addEventListener('selectionchange', selectionHandler)
+      window.addEventListener('resize', clearHandler)
+      window.addEventListener('scroll', clearHandler, true)
+
+      this.destroyRef.onDestroy(() => {
+        document.removeEventListener('selectionchange', selectionHandler)
+        window.removeEventListener('resize', clearHandler)
+        window.removeEventListener('scroll', clearHandler, true)
+      })
+    }
   }
 
   onChat(statement: string) {
@@ -143,4 +171,116 @@ export class ChatConversationComponent {
     this.onChat(question)
     this.suggestionQuestions.set([]) // Clear suggestions after selection
   }
+
+  quoteSelectedText() {
+    const selection = this.quoteSelection()
+    if (!selection) {
+      return
+    }
+
+    this.reference.emit([selection.reference])
+    this.clearBrowserSelection()
+    this.clearQuoteSelection()
+  }
+
+  getMessageSourceLabel(role: string | undefined): string {
+    if (role === 'user' || role === 'human') {
+      return this.#translate.instant('PAC.KEY_WORDS.You', { Default: 'You' })
+    }
+
+    return (
+      this.xpert()?.title ||
+      this.xpert()?.name ||
+      this.#translate.instant('PAC.Xpert.Assistant', { Default: 'Assistant' })
+    )
+  }
+
+  private updateQuoteSelection() {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return
+    }
+
+    const selection = document.getSelection()
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const text = selection.toString().trim()
+    if (!text) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const host = this.#elementRef.nativeElement
+    const anchorElement = toSelectionElement(selection.anchorNode)
+    const focusElement = toSelectionElement(selection.focusNode)
+
+    if (!anchorElement || !focusElement || !host.contains(anchorElement) || !host.contains(focusElement)) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const anchorMessage = anchorElement.closest<HTMLElement>('[data-chat-reference-message="true"]')
+    const focusMessage = focusElement.closest<HTMLElement>('[data-chat-reference-message="true"]')
+    if (!anchorMessage || anchorMessage !== focusMessage) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const range = selection.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    if (!rect.width && !rect.height) {
+      this.clearQuoteSelection()
+      return
+    }
+
+    const source =
+      anchorMessage.dataset.messageSource?.trim() ||
+      this.xpert()?.title ||
+      this.xpert()?.name ||
+      this.#translate.instant('PAC.Xpert.Assistant', { Default: 'Assistant' })
+    const messageId = anchorMessage.dataset.messageId?.trim() || undefined
+    const left = clamp(rect.left + rect.width / 2, 88, window.innerWidth - 88)
+    const top = Math.max(16, rect.top - 48)
+
+    this.quoteSelection.set({
+      left,
+      top,
+      reference: {
+        type: 'quote',
+        text,
+        ...(messageId ? { messageId } : {}),
+        source
+      }
+    })
+  }
+
+  private clearQuoteSelection() {
+    this.quoteSelection.set(null)
+  }
+
+  private clearBrowserSelection() {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    document.getSelection()?.removeAllRanges()
+  }
+}
+
+function toSelectionElement(node: Node | null): HTMLElement | null {
+  if (!node) {
+    return null
+  }
+
+  if (node instanceof HTMLElement) {
+    return node
+  }
+
+  return node.parentElement
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
 }

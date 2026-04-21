@@ -13,6 +13,15 @@
       {{ 'PAC.MENU.TENANT.SETTINGS' | translate: {Default: "Settings"} }}
     </span>
 
+    <span z-tab-link [routerLink]="['./skills']"
+      routerLinkActive #rlaSkills="routerLinkActive"
+      [routerLinkActiveOptions]="{exact: true}"
+      [active]="rlaSkills.isActive"
+    >
+      <z-icon zType="auto_awesome"></z-icon>
+      {{ 'PAC.KEY_WORDS.Skills' | translate: {Default: "Skills"} }}
+    </span>
+
     <span z-tab-link [routerLink]="['./tags']"
       routerLinkActive #rla2="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"

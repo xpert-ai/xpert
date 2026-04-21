@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-integration-slack",
-  "version": "0.0.2-beta.1",
+  "version": "0.0.2",
   "xpert": {
     "plugin": {
       "level": "system"

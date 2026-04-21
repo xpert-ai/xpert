@@ -6,9 +6,17 @@
   [hasContext]="!!rootId()"
   [subtitle]="rootLabel() || ('PAC.Files.SelectItemForTree' | translate: { Default: 'Select an item to inspect its files' })"
   [items]="fileTree()"
-  [activePath]="activeFilePath()"
+  [activePath]="treeActivePath()"
   [loading]="treeLoading()"
   [loadingPaths]="fileTreeLoadingPaths()"
+  [canUpload]="canUploadFiles()"
+  [uploadDisabled]="uploading()"
+  [uploading]="uploading()"
+  [uploadTargetHint]="uploadTargetHint()"
+  [canDownload]="canDownloadFiles()"
+  [canDelete]="canDeleteFiles()"
+  [downloadingPaths]="downloadingPaths()"
+  [deletingPaths]="deletingPaths()"
   [emptyTitle]="'PAC.Files.NoFilesFound' | translate: { Default: 'No files found yet.' }"
   [emptyHint]="
     'PAC.Files.NoFilesFoundHint'
@@ -19,10 +27,25 @@
   [selectHint]="'PAC.Files.SelectItemTreeHint' | translate: { Default: 'Choose an item to load its file tree.' }"
   (fileSelect)="openFile($event)"
   (directoryToggle)="toggleDirectory($event)"
+  (uploadRequest)="requestUpload($event)"
+  (fileDownload)="downloadTreeFile($event)"
+  (fileDelete)="deleteTreeFile($event)"
+/>
+
+<input #uploadInput type="file" class="hidden" multiple (change)="onUploadFiles($event, 'file')" />
+<input
+  #folderUploadInput
+  type="file"
+  class="hidden"
+  multiple
+  webkitdirectory
+  directory
+  (change)="onUploadFiles($event, 'folder')"
 />
 
 <pac-file-viewer
   class="lg:block min-h-[320px]"
+  [file]="activeFile()"
   [class.hidden]="mobilePane() !== 'file'"
   [filePath]="activeFilePath()"
   [content]="draftContent()"
@@ -32,6 +55,9 @@
   [editable]="isActiveFileEditable()"
   [markdown]="isMarkdownFile()"
   [dirty]="dirty()"
+  [downloadable]="canDownloadActiveFile()"
+  [referenceable]="referenceable()"
+  [previewUrl]="activePreviewUrl()"
   [mode]="panelMode()"
   [readOnlyHint]="
     'PAC.Files.ReadOnlyFileHint'
@@ -40,10 +66,27 @@
             Default: 'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
           }
   "
+  [unsupportedPreviewTitle]="
+    'PAC.Files.BinaryPreviewUnsupported'
+      | translate
+        : {
+            Default: 'This file cannot be previewed here.'
+          }
+  "
+  [unsupportedPreviewHint]="
+    'PAC.Files.BinaryPreviewHint'
+      | translate
+        : {
+            Default: 'This file is not a text-based format. Download it to inspect the original contents in another app.'
+          }
+  "
   (modeChange)="switchPanelMode($event)"
   (contentChange)="draftContent.set($event)"
   (discard)="discardActiveFileChanges()"
   (save)="saveActiveFile()"
+  (download)="downloadActiveFile()"
+  (referenceFile)="referenceActiveFile()"
+  (referenceSelection)="referenceSelectedRange($event)"
   (back)="mobilePane.set('tree')"
 />
 

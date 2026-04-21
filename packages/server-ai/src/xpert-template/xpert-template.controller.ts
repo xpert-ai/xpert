@@ -1,9 +1,10 @@
-import { LanguagesEnum, LanguagesMap } from '@xpert-ai/contracts'
+import { LanguagesEnum, LanguagesMap, TemplateSkillSyncMode } from '@xpert-ai/contracts'
 import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
-import { Controller, Get, Logger, Param, Query, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Get, Logger, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { I18nLang } from 'nestjs-i18n'
+import { TemplateSkillSyncService } from './template-skill-sync.service'
 import { XpertTemplateService } from './xpert-template.service'
 import { XpertTemplate } from './xpert-template.entity'
 
@@ -16,6 +17,7 @@ export class XpertTemplateController {
 
 	constructor(
 		private readonly service: XpertTemplateService,
+		private readonly templateSkillSyncService: TemplateSkillSyncService,
 		private readonly commandBus: CommandBus
 	) {}
 
@@ -47,6 +49,20 @@ export class XpertTemplateController {
 	@Get('skills-market')
 	async getSkillsMarket(@I18nLang() language: LanguagesEnum) {
 		return await this.service.getSkillsMarket(LanguagesMap[language] ?? language)
+	}
+
+	@Post('sync-skill-assets')
+	async syncSkillAssets(
+		@Body()
+		body?: {
+			mode?: TemplateSkillSyncMode
+			validateOnly?: boolean
+		}
+	) {
+		return this.templateSkillSyncService.syncSkillAssets({
+			mode: body?.mode,
+			validateOnly: body?.validateOnly
+		})
 	}
 
 	@Get(':id')

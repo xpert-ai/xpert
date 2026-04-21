@@ -11,6 +11,78 @@ export interface IXpertTemplate extends IBasePerTenantEntityModel {
   lastVisitedAt?: Date
 }
 
+export type TemplateSkillSyncMode = 'incremental' | 'full'
+
+export type TemplateSkillSyncStatus = 'created' | 'updated' | 'unchanged' | 'missing' | 'failed'
+
+export interface ITemplateSkillSyncItemSummary {
+  created: number
+  updated: number
+  unchanged: number
+  missing: number
+  failed: number
+}
+
+export interface ITemplateSkillSyncRepositoryResult {
+  name: string
+  provider: string
+  repositoryId?: string
+  status: TemplateSkillSyncStatus
+  message?: string
+}
+
+export interface ITemplateSkillSyncIndexResult {
+  repositoryId?: string
+  repositoryName: string
+  provider: string
+  mode: TemplateSkillSyncMode
+  status: TemplateSkillSyncStatus
+  syncedCount?: number
+  message?: string
+}
+
+export interface ITemplateSkillSyncBundleResult {
+  sharedSkillId: string
+  provider: string
+  repositoryName: string
+  skillId: string
+  status: TemplateSkillSyncStatus
+  hash?: string
+  repositoryId?: string
+  indexId?: string
+  message?: string
+}
+
+export interface ITemplateSkillSyncRefResult {
+  provider: string
+  repositoryName: string
+  skillId: string
+  status: TemplateSkillSyncStatus
+  repositoryId?: string
+  indexId?: string
+  message?: string
+}
+
+export interface ITemplateSkillSyncSummary {
+  repositories: ITemplateSkillSyncItemSummary
+  indexes: ITemplateSkillSyncItemSummary
+  bundles: ITemplateSkillSyncItemSummary
+  featuredRefs: ITemplateSkillSyncItemSummary
+  workspaceDefaults: ITemplateSkillSyncItemSummary
+}
+
+export interface ITemplateSkillSyncResult {
+  mode: TemplateSkillSyncMode
+  validateOnly: boolean
+  fingerprint: string
+  repositories: ITemplateSkillSyncRepositoryResult[]
+  indexes: ITemplateSkillSyncIndexResult[]
+  bundles: ITemplateSkillSyncBundleResult[]
+  featuredRefs: ITemplateSkillSyncRefResult[]
+  workspaceDefaults: ITemplateSkillSyncRefResult[]
+  summary: ITemplateSkillSyncSummary
+}
+
 export type TTemplate = {
   id: string
   name: string

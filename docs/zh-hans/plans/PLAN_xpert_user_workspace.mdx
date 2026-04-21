@@ -1,0 +1,61 @@
+# 将 non-project 的 conversation / user workspace 统一到 `xpert` 文件隔离方案
+
+## Summary
+- 目标是把当前分裂的两套 non-project workspace 统一起来：
+  - 运行时共享 user workspace：terminal、agent tools、sandbox 工作目录
+  - conversation/thread workspace：`/chat-conversation/:id/files`、ClawXpert 文件面板、会话内上传文件
+- 统一后的规则是：只要是 non-project 且能解析出 `xpertId` 的会话或运行时，全部落到同一个 `xpert + user` 根目录，不再创建 conversation/thread 子目录。
+- 同时把这套能力从“隐式 user volume 约定”升级为显式的 `xpert` 文件隔离类型；旧的 user/thread 目录不做兼容、不做迁移，直接切到新布局。
+
+## Key Changes
+- 扩展共享文件隔离契约：
+  - `FileUploadVolumeCatalog` 新增 `xperts`。
+  - `IUploadFileVolumeTarget` 新增 `xpertId?: string`、`isolateByUser?: boolean`。
+  - `catalog: 'xperts'` 的默认行为固定为 `isolateByUser=true`。
+- 固定 `xpert` 目录规则，作为唯一 non-project xpert workspace 布局：
+  - 用户隔离：`/xpert/{xpertId}/user/{userId}`
+  - 非用户隔离：`/xpert/{xpertId}`
+  - public URL、sandbox volume 子路径、dev flatten 归一化、上传目标解析全部使用同一套规则。
+- 在 `shared/volume` 中新增显式 xpert helper，并把 non-project xpert 运行时统一改走它：
+  - 增加 `VolumeClient.getXpertWorkspacePath(...)`、`getXpertWorkspaceUrl(...)`
+  - 保留 project helper；project 会话仍继续使用 project workspace，不受这次改动影响。
+- 修改 non-project xpert 的运行时 workspace 注入链路：
+  - `XpertAgentInvokeHandler` 不再用 `getSharedWorkspacePath(undefined, userId)`；改为根据 `xpertId` 注入统一的 `xpert + user` 根目录。
+  - `SandboxController.terminal`、会话内文件上传接口也改为同一根目录。
+  - `conversationId` 在 non-project xpert 流程里不再参与目录拼接，只保留会话定位和权限校验职责。
+- 修改会话文件接口语义，使其与 xpert memory files 收敛到同一存储：
+  - `/chat-conversation/:id/files`、`/:id/file` 在 `projectId` 存在时继续走 project workspace。
+  - 在 `projectId` 为空且 `xpertId` 存在时，改为读取/写入 `xpert + user` 根目录。
+  - `xpertId` 也为空的 non-project conversation 直接报错，明确要求绑定 xpert 后才能访问 unified workspace。
+- 修改 xpert memory files 语义，去掉当前“users catalog + xpertId 作为 workspacePath”的隐式实现：
+  - `/xpert/:id/memory/files`、`/memory/file` 直接走 `catalog: 'xperts'`
+  - 默认 `isolateByUser=true`
+  - 不再使用或透传 `workspaceId` 参与路径决定。
+- 前端收敛到统一后的后端行为：
+  - `ClawXpertConversationFilesComponent` 保留 conversation 读写入口，但新增 `xpertId` 作为 UI root identity，避免每个 conversation 都被当成不同文件树。
+  - `ChatConversationFilesComponent` / `ChatFileListComponent` 无需新增分支；non-project xpert conversation 会自动读到 unified xpert workspace。
+  - ClawXpert detail 页面传入 `facade.xpertId()`，文件面板的根语义改为当前 xpert 的共享工作区，而不是 thread 工作区。
+
+## Test Plan
+- 共享 volume / 路径解析：
+  - `catalog: 'xperts'` 在 `isolateByUser=true/false` 下分别生成正确 rootPath 和 baseUrl。
+  - dev flatten 下的 sandbox public path 归一化覆盖 `xpert/...` 路径。
+- 运行时 workspace：
+  - `XpertAgentInvokeHandler` 在 non-project xpert 场景下注入 `getXpertWorkspacePath/getXpertWorkspaceUrl`。
+  - project 场景继续走 project workspace，断言不回归。
+- conversation / xpert 文件接口：
+  - `ChatConversationService` 在 non-project + `xpertId` 场景不再使用 `threadId`，而是命中 `xpert + user` 根。
+  - `XpertService` 的 memory files 与 conversation files 命中同一根目录。
+  - `xpertId` 缺失的 non-project conversation 访问文件时报明确错误。
+- sandbox / 上传：
+  - terminal working directory、interrupt upload、conversation file upload 在 non-project xpert 场景使用同一 xpert 根目录。
+- 前端：
+  - `ClawXpertConversationFilesComponent` 断言 root identity 改为 `xpertId`，loader 仍可通过 conversation API 访问 unified workspace。
+  - `ClawXpertConversationDetailComponent` 断言向文件面板同时传递 `conversationId` 和 `xpertId`。
+  - 现有 project conversation 文件行为保持不变。
+
+## Assumptions
+- “conversation workspace 和 user workspace 统一到 xperts” 的含义是：在 non-project xpert 场景下，两者合并为同一个 `xpert + user` 根目录，不再保留 conversation 子目录。
+- 旧的 `/user/{userId}` 与 `/user/{userId}/{threadId}` 文件不做迁移、不做 fallback，切换后直接不再读取。
+- project workspace 不属于这次统一范围，继续保留现状。
+- unified non-project workspace 必须能解析出 `xpertId`；如果缺失，按错误处理而不是继续走旧 user/thread 方案。

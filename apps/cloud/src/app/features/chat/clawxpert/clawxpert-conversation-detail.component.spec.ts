@@ -4,7 +4,11 @@ jest.mock('../../../@core', () => ({
   },
   AiThreadService: class AiThreadService {},
   ChatConversationService: class ChatConversationService {},
-  getErrorMessage: (error: any) => error?.message ?? ''
+  getErrorMessage: (error: any) => error?.message ?? '',
+  injectToastr: () => ({
+    warning: jest.fn(),
+    danger: jest.fn()
+  })
 }))
 
 jest.mock('@xpert-ai/headless-ui', () => {
@@ -82,7 +86,7 @@ jest.mock('@xpert-ai/chatkit-angular', () => {
 })
 
 jest.mock('./clawxpert-conversation-files.component', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
+  const { Component, EventEmitter, Input, Output } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -91,8 +95,10 @@ jest.mock('./clawxpert-conversation-files.component', () => {
   })
   class ClawXpertConversationFilesComponent {
     @Input() conversationId?: string | null
+    @Input() xpertId?: string | null
     @Input() mode?: 'readonly' | 'editable'
     @Input() reloadKey?: number
+    @Output() referenceRequest = new EventEmitter()
   }
 
   return {
@@ -172,6 +178,7 @@ type MockChatKitEvent = {
 }
 
 type MockChatKitRuntimeInput = {
+  initialThread?: () => string | null
   onThreadChange?: (event: { threadId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
   onThreadLoadEnd?: (event: { threadId: string | null }) => void
@@ -189,6 +196,13 @@ async function settle(fixture: { detectChanges: () => void; whenStable: () => Pr
   fixture.detectChanges()
 }
 
+async function settleWithFakeTimers(fixture: { detectChanges: () => void }) {
+  fixture.detectChanges()
+  await Promise.resolve()
+  await Promise.resolve()
+  fixture.detectChanges()
+}
+
 function getRuntimeInput() {
   return runtimeModule.injectHostedAssistantChatkitControl.mock.calls.at(-1)?.[0] as MockChatKitRuntimeInput
 }
@@ -197,8 +211,10 @@ describe('ClawXpertConversationDetailComponent', () => {
   let facade: {
     definition: { titleKey: string; defaultTitle: string }
     loading: ReturnType<typeof signal<boolean>>
+    loadingUserPreference: ReturnType<typeof signal<boolean>>
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
+    xpertId: ReturnType<typeof signal<string | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
     suppressAutoResume: ReturnType<typeof signal<boolean>>
@@ -227,8 +243,10 @@ describe('ClawXpertConversationDetailComponent', () => {
         defaultTitle: 'ClawXpert'
       },
       loading: signal(false),
+      loadingUserPreference: signal(false),
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
+      xpertId: signal('assistant-1'),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
       suppressAutoResume: signal(false),
@@ -318,6 +336,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
     fixture.detectChanges()
@@ -358,14 +377,14 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
+    fixture.componentInstance.selectPanel('files')
     await settle(fixture)
 
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[0rem_minmax(0,1fr)]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('rounded-none')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-0')
 
-    fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
+    fixture.componentInstance.selectPanel('files')
     await settle(fixture)
 
     const chatShell = fixture.nativeElement.querySelectorAll('section')[1]?.querySelector('div') as HTMLElement | null
@@ -424,6 +443,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
+    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
   })
 
   it('clears the shared active conversation when the thread is reset or the component is destroyed', async () => {
@@ -446,7 +466,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
       signal({
         element: {},
-        setThreadId: jest.fn().mockResolvedValue(undefined)
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue: jest.fn().mockResolvedValue(undefined),
+        focusComposer: jest.fn().mockResolvedValue(undefined)
       })
     )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -461,13 +483,56 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
   })
 
-  it('polls and refreshes conversation detail for the computer tab while responses are in flight', async () => {
-    jest.useFakeTimers()
+  it('appends workspace file references to the chatkit composer without sending a message', async () => {
+    const setComposerValue = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue,
+        focusComposer
+      })
+    )
+
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.nativeElement.querySelector('[data-panel-button="computer"]').click()
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+
+    ;(filesPanel.componentInstance as ClawXpertConversationFilesComponent).referenceRequest.emit({
+      path: 'src/app.ts',
+      text: 'const y = 2',
+      startLine: 2,
+      endLine: 2,
+      language: 'typescript'
+    })
     await settle(fixture)
+
+    expect(setComposerValue).toHaveBeenCalledWith({
+      references: [
+        {
+          type: 'code',
+          path: 'src/app.ts',
+          text: 'const y = 2',
+          startLine: 2,
+          endLine: 2,
+          language: 'typescript'
+        }
+      ],
+      appendReferences: true
+    })
+    expect(focusComposer).toHaveBeenCalled()
+  })
+
+  it('polls and refreshes conversation detail for the computer tab while responses are in flight', async () => {
+    jest.useFakeTimers()
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settleWithFakeTimers(fixture)
+
+    fixture.nativeElement.querySelector('[data-panel-button="computer"]').click()
+    await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
     conversationService.getById.mockClear()
@@ -508,7 +573,29 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.ensureConversationEntry).toHaveBeenCalled()
   })
 
-  it('syncs the resumed thread into the chatkit control when the route thread changes', async () => {
+  it('waits for user preferences to finish loading before resolving the preferred conversation entry', async () => {
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        focusComposer: jest.fn()
+      })
+    )
+    facade.threadId.set(null)
+    facade.loadingUserPreference.set(true)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(facade.ensureConversationEntry).not.toHaveBeenCalled()
+
+    facade.loadingUserPreference.set(false)
+    await settle(fixture)
+
+    expect(facade.ensureConversationEntry).toHaveBeenCalledTimes(1)
+  })
+
+  it('passes the resumed thread into the chatkit runtime as initialThread instead of pushing setThreadId', async () => {
     const setThreadId = jest.fn().mockResolvedValue(undefined)
     runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
       signal({
@@ -522,12 +609,15 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(setThreadId).toHaveBeenCalledWith(null)
+    const runtimeInput = getRuntimeInput()
+    expect(runtimeInput.initialThread?.()).toBeNull()
+    expect(setThreadId).not.toHaveBeenCalled()
 
     facade.threadId.set('thread-2')
     await settle(fixture)
 
-    expect(setThreadId).toHaveBeenLastCalledWith('thread-2')
+    expect(runtimeInput.initialThread?.()).toBe('thread-2')
+    expect(setThreadId).not.toHaveBeenCalled()
   })
 
   it('does not push a chatkit-originated new thread id back into the control', async () => {
@@ -558,7 +648,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   it('passes the file list reload key to the files panel and refreshes it after relevant log events', async () => {
     jest.useFakeTimers()
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settle(fixture)
+    await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
@@ -591,7 +681,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   it('debounces multiple relevant log events into a single file list refresh', async () => {
     jest.useFakeTimers()
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settle(fixture)
+    await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
@@ -629,7 +719,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   it('ignores unrelated log events, read-only file tools, and empty effect allowlists', async () => {
     jest.useFakeTimers()
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settle(fixture)
+    await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
@@ -674,7 +764,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   it('refreshes the file list for legacy Bash execute log events', async () => {
     jest.useFakeTimers()
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settle(fixture)
+    await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))

@@ -1,6 +1,20 @@
 import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
-import { Body, Controller, Delete, Get, Param, Post, Put, UseInterceptors } from '@nestjs/common'
+import {
+	Body,
+	Controller,
+	Delete,
+	forwardRef,
+	Get,
+	Inject,
+	Param,
+	Post,
+	Put,
+	UploadedFile,
+	UseInterceptors
+} from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { SkillPackageService } from '../skill-package/skill-package.service'
 import { SkillRepository } from './skill-repository.entity'
 import { SkillRepositoryService } from './skill-repository.service'
 
@@ -8,7 +22,11 @@ import { SkillRepositoryService } from './skill-repository.service'
 @UseInterceptors(TransformInterceptor)
 @Controller('skill-repository')
 export class SkillRepositoryController extends CrudController<SkillRepository> {
-	constructor(private readonly service: SkillRepositoryService) {
+	constructor(
+		private readonly service: SkillRepositoryService,
+		@Inject(forwardRef(() => SkillPackageService))
+		private readonly skillPackageService: SkillPackageService
+	) {
 		super(service)
 	}
 
@@ -39,5 +57,16 @@ export class SkillRepositoryController extends CrudController<SkillRepository> {
 				updatedAt: 'DESC'
 			}
 		})
+	}
+
+	@Post('workspace-public/ensure')
+	async ensureWorkspacePublicRepository() {
+		return this.skillPackageService.initializeWorkspacePublicRepository()
+	}
+
+	@Post(':id/upload')
+	@UseInterceptors(FileInterceptor('file'))
+	async uploadSkillPackage(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+		return this.skillPackageService.uploadWorkspacePublicRepositoryPackages(id, file)
 	}
 }

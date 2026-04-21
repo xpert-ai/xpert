@@ -34,6 +34,13 @@ const routes: Routes = [
         component: SettingsComponent
       },
       {
+        path: 'skills',
+        loadComponent: () => import('./skills/skills.component').then((m) => m.TenantSkillsComponent),
+        data: {
+          title: 'settings/tenant/skills'
+        }
+      },
+      {
         path: 'tags',
         component: TenantTagMaintainComponent
       }

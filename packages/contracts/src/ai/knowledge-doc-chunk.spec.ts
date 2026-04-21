@@ -44,4 +44,22 @@ describe("buildChunkTree", () => {
     const tree = buildChunkTree(chunks)
     console.log('Tree:', JSON.stringify(tree, null, 2))
   })
+
+  it('falls back to the top-level id when metadata.chunkId is missing', () => {
+    const chunks = [
+      {
+        id: 'root-1',
+        pageContent: 'Root chunk',
+        metadata: {
+          enabled: false,
+        } as IDocChunkMetadata,
+      },
+    ] as Array<DocumentInterface<IDocChunkMetadata> & { id: string }>
+
+    const tree = buildChunkTree(chunks)
+
+    expect(tree).toHaveLength(1)
+    expect(tree[0].metadata.chunkId).toBe('root-1')
+    expect(tree[0].pageContent).toBe('Root chunk')
+  })
 })
