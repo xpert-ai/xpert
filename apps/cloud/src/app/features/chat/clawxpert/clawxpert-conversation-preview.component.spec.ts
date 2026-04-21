@@ -21,6 +21,12 @@ async function settle(fixture: { detectChanges: () => void; whenStable: () => Pr
   fixture.detectChanges()
 }
 
+async function nextAnimationFrame() {
+  await new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => resolve())
+  })
+}
+
 describe('ClawXpertConversationPreviewComponent', () => {
   let sandboxService: {
     listManagedServices: jest.Mock
@@ -165,6 +171,151 @@ describe('ClawXpertConversationPreviewComponent', () => {
           left: 10,
           top: 20,
           width: 120
+        })
+      )
+    } finally {
+      button.remove()
+      previewDocument.title = previousTitle
+    }
+  })
+
+  it('repositions the selected overlay when the preview page scrolls', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for a running service.')
+    }
+
+    const previewDocument = document
+    const button = previewDocument.createElement('button')
+    button.id = 'scroll-target'
+    button.textContent = 'Scroll target'
+    const rectState = {
+      bottom: 50,
+      height: 30,
+      left: 10,
+      right: 130,
+      top: 20,
+      width: 120,
+      x: 10,
+      y: 20
+    }
+    Object.defineProperty(button, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        ...rectState,
+        toJSON: () => undefined
+      })
+    })
+    const previousTitle = previewDocument.title
+    try {
+      previewDocument.title = 'Preview Page'
+      previewDocument.body.appendChild(button)
+      Object.defineProperty(iframe, 'contentDocument', {
+        configurable: true,
+        value: previewDocument
+      })
+
+      fixture.componentInstance.toggleInspectMode()
+      fixture.componentInstance.handleFrameLoad()
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+      expect(fixture.componentInstance.activeOverlay()).toEqual(
+        expect.objectContaining({
+          left: 10,
+          top: 20
+        })
+      )
+
+      rectState.left = 30
+      rectState.right = 150
+      rectState.top = 140
+      rectState.bottom = 170
+      rectState.x = 30
+      rectState.y = 140
+      previewDocument.dispatchEvent(new Event('scroll'))
+
+      expect(fixture.componentInstance.activeOverlay()).toEqual(
+        expect.objectContaining({
+          left: 30,
+          top: 140
+        })
+      )
+    } finally {
+      button.remove()
+      previewDocument.title = previousTitle
+    }
+  })
+
+  it('keeps the selected overlay in sync with layout changes between animation frames', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for a running service.')
+    }
+
+    const previewDocument = document
+    const button = previewDocument.createElement('button')
+    button.id = 'layout-target'
+    button.textContent = 'Layout target'
+    const rectState = {
+      bottom: 70,
+      height: 30,
+      left: 40,
+      right: 160,
+      top: 40,
+      width: 120,
+      x: 40,
+      y: 40
+    }
+    Object.defineProperty(button, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        ...rectState,
+        toJSON: () => undefined
+      })
+    })
+    const previousTitle = previewDocument.title
+    try {
+      previewDocument.title = 'Preview Page'
+      previewDocument.body.appendChild(button)
+      Object.defineProperty(iframe, 'contentDocument', {
+        configurable: true,
+        value: previewDocument
+      })
+
+      fixture.componentInstance.toggleInspectMode()
+      fixture.componentInstance.handleFrameLoad()
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+      expect(fixture.componentInstance.activeOverlay()).toEqual(
+        expect.objectContaining({
+          left: 40,
+          top: 40
+        })
+      )
+
+      rectState.left = 120
+      rectState.right = 240
+      rectState.top = 180
+      rectState.bottom = 210
+      rectState.x = 120
+      rectState.y = 180
+
+      await nextAnimationFrame()
+
+      expect(fixture.componentInstance.activeOverlay()).toEqual(
+        expect.objectContaining({
+          left: 120,
+          top: 180
         })
       )
     } finally {

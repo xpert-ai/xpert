@@ -31,6 +31,11 @@ type PreviewOverlay = {
   width: number
 }
 
+type PreviewOverlayTarget = {
+  element: Element
+  service: ISandboxManagedService
+}
+
 const SERVICE_REFRESH_INTERVAL_MS = 3000
 
 function isNonEmptyString(value: string | null | undefined): value is string {
@@ -408,6 +413,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly #sanitizer = inject(DomSanitizer)
   readonly #toastr = injectToastr()
   #frameCleanup: (() => void) | null = null
+  #frameSyncRequestId: number | null = null
+  #frameSyncWindow: Window | null = null
+  #hoveredTarget: PreviewOverlayTarget | null = null
+  #selectedTarget: PreviewOverlayTarget | null = null
 
   readonly conversationId = input<string | null>(null)
   readonly referenceRequest = output<TChatElementReference>()
@@ -521,8 +530,7 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   toggleInspectMode() {
     this.mode.update((mode) => (mode === 'inspect' ? 'browse' : 'inspect'))
     if (this.mode() === 'browse') {
-      this.hoveredOverlay.set(null)
-      this.selectedOverlay.set(null)
+      this.resetOverlayTargets()
     }
   }
 
@@ -571,8 +579,7 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
 
   handleFrameLoad() {
     this.destroyFrameListeners()
-    this.hoveredOverlay.set(null)
-    this.selectedOverlay.set(null)
+    this.resetOverlayTargets()
     const iframe = this.frameRef()?.nativeElement
     const service = this.selectedService()
     if (!iframe || !service) {
@@ -586,16 +593,23 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
 
     const updateHover = (event: MouseEvent) => {
       const target = readTargetElement(event.target)
-      if (this.mode() !== 'inspect' || !target) {
+      if (this.mode() !== 'inspect') {
         return
       }
 
-      const overlay = this.buildOverlay(service, target)
-      this.hoveredOverlay.set(overlay)
+      if (!target) {
+        this.clearHoveredTarget()
+        return
+      }
+
+      const overlayTarget = { element: target, service }
+      this.#hoveredTarget = overlayTarget
+      this.hoveredOverlay.set(this.buildOverlayForTarget(overlayTarget))
+      this.ensureOverlaySyncLoop(documentRef.defaultView)
     }
 
     const clearHover = () => {
-      this.hoveredOverlay.set(null)
+      this.clearHoveredTarget()
     }
 
     const selectElement = (event: MouseEvent) => {
@@ -608,23 +622,37 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
       event.stopPropagation()
       event.stopImmediatePropagation()
 
-      const overlay = this.buildOverlay(service, target)
+      const overlayTarget = { element: target, service }
+      const overlay = this.buildOverlayForTarget(overlayTarget)
       if (!overlay) {
         return
       }
 
+      this.#selectedTarget = overlayTarget
       this.selectedOverlay.set(overlay)
+      this.ensureOverlaySyncLoop(documentRef.defaultView)
       this.referenceRequest.emit(overlay.reference)
     }
+
+    const syncOverlays = () => {
+      this.refreshTrackedOverlays()
+    }
+    const frameWindow = documentRef.defaultView
 
     documentRef.addEventListener('mousemove', updateHover, true)
     documentRef.addEventListener('mouseleave', clearHover, true)
     documentRef.addEventListener('click', selectElement, true)
+    documentRef.addEventListener('scroll', syncOverlays, true)
+    frameWindow?.addEventListener('scroll', syncOverlays, true)
+    frameWindow?.addEventListener('resize', syncOverlays)
 
     this.#frameCleanup = () => {
       documentRef.removeEventListener('mousemove', updateHover, true)
       documentRef.removeEventListener('mouseleave', clearHover, true)
       documentRef.removeEventListener('click', selectElement, true)
+      documentRef.removeEventListener('scroll', syncOverlays, true)
+      frameWindow?.removeEventListener('scroll', syncOverlays, true)
+      frameWindow?.removeEventListener('resize', syncOverlays)
     }
   }
 
@@ -642,6 +670,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   }
 
   private buildOverlay(service: ISandboxManagedService, element: Element): PreviewOverlay | null {
+    if (!element.isConnected) {
+      return null
+    }
+
     const reference = buildElementReference(service, element)
     if (!reference) {
       return null
@@ -662,15 +694,89 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     }
   }
 
+  private buildOverlayForTarget(target: PreviewOverlayTarget | null) {
+    return target ? this.buildOverlay(target.service, target.element) : null
+  }
+
+  private clearHoveredTarget() {
+    this.#hoveredTarget = null
+    this.hoveredOverlay.set(null)
+    this.stopOverlaySyncLoopIfIdle()
+  }
+
   private destroyFrameListeners() {
     this.#frameCleanup?.()
     this.#frameCleanup = null
+    this.stopOverlaySyncLoop()
+  }
+
+  private ensureOverlaySyncLoop(frameWindow: Window | null) {
+    if (!frameWindow) {
+      return
+    }
+
+    this.#frameSyncWindow = frameWindow
+    if (this.#frameSyncRequestId !== null) {
+      return
+    }
+
+    const tick = () => {
+      this.#frameSyncRequestId = null
+      this.refreshTrackedOverlays()
+
+      if (!this.#hoveredTarget && !this.#selectedTarget) {
+        this.#frameSyncWindow = null
+        return
+      }
+
+      this.#frameSyncRequestId = frameWindow.requestAnimationFrame(tick)
+    }
+
+    this.#frameSyncRequestId = frameWindow.requestAnimationFrame(tick)
+  }
+
+  private refreshTrackedOverlays() {
+    const hoveredOverlay = this.buildOverlayForTarget(this.#hoveredTarget)
+    if (!hoveredOverlay) {
+      this.#hoveredTarget = null
+    }
+    this.hoveredOverlay.set(hoveredOverlay)
+
+    const selectedOverlay = this.buildOverlayForTarget(this.#selectedTarget)
+    if (!selectedOverlay) {
+      this.#selectedTarget = null
+    }
+    this.selectedOverlay.set(selectedOverlay)
+
+    this.stopOverlaySyncLoopIfIdle()
+  }
+
+  private resetOverlayTargets() {
+    this.#hoveredTarget = null
+    this.#selectedTarget = null
+    this.hoveredOverlay.set(null)
+    this.selectedOverlay.set(null)
+    this.stopOverlaySyncLoop()
+  }
+
+  private stopOverlaySyncLoop() {
+    if (this.#frameSyncRequestId !== null) {
+      this.#frameSyncWindow?.cancelAnimationFrame(this.#frameSyncRequestId)
+      this.#frameSyncRequestId = null
+    }
+
+    this.#frameSyncWindow = null
+  }
+
+  private stopOverlaySyncLoopIfIdle() {
+    if (!this.#hoveredTarget && !this.#selectedTarget) {
+      this.stopOverlaySyncLoop()
+    }
   }
 
   private resetFrameState() {
     this.destroyFrameListeners()
-    this.hoveredOverlay.set(null)
-    this.selectedOverlay.set(null)
+    this.resetOverlayTargets()
   }
 
   private buildPreviewSessionKey(service: ISandboxManagedService | null): string | null {
