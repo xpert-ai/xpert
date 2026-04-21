@@ -36,8 +36,8 @@ const providers = [AuthService, UserService, UserOrganizationService, EmailServi
 			}
 		]),
 		SocialAuthModule.registerAsync({
-			imports: [AuthModule, CqrsModule, TenantModule, UserModule, PasswordResetModule, RoleModule, OrganizationModule],
-			useClass: AuthService
+			imports: [forwardRef(() => AuthModule)],
+			useExisting: AuthService
 		}),
 		TypeOrmModule.forFeature([UserOrganization, Organization]),
 		RedisModule,
