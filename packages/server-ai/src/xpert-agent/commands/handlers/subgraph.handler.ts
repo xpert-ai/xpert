@@ -122,6 +122,7 @@ import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgenticWorkflowTypes } from '../../types'
 import { createThreadContextUsageEventHook } from '../../hooks/context-usage.hook'
 import { parseXmlString } from './types'
+import { collectStartDrivenAgentEntrySources, rerouteAgentEntryTarget } from './subgraph-entry-routing'
 import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
@@ -1146,13 +1147,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const afterAgentEntryNode = afterAgentExecutionOrder[0]?.key
         const agentFinalExitNode =
             afterAgentExecutionOrder[afterAgentExecutionOrder.length - 1]?.key ?? agentDecisionNode
-        // Only trigger start nodes need special routing into the agent start chain.
-        const triggerStartNodeKeys = new Set(
-            (isStart ? startNodes : []).filter((key) => {
-                const node = graph.nodes.find((_) => _.key === key)
-                return node?.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
-            })
-        )
+        const startDrivenAgentEntrySources = isStart
+            ? collectStartDrivenAgentEntrySources({
+                  startNodes,
+                  nodes,
+                  edges,
+                  conditionalEdges,
+                  agentKey
+              })
+            : new Set<string>()
 
         const subgraphBuilder = new StateGraph<any, any, any, string>(SubgraphStateAnnotation)
 
@@ -1407,17 +1410,35 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             Object.entries(edges).forEach(([name, value]) => {
                 const ends: string[] = Array.isArray(value) ? value : [value]
                 ends.forEach((end) => {
-                    // Ensure trigger-first entry runs beforeAgent hooks by entering from agentStartNode.
-                    if (triggerStartNodeKeys.has(name) && end === agentKey) {
+                    // Ensure workflow-driven start paths enter through the agent start chain so
+                    // injected pre-turn nodes remain reachable before the first agent turn.
+                    if (startDrivenAgentEntrySources.has(name) && end === agentKey) {
                         subgraphBuilder.addEdge(name, agentStartNode)
                         return
                     }
                     subgraphBuilder.addEdge(name, end)
                 })
             })
-            Object.keys(conditionalEdges).forEach((name) =>
-                subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0] as any, conditionalEdges[name][1])
-            )
+            Object.keys(conditionalEdges).forEach((name) => {
+                const [navigator, destinations] = conditionalEdges[name]
+                const shouldRerouteAgentEntry =
+                    startDrivenAgentEntrySources.has(name) && destinations?.includes(agentKey)
+
+                subgraphBuilder.addConditionalEdges(
+                    name,
+                    shouldRerouteAgentEntry
+                        ? async (state, config) =>
+                              rerouteAgentEntryTarget(
+                                  await (navigator as any)(state, config),
+                                  agentKey,
+                                  agentStartNode
+                              )
+                        : (navigator as any),
+                    shouldRerouteAgentEntry
+                        ? destinations.map((destination) => rerouteAgentEntryTarget(destination, agentKey, agentStartNode))
+                        : destinations
+                )
+            })
         }
 
         // Verbose
