@@ -14,9 +14,10 @@ import {
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { createHash } from 'crypto'
 import fs from 'fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'path'
-import { Repository } from 'typeorm'
+import { FindOptionsWhere, Repository } from 'typeorm'
 import {
 	getOrganizationSharedSkillPath,
 	getOrganizationSharedSkillsRoot,
@@ -63,6 +64,9 @@ const TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE = 'bundle.yaml'
 const WORKSPACE_PUBLIC_SOURCE_PACKAGE_PREFIX = 'workspace-public'
 const WORKSPACE_PUBLIC_SOURCE_SKILL_PREFIX = 'workspace-public-upload'
 const DEFAULT_TENANT_SKILL_WORKSPACE_NAME = 'Tenant Skills Workspace'
+
+const isObjectValue = (value: unknown): value is object =>
+	typeof value === 'object' && value !== null && !Array.isArray(value)
 
 type SkillPackageInstallMetadata = Partial<SkillMetadata> & {
 	skillMdPath?: string
@@ -114,6 +118,15 @@ type CreateWorkspaceSkillPackageResult = {
 	skillPackage: SkillPackage
 	packagePath: string
 	skillMdPath: string
+}
+
+export type TTemplateSkillBundleSyncResult = {
+	status: 'created' | 'updated' | 'unchanged' | 'missing'
+	hash: string
+	sharedSkillId: string
+	index: {
+		id?: string
+	} | null
 }
 
 const buildSharedSkillStats = (version?: string | null) => ({
@@ -401,19 +414,11 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	}
 
 	async initializeWorkspacePublicRepository() {
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const currentUserId = RequestContext.currentUserId()
-		if (!tenantId || !currentUserId) {
-			throw new BadRequestException('Tenant context is required to initialize the public skill repository')
-		}
-
-		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
-		const workspace = await this.findOrCreateScopeDefaultWorkspace(tenantId, organizationId, currentUserId)
+		const { repository, workspace } = await this.ensureWorkspacePublicRepositoryContext()
 		const bundles = await this.xpertTemplateService.getTemplateSkillBundles()
 
 		for (const bundle of bundles) {
-			await this.ensureSharedSkillPackageFromTemplateBundle(
+			await this.syncTemplateSkillBundle(
 				workspace.id,
 				{
 					bundleRootPath: bundle.directoryPath,
@@ -426,6 +431,23 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 
 		return repository
+	}
+
+	async ensureWorkspacePublicRepositoryContext() {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const currentUserId = RequestContext.currentUserId()
+		if (!tenantId || !currentUserId) {
+			throw new BadRequestException('Tenant context is required to initialize the public skill repository')
+		}
+
+		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
+		const workspace = await this.findOrCreateScopeDefaultWorkspace(tenantId, organizationId, currentUserId)
+
+		return {
+			repository,
+			workspace
+		}
 	}
 
 	async createWorkspaceSkillPackage(
@@ -555,6 +577,26 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			skipAccessCheck?: boolean
 		}
 	) {
+		const result = await this.syncTemplateSkillBundle(workspaceId, input, options)
+		if (result.index) {
+			return result.index
+		}
+
+		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
+		return this.findSharedSkillIndex(repository.id, input.sharedSkillId.trim())
+	}
+
+	async syncTemplateSkillBundle(
+		workspaceId: string,
+		input: {
+			bundleRootPath: string
+			sharedSkillId: string
+		},
+		options?: {
+			skipAccessCheck?: boolean
+			validateOnly?: boolean
+		}
+	): Promise<TTemplateSkillBundleSyncResult> {
 		if (!workspaceId) {
 			throw new BadRequestException('workspaceId is required')
 		}
@@ -576,23 +618,62 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new BadRequestException('Tenant context is required to publish template skill bundles')
 		}
 
-		const repository = await this.skillRepositoryService.ensureWorkspacePublicRepository()
-		const existingIndex = await this.findSharedSkillIndex(repository.id, input.sharedSkillId)
-		if (existingIndex) {
-			return existingIndex
+		const repository = options?.validateOnly
+			? await this.findWorkspacePublicRepository()
+			: await this.skillRepositoryService.ensureWorkspacePublicRepository()
+		const bundleRootPath = input.bundleRootPath.trim()
+		const sharedSkillId = input.sharedSkillId.trim()
+		const bundleHash = await calculateTemplateSkillBundleHash(bundleRootPath)
+		const existingIndex = repository?.id ? await this.findSharedSkillIndex(repository.id, sharedSkillId) : null
+		const existingSkillPackage = await this.repository.findOne({
+			where: {
+				workspaceId,
+				sharedSkillId
+			} as FindOptionsWhere<SkillPackage>,
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		const existingBundleHash = readTemplateBundleHash(existingSkillPackage?.metadata)
+		const nextStatus: TTemplateSkillBundleSyncResult['status'] =
+			!existingIndex || !existingSkillPackage
+				? 'created'
+				: existingBundleHash === bundleHash
+					? 'unchanged'
+					: 'updated'
+
+		if (options?.validateOnly) {
+			return {
+				status: repository?.id ? nextStatus : 'missing',
+				hash: bundleHash,
+				sharedSkillId,
+				index: existingIndex ?? null
+			}
+		}
+		if (!repository?.id) {
+			throw new BadRequestException('Workspace public repository is required to publish template skill bundles')
+		}
+
+		if (nextStatus === 'unchanged' && existingIndex) {
+			return {
+				status: nextStatus,
+				hash: bundleHash,
+				sharedSkillId,
+				index: existingIndex
+			}
 		}
 
 		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
-		const bundleRootPath = input.bundleRootPath.trim()
 		const skillMdPath = join(bundleRootPath, 'SKILL.md')
 		const skillMarkdown = await fs.readFile(skillMdPath, 'utf8').catch((error) => {
 			throw new BadRequestException(`Template skill bundle is missing SKILL.md: ${getErrorMessage(error)}`)
 		})
 		const frontmatter = parseWorkspaceSkillFrontmatter(skillMarkdown)
 		const skillBaseName = frontmatter.name?.trim() || basename(bundleRootPath)
-		const packagePath = await this.allocateWorkspaceSkillPackagePath(installDir, skillBaseName)
+		const packagePath = existingSkillPackage?.packagePath ?? await this.allocateWorkspaceSkillPackagePath(installDir, skillBaseName)
 		const absolutePackagePath = join(installDir, packagePath)
 		await fs.mkdir(installDir, { recursive: true })
+		await fs.rm(absolutePackagePath, { recursive: true, force: true })
 		await fs.cp(bundleRootPath, absolutePackagePath, {
 			recursive: true,
 			filter: (source) => {
@@ -600,25 +681,47 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 				return normalizedSource !== resolve(join(bundleRootPath, TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE))
 			}
 		})
-
-		const skillPackage = await this.create({
-			workspaceId,
-			name: frontmatter.name?.trim() || skillBaseName,
-			packagePath,
-			metadata: this.buildMetadataForWorkspaceSkill(
+		const persistedMetadata = this.withTemplateBundleHash(
+			this.buildMetadataForWorkspaceSkill(
 				frontmatter,
 				packagePath,
 				join(absolutePackagePath, 'SKILL.md'),
 				skillBaseName
-			)
-		})
+			),
+			bundleHash
+		)
+		const skillPackage = existingSkillPackage
+			? {
+				...existingSkillPackage,
+				workspaceId,
+				name: frontmatter.name?.trim() || skillBaseName,
+				packagePath,
+				metadata: persistedMetadata
+			}
+			: await this.create({
+				workspaceId,
+				name: frontmatter.name?.trim() || skillBaseName,
+				packagePath,
+				metadata: persistedMetadata
+			})
+
+		if (existingSkillPackage?.id) {
+			await this.update(existingSkillPackage.id, {
+				workspaceId,
+				name: frontmatter.name?.trim() || skillBaseName,
+				packagePath,
+				metadata: persistedMetadata
+			} as Partial<SkillPackage>)
+		}
 
 		try {
 			const sharedMetadata = this.normalizeTemplateSharedSkillInputFromFrontmatter(frontmatter, skillBaseName)
-			const metadata = this.mergeSharedMetadata(skillPackage, sharedMetadata, currentUser)
+			const metadata = this.mergeSharedMetadata(skillPackage, sharedMetadata, currentUser, {
+				templateBundleHash: bundleHash
+			})
 			const sourcePath = absolutePackagePath
 
-			await this.publishSharedSkillPackage(skillPackage, sourcePath, metadata, {
+			const publishedIndex = await this.publishSharedSkillPackage(skillPackage, sourcePath, metadata, {
 				tenantId,
 				organizationId,
 				currentUser,
@@ -626,13 +729,20 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 					id: repository.id
 				},
 				sharedMetadata,
-				sharedSkillId: input.sharedSkillId.trim()
+				sharedSkillId
 			})
 
-			return this.findSharedSkillIndex(repository.id, input.sharedSkillId.trim())
+			return {
+				status: existingIndex ? 'updated' : 'created',
+				hash: bundleHash,
+				sharedSkillId,
+				index: publishedIndex ?? existingIndex ?? null
+			}
 		} catch (error) {
-			await fs.rm(absolutePackagePath, { recursive: true, force: true })
-			await this.repository.softDelete(skillPackage.id)
+			if (!existingSkillPackage?.id) {
+				await fs.rm(absolutePackagePath, { recursive: true, force: true })
+				await this.repository.softDelete(skillPackage.id)
+			}
 			throw error
 		}
 	}
@@ -1003,10 +1113,14 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	private mergeSharedMetadata(
 		skillPackage: SharedSkillPackageSource,
 		input: SharedSkillMetadataInput,
-		currentUser?: IUser | null
+		currentUser?: IUser | null,
+		options?: {
+			templateBundleHash?: string
+		}
 	): SkillMetadata {
 		const metadata = skillPackage.metadata
 		const authorName = resolveUserDisplayName(currentUser) || metadata?.author?.name || 'Workspace Creator'
+		const provenance = this.withTemplateBundleHash(metadata ?? {}, options?.templateBundleHash).provenance
 		return {
 			...(metadata ?? {
 				name: skillPackage.name || input.displayName,
@@ -1022,7 +1136,29 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 				...(metadata?.author ?? {}),
 				name: authorName
 			},
-			visibility: metadata?.visibility ?? 'private'
+			visibility: metadata?.visibility ?? 'private',
+			...(provenance ? { provenance } : {})
+		}
+	}
+
+	private withTemplateBundleHash<T extends Partial<SkillMetadata>>(metadata: T, templateBundleHash?: string): T {
+		if (!templateBundleHash) {
+			return metadata
+		}
+
+		const currentProvenance = metadata.provenance
+		const nextProvenance = isObjectValue(currentProvenance)
+			? {
+				...currentProvenance,
+				templateBundleHash
+			}
+			: {
+				templateBundleHash
+			}
+
+		return {
+			...metadata,
+			provenance: nextProvenance
 		}
 	}
 
@@ -1542,6 +1678,49 @@ async function pathExists(path: string) {
 
 function ensureTrailingNewline(value: string) {
 	return value.endsWith('\n') ? value : `${value}\n`
+}
+
+async function calculateTemplateSkillBundleHash(bundleRootPath: string) {
+	const hash = createHash('sha256')
+	await appendBundleDirectoryHash(hash, bundleRootPath, '')
+	return hash.digest('hex')
+}
+
+async function appendBundleDirectoryHash(
+	hash: ReturnType<typeof createHash>,
+	directoryPath: string,
+	relativeDirectory: string
+) {
+	const entries = await fs.readdir(directoryPath, { withFileTypes: true }).catch(() => [])
+	for (const entry of [...entries].sort((left, right) => left.name.localeCompare(right.name))) {
+		if (entry.name === TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE) {
+			continue
+		}
+
+		const absolutePath = join(directoryPath, entry.name)
+		const relativePath = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name
+		if (entry.isDirectory()) {
+			hash.update(`dir:${relativePath}`)
+			await appendBundleDirectoryHash(hash, absolutePath, relativePath)
+			continue
+		}
+		if (!entry.isFile()) {
+			continue
+		}
+
+		hash.update(`file:${relativePath}`)
+		hash.update(await fs.readFile(absolutePath))
+	}
+}
+
+function readTemplateBundleHash(metadata?: Partial<SkillMetadata> | null) {
+	const provenance = metadata?.provenance
+	if (!isObjectValue(provenance)) {
+		return undefined
+	}
+
+	const value = Reflect.get(provenance, 'templateBundleHash')
+	return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
 function toWorkspaceSkillSlug(value: string) {

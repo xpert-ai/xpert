@@ -55,6 +55,7 @@ export interface SkillMetadata {
     tools?: string[];         // Dependent XpertAI plugins/tools
   };
   mcp?: { servers?: string[] } // Optional: linked MCP servers
+  provenance?: Record<string, unknown> // Optional: sync/build provenance
 }
 
 export interface SkillResourcesIndex {
