@@ -3,8 +3,15 @@ import { inject, Injectable } from '@angular/core'
 import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { EventSourceMessage } from '@microsoft/fetch-event-source'
 import { Observable } from 'rxjs'
+import {
+  ISandboxManagedService,
+  TSandboxManagedServiceLogs,
+  TSandboxManagedServicePreviewSession,
+  TSandboxManagedServiceStartInput
+} from '@xpert-ai/contracts'
 import { injectFetchEventSource } from './fetch-event-source'
 import { injectApiBaseUrl } from '../providers'
+import { toParams } from '@xpert-ai/core'
 
 @Injectable({
   providedIn: 'root'
@@ -35,6 +42,49 @@ export class SandboxService {
         params: params
       },
       JSON.stringify(data)
+    )
+  }
+
+  listManagedServices(conversationId: string) {
+    return this.http.get<ISandboxManagedService[]>(`${this.baseUrl}/conversations/${conversationId}/services`)
+  }
+
+  startManagedService(conversationId: string, input: TSandboxManagedServiceStartInput) {
+    return this.http.post<ISandboxManagedService>(`${this.baseUrl}/conversations/${conversationId}/services/start`, input)
+  }
+
+  getManagedServiceLogs(conversationId: string, serviceId: string, tail?: number) {
+    return this.http.get<TSandboxManagedServiceLogs>(
+      `${this.baseUrl}/conversations/${conversationId}/services/${serviceId}/logs`,
+      {
+        params: toParams({
+          ...(tail ? { tail } : {})
+        })
+      }
+    )
+  }
+
+  stopManagedService(conversationId: string, serviceId: string) {
+    return this.http.post<ISandboxManagedService>(
+      `${this.baseUrl}/conversations/${conversationId}/services/${serviceId}/stop`,
+      {}
+    )
+  }
+
+  restartManagedService(conversationId: string, serviceId: string) {
+    return this.http.post<ISandboxManagedService>(
+      `${this.baseUrl}/conversations/${conversationId}/services/${serviceId}/restart`,
+      {}
+    )
+  }
+
+  createManagedServicePreviewSession(conversationId: string, serviceId: string) {
+    return this.http.post<TSandboxManagedServicePreviewSession>(
+      `${this.baseUrl}/conversations/${conversationId}/services/${serviceId}/preview-session`,
+      {},
+      {
+        withCredentials: true
+      }
     )
   }
 }

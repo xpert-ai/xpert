@@ -16,7 +16,7 @@ export class SandboxAcquireBackendHandler
     constructor(private readonly registry: SandboxProviderRegistry) {}
 
     async execute(command: SandboxAcquireBackendCommand): Promise<TSandboxConfigurable> {
-        const { workFor, provider, workingDirectory } = command.params
+        const { workFor, provider, workingDirectory, workspaceBinding, environmentId, tenantId } = command.params
         if (!workFor?.id) {
             throw new Error('Sandbox session id is required')
         }
@@ -33,8 +33,15 @@ export class SandboxAcquireBackendHandler
         }
 
         const providerInstance = this.registry.get(provider)
-        const backend = await providerInstance.create({ workingDirectory, workFor, tenantId: command.params.tenantId })
+        const backend = await providerInstance.create({
+            environmentId,
+            tenantId,
+            workFor,
+            workingDirectory,
+            workspaceBinding
+        })
         const configurable: TSandboxConfigurable = {
+            environmentId: environmentId ?? null,
             provider,
             workingDirectory,
             backend

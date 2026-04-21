@@ -9,7 +9,17 @@ import {
     getFileAssetDestination
 } from '@xpert-ai/server-core'
 import {
+    ISandboxManagedService,
+    SandboxManagedServiceErrorCode,
+    TSandboxManagedServiceLogs,
+    TSandboxManagedServicePreviewSession,
+    TSandboxManagedServiceStartInput,
+    IChatConversation
+} from '@xpert-ai/contracts'
+import {
+    All,
     BadRequestException,
+    ConflictException,
     Body,
     Controller,
     ForbiddenException,
@@ -17,27 +27,33 @@ import {
     Header,
     Inject,
     Logger,
+    NotFoundException,
     Param,
     Post,
     Query,
+    Req,
     Res,
     Sse,
     UploadedFile,
+    UseGuards,
     UseInterceptors
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { Response } from 'express'
+import { Request, Response } from 'express'
 import fs from 'fs'
 import { I18nService } from 'nestjs-i18n'
 import { join } from 'path'
 import { Observable } from 'rxjs'
 import { ChatConversationService } from '../chat-conversation'
-import { IChatConversation } from '@xpert-ai/contracts'
 import { VOLUME_CLIENT, VolumeClient, getMediaTypeWithCharset } from '../shared'
 import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
+import { SandboxPreviewAuthGuard } from './sandbox-preview-auth.guard'
+import { SandboxPreviewSessionService } from './sandbox-preview-session.service'
+import { SandboxManagedServiceError } from './sandbox-managed-service.error'
+import { SandboxManagedServiceService } from './sandbox-managed-service.service'
 
 @ApiTags('Sandbox')
 @ApiBearerAuth()
@@ -51,6 +67,8 @@ export class SandboxController {
         private readonly queryBus: QueryBus,
         private readonly conversationService: ChatConversationService,
         private readonly sandboxConversationContextService: SandboxConversationContextService,
+        private readonly sandboxManagedServiceService: SandboxManagedServiceService,
+        private readonly sandboxPreviewSessionService: SandboxPreviewSessionService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {}
@@ -217,6 +235,125 @@ export class SandboxController {
             )
     }
 
+    @Get('conversations/:conversationId/services')
+    async listManagedServices(@Param('conversationId') conversationId: string): Promise<ISandboxManagedService[]> {
+        try {
+            return await this.sandboxManagedServiceService.listByConversationId(conversationId)
+        } catch (error) {
+            this.throwManagedServiceHttpError(error)
+        }
+    }
+
+    @Post('conversations/:conversationId/services/start')
+    async startManagedService(
+        @Param('conversationId') conversationId: string,
+        @Body() input: TSandboxManagedServiceStartInput
+    ): Promise<ISandboxManagedService> {
+        try {
+            return await this.sandboxManagedServiceService.startByConversationId(conversationId, input)
+        } catch (error) {
+            this.throwManagedServiceHttpError(error)
+        }
+    }
+
+    @Get('conversations/:conversationId/services/:serviceId/logs')
+    async getManagedServiceLogs(
+        @Param('conversationId') conversationId: string,
+        @Param('serviceId') serviceId: string,
+        @Query('tail') tail?: string
+    ): Promise<TSandboxManagedServiceLogs> {
+        try {
+            const parsedTail = tail ? Number.parseInt(tail, 10) : undefined
+            return await this.sandboxManagedServiceService.getLogsByConversationId(conversationId, serviceId, parsedTail)
+        } catch (error) {
+            this.throwManagedServiceHttpError(error)
+        }
+    }
+
+    @Post('conversations/:conversationId/services/:serviceId/stop')
+    async stopManagedService(
+        @Param('conversationId') conversationId: string,
+        @Param('serviceId') serviceId: string
+    ): Promise<ISandboxManagedService> {
+        try {
+            return await this.sandboxManagedServiceService.stopByConversationId(conversationId, serviceId)
+        } catch (error) {
+            this.throwManagedServiceHttpError(error)
+        }
+    }
+
+    @Post('conversations/:conversationId/services/:serviceId/restart')
+    async restartManagedService(
+        @Param('conversationId') conversationId: string,
+        @Param('serviceId') serviceId: string
+    ): Promise<ISandboxManagedService> {
+        try {
+            return await this.sandboxManagedServiceService.restartByConversationId(conversationId, serviceId)
+        } catch (error) {
+            this.throwManagedServiceHttpError(error)
+        }
+    }
+
+    @Post('conversations/:conversationId/services/:serviceId/preview-session')
+    async createManagedServicePreviewSession(
+        @Param('conversationId') conversationId: string,
+        @Param('serviceId') serviceId: string,
+        @Req() request: Request,
+        @Res({ passthrough: true }) response: Response
+    ): Promise<TSandboxManagedServicePreviewSession> {
+        try {
+            const service = await this.sandboxManagedServiceService.getByConversationId(conversationId, serviceId)
+            const session = this.sandboxPreviewSessionService.createSession(service, {
+                secure: request.secure || request.headers['x-forwarded-proto'] === 'https'
+            })
+            response.cookie(session.cookie.name, session.cookie.value, session.cookie.options)
+            return {
+                expiresAt: session.expiresAt,
+                previewUrl: session.previewUrl
+            }
+        } catch (error) {
+            this.throwManagedServiceHttpError(error)
+        }
+    }
+
+    @Public()
+    @UseGuards(SandboxPreviewAuthGuard)
+    @All('conversations/:conversationId/services/:serviceId/proxy')
+    async proxyManagedServiceRoot(
+        @Param('conversationId') conversationId: string,
+        @Param('serviceId') serviceId: string,
+        @Req() request: Request,
+        @Res() response: Response
+    ) {
+        return this.proxyManagedService(conversationId, serviceId, '/', request, response)
+    }
+
+    @Public()
+    @UseGuards(SandboxPreviewAuthGuard)
+    @All('conversations/:conversationId/services/:serviceId/proxy/')
+    async proxyManagedServiceRootWithSlash(
+        @Param('conversationId') conversationId: string,
+        @Param('serviceId') serviceId: string,
+        @Req() request: Request,
+        @Res() response: Response
+    ) {
+        return this.proxyManagedService(conversationId, serviceId, '/', request, response)
+    }
+
+    @Public()
+    @UseGuards(SandboxPreviewAuthGuard)
+    @All('conversations/:conversationId/services/:serviceId/proxy/*path')
+    async proxyManagedServicePath(
+        @Param('conversationId') conversationId: string,
+        @Param('serviceId') serviceId: string,
+        @Param('path') paths: string[],
+        @Req() request: Request,
+        @Res() response: Response
+    ) {
+        const pathname = `/${(paths ?? []).join('/')}`
+        return this.proxyManagedService(conversationId, serviceId, pathname, request, response)
+    }
+
     private createConversationVolumeClient(conversation: Partial<IChatConversation>) {
         if (conversation?.projectId) {
             return this.volumeClient.resolve({
@@ -238,6 +375,58 @@ export class SandboxController {
         }
 
         throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
+    }
+
+    private async proxyManagedService(
+        conversationId: string,
+        serviceId: string,
+        pathname: string,
+        request: Request,
+        response: Response
+    ) {
+        const queryIndex = request.originalUrl.indexOf('?')
+        const query = queryIndex >= 0 ? request.originalUrl.slice(queryIndex) : ''
+        const requestPath = `${pathname || '/'}${query}`
+
+        try {
+            await this.sandboxManagedServiceService.proxyByConversationId(
+                conversationId,
+                serviceId,
+                requestPath,
+                request,
+                response
+            )
+        } catch (error) {
+            this.throwManagedServiceHttpError(error)
+        }
+    }
+
+    private throwManagedServiceHttpError(error: unknown): never {
+        if (error instanceof SandboxManagedServiceError) {
+            const payload = {
+                code: error.code,
+                message: error.message
+            }
+
+            if (error.statusCode === 404 || error.code === SandboxManagedServiceErrorCode.ServiceNotFound) {
+                throw new NotFoundException(payload)
+            }
+
+            if (error.statusCode === 409 || error.code === SandboxManagedServiceErrorCode.ServiceNameConflict) {
+                throw new ConflictException(payload)
+            }
+
+            throw new BadRequestException(payload)
+        }
+
+        if (error instanceof ForbiddenException || error instanceof BadRequestException) {
+            throw error
+        }
+
+        throw new BadRequestException({
+            code: SandboxManagedServiceErrorCode.ProviderUnavailable,
+            message: error instanceof Error ? error.message : String(error)
+        })
     }
 
 }
