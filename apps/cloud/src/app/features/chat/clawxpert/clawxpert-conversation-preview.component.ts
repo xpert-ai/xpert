@@ -167,44 +167,125 @@ function buildElementReference(service: ISandboxManagedService, element: Element
   imports: [CommonModule, TranslateModule],
   template: `
     <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg">
-      <div class="flex flex-wrap items-center gap-3 border-b border-divider-regular px-4 py-3">
-        <div class="min-w-[12rem] flex-1">
-          <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-            {{ 'PAC.Chat.ClawXpert.Preview' | translate: { Default: 'Preview' } }}
+      <div class="border-b border-divider-regular px-4 py-3">
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-wrap items-start gap-3">
+            <div class="min-w-[12rem] flex-1">
+              <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
+                {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
+              </div>
+              <div class="mt-1 text-sm text-text-secondary">
+                {{
+                  'PAC.Chat.ClawXpert.PreviewDesc'
+                    | translate
+                      : {
+                          Default: 'Browse managed sandbox services and attach page elements.'
+                        }
+                }}
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
+                (click)="refreshServices()"
+              >
+                <i class="ri-refresh-line text-base"></i>
+                <span>{{ 'PAC.KEY_WORDS.Refresh' | translate: { Default: 'Refresh' } }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition"
+                [ngClass]="
+                  mode() === 'inspect'
+                    ? 'border-text-accent text-text-accent'
+                    : 'border-divider-regular text-text-secondary hover:text-text-primary'
+                "
+                (click)="toggleInspectMode()"
+              >
+                <i class="ri-focus-3-line text-base"></i>
+                <span>{{ 'PAC.Chat.ClawXpert.Inspect' | translate: { Default: 'Inspect' } }}</span>
+              </button>
+            </div>
           </div>
-          <div class="mt-1 text-sm text-text-secondary">
-            {{
-              'PAC.Chat.ClawXpert.PreviewDesc'
-                | translate
-                  : {
-                      Default: 'Inspect and attach page elements from managed sandbox services.'
+
+          @if (!loading() && !error() && services().length) {
+            <div class="flex flex-wrap items-center gap-2.5">
+              <div class="flex min-w-[16rem] flex-1 items-center gap-2">
+                <span class="shrink-0 text-[11px] uppercase tracking-[0.16em] text-text-tertiary">
+                  {{ 'PAC.Chat.ClawXpert.Service' | translate: { Default: 'Service' } }}
+                </span>
+
+                <label class="min-w-0 flex-1">
+                  <select
+                    class="w-full rounded-xl border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary outline-none"
+                    [value]="selectedServiceId() ?? ''"
+                    (change)="handleServiceSelection($event)"
+                  >
+                    @for (service of services(); track service.id) {
+                      <option [value]="service.id">
+                        {{ service.name }} - {{ service.status }}
+                      </option>
                     }
-            }}
-          </div>
+                  </select>
+                </label>
+              </div>
+
+              @if (selectedService(); as service) {
+                <div
+                  class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium"
+                  [ngClass]="statusClasses(service.status)"
+                >
+                  <span class="h-2 w-2 rounded-full bg-current"></span>
+                  <span>{{ service.status }}</span>
+                </div>
+
+                <div class="min-w-0 max-w-[18rem] text-xs text-text-secondary">
+                  @if (service.actualPort) {
+                    <span class="whitespace-nowrap">
+                      {{ 'PAC.Chat.ClawXpert.Port' | translate: { Default: 'Port' } }} {{ service.actualPort }}
+                    </span>
+                  } @else {
+                    <span class="block truncate">{{ service.workingDirectory }}</span>
+                  }
+                </div>
+
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
+                  (click)="restartSelectedService()"
+                >
+                  <i class="ri-restart-line text-base"></i>
+                  <span>{{ 'PAC.KEY_WORDS.Restart' | translate: { Default: 'Restart' } }}</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
+                  (click)="stopSelectedService()"
+                >
+                  <i class="ri-stop-circle-line text-base"></i>
+                  <span>{{ 'PAC.KEY_WORDS.Stop' | translate: { Default: 'Stop' } }}</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
+                  (click)="toggleLogs()"
+                >
+                  <i class="ri-file-list-3-line text-base"></i>
+                  @if (showLogs()) {
+                    <span>{{ 'PAC.KEY_WORDS.Hide' | translate: { Default: 'Hide' } }}</span>
+                  } @else {
+                    <span>{{ 'PAC.KEY_WORDS.Logs' | translate: { Default: 'Logs' } }}</span>
+                  }
+                </button>
+              }
+            </div>
+          }
         </div>
-
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
-          (click)="refreshServices()"
-        >
-          <i class="ri-refresh-line text-base"></i>
-          <span>{{ 'PAC.KEY_WORDS.Refresh' | translate: { Default: 'Refresh' } }}</span>
-        </button>
-
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition"
-          [ngClass]="
-            mode() === 'inspect'
-              ? 'border-text-accent text-text-accent'
-              : 'border-divider-regular text-text-secondary hover:text-text-primary'
-          "
-          (click)="toggleInspectMode()"
-        >
-          <i class="ri-focus-3-line text-base"></i>
-          <span>{{ 'PAC.Chat.ClawXpert.Inspect' | translate: { Default: 'Inspect' } }}</span>
-        </button>
       </div>
 
       <div class="flex min-h-0 flex-1 flex-col">
@@ -228,80 +309,12 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                   | translate
                     : {
                         Default:
-                          'Ask ClawXpert to start a sandbox service with sandbox_service_start, then preview it here.'
+                          'Ask ClawXpert to start a sandbox service with sandbox_service_start, then browse it here.'
                       }
               }}
             </div>
           </div>
         } @else {
-          <div class="flex flex-wrap items-center gap-3 border-b border-divider-regular px-4 py-3">
-            <label class="min-w-[12rem] flex-1">
-              <span class="mb-2 block text-xs uppercase tracking-[0.16em] text-text-tertiary">
-                {{ 'PAC.Chat.ClawXpert.Service' | translate: { Default: 'Service' } }}
-              </span>
-              <select
-                class="w-full rounded-xl border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary outline-none"
-                [value]="selectedServiceId() ?? ''"
-                (change)="handleServiceSelection($event)"
-              >
-                @for (service of services(); track service.id) {
-                  <option [value]="service.id">
-                    {{ service.name }} - {{ service.status }}
-                  </option>
-                }
-              </select>
-            </label>
-
-            @if (selectedService(); as service) {
-              <div
-                class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium"
-                [ngClass]="statusClasses(service.status)"
-              >
-                <span class="h-2 w-2 rounded-full bg-current"></span>
-                <span>{{ service.status }}</span>
-              </div>
-
-              <div class="text-xs text-text-secondary">
-                @if (service.actualPort) {
-                  <span>{{ 'PAC.Chat.ClawXpert.Port' | translate: { Default: 'Port' } }} {{ service.actualPort }}</span>
-                } @else {
-                  <span>{{ service.workingDirectory }}</span>
-                }
-              </div>
-
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
-                (click)="restartSelectedService()"
-              >
-                <i class="ri-restart-line text-base"></i>
-                <span>{{ 'PAC.KEY_WORDS.Restart' | translate: { Default: 'Restart' } }}</span>
-              </button>
-
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
-                (click)="stopSelectedService()"
-              >
-                <i class="ri-stop-circle-line text-base"></i>
-                <span>{{ 'PAC.KEY_WORDS.Stop' | translate: { Default: 'Stop' } }}</span>
-              </button>
-
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
-                (click)="toggleLogs()"
-              >
-                <i class="ri-file-list-3-line text-base"></i>
-                @if (showLogs()) {
-                  <span>{{ 'PAC.KEY_WORDS.Hide' | translate: { Default: 'Hide' } }}</span>
-                } @else {
-                  <span>{{ 'PAC.KEY_WORDS.Logs' | translate: { Default: 'Logs' } }}</span>
-                }
-              </button>
-            }
-          </div>
-
           @if (selectedService(); as service) {
             @if (service.previewUrl && service.transportMode === 'http') {
               <div class="relative min-h-0 flex-1 overflow-hidden">
@@ -309,7 +322,7 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                   <div class="flex h-full min-h-[20rem] items-center justify-center px-6 text-sm text-text-secondary">
                     {{
                       'PAC.Chat.ClawXpert.PreviewAuthorizing'
-                        | translate: { Default: 'Authorizing sandbox preview...' }
+                        | translate: { Default: 'Authorizing sandbox browser...' }
                     }}
                   </div>
                 } @else if (previewSessionError()) {
@@ -325,7 +338,7 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                   ></iframe>
                 } @else {
                   <div class="flex h-full min-h-[20rem] items-center justify-center px-6 text-sm text-text-secondary">
-                    {{ 'PAC.Chat.ClawXpert.PreviewPending' | translate: { Default: 'Preparing sandbox preview...' } }}
+                    {{ 'PAC.Chat.ClawXpert.PreviewPending' | translate: { Default: 'Preparing sandbox browser...' } }}
                   </div>
                 }
 
@@ -352,7 +365,7 @@ function buildElementReference(service: ISandboxManagedService, element: Element
               <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
                 <i class="ri-terminal-box-line text-3xl text-text-tertiary"></i>
                 <div class="mt-4 text-base font-medium text-text-primary">
-                  {{ 'PAC.Chat.ClawXpert.PreviewUnavailableTitle' | translate: { Default: 'Preview unavailable' } }}
+                  {{ 'PAC.Chat.ClawXpert.PreviewUnavailableTitle' | translate: { Default: 'Browser unavailable' } }}
                 </div>
                 <div class="mt-2 max-w-md text-sm text-text-secondary">
                   {{
@@ -360,7 +373,7 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                       | translate
                         : {
                             Default:
-                              'This managed service is not currently available for HTTP preview. You can still inspect logs or restart it.'
+                              'This managed service is not currently available in the browser. You can still inspect logs or restart it.'
                           }
                   }}
                 </div>

@@ -117,8 +117,8 @@ type ChatKitReferenceComposerControl = {
                   [active]="activePanel() === 'preview'"
                   (click)="selectPanel('preview')"
                 >
-                  <i class="ri-layout-4-line text-base"></i>
-                  <span>{{ 'PAC.Chat.ClawXpert.Preview' | translate: { Default: 'Preview' } }}</span>
+                  <i class="ri-global-line text-base"></i>
+                  <span>{{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
                 </button>
 
                 <button
@@ -173,11 +173,11 @@ type ChatKitReferenceComposerControl = {
                           }}
                         } @else if (activePanel() === 'preview') {
                           {{
-                            'PAC.Chat.ClawXpert.PreviewEmptyDesc'
+                            'PAC.Chat.ClawXpert.PreviewDetailEmptyDesc'
                               | translate
                                 : {
                                     Default:
-                                      'Once this ClawXpert thread is created, its managed sandbox services will appear here for live preview and element selection.'
+                                      'Once this ClawXpert thread is created, its managed sandbox services will appear here for live browsing and element selection.'
                                   }
                           }}
                         } @else {
