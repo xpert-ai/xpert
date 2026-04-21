@@ -1147,6 +1147,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const afterAgentEntryNode = afterAgentExecutionOrder[0]?.key
         const agentFinalExitNode =
             afterAgentExecutionOrder[afterAgentExecutionOrder.length - 1]?.key ?? agentDecisionNode
+        // A start agent can also be reached by ordinary workflow nodes, such as an iterating child agent
+        // with preprocessing steps in front of it. The first handoff from that start-driven workflow path
+        // must enter through `agentStartNode`; otherwise the injected pre-turn chain becomes unreachable.
         const startDrivenAgentEntrySources = isStart
             ? collectStartDrivenAgentEntrySources({
                   startNodes,
