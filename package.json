@@ -35,7 +35,7 @@
     "start:olap": "pnpm -C ./packages/olap start",
     "start:api": "pnpm b:p:all && pnpm nx serve api",
     "start:api:dev": "nodemon",
-    "start:api:debug": "pnpm -C ./apps/api start:debug",
+    "start:api:debug": "nodemon --config nodemon-debug.json",
     "start:analytics:debug": "pnpm -C ./packages/analytics start:debug",
     "start:docs": "pnpm -C ./docs dev",
     "plugin:install:local": "node tools/scripts/install-local-plugin.mjs",

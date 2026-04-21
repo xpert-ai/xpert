@@ -1,6 +1,23 @@
 {
+	"restartable": "rs",
 	"ignore": [".git", "node_modules/", "dist/", "coverage/", "**/*.spec.ts"],
-	"watch": ["apps/api/src", "packages/server/src", "packages/auth/src", "packages/analytics/src"],
-	"exec": "node --inspect=0.0.0.0:9229 -r ts-node/register -r tsconfig-paths/register --project apps/api/tsconfig.app.json apps/api/src/main.ts",
+	"watch": [
+		"apps/api/src",
+		"packages/common/src",
+		"packages/config/src",
+		"legacies/adapter/src",
+		"packages/server/src",
+		"packages/auth/src",
+		"packages/server-ai/src",
+		"packages/analytics/src",
+		"packages/xmla/src",
+		"packages/plugin-sdk/src",
+		"packages/plugins"
+	],
+	"exec": "node --inspect=0.0.0.0:9229 -r ts-node/register -r tsconfig-paths/register apps/api/src/main.ts",
+	"env": {
+		"NODE_ENV": "development",
+		"TS_NODE_PROJECT": "apps/api/tsconfig.app.json"
+	},
 	"ext": "ts"
 }
