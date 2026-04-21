@@ -51,6 +51,20 @@ export function applyTenantScopeHeaders(req: IncomingMessage) {
 	req.headers['x-scope-level'] = RequestScopeLevel.TENANT
 }
 
+export function applyRequestedOrganizationScopeHeaders(
+	req: IncomingMessage,
+	requestedOrganizationId?: string | null
+) {
+	const organizationId = readRequestValue(requestedOrganizationId)
+	if (!req?.headers || !organizationId) {
+		applyTenantScopeHeaders(req)
+		return
+	}
+
+	req.headers['organization-id'] = organizationId
+	req.headers['x-scope-level'] = RequestScopeLevel.ORGANIZATION
+}
+
 function readRequestValue(value: unknown) {
 	if (Array.isArray(value)) {
 		return value.map(readRequestValue).find(Boolean) ?? null

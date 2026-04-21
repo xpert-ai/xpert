@@ -1,15 +1,19 @@
 import { IIntegration } from '@xpert-ai/contracts'
 import { IntegrationService, RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, Inject } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { FileSystemPermission, XpFileSystem } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import { sandboxVolumeUrl, VolumeClient } from '../../../shared'
+import { VOLUME_CLIENT, VolumeClient } from '../../../shared'
 import { PluginPermissionsCommand } from '../plugin-permissions.command'
 
 @CommandHandler(PluginPermissionsCommand)
 export class PluginPermissionsHandler implements ICommandHandler<PluginPermissionsCommand> {
-	constructor(private readonly integrationService: IntegrationService) {}
+	constructor(
+		private readonly integrationService: IntegrationService,
+		@Inject(VOLUME_CLIENT)
+		private readonly volumeClient: VolumeClient
+	) {}
 
 	public async execute(
 		command: PluginPermissionsCommand
@@ -23,17 +27,19 @@ export class PluginPermissionsHandler implements ICommandHandler<PluginPermissio
 			(permission) => permission.type === 'filesystem'
 		) as FileSystemPermission
 		if (fsPermission) {
-			const volumeClient = new VolumeClient({
-				tenantId: RequestContext.currentTenantId(),
-				catalog: 'knowledges',
-				userId: RequestContext.currentUserId(),
-				knowledgeId: command.context.knowledgebaseId
-			})
+			const volumeClient = await this.volumeClient
+				.resolve({
+					tenantId: RequestContext.currentTenantId(),
+					catalog: 'knowledges',
+					userId: RequestContext.currentUserId(),
+					knowledgeId: command.context.knowledgebaseId
+				})
+				.ensureRoot()
 			
 			permissions['fileSystem'] = new XpFileSystem(
 				fsPermission,
-				volumeClient.getVolumePath(command.context.folder ?? ''),
-				sandboxVolumeUrl(`/knowledges/${command.context.knowledgebaseId}/${command.context.folder ?? ''}`)
+				volumeClient.path(command.context.folder ?? ''),
+				volumeClient.publicUrl(command.context.folder ?? '')
 			)
 		}
 

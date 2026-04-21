@@ -29,16 +29,25 @@
     }
 
     @for (message of messages(); track message.id) {
-      @switch (message.role) {
-        @case ('human') {
-          <chat-preview-human-message class="w-full" [message]="message" />
-        }
+      <div
+        data-chat-reference-message="true"
+        [attr.data-message-id]="message.id"
+        [attr.data-message-role]="message.role"
+        [attr.data-message-source]="getMessageSourceLabel(message.role)"
+      >
+        @switch (message.role) {
+          @case ('user') {
+            <chat-preview-human-message class="w-full" [message]="message" />
+          }
+          @case ('human') {
+            <chat-preview-human-message class="w-full" [message]="message" />
+          }
 
-        @case ('ai') {
-          <div class="flex mb-2 last:mb-0">
-            <emoji-avatar [avatar]="avatar()" class="rounded-lg overflow-hidden shadow-sm" />
-            <div class="chat-answer-container group grow w-0 ml-4">
-              <div class="group relative pr-2 flex">
+          @case ('ai') {
+            <div class="flex mb-2 last:mb-0">
+              <emoji-avatar [avatar]="avatar()" class="rounded-lg overflow-hidden shadow-sm" />
+              <div class="chat-answer-container group grow w-0 ml-4">
+                <div class="group relative pr-2 flex">
                 <svg
                   width="8"
                   height="12"
@@ -190,13 +199,14 @@
                   }
                 </div>
               </div>
-              <div
-                class="flex items-center mt-1 h-[18px] text-xs text-text-quaternary opacity-0 group-hover:opacity-100"
-              ></div>
+                <div
+                  class="flex items-center mt-1 h-[18px] text-xs text-text-quaternary opacity-0 group-hover:opacity-100"
+                ></div>
+              </div>
             </div>
-          </div>
+          }
         }
-      }
+      </div>
     } @empty {
       <div class="absolute flex flex-col justify-start items-center p-4 w-full max-w-full top-1/2 -translate-y-1/2">
         <div class="flex justify-center mb-2">
@@ -329,6 +339,21 @@
       </div>
     }
 
+    @if (quoteSelection(); as selection) {
+      <button
+        type="button"
+        class="fixed z-60 inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-3 py-2 text-sm font-medium text-text-primary shadow-lg transition-colors hover:bg-hover-bg"
+        [style.left.px]="selection.left"
+        [style.top.px]="selection.top"
+        [style.transform]="'translate(-50%, 0)'"
+        (mousedown)="$event.preventDefault()"
+        (click)="quoteSelectedText()"
+      >
+        <i class="ri-double-quotes-l text-base"></i>
+        <span>{{ 'PAC.Chat.QuoteSelection' | translate: { Default: 'Quote selection' } }}</span>
+      </button>
+    }
+
     <div class="pt-6 w-full max-w-full mx-auto"></div>
   </div>
 
@@ -395,6 +420,18 @@
                   }
                 </div>
                 <div class="text-sm text-text-primary break-words">{{ item.input }}</div>
+                @if (item.references?.length) {
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    @for (reference of item.references; track referenceKey(reference)) {
+                      <div
+                        class="inline-flex max-w-full items-center rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1 text-[11px] text-text-secondary"
+                        [title]="referenceLabel(reference)"
+                      >
+                        <span class="truncate">{{ referenceLabel(reference) }}</span>
+                      </div>
+                    }
+                  </div>
+                }
               </div>
             }
           </div>
@@ -408,6 +445,31 @@
               [(attachments)]="attachments"
               (onCreated)="onAttachCreated($event)"
             />
+          }
+          @if (hasReferences()) {
+            <div class="flex flex-wrap gap-2 px-2 pt-2">
+              @for (reference of references(); track referenceKey(reference)) {
+                <div
+                  class="inline-flex max-w-full items-center gap-2 rounded-2xl border border-divider-regular bg-background-default-subtle px-3 py-2 text-sm text-text-primary"
+                >
+                  <div class="flex min-w-0 flex-col">
+                    <span class="truncate font-medium">{{ referenceLabel(reference) }}</span>
+                    @if (referenceSource(reference); as source) {
+                      <span class="truncate text-xs text-text-secondary">{{ source }}</span>
+                    }
+                  </div>
+
+                  <button
+                    type="button"
+                    class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                    [attr.aria-label]="'PAC.Chat.RemoveReference' | translate: { Default: 'Remove reference' }"
+                    (click)="removeReference(reference)"
+                  >
+                    <i class="ri-close-line"></i>
+                  </button>
+                </div>
+              }
+            </div>
           }
           <div class="p-[5.5px] min-h-[46px]">
             <textarea
@@ -448,7 +510,7 @@
                 }
               }
 
-              @if (loading() && !input()) {
+              @if (loading() && !input() && !hasReferences()) {
                 <button
                   class="w-8 h-8 flex justify-center items-center rounded-full border-light hover:shadow-md"
                   (click)="onStop()"
@@ -458,8 +520,8 @@
               } @else {
                 <button
                   class="group action-btn action-btn-md primary"
-                  [disabled]="!input()"
-                  (click)="sendMessage(input())"
+                  [disabled]="loading() || !canSend()"
+                  (click)="sendMessage(input(), { references: references() })"
                 >
                   <svg
                     width="20"

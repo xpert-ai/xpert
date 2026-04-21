@@ -3,6 +3,7 @@ import {
 	isMiddlewareToolEnabled,
 	IWFNMiddleware,
 	IXpertAgent,
+	normalizeMiddlewareProvider,
 	TXpertGraph,
 	WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
@@ -51,7 +52,7 @@ export async function getAgentMiddlewares(
 	const result: AgentMiddleware[] = []
 	for (const middlewareNode of middlewares) {
 		const entity = middlewareNode?.entity as unknown as IWFNMiddleware
-		const provider = entity?.provider
+		const provider = normalizeMiddlewareProvider(entity?.provider)
 
 		let strategy: IAgentMiddlewareStrategy
 		try {
@@ -64,7 +65,10 @@ export async function getAgentMiddlewares(
 		const middleware = await strategy.createMiddleware(entity.options, {
 			...context,
 			xpertFeatures: context.xpertFeatures ?? null,
-			node: middlewareNode.entity as IWFNMiddleware
+			node: {
+				...(middlewareNode.entity as IWFNMiddleware),
+				provider
+			}
 		})
 		if (middleware?.tools?.length) {
 			const enabledTools = middleware.tools.filter((tool) => isMiddlewareToolEnabled(entity?.tools?.[tool.name]))

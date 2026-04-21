@@ -76,6 +76,9 @@ export class ChatMessageDTO {
 	reasoning?: IChatMessage['reasoning']
 
 	@Expose()
+	references?: IChatMessage['references']
+
+	@Expose()
 	status?: IChatMessage['status']
 
 	@Expose()

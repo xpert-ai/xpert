@@ -1,5 +1,5 @@
 import { IFileAsset, IFileAssetDestination, IStorageFile, IUploadFileTarget } from '@xpert-ai/contracts'
-import { getErrorMessage } from '@xpert-ai/server-common'
+import { decodeMultipartFileName, getErrorMessage } from '@xpert-ai/server-common'
 import { FileUploadTargetRegistry, TFileUploadContext } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
 import fsPromises from 'fs/promises'
@@ -74,9 +74,9 @@ export class UploadFileService {
 	}
 
 	private async resolveSource(source: TUploadFileSource): Promise<TResolvedUploadSource> {
-		switch (source.kind) {
+			switch (source.kind) {
 			case 'multipart': {
-				const originalName = this.decodeFileName(source.file.originalname)
+				const originalName = decodeMultipartFileName(source.file.originalname)
 				return {
 					name: originalName,
 					originalName,
@@ -148,18 +148,6 @@ export class UploadFileService {
 			return 'success'
 		}
 		return 'partial_success'
-	}
-
-	private decodeFileName(name?: string) {
-		if (!name) {
-			return 'file'
-		}
-
-		try {
-			return Buffer.from(name, 'latin1').toString('utf8')
-		} catch {
-			return name
-		}
 	}
 
 	private lookupMimeType(fileName: string) {

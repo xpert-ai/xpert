@@ -36,7 +36,7 @@
       </label>
       <input type="password" name="password" id="password" formControlName="password"
         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        placeholder="••••••••"
+        [placeholder]="'PAC.KEY_WORDS.EnterPassword' | translate: {Default: 'Enter password'}"
       >
       <div class="my-2 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div class="h-full transition-all duration-300"
@@ -52,7 +52,7 @@
       </label>
       <input type="password" name="confirm_password" id="confirm_password" formControlName="confirm"
         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        placeholder="••••••••"
+        [placeholder]="'PAC.KEY_WORDS.ConfirmPassword' | translate: {Default: 'Confirm password'}"
       >
 
       @if (mismatch) {

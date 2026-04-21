@@ -1,5 +1,8 @@
+import { mapTranslationLanguage } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { NotFoundException } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { I18nService } from 'nestjs-i18n'
 import { AIProvidersService } from '../../../ai-model'
 import { CopilotProviderService } from '../../copilot-provider.service'
 import { CopilotProviderModelService } from '../../models/copilot-provider-model.service'
@@ -13,7 +16,8 @@ export class CopilotProviderModelParameterRulesHandler
 		private readonly service: CopilotProviderService,
 		private readonly modelService: CopilotProviderModelService,
 		private readonly providersService: AIProvidersService,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly i18nService: I18nService
 	) {}
 
 	public async execute(command: CopilotProviderModelParameterRulesQuery): Promise<any[]> {
@@ -21,7 +25,12 @@ export class CopilotProviderModelParameterRulesHandler
 
 		const copilotProvider = await this.service.findOneInOrganizationOrTenant(providerId)
 		if (!copilotProvider) {
-			throw new NotFoundException(`Copilot provider ${providerId} is not found.`)
+			throw new NotFoundException(
+				await this.i18nService.t('copilot.Error.CopilotProviderNotFound', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: { providerId }
+				})
+			)
 		}
 
 		const customModel = await this.modelService.findOneOrFailByWhereOptions({

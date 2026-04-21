@@ -1,5 +1,9 @@
-import { VolumeClient } from "../shared";
+import { resolveRuntimeVolume } from '../shared'
 
 export function getWorkspaceRoot(tenantId: string, workspaceId: string): string {
-    return VolumeClient._getWorkspaceRoot(tenantId, 'workspaces', workspaceId)
+    return resolveRuntimeVolume({
+        tenantId,
+        catalog: 'workspaces',
+        workspaceId
+    }).serverRoot
 }

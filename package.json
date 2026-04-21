@@ -285,6 +285,8 @@
   "pnpm": {
     "overrides": {
       "@a2ui/lit": "0.8.3",
+      "@xpert-ai/chatkit-web-component>@xpert-ai/chatkit-types": "0.1.0",
+      "@xpert-ai/chatkit-web-component>@xpert-ai/chatkit-web-shared": "0.1.0",
       "@xpert-ai/chatkit-types": "0.0.17",
       "@xpert-ai/plugin-sdk": "workspace:*",
       "@langchain/core": "0.3.72",

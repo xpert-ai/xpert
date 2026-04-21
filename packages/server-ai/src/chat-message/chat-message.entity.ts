@@ -1,4 +1,4 @@
-import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMessage, IStorageFile, IXpertAgentExecution, TChatMessageStep, TMessageContent, TMessageContentReasoning, TSummaryJob, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMessage, IStorageFile, IXpertAgentExecution, TChatMessageStep, TChatReference, TMessageContent, TMessageContentReasoning, TSummaryJob, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
@@ -45,6 +45,12 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	reasoning?: TMessageContentReasoning[]
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	references?: TChatReference[]
 
 	@ApiProperty({ type: () => String })
 	@IsString()

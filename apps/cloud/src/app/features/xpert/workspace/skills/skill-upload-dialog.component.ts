@@ -4,8 +4,15 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { getErrorMessage, injectSkillPackageAPI, injectToastr, ISkillPackage } from '@cloud/app/@core'
-import { forkJoin } from 'rxjs'
+import {
+  getErrorMessage,
+  injectSkillPackageAPI,
+  injectSkillRepositoryService,
+  injectToastr,
+  ISkillPackage,
+  ISkillRepositoryIndex
+} from '@cloud/app/@core'
+import { firstValueFrom } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -99,9 +106,10 @@ import { forkJoin } from 'rxjs'
   styles: []
 })
 export class XpertSkillUploadDialogComponent implements AfterViewInit {
-  readonly #dialogRef = inject(DialogRef<ISkillPackage[] | null>)
-  readonly #data = inject<{ workspaceId: string }>(DIALOG_DATA)
+  readonly #dialogRef = inject(DialogRef<Array<ISkillPackage | ISkillRepositoryIndex> | null>)
+  readonly #data = inject<{ repositoryId?: string; workspaceId?: string }>(DIALOG_DATA)
   readonly #skillPackageAPI = injectSkillPackageAPI()
+  readonly #skillRepositoryService = injectSkillRepositoryService()
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
   readonly fileInputRef = viewChild('fileInput', { read: ElementRef<HTMLInputElement> })
@@ -151,28 +159,39 @@ export class XpertSkillUploadDialogComponent implements AfterViewInit {
     this.files.set(files.filter((_, i) => i !== index))
   }
 
-  upload() {
+  async upload() {
     const workspaceId = this.#data.workspaceId
+    const repositoryId = this.#data.repositoryId
     const files = this.files()
-    if (!workspaceId || !files.length || this.loading()) {
+    if ((!workspaceId && !repositoryId) || !files.length || this.loading()) {
       return
     }
 
     this.loading.set(true)
-    forkJoin(files.map((file) => this.#skillPackageAPI.uploadPackage(workspaceId, file))).subscribe({
-      next: (results) => {
-        this.loading.set(false)
-        const packages = results.flatMap((items) => items ?? [])
-        this.#toastr.success(
-          this.#translate.instant('PAC.Skill.SkillUploadSuccess', { Default: 'Skills uploaded successfully' })
+    try {
+      let items: Array<ISkillPackage | ISkillRepositoryIndex>
+
+      if (repositoryId) {
+        const results = await Promise.all(
+          files.map((file) => firstValueFrom(this.#skillRepositoryService.uploadPackage(repositoryId, file)))
         )
-        this.#dialogRef.close(packages ?? [])
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.danger(getErrorMessage(err))
+        items = results.flatMap((result) => result)
+      } else {
+        const results = await Promise.all(
+          files.map((file) => firstValueFrom(this.#skillPackageAPI.uploadPackage(workspaceId!, file)))
+        )
+        items = results.flatMap((result) => result)
       }
-    })
+
+      this.#toastr.success(
+        this.#translate.instant('PAC.Skill.SkillUploadSuccess', { Default: 'Skills uploaded successfully' })
+      )
+      this.#dialogRef.close(items)
+    } catch (err) {
+      this.#toastr.danger(getErrorMessage(err))
+    } finally {
+      this.loading.set(false)
+    }
   }
 
   close() {

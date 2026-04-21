@@ -9,6 +9,7 @@
 @source "../../../packages/**/*.{ts,html,scss,sass,css}";
 @source "../../../legacies/**/*.{ts,html,scss,sass,css}";
 @include meta.load-css('../../../packages/ui/src/styles.css');
+@include meta.load-css('@xterm/xterm/css/xterm.css');
 
 @import 'remixicon/fonts/remixicon.css';
 @include meta.load-css('app/@core/font-face');

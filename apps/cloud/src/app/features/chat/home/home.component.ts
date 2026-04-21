@@ -33,12 +33,9 @@ import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { firstValueFrom } from 'rxjs'
 import { filter, map, startWith } from 'rxjs/operators'
 import {
   AiFeatureEnum,
-  AssistantBindingService,
-  AssistantCode,
   ChatConversationService,
   getErrorMessage,
   injectProjectService,
@@ -47,17 +44,11 @@ import {
   Store
 } from '../../../@core'
 import { AppService } from '../../../app.service'
-import { environment } from '@cloud/environments/environment'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
 import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
 import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/task-dialog.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
-import {
-  hasAssistantBindingSource,
-  hasCompleteAssistantBinding,
-  sanitizeAssistantFrameUrl
-} from '../../assistant/assistant-chatkit.runtime'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
 type TAgentLink = {
@@ -114,7 +105,6 @@ export class ChatHomeComponent {
   readonly #toastr = injectToastr()
   readonly #preferences = injectUserPreferences()
   readonly #store = inject(Store)
-  readonly #assistantBindingService = inject(AssistantBindingService)
 
   // Signals
   readonly currentPage = signal<{ type?: 'project' | 'conversation'; id?: string }>({})
@@ -135,15 +125,12 @@ export class ChatHomeComponent {
   )
   readonly isCommonAssistantRoute = computed(() => {
     const url = this.currentUrl()
-    return (
-      url === '/chat' ||
-      url === '/chat/x/welcome' ||
-      url.startsWith('/chat/x/welcome/') ||
-      url === '/chat/x/common' ||
-      url.startsWith('/chat/x/common/')
-    )
+    return url === '/chat' || url === '/chat/x/common' || url.startsWith('/chat/x/common/')
   })
-  readonly showLegacyHistory = computed(() => !this.isCommonAssistantRoute())
+  readonly showLegacyHistory = computed(() => {
+    const url = this.currentUrl()
+    return !isClawXpertRoute(url)
+  })
 
   readonly chatSidebar = attrModel(this.#preferences, 'chatSidebar')
   readonly sidebarState = linkedModel<PersistState['preferences']['chatSidebar']>({
@@ -335,19 +322,14 @@ export class ChatHomeComponent {
     this.homeService.conversation.set(null)
     this.currentPage.set({ type: 'conversation' })
 
-    if (await this.isCommonAssistantReady()) {
-      const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
+    const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
 
-      if (normalizeChatRoute(this.#router.url) === '/chat/x/common' && typeof activeComponent?.newConv === 'function') {
-        activeComponent.newConv()
-        return
-      }
-
-      await this.#router.navigate(['/chat/x/common'])
+    if (normalizeChatRoute(this.#router.url) === '/chat/x/common' && typeof activeComponent?.newConv === 'function') {
+      activeComponent.newConv()
       return
     }
 
-    await this.#router.navigate(['/chat/x/welcome'])
+    await this.#router.navigate(['/chat/x/common'])
   }
 
   openClawXpertCard() {
@@ -375,6 +357,10 @@ export class ChatHomeComponent {
   }
 
   openConversations() {
+    if (!this.showLegacyHistory()) {
+      return
+    }
+
     this.#dialog
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
@@ -483,21 +469,9 @@ export class ChatHomeComponent {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'k' && this.showLegacyHistory()) {
       event.preventDefault() // Prevent the default action
       this.openConversations() // Execute the openConversations method
-    }
-  }
-
-  private async isCommonAssistantReady() {
-    try {
-      const config = await firstValueFrom(this.#assistantBindingService.getEffective(AssistantCode.CHAT_COMMON))
-      const frameUrl = sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL)
-
-      return !!(config && hasAssistantBindingSource(config) && config.enabled && hasCompleteAssistantBinding(config, frameUrl))
-    } catch (error) {
-      this.logger.debug('Failed to resolve common assistant binding', error)
-      return false
     }
   }
 }

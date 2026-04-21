@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import {
   API_PREFIX,
   ISkillRepository,
+  ISkillRepositoryIndex,
   OrderTypeEnum,
   OrganizationBaseCrudService,
   PaginationParams,
@@ -22,6 +23,16 @@ export class SkillRepositoryService extends OrganizationBaseCrudService<ISkillRe
 
   register(repository: Partial<ISkillRepository>) {
     return this.httpClient.post<ISkillRepository>(this.apiBaseUrl, repository)
+  }
+
+  ensureWorkspacePublicRepository() {
+    return this.httpClient.post<ISkillRepository>(`${this.apiBaseUrl}/workspace-public/ensure`, {})
+  }
+
+  uploadPackage(repositoryId: string, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.httpClient.post<ISkillRepositoryIndex[]>(`${this.apiBaseUrl}/${repositoryId}/upload`, formData)
   }
 
   getAllInOrg(options?: PaginationParams<ISkillRepository>) {

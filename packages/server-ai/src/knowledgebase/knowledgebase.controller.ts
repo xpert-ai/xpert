@@ -18,9 +18,10 @@ import {
 	getFileAssetDestination,
 	transformWhere
 } from '@xpert-ai/server-core'
-import { getErrorMessage } from '@xpert-ai/server-common'
+import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
 import {
 	Body,
+	BadRequestException,
 	Controller,
 	Get,
 	HttpStatus,
@@ -272,7 +273,12 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		const targetFolder = join(parentFolder || '', subpath || '')
 
 		// Filename
-		const originalname = Buffer.from(file.originalname, 'latin1').toString('utf8')
+		let originalname = ''
+		try {
+			originalname = normalizeUploadedFileName(file.originalname)
+		} catch {
+			throw new BadRequestException('File name is required')
+		}
 		let fileNameString = ''
 		const fileNameParts = originalname.split('.')
 		const ext = fileNameParts.length > 1 ? fileNameParts.pop() : ''

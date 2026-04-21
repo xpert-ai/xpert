@@ -1,12 +1,19 @@
 # @xpert-ai/plugin-sdk
 
-## 3.9.0-beta.3
+## 3.9.0
 
 ### Patch Changes
 
 - 4dcf5b5: add sso in plugin sdk
+- 7fff870: beta 2
+- c76facd: beta v
+- 5b5c8ef: Updates
 - Updated dependencies [4dcf5b5]
-  - @xpert-ai/contracts@3.9.0-beta.3
+- Updated dependencies [7fff870]
+- Updated dependencies [c76facd]
+- Updated dependencies [5b5c8ef]
+  - @xpert-ai/contracts@3.9.0
+  - @xpert-ai/ocap-core@3.9.0
 
 ## 3.9.0-beta.2
 

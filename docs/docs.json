@@ -30,6 +30,7 @@
                 "pages": [
                   "en/guides/plugin",
                   "en/guides/organization-bootstrap",
+                  "en/guides/volume-workspace-architecture",
                   "en/guides/file-upload-architecture",
                   "en/guides/minio-file-storage",
                   "en/guides/rustfs-file-storage",
@@ -71,6 +72,7 @@
                 "pages": [
                   "zh-hans/guides/plugin",
                   "zh-hans/guides/organization-bootstrap",
+                  "zh-hans/guides/volume-workspace-architecture",
                   "zh-hans/guides/file-upload-architecture",
                   "zh-hans/guides/minio-file-storage",
                   "zh-hans/guides/rustfs-file-storage",

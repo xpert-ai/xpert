@@ -8,6 +8,7 @@
         "NoTriggerNodes": "No trigger nodes available to start the agent. Please add a trigger node.",
         "InconsistentTypes": "Cannot aggregate variables with inconsistent types '{{types}}'. Supported aggregation types: arrays, strings, objects.",
         "ModelNameExists": "Model name '{{modelName}}' already exists. Please choose a different name.",
+        "AIModelInstanceNotFound": "AI model instance for model type '{{modelType}}' not found.",
         "AIModelProviderNotFound": "AI Model Provider '{{name}}' not found.",
         "InvalidToolCalls": "Model returned invalid tool calls:",
         "HandleLLMTokensNoModel": "Provider '{{provider}}' did not provide a model when handling LLM tokens"

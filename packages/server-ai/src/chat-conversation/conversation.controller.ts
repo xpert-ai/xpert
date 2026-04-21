@@ -9,9 +9,10 @@ import {
 	transformWhere,
 	UUIDValidationPipe
 } from '@xpert-ai/server-core'
-import { Body, Controller, Get, HttpStatus, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpStatus, Param, Post, Put, Query, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { FileInterceptor } from '@nestjs/platform-express'
 import { Like } from 'typeorm'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
@@ -136,5 +137,20 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		@Body() body: { path: string; content: string }
 	) {
 		return await this.service.saveWorkspaceFile(id, body?.path, body?.content ?? '')
+	}
+
+	@Post(':id/file/upload')
+	@UseInterceptors(FileInterceptor('file'))
+	async uploadFile(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Body('path') path: string,
+		@UploadedFile() file: Express.Multer.File
+	) {
+		return await this.service.uploadWorkspaceFile(id, path, file)
+	}
+
+	@Delete(':id/file')
+	async deleteFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
+		return await this.service.deleteWorkspaceFile(id, path)
 	}
 }

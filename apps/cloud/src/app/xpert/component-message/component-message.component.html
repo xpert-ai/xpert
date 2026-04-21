@@ -25,8 +25,11 @@
   }
   @case ('Tool') {
     @switch (data().type) {
+      @case (contextCompressionComponentType) {
+        <chat-context-compression-chunk />
+      }
       @case (eChatMessageStepCategory.Memory) {
-        <chat-component-memories [memories]="data().data" />
+        <chat-component-memories [message]="data()" />
       }
       @default {
         @if (step(); as step) {

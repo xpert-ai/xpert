@@ -10,7 +10,7 @@
             | translate
               : {
                   Default:
-                    'Browse installed skills, inspect their file trees, and edit supported files directly in this workspace.'
+                    'Browse workspace skills, install or update them from repositories, inspect file trees, and edit supported files directly here.'
                 }
         }}
       </div>
@@ -235,7 +235,7 @@
                 'PAC.Skill.NoSkillsWorkbenchHint'
                   | translate
                     : {
-                        Default: 'Upload a skill or register one from a repository to start browsing its files here.'
+                        Default: 'Upload a skill, or install or update one from a repository, to start browsing its files here.'
                       }
               }}
             </div>
@@ -262,6 +262,9 @@
         [filesLoader]="loadActiveSkillFiles"
         [fileLoader]="loadActiveSkillFile"
         [fileSaver]="saveActiveSkillFile"
+        [fileUploader]="uploadActiveSkillFile"
+        [fileDeleter]="deleteActiveSkillFile"
+        [fileDownloader]="downloadActiveSkillFile"
         [mobilePane]="workbenchPane()"
         (mobilePaneChange)="setWorkbenchPane($event)"
       />

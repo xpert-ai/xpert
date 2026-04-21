@@ -8,6 +8,16 @@
     <span class="font-mono text-text-secondary">{{repository().name}}</span>
     <span class="rounded-xl border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-primary">{{repository().lastSyncAt | date:'medium'}}</span>
     <span class="flex-1"></span>
+    @if (canUploadPackages) {
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-4 py-1 text-sm font-semibold text-text-primary transition hover:bg-hover-bg"
+        (click)="openUploadDialog()"
+      >
+        <i class="ri-upload-cloud-2-line"></i>
+        {{ 'PAC.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
+      </button>
+    }
     <button
       type="button"
       class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-destructive"

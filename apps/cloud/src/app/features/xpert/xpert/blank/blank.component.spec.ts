@@ -1,12 +1,14 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { Store } from '@xpert-ai/cloud/state'
+import { TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import {
   AiModelTypeEnum,
   EnvironmentService,
   KnowledgebaseService,
   SkillPackageService,
+  SkillRepositoryService,
   ToastrService,
   XpertAgentService,
   XpertAPIService,
@@ -34,6 +36,10 @@ type BlankSpecContext = {
   skillPackageService: {
     getAllByWorkspace: jest.Mock
     installPackage: jest.Mock
+    installRepositoryPackages: jest.Mock
+  }
+  skillRepositoryService: {
+    getAllInOrg: jest.Mock
   }
   templateService: {
     getAll: jest.Mock
@@ -81,6 +87,20 @@ function createAgentXpert(id = 'xpert-1') {
       }
     }
   } as any
+}
+
+function buildExpectedClawPrompt() {
+  return [
+    'When available, use the following runtime preference context to guide how you respond.',
+    '',
+    'Assistant soul:',
+    '{{sys.soul}}',
+    '',
+    'User profile:',
+    '{{sys.profile}}',
+    '',
+    'Treat the assistant soul as behavior guidance and use the user profile to personalize responses when relevant.'
+  ].join('\n')
 }
 
 function createAgentTemplateYaml() {
@@ -162,6 +182,83 @@ connections:
 `
 }
 
+function createLegacyAgentTemplateYaml() {
+  return `
+team:
+  name: template-agent
+  type: agent
+  title: Template Agent
+  description: Template agent description
+  agent:
+    key: Agent_primary
+nodes:
+  - type: agent
+    key: Agent_primary
+    position:
+      x: 360
+      y: 220
+    entity:
+      key: Agent_primary
+  - type: workflow
+    key: Middleware_model_retry
+    position:
+      x: 360
+      y: 420
+    entity:
+      key: Middleware_model_retry
+      type: middleware
+      provider: ModelRetryMiddleware
+      title: ModelRetryMiddleware
+  - type: workflow
+    key: Middleware_web_tools
+    position:
+      x: 360
+      y: 540
+    entity:
+      key: Middleware_web_tools
+      type: middleware
+      provider: WebTools
+      title: WebTools
+  - type: workflow
+    key: Middleware_summary
+    position:
+      x: 360
+      y: 660
+    entity:
+      key: Middleware_summary
+      type: middleware
+      provider: SummarizationMiddleware
+      title: SummarizationMiddleware
+  - type: workflow
+    key: Middleware_todo
+    position:
+      x: 360
+      y: 780
+    entity:
+      key: Middleware_todo
+      type: middleware
+      provider: todoListMiddleware
+      title: todoListMiddleware
+connections:
+  - key: Agent_primary/Middleware_model_retry
+    type: workflow
+    from: Agent_primary
+    to: Middleware_model_retry
+  - key: Agent_primary/Middleware_web_tools
+    type: workflow
+    from: Agent_primary
+    to: Middleware_web_tools
+  - key: Agent_primary/Middleware_summary
+    type: workflow
+    from: Agent_primary
+    to: Middleware_summary
+  - key: Agent_primary/Middleware_todo
+    type: workflow
+    from: Agent_primary
+    to: Middleware_todo
+`
+}
+
 async function createComponent(
   data: BlankXpertDialogData,
   options?: {
@@ -172,6 +269,7 @@ async function createComponent(
     installedSkillPackage?: any
     middlewareProviders?: any[]
     publishedXpert?: any
+    repositories?: any[]
     selectedWorkspace?: any | null
     teamResponse?: any
     triggerProviders?: any[]
@@ -187,6 +285,9 @@ async function createComponent(
   const publishedXpert = options?.publishedXpert ?? { ...createdXpert, version: '1.0.0' }
   const installedSkillPackage = options?.installedSkillPackage ?? { id: 'installed-skill' }
   const middlewareProviders = options?.middlewareProviders ?? []
+  const repositories = options?.repositories ?? [
+    { id: 'repo-public', provider: 'workspace-public', name: 'Workspace Shared Skills' }
+  ]
   const triggerProviders = options?.triggerProviders ?? []
   const workspaceSkills = options?.workspaceSkills ?? []
   const workspaces = options?.workspaces ?? []
@@ -208,7 +309,11 @@ async function createComponent(
   }
   const skillPackageService = {
     getAllByWorkspace: jest.fn(() => of({ items: workspaceSkills })),
-    installPackage: jest.fn(() => of(installedSkillPackage))
+    installPackage: jest.fn(() => of(installedSkillPackage)),
+    installRepositoryPackages: jest.fn(() => of([]))
+  }
+  const skillRepositoryService = {
+    getAllInOrg: jest.fn(() => of({ items: repositories }))
   }
   const templateService = {
     getAll: jest.fn(() => of({ categories: ['Agent'], recommendedApps: agentTemplates })),
@@ -235,6 +340,9 @@ async function createComponent(
     error: jest.fn(),
     success: jest.fn(),
     warning: jest.fn()
+  }
+  const translate = {
+    instant: jest.fn((key: string, params?: Record<string, string>) => params?.Default ?? key)
   }
   const store = {
     selectedWorkspace$: of(options?.selectedWorkspace ?? null)
@@ -275,6 +383,10 @@ async function createComponent(
         useValue: skillPackageService
       },
       {
+        provide: SkillRepositoryService,
+        useValue: skillRepositoryService
+      },
+      {
         provide: XpertTemplateService,
         useValue: templateService
       },
@@ -293,6 +405,10 @@ async function createComponent(
       {
         provide: ToastrService,
         useValue: toastr
+      },
+      {
+        provide: TranslateService,
+        useValue: translate
       }
     ]
   }).compileComponents()
@@ -318,6 +434,7 @@ async function createComponent(
     fixture,
     knowledgebaseService,
     skillPackageService,
+    skillRepositoryService,
     templateService,
     toastr,
     workspaceService,
@@ -350,7 +467,7 @@ describe('XpertNewBlankComponent', () => {
     expect(component.workspaceSelectionInvalid()).toBe(true)
     expect(component.basicStepInvalid()).toBe(true)
 
-    component.create()
+    await component.create()
 
     expect(xpertService.create).not.toHaveBeenCalled()
   })
@@ -386,7 +503,7 @@ describe('XpertNewBlankComponent', () => {
 
     expect(component.selectedTriggersInvalid()).toBe(true)
 
-    component.create()
+    await component.create()
 
     expect(xpertService.create).not.toHaveBeenCalled()
   })
@@ -421,7 +538,7 @@ describe('XpertNewBlankComponent', () => {
 
     expect(component.startStepInvalid()).toBe(true)
 
-    component.create()
+    await component.create()
 
     expect(xpertService.create).not.toHaveBeenCalled()
     expect(xpertService.importDSL).not.toHaveBeenCalled()
@@ -472,7 +589,251 @@ describe('XpertNewBlankComponent', () => {
       }
     ])
     expect(component.selectedSkills()).toEqual(['writer'])
+    expect(component.selectedRepositoryDefault()).toBeNull()
     expect(component.selectedMiddlewares()).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('surfaces template-selected middlewares even when the runtime no longer provides them', async () => {
+    const { component, fixture } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: {
+          export_data: createLegacyAgentTemplateYaml()
+        },
+        agentTemplates: [
+          {
+            id: 'template-agent',
+            name: 'template-agent',
+            title: 'Template Agent',
+            description: 'Template agent description',
+            category: 'Agent',
+            type: XpertTypeEnum.Agent
+          }
+        ],
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'SummarizationMiddleware',
+              label: {
+                en_US: 'Summarization Middleware'
+              }
+            }
+          },
+          {
+            meta: {
+              name: 'todoListMiddleware',
+              label: {
+                en_US: 'Todo List Middleware'
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    component.setStartMode('template')
+    component.selectedTemplateId.set('template-agent')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(component.selectedMiddlewares()).toEqual([
+      'ModelRetryMiddleware',
+      'WebTools',
+      'SummarizationMiddleware',
+      'todoListMiddleware'
+    ])
+    expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual([
+      'SummarizationMiddleware',
+      'todoListMiddleware',
+      'ModelRetryMiddleware',
+      'WebTools'
+    ])
+    expect(
+      component
+        .middlewareProviderOptions()
+        .filter((provider) => provider.unavailable)
+        .map((provider) => provider.meta.name)
+    ).toEqual(['ModelRetryMiddleware', 'WebTools'])
+  })
+
+  it('syncs workspace public skills on first skills-step entry and defaults them on while leaving local skills opt-in', async () => {
+    const workspaceSkills = [
+      {
+        id: 'skill-local',
+        metadata: {
+          displayName: {
+            en_US: 'Local Skill'
+          }
+        }
+      }
+    ] as any[]
+    const { component, fixture, skillPackageService, skillRepositoryService } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent,
+        workspace: {
+          id: 'workspace-1',
+          name: 'Workspace One'
+        } as any
+      },
+      {
+        workspaceSkills
+      }
+    )
+
+    skillPackageService.installRepositoryPackages.mockImplementation(() => {
+      workspaceSkills.splice(
+        0,
+        workspaceSkills.length,
+        {
+          id: 'skill-public',
+          metadata: {
+            displayName: {
+              en_US: 'Public Skill'
+            }
+          },
+          skillIndex: {
+            repositoryId: 'repo-public',
+            repository: {
+              id: 'repo-public',
+              provider: 'workspace-public',
+              name: 'Workspace Shared Skills'
+            }
+          }
+        },
+        {
+          id: 'skill-local',
+          metadata: {
+            displayName: {
+              en_US: 'Local Skill'
+            }
+          }
+        }
+      )
+      return of([{ id: 'skill-public' }])
+    })
+
+    await component.onAgentStepChange({ selectedIndex: 4 } as any)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(skillRepositoryService.getAllInOrg).toHaveBeenCalled()
+    expect(skillPackageService.installRepositoryPackages).toHaveBeenCalledWith('workspace-1', 'repo-public')
+    expect(component.selectedRepositoryDefault()).toEqual({
+      repositoryId: 'repo-public',
+      disabledSkillIds: []
+    })
+    expect(component.selectedSkills()).toEqual(['skill-public'])
+    expect(component.selectedMiddlewares()).toEqual([BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('defaults all loaded workspace skills to selected during claw setup', async () => {
+    const workspaceSkills = [
+      {
+        id: 'skill-local',
+        metadata: {
+          displayName: {
+            en_US: 'Local Skill'
+          }
+        }
+      }
+    ] as any[]
+    const { component, fixture, skillPackageService, skillRepositoryService } = await createComponent(
+      {
+        category: 'claw',
+        type: XpertTypeEnum.Agent,
+        workspace: {
+          id: 'workspace-1',
+          name: 'Workspace One'
+        } as any
+      },
+      {
+        workspaceSkills
+      }
+    )
+
+    skillPackageService.installRepositoryPackages.mockImplementation(() => {
+      workspaceSkills.splice(
+        0,
+        workspaceSkills.length,
+        {
+          id: 'skill-public',
+          metadata: {
+            displayName: {
+              en_US: 'Public Skill'
+            }
+          },
+          skillIndex: {
+            repositoryId: 'repo-public',
+            repository: {
+              id: 'repo-public',
+              provider: 'workspace-public',
+              name: 'Workspace Shared Skills'
+            }
+          }
+        },
+        {
+          id: 'skill-local',
+          metadata: {
+            displayName: {
+              en_US: 'Local Skill'
+            }
+          }
+        }
+      )
+      return of([{ id: 'skill-public' }])
+    })
+
+    await component.onAgentStepChange({ selectedIndex: 4 } as any)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(skillRepositoryService.getAllInOrg).toHaveBeenCalled()
+    expect(skillPackageService.installRepositoryPackages).toHaveBeenCalledWith('workspace-1', 'repo-public')
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(component.selectedSkills()).toEqual(['skill-local', 'skill-public'])
+    expect(component.selectedMiddlewares()).toEqual([BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('treats public workspace skills as explicit selections during claw setup', async () => {
+    const { component } = await createComponent(
+      {
+        category: 'claw',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        workspaceSkills: [
+          {
+            id: 'skill-public',
+            metadata: {
+              displayName: {
+                en_US: 'Public Skill'
+              }
+            },
+            skillIndex: {
+              repositoryId: 'repo-public',
+              repository: {
+                id: 'repo-public',
+                provider: 'workspace-public',
+                name: 'Workspace Shared Skills'
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    component.toggleSkill('skill-public', true)
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(component.selectedSkills()).toEqual(['skill-public'])
+
+    component.toggleSkill('skill-public', false)
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(component.selectedSkills()).toEqual([])
   })
 
   it('auto-adds and removes skills middleware when skills are toggled', async () => {
@@ -514,6 +875,29 @@ describe('XpertNewBlankComponent', () => {
     expect(component.selectedMiddlewares()).toEqual([BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
   })
 
+  it('preserves non-skill middlewares when the workspace changes', async () => {
+    const { component, fixture } = await createComponent({
+      allowWorkspaceSelection: true,
+      type: XpertTypeEnum.Agent
+    })
+
+    component.selectedExplicitSkills.set(['writer'])
+    component.selectedRepositoryDefault.set({
+      repositoryId: 'repo-public',
+      disabledSkillIds: []
+    })
+    component.selectedMiddlewares.set(['guard', 'todoListMiddleware', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+
+    component.workspaceId.set('workspace-2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(component.selectedSkills()).toEqual([])
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(component.selectedMiddlewares()).toEqual(['guard', 'todoListMiddleware'])
+  })
+
   it('hides skills middleware from the middleware picker options', async () => {
     const { component } = await createComponent(
       {
@@ -544,6 +928,53 @@ describe('XpertNewBlankComponent', () => {
     expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual(['guard'])
   })
 
+  it('auto-enables required middleware features when creating a blank xpert', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert,
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'FileMemorySystemMiddleware',
+              label: {
+                en_US: 'File Memory System'
+              },
+              features: ['sandbox']
+            }
+          }
+        ]
+      }
+    )
+
+    component.selectedMiddlewares.set(['FileMemorySystemMiddleware'])
+
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        features: {
+          sandbox: {
+            enabled: true
+          }
+        }
+      })
+    )
+
+    const savedDraft = xpertService.saveDraft.mock.calls[0][1]
+    expect(savedDraft.team.features).toEqual({
+      sandbox: {
+        enabled: true
+      }
+    })
+  })
+
   it('closes with published status after a successful publish flow', async () => {
     const createdXpert = createAgentXpert('created-xpert')
     const publishedXpert = {
@@ -561,7 +992,7 @@ describe('XpertNewBlankComponent', () => {
       }
     )
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -594,7 +1025,7 @@ describe('XpertNewBlankComponent', () => {
       }
     )
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -608,6 +1039,150 @@ describe('XpertNewBlankComponent', () => {
           checklist: []
         }
       },
+      status: 'created'
+    })
+  })
+
+  it('seeds a claw blank agent prompt with sys soul and profile placeholders', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        category: 'claw',
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+    const expectedPrompt = buildExpectedClawPrompt('Support workspace members with high-signal help.')
+
+    component.description.set('Support workspace members with high-signal help.')
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: expect.objectContaining({
+          prompt: expectedPrompt
+        })
+      })
+    )
+
+    const savedDraft = xpertService.saveDraft.mock.calls[0][1]
+    expect(savedDraft.team.agent.prompt).toBe(expectedPrompt)
+    expect(savedDraft.nodes.find((node: any) => node.type === 'agent')?.entity?.prompt).toBe(expectedPrompt)
+  })
+
+  it('normalizes claw dialog categories before seeding the blank agent prompt', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        category: ' ClAw ' as any,
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+    const expectedPrompt = buildExpectedClawPrompt('Support workspace members with high-signal help.')
+
+    component.description.set('Support workspace members with high-signal help.')
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: expect.objectContaining({
+          prompt: expectedPrompt
+        })
+      })
+    )
+  })
+
+  it('keeps the default blank agent prompt unchanged outside claw setup', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+
+    component.description.set('Support workspace members with high-signal help.')
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create.mock.calls[0][0].agent.prompt).toBeUndefined()
+    expect(xpertService.saveDraft.mock.calls[0][1].team.agent.prompt).toBeUndefined()
+  })
+
+  it('seeds a claw template agent prompt with sys soul and profile placeholders', async () => {
+    const importedXpert = createAgentXpert('imported-xpert')
+    const { component, dialogRef, fixture, xpertService } = await createComponent(
+      {
+        category: 'claw',
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplates: [
+          {
+            id: 'template-agent',
+            name: 'template-agent',
+            title: 'Template Agent',
+            description: 'Template agent description',
+            category: 'Agent',
+            type: XpertTypeEnum.Agent
+          }
+        ],
+        importedXpert
+      }
+    )
+    const expectedPrompt = buildExpectedClawPrompt('Template agent description')
+
+    component.setStartMode('template')
+    component.selectedTemplateId.set('template-agent')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.importDSL).toHaveBeenCalledWith(
+      expect.objectContaining({
+        team: expect.objectContaining({
+          agent: expect.not.objectContaining({
+            prompt: expect.anything()
+          })
+        }),
+        nodes: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'agent',
+            key: 'Agent_primary',
+            entity: expect.objectContaining({
+              prompt: expectedPrompt
+            })
+          })
+        ])
+      })
+    )
+
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      xpert: expect.objectContaining({
+        agent: expect.objectContaining({
+          prompt: expectedPrompt
+        })
+      }),
       status: 'created'
     })
   })
@@ -655,7 +1230,7 @@ describe('XpertNewBlankComponent', () => {
     } as any)
     component.selectedMiddlewares.set(['SummarizationMiddleware'])
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -716,7 +1291,7 @@ describe('XpertNewBlankComponent', () => {
     await fixture.whenStable()
     await flushPromises()
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 
@@ -744,6 +1319,62 @@ describe('XpertNewBlankComponent', () => {
       xpert: publishedXpert,
       status: 'published'
     })
+  })
+
+  it('auto-enables required middleware features when importing a template', async () => {
+    const importedXpert = createAgentXpert('imported-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplates: [
+          {
+            id: 'template-agent',
+            name: 'template-agent',
+            title: 'Template Agent',
+            description: 'Template agent description',
+            category: 'Agent',
+            type: XpertTypeEnum.Agent
+          }
+        ],
+        importedXpert,
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'guard',
+              label: {
+                en_US: 'Guard'
+              },
+              features: ['sandbox']
+            }
+          }
+        ]
+      }
+    )
+
+    component.setStartMode('template')
+    component.selectedTemplateId.set('template-agent')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.importDSL).toHaveBeenCalledWith(
+      expect.objectContaining({
+        team: expect.objectContaining({
+          features: {
+            sandbox: {
+              enabled: true
+            }
+          }
+        })
+      })
+    )
   })
 
   it('keeps the imported xpert as created when the imported checklist is blocked', async () => {
@@ -786,7 +1417,7 @@ describe('XpertNewBlankComponent', () => {
     await fixture.whenStable()
     await flushPromises()
 
-    component.create()
+    await component.create()
     await fixture.whenStable()
     await flushPromises()
 

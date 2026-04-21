@@ -20,6 +20,7 @@ import { ChatProjectService } from '../chat-project.service'
 import { ChatProjectComponent } from '../project.component'
 import { ProjectService } from '../project.service'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { readNavigationInput } from '@cloud/app/@shared/chat/references'
 
 /**
  *
@@ -64,16 +65,14 @@ export class ChatProjectConversationComponent {
   readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
 
   constructor() {
-    const navigation = this.#router.getCurrentNavigation()
-    if (navigation?.extras.state) {
-      const { input } = navigation.extras.state
-
+    const navigationInput = readNavigationInput(this.#router.getCurrentNavigation()?.extras.state)
+    if (navigationInput) {
       // Wait until all Signals are initialized before assigning values (linkedModel)
       setTimeout(() => {
         this.chatSercice.project.set(this.project() as IXpertProject)
-        // Process the data as needed
-        this.chatSercice.ask(input, {
-          files: this.projectService.files()?.map((file) => ({ id: file.id, originalName: file.originalName }))
+        this.chatSercice.ask(navigationInput.input, {
+          files: this.projectService.files()?.map((file) => ({ id: file.id, originalName: file.originalName })),
+          ...(navigationInput.references?.length ? { references: navigationInput.references } : {})
         })
         this.projectService.attachments.set([])
       })

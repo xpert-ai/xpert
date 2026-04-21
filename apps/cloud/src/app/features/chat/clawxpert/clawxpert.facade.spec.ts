@@ -1,31 +1,41 @@
-jest.mock('../../../@core', () => ({
-  AssistantBindingScope: {
-    USER: 'user'
-  },
-  AssistantCode: {
-    CLAWXPERT: 'clawxpert'
-  },
-  AssistantBindingService: class AssistantBindingService {},
-  ChatConversationService: class ChatConversationService {},
-  EnvironmentService: class EnvironmentService {},
-  Store: class Store {},
-  ToastrService: class ToastrService {},
-  XpertAPIService: class XpertAPIService {},
-  XpertTaskService: class XpertTaskService {},
-  OrderTypeEnum: {
-    DESC: 'DESC'
-  },
-  ScheduleTaskStatus: {
-    SCHEDULED: 'scheduled'
-  },
-  WorkflowNodeTypeEnum: {
-    TRIGGER: 'trigger'
-  },
-  XpertTypeEnum: {
-    Agent: 'agent'
-  },
-  getErrorMessage: (error: any) => error?.message ?? ''
-}))
+jest.mock('../../../@core', () => {
+  const contracts = jest.requireActual('@xpert-ai/contracts')
+
+  return {
+    AssistantBindingScope: {
+      USER: 'user'
+    },
+    AssistantCode: {
+      CLAWXPERT: 'clawxpert'
+    },
+    AssistantBindingService: class AssistantBindingService {},
+    ChatConversationService: class ChatConversationService {},
+    EnvironmentService: class EnvironmentService {},
+    Store: class Store {},
+    ToastrService: class ToastrService {},
+    XpertAPIService: class XpertAPIService {},
+    XpertTaskService: class XpertTaskService {},
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
+    ScheduleTaskStatus: {
+      SCHEDULED: 'scheduled'
+    },
+    WorkflowNodeTypeEnum: {
+      TRIGGER: 'trigger'
+    },
+    XpertTypeEnum: {
+      Agent: 'agent'
+    },
+    getAssistantBindingDisabledSkillIds: contracts.getAssistantBindingDisabledSkillIds,
+    getAssistantBindingDisabledTools: contracts.getAssistantBindingDisabledTools,
+    isAssistantBindingToolPreferencesEmpty: contracts.isAssistantBindingToolPreferencesEmpty,
+    normalizeAssistantBindingToolPreferences: contracts.normalizeAssistantBindingToolPreferences,
+    updateAssistantBindingSkillPreferences: contracts.updateAssistantBindingSkillPreferences,
+    updateAssistantBindingToolPreferences: contracts.updateAssistantBindingToolPreferences,
+    getErrorMessage: (error: any) => error?.message ?? ''
+  }
+})
 
 jest.mock('../../assistant/assistant-chatkit.runtime', () => ({
   sanitizeAssistantFrameUrl: (url: string | null | undefined) => url ?? null
@@ -81,14 +91,13 @@ jest.mock('../../xpert/draft/index', () => {
       .filter((node: any) => isWorkflowTriggerNode(node))
       .map((node: any) => {
         const providerName = `${node?.entity?.from ?? 'chat'}`.trim() || 'chat'
-        const provider =
-          providerMap.get(providerName) ?? {
-            name: providerName,
-            label: {
-              en_US: providerName,
-              zh_Hans: providerName
-            }
+        const provider = providerMap.get(providerName) ?? {
+          name: providerName,
+          label: {
+            en_US: providerName,
+            zh_Hans: providerName
           }
+        }
 
         return {
           nodeKey: node.key,
@@ -185,7 +194,12 @@ jest.mock('../../xpert/draft/index', () => {
     readTriggerEditorItemsFromDraft,
     upsertTriggerEditorItemsIntoDraft,
     getPrimaryAgentNodeFromDraft,
-    buildEditableXpertDraft: (xpert: { id?: string; draft?: any; graph?: { nodes?: any[]; connections?: any[] }; agent?: { key?: string } }) => ({
+    buildEditableXpertDraft: (xpert: {
+      id?: string
+      draft?: any
+      graph?: { nodes?: any[]; connections?: any[] }
+      agent?: { key?: string }
+    }) => ({
       team: {
         id: xpert?.draft?.team?.id ?? xpert?.id ?? null,
         ...(xpert?.draft?.team ?? {}),
@@ -1194,7 +1208,9 @@ describe('ClawXpertFacade', () => {
     )
     conversationService.getByThreadId
       .mockReturnValueOnce(of(null))
-      .mockReturnValueOnce(of(createConversation('conversation-main', { threadId: 'thread-main', xpertId: 'xpert-threads' })))
+      .mockReturnValueOnce(
+        of(createConversation('conversation-main', { threadId: 'thread-main', xpertId: 'xpert-threads' }))
+      )
     conversationService.findAllByXpert.mockReturnValue(
       of({
         items: [createConversation('conversation-main', { threadId: 'thread-main', xpertId: 'xpert-threads' })],

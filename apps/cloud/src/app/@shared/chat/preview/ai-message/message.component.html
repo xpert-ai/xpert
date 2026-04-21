@@ -53,7 +53,11 @@
     }
     @case ('component') {
       @if (chunk.data.category === 'Tool') {
-        <chat-tool-call-chunk [chunk]="chunk.data" [conversationStatus]="conversationStatus()" />
+        @if (chunk.data.type === contextCompressionComponentType) {
+          <chat-context-compression-chunk />
+        } @else {
+          <chat-tool-call-chunk [chunk]="chunk.data" [conversationStatus]="conversationStatus()" />
+        }
       } @else {
         <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-hover-bg transition-all">
           <div class="flex justify-between items-center text-base p-2">

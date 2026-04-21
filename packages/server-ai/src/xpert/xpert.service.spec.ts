@@ -41,7 +41,8 @@ describe('XpertService command facade', () => {
 			queryBus as any,
 			eventEmitter as any,
 			triggerRegistry as any,
-			sandboxService as any
+			sandboxService as any,
+			{ resolve: jest.fn() } as any
 		)
 
 		return {

@@ -2,15 +2,14 @@ import { BaseStore } from '@langchain/langgraph'
 import { IChatMessage, LongTermMemoryTypeEnum, TFile, TFileDirectory } from '@xpert-ai/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
 import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
-import { VolumeClient } from '../shared/volume'
-import { WorkspaceVolumeClient } from '../shared/volume/workspace-volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationPublicDTO } from './dto'
@@ -25,7 +24,9 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		private readonly messageService: ChatMessageService,
 		readonly commandBus: CommandBus,
 		readonly queryBus: QueryBus,
-		@InjectQueue('conversation-summary') private summaryQueue: Queue
+		@InjectQueue('conversation-summary') private summaryQueue: Queue,
+		@Inject(VOLUME_CLIENT)
+		private readonly volumeClient: VolumeClient
 	) {
 		super(repository)
 	}
@@ -161,7 +162,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
     async getWorkspaceFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).list(conversation.threadId, {
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        return client.list(scopePath, {
             path,
             deepth
         })
@@ -169,23 +171,70 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
     async readWorkspaceFile(id: string, filePath: string): Promise<TFile> {
         const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).readFile(conversation.threadId, filePath)
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        return client.readFile(scopePath, filePath)
     }
 
     async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
         const conversation = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(conversation).saveFile(conversation.threadId, filePath, content)
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        return client.saveFile(scopePath, filePath, content)
+    }
+
+    async uploadWorkspaceFile(
+        id: string,
+        folderPath: string,
+        file: { originalname: string; buffer: Buffer; mimetype?: string }
+    ): Promise<TFile> {
+        const conversation = await this.findOne(id)
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        return client.uploadFile(scopePath, folderPath, file)
+    }
+
+    async deleteWorkspaceFile(id: string, filePath: string): Promise<void> {
+        const conversation = await this.findOne(id)
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        await client.deleteFile(scopePath, filePath)
     }
 
     private createWorkspaceVolumeClient(conversation: ChatConversation) {
-        return new WorkspaceVolumeClient(this.createVolumeClient(conversation))
+        if (conversation.projectId) {
+            return {
+                client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
+                    allowRootWorkspace: true
+                }),
+                scopePath: ''
+            }
+        }
+
+        if (conversation.xpertId) {
+            return {
+                client: new VolumeSubtreeClient(this.createXpertVolumeHandle(conversation), {
+                    allowRootWorkspace: true
+                }),
+                scopePath: ''
+            }
+        }
+
+        throw new BadRequestException('Non-project conversations require xpertId to access workspace files')
     }
 
-    private createVolumeClient(conversation: ChatConversation) {
-        return new VolumeClient({
+    private createProjectVolumeHandle(conversation: ChatConversation) {
+        return this.volumeClient.resolve({
             tenantId: conversation.tenantId,
-            catalog: 'users',
+            catalog: 'projects',
+            projectId: conversation.projectId,
             userId: conversation.createdById
+        })
+    }
+
+    private createXpertVolumeHandle(conversation: ChatConversation) {
+        return this.volumeClient.resolve({
+            tenantId: conversation.tenantId,
+            catalog: 'xperts',
+            userId: conversation.createdById,
+            xpertId: conversation.xpertId,
+            isolateByUser: true
         })
     }
 

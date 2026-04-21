@@ -131,6 +131,14 @@ export interface IPluginDescriptor {
   scopeRelation?: PluginScopeRelation
 }
 
+export interface IPluginLatestVersionStatus {
+  organizationId?: string
+  name: PluginName
+  packageName?: string
+  latestVersion?: string
+  hasUpdate: boolean
+}
+
 export interface IPluginConfiguration<TConfig extends Record<string, any> = Record<string, any>> {
   pluginName: PluginName
   config: TConfig

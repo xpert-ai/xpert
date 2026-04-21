@@ -76,30 +76,6 @@ $sidebar-collapsed-width: 40px;
     box-shadow: 0 0.3px 0.9px #0000001c, 0 1.6px 3.6px #0002;
   }
 
-  // .pac-app__page-outlet z-drawer-content {
-  //   display: flex;
-  //   flex: 1;
-  //   // height: calc(100vh - #{$shell-bar-height} - #{$status-bar-height});
-  //   position: relative;
-  //   // overflow: auto;
-  //   overflow: hidden;
-
-  //   /* 所有的 toolbar 都不设置高度 */
-  //   .pac__toolbar {
-  //     height: unset;
-  //     font-size: 1rem;
-  //     min-height: var(--header-toolbar-height);
-  //   }
-
-  //   .pac-app__spinner {
-  //     position: absolute;
-  //     top: 0;
-  //     left: 0;
-  //     width: 100%;
-  //     height: 100%;
-  //   }
-  // }
-
   .cdk-overlay-container .ant-menu-submenu-popup > .ant-menu {
     background-color: themeCompat.m2-get-color-from-palette($primary, 900);
     user-select: none;
@@ -157,12 +133,7 @@ $sidebar-collapsed-width: 40px;
     border-radius: 5px;
   }
   
-  // 带 nav-bar 的 toolbar 组件样式
   .pac-nav-toolbar {
-    // &.ngm-density__compact {
-    //   padding: 0;
-    // }
-
     .z-tab-nav-bar,
     .z-tab-group__nav {
       border-bottom: unset;
@@ -182,7 +153,6 @@ $sidebar-collapsed-width: 40px;
         transition: all 300ms ease-in;
       }
 
-      // 导航菜单间隔符
       &::after {
         content: "";
         height: 15px;

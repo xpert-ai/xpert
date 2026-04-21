@@ -8,7 +8,6 @@ import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatHomeComponent } from './home/home.component'
 import { ChatBiComponent } from './chatbi/chatbi.component'
 import { ChatCommonAssistantComponent } from './common/common.component'
-import { ChatCommonWelcomeComponent } from './welcome/welcome.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
@@ -59,7 +58,7 @@ function redirectToDefaultChatEntry() {
           !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) ||
           !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
         ) {
-          return of(router.createUrlTree(['/chat/x/welcome']))
+          return of(router.createUrlTree(['/chat/x/common']))
         }
 
         if (!store.organizationId) {
@@ -96,16 +95,14 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        component: ChatCommonWelcomeComponent,
+        component: ChatCommonAssistantComponent,
         canActivate: [redirectToDefaultChatEntry()],
         pathMatch: 'full'
       },
       {
         path: 'x/welcome',
-        component: ChatCommonWelcomeComponent,
-        data: {
-          title: 'Common Welcome',
-        }
+        redirectTo: '/chat/x/common',
+        pathMatch: 'full'
       },
       {
         path: 'x/common/c/:id',
@@ -189,7 +186,7 @@ export const routes: Routes = [
       },
       {
         path: '**',
-        redirectTo: 'x/welcome',
+        redirectTo: 'x/common',
         pathMatch: 'prefix'
       },
     ]

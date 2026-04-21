@@ -68,7 +68,7 @@ import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgeSearchQuery } from './queries'
 import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore } from './vector-store'
-import { VolumeClient } from '../shared'
+import { VOLUME_CLIENT, VolumeClient } from '../shared'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
@@ -101,6 +101,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	@Inject(XpertService)
 	private readonly xpertService: XpertService
+
+	@Inject(VOLUME_CLIENT)
+	private readonly volumeClient: VolumeClient
 
 	constructor(
 		@InjectRepository(Knowledgebase)
@@ -722,12 +725,16 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const results = await strategy.transformDocuments(input, {
 			...(entity.config ?? {}),
 			stage: isDraft ? 'test' : 'prod',
-			tempDir: new VolumeClient({
-				tenantId: RequestContext.currentTenantId(),
-				catalog: 'knowledges',
-				userId: RequestContext.currentUserId(),
-				knowledgeId: knowledgebaseId
-			}).getVolumePath('tmp'),
+			tempDir: (
+				await this.volumeClient
+					.resolve({
+						tenantId: RequestContext.currentTenantId(),
+						catalog: 'knowledges',
+						userId: RequestContext.currentUserId(),
+						knowledgeId: knowledgebaseId
+					})
+					.ensureRoot()
+			).path('tmp'),
 			permissions
 		})
 

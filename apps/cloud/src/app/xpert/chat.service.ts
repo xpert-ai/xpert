@@ -42,6 +42,7 @@ import {
 import { AppService } from '../app.service'
 import { filterLatestMessages } from '../@shared/chat/filter-latest-messages'
 import { buildResumeDecision, extractInterruptPatch } from '../@shared/chat/interrupt-request'
+import { createReferenceHumanInput, XpertChatReference } from '../@shared/chat/references'
 import { XpertHomeService } from './home.service'
 import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/chat/context/thread-context-usage'
 import {
@@ -67,6 +68,7 @@ export type PendingFollowUp = {
   id?: string
   content: string
   files?: Partial<IStorageFile>[]
+  references?: XpertChatReference[]
   mode: 'queue' | 'steer'
 }
 
@@ -289,9 +291,14 @@ export abstract class ChatService {
     return this.feedbackService.getMyAll({ where: { conversationId: id } })
   }
 
-  ask(content: string, params: { files: { id: string }[] }) {
+  ask(content: string, params?: { files?: { id: string }[]; references?: XpertChatReference[] }) {
     const id = uuid()
-    this.sendMessage({ id, content, files: params.files })
+    this.sendMessage({
+      id,
+      content,
+      files: params?.files,
+      references: params?.references
+    })
   }
 
   chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
@@ -303,12 +310,14 @@ export abstract class ChatService {
 
   sendMessage(options: {
     id?: string
-    content: string
+    content?: string
     files?: Partial<IStorageFile>[]
+    references?: XpertChatReference[]
     followUpMode?: 'queue' | 'steer'
   }) {
-    const content = options.content?.trim()
-    if (!content) {
+    const content = options.content?.trim() ?? ''
+    const references = options.references ?? []
+    if (!content && !references.length) {
       return
     }
 
@@ -316,6 +325,7 @@ export abstract class ChatService {
       this.enqueueFollowUp({
         ...options,
         content,
+        references,
         mode: options.followUpMode ?? 'steer'
       })
       return
@@ -325,6 +335,9 @@ export abstract class ChatService {
       id: options.id ?? uuid(),
       role: 'user',
       content
+    }
+    if (references.length) {
+      humanMessage.references = references
     }
     if (options.files?.length) {
       humanMessage.attachments = options.files as IStorageFile[]
@@ -339,8 +352,11 @@ export abstract class ChatService {
         clientMessageId: options.id,
         input: {
           ...(this.parametersValue() ?? {}),
-          input: content,
-          files: options.files
+          ...createReferenceHumanInput({
+            content: content ?? '',
+            files: options.files,
+            references
+          })
         }
       }
     }
@@ -418,6 +434,7 @@ export abstract class ChatService {
        * Attachment files
        */
       files: Partial<IStorageFile>[]
+      references: XpertChatReference[]
       confirm: boolean
       command: TInterruptCommand
       /**
@@ -442,11 +459,12 @@ export abstract class ChatService {
       return
     }
 
-    if (options.content) {
+    if (options.content || options.references?.length) {
       this.sendMessage({
         id: options.id,
         content: options.content,
-        files: options.files
+        files: options.files,
+        references: options.references
       })
     }
   }
@@ -531,7 +549,7 @@ export abstract class ChatService {
                   }
                   break
                 case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                  if (options.mode === 'send' && options.content) {
+                  if (options.mode === 'send') {
                     this.appendMessage({
                       id: uuid(),
                       role: 'ai',
@@ -855,8 +873,11 @@ export abstract class ChatService {
         clientMessageId: item.id,
         input: {
           ...(this.parametersValue() ?? {}),
-          input: item.content,
-          files: item.files
+          ...createReferenceHumanInput({
+            content: item.content,
+            files: item.files,
+            references: item.references
+          })
         }
       }
     }
@@ -902,6 +923,9 @@ export abstract class ChatService {
         id: item.id ?? uuid(),
         role: 'human',
         content: item.content
+      }
+      if (item.references?.length) {
+        message.references = item.references
       }
       if (item.files?.length) {
         message.attachments = item.files as IStorageFile[]

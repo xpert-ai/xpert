@@ -1,14 +1,14 @@
 import { FileUploadVolumeCatalog, IUploadFileVolumeTarget } from '@xpert-ai/contracts'
-import { environment } from '@xpert-ai/server-config'
+import { normalizeUploadedFileName } from '@xpert-ai/server-common'
 import path from 'path'
-import { getApiContainerSandboxVolumeRootPath, usesFlattenedSandboxVolumeLayout } from '../volume/volume-layout'
+import {
+    createRuntimeVolumeClient,
+    getVolumeSubpath as getSharedVolumeSubpath,
+    VolumeHandle
+} from '../volume/volume'
 
 export function normalizeFileName(fileName: string) {
-    const normalized = path.basename(fileName).trim()
-    if (!normalized) {
-        throw new Error('Invalid file name')
-    }
-    return normalized
+    return normalizeUploadedFileName(fileName)
 }
 
 export function normalizeRelativePath(...segments: Array<string | undefined>) {
@@ -23,7 +23,7 @@ export function normalizeRelativePath(...segments: Array<string | undefined>) {
 }
 
 export function getApiContainerSandboxVolumeRoot(tenantId: string) {
-    return getApiContainerSandboxVolumeRootPath(tenantId)
+    return createRuntimeVolumeClient().resolveRoot(tenantId).serverRoot
 }
 
 export function getVolumeSubpath(
@@ -31,49 +31,40 @@ export function getVolumeSubpath(
     params: {
         projectId?: string
         knowledgeId?: string
+        isolateByUser?: boolean
         userId?: string
+        xpertId?: string
         rootId?: string
     }
 ) {
-    switch (catalog) {
-        case 'knowledges':
-            if (!params.knowledgeId) {
-                throw new Error('knowledgeId is required for knowledge volume upload')
-            }
-            return `/knowledges/${params.knowledgeId}`
-        case 'projects':
-            if (!params.projectId) {
-                throw new Error('projectId is required for project volume upload')
-            }
-            return `/project/${params.projectId}`
-        case 'users':
-            if (!params.userId) {
-                throw new Error('userId is required for user volume upload')
-            }
-            return `/user/${params.userId}`
-        case 'skills':
-            if (!params.rootId) {
-                throw new Error('rootId is required for skills volume upload')
-            }
-            return `/skills/${params.rootId}`
-    }
+    return getSharedVolumeSubpath({
+        catalog,
+        knowledgeId: params.knowledgeId,
+        projectId: params.projectId,
+        rootId: params.rootId,
+        userId: params.userId,
+        xpertId: params.xpertId,
+        isolateByUser: params.isolateByUser
+    })
 }
 
-export function resolveVolumeTarget(target: IUploadFileVolumeTarget, request: { tenantId?: string; userId?: string }) {
+export function resolveVolumeTarget(
+    target: IUploadFileVolumeTarget,
+    request: { tenantId?: string; userId?: string }
+): VolumeHandle {
     const tenantId = target.tenantId || request.tenantId
     const userId = target.userId || request.userId
-    const root = getApiContainerSandboxVolumeRoot(tenantId)
-    const subpath = getVolumeSubpath(target.catalog, {
-        projectId: target.projectId,
-        knowledgeId: target.knowledgeId,
-        userId,
-        rootId: target.metadata?.rootId
-    })
 
-    return {
-        rootPath: usesFlattenedSandboxVolumeLayout() ? root : path.join(root, subpath),
-        baseUrl: `${environment.baseUrl}/api/sandbox/volume${subpath}`
-    }
+    return createRuntimeVolumeClient().resolve({
+        tenantId,
+        catalog: target.catalog,
+        knowledgeId: target.knowledgeId,
+        projectId: target.projectId,
+        rootId: target.metadata?.rootId,
+        userId,
+        xpertId: target.xpertId,
+        isolateByUser: target.isolateByUser
+    })
 }
 
 export function isUtf8Text(fileName: string, mimeType?: string) {

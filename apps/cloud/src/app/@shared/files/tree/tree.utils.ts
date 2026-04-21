@@ -46,6 +46,22 @@ export function updateFileTreeNode(
   return tree
 }
 
+export function removeFileTreeNode(items: FileTreeNode[], filePath: string): FileTreeNode[] {
+  return (items ?? []).reduce((acc: FileTreeNode[], item) => {
+    const currentPath = item.fullPath || item.filePath
+    if (currentPath === filePath) {
+      return acc
+    }
+
+    acc.push({
+      ...item,
+      children: Array.isArray(item.children) ? removeFileTreeNode(item.children as FileTreeNode[], filePath) : item.children
+    })
+
+    return acc
+  }, [])
+}
+
 export function findPreferredFile(
   items: FileTreeNode[],
   isEditable: (filePath: string) => boolean

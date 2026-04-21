@@ -1,176 +1,22 @@
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { HumanMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
-import {
-	createConversationTitleSummaryEvent,
-	ChatMessageEventTypeEnum,
-	GRAPH_NODE_TITLE_CONVERSATION,
-	mapTranslationLanguage,
-	STATE_VARIABLE_SYS,
-	STATE_VARIABLE_TITLE_CHANNEL,
-	TMessageChannel,
-	TXpertAgentExecution,
-	XpertAgentExecutionStatusEnum
-} from '@xpert-ai/contracts'
-import { getErrorMessage } from '@xpert-ai/server-common'
-import { RequestContext } from '@xpert-ai/server-core'
-import { Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { I18nService } from 'nestjs-i18n'
-import { t } from 'i18next'
-import { v4 as uuidv4 } from 'uuid'
-import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
-import { XpertCopilotNotFoundException } from '../../../core/errors'
-import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
-import { GetXpertChatModelQuery } from '../../../xpert/queries'
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
-import { AgentStateAnnotation } from '../../../shared'
-import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-
+import { AgentStateAnnotation, ConversationTitleService } from '../../../shared'
 
 @CommandHandler(CreateSummarizeTitleAgentCommand)
 export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateSummarizeTitleAgentCommand> {
-	readonly #logger = new Logger(CreateSummarizeTitleAgentHandler.name)
+    constructor(private readonly conversationTitleService: ConversationTitleService) {}
 
-	constructor(
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
-	) {}
+    public async execute(command: CreateSummarizeTitleAgentCommand) {
+        const { channel, copilot, xpert } = command.options
 
-	public async execute(command: CreateSummarizeTitleAgentCommand) {
-		const { xpert, copilot, rootController, threadId, rootExecutionId, channel } = command.options
-
-		// Record execution
-		const execution = {} as TXpertAgentExecution
-		let chatModel: BaseChatModel
-		if (xpert) {
-			const copilotModel = xpert.copilotModel
-			if (!copilotModel) {
-				throw new XpertCopilotNotFoundException(
-					await this.i18nService.t('xpert.Error.XpertCopilotNotFound', {
-						lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-					})
-				)
-			}
-			execution.metadata = {
-				provider: copilotModel.copilot.modelProvider?.providerName,
-				model: copilotModel.model || copilotModel.copilot.copilotModel?.model
-			}
-			chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
-				new GetXpertChatModelQuery(xpert, null, {
-					copilotModel: copilotModel,
-					abortController: rootController,
-					usageCallback: assignExecutionUsage(execution),
-					threadId
-				})
-			)
-		} else if (copilot) {
-			chatModel = await this.queryBus.execute(
-				new CopilotModelGetChatModelQuery(copilot, null, {
-					abortController: rootController,
-					usageCallback: assignExecutionUsage(execution)
-				})
-			)
-		}
-
-		return async (
-			state: typeof AgentStateAnnotation.State,
-			config: RunnableConfig
-		): Promise<Partial<typeof AgentStateAnnotation.State>> => {
-			const runId = typeof config.metadata?.run_id === 'string' ? config.metadata.run_id : undefined
-			// Starting event
-			await dispatchCustomEvent(
-				ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-				createConversationTitleSummaryEvent({
-					id: runId,
-					title: t('server-ai:Xpert.SummaryTitleStarting'),
-					status: 'running',
-					created_date: new Date().toISOString(),
-				})
-			)
-			// Record start time
-			const timeStart = Date.now()
-			let status = XpertAgentExecutionStatusEnum.SUCCESS
-			let error = null
-			let result = null
-			const _execution = await this.commandBus.execute(
-				new XpertAgentExecutionUpsertCommand({
-					...execution,
-					// xpert: xpert ? { id: xpert.id } as IXpert : null,
-					threadId: config.configurable.thread_id,
-					checkpointId: config.configurable.checkpoint_id,
-					checkpointNs: '',
-					parentId: rootExecutionId,
-					status: XpertAgentExecutionStatusEnum.RUNNING,
-					channelName: STATE_VARIABLE_TITLE_CHANNEL,
-					title: await this.i18nService.t('xpert.Agent.SummarizeTitle', {
-						lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-					})
-				})
-			)
-
-			try {
-				// Title the conversation
-				const messages = channel ? (<TMessageChannel>state[channel])?.messages : state.messages
-				const language = state[STATE_VARIABLE_SYS]?.language
-
-				if (!messages?.length) {
-					return {
-						title: '',
-						[STATE_VARIABLE_TITLE_CHANNEL]: {
-							messages: []
-						}
-					}
-				}
-
-				const allMessages = [
-					...messages,
-					new HumanMessage({
-						id: uuidv4(),
-						content: xpert?.agentConfig?.summarizeTitle?.instruction || `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`
-					})
-				]
-				const response = await chatModel.invoke(allMessages, { tags: [GRAPH_NODE_TITLE_CONVERSATION] })
-				result = response.content
-				if (typeof response.content !== 'string') {
-					throw new Error('Expected a string response from the model')
-				}
-
-				return {
-					title: response.content.replace(/^"/g, '').replace(/"$/g, ''),
-					[STATE_VARIABLE_TITLE_CHANNEL]: {
-						messages: [...allMessages, response]
-					}
-				}
-			} catch (err) {
-				error = getErrorMessage(err)
-				status = XpertAgentExecutionStatusEnum.ERROR
-			} finally {
-				const timeEnd = Date.now()
-				// Record End time
-				await this.commandBus.execute(
-					new XpertAgentExecutionUpsertCommand({
-						...execution,
-						id: _execution.id,
-						elapsedTime: timeEnd - timeStart,
-						status,
-						error,
-						outputs: {
-							output: result
-						}
-					})
-				)
-				await dispatchCustomEvent(
-					ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-					createConversationTitleSummaryEvent({
-						id: runId,
-						title: t('server-ai:Xpert.SummaryTitleEnd'),
-						status: 'success',
-						end_date: new Date().toISOString(),
-					})
-				)
-			}
-		}
-	}
+        return async (state: typeof AgentStateAnnotation.State, config: RunnableConfig) =>
+            this.conversationTitleService.generateStatePatch({
+                channel,
+                config,
+                copilot,
+                state,
+                xpert
+            })
+    }
 }

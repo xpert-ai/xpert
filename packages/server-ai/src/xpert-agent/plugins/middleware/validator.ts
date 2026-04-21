@@ -1,6 +1,7 @@
 import {
 	ChecklistItem,
 	IWFNMiddleware,
+	normalizeMiddlewareProvider,
 	TAgentMiddlewareMeta,
 	TXpertFeatureKey,
 	TXpertFeatures,
@@ -38,20 +39,21 @@ export class WorkflowMiddlewareNodeValidator {
 
 	check(node: TXpertTeamNode, xpertFeatures?: TXpertFeatures | null) {
 		const entity = node.entity as IWFNMiddleware
+		const provider = normalizeMiddlewareProvider(entity.provider)
 		let meta: TAgentMiddlewareMeta
 
 		try {
-			meta = this.agentMiddlewareRegistry.get(entity.provider).meta
+			meta = this.agentMiddlewareRegistry.get(provider).meta
 		} catch {
 			return [
 				{
 					node: node.key,
 					ruleCode: 'MIDDLEWARE_PROVIDER_NOT_FOUND',
 					field: 'provider',
-					value: entity.provider,
+					value: provider,
 					message: {
-						en_US: `Middleware provider "${entity.provider}" not found`,
-						zh_Hans: `中间件提供者 "${entity.provider}" 未找到`
+						en_US: `Middleware provider "${provider}" not found`,
+						zh_Hans: `中间件提供者 "${provider}" 未找到`
 					},
 					level: 'error' as const
 				}
@@ -63,7 +65,7 @@ export class WorkflowMiddlewareNodeValidator {
 			return []
 		}
 
-		const labelEn = meta.label.en_US ?? entity.provider
+		const labelEn = meta.label.en_US ?? provider
 		const labelZh = meta.label.zh_Hans ?? labelEn
 
 		return requiredFeatures
