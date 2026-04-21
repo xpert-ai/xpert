@@ -5,11 +5,23 @@ import { Observable } from 'rxjs'
 import { RequestMethodEnum } from '../types'
 import { Store } from './../services/store.service'
 
+const ANONYMOUS_AUTH_PATHS = new Set([
+  '/api/auth/sso/providers',
+  '/api/auth/sso/bind/challenge',
+  '/api/auth/sso/bind/complete',
+  '/api/auth/sso/bind/register',
+  '/api/tenant/onboard'
+])
+
 @Injectable()
 export class TenantInterceptor implements HttpInterceptor {
   constructor(private store: Store) {}
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    if (isAnonymousAuthRequest(request.url)) {
+      return next.handle(request)
+    }
+
     const tenantId = this.store.user?.tenantId
     const activeScope = this.store.activeScope
 
@@ -37,5 +49,13 @@ export class TenantInterceptor implements HttpInterceptor {
     }
 
     return next.handle(request)
+  }
+}
+
+function isAnonymousAuthRequest(url: string): boolean {
+  try {
+    return ANONYMOUS_AUTH_PATHS.has(new URL(url, 'http://localhost').pathname)
+  } catch {
+    return false
   }
 }

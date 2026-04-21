@@ -1,9 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
 	BaseEntity, FeatureOrganization, ImportRecord, Organization, RolePermission,
 } from '../core/entities/internal';
 import { Entity, Column, Index, OneToMany, JoinColumn } from 'typeorm';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import {
 	ITenant,
 	IOrganization,
@@ -22,6 +22,13 @@ export class Tenant extends BaseEntity implements ITenant {
 	@IsNotEmpty()
 	@Column({ nullable: false })
 	name?: string;
+
+	@ApiPropertyOptional({ type: () => String })
+	@Index({ unique: true })
+	@IsOptional()
+	@IsString()
+	@Column({ nullable: true })
+	subdomain?: string | null;
 
 	/*
     |--------------------------------------------------------------------------

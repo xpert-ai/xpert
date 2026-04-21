@@ -51,7 +51,8 @@ describe('AuthService', () => {
 	const userService = {
 		findOne: jest.fn(),
 		findOneOrFailByOptions: jest.fn(),
-		create: jest.fn()
+		create: jest.fn(),
+		update: jest.fn()
 	}
 	const roleService = {}
 	const organizationService = {
@@ -157,6 +158,41 @@ describe('AuthService', () => {
 			'en-US',
 			'org-explicit',
 			undefined
+		)
+	})
+
+	it('issues tokens for an existing user and updates the refresh token', async () => {
+		userService.findOne.mockResolvedValue({
+			id: 'user-1',
+			email: 'new.user@example.com',
+			tenantId: 'tenant-1'
+		})
+		const createTokenSpy = jest.spyOn(service, 'createToken').mockResolvedValue({
+			token: 'jwt-token',
+			refreshToken: 'refresh-token'
+		})
+		const updateRefreshTokenSpy = jest
+			.spyOn(service, 'updateRefreshToken')
+			.mockResolvedValue(undefined)
+
+		await expect(service.issueTokensForUser('user-1')).resolves.toEqual({
+			jwt: 'jwt-token',
+			refreshToken: 'refresh-token',
+			userId: 'user-1'
+		})
+		expect(createTokenSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'user-1'
+			})
+		)
+		expect(updateRefreshTokenSpy).toHaveBeenCalledWith('user-1', 'refresh-token')
+	})
+
+	it('throws when issuing tokens for a missing user', async () => {
+		userService.findOne.mockResolvedValue(null)
+
+		await expect(service.issueTokensForUser('missing-user')).rejects.toThrow(
+			"The user 'missing-user' was not found"
 		)
 	})
 })

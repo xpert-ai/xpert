@@ -29,6 +29,7 @@ import {
 	SecretToken,
 	Integration,
 	PluginInstance,
+	ExternalIdentityBinding,
 } from './internal';
 
 export const coreEntities = [
@@ -61,5 +62,6 @@ export const coreEntities = [
 	StorageFile,
 	SecretToken,
 	Integration,
-	PluginInstance
+	PluginInstance,
+	ExternalIdentityBinding
 ];

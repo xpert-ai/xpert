@@ -2,7 +2,7 @@ import { IOrganization, RolesEnum } from '@xpert-ai/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { getManager } from 'typeorm';
-import { RequestContext } from '../../../core';
+import { RequestContext } from '../../../core/context/request-context';
 import { RoleService } from '../../../role/role.service';
 import { UserService } from '../../../user/user.service';
 import { UserOrganizationService } from '../../../user-organization/user-organization.services';
