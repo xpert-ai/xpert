@@ -1,6 +1,15 @@
 import { tool } from '@langchain/core/tools'
-import { getToolCallIdFromConfig, TAgentMiddlewareMeta } from '@xpert-ai/contracts'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import {
+    DocumentTypeEnum,
+    getToolCallIdFromConfig,
+    KBDocumentCategoryEnum,
+    KBDocumentStatusEnum,
+    KnowledgeStructureEnum,
+    KnowledgebaseTypeEnum,
+    STATE_VARIABLE_HUMAN,
+    TAgentMiddlewareMeta
+} from '@xpert-ai/contracts'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {
     AgentMiddleware,
@@ -9,8 +18,12 @@ import {
     IAgentMiddlewareStrategy
 } from '@xpert-ai/plugin-sdk'
 import { createHash } from 'crypto'
+import { Raw } from 'typeorm'
 import { z } from 'zod/v3'
 import {
+    AGENT_WRITER_SYSTEM_MANAGED_TYPE,
+    getAgentWriterDocumentName,
+    getAgentWriterDocumentPath,
     KNOWLEDGEBASE_WRITER_MIDDLEWARE,
     WRITE_KNOWLEDGE_CHUNK_TOOL
 } from './agent-knowledge-writer.constants'
@@ -18,9 +31,54 @@ import {
     TAgentKnowledgeChunkInputMetadata,
     WriteAgentKnowledgeChunkCommand
 } from './commands'
+import { KnowledgeDocumentChunkService } from '../knowledge-document/chunk/chunk.service'
+import { KnowledgeDocumentService } from '../knowledge-document/document.service'
+import { KnowledgebaseService } from './knowledgebase.service'
 
 type JsonPrimitive = string | number | boolean | null
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
+
+type TBaseWriteInput = {
+    text: string
+    title?: string
+    metadata?: TAgentKnowledgeChunkInputMetadata
+    chunkId?: string
+}
+
+type TMultiKnowledgebaseWriteInput = TBaseWriteInput & {
+    knowledgebaseId?: string
+}
+
+type TResolvedWriteContext = {
+    xpertId: string
+    agentKey: string
+    knowledgebaseIds: string[]
+    knowledgebaseId: string
+}
+
+type THumanStateCandidate = {
+    files?: unknown
+}
+
+type THumanFileCandidate = {
+    id?: unknown
+    filePath?: unknown
+    fileUrl?: unknown
+    name?: unknown
+    mimeType?: unknown
+}
+
+type TStableImageChunk = {
+    chunkId: string
+    metadata: TAgentKnowledgeChunkInputMetadata
+}
+
+type TSystemManagedDocumentMetadata = {
+    systemManaged: true
+    systemManagedType: typeof AGENT_WRITER_SYSTEM_MANAGED_TYPE
+    ownerXpertId: string
+    ownerAgentKey: string
+}
 
 const jsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()])
 const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
@@ -29,20 +87,20 @@ const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
 const metadataSchema: z.ZodType<TAgentKnowledgeChunkInputMetadata> = z.record(jsonValueSchema)
 
 const baseSchema = z.object({
-    text: z.string().min(1).describe('Text chunk content to append into the target knowledgebase'),
+    text: z.string().min(1).describe('Text chunk content to write into the target knowledgebase'),
     title: z.string().optional().describe('Optional chunk title stored with the chunk metadata'),
-    metadata: metadataSchema.optional().describe('Optional JSON metadata stored with the chunk')
+    metadata: metadataSchema.optional().describe('Optional JSON metadata stored with the chunk'),
+    chunkId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+            'Optional stable chunk identifier. When provided, repeated writes replace the same chunk instead of appending a new one. For image-derived content, prefer a stable hash of the source attachment id and only fall back to a normalized image path'
+        )
 })
 
-type TBaseWriteInput = {
-    text: string
-    title?: string
-    metadata?: TAgentKnowledgeChunkInputMetadata
-}
-
-type TMultiKnowledgebaseWriteInput = TBaseWriteInput & {
-    knowledgebaseId?: string
-}
+const OCR_SOURCE_MARKER = '来源：图片 OCR'
+const OCR_IMAGE_INDEX_PATTERN = /图片编号：第\s*(\d+)\s*张/
 
 @Injectable()
 @AgentMiddlewareStrategy(KNOWLEDGEBASE_WRITER_MIDDLEWARE)
@@ -54,8 +112,8 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
             zh_Hans: '知识库写入器'
         },
         description: {
-            en_US: 'Append agent-authored text chunks into the knowledgebases connected to the current agent.',
-            zh_Hans: '将当前 agent 主动沉淀的文本块追加写入该 agent 已连接的知识库。'
+            en_US: 'Write agent-authored text chunks into the knowledgebases connected to the current agent, with optional stable chunk replacement.',
+            zh_Hans: '将当前 agent 主动沉淀的文本块写入该 agent 已连接的知识库，并支持基于稳定 chunkId 的覆盖写入。'
         },
         icon: {
             type: 'svg',
@@ -68,7 +126,10 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
     }
 
     constructor(
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly documentService: KnowledgeDocumentService,
+        private readonly chunkService: KnowledgeDocumentChunkService
     ) {}
 
     async createMiddleware(
@@ -77,7 +138,27 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
     ): Promise<AgentMiddleware> {
         return {
             name: KNOWLEDGEBASE_WRITER_MIDDLEWARE,
-            tools: [this.createWriteTool(context)]
+            tools: [this.createWriteTool(context)],
+            wrapToolCall: async (request, handler) => {
+                if (request.tool.name !== WRITE_KNOWLEDGE_CHUNK_TOOL) {
+                    return handler(request)
+                }
+
+                const input = this.resolveWriteInput(request.toolCall.args)
+                const nextInput = this.withAutoStableImageChunk(input, request.state)
+
+                if (nextInput === input) {
+                    return handler(request)
+                }
+
+                return handler({
+                    ...request,
+                    toolCall: {
+                        ...request.toolCall,
+                        args: nextInput
+                    }
+                })
+            }
         }
     }
 
@@ -92,48 +173,34 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
         return tool(
             async (parameters, config) => {
                 const input = this.resolveWriteInput(parameters)
-                const xpertId = context.xpertId
-                const agentKey = context.agentKey
-                const knowledgebaseIds = context.knowledgebaseIds ?? []
-
-                if (!xpertId || !agentKey) {
-                    throw new BadRequestException('The current runtime does not include the agent context required for KB writes')
-                }
-
-                if (!knowledgebaseIds.length) {
-                    throw new BadRequestException(`Agent '${agentKey}' has no connected knowledgebases`)
-                }
-
-                const targetKnowledgebaseId =
-                    knowledgebaseIds.length === 1
-                        ? knowledgebaseIds[0]
-                        : input.knowledgebaseId
-
-                if (!targetKnowledgebaseId) {
-                    throw new BadRequestException('knowledgebaseId is required when multiple knowledgebases are connected')
-                }
-
-                if (!knowledgebaseIds.includes(targetKnowledgebaseId)) {
-                    throw new BadRequestException(`Knowledgebase '${targetKnowledgebaseId}' is not connected to agent '${agentKey}'`)
-                }
-
+                const resolvedContext = this.resolveToolWriteContext(context, input)
                 const runtimeContext = this.readRuntimeContext(config)
                 const toolCallId = getToolCallIdFromConfig(config)
                 const writeKey =
                     toolCallId ||
                     this.createFallbackWriteKey(
                         runtimeContext.executionId,
-                        targetKnowledgebaseId,
+                        resolvedContext.knowledgebaseId,
                         input.title,
                         input.text
                     )
 
+                if (input.chunkId) {
+                    return this.replaceStableChunk(
+                        resolvedContext,
+                        input,
+                        writeKey,
+                        runtimeContext.executionId,
+                        runtimeContext.threadId
+                    )
+                }
+
                 return this.commandBus.execute(
                     new WriteAgentKnowledgeChunkCommand({
-                        xpertId,
-                        agentKey,
-                        knowledgebaseIds,
-                        knowledgebaseId: targetKnowledgebaseId,
+                        xpertId: resolvedContext.xpertId,
+                        agentKey: resolvedContext.agentKey,
+                        knowledgebaseIds: resolvedContext.knowledgebaseIds,
+                        knowledgebaseId: resolvedContext.knowledgebaseId,
                         text: input.text,
                         title: input.title,
                         metadata: input.metadata,
@@ -145,10 +212,352 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
             },
             {
                 name: WRITE_KNOWLEDGE_CHUNK_TOOL,
-                description: 'Append a text chunk into one of the knowledgebases connected to the current agent.',
+                description:
+                    'Write a text chunk into one of the knowledgebases connected to the current agent. Provide chunkId to replace an existing chunk instead of appending a new one. For image-derived OCR content, prefer a stable hash of the source attachment id and only fall back to a normalized image path.',
                 schema
             }
         )
+    }
+
+    private resolveToolWriteContext(
+        context: IAgentMiddlewareContext,
+        input: TMultiKnowledgebaseWriteInput
+    ): TResolvedWriteContext {
+        const xpertId = context.xpertId
+        const agentKey = context.agentKey
+        const knowledgebaseIds = context.knowledgebaseIds ?? []
+
+        if (!xpertId || !agentKey) {
+            throw new BadRequestException('The current runtime does not include the agent context required for KB writes')
+        }
+
+        if (!knowledgebaseIds.length) {
+            throw new BadRequestException(`Agent '${agentKey}' has no connected knowledgebases`)
+        }
+
+        const knowledgebaseId =
+            knowledgebaseIds.length === 1
+                ? knowledgebaseIds[0]
+                : input.knowledgebaseId
+
+        if (!knowledgebaseId) {
+            throw new BadRequestException('knowledgebaseId is required when multiple knowledgebases are connected')
+        }
+
+        if (!knowledgebaseIds.includes(knowledgebaseId)) {
+            throw new BadRequestException(`Knowledgebase '${knowledgebaseId}' is not connected to agent '${agentKey}'`)
+        }
+
+        return {
+            xpertId,
+            agentKey,
+            knowledgebaseIds,
+            knowledgebaseId
+        }
+    }
+
+    private withAutoStableImageChunk(
+        input: TMultiKnowledgebaseWriteInput,
+        state: Record<string, unknown>
+    ): TMultiKnowledgebaseWriteInput {
+        if (input.chunkId) {
+            return input
+        }
+
+        const stableImageChunk = this.deriveStableImageChunk(input, state)
+        if (!stableImageChunk) {
+            return input
+        }
+
+        return {
+            ...input,
+            chunkId: stableImageChunk.chunkId,
+            metadata: {
+                ...(input.metadata ?? {}),
+                ...stableImageChunk.metadata
+            }
+        }
+    }
+
+    private deriveStableImageChunk(
+        input: TMultiKnowledgebaseWriteInput,
+        state: Record<string, unknown>
+    ): TStableImageChunk | null {
+        if (!this.shouldAutoDeriveStableImageChunk(input)) {
+            return null
+        }
+
+        const files = this.readHumanFiles(state)
+        if (!files.length) {
+            return null
+        }
+
+        const imageIndex = this.readImageIndex(input)
+        const file =
+            imageIndex !== null
+                ? files[imageIndex - 1] ?? null
+                : files.length === 1
+                    ? files[0]
+                    : null
+
+        if (!file) {
+            return null
+        }
+
+        const sourceId = this.readStableFileIdentifier(file)
+        if (!sourceId) {
+            return null
+        }
+
+        const metadata: TAgentKnowledgeChunkInputMetadata = {}
+        if (typeof file.id === 'string' && file.id.length > 0) {
+            metadata.sourceImageId = file.id
+            metadata.fileId = file.id
+        }
+        if (typeof file.name === 'string' && file.name.length > 0) {
+            metadata.fileName = file.name
+        }
+        if (typeof file.filePath === 'string' && file.filePath.length > 0) {
+            metadata.filePath = file.filePath
+        }
+        if (imageIndex !== null) {
+            metadata.imageIndex = imageIndex
+        }
+
+        return {
+            chunkId: this.createStableImageChunkId(sourceId),
+            metadata
+        }
+    }
+
+    private shouldAutoDeriveStableImageChunk(input: TMultiKnowledgebaseWriteInput) {
+        return input.text.includes(OCR_SOURCE_MARKER) || this.readImageIndex(input) !== null
+    }
+
+    private readImageIndex(input: TMultiKnowledgebaseWriteInput) {
+        const metadata = input.metadata ?? {}
+        const metadataIndex = this.readPositiveInteger(metadata.imageIndex)
+        if (metadataIndex !== null) {
+            return metadataIndex
+        }
+
+        const imageNumber = this.readPositiveInteger(metadata.imageNumber)
+        if (imageNumber !== null) {
+            return imageNumber
+        }
+
+        const imageNo = this.readPositiveInteger(metadata.imageNo)
+        if (imageNo !== null) {
+            return imageNo
+        }
+
+        const match = input.text.match(OCR_IMAGE_INDEX_PATTERN)
+        if (!match) {
+            return null
+        }
+
+        return this.readPositiveInteger(match[1])
+    }
+
+    private readPositiveInteger(value: unknown) {
+        if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+            return value
+        }
+
+        if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) {
+            return Number.parseInt(value, 10)
+        }
+
+        return null
+    }
+
+    private readHumanFiles(state: Record<string, unknown>) {
+        if (!(STATE_VARIABLE_HUMAN in state)) {
+            return []
+        }
+
+        const humanState = state[STATE_VARIABLE_HUMAN]
+        if (!humanState || typeof humanState !== 'object' || Array.isArray(humanState)) {
+            return []
+        }
+
+        const files = (humanState as THumanStateCandidate).files
+        if (!Array.isArray(files)) {
+            return []
+        }
+
+        return files.filter((file): file is THumanFileCandidate => !!file && typeof file === 'object')
+    }
+
+    private readStableFileIdentifier(file: THumanFileCandidate) {
+        if (typeof file.id === 'string' && file.id.length > 0) {
+            return `attachment:${file.id}`
+        }
+
+        if (typeof file.filePath === 'string' && file.filePath.length > 0) {
+            return `path:${this.normalizeImagePath(file.filePath)}`
+        }
+
+        if (typeof file.fileUrl === 'string' && file.fileUrl.length > 0) {
+            return `url:${file.fileUrl}`
+        }
+
+        if (typeof file.name === 'string' && file.name.length > 0) {
+            return `name:${file.name}`
+        }
+
+        return null
+    }
+
+    private normalizeImagePath(filePath: string) {
+        return filePath.replace(/\\/g, '/').replace(/\/+/g, '/').trim()
+    }
+
+    private createStableImageChunkId(sourceId: string) {
+        return createHash('sha1').update(sourceId).digest('hex')
+    }
+
+    private async replaceStableChunk(
+        resolvedContext: TResolvedWriteContext,
+        input: TMultiKnowledgebaseWriteInput,
+        writeKey: string,
+        executionId?: string,
+        threadId?: string
+    ) {
+        const knowledgebase = await this.knowledgebaseService.findOne(resolvedContext.knowledgebaseId, {
+            select: {
+                id: true,
+                name: true,
+                type: true,
+                structure: true,
+                copilotModelId: true
+            }
+        })
+
+        if (knowledgebase.type === KnowledgebaseTypeEnum.External) {
+            throw new BadRequestException(`Knowledgebase '${knowledgebase.name}' does not support agent chunk writes`)
+        }
+
+        if (!knowledgebase.copilotModelId) {
+            throw new BadRequestException(`Knowledgebase '${knowledgebase.name}' has no embedding model configured`)
+        }
+
+        if (knowledgebase.structure === KnowledgeStructureEnum.ParentChild) {
+            throw new BadRequestException(
+                `Knowledgebase '${knowledgebase.name}' does not support agent chunk writes for '${KnowledgeStructureEnum.ParentChild}' structure`
+            )
+        }
+
+        const document = await this.findOrCreateAgentDocument(
+            resolvedContext.knowledgebaseId,
+            resolvedContext.xpertId,
+            resolvedContext.agentKey
+        )
+        const existingChunk = await this.findExistingChunkByChunkId(document.id, input.chunkId)
+        const metadata = {
+            ...(existingChunk?.metadata ?? {}),
+            ...(input.metadata ?? {}),
+            ...(input.title ? { title: input.title } : {}),
+            chunkId: input.chunkId,
+            writeKey,
+            executionId,
+            threadId,
+            ownerAgentKey: resolvedContext.agentKey,
+            ownerXpertId: resolvedContext.xpertId
+        }
+
+        if (existingChunk) {
+            await this.documentService.deleteChunk(document.id, existingChunk.id)
+        }
+
+        await this.documentService.createChunk(document.id, {
+            pageContent: input.text,
+            metadata
+        })
+
+        return {
+            status: existingChunk ? 'updated' : 'created',
+            knowledgebaseId: knowledgebase.id,
+            knowledgebaseName: knowledgebase.name,
+            documentId: document.id,
+            writeKey
+        }
+    }
+
+    private async findOrCreateAgentDocument(knowledgebaseId: string, xpertId: string, agentKey: string) {
+        const existingDocument = await this.findExistingAgentDocument(knowledgebaseId, xpertId, agentKey)
+
+        if (existingDocument) {
+            return existingDocument
+        }
+
+        const documentMetadata: TSystemManagedDocumentMetadata = {
+            systemManaged: true,
+            systemManagedType: AGENT_WRITER_SYSTEM_MANAGED_TYPE,
+            ownerXpertId: xpertId,
+            ownerAgentKey: agentKey
+        }
+
+        return this.documentService.createDocument({
+            knowledgebaseId,
+            name: getAgentWriterDocumentName(agentKey),
+            filePath: getAgentWriterDocumentPath(agentKey),
+            category: KBDocumentCategoryEnum.Text,
+            sourceType: DocumentTypeEnum.FILE,
+            type: 'txt',
+            mimeType: 'text/plain',
+            status: KBDocumentStatusEnum.FINISH,
+            metadata: documentMetadata
+        })
+    }
+
+    private async findExistingAgentDocument(knowledgebaseId: string, xpertId: string, agentKey: string) {
+        try {
+            return await this.documentService.findOneByOptions({
+                where: {
+                    knowledgebaseId,
+                    metadata: Raw(
+                        (alias) =>
+                            [
+                                `COALESCE((${alias})::jsonb ->> 'systemManagedType', '') = :systemManagedType`,
+                                `COALESCE((${alias})::jsonb ->> 'ownerXpertId', '') = :ownerXpertId`,
+                                `COALESCE((${alias})::jsonb ->> 'ownerAgentKey', '') = :ownerAgentKey`
+                            ].join(' AND '),
+                        {
+                            systemManagedType: AGENT_WRITER_SYSTEM_MANAGED_TYPE,
+                            ownerXpertId: xpertId,
+                            ownerAgentKey: agentKey
+                        }
+                    )
+                }
+            })
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                return null
+            }
+
+            throw error
+        }
+    }
+
+    private async findExistingChunkByChunkId(documentId: string, chunkId: string) {
+        try {
+            return await this.chunkService.findOneByOptions({
+                where: {
+                    documentId,
+                    metadata: Raw(
+                        (alias) => `COALESCE((${alias})::jsonb ->> 'chunkId', '') = :chunkId`,
+                        { chunkId }
+                    )
+                }
+            })
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                return null
+            }
+
+            throw error
+        }
     }
 
     private readRuntimeContext(config: unknown) {
@@ -207,6 +616,14 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
         }
 
         if ('title' in value && value.title !== undefined && typeof value.title !== 'string') {
+            return false
+        }
+
+        if (
+            'chunkId' in value &&
+            value.chunkId !== undefined &&
+            (typeof value.chunkId !== 'string' || !value.chunkId.length)
+        ) {
             return false
         }
 
