@@ -10,7 +10,7 @@ import { EVENT_ORGANIZATION_CREATED, OrganizationCreatedEvent } from '../../even
 import { OrganizationService } from '../../organization.service';
 import { OrganizationCreateCommand } from '../organization.create.command';
 import { Organization, UserOrganization } from './../../../core/entities/internal';
-import { ImportRecordUpdateOrCreateCommand } from './../../../export-import/import-record';
+import { ImportRecordUpdateOrCreateCommand } from './../../../export-import/import-record/commands/import-record-update-or-create.command';
 
 
 @CommandHandler(OrganizationCreateCommand)
