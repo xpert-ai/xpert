@@ -1,6 +1,6 @@
 import { SocialAuthModule } from '@xpert-ai/server-auth'
 import { SSOProviderRegistry } from '@xpert-ai/plugin-sdk'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
