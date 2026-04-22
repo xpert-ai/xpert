@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
+import { TChatElementReference } from '@xpert-ai/contracts'
 import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
@@ -10,6 +11,7 @@ import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/term
 import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage, injectToastr } from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
+import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 import {
   shouldRefreshWorkspaceFilesFromEffectEvent,
@@ -29,13 +31,15 @@ type ChatKitCodeComposerReference = {
   language?: string
 }
 
+type ChatKitComposerReference = ChatKitCodeComposerReference | TChatElementReference
+
 type ChatKitReferenceComposerControl = {
   element: unknown
   setComposerValue(params: {
     text?: string
     reply?: string
     attachments?: unknown[]
-    references?: ChatKitCodeComposerReference[]
+    references?: ChatKitComposerReference[]
     appendReferences?: boolean
   }): Promise<void>
   focusComposer(): Promise<void>
@@ -52,6 +56,7 @@ type ChatKitReferenceComposerControl = {
     ZardIconComponent,
     ...ZardTabsImports,
     ClawXpertConversationFilesComponent,
+    ClawXpertConversationPreviewComponent,
     ChatSharedTerminalComponent,
     ChatComputerTimelineComponent
   ],
@@ -107,6 +112,18 @@ type ChatKitReferenceComposerControl = {
                 <button
                   z-tab-link
                   type="button"
+                  data-panel-button="preview"
+                  class="flex items-center gap-2"
+                  [active]="activePanel() === 'preview'"
+                  (click)="selectPanel('preview')"
+                >
+                  <i class="ri-global-line text-base"></i>
+                  <span>{{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
+                </button>
+
+                <button
+                  z-tab-link
+                  type="button"
                   data-panel-button="terminal"
                   class="flex items-center gap-2"
                   [active]="activePanel() === 'terminal'"
@@ -122,7 +139,7 @@ type ChatKitReferenceComposerControl = {
               <div class="min-h-0 flex-1 p-2 pr-0">
                 @if (contextLoading() && !resolvedConversationId()) {
                   <div class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
-                    {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace…' } }}
+                    {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
                   </div>
                 } @else {
                   @if (!resolvedConversationId()) {
@@ -152,6 +169,15 @@ type ChatKitReferenceComposerControl = {
                                 : {
                                     Default:
                                       'Once this ClawXpert thread is created, its computer timeline will appear here as workspace tools start running.'
+                                  }
+                          }}
+                        } @else if (activePanel() === 'preview') {
+                          {{
+                            'PAC.Chat.ClawXpert.PreviewDetailEmptyDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Once this ClawXpert thread is created, its managed sandbox services will appear here for live browsing and element selection.'
                                   }
                           }}
                         } @else {
@@ -188,6 +214,12 @@ type ChatKitReferenceComposerControl = {
                         [conversation]="resolvedConversation()"
                         [projectId]="resolvedConversation()?.projectId ?? null"
                       />
+                    } @else if (activePanel() === 'preview') {
+                      <pac-clawxpert-conversation-preview
+                        class="h-full"
+                        [conversationId]="resolvedConversationId()"
+                        (referenceRequest)="handleElementReference($event)"
+                      />
                     } @else {
                       <xp-chat-shared-terminal
                         class="h-full"
@@ -211,7 +243,7 @@ type ChatKitReferenceComposerControl = {
           <div class="min-h-0 flex-1">
             @if (facade.loading()) {
               <div class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
-                {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert…' } }}
+                {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert...' } }}
               </div>
             } @else {
               @switch (facade.viewState()) {
@@ -318,7 +350,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     }
   })
-  readonly activePanel = signal<'files' | 'computer' | 'terminal' | null>('files')
+  readonly activePanel = signal<'files' | 'computer' | 'preview' | 'terminal' | null>('files')
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
@@ -448,6 +480,27 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   async handleWorkspaceReference(request: FileWorkbenchReferenceRequest) {
+    await this.attachComposerReferences([
+      {
+        type: 'code',
+        path: request.path,
+        text: request.text,
+        startLine: request.startLine,
+        endLine: request.endLine,
+        ...(request.language ? { language: request.language } : {})
+      }
+    ])
+  }
+
+  async handleElementReference(request: TChatElementReference) {
+    await this.attachComposerReferences([request])
+  }
+
+  selectPanel(panel: 'files' | 'computer' | 'preview' | 'terminal') {
+    this.activePanel.update((activePanel) => (activePanel === panel ? null : panel))
+  }
+
+  private async attachComposerReferences(references: ChatKitComposerReference[]) {
     const control = this.control() as ChatKitReferenceComposerControl | null
     if (!control?.element) {
       this.#toastr.warning('PAC.Chat.ClawXpert.ReferenceUnavailable', {
@@ -458,16 +511,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     try {
       await control.setComposerValue({
-        references: [
-          {
-            type: 'code',
-            path: request.path,
-            text: request.text,
-            startLine: request.startLine,
-            endLine: request.endLine,
-            ...(request.language ? { language: request.language } : {})
-          }
-        ],
+        references,
         appendReferences: true
       })
       await control.focusComposer()
@@ -476,14 +520,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         getErrorMessage(error) || 'PAC.Chat.ClawXpert.ReferenceAttachFailed',
         'PAC.TOASTR.TITLE.ERROR',
         {
-          Default: 'Failed to attach the selected file reference.'
+          Default: 'Failed to attach the selected reference.'
         }
       )
     }
-  }
-
-  selectPanel(panel: 'files' | 'computer' | 'terminal') {
-    this.activePanel.update((activePanel) => (activePanel === panel ? null : panel))
   }
 
   private scheduleWorkspaceFileListRefresh() {

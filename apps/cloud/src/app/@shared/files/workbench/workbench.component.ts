@@ -150,7 +150,9 @@ export class FileWorkbenchComponent {
     const path = this.activeFilePath()
     return !!path && this.#markdownExtensionSet().has(fileExtension(path))
   })
-  readonly dirty = computed(() => this.isActiveFileEditable() && this.draftContent() !== (this.activeFile()?.contents ?? ''))
+  readonly dirty = computed(
+    () => this.isActiveFileEditable() && this.draftContent() !== (this.activeFile()?.contents ?? '')
+  )
   readonly canDeleteFiles = computed(() => !!this.fileDeleter())
   readonly canUploadFiles = computed(() => !!this.fileUploader() && !!this.rootId())
   readonly canDownloadFiles = computed(() => !!this.fileDownloader() || !!this.fileLoader())
@@ -289,7 +291,7 @@ export class FileWorkbenchComponent {
 
   referenceSelectedRange(selection: FileEditorSelection) {
     const filePath = normalizeReferencePath(this.activeFilePath())
-    if (!this.referenceable() || !filePath || !this.fileReadable()) {
+    if (!this.referenceable() || !filePath) {
       return
     }
 
@@ -298,9 +300,7 @@ export class FileWorkbenchComponent {
       return
     }
 
-    this.referenceRequest.emit(
-      createReferenceRequest(filePath, text, selection.startLine, selection.endLine)
-    )
+    this.referenceRequest.emit(createReferenceRequest(filePath, text, selection.startLine, selection.endLine))
   }
 
   discardActiveFileChanges() {
@@ -875,6 +875,7 @@ function requiresPreviewUrl(previewKind: FilePreviewKind, hasContents: boolean) 
   }
 
   return (
+    previewKind === 'document' ||
     previewKind === 'image' ||
     previewKind === 'pdf' ||
     previewKind === 'audio' ||
@@ -978,11 +979,7 @@ function readSelectedFiles(event: Event, kind: FileTreeUploadKind): FileWorkbenc
 }
 
 function normalizeUploadRelativePath(relativePath?: string | null) {
-  const normalized = (relativePath ?? '')
-    .trim()
-    .replace(/\\/g, '/')
-    .replace(/^\/+/, '')
-    .replace(/^\.\//, '')
+  const normalized = (relativePath ?? '').trim().replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
 
   return normalized || null
 }
@@ -1001,7 +998,10 @@ function mergeFileTreeState(previous: FileTreeNode[], next: FileTreeNode[]) {
     const currentPath = item.fullPath || item.filePath
     const previousItem = currentPath ? previousMap.get(currentPath) : undefined
     const nextChildren = Array.isArray(item.children)
-      ? mergeFileTreeState(Array.isArray(previousItem?.children) ? (previousItem.children as FileTreeNode[]) : [], item.children)
+      ? mergeFileTreeState(
+          Array.isArray(previousItem?.children) ? (previousItem.children as FileTreeNode[]) : [],
+          item.children
+        )
       : previousItem?.expanded && Array.isArray(previousItem.children)
         ? (previousItem.children as FileTreeNode[])
         : item.children

@@ -4,6 +4,7 @@ import { _TFile } from './types'
 export type TFile = _TFile & {
   fileType?: string
   contents?: string
+  previewText?: string
   description?: string
   size?: number
   createdAt?: Date

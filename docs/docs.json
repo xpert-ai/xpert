@@ -29,6 +29,7 @@
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
+                  "en/guides/sso-architecture",
                   "en/guides/organization-bootstrap",
                   "en/guides/volume-workspace-architecture",
                   "en/guides/file-upload-architecture",
@@ -71,6 +72,7 @@
                 "group": "指南",
                 "pages": [
                   "zh-hans/guides/plugin",
+                  "zh-hans/guides/sso-architecture",
                   "zh-hans/guides/organization-bootstrap",
                   "zh-hans/guides/volume-workspace-architecture",
                   "zh-hans/guides/file-upload-architecture",

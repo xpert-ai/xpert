@@ -1,5 +1,4 @@
 import { computed, effect, Signal, signal } from '@angular/core'
-import { readExcelWorkSheets } from '@xpert-ai/core'
 import { TableColumn } from '@xpert-ai/ocap-angular/common'
 
 export const SPREADSHEET_PREVIEW_ROW_LIMIT = 200
@@ -8,6 +7,8 @@ export type FilePreviewKind =
   | 'text'
   | 'code'
   | 'html'
+  | 'document'
+  | 'presentation'
   | 'image'
   | 'pdf'
   | 'audio'
@@ -22,6 +23,7 @@ export type FilePreviewInput = {
   fileType?: string | null
   mimeType?: string | null
   name?: string | null
+  previewText?: string | null
   url?: string | null
   fileUrl?: string | null
 }
@@ -48,6 +50,7 @@ export type SpreadsheetPreview = {
 
 export type FilePreviewData = {
   content: string | null
+  documentHtml: string | null
   error: string | null
   spreadsheet: SpreadsheetPreview | null
 }
@@ -55,10 +58,14 @@ export type FilePreviewData = {
 const CODE_EXTENSIONS = new Set(['js', 'ts', 'py', 'java', 'css', 'cpp'])
 const TEXT_EXTENSIONS = new Set(['txt', 'md'])
 const HTML_EXTENSIONS = new Set(['html', 'htm', 'jsx'])
+const DOCUMENT_EXTENSIONS = new Set(['docx'])
+const PRESENTATION_EXTENSIONS = new Set(['pptx'])
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'])
 const VIDEO_EXTENSIONS = new Set(['mp4', 'avi', 'mov', 'wmv', 'webm'])
 const AUDIO_EXTENSIONS = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac'])
 const SPREADSHEET_EXTENSIONS = new Set(['csv', 'xls', 'xlsx'])
+const DOCUMENT_MIME_TYPES = new Set(['application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+const PRESENTATION_MIME_TYPES = new Set(['application/vnd.openxmlformats-officedocument.presentationml.presentation'])
 const SPREADSHEET_MIME_TYPES = new Set([
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -76,6 +83,7 @@ const TEXT_MIME_TYPES = new Set(['application/markdown', 'text/markdown', 'text/
 export function createEmptyFilePreviewData(): FilePreviewData {
   return {
     content: null,
+    documentHtml: null,
     error: null,
     spreadsheet: null
   }
@@ -92,7 +100,12 @@ export function toFilePreviewSource(file?: FilePreviewInput | null): FilePreview
   const url = normalizeUrl(file.url || file.fileUrl)
 
   return {
-    contents: typeof file.contents === 'string' ? file.contents : null,
+    contents:
+      typeof file.contents === 'string'
+        ? file.contents
+        : typeof file.previewText === 'string'
+          ? file.previewText
+          : null,
     extension,
     mimeType,
     name,
@@ -120,6 +133,12 @@ export function resolveFilePreviewKind(source: FilePreviewSource | null): FilePr
   }
   if (mimeType === 'text/html') {
     return 'html'
+  }
+  if (mimeType && DOCUMENT_MIME_TYPES.has(mimeType)) {
+    return 'document'
+  }
+  if (mimeType && PRESENTATION_MIME_TYPES.has(mimeType)) {
+    return 'presentation'
   }
   if (mimeType && SPREADSHEET_MIME_TYPES.has(mimeType)) {
     return 'spreadsheet'
@@ -157,20 +176,39 @@ export async function loadSpreadsheetPreview(
   }
 
   const blob = await response.blob()
-  const file = new File([blob], fileName || 'spreadsheet', {
-    type: mimeType || blob.type || 'application/octet-stream'
-  })
-  const sheets = await readExcelWorkSheets<Record<string, unknown>>(file)
+  const { workbook, sheetToJson } = await readSpreadsheetWorkbook(blob, fileName, mimeType)
+  const sheets = workbook.SheetNames.map((sheetName) =>
+    toSpreadsheetPreviewSheet(workbook.Sheets[sheetName], sheetName, sheetToJson)
+  )
 
   return {
     rowLimit: SPREADSHEET_PREVIEW_ROW_LIMIT,
-    sheets: sheets.map((sheet) => ({
-      columns: toSpreadsheetColumns(sheet.columns),
-      name: sheet.name,
-      rows: Array.isArray(sheet.data) ? sheet.data.slice(0, SPREADSHEET_PREVIEW_ROW_LIMIT) : [],
-      totalRows: Array.isArray(sheet.data) ? sheet.data.length : 0
-    }))
+    sheets
   }
+}
+
+export async function loadDocumentPreview(url: string): Promise<string> {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch document preview: ${response.status}`)
+  }
+
+  const arrayBuffer = await response.arrayBuffer()
+  const mammoth = await import('mammoth')
+  const result = await mammoth.convertToHtml(
+    { arrayBuffer },
+    {
+      idPrefix: 'xp-docx-',
+      ignoreEmptyParagraphs: false
+    }
+  )
+
+  const html = normalizeDocumentPreviewHtml(result.value)
+  if (!html) {
+    throw new Error('Failed to generate document preview')
+  }
+
+  return html
 }
 
 export function createFilePreviewState(
@@ -202,6 +240,7 @@ export function createFilePreviewState(
         previewLoading.set(false)
         previewData.set({
           content: currentSource.contents,
+          documentHtml: null,
           error: null,
           spreadsheet: null
         })
@@ -212,6 +251,7 @@ export function createFilePreviewState(
         previewLoading.set(false)
         previewData.set({
           content: null,
+          documentHtml: null,
           error: 'missing-url',
           spreadsheet: null
         })
@@ -227,6 +267,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content,
+            documentHtml: null,
             error: null,
             spreadsheet: null
           })
@@ -239,6 +280,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content: null,
+            documentHtml: null,
             error: 'load-failed',
             spreadsheet: null
           })
@@ -247,11 +289,66 @@ export function createFilePreviewState(
       return
     }
 
+    if (kind === 'document') {
+      if (!currentSource.url) {
+        previewLoading.set(false)
+        previewData.set({
+          content: currentSource.contents,
+          documentHtml: null,
+          error: currentSource.contents !== null ? null : 'missing-preview-content',
+          spreadsheet: null
+        })
+        return
+      }
+
+      previewLoading.set(true)
+      void loadDocumentPreview(currentSource.url)
+        .then((documentHtml) => {
+          if (!active) {
+            return
+          }
+
+          previewData.set({
+            content: currentSource.contents,
+            documentHtml,
+            error: null,
+            spreadsheet: null
+          })
+          previewLoading.set(false)
+        })
+        .catch(() => {
+          if (!active) {
+            return
+          }
+
+          previewData.set({
+            content: currentSource.contents,
+            documentHtml: null,
+            error: currentSource.contents !== null ? null : 'load-failed',
+            spreadsheet: null
+          })
+          previewLoading.set(false)
+        })
+      return
+    }
+
+    if (kind === 'presentation') {
+      previewLoading.set(false)
+      previewData.set({
+        content: currentSource.contents,
+        documentHtml: null,
+        error: currentSource.contents !== null ? null : 'missing-preview-content',
+        spreadsheet: null
+      })
+      return
+    }
+
     if (kind === 'spreadsheet') {
       if (!currentSource.url) {
         previewLoading.set(false)
         previewData.set({
           content: null,
+          documentHtml: null,
           error: 'missing-url',
           spreadsheet: null
         })
@@ -267,6 +364,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content: null,
+            documentHtml: null,
             error: null,
             spreadsheet
           })
@@ -279,6 +377,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content: null,
+            documentHtml: null,
             error: 'load-failed',
             spreadsheet: null
           })
@@ -337,6 +436,12 @@ function resolveExtensionPreviewKind(extension: string | null): FilePreviewKind 
   if (SPREADSHEET_EXTENSIONS.has(extension)) {
     return 'spreadsheet'
   }
+  if (DOCUMENT_EXTENSIONS.has(extension)) {
+    return 'document'
+  }
+  if (PRESENTATION_EXTENSIONS.has(extension)) {
+    return 'presentation'
+  }
   if (IMAGE_EXTENSIONS.has(extension)) {
     return 'image'
   }
@@ -377,6 +482,121 @@ function normalizeUrl(value?: string | null) {
   return normalized || null
 }
 
+function normalizeDocumentPreviewHtml(value?: string | null) {
+  const normalized = value?.trim()
+  return normalized || null
+}
+
+async function blobToArrayBuffer(blob: Blob) {
+  if (typeof blob.arrayBuffer === 'function') {
+    return blob.arrayBuffer()
+  }
+
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result)
+        return
+      }
+
+      reject(new Error('Failed to read spreadsheet preview blob'))
+    }
+    reader.onerror = () => {
+      reject(reader.error ?? new Error('Failed to read spreadsheet preview blob'))
+    }
+    reader.readAsArrayBuffer(blob)
+  })
+}
+
+async function readSpreadsheetWorkbook(blob: Blob, fileName: string, mimeType?: string | null) {
+  const XLSX = await import('xlsx')
+  const sheetToJson = (worksheet: unknown, options: Record<string, unknown>) =>
+    XLSX.utils.sheet_to_json(worksheet, options) as unknown[][]
+
+  if (isCsvFile(fileName, mimeType || blob.type)) {
+    const content = await blob.text()
+    return {
+      workbook: XLSX.read(content, { type: 'string' }),
+      sheetToJson
+    }
+  }
+
+  const arrayBuffer = await blobToArrayBuffer(blob)
+  return {
+    workbook: XLSX.read(arrayBuffer, {
+      type: 'array',
+      cellDates: true,
+      cellNF: false
+    }),
+    sheetToJson
+  }
+}
+
+function toSpreadsheetPreviewSheet(
+  worksheet: unknown,
+  sheetName: string,
+  sheetToJson: (worksheet: unknown, options: Record<string, unknown>) => unknown[][]
+): SpreadsheetPreviewSheet {
+  const rows = toSpreadsheetMatrix(worksheet, sheetToJson)
+  const maxColumnCount = rows.reduce((max, row) => Math.max(max, row.length), 0)
+  const columnNames = Array.from({ length: maxColumnCount }, (_, index) => spreadsheetColumnLabel(index))
+
+  return {
+    columns: toSpreadsheetColumns(columnNames),
+    name: sheetName,
+    rows: rows.slice(0, SPREADSHEET_PREVIEW_ROW_LIMIT).map((row) => toSpreadsheetPreviewRow(row, columnNames)),
+    totalRows: rows.length
+  }
+}
+
+function toSpreadsheetMatrix(
+  worksheet: unknown,
+  sheetToJson: (worksheet: unknown, options: Record<string, unknown>) => unknown[][]
+): unknown[][] {
+  if (!worksheet || typeof worksheet !== 'object') {
+    return []
+  }
+
+  return sheetToJson(worksheet, {
+    blankrows: false,
+    defval: '',
+    header: 1,
+    raw: true
+  }).map((row) => (Array.isArray(row) ? row : []))
+}
+
+function toSpreadsheetPreviewRow(row: unknown[], columnNames: string[]) {
+  return columnNames.reduce<Record<string, unknown>>((record, columnName, index) => {
+    record[columnName] = normalizeSpreadsheetCell(row[index])
+    return record
+  }, {})
+}
+
+function normalizeSpreadsheetCell(value: unknown) {
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  return value ?? ''
+}
+
+function spreadsheetColumnLabel(index: number) {
+  let current = index
+  let label = ''
+
+  while (current >= 0) {
+    label = String.fromCharCode(65 + (current % 26)) + label
+    current = Math.floor(current / 26) - 1
+  }
+
+  return label
+}
+
+function isCsvFile(fileName: string, mimeType?: string | null) {
+  return normalizeExtension(fileName) === 'csv' || normalizeMimeType(mimeType) === 'text/csv'
+}
+
 function looksLikeMimeType(value?: string | null) {
   return typeof value === 'string' && value.includes('/')
 }
@@ -388,11 +608,15 @@ function toSpreadsheetColumns(columns: unknown): TableColumn[] {
 
   return columns.flatMap((column) => {
     const name = getSpreadsheetColumnName(column)
-    return name ? [{ name }] : []
+    return name ? [{ name, maxWidth: '200px' }] : []
   })
 }
 
 function getSpreadsheetColumnName(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
   if (!value || typeof value !== 'object' || !('name' in value)) {
     return null
   }

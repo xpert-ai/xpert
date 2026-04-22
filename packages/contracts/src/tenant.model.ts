@@ -8,6 +8,7 @@ import { IUserCreateInput } from './user.model'
 export interface ITenant {
   id?: string
   name?: string
+  subdomain?: string | null
 
   readonly createdAt?: Date
   readonly updatedAt?: Date
@@ -21,6 +22,7 @@ export interface ITenant {
 
 export interface ITenantCreateInput {
   name: string
+  subdomain?: string
 
   isImporting?: boolean
   sourceId?: string

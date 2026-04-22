@@ -12,6 +12,8 @@ export const zh = {
       'tab-login-mobile': '手机号登录',
       'sign-in-with': '其他登录方式',
       signup: '注册',
+      bind: '绑定账号',
+      'confirm-bind': '确认绑定',
       login: '登录',
       'remember-me': '自动登录',
       'forgot-password': '忘记密码'

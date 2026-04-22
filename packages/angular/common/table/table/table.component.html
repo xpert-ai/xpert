@@ -3,7 +3,8 @@
     z-table
     [zSize]="tableSize()"
     [class.ngm-table-grid]="grid()"
-    class="min-w-full text-sm"
+    class="min-w-full table-fixed text-sm"
+    [style.min-width.px]="tableMinWidth()"
     [displayDensity]="displayDensity()"
   >
     <thead z-table-header>
@@ -22,17 +23,21 @@
 
         @for (column of columns(); track column.name) {
           <th
+            #headerCell
             z-table-head
+            class="group relative"
             [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
             [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
             [zTableStickyZIndex]="stickyZIndex(column, true)"
-            [style.width]="column.width || null"
-            [style.max-width]="column.width || null"
+            [ngClass]="column.headerClass"
+            [style.width]="columnWidth(column)"
+            [style.min-width]="column.minWidth || null"
+            [style.max-width]="columnMaxWidth(column)"
             [attr.aria-sort]="
               sortDirection(column.name) === 'asc' ? 'ascending' : sortDirection(column.name) === 'desc' ? 'descending' : 'none'
             "
           >
-            <div class="flex min-w-0 flex-col gap-2">
+            <div class="flex min-w-0 flex-col gap-2 pr-2" [style.max-width]="columnMaxWidth(column)">
               <div class="flex min-w-0 items-center gap-1">
                 <button
                   z-table-sort-header
@@ -48,8 +53,11 @@
                   zType="ghost"
                   zSize="icon-sm"
                   zShape="circle"
-                  class="shrink-0 opacity-60 hover:opacity-100"
-                  [ngClass]="{ 'opacity-100': searchingColumn() === column.name }"
+                  [class]="
+                    searchingColumn() === column.name
+                      ? 'shrink-0 pointer-events-auto opacity-100 transition-opacity hover:opacity-100'
+                      : 'shrink-0 pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-60 hover:opacity-100'
+                  "
                   [zTooltip]="'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' }"
                   (click)="$event.stopPropagation(); toggleSearchingColumn(column.name)"
                 >
@@ -63,13 +71,27 @@
                   zBorderless
                   placeholder="{{ 'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' } }}"
                   type="text"
-                  class="h-8 w-full text-left text-sm"
+                  class="h-6 w-full text-left text-sm"
                   [formControl]="searchControl"
                   (click)="$event.stopPropagation()"
                   (keyup)="escapeSearching($event)"
                 />
               }
             </div>
+
+            @if (canResizeColumn(column)) {
+              <button
+                type="button"
+                data-ngm-table-resize-handle
+                class="absolute inset-y-0 right-0 z-10 flex w-3 cursor-col-resize items-center justify-center bg-transparent p-0 select-none"
+                [ngClass]="resizingColumn() === column.name ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                tabindex="-1"
+                (mousedown)="startColumnResize($event, column, headerCell)"
+                (click)="$event.preventDefault(); $event.stopPropagation()"
+              >
+                <span class="pointer-events-none h-6 w-px bg-border/80"></span>
+              </button>
+            }
           </th>
         }
       </tr>
@@ -97,16 +119,24 @@
                 [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
                 [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
                 [zTableStickyZIndex]="stickyZIndex(column)"
-                [style.width]="column.width || null"
-                [style.max-width]="column.width || null"
+                [ngClass]="column.cellClass"
+                [style.width]="columnWidth(column)"
+                [style.min-width]="column.minWidth || null"
+                [style.max-width]="columnMaxWidth(column)"
               >
-                @if (isSignal(column.cellTemplate)) {
-                  <ng-container *ngTemplateOutlet="column.cellTemplate(); context: _context(row, column)"></ng-container>
-                } @else if (column.cellTemplate) {
-                  <ng-container *ngTemplateOutlet="column.cellTemplate; context: _context(row, column)"></ng-container>
-                } @else {
-                  {{ column.pipe ? column.pipe(getValue(row, column.name)) : getValue(row, column.name) }}
-                }
+                <div
+                  [ngClass]="contentClass(column)"
+                  [style.max-width]="columnMaxWidth(column)"
+                  [attr.title]="cellTitle(row, column)"
+                >
+                  @if (isSignal(column.cellTemplate)) {
+                    <ng-container *ngTemplateOutlet="column.cellTemplate(); context: _context(row, column)"></ng-container>
+                  } @else if (column.cellTemplate) {
+                    <ng-container *ngTemplateOutlet="column.cellTemplate; context: _context(row, column)"></ng-container>
+                  } @else {
+                    {{ displayValue(row, column) }}
+                  }
+                </div>
               </td>
             }
           </tr>

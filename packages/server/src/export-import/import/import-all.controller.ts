@@ -8,7 +8,8 @@ import { IImportHistory, ImportHistoryStatusEnum, IPagination, UploadedFile } fr
 import { RequestContext } from './../../core/context/request-context'
 import { FileStorage } from '../../file/file-storage/file-storage'
 import { UploadedFileStorage } from '../../file/file-storage/uploaded-file-storage'
-import { ImportHistoryCreateCommand, ImportHistoryService } from './../import-history'
+import { ImportHistoryCreateCommand } from './../import-history/commands/import-history-create.command'
+import { ImportHistoryService } from './../import-history'
 
 @ApiTags('Import')
 @Controller()

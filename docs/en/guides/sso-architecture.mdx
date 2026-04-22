@@ -1,0 +1,1132 @@
+# SSO Architecture Research
+
+This guide documents the SSO-related implementations that currently exist in the repository. It is intentionally explicit about scope, because the repo does not contain one single SSO system. Instead, it contains multiple adjacent identity flows that solve different problems and evolved at different times.
+
+The most important conclusion is:
+
+- The mainline `xpert` application currently uses a plugin-driven, binding-first SSO architecture.
+- The only concrete provider implementation in that architecture today is `lark` (Feishu/Lark).
+- `xpert-pro` contains a separate tenant-configured OIDC/Keycloak SSO subsystem.
+- The repo still contains an older Feishu social-auth flow that should be treated as legacy or parallel behavior, not as the main current SSO path.
+
+This guide focuses on four layers:
+
+1. SDK contracts
+2. Host-side orchestration and data model
+3. Plugin-side provider implementation
+4. Frontend flow and user-visible redirects
+
+It also explains how `xpert-pro` fits into the overall picture and where the current boundaries still do not fully line up.
+
+## Terminology
+
+Before looking at code paths, it helps to define the terms used by the current implementation:
+
+- `tenant`: the broadest customer boundary; account bindings are tenant-scoped
+- `organization`: a narrower scope used for plugin visibility, discovery, and some registration defaults
+- `provider`: an external identity provider such as `lark`
+- `subjectId`: the provider-specific stable identity key used for binding
+- `binding`: the durable relationship between an external identity and a local Xpert user
+- `pending binding challenge`: a short-lived Redis record used to finish binding after OAuth completes
+
+## Inventory Of SSO-Related Systems
+
+The repository currently contains four distinct identity systems or subsystems.
+
+### 1. Mainline `xpert` plugin-driven SSO
+
+This is the most complete and operational SSO architecture in the main app.
+
+Characteristics:
+
+- provider discovery is plugin-based
+- plugins are permission-constrained by the host
+- login is binding-first, not auto-provision-first
+- pending binding state is stored by the host in Redis
+- local Xpert tokens are always issued by the host, not by the plugin
+
+Today, the concrete provider implementation is the Lark SSO plugin.
+
+### 2. Mainline `xpert` account binding compatibility layer
+
+This is not a separate login system, but it is crucial to understanding current behavior.
+
+Characteristics:
+
+- durable bindings are stored in `external_identity_binding`
+- Lark bindings are also synchronized into the older `user.thirdPartyId` field
+- legacy Lark integrations still read `thirdPartyId` in fallback paths
+
+This means the repo is in a compatibility phase: the new binding table is the preferred identity source, but some older integration logic still depends on the historical field.
+
+### 3. `xpert-pro` tenant-configured OIDC / Keycloak SSO
+
+This is a separate subsystem under `xpert-pro`.
+
+Characteristics:
+
+- administrators configure per-tenant SSO settings in `tenant_sso`
+- the frontend fetches effective provider config from `/api/auth/sso-config?tenant=...`
+- the frontend can bootstrap OIDC client login from that config
+- this subsystem is conceptually separate from the mainline plugin-driven Lark binding flow
+
+This is not the same mechanism as the plugin-driven SSO used in mainline `xpert`.
+
+### 4. Legacy Feishu social auth
+
+This older flow still exists in the mainline codebase.
+
+Characteristics:
+
+- it is wired through `SocialAuthModule`
+- it uses `thirdPartyId`
+- it performs social login / auto-registration style behavior
+- it does not follow the new pending-binding, binding-first model
+
+This guide treats it as legacy or parallel behavior.
+
+## Mainline `xpert`: Plugin-Driven Binding-First SSO
+
+The current mainline architecture is split cleanly across SDK, host, plugin, and frontend.
+
+### High-Level Responsibilities
+
+| Layer | Responsibility |
+| --- | --- |
+| SDK | Define provider strategy interfaces and permission service contracts |
+| Host | Discover providers, resolve tenant/org, store binding challenges, persist bindings, issue local tokens |
+| Plugin | Execute external OAuth, normalize provider profile, ask host to log in or create pending binding |
+| Frontend | Show provider buttons, collect bind/register choices, finalize redirect into logged-in app state |
+
+The core design principle is:
+
+- the plugin authenticates the external identity
+- the host owns local identity binding and token issuance
+
+The plugin never directly bypasses host identity rules.
+
+## SDK Contracts
+
+The SDK defines the extension boundaries that make plugin-driven SSO possible.
+
+### SSO Provider Discovery
+
+`packages/plugin-sdk/src/lib/sso/strategy.interface.ts` defines:
+
+- `ISSOProviderDescriptor`
+- `ISSOProviderContext`
+- `ISSOProviderStrategy`
+
+An SSO provider plugin implements `describe(context)` and returns:
+
+- `provider`
+- `displayName`
+- `icon`
+- `order`
+- `startUrl`
+
+The context includes:
+
+- `tenantId`
+- optional `organizationId`
+- `requestBaseUrl`
+
+This shows that provider discovery is designed to be organization-aware from the start.
+
+### Permission Service Contracts
+
+The main permission contracts are defined in `packages/plugin-sdk/src/lib/core/permissions/`.
+
+#### Pending SSO binding creation
+
+`sso-binding.ts` defines:
+
+- `SSO_BINDING_PERMISSION_SERVICE_TOKEN`
+- `CreatePendingBindingInput`
+- `PendingSsoBindingFlow = 'anonymous_bind' | 'current_user_confirm'`
+
+This is the contract a plugin uses when external OAuth succeeded, but the host still needs the user to bind or confirm locally.
+
+#### Account binding service
+
+`account-binding.ts` defines:
+
+- `ACCOUNT_BINDING_PERMISSION_SERVICE_TOKEN`
+- `bindCurrentUser`
+- `resolveBoundUser`
+- `unbindCurrentUser`
+
+This is the general binding API for plugins that want to read or manage bindings directly.
+
+#### Login with an already bound identity
+
+`bound-identity-login.ts` defines:
+
+- `BOUND_IDENTITY_LOGIN_PERMISSION_SERVICE_TOKEN`
+- `loginWithBoundIdentity`
+
+This allows a plugin to say:
+
+- I already authenticated the user with provider `X`
+- here is the provider subject
+- if this subject is already bound, please issue local Xpert tokens
+
+### Plugin Context Boundary
+
+`packages/plugin-sdk/src/lib/types.ts` defines `PluginContext.resolve(token)`.
+
+This is the key dependency boundary:
+
+- plugins do not directly grab arbitrary host services
+- they must resolve declared permission tokens
+- the host can therefore enforce capability boundaries centrally
+
+### Organization-Aware Strategy Registry
+
+`packages/plugin-sdk/src/lib/strategy.ts` provides `BaseStrategyRegistry`.
+
+Current behavior:
+
+- strategies are stored by organization
+- `global` strategies are supported as a fallback scope
+- lookup and listing are organization-aware
+
+This is why SSO provider discovery can vary by organization.
+
+## Host-Side Permission Injection
+
+The host turns SDK contracts into guarded runtime services.
+
+### Plugin Context Creation
+
+`packages/server/src/plugin/lifecycle.ts` creates the plugin context.
+
+The wrapped `resolve(token)` path does three things:
+
+1. assert that the plugin declared the required permission type
+2. map SDK service tokens to host services
+3. wrap resolved services in provider- and operation-aware guards
+
+### Permission Handler Registry
+
+`packages/server/src/plugin/permissions/index.ts` maps SDK service tokens to host implementations.
+
+Relevant mappings:
+
+- `SSO_BINDING_PERMISSION_SERVICE_TOKEN`
+- `BOUND_IDENTITY_LOGIN_PERMISSION_SERVICE_TOKEN`
+- `ACCOUNT_BINDING_PERMISSION_SERVICE_TOKEN`
+
+### Operation And Provider Guards
+
+The host does not only check that a plugin declared a broad permission type. It also enforces:
+
+- operation-level access such as `create`, `read`, `write`, `delete`
+- provider-level access such as `providers: ['lark']`
+
+This means a plugin that only declared `lark` cannot later use the same service proxy for some other provider.
+
+## Host-Side SSO Control Plane
+
+Main host-side SSO entrypoints live under `packages/server/src/auth/sso/`.
+
+### Public And Protected Endpoints
+
+`auth-sso.controller.ts` defines:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /auth/sso/providers` | discover available SSO providers for anonymous login |
+| `GET /auth/sso/bind/challenge` | fetch anonymous bind challenge metadata |
+| `GET /auth/sso/bind/current-user/challenge` | fetch current-user confirmation challenge metadata |
+| `POST /auth/sso/bind/complete` | bind an external identity to an existing local account after password verification |
+| `POST /auth/sso/bind/current-user/complete` | confirm binding for the currently logged-in user |
+| `POST /auth/sso/bind/register` | create a new local user and bind the external identity |
+
+This controller is the bridge between plugin OAuth callbacks and host-owned account flows.
+
+## Anonymous Tenant And Organization Resolution
+
+Anonymous SSO entrypoints need tenant and organization context before the user has a local session.
+
+### Tenant Derivation From Hostname
+
+`packages/server/src/core/context/tenant-domain.utils.ts` derives the tenant candidate from the hostname:
+
+- use the first hostname label
+- ignore `localhost`
+- ignore raw IP addresses
+- ignore malformed host patterns
+
+Example:
+
+- `acme.example.com` resolves candidate tenant name `acme`
+
+### Fallback To Default Tenant
+
+`packages/server/src/tenant/anonymous-tenant-resolver.service.ts` then:
+
+1. tries to find that tenant by name
+2. falls back to `DEFAULT_TENANT` if it cannot
+
+It also selects one organization for anonymous scope:
+
+- prefer default active organization
+- otherwise use the oldest active organization
+
+### Middleware Injection
+
+`packages/server/src/core/context/anonymous-tenant-context.middleware.ts` injects anonymous tenant headers for selected public routes.
+
+Important routes include:
+
+- `/api/auth/sso/providers`
+- `/auth/sso/providers`
+- `/api/tenant/onboard`
+- `^/(api/)?[^/]+/login/start$`
+
+That last pattern is what makes plugin routes such as `/api/lark-identity/login/start` work without a logged-in user.
+
+### Architectural Consequence
+
+This gives the system a specific shape:
+
+- provider discovery is organization-aware
+- but anonymous users do not yet carry an authenticated organization membership
+- so the host resolves one tenant-level default organization for discovery
+
+This matters later, because local binding lookup is still tenant-scoped.
+
+## Provider Discovery Flow
+
+`packages/server/src/auth/sso/auth-sso-discovery.service.ts` performs provider discovery.
+
+Sequence:
+
+1. resolve anonymous tenant and organization
+2. list `ISSOProviderStrategy` instances for that organization, with global fallback
+3. pass `tenantId`, `organizationId`, and `requestBaseUrl` into `describe()`
+4. filter out `null` results
+5. sort by `order`, then by `displayName`
+
+Two subtle but important points:
+
+1. Discovery is organization-aware.
+2. The descriptor API passes `requestBaseUrl`, but a provider may still return a relative `startUrl`.
+
+The current Lark provider returns a relative `startUrl`, not an absolute URL.
+
+## Pending Binding Challenge Model
+
+When external OAuth succeeds but the host still needs a local account action, the system creates a pending binding challenge.
+
+### Storage
+
+`packages/server/src/auth/sso/pending-sso-binding-challenge.service.ts` stores the record in Redis.
+
+Implementation details:
+
+- key prefix: `auth:sso:bind:challenge:`
+- TTL: 10 minutes (`600` seconds)
+- ticket format: random UUID with dashes removed
+
+### Stored Fields
+
+The record includes:
+
+- `ticket`
+- `flow`
+- `provider`
+- `subjectId`
+- `tenantId`
+- optional `organizationId`
+- optional `displayName`
+- optional `avatarUrl`
+- optional `profile`
+- optional `returnTo`
+- `expiresAt`
+
+### Supported Flows
+
+Only two flows currently exist:
+
+- `anonymous_bind`
+- `current_user_confirm`
+
+Default normalization behavior:
+
+- if `flow` is absent or invalid, it becomes `anonymous_bind`
+
+### Why This Record Exists
+
+This design lets the plugin finish external OAuth first, then hand control back to host-owned pages:
+
+- the plugin does not directly bind a local user after login OAuth
+- the host decides whether the user must sign in, confirm, or register
+
+## Binding Data Model
+
+The durable binding model lives in `packages/server/src/account-binding/`.
+
+### Main Table
+
+`external-identity-binding.entity.ts` defines table `external_identity_binding`.
+
+Key fields:
+
+- `tenantId`
+- `provider`
+- `subjectId`
+- `userId`
+- optional JSON `profile`
+
+### Uniqueness Rules
+
+There are two important uniqueness constraints:
+
+- `(tenantId, provider, subjectId)` is unique
+- `(tenantId, provider, userId)` is unique
+
+This means:
+
+- one external identity can only map to one local user within a tenant
+- one local user can only have one identity for a given provider within a tenant
+
+### Tenant Scope Is The Source Of Truth
+
+`account-binding.service.ts` resolves bindings by:
+
+- `tenantId`
+- `provider`
+- `subjectId`
+
+The mainline login path does not currently include `organizationId` in the final durable lookup key.
+
+This is one of the most important architecture facts in the repo:
+
+- discovery is organization-aware
+- binding and bound-identity login are currently tenant-scoped
+
+## Legacy Compatibility Inside Account Binding
+
+The binding service also maintains a compatibility bridge for Lark.
+
+### Synchronization To `user.thirdPartyId`
+
+For provider `lark`, successful binding also updates the older `user.thirdPartyId` field.
+
+This exists so older Lark integration code can continue to function while newer code uses `external_identity_binding`.
+
+### Lark Identity Reclaim Logic
+
+The service includes provider-specific reclaim rules.
+
+For `lark`, the system can reclaim an occupied identity when the existing occupant is:
+
+- a communication user
+- a ghost user
+
+It will not reclaim a normal real user silently.
+
+This is another strong signal that the repo is currently in a migration period rather than a hard cut-over.
+
+## Host Binding And Login Flows
+
+`packages/server/src/auth/sso/auth-sso-binding.service.ts` contains the main host-owned completion logic.
+
+There are three flows.
+
+### 1. Anonymous Login -> Bind Existing Local Account
+
+This flow uses `anonymous_bind`.
+
+Steps:
+
+1. load challenge by ticket
+2. verify that the challenge flow is `anonymous_bind`
+3. require `userName` and `password`
+4. find a local user in the same tenant by:
+   - verified email
+   - or username
+5. validate password
+6. bind external identity to that user
+7. issue local host tokens
+8. delete the challenge
+9. redirect to `/sign-in/success?...`
+
+If the challenge carried `returnTo`, it is preserved into the success redirect.
+
+### 2. Current Logged-In User -> Confirm Binding
+
+This flow uses `current_user_confirm`.
+
+Steps:
+
+1. load challenge by ticket
+2. require current logged-in user
+3. require current tenant to match challenge tenant
+4. bind external identity to the current user
+5. delete the challenge
+6. redirect to `returnTo` or `/`
+
+The host does not issue a new login token here, because the user is already authenticated locally.
+
+### 3. Anonymous Login -> Register And Bind
+
+This flow also starts from `anonymous_bind`.
+
+Steps:
+
+1. load challenge
+2. require email, password, and confirmation
+3. ensure the external identity is not already bound
+4. call host registration
+5. pass `organizationId` from the challenge into registration
+6. bind the external identity
+7. issue local host tokens
+8. delete the challenge
+9. redirect to `/sign-in/success?...`
+
+### Conflict Rules
+
+The binding completion service defends against two main conflict classes:
+
+- the local account already has another identity for the same provider
+- the incoming external identity is already bound to another local user
+
+User-facing conflict messages are deliberately normalized into administrator-facing guidance.
+
+## Security And Behavioral Nuances In The Host Flow
+
+Several current behaviors are important enough to document explicitly.
+
+### `organizationId` Is Carried, But Not Used Everywhere
+
+`organizationId` appears in:
+
+- discovery
+- pending challenge records
+- register-and-bind flow
+- plugin login input
+
+But current bound-identity login resolution still effectively keys on:
+
+- `tenantId`
+- `provider`
+- `subjectId`
+
+This means an existing bound identity login is tenant-scoped, not organization-scoped.
+
+### Current-User Confirmation Is Tenant-Scoped, Not Initiator-User-Scoped
+
+The `current_user_confirm` challenge checks:
+
+- there is a current user
+- the current tenant matches the challenge tenant
+
+It does not currently persist and enforce the identity of the original binding initiator user inside the challenge record itself.
+
+The current behavior is therefore:
+
+- tenant-scoped confirmation
+- completed by whichever valid logged-in user is holding the browser session in that tenant
+
+### Redirect Safety Is Not Centrally Enforced By The Host
+
+The host stores and reuses `returnTo`, but it does not centrally validate redirect safety.
+
+Provider plugins are responsible for validating `returnTo` before they create challenges or login redirects.
+
+The current Lark plugin does this correctly, but this is still a plugin responsibility, not a host-wide invariant.
+
+## Frontend Flow In Mainline `xpert`
+
+The frontend side of the mainline SSO flow lives in `libs/apps/auth` and `apps/cloud`.
+
+### Login Page
+
+`libs/apps/auth/src/lib/login/login.component.ts`:
+
+- requests `/api/auth/sso/providers`
+- renders discovered providers
+- when a provider is clicked, appends `returnUrl` as `returnTo` on the provider start URL
+
+### Anonymous Bind Page
+
+`libs/apps/auth/src/lib/sso-bind/sso-bind.component.ts`:
+
+- loads challenge metadata from `/api/auth/sso/bind/challenge?ticket=...`
+- lets the user choose:
+  - bind an existing account
+  - go to registration
+
+Submitting existing-account bind posts to `/api/auth/sso/bind/complete`.
+
+### Current User Confirmation Page
+
+`libs/apps/auth/src/lib/current-user-sso-confirm/current-user-sso-confirm.component.ts`:
+
+- loads `/api/auth/sso/bind/current-user/challenge`
+- posts `/api/auth/sso/bind/current-user/complete`
+
+This page is only meaningful for already authenticated local users.
+
+### Register Page
+
+`libs/apps/auth/src/lib/register/register.component.ts`:
+
+- if `ticket` is present, registration submits to `/api/auth/sso/bind/register`
+- otherwise it follows the ordinary registration path
+
+### Final Sign-In Handoff
+
+`apps/cloud/src/app/@core/auth/signin-success/sign-in-success.component.ts`:
+
+- reads `jwt`
+- reads `refreshToken`
+- reads `userId`
+- stores them in the frontend store
+- redirects to `returnTo` if present, otherwise `/`
+
+This component is the final handoff point from provider callback flow into normal app state.
+
+## Frontend Interceptor Behavior
+
+Mainline anonymous SSO routes are deliberately excluded from normal auth and tenant header injection.
+
+Relevant files:
+
+- `apps/cloud/src/app/@core/interceptors/token.interceptor.ts`
+- `apps/cloud/src/app/@core/interceptors/tenant.interceptor.ts`
+
+Anonymous allowlist currently includes:
+
+- `/api/auth/sso/providers`
+- `/api/auth/sso/bind/challenge`
+- `/api/auth/sso/bind/complete`
+- `/api/auth/sso/bind/register`
+- `/api/tenant/onboard`
+
+Notably excluded from this allowlist:
+
+- `/api/auth/sso/bind/current-user/challenge`
+- `/api/auth/sso/bind/current-user/complete`
+
+This matches the intended model:
+
+- anonymous first-login bind endpoints are public
+- current-user confirmation endpoints require an authenticated local session
+
+## Current Provider Implementation: Lark SSO Plugin
+
+The current concrete provider implementation lives in `xpert-plugins/xpertai/integrations/lark-sso/`.
+
+### Plugin Declaration
+
+`src/index.ts` declares:
+
+- plugin level: `organization`
+- permissions:
+  - `sso_binding:create` for provider `lark`
+  - `bound_identity_login:create` for provider `lark`
+
+This is a very deliberate design:
+
+- the plugin can create challenges
+- the plugin can ask the host to log in by an existing binding
+- the plugin does not directly perform final local binding during login flow
+
+### Provider Descriptor
+
+`lark-sso-provider.strategy.ts` registers provider key `lark`.
+
+It returns:
+
+- `displayName: 'Feishu'`
+- `startUrl: /api/lark-identity/login/start`
+- `order: 100`
+
+If plugin config is incomplete, `describe()` returns `null`, so the provider simply disappears from discovery.
+
+### Plugin Configuration
+
+`plugin-config.ts` defines:
+
+- `appId`
+- `appSecret`
+- optional `publicBaseUrl`
+
+`publicBaseUrl` matters for two reasons:
+
+1. callback URL generation
+2. same-origin validation of absolute `returnTo` URLs
+
+## Lark State Token
+
+The plugin keeps its own signed OAuth state in `lark-state.service.ts`.
+
+This state is JWT-like but manually implemented.
+
+Properties:
+
+- header algorithm: `HS256`
+- signature key: `appSecret`
+- payload lifetime: 10 minutes
+
+Payload contents:
+
+- `mode`
+- `tenantId`
+- optional `organizationId`
+- `userId` for bind mode
+- optional `returnTo`
+- `nonce`
+- `iat`
+- `exp`
+
+This is how the plugin preserves tenant and flow context across the external Feishu redirect.
+
+## Why Lark Uses `union_id`
+
+The plugin uses `union_id` as the primary binding key.
+
+Current model:
+
+- `union_id` is the durable binding key
+- `open_id` is collected and stored in `profile`, but not used as the primary binding key
+
+This aligns with the current deployment assumption that a tenant uses one Feishu developer ownership domain, making `union_id` the more stable cross-app identity.
+
+## Lark OAuth Flow
+
+`lark-oauth.service.ts` integrates with Feishu endpoints:
+
+- authorize endpoint
+- token exchange endpoint
+- user info endpoint
+
+The normalized profile contains:
+
+- `unionId`
+- `openId`
+- `name`
+- `avatarUrl`
+
+If `union_id` is missing, the callback fails.
+
+## Lark End-To-End Login Flow
+
+The main behavior lives in `lark-sso.service.ts`.
+
+### Login Start
+
+`startLogin()`:
+
+- requires `tenantId`
+- optionally accepts `organizationId`
+- validates `returnTo`
+- creates signed state with `mode: 'login'`
+- redirects to Feishu authorize URL
+
+### Bind Start
+
+`startBind()`:
+
+- requires current local user
+- requires current tenant
+- validates `returnTo`
+- creates signed state with `mode: 'bind'`
+- redirects to Feishu authorize URL
+
+### Callback
+
+`handleCallback()`:
+
+1. verify state
+2. handle OAuth error if Feishu returned one
+3. exchange code for access token
+4. fetch user profile
+5. require `union_id`
+6. build normalized binding profile
+7. branch on `state.mode`
+
+#### Callback Behavior: Bind Mode
+
+When `mode = 'bind'`:
+
+- create pending binding with `flow: 'current_user_confirm'`
+- redirect to `/auth/sso-confirm?ticket=...`
+
+The plugin does not directly bind the current user during callback.
+
+#### Callback Behavior: Login Mode
+
+When `mode = 'login'`:
+
+1. call host `loginWithBoundIdentity(provider='lark', subjectId=unionId, tenantId, organizationId)`
+2. if a bound user exists:
+   - host issues Xpert tokens
+   - redirect to `/sign-in/success?...`
+3. if no bound user exists:
+   - create pending binding with flow `anonymous_bind`
+   - redirect to `/auth/sso-bind?ticket=...`
+
+This is the defining behavior of the current mainline design:
+
+- login is binding-first
+- missing binding does not auto-provision a user
+- missing binding falls into a host-owned bind/register flow
+
+## `returnTo` Validation In The Lark Plugin
+
+`returnTo` handling is intentionally strict.
+
+Accepted values:
+
+- root-relative paths such as `/settings/account`
+- absolute URLs only when they share the same origin as `publicBaseUrl`
+
+Rejected values:
+
+- malformed URLs
+- protocol-relative URLs
+- absolute URLs on any other origin
+- absolute URLs when `publicBaseUrl` is not configured
+
+This prevents open redirects in the current provider implementation.
+
+## Lark Plugin Routes
+
+`lark-sso.controller.ts` exposes:
+
+| Endpoint | Visibility | Purpose |
+| --- | --- | --- |
+| `GET /lark-identity/login/start` | public | start anonymous login |
+| `GET /lark-identity/bind/start` | authenticated | start current-user bind |
+| `GET /lark-identity/callback` | public | complete OAuth and redirect into host flow |
+
+Tenant and organization resolution in the controller follows two different models:
+
+- anonymous login start reads tenant and organization from injected headers
+- bind start prefers current local user context and falls back to request headers only when needed
+
+## How Lark Inbound Integration Uses Account Binding
+
+The Lark chat/message integration has already been updated to prefer the new binding model.
+
+Relevant files:
+
+- `xpert-plugins/xpertai/integrations/lark/src/index.ts`
+- `lark-inbound-identity.service.ts`
+- `lark-channel.strategy.ts`
+
+### Preferred Resolution Order
+
+For inbound webhook events:
+
+1. extract `union_id`
+2. call `accountBindingPermissionService.resolveBoundUser({ provider: 'lark', subjectId: unionId })`
+3. if a bound user exists, use that real user
+4. if not, check legacy auto-provision behavior
+5. if still unresolved, possibly fall back to integration creator
+
+This is extremely important for understanding the repo state:
+
+- `external_identity_binding` is already the preferred identity source
+- but the old `thirdPartyId`-based auto-provisioning path still exists
+
+### Legacy Fallback Path
+
+`lark-channel.strategy.ts` still contains the older logic:
+
+- read users by `thirdPartyId === unionId`
+- optionally auto-provision through `UserPermissionService.provisionByThirdPartyIdentity()`
+
+So the repo currently runs a hybrid model:
+
+- new path: binding table first
+- old path: `thirdPartyId` fallback
+
+## `xpert-pro`: Tenant-Configured OIDC / Keycloak SSO
+
+`xpert-pro` contains a different SSO subsystem.
+
+This subsystem is not plugin-driven. Instead, it is tenant-configured and provider-config-driven.
+
+### Data Model
+
+`packages/server/src/tenant/tenant-sso/tenant-sso.entity.ts` defines table `tenant_sso`.
+
+Key fields:
+
+- `tenantId`
+- `providerType: 'keycloak' | 'oidc'`
+- `issuer`
+- `clientId`
+- `scope`
+- `audience`
+- `extra`
+- `priority`
+- `isActive`
+
+### Management Flow
+
+`TenantSsoService` supports:
+
+- list
+- create
+- update
+- delete
+
+Behavior includes:
+
+- `scope` must contain `openid`
+- duplicate `(providerType + issuer + clientId)` is rejected per tenant
+- cache invalidation happens after create, update, and delete
+
+### Effective Config Resolution
+
+`SsoConfigService.getSsoConfigByTenantCode()`:
+
+1. finds the tenant by `tenant.name`
+2. selects one active config by priority
+3. returns a normalized `SsoProviderConfig`
+
+Computed frontend values include:
+
+- `redirectUri = ${clientBaseUrl}/auth/callback`
+- `postLogoutRedirectUri = clientBaseUrl`
+- `silentCheckSsoRedirectUri = ${clientBaseUrl}/assets/silent-check-sso.html`
+
+The service caches effective configs for 5 minutes.
+
+### Public Config Endpoint
+
+`packages/server/src/auth/auth.controller.ts` exposes:
+
+- `GET /api/auth/sso-config?tenant=...`
+
+This is how the frontend discovers per-tenant OIDC settings.
+
+## `xpert-pro` Frontend OIDC Client Flow
+
+The frontend side lives under `apps/cloud/src/app/auth/`.
+
+### Startup
+
+`auth.config-resolver.ts`:
+
+- gets the current tenant from `TenantService`
+- fetches `/api/auth/sso-config?tenant=...`
+
+`auth.bootstrap.ts`:
+
+- registers provider factories
+- currently registers only `oidc`
+- contains commented-out `keycloak` registration
+
+This means:
+
+- `oidc` is wired
+- `keycloak` provider code exists, but is not currently activated by default
+
+### OIDC Provider Adapter
+
+`providers/oidc.provider.ts` uses `oidc-client-ts`.
+
+Current behavior:
+
+- handles `/auth/callback`
+- performs redirect callback processing
+- performs silent sign-in checks
+- stores session state in `sessionStorage`
+- returns external access token to the app
+
+### Frontend Token Injection
+
+`auth.facade.ts` and `interceptors/oidc-token.interceptor.ts` together:
+
+- hold the active auth provider
+- refresh tokens when needed
+- attach `Authorization: Bearer <external access token>` to `/api` requests
+
+The frontend therefore behaves as an OIDC client for an external IdP.
+
+## Important Boundary In `xpert-pro`
+
+There is an important current limitation that should be stated plainly.
+
+### Dynamic Tenant SSO Config And Backend Token Validation Are Not The Same Pipeline
+
+`xpert-pro` backend auth guard includes an `oidc` strategy in:
+
+- `packages/server/src/shared/guards/auth.guard.ts`
+
+But the actual `OidcJwtStrategy` in:
+
+- `packages/server/src/auth/strategies/oidc-jwt.strategy.ts`
+
+validates tokens using static environment OIDC settings:
+
+- `environment.oidcConfig.issuer`
+- `environment.oidcConfig.audience`
+- `environment.oidcConfig.jwks`
+
+It does **not** dynamically switch issuer and JWK validation based on `tenant_sso`.
+
+So the current architecture boundary is:
+
+- `tenant_sso` provides per-tenant frontend SSO bootstrap configuration
+- backend bearer-token validation still relies on one static environment OIDC configuration
+
+This means `tenant_sso` is not yet the same thing as a fully dynamic multi-issuer backend auth pipeline.
+
+## `xpert-pro` Also Contains An Embedded OIDC Provider
+
+There is yet another identity capability in `xpert-pro`.
+
+Files:
+
+- `packages/server/src/oidc/oidc-provider.service.ts`
+- `packages/server/src/bootstrap/index.ts`
+
+This subsystem allows `xpert-pro` itself to act as an OIDC provider.
+
+Current behavior:
+
+- initializes `oidc-provider` when environment config is present
+- mounts `/oidc`
+- supports login interaction flow
+- emits claims such as:
+  - `sub`
+  - `email`
+  - `name`
+  - `preferred_username`
+  - `roles`
+  - `tenant_id`
+  - `org_id`
+  - `org_ids`
+
+So within `xpert-pro`, there are effectively two adjacent OIDC stories:
+
+1. act as an OIDC client using tenant-configured external providers
+2. act as an OIDC provider for downstream clients
+
+These are related, but they are not the same subsystem.
+
+## Legacy Feishu Social Auth
+
+The older Feishu social-auth flow still exists in mainline `xpert`.
+
+Relevant files:
+
+- `packages/auth/src/feishu/feishu.controller.ts`
+- `packages/auth/src/feishu/feishu.strategy.ts`
+- `packages/server/src/auth/auth.module.ts`
+- `packages/server/src/auth/auth.service.ts`
+
+### Current Shape
+
+Routes:
+
+- `GET /api/auth/feishu`
+- `GET /api/auth/feishu/callback`
+
+Behavior:
+
+- wired through `SocialAuthModule`
+- callback ends in `validateOAuthLoginMobile()`
+- identity matching depends on `thirdPartyId`
+- if no user exists, the flow can auto-register a user and issue local tokens
+
+### Why This Is Not The Main Current SSO Path
+
+This flow differs from the plugin-driven Lark SSO system in almost every architectural choice:
+
+| Legacy Feishu Social Auth | Current Plugin-Driven Lark SSO |
+| --- | --- |
+| social-auth style callback | plugin-managed OAuth callback |
+| `thirdPartyId` is the main key | `external_identity_binding` is the main binding table |
+| auto-registration style | binding-first style |
+| no pending binding challenge model | explicit Redis-backed challenge model |
+| old module path | new plugin permission architecture |
+
+It is still present and still relevant for migration and compatibility, but it should not be described as the primary current architecture.
+
+## Current Architecture Summary
+
+The most accurate summary of the repo today is:
+
+### Mainline `xpert`
+
+- current SSO is plugin-driven
+- provider discovery is organization-aware
+- durable binding and bound-identity login are tenant-scoped
+- the concrete provider implementation is Lark
+- first login without an existing binding does not auto-create a user
+- instead, it enters a host-owned bind or register flow
+
+### Mainline Lark Integrations
+
+- new inbound identity resolution prefers `external_identity_binding`
+- old `thirdPartyId` fallback still exists
+- compatibility synchronization is still active
+
+### `xpert-pro`
+
+- supports per-tenant SSO configuration for OIDC or Keycloak
+- frontend can bootstrap OIDC login from that config
+- backend OIDC bearer-token verification is still based on static environment config
+- the app also contains its own embedded OIDC provider
+
+### Legacy
+
+- older Feishu social auth remains in the repo
+- it should be considered legacy or parallel behavior
+
+## Practical Implications For Future Work
+
+Anyone extending or refactoring SSO in this repo should keep the following in mind.
+
+1. Do not conflate provider discovery scope with binding scope.
+   Discovery is organization-aware; login resolution is currently tenant-scoped.
+
+2. Be careful when assuming `organizationId` affects bound-identity login.
+   Today it mostly affects discovery and registration, not final identity lookup.
+
+3. Do not remove `thirdPartyId` compatibility casually.
+   Older Lark integration code still uses it in fallback paths.
+
+4. New provider plugins must validate `returnTo` safely.
+   The host currently does not enforce redirect safety centrally.
+
+5. If `xpert-pro` is intended to support fully dynamic per-tenant external OIDC at the backend auth layer, the current static `OidcJwtStrategy` boundary will need additional work.
+
+6. If the current-user bind confirmation flow should be user-bound instead of only tenant-bound, the pending challenge model will need to record and enforce the initiating local user identity.
+
+## Final Conclusion
+
+The repository is already far enough along to describe a clear mainline architecture:
+
+- plugin-driven
+- permission-guarded
+- binding-first
+- host-issued local tokens
+- Lark as the current provider
+
+At the same time, the repo still contains compatibility layers and adjacent identity systems that matter:
+
+- legacy Feishu social auth
+- `thirdPartyId` fallback behavior
+- `xpert-pro` tenant-configured OIDC
+- `xpert-pro` embedded OIDC provider
+
+The right mental model is therefore not "Xpert has one SSO implementation".
+
+The right mental model is:
+
+- `xpert` mainline has one emerging primary SSO architecture
+- the repo still contains older and parallel identity systems around it
+- understanding the system correctly requires keeping those boundaries explicit
+
+This guide is intended to be that explicit map.

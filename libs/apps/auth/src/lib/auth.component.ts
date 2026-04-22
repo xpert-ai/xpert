@@ -9,7 +9,13 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { ZardSelectImports } from '@xpert-ai/headless-ui'
 
+type AuthAppConfig = {
+  app_logo?: string
+  app_name?: string
+}
+
 @Component({
+  standalone: true,
   imports: [
     CommonModule,
     RouterModule,
@@ -32,6 +38,7 @@ export class PacAuthComponent {
   protected location = inject(Location)
 
   readonly tenantSettings = toSignal(this.store.tenantSettings$)
+  readonly appConfig = computed<AuthAppConfig | null>(() => (this.tenantSettings() as AuthAppConfig | null))
   readonly language = toSignal(this.#translate.onLangChange.pipe(
     startWith(this.#translate.defaultLang),
     map(() => this.#translate.currentLang))

@@ -38,7 +38,31 @@ export type TChatQuoteReference = TChatReferenceBase & {
   source?: string
 }
 
-export type TChatReference = TChatCodeReference | TChatQuoteReference
+export type TChatElementAttribute = {
+  name: string
+  value: string
+}
+
+export type TChatElementReferenceFields = {
+  attributes: TChatElementAttribute[]
+  outerHtml: string
+  pageTitle?: string
+  pageUrl: string
+  role?: string
+  selector: string
+  serviceId: string
+  tagName: string
+}
+
+export type TChatElementReferenceCandidateFields = {
+  [Property in keyof TChatElementReferenceFields]?: unknown
+}
+
+export type TChatElementReference = TChatReferenceBase & TChatElementReferenceFields & {
+  type: 'element'
+}
+
+export type TChatReference = TChatCodeReference | TChatQuoteReference | TChatElementReference
 
 /**
  * Chat message entity type

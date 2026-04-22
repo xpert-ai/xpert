@@ -35,7 +35,7 @@ import {
 	normalizeUploadedSkillPath
 } from '../skill-repository/plugins/zip'
 import { getDefaultOrganizationWorkspaceName } from '../initialization/constants'
-import { getMediaTypeWithCharset, listFiles } from '../shared/utils'
+import { extractOfficePreviewText, getMediaTypeWithCharset, listFiles } from '../shared/utils'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
@@ -876,6 +876,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			fileType: getSkillFileExtension(relativePath) || 'text',
 			mimeType: getMediaTypeWithCharset(relativePath),
 			contents,
+			previewText: contents === undefined ? await extractOfficePreviewText(relativePath, buffer) : undefined,
 			size: stat.size,
 			createdAt: stat.mtime
 		}

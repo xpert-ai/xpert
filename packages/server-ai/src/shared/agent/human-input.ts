@@ -1,4 +1,11 @@
-import { STATE_VARIABLE_HUMAN, TChatCodeReference, TChatQuoteReference, TChatReference } from '@xpert-ai/contracts'
+import {
+    STATE_VARIABLE_HUMAN,
+    TChatCodeReference,
+    TChatElementReference,
+    TChatElementReferenceCandidateFields,
+    TChatQuoteReference,
+    TChatReference
+} from '@xpert-ai/contracts'
 
 export type CodeReferenceLike = Omit<TChatCodeReference, 'type'> & {
     type?: 'code'
@@ -6,21 +13,28 @@ export type CodeReferenceLike = Omit<TChatCodeReference, 'type'> & {
 
 export type QuoteReferenceLike = TChatQuoteReference
 
+export type ElementReferenceLike = TChatElementReference
+
 export type ReferenceLike = TChatReference
 
 export type ReferenceCompositionMode = 'compose' | 'preserve'
 
-type ReferenceCandidate = {
-    type?: unknown
-    text?: unknown
-    label?: unknown
-    path?: unknown
-    startLine?: unknown
+type ReferenceCandidate = TChatElementReferenceCandidateFields & {
     endLine?: unknown
+    label?: unknown
     language?: unknown
-    taskId?: unknown
     messageId?: unknown
+    type?: unknown
+    path?: unknown
     source?: unknown
+    startLine?: unknown
+    taskId?: unknown
+    text?: unknown
+}
+
+type ElementAttributeCandidate = {
+    name?: unknown
+    value?: unknown
 }
 
 type HumanInputCandidate = {
@@ -57,6 +71,15 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isPositiveInteger(value: unknown): value is number {
     return typeof value === 'number' && Number.isInteger(value) && value > 0
+}
+
+function isElementAttribute(value: unknown): value is { name: string; value: string } {
+    if (!isObjectLike(value)) {
+        return false
+    }
+
+    const attribute = value as ElementAttributeCandidate
+    return isNonEmptyString(attribute.name) && typeof attribute.value === 'string'
 }
 
 export function normalizeCodeReferenceLike(value: unknown): TChatCodeReference | null {
@@ -106,6 +129,40 @@ export function normalizeQuoteReferenceLike(value: unknown): TChatQuoteReference
     }
 }
 
+export function normalizeElementReferenceLike(value: unknown): TChatElementReference | null {
+    if (!isObjectLike(value)) {
+        return null
+    }
+
+    const reference = value as ReferenceCandidate
+    if (
+        !isNonEmptyString(reference.text) ||
+        !isNonEmptyString(reference.serviceId) ||
+        !isNonEmptyString(reference.pageUrl) ||
+        !isNonEmptyString(reference.selector) ||
+        !isNonEmptyString(reference.tagName) ||
+        !isNonEmptyString(reference.outerHtml) ||
+        !Array.isArray(reference.attributes) ||
+        !reference.attributes.every((attribute) => isElementAttribute(attribute))
+    ) {
+        return null
+    }
+
+    return {
+        type: 'element',
+        attributes: reference.attributes,
+        outerHtml: reference.outerHtml,
+        pageUrl: reference.pageUrl,
+        selector: reference.selector,
+        serviceId: reference.serviceId,
+        tagName: reference.tagName,
+        text: reference.text,
+        ...(isNonEmptyString(reference.label) ? { label: reference.label } : {}),
+        ...(isNonEmptyString(reference.pageTitle) ? { pageTitle: reference.pageTitle } : {}),
+        ...(isNonEmptyString(reference.role) ? { role: reference.role } : {})
+    }
+}
+
 export function normalizeReferenceLike(value: unknown): ReferenceLike | null {
     if (!isObjectLike(value)) {
         return null
@@ -114,6 +171,10 @@ export function normalizeReferenceLike(value: unknown): ReferenceLike | null {
     const reference = value as ReferenceCandidate
     if (reference.type === 'quote') {
         return normalizeQuoteReferenceLike(reference)
+    }
+
+    if (reference.type === 'element') {
+        return normalizeElementReferenceLike(reference)
     }
 
     return normalizeCodeReferenceLike(reference)
@@ -143,10 +204,32 @@ function formatCodeReference(reference: CodeReferenceLike): string {
 }
 
 function formatQuoteReference(reference: QuoteReferenceLike): string {
-    const source = [reference.label, reference.source].filter(isNonEmptyString).join(' · ')
+    const source = [reference.label, reference.source].filter(isNonEmptyString).join(' - ')
     const quotedLines = reference.text.split('\n').map((line) => `> ${line}`)
 
     return [source ? `[${source}]` : '[Quoted text]', ...quotedLines].join('\n')
+}
+
+function formatElementReference(reference: ElementReferenceLike): string {
+    const heading = reference.label?.trim() || `${reference.tagName.toLowerCase()} ${reference.selector}`
+    const attributes = reference.attributes.length
+        ? reference.attributes.map(({ name, value }) => `${name}="${value}"`).join(' ')
+        : '(none)'
+
+    return [
+        `[Page element] ${heading}`,
+        `Page: ${reference.pageTitle?.trim() || reference.pageUrl}`,
+        `Selector: ${reference.selector}`,
+        `Tag: ${reference.tagName}`,
+        ...(isNonEmptyString(reference.role) ? [`Role: ${reference.role.trim()}`] : []),
+        `Attributes: ${attributes}`,
+        'Text:',
+        reference.text,
+        'HTML:',
+        '```html',
+        reference.outerHtml,
+        '```'
+    ].join('\n')
 }
 
 export function buildReferencedPrompt(references: ReferenceLike[]): string {
@@ -154,12 +237,14 @@ export function buildReferencedPrompt(references: ReferenceLike[]): string {
         return ''
     }
 
-    const header = references.every((reference) => reference.type !== 'quote')
-        ? 'Referenced code:'
-        : 'Referenced content:'
+    const header = references.every((reference) => reference.type === 'code') ? 'Referenced code:' : 'Referenced content:'
     const body = references
         .map((reference) =>
-            reference.type === 'quote' ? formatQuoteReference(reference) : formatCodeReference(reference)
+            reference.type === 'quote'
+                ? formatQuoteReference(reference)
+                : reference.type === 'element'
+                  ? formatElementReference(reference)
+                  : formatCodeReference(reference)
         )
         .join('\n\n')
 
