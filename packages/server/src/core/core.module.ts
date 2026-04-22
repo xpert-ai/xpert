@@ -1,6 +1,8 @@
 import { forwardRef, MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
+import { APP_FILTER } from '@nestjs/core'
 import { RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
 import { DatabaseModule } from '../database/database.module'
+import { HttpLikeExceptionFilter } from '../shared/http'
 import { TenantModule } from '../tenant/tenant.module'
 import { RequestContextMiddleware as DeprecatedRCM } from './context/request-context.middleware'
 import { TenantDomainMiddleware } from './context/tenant.middleware'
@@ -37,7 +39,13 @@ import { AnonymousTenantContextMiddleware } from './context/anonymous-tenant-con
 		// })) as DynamicModule,
 	],
 	controllers: [],
-	providers: [AnonymousTenantContextMiddleware]
+	providers: [
+		AnonymousTenantContextMiddleware,
+		{
+			provide: APP_FILTER,
+			useClass: HttpLikeExceptionFilter
+		}
+	]
 })
 export class CoreModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {

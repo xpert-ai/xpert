@@ -5,6 +5,7 @@ import {
     IChatConversation,
     IEnvironment,
     IUser,
+    IXpert,
     RequestScopeLevel,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
@@ -304,6 +305,57 @@ export function validateRunCreateInput(
     } as TChatRequestV2
 }
 
+function applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
+    const request = RequestContext.currentRequest() as any
+
+    if (!request?.headers) {
+        return
+    }
+
+    if (organizationId) {
+        request.headers['organization-id'] = organizationId
+        request.headers['x-scope-level'] = RequestScopeLevel.ORGANIZATION
+        return
+    }
+
+    delete request.headers['organization-id']
+    request.headers['x-scope-level'] = RequestScopeLevel.TENANT
+}
+
+function applyAssistantPrincipalToCurrentRequest(
+    apiKey: IApiKey | null | undefined,
+    principalUser: IUser | null | undefined
+) {
+    const request = RequestContext.currentRequest() as any
+    const currentUser = RequestContext.currentUser() as IApiPrincipal | null
+
+    if (!request || !apiKey || !principalUser) {
+        return
+    }
+
+    // An explicit x-principal-user-id represents the business user for this
+    // request and must not be overwritten by the xpert technical principal.
+    if (currentUser?.requestedUserId) {
+        return
+    }
+
+    request.user = {
+        ...principalUser,
+        apiKey,
+        ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
+        apiKeyUserId: currentUser?.apiKeyUserId ?? apiKey.userId ?? principalUser.id ?? null,
+        requestedUserId: currentUser?.requestedUserId ?? null,
+        requestedOrganizationId: currentUser?.requestedOrganizationId ?? null,
+        principalType: currentUser?.principalType ?? 'api_key'
+    }
+}
+
+function applyAssistantScope(xpert: IXpert) {
+    const apiKey = RequestContext.currentApiKey()
+    applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
+    applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)
+}
+
 @CommandHandler(RunCreateStreamCommand)
 export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCommand> {
     readonly #logger = new Logger(RunCreateStreamHandler.name)
@@ -316,48 +368,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly assistantBindingService: AssistantBindingService
     ) {}
-
-    private applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
-        const request = RequestContext.currentRequest() as any
-
-        if (!request?.headers) {
-            return
-        }
-
-        if (organizationId) {
-            request.headers['organization-id'] = organizationId
-            request.headers['x-scope-level'] = RequestScopeLevel.ORGANIZATION
-            return
-        }
-
-        delete request.headers['organization-id']
-        request.headers['x-scope-level'] = RequestScopeLevel.TENANT
-    }
-
-    private applyAssistantPrincipalToCurrentRequest(apiKey: IApiKey, principalUser: IUser | null | undefined) {
-        const request = RequestContext.currentRequest() as any
-        const currentUser = RequestContext.currentUser() as IApiPrincipal | null
-
-        if (!request || !principalUser) {
-            return
-        }
-
-        // An explicit x-principal-user-id represents the business user for this
-        // request and must not be overwritten by the xpert technical principal.
-        if (currentUser?.requestedUserId) {
-            return
-        }
-
-        request.user = {
-            ...principalUser,
-            apiKey,
-            ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
-            apiKeyUserId: currentUser?.apiKeyUserId ?? apiKey.userId ?? principalUser.id ?? null,
-            requestedUserId: currentUser?.requestedUserId ?? null,
-            requestedOrganizationId: currentUser?.requestedOrganizationId ?? null,
-            principalType: currentUser?.principalType ?? 'api_key'
-        }
-    }
 
     private async resolveAssistantForRun(assistantId: string) {
         const apiKey = RequestContext.currentApiKey()
@@ -377,9 +387,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
             throw new ForbiddenException('API key is not allowed to access this workspace assistant.')
         }
-
-        this.applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
-        this.applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)
 
         return xpert
     }
@@ -404,8 +411,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const runCreate = command.runCreate
 
         // Find thread (conversation) and assistant (xpert)
-        const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
         const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
+        const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
+        applyAssistantScope(xpert)
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
         const runtimeContext = getRunCreateContext(runCreate.context)
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)

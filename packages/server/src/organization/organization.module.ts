@@ -9,8 +9,8 @@ import { CommandHandlers } from './commands/handlers';
 import { OrganizationController } from './organization.controller';
 import { Organization } from './organization.entity';
 import { OrganizationService } from './organization.service';
-import { RolePermissionModule } from '../role-permission';
-import { UserModule } from '../user';
+import { RolePermissionModule } from '../role-permission/role-permission.module';
+import { UserModule } from '../user/user.module';
 import { Invite, UserGroup, UserOrganization } from '../core/entities/internal';
 
 @Module({

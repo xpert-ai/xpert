@@ -32,7 +32,7 @@ import { UserService } from '../user/user.service'
 import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
-import { OrganizationService } from '../organization'
+import { OrganizationService } from '../organization/organization.service'
 
 
 @Injectable()
