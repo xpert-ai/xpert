@@ -6,7 +6,6 @@ import {
     KBDocumentStatusEnum,
     KnowledgeStructureEnum,
     KnowledgebaseTypeEnum,
-    STATE_VARIABLE_HUMAN,
     TAgentMiddlewareMeta
 } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
@@ -56,23 +55,6 @@ type TResolvedWriteContext = {
     knowledgebaseId: string
 }
 
-type THumanStateCandidate = {
-    files?: unknown
-}
-
-type THumanFileCandidate = {
-    id?: unknown
-    filePath?: unknown
-    fileUrl?: unknown
-    name?: unknown
-    mimeType?: unknown
-}
-
-type TStableImageChunk = {
-    chunkId: string
-    metadata: TAgentKnowledgeChunkInputMetadata
-}
-
 type TSystemManagedDocumentMetadata = {
     systemManaged: true
     systemManagedType: typeof AGENT_WRITER_SYSTEM_MANAGED_TYPE
@@ -89,18 +71,19 @@ const metadataSchema: z.ZodType<TAgentKnowledgeChunkInputMetadata> = z.record(js
 const baseSchema = z.object({
     text: z.string().min(1).describe('Text chunk content to write into the target knowledgebase'),
     title: z.string().optional().describe('Optional chunk title stored with the chunk metadata'),
-    metadata: metadataSchema.optional().describe('Optional JSON metadata stored with the chunk'),
+    metadata: metadataSchema
+        .optional()
+        .describe(
+            'Optional JSON metadata stored with the chunk. This data is persisted as-is and is not interpreted by the writer.'
+        ),
     chunkId: z
         .string()
         .min(1)
         .optional()
         .describe(
-            'Optional stable chunk identifier. When provided, repeated writes replace the same chunk instead of appending a new one. For image-derived content, prefer a stable hash of the source attachment id and only fall back to a normalized image path'
+            'Optional stable chunk identifier. When provided, repeated writes replace the same chunk instead of appending a new one. If the caller needs cross-run replacement semantics, it must provide this identifier explicitly.'
         )
 })
-
-const OCR_SOURCE_MARKER = '来源：图片 OCR'
-const OCR_IMAGE_INDEX_PATTERN = /图片编号：第\s*(\d+)\s*张/
 
 @Injectable()
 @AgentMiddlewareStrategy(KNOWLEDGEBASE_WRITER_MIDDLEWARE)
@@ -138,27 +121,7 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
     ): Promise<AgentMiddleware> {
         return {
             name: KNOWLEDGEBASE_WRITER_MIDDLEWARE,
-            tools: [this.createWriteTool(context)],
-            wrapToolCall: async (request, handler) => {
-                if (request.tool.name !== WRITE_KNOWLEDGE_CHUNK_TOOL) {
-                    return handler(request)
-                }
-
-                const input = this.resolveWriteInput(request.toolCall.args)
-                const nextInput = this.withAutoStableImageChunk(input, request.state)
-
-                if (nextInput === input) {
-                    return handler(request)
-                }
-
-                return handler({
-                    ...request,
-                    toolCall: {
-                        ...request.toolCall,
-                        args: nextInput
-                    }
-                })
-            }
+            tools: [this.createWriteTool(context)]
         }
     }
 
@@ -213,7 +176,7 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
             {
                 name: WRITE_KNOWLEDGE_CHUNK_TOOL,
                 description:
-                    'Write a text chunk into one of the knowledgebases connected to the current agent. Provide chunkId to replace an existing chunk instead of appending a new one. For image-derived OCR content, prefer a stable hash of the source attachment id and only fall back to a normalized image path.',
+                    'Write a text chunk into one of the knowledgebases connected to the current agent. Provide chunkId to replace an existing chunk instead of appending a new one.',
                 schema
             }
         )
@@ -254,167 +217,6 @@ export class KnowledgebaseWriterMiddleware implements IAgentMiddlewareStrategy<R
             knowledgebaseIds,
             knowledgebaseId
         }
-    }
-
-    private withAutoStableImageChunk(
-        input: TMultiKnowledgebaseWriteInput,
-        state: Record<string, unknown>
-    ): TMultiKnowledgebaseWriteInput {
-        if (input.chunkId) {
-            return input
-        }
-
-        const stableImageChunk = this.deriveStableImageChunk(input, state)
-        if (!stableImageChunk) {
-            return input
-        }
-
-        return {
-            ...input,
-            chunkId: stableImageChunk.chunkId,
-            metadata: {
-                ...(input.metadata ?? {}),
-                ...stableImageChunk.metadata
-            }
-        }
-    }
-
-    private deriveStableImageChunk(
-        input: TMultiKnowledgebaseWriteInput,
-        state: Record<string, unknown>
-    ): TStableImageChunk | null {
-        if (!this.shouldAutoDeriveStableImageChunk(input)) {
-            return null
-        }
-
-        const files = this.readHumanFiles(state)
-        if (!files.length) {
-            return null
-        }
-
-        const imageIndex = this.readImageIndex(input)
-        const file =
-            imageIndex !== null
-                ? files[imageIndex - 1] ?? null
-                : files.length === 1
-                    ? files[0]
-                    : null
-
-        if (!file) {
-            return null
-        }
-
-        const sourceId = this.readStableFileIdentifier(file)
-        if (!sourceId) {
-            return null
-        }
-
-        const metadata: TAgentKnowledgeChunkInputMetadata = {}
-        if (typeof file.id === 'string' && file.id.length > 0) {
-            metadata.sourceImageId = file.id
-            metadata.fileId = file.id
-        }
-        if (typeof file.name === 'string' && file.name.length > 0) {
-            metadata.fileName = file.name
-        }
-        if (typeof file.filePath === 'string' && file.filePath.length > 0) {
-            metadata.filePath = file.filePath
-        }
-        if (imageIndex !== null) {
-            metadata.imageIndex = imageIndex
-        }
-
-        return {
-            chunkId: this.createStableImageChunkId(sourceId),
-            metadata
-        }
-    }
-
-    private shouldAutoDeriveStableImageChunk(input: TMultiKnowledgebaseWriteInput) {
-        return input.text.includes(OCR_SOURCE_MARKER) || this.readImageIndex(input) !== null
-    }
-
-    private readImageIndex(input: TMultiKnowledgebaseWriteInput) {
-        const metadata = input.metadata ?? {}
-        const metadataIndex = this.readPositiveInteger(metadata.imageIndex)
-        if (metadataIndex !== null) {
-            return metadataIndex
-        }
-
-        const imageNumber = this.readPositiveInteger(metadata.imageNumber)
-        if (imageNumber !== null) {
-            return imageNumber
-        }
-
-        const imageNo = this.readPositiveInteger(metadata.imageNo)
-        if (imageNo !== null) {
-            return imageNo
-        }
-
-        const match = input.text.match(OCR_IMAGE_INDEX_PATTERN)
-        if (!match) {
-            return null
-        }
-
-        return this.readPositiveInteger(match[1])
-    }
-
-    private readPositiveInteger(value: unknown) {
-        if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
-            return value
-        }
-
-        if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) {
-            return Number.parseInt(value, 10)
-        }
-
-        return null
-    }
-
-    private readHumanFiles(state: Record<string, unknown>) {
-        if (!(STATE_VARIABLE_HUMAN in state)) {
-            return []
-        }
-
-        const humanState = state[STATE_VARIABLE_HUMAN]
-        if (!humanState || typeof humanState !== 'object' || Array.isArray(humanState)) {
-            return []
-        }
-
-        const files = (humanState as THumanStateCandidate).files
-        if (!Array.isArray(files)) {
-            return []
-        }
-
-        return files.filter((file): file is THumanFileCandidate => !!file && typeof file === 'object')
-    }
-
-    private readStableFileIdentifier(file: THumanFileCandidate) {
-        if (typeof file.id === 'string' && file.id.length > 0) {
-            return `attachment:${file.id}`
-        }
-
-        if (typeof file.filePath === 'string' && file.filePath.length > 0) {
-            return `path:${this.normalizeImagePath(file.filePath)}`
-        }
-
-        if (typeof file.fileUrl === 'string' && file.fileUrl.length > 0) {
-            return `url:${file.fileUrl}`
-        }
-
-        if (typeof file.name === 'string' && file.name.length > 0) {
-            return `name:${file.name}`
-        }
-
-        return null
-    }
-
-    private normalizeImagePath(filePath: string) {
-        return filePath.replace(/\\/g, '/').replace(/\/+/g, '/').trim()
-    }
-
-    private createStableImageChunkId(sourceId: string) {
-        return createHash('sha1').update(sourceId).digest('hex')
     }
 
     private async replaceStableChunk(

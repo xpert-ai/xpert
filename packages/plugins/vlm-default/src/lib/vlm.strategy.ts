@@ -1,6 +1,7 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { Injectable } from '@nestjs/common'
 import {
+  createStableImageChunkId,
   ChunkMetadata,
   FileSystemPermission,
   getErrorMessage,
@@ -125,7 +126,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
             pageContent: description,
             metadata: {
               mediaType: 'image',
-              chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              chunkId: createStableImageChunkId(asset.filePath),
               parentId: chunk.metadata['chunkId'],
               imagePath: asset.filePath,
               // source: asset.filename,

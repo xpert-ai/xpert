@@ -2,6 +2,7 @@ import { Document } from '@langchain/core/documents'
 import { IDocumentUnderstandingProvider, IKnowledgeDocument } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
+  createStableImageChunkId,
   ChunkMetadata,
   FileSystemPermission,
   IImageUnderstandingStrategy,
@@ -53,10 +54,10 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
     for (const file of images) {
       const ocrText = await this.runPaddleOCR(file.filePath, config)
 
-      const doc = new Document({
+      const ocrChunk = new Document({
         pageContent: ocrText,
         metadata: {
-          chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          chunkId: createStableImageChunkId(file.filePath),
           // parentChunkId: file.parentChunkId,
           // imagePath: file.path,
           // source: file.filename,
@@ -64,6 +65,7 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
           engine: 'paddleocr'
         }
       })
+      chunks.push(ocrChunk)
 
       // results.push({ docs: [doc], metadata: { engine: 'paddleocr', } })
     }
