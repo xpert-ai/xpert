@@ -3,7 +3,7 @@ import { normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { BadRequestException } from '@nestjs/common'
 import fsPromises from 'fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve } from 'path'
-import { getMediaTypeWithCharset, listFiles } from '../utils'
+import { extractOfficePreviewText, getMediaTypeWithCharset, listFiles } from '../utils'
 import { VolumeHandle } from './volume'
 
 const EDITABLE_SUBTREE_EXTENSIONS = new Set([
@@ -69,6 +69,7 @@ export class VolumeSubtreeClient {
             fileType: getSubtreeFileExtension(relativePath) || 'text',
             mimeType: getMediaTypeWithCharset(relativePath),
             contents: isBinaryBuffer(buffer) ? undefined : buffer.toString('utf8'),
+            previewText: isBinaryBuffer(buffer) ? await extractOfficePreviewText(relativePath, buffer) : undefined,
             size: stat.size,
             createdAt: stat.mtime,
             fileUrl: this.volume.publicUrl(publicPath),

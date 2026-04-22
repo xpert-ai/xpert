@@ -2,15 +2,12 @@ import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { Component, Input, OnChanges, OnInit, signal, SimpleChanges, TemplateRef } from '@angular/core'
 import { ZardFlatTreeControl, ZardTreeFlatDataSource, ZardTreeFlattener } from '@xpert-ai/headless-ui'
 import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
-import { FlatTreeNode, Property, TreeNodeInterface } from '@xpert-ai/ocap-core'
+import { FlatTreeNode, TreeNodeInterface } from '@xpert-ai/ocap-core'
+import { TableColumn } from '../table/types'
 import { displayDensityToTableSize, parseTableWidthToPx } from '../table/table.utils'
 
-export type TreeTableColumn = Property & {
-  cellTemplate?: TemplateRef<any>,
-  pipe?: (value: any) => any;
-  width?: string
-  sticky?: boolean
-  stickyEnd?: boolean
+export type TreeTableColumn = Omit<TableColumn, 'cellTemplate'> & {
+  cellTemplate?: TemplateRef<any>
 }
 
 /**
@@ -175,6 +172,29 @@ export class TreeTableComponent<T> implements OnInit, OnChanges {
     this.updateVisibleNodes()
   }
 
+  contentClass(column: TreeTableColumn) {
+    const shouldClamp = this.shouldClampContent(column)
+    return [
+      'block min-w-0 max-w-full',
+      shouldClamp ? 'overflow-hidden' : '',
+      !column.cellTemplate && shouldClamp ? 'text-ellipsis' : '',
+      column.contentClass ?? ''
+    ]
+  }
+
+  displayValue(data: FlatTreeNode<T>, column: TreeTableColumn): unknown {
+    const value = data.raw?.[column.name]
+    return column.pipe ? column.pipe(value) : value
+  }
+
+  cellTitle(data: FlatTreeNode<T>, column: TreeTableColumn): string | null {
+    if (column.cellTemplate) {
+      return null
+    }
+
+    return this.titleValue(this.displayValue(data, column))
+  }
+
   private updateVisibleNodes() {
     const expandedAncestors: boolean[] = []
     const visibleNodes: FlatTreeNode<T>[] = []
@@ -190,5 +210,33 @@ export class TreeTableComponent<T> implements OnInit, OnChanges {
     }
 
     this.visibleNodes.set(visibleNodes)
+  }
+
+  private shouldClampContent(column: Pick<TreeTableColumn, 'width' | 'maxWidth' | 'cellTemplate'>) {
+    if (column.cellTemplate) {
+      return false
+    }
+
+    return !!column.width || !!column.maxWidth
+  }
+
+  private titleValue(value: unknown): string | null {
+    if (value === null || value === undefined) {
+      return null
+    }
+
+    if (typeof value === 'string') {
+      return value || null
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+      return String(value)
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString()
+    }
+
+    return null
   }
 }
