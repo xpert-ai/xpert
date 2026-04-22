@@ -1,11 +1,11 @@
 import { MessageType } from '@langchain/core/messages'
-import type { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types';
+import type { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
-import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model';
-import { JSONValue } from '../core.model';
-import { IStorageFile } from '../storage-file.model';
+import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
+import { JSONValue } from '../core.model'
+import { IStorageFile } from '../storage-file.model'
 
 export type TSummaryJob = Record<
   LongTermMemoryTypeEnum,
@@ -17,12 +17,20 @@ export type TSummaryJob = Record<
   }
 >
 
+/**
+ * @deprecated Temporary duplicate of `ChatKitReferenceBase` from `@xpert-ai/chatkit-types`.
+ * Use the shared chatkit type once that package release is available to contracts.
+ */
 export type TChatReferenceBase = {
   id?: string
   label?: string
   text: string
 }
 
+/**
+ * @deprecated Temporary duplicate of `ChatKitCodeReference` from `@xpert-ai/chatkit-types`.
+ * Use the shared chatkit type once that package release is available to contracts.
+ */
 export type TChatCodeReference = TChatReferenceBase & {
   type: 'code'
   path: string
@@ -32,10 +40,29 @@ export type TChatCodeReference = TChatReferenceBase & {
   taskId?: string
 }
 
+/**
+ * @deprecated Temporary duplicate of `ChatKitQuoteReference` from `@xpert-ai/chatkit-types`.
+ * Use the shared chatkit type once that package release is available to contracts.
+ */
 export type TChatQuoteReference = TChatReferenceBase & {
   type: 'quote'
   messageId?: string
   source?: string
+}
+
+/**
+ * @deprecated Temporary duplicate of `ChatKitImageReference` from `@xpert-ai/chatkit-types`.
+ * Use the shared chatkit type once that package release is available to contracts.
+ */
+export type TChatImageReference = TChatReferenceBase & {
+  type: 'image'
+  fileId?: string
+  url?: string
+  mimeType?: string
+  name?: string
+  size?: number
+  width?: number
+  height?: number
 }
 
 export type TChatElementAttribute = {
@@ -58,18 +85,18 @@ export type TChatElementReferenceCandidateFields = {
   [Property in keyof TChatElementReferenceFields]?: unknown
 }
 
-export type TChatElementReference = TChatReferenceBase & TChatElementReferenceFields & {
-  type: 'element'
-}
+export type TChatElementReference = TChatReferenceBase &
+  TChatElementReferenceFields & {
+    type: 'element'
+  }
 
-export type TChatReference = TChatCodeReference | TChatQuoteReference | TChatElementReference
+export type TChatReference = TChatCodeReference | TChatQuoteReference | TChatImageReference | TChatElementReference
 
 /**
  * Chat message entity type
  */
 export interface IChatMessage
-  extends IBasePerTenantAndOrganizationEntityModel,
-    Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
+  extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
   parent?: IChatMessage | null
   children?: IChatMessage[]
   parentId?: string | null

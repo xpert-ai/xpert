@@ -70,12 +70,7 @@ import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
-import {
-    CompileGraphCommand,
-    CompleteToolCallsQuery,
-    createMapStreamEvents,
-    messageEvent
-} from '../../../xpert-agent'
+import { CompileGraphCommand, CompleteToolCallsQuery, createMapStreamEvents, messageEvent } from '../../../xpert-agent'
 import {
     assignExecutionUsage,
     XpertAgentExecutionOneQuery,
@@ -103,6 +98,8 @@ import {
     createHumanMessage,
     CreateMemoryStoreCommand,
     collectPendingFollowUpsByClientMessageId,
+    hydrateHumanInput,
+    hydrateSendRequestHumanInput,
     normalizeReferences,
     rejectGraph,
     stateToParameters,
@@ -134,10 +131,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
     public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
         const request = command.request
+        const hydratedRequest = hydrateSendRequestHumanInput<TChatRequest>(request)
         const { tenantId, organizationId, user, from: chatFrom } = command.options
         const userId = RequestContext.currentUserId()
         const languageCode = command.options.language || user.preferredLanguage || 'en-US'
-        let input: TChatRequestHuman | null = request.action === 'send' ? request.message.input : null
+        const rawSendInput = request.action === 'send' ? request.message.input : null
+        let input: TChatRequestHuman | null = hydratedRequest.action === 'send' ? hydratedRequest.message.input : null
         let projectId = request.action === 'send' ? request.projectId : undefined
         let checkpointId: string | undefined
         const interruptCommand = request.action === 'resume' ? toInterruptCommand(request) : null
@@ -152,26 +151,36 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 throw new Error(`Conversation "${request.conversationId}" not found`)
             }
 
+            const followUpInput = request.message.input
+            const hydratedFollowUpInput =
+                hydratedRequest.action === 'follow_up' ? hydratedRequest.message.input : followUpInput
             const targetExecutionId =
                 request.target?.executionId ??
                 [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
                 null
 
-            const references = normalizeReferences(request.message.input?.references)
+            const references = normalizeReferences(followUpInput?.references)
+            if (
+                !hydratedFollowUpInput?.input?.trim() &&
+                references.length === 0 &&
+                (!Array.isArray(followUpInput?.files) || followUpInput.files.length === 0)
+            ) {
+                throw new Error('Follow-up input is required')
+            }
             await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
                     parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
                     role: 'human',
-                    content: request.message.input?.input,
+                    content: followUpInput?.input,
                     conversationId: conversation.id,
                     ...(references.length
                         ? {
                               references
                           }
                         : {}),
-                    ...(request.message.input?.files
+                    ...(followUpInput?.files
                         ? {
-                              attachments: request.message.input.files as IStorageFile[]
+                              attachments: followUpInput.files as IStorageFile[]
                           }
                         : {}),
                     executionId: targetExecutionId ?? undefined,
@@ -180,7 +189,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     targetExecutionId,
                     visibleAt: null,
                     thirdPartyMessage: {
-                        followUpInput: request.message.input,
+                        followUpInput,
                         followUpClientMessageId: request.message.clientMessageId ?? null
                     }
                 })
@@ -326,9 +335,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             }
 
             if (!userMessage) {
-                const references = normalizeReferences(input.references)
                 if (persistedPendingFollowUpGroup?.matched?.id) {
-                    input = persistedPendingFollowUpGroup.mergedHumanInput
+                    input = hydrateHumanInput(persistedPendingFollowUpGroup.mergedHumanInput)
                     executionInputs = input
 
                     const visibleAt = new Date()
@@ -358,17 +366,19 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                         visibleAt: visibleAt.toISOString()
                     })
                 } else {
+                    const persistedInput = rawSendInput ?? input
+                    const references = normalizeReferences(persistedInput?.references)
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
                             role: 'human',
-                            content: input.input,
+                            content: persistedInput?.input,
                             conversationId: conversation.id,
                             ...(references.length
                                 ? {
                                       references
                                   }
                                 : {}),
-                            attachments: input.files as IStorageFile[]
+                            attachments: persistedInput?.files as IStorageFile[]
                         })
                     )
                 }

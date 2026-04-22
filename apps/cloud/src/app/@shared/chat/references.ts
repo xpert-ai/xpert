@@ -1,5 +1,6 @@
 import type {
   TChatCodeReference,
+  TChatImageReference,
   TChatElementReference,
   TChatElementReferenceCandidateFields,
   TChatQuoteReference,
@@ -12,6 +13,8 @@ export type XpertCodeReference = TChatCodeReference
 export type XpertElementReference = TChatElementReference
 
 export type XpertQuoteReference = TChatQuoteReference
+
+export type XpertImageReference = TChatImageReference
 
 export type XpertChatReference = TChatReference
 
@@ -36,6 +39,13 @@ type ChatReferenceCandidate = TChatElementReferenceCandidateFields & {
   messageId?: unknown
   path?: unknown
   source?: unknown
+  fileId?: unknown
+  url?: unknown
+  mimeType?: unknown
+  name?: unknown
+  size?: unknown
+  width?: unknown
+  height?: unknown
   startLine?: unknown
   taskId?: unknown
   text?: unknown
@@ -58,6 +68,10 @@ function isOptionalString(value: unknown): value is string | undefined {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isOptionalNumber(value: unknown): value is number | undefined {
+  return value === undefined || isFiniteNumber(value)
 }
 
 function isElementAttribute(value: unknown): value is { name: string; value: string } {
@@ -110,6 +124,34 @@ function isQuoteReference(value: unknown): value is XpertQuoteReference {
   )
 }
 
+function isImageReference(value: unknown): value is XpertImageReference {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as ChatReferenceCandidate
+  if (candidate.type !== 'image') {
+    return false
+  }
+
+  const hasLocator =
+    isNonEmptyString(candidate.fileId) || isNonEmptyString(candidate.url) || isNonEmptyString(candidate.name)
+
+  return (
+    isNonEmptyString(candidate.text) &&
+    hasLocator &&
+    isOptionalString(candidate.id) &&
+    isOptionalString(candidate.label) &&
+    isOptionalString(candidate.fileId) &&
+    isOptionalString(candidate.url) &&
+    isOptionalString(candidate.mimeType) &&
+    isOptionalString(candidate.name) &&
+    isOptionalNumber(candidate.size) &&
+    isOptionalNumber(candidate.width) &&
+    isOptionalNumber(candidate.height)
+  )
+}
+
 function isElementReference(value: unknown): value is XpertElementReference {
   if (!value || typeof value !== 'object') {
     return false
@@ -142,7 +184,12 @@ export function normalizeReferences(value: unknown): XpertChatReference[] {
   }
 
   return value.filter((reference): reference is XpertChatReference => {
-    return isCodeReference(reference) || isQuoteReference(reference) || isElementReference(reference)
+    return (
+      isCodeReference(reference) ||
+      isQuoteReference(reference) ||
+      isImageReference(reference) ||
+      isElementReference(reference)
+    )
   })
 }
 
@@ -165,6 +212,10 @@ export function readNavigationInput(value: unknown): XpertChatNavigationInput | 
 }
 
 export function getReferenceKey(reference: XpertChatReference): string {
+  if (reference.type === 'image' && isNonEmptyString(reference.fileId)) {
+    return `image:${reference.fileId.trim()}`
+  }
+
   if (isNonEmptyString(reference.id)) {
     return reference.id.trim()
   }
@@ -175,6 +226,19 @@ export function getReferenceKey(reference: XpertChatReference): string {
 
   if (reference.type === 'element') {
     return [reference.type, reference.serviceId, reference.pageUrl, reference.selector, reference.text].join(':')
+  }
+
+  if (reference.type === 'image') {
+    return [
+      reference.type,
+      reference.url ?? '',
+      reference.name ?? '',
+      reference.mimeType ?? '',
+      reference.size ?? '',
+      reference.width ?? '',
+      reference.height ?? '',
+      reference.text
+    ].join(':')
   }
 
   return [reference.type, reference.messageId ?? '', reference.source ?? '', reference.text].join(':')
@@ -203,6 +267,18 @@ function getCodeReferenceRange(reference: XpertCodeReference): string {
     : `${reference.startLine}-${reference.endLine}`
 }
 
+function formatReferenceSize(size: number): string {
+  if (size < 1024) {
+    return `${size} B`
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} KB`
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(size < 10 * 1024 * 1024 ? 1 : 0)} MB`
+}
+
 export function getReferenceLabel(reference: XpertChatReference): string {
   if (isNonEmptyString(reference.label)) {
     return reference.label.trim()
@@ -214,6 +290,10 @@ export function getReferenceLabel(reference: XpertChatReference): string {
 
   if (reference.type === 'element') {
     return `${reference.tagName.toLowerCase()} ${reference.selector}`
+  }
+
+  if (reference.type === 'image') {
+    return reference.name?.trim() || 'Pasted image'
   }
 
   const normalized = reference.text.replace(/\s+/g, ' ').trim()
@@ -231,6 +311,16 @@ export function getReferenceSource(reference: XpertChatReference): string | null
 
   if (reference.type === 'element') {
     return reference.pageTitle?.trim() || reference.pageUrl.trim()
+  }
+
+  if (reference.type === 'image') {
+    const metaParts = [
+      reference.mimeType?.trim() || null,
+      reference.width && reference.height ? `${reference.width}x${reference.height}` : null,
+      typeof reference.size === 'number' ? formatReferenceSize(reference.size) : null
+    ].filter((part): part is string => Boolean(part))
+
+    return metaParts.length ? metaParts.join(' • ') : reference.url?.trim() || null
   }
 
   if (isNonEmptyString(reference.source)) {
