@@ -156,7 +156,7 @@
                       Default:
                         'After you click the button below, the skill will be installed to your default workspace "' +
                         defaultWorkspaceName +
-                        '" first.'
+                        '" first. Existing installs there are reused, and newer versions update automatically.'
                     }
             }}
           } @else {
@@ -164,7 +164,8 @@
               'PAC.Explore.InstallFallbackWorkspaceHint'
                 | translate
                   : {
-                      Default: 'No default workspace is detected right now. Clicking the button will open the workspace selection dialog.'
+                      Default:
+                        'No default workspace is detected right now. Clicking the button will open the workspace selection dialog. Existing installs are reused, and newer versions update automatically.'
                     }
             }}
           }
@@ -172,7 +173,7 @@
 
         <div class="mt-5 flex gap-2">
           <button type="button" class="btn btn-primary btn-medium flex-1" (click)="install()">
-            {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
+            {{ 'PAC.Explore.InstallOrUpdate' | translate: { Default: 'Install or Update' } }}
           </button>
           <button type="button" class="btn btn-secondary btn-medium" (click)="close()">
             {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}

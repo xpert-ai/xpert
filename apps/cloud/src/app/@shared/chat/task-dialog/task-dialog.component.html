@@ -46,15 +46,17 @@
     [(ngModel)]="prompt"
   ></textarea>
 
-  <div class="mt-3 flex items-center justify-between gap-4 rounded-xl border border-input-border bg-surface-l1 px-3 py-3">
-    <div class="flex items-center gap-4">
-      <ngm-progress-spinner class="w-10 h-10 text-blue-600 dark:text-blue-500" [value]="total() / 10 * 100" />
-      <div class="flex flex-col gap-0 -my-0.5">
-        <p class="text-sm font-semibold text-fg-primary -mb-[2px]">{{10 - total()}} {{'PAC.Xpert.TasksRemaining' | translate: {Default: 'tasks remaining'} }}</p>
-        <p class="text-sm font-medium text-fg-secondary -mt-[2px]">{{'PAC.Xpert.Current' | translate: {Default: 'Current'} }}: {{total()}} {{'PAC.Xpert.TasksActive' | translate: {Default: 'tasks active'} }}</p>
+  @if (isTrialUser()) {
+    <div class="mt-3 flex items-center justify-between gap-4 rounded-xl border border-input-border bg-surface-l1 px-3 py-3">
+      <div class="flex items-center gap-4">
+        <ngm-progress-spinner class="w-10 h-10 text-blue-600 dark:text-blue-500" [value]="total() / 10 * 100" />
+        <div class="flex flex-col gap-0 -my-0.5">
+          <p class="text-sm font-semibold text-fg-primary -mb-[2px]">{{10 - total()}} {{'PAC.Xpert.TasksRemaining' | translate: {Default: 'tasks remaining'} }}</p>
+          <p class="text-sm font-medium text-fg-secondary -mt-[2px]">{{'PAC.Xpert.Current' | translate: {Default: 'Current'} }}: {{total()}} {{'PAC.Xpert.TasksActive' | translate: {Default: 'tasks active'} }}</p>
+        </div>
       </div>
     </div>
-  </div>
+  }
 
   @if (loading()) {
     <ngm-spin class="absolute top-0 left-0 w-full h-full" />
@@ -68,7 +70,7 @@
     </button>
 
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
-      [disabled]="!prompt() || !xpertId() || loading()"
+      [disabled]="isSubmitDisabled()"
       (click)="createTask()"
     >
       @if (task()?.id) {

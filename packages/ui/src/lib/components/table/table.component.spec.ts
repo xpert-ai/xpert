@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 
 import {
   ZardTableComponent,
@@ -112,5 +113,22 @@ describe('table public API', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.changedDirection).toBe('asc');
+  });
+
+  it('uses registered icons for each sort direction', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [TableHostComponent],
+    }).createComponent(TableHostComponent);
+
+    fixture.componentInstance.direction = 'desc';
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const sortHeaderDebugElement = fixture.debugElement.query(By.directive(ZardTableSortHeaderComponent));
+    const sortHeader = sortHeaderDebugElement.componentInstance as ZardTableSortHeaderComponent;
+    const iconName = Reflect.get(sortHeader, 'iconName') as () => string;
+
+    expect(iconName()).toBe('chevron-down');
   });
 }

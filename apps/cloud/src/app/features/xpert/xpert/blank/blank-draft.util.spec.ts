@@ -213,6 +213,38 @@ describe('blank draft util', () => {
     expect(draft.team.agent.options.middlewares.order).toEqual(middlewareNodes.map((node) => node.key))
   })
 
+  it('auto-enables required middleware features while preserving existing feature settings', async () => {
+    const xpert = createXpert()
+    xpert.features = {
+      sandbox: {
+        enabled: false,
+        provider: 'e2b'
+      }
+    } as any
+
+    const draft = await buildBlankXpertDraft(
+      xpert,
+      {
+        middlewares: ['FileMemorySystemMiddleware']
+      },
+      {
+        middlewareDefinitions: [
+          {
+            name: 'FileMemorySystemMiddleware',
+            features: ['sandbox']
+          }
+        ]
+      }
+    )
+
+    expect(draft.team.features).toEqual({
+      sandbox: {
+        enabled: true,
+        provider: 'e2b'
+      }
+    })
+  })
+
   it('stores repository defaults on skills middleware nodes without expanding them into options.skills', async () => {
     const draft = await buildBlankXpertDraft(createXpert(), {
       repositoryDefault: {

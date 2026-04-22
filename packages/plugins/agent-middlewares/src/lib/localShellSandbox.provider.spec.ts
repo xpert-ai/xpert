@@ -1,4 +1,6 @@
 import fs from 'node:fs'
+import http from 'node:http'
+import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { LocalShellSandbox } from './localShellSandbox.provider'
@@ -36,6 +38,29 @@ jest.mock('node-pty', () => ({
 }))
 
 describe('LocalShellSandbox', () => {
+  async function reservePort(): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const server = net.createServer()
+      server.once('error', reject)
+      server.listen(0, '127.0.0.1', () => {
+        const address = server.address()
+        if (!address || typeof address === 'string') {
+          server.close(() => reject(new Error('Failed to reserve a TCP port')))
+          return
+        }
+
+        const port = address.port
+        server.close((error) => {
+          if (error) {
+            reject(error)
+            return
+          }
+          resolve(port)
+        })
+      })
+    })
+  }
+
   beforeEach(() => {
     mockSpawnPty.mockReset()
   })
@@ -178,6 +203,179 @@ describe('LocalShellSandbox', () => {
       chmodSpy.mockRestore()
       statSpy.mockRestore()
       existsSpy.mockRestore()
+      fs.rmSync(workingDirectory, { recursive: true, force: true })
+    }
+  })
+
+  it('starts, lists, reads logs from, and stops managed services', async () => {
+    const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-managed-service-'))
+    const sandbox = new LocalShellSandbox({ workingDirectory })
+    const port = await reservePort()
+    const logPaths = {
+      stderrPath: path.join(workingDirectory, '.xpert', 'managed-services', 'service-1', 'stderr.log'),
+      stdoutPath: path.join(workingDirectory, '.xpert', 'managed-services', 'service-1', 'stdout.log')
+    }
+    const service = {
+      actualPort: port,
+      command: `node -e "const http = require('http'); const server = http.createServer((_req, res) => res.end('ok')); server.listen(${port}, '127.0.0.1', () => console.log('ready'))"`,
+      conversationId: 'conversation-1',
+      id: 'service-1',
+      metadata: {
+        logs: logPaths
+      },
+      name: 'web',
+      ownerAgentKey: 'agent-1',
+      ownerExecutionId: 'execution-1',
+      previewPath: '/',
+      provider: 'local-shell-sandbox',
+      requestedPort: port,
+      runtimeRef: null,
+      status: 'running' as const,
+      stoppedAt: null,
+      transportMode: 'http' as const,
+      workingDirectory
+    }
+
+    try {
+      const started = await sandbox.startService({
+        command: service.command,
+        cwd: workingDirectory,
+        metadata: service.metadata,
+        onStateChange: jest.fn(),
+        port,
+        previewPath: '/',
+        serviceId: service.id
+      })
+
+      expect(started.status).toBe('running')
+      expect(started.runtimeRef).toEqual(
+        expect.objectContaining({
+          pgid: expect.any(Number),
+          pid: expect.any(Number)
+        })
+      )
+
+      const listed = await sandbox.listServices({
+        services: [service]
+      })
+      expect(listed.services[0]?.status).toBe('running')
+      expect(listed.services[0]?.actualPort).toBe(port)
+
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      const logs = await sandbox.getServiceLogs({
+        service
+      })
+      expect(logs.stdout).toContain('ready')
+
+      const stopped = await sandbox.stopService({
+        onStateChange: jest.fn(),
+        service
+      })
+      expect(stopped.status).toBe('stopped')
+    } finally {
+      fs.rmSync(workingDirectory, { recursive: true, force: true })
+    }
+  })
+
+  it('refuses to proxy requests for services that are no longer running', async () => {
+    const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-proxy-'))
+    const sandbox = new LocalShellSandbox({ workingDirectory })
+    const port = await reservePort()
+    const unrelatedServer = http.createServer((_request, response) => {
+      response.end('unrelated')
+    })
+
+    await new Promise<void>((resolve) => {
+      unrelatedServer.listen(port, '127.0.0.1', () => resolve())
+    })
+
+    const response = {
+      body: '',
+      headers: new Map<string, string | string[]>(),
+      headersSent: false,
+      setHeader(name: string, value: string | string[]) {
+        this.headers.set(name, value)
+      },
+      end(chunk?: string) {
+        this.body = chunk ?? ''
+        this.headersSent = true
+      },
+      statusCode: 200
+    }
+
+    try {
+      await sandbox.proxyServiceRequest({
+        path: '/',
+        request: {
+          headers: {},
+          method: 'GET',
+          readableEnded: true
+        } as never,
+        response: response as never,
+        service: {
+          actualPort: port,
+          command: 'python -m http.server 8000',
+          conversationId: 'conversation-1',
+          id: 'service-1',
+          name: 'web',
+          provider: 'local-shell-sandbox',
+          requestedPort: port,
+          status: 'failed',
+          transportMode: 'http',
+          workingDirectory
+        }
+      })
+
+      expect(response.statusCode).toBe(502)
+      expect(response.body).toBe('The selected sandbox service is not running.')
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        unrelatedServer.close((error) => {
+          if (error) {
+            reject(error)
+            return
+          }
+          resolve()
+        })
+      })
+      fs.rmSync(workingDirectory, { recursive: true, force: true })
+    }
+  })
+
+  it('fails fast when the requested service port is already occupied', async () => {
+    const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-port-check-'))
+    const sandbox = new LocalShellSandbox({ workingDirectory })
+    const port = await reservePort()
+    const unrelatedServer = http.createServer((_request, response) => {
+      response.end('unrelated')
+    })
+
+    await new Promise<void>((resolve) => {
+      unrelatedServer.listen(port, '127.0.0.1', () => resolve())
+    })
+
+    try {
+      await expect(
+        sandbox.startService({
+          command: `python3 -m http.server ${port}`,
+          cwd: workingDirectory,
+          metadata: null,
+          onStateChange: jest.fn(),
+          port,
+          previewPath: '/',
+          serviceId: 'service-occupied-port'
+        })
+      ).rejects.toThrow(`Port ${port} is already in use.`)
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        unrelatedServer.close((error) => {
+          if (error) {
+            reject(error)
+            return
+          }
+          resolve()
+        })
+      })
       fs.rmSync(workingDirectory, { recursive: true, force: true })
     }
   })

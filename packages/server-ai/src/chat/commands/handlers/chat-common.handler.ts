@@ -57,7 +57,7 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage, pick } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
-import { Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
@@ -70,12 +70,7 @@ import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
-import {
-    CompileGraphCommand,
-    CompleteToolCallsQuery,
-    createMapStreamEvents,
-    messageEvent
-} from '../../../xpert-agent'
+import { CompileGraphCommand, CompleteToolCallsQuery, createMapStreamEvents, messageEvent } from '../../../xpert-agent'
 import {
     assignExecutionUsage,
     XpertAgentExecutionOneQuery,
@@ -103,6 +98,8 @@ import {
     createHumanMessage,
     CreateMemoryStoreCommand,
     collectPendingFollowUpsByClientMessageId,
+    hydrateHumanInput,
+    hydrateSendRequestHumanInput,
     normalizeReferences,
     rejectGraph,
     stateToParameters,
@@ -111,6 +108,7 @@ import {
     ToolNode,
     translate,
     updateToolCalls,
+    VOLUME_CLIENT,
     VolumeClient,
     ConversationTitleService
 } from '../../../shared'
@@ -126,15 +124,19 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         private readonly projectService: XpertProjectService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly conversationTitleService: ConversationTitleService
+        private readonly conversationTitleService: ConversationTitleService,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient
     ) {}
 
     public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
         const request = command.request
+        const hydratedRequest = hydrateSendRequestHumanInput<TChatRequest>(request)
         const { tenantId, organizationId, user, from: chatFrom } = command.options
         const userId = RequestContext.currentUserId()
         const languageCode = command.options.language || user.preferredLanguage || 'en-US'
-        let input: TChatRequestHuman | null = request.action === 'send' ? request.message.input : null
+        const rawSendInput = request.action === 'send' ? request.message.input : null
+        let input: TChatRequestHuman | null = hydratedRequest.action === 'send' ? hydratedRequest.message.input : null
         let projectId = request.action === 'send' ? request.projectId : undefined
         let checkpointId: string | undefined
         const interruptCommand = request.action === 'resume' ? toInterruptCommand(request) : null
@@ -149,26 +151,36 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 throw new Error(`Conversation "${request.conversationId}" not found`)
             }
 
+            const followUpInput = request.message.input
+            const hydratedFollowUpInput =
+                hydratedRequest.action === 'follow_up' ? hydratedRequest.message.input : followUpInput
             const targetExecutionId =
                 request.target?.executionId ??
                 [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
                 null
 
-            const references = normalizeReferences(request.message.input?.references)
+            const references = normalizeReferences(followUpInput?.references)
+            if (
+                !hydratedFollowUpInput?.input?.trim() &&
+                references.length === 0 &&
+                (!Array.isArray(followUpInput?.files) || followUpInput.files.length === 0)
+            ) {
+                throw new Error('Follow-up input is required')
+            }
             await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
                     parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
                     role: 'human',
-                    content: request.message.input?.input,
+                    content: followUpInput?.input,
                     conversationId: conversation.id,
                     ...(references.length
                         ? {
                               references
                           }
                         : {}),
-                    ...(request.message.input?.files
+                    ...(followUpInput?.files
                         ? {
-                              attachments: request.message.input.files as IStorageFile[]
+                              attachments: followUpInput.files as IStorageFile[]
                           }
                         : {}),
                     executionId: targetExecutionId ?? undefined,
@@ -177,7 +189,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     targetExecutionId,
                     visibleAt: null,
                     thirdPartyMessage: {
-                        followUpInput: request.message.input,
+                        followUpInput,
                         followUpClientMessageId: request.message.clientMessageId ?? null
                     }
                 })
@@ -226,8 +238,16 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 if (retry) {
                     throw new Error('Conversation ID is required for retry operation')
                 }
-                const workspacePath = await VolumeClient.getSharedWorkspacePath(tenantId, projectId, userId)
-                const workspaceUrl = VolumeClient.getSharedWorkspaceUrl(projectId, userId)
+                const volume = await this.volumeClient
+                    .resolve({
+                        tenantId,
+                        catalog: projectId ? 'projects' : 'users',
+                        projectId,
+                        userId
+                    })
+                    .ensureRoot()
+                const workspacePath = volume.serverRoot
+                const workspaceUrl = volume.publicBaseUrl
                 conversation = await this.commandBus.execute(
                     new ChatConversationUpsertCommand({
                         tenantId,
@@ -315,9 +335,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             }
 
             if (!userMessage) {
-                const references = normalizeReferences(input.references)
                 if (persistedPendingFollowUpGroup?.matched?.id) {
-                    input = persistedPendingFollowUpGroup.mergedHumanInput
+                    input = hydrateHumanInput(persistedPendingFollowUpGroup.mergedHumanInput)
                     executionInputs = input
 
                     const visibleAt = new Date()
@@ -347,17 +366,19 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                         visibleAt: visibleAt.toISOString()
                     })
                 } else {
+                    const persistedInput = rawSendInput ?? input
+                    const references = normalizeReferences(persistedInput?.references)
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
                             role: 'human',
-                            content: input.input,
+                            content: persistedInput?.input,
                             conversationId: conversation.id,
                             ...(references.length
                                 ? {
                                       references
                                   }
                                 : {}),
-                            attachments: input.files as IStorageFile[]
+                            attachments: persistedInput?.files as IStorageFile[]
                         })
                     )
                 }

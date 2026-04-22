@@ -6,6 +6,7 @@ import {
   Component,
   computed,
   effect,
+  HostListener,
   input,
   isSignal,
   output,
@@ -39,8 +40,14 @@ import {
 } from '../table.utils'
 
 const SELECT_COLUMN_WIDTH = 56
-const DEFAULT_STICKY_START_WIDTH = 180
-const DEFAULT_STICKY_END_WIDTH = 128
+const DEFAULT_COLUMN_WIDTH = 160
+const DEFAULT_MIN_COLUMN_WIDTH = 80
+
+interface ColumnResizeState {
+  columnName: string
+  startX: number
+  startWidth: number
+}
 
 /**
  * @deprecated use tailwindcss
@@ -128,6 +135,11 @@ export class NgmTableComponent {
   readonly rows = computed(() =>
     this.paging() ? paginateTableRows(this.processedRows(), this.pageIndex(), this.pageSize()) : this.processedRows()
   )
+  readonly tableMinWidth = computed(() => {
+    const columns = this.columns() ?? []
+    const selectionWidth = this.selectable() ? SELECT_COLUMN_WIDTH : 0
+    return columns.reduce((width, column) => width + this.columnWidthPx(column, DEFAULT_COLUMN_WIDTH), selectionWidth)
+  })
   readonly stickyStartOffsets = computed(() => {
     const offsets = new Map<string, number>()
     let offset = this.selectable() ? SELECT_COLUMN_WIDTH : 0
@@ -135,7 +147,7 @@ export class NgmTableComponent {
     for (const column of this.columns() ?? []) {
       if (column.sticky) {
         offsets.set(column.name, offset)
-        offset += parseTableWidthToPx(column.width, DEFAULT_STICKY_START_WIDTH)
+        offset += this.columnWidthPx(column, DEFAULT_COLUMN_WIDTH)
       }
     }
 
@@ -148,7 +160,7 @@ export class NgmTableComponent {
     for (const column of [...(this.columns() ?? [])].reverse()) {
       if (column.stickyEnd) {
         offsets.set(column.name, offset)
-        offset += parseTableWidthToPx(column.width, DEFAULT_STICKY_END_WIDTH)
+        offset += this.columnWidthPx(column, DEFAULT_COLUMN_WIDTH)
       }
     }
 
@@ -161,6 +173,10 @@ export class NgmTableComponent {
   readonly pageIndex = signal(0)
   readonly pageSize = signal(20)
   readonly selection = new SelectionModel<any>(true, [])
+  readonly resizedWidths = signal(new Map<string, number>())
+  readonly resizingColumn = signal<string | null>(null)
+
+  #activeResize: ColumnResizeState | null = null
 
   readonly #searchValueSub = this.searchControl.valueChanges.subscribe((value) => {
     this.searchValue.set(value ?? '')
@@ -212,6 +228,109 @@ export class NgmTableComponent {
 
   getValue(row: any, name: string) {
     return get(row, name)
+  }
+
+  displayValue(row: unknown, column: TableColumn): unknown {
+    const value = this.getValue(row, column.name)
+    return column.pipe ? column.pipe(value) : value
+  }
+
+  cellTitle(row: unknown, column: TableColumn): string | null {
+    if (this.hasCellTemplate(column)) {
+      return null
+    }
+
+    return this.titleValue(this.displayValue(row, column))
+  }
+
+  contentClass(column: TableColumn) {
+    const shouldClamp = this.shouldClampContent(column)
+    return [
+      'block min-w-0 max-w-full',
+      shouldClamp ? 'overflow-hidden' : '',
+      !this.hasCellTemplate(column) && shouldClamp ? 'text-ellipsis' : '',
+      column.contentClass ?? ''
+    ]
+  }
+
+  columnWidth(column: Pick<TableColumn, 'name' | 'width'>): string | null {
+    return `${this.columnWidthPx(column, DEFAULT_COLUMN_WIDTH)}px`
+  }
+
+  columnMaxWidth(column: Pick<TableColumn, 'name' | 'maxWidth'>): string | null {
+    if (this.resizedWidths().has(column.name)) {
+      return null
+    }
+
+    return column.maxWidth || null
+  }
+
+  canResizeColumn(column: Pick<TableColumn, 'resizable'>) {
+    return column.resizable !== false
+  }
+
+  startColumnResize(event: MouseEvent, column: TableColumn, headerCell: unknown) {
+    if (event.button !== 0 || !this.canResizeColumn(column)) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const element = this.resolveHeaderCell(event, headerCell)
+    if (!element) {
+      return
+    }
+
+    this.#activeResize = {
+      columnName: column.name,
+      startX: event.clientX,
+      startWidth: this.measureColumnWidth(element, column)
+    }
+
+    this.resizingColumn.set(column.name)
+
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    }
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onDocumentMouseMove(event: MouseEvent) {
+    if (!this.#activeResize) {
+      return
+    }
+
+    const activeColumnName = this.#activeResize.columnName
+    const column = this.columns()?.find(({ name }) => name === activeColumnName)
+    if (!column) {
+      this.stopColumnResize()
+      return
+    }
+
+    const width = this.clampColumnWidth(column, this.#activeResize.startWidth + event.clientX - this.#activeResize.startX)
+    this.resizedWidths.update((widths) => {
+      const nextWidths = new Map(widths)
+      nextWidths.set(column.name, width)
+      return nextWidths
+    })
+  }
+
+  @HostListener('document:mouseup')
+  @HostListener('window:blur')
+  stopColumnResize() {
+    if (!this.#activeResize) {
+      return
+    }
+
+    this.#activeResize = null
+    this.resizingColumn.set(null)
+
+    if (typeof document !== 'undefined') {
+      document.body.style.removeProperty('cursor')
+      document.body.style.removeProperty('user-select')
+    }
   }
 
   escapeSearching(event: KeyboardEvent) {
@@ -284,5 +403,89 @@ export class NgmTableComponent {
       return `${this.isAllSelected() ? 'deselect' : 'select'} all`
     }
     return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${row.position + 1}`
+  }
+
+  private clampColumnWidth(column: Pick<TableColumn, 'minWidth' | 'maxWidth'>, width: number) {
+    const minWidth = parseTableWidthToPx(column.minWidth, DEFAULT_MIN_COLUMN_WIDTH)
+    return Math.max(minWidth, width)
+  }
+
+  private columnWidthPx(column: Pick<TableColumn, 'name' | 'width' | 'minWidth'>, fallback: number) {
+    const resizedWidth = this.resizedWidths().get(column.name)
+    if (resizedWidth !== undefined) {
+      return resizedWidth
+    }
+
+    const configuredWidth = parseTableWidthToPx(column.width, fallback)
+    const minWidth = parseTableWidthToPx(column.minWidth, 0)
+    return Math.max(configuredWidth, minWidth)
+  }
+
+  private hasCellTemplate(column: Pick<TableColumn, 'cellTemplate'>) {
+    return isSignal(column.cellTemplate) || !!column.cellTemplate
+  }
+
+  private measureColumnWidth(headerCell: HTMLElement, column: Pick<TableColumn, 'name' | 'width' | 'minWidth'>) {
+    const rectWidth = headerCell.getBoundingClientRect().width
+    if (rectWidth > 0) {
+      return rectWidth
+    }
+
+    const configuredWidth = this.columnWidthPx(column, 0)
+    if (configuredWidth > 0) {
+      return configuredWidth
+    }
+
+    const computedWidth =
+      typeof getComputedStyle === 'function' ? parseTableWidthToPx(getComputedStyle(headerCell).width, 0) : 0
+
+    if (computedWidth > 0) {
+      return computedWidth
+    }
+
+    return parseTableWidthToPx(column.minWidth, DEFAULT_COLUMN_WIDTH)
+  }
+
+  private resolveHeaderCell(event: MouseEvent, headerCell: unknown) {
+    if (headerCell instanceof HTMLElement) {
+      return headerCell
+    }
+
+    if (event.currentTarget instanceof HTMLElement) {
+      const closestHeader = event.currentTarget.closest('th')
+      if (closestHeader instanceof HTMLElement) {
+        return closestHeader
+      }
+    }
+
+    return null
+  }
+
+  private shouldClampContent(column: Pick<TableColumn, 'name' | 'width' | 'maxWidth' | 'cellTemplate'>) {
+    if (this.hasCellTemplate(column)) {
+      return false
+    }
+
+    return this.columnWidth(column) !== null || !!column.maxWidth
+  }
+
+  private titleValue(value: unknown): string | null {
+    if (value === null || value === undefined) {
+      return null
+    }
+
+    if (typeof value === 'string') {
+      return value || null
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+      return String(value)
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString()
+    }
+
+    return null
   }
 }

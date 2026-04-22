@@ -34,6 +34,7 @@ import { v4 as uuid } from 'uuid'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import path from 'node:path'
 import os from 'node:os'
+import { z } from 'zod/v3'
 
 // ============================================================================
 // Constants
@@ -85,6 +86,26 @@ export const PROTECTED_TOOLS = ['skill', 'task']
 
 const CONTEXT_WINDOW_EXCEEDED_FINISH_REASON = 'model_context_window_exceeded'
 const CONTEXT_WINDOW_RETRY_STATE_KEY = '__contextCompressionContextWindowRetryApplied'
+const COMPRESSION_NO_GAIN_RETRY_STATE_KEY = '__contextCompressionNoGainRetryState'
+const COMPRESSION_NO_GAIN_RETRY_MIN_TOKEN_DELTA = 1024
+
+const CompressionNoGainRetryStateSchema = z.object({
+  currentTokenCount: z.number().nonnegative(),
+  newTokenCount: z.number().nonnegative(),
+  tokenLimit: z.number().positive(),
+  estimatedPromptTokens: z.number().nonnegative(),
+  projectedTotalTokens: z.number().nonnegative(),
+  effectivePromptBudget: z.number().nonnegative(),
+  retryAfterTokenCount: z.number().nonnegative(),
+  retryAfterPromptTokens: z.number().nonnegative()
+})
+
+const ContextCompressionStateSchema = z.object({
+  [CONTEXT_WINDOW_RETRY_STATE_KEY]: z.boolean().default(false),
+  [COMPRESSION_NO_GAIN_RETRY_STATE_KEY]: CompressionNoGainRetryStateSchema.optional()
+})
+
+type CompressionNoGainRetryState = z.infer<typeof CompressionNoGainRetryStateSchema>
 
 // ============================================================================
 // Utility Functions
@@ -454,6 +475,10 @@ interface PromptWindowEstimate {
   deltaMessageTokens: number
 }
 
+function isStateContainer(value: unknown): value is object {
+  return typeof value === 'object' && value !== null
+}
+
 @Injectable()
 @AgentMiddlewareStrategy(CONTEXT_COMPRESSION_MIDDLEWARE_NAME)
 export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
@@ -527,10 +552,161 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
     }
   }
 
+  readonly stateSchema = ContextCompressionStateSchema
+
   private readonly logger = new Logger(ContextCompressionMiddleware.name)
   private truncationIdCounter = 0
 
   constructor(private readonly commandBus: CommandBus) {}
+
+  private readNoGainRetryState(stateContainer: unknown): CompressionNoGainRetryState | null {
+    if (!isStateContainer(stateContainer)) {
+      return null
+    }
+
+    const parsed = CompressionNoGainRetryStateSchema.safeParse(
+      Reflect.get(stateContainer, COMPRESSION_NO_GAIN_RETRY_STATE_KEY)
+    )
+
+    return parsed.success ? parsed.data : null
+  }
+
+  private clearNoGainRetryState(stateContainer?: unknown): void {
+    if (!isStateContainer(stateContainer)) {
+      return
+    }
+    Reflect.deleteProperty(stateContainer, COMPRESSION_NO_GAIN_RETRY_STATE_KEY)
+  }
+
+  private recordNoGainRetryState(
+    stateContainer: unknown,
+    currentTokenCount: number,
+    newTokenCount: number,
+    promptWindowEstimate: PromptWindowEstimate,
+    tokenLimit: number
+  ): void {
+    if (!isStateContainer(stateContainer)) {
+      return
+    }
+
+    const retryTokenDelta = Math.max(
+      COMPRESSION_NO_GAIN_RETRY_MIN_TOKEN_DELTA,
+      Math.ceil(currentTokenCount * 0.1)
+    )
+    const retryPromptDelta = Math.max(
+      COMPRESSION_NO_GAIN_RETRY_MIN_TOKEN_DELTA,
+      Math.ceil(promptWindowEstimate.estimatedPromptTokens * 0.1)
+    )
+
+    Reflect.set(stateContainer, COMPRESSION_NO_GAIN_RETRY_STATE_KEY, {
+      currentTokenCount,
+      newTokenCount,
+      tokenLimit,
+      estimatedPromptTokens: promptWindowEstimate.estimatedPromptTokens,
+      projectedTotalTokens: promptWindowEstimate.projectedTotalTokens,
+      effectivePromptBudget: promptWindowEstimate.effectivePromptBudget,
+      retryAfterTokenCount: currentTokenCount + retryTokenDelta,
+      retryAfterPromptTokens: promptWindowEstimate.estimatedPromptTokens + retryPromptDelta
+    } satisfies CompressionNoGainRetryState)
+  }
+
+  private shouldSkipCompressionAfterNoGain(
+    stateContainer: unknown,
+    currentTokenCount: number,
+    promptWindowEstimate: PromptWindowEstimate,
+    tokenLimit: number,
+    forceCompression: boolean
+  ): boolean {
+    if (forceCompression) {
+      return false
+    }
+
+    const retryState = this.readNoGainRetryState(stateContainer)
+    if (!retryState) {
+      return false
+    }
+
+    const isHardLimitRisk = promptWindowEstimate.projectedTotalTokens > tokenLimit
+    const budgetTightened = promptWindowEstimate.effectivePromptBudget < retryState.effectivePromptBudget
+    if (isHardLimitRisk || budgetTightened) {
+      this.clearNoGainRetryState(stateContainer)
+      return false
+    }
+
+    if (
+      currentTokenCount < retryState.retryAfterTokenCount &&
+      promptWindowEstimate.estimatedPromptTokens < retryState.retryAfterPromptTokens
+    ) {
+      this.logger.debug(
+        `Skipping compression after previous no-gain result: current tokens ${currentTokenCount}/${retryState.retryAfterTokenCount}, prompt tokens ${promptWindowEstimate.estimatedPromptTokens}/${retryState.retryAfterPromptTokens}`
+      )
+      return true
+    }
+
+    this.clearNoGainRetryState(stateContainer)
+    return false
+  }
+
+  private async shouldSkipCompressionBeforeModel(
+    messages: BaseMessage[],
+    runtime: { configurable?: TAgentRunnableConfigurable },
+    options: ResolvedContextCompressionOptions,
+    stateContainer: unknown
+  ): Promise<boolean> {
+    const retryState = this.readNoGainRetryState(stateContainer)
+    if (!retryState) {
+      return false
+    }
+
+    const configurable = runtime?.configurable as TAgentRunnableConfigurable | undefined
+    const model = configurable?.copilotModel
+    if (!model) {
+      return false
+    }
+
+    const currentTokenCount = await this.estimateTokens(messages)
+    if (currentTokenCount >= retryState.retryAfterTokenCount) {
+      this.clearNoGainRetryState(stateContainer)
+      return false
+    }
+
+    const tokenLimit = getModelContextSize(model) ?? retryState.tokenLimit
+    if (!tokenLimit || tokenLimit <= 0) {
+      return false
+    }
+
+    const promptWindowEstimate = await this.estimatePromptWindowUsage(
+      messages,
+      model,
+      tokenLimit,
+      options.threshold
+    )
+
+    return this.shouldSkipCompressionAfterNoGain(
+      stateContainer,
+      currentTokenCount,
+      promptWindowEstimate,
+      tokenLimit,
+      false
+    )
+  }
+
+  private async resolveCompressionTokenLimit(
+    model: TAgentRunnableConfigurable['copilotModel'],
+    getCompressionModel: () => Promise<BaseLanguageModel>
+  ): Promise<number | null> {
+    const configuredLimit = getModelContextSize(model)
+    if (configuredLimit && configuredLimit > 0) {
+      return configuredLimit
+    }
+
+    const resolvedLimit = getModelContextSize(await getCompressionModel())
+    if (resolvedLimit && resolvedLimit > 0) {
+      return resolvedLimit
+    }
+
+    return null
+  }
 
   /**
    * Get next truncation ID
@@ -1026,7 +1202,8 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
     messages: BaseMessage[],
     runtime: { configurable?: TAgentRunnableConfigurable },
     options: ResolvedContextCompressionOptions,
-    execution: CompressionExecutionOptions
+    execution: CompressionExecutionOptions,
+    stateContainer?: unknown
   ): Promise<BaseMessage[] | null> {
     if (!messages.length) {
       return null
@@ -1062,7 +1239,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
       let tokenLimit: number | null = null
 
       try {
-        tokenLimit = getModelContextSize(await getCompressionModel())
+        tokenLimit = await this.resolveCompressionTokenLimit(model, getCompressionModel)
       } catch (error) {
         this.logger.warn(
           `Failed to resolve token limit from model profile: ${error instanceof Error ? error.message : String(error)}`
@@ -1075,15 +1252,29 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
       }
 
       const promptWindowEstimate = await this.estimatePromptWindowUsage(messages, model, tokenLimit, options.threshold)
+      let currentPromptWindowEstimate = promptWindowEstimate
 
       if (
         !execution.force &&
         promptWindowEstimate.estimatedPromptTokens <= promptWindowEstimate.effectivePromptBudget &&
         promptWindowEstimate.projectedTotalTokens <= tokenLimit
       ) {
+        this.clearNoGainRetryState(stateContainer)
         this.logger.debug(
           `No compression needed: estimated prompt ${promptWindowEstimate.estimatedPromptTokens} tokens <= effective prompt budget ${promptWindowEstimate.effectivePromptBudget} tokens (threshold budget: ${promptWindowEstimate.thresholdPromptTokens}, available prompt budget: ${promptWindowEstimate.availablePromptTokens}); reserved output ${promptWindowEstimate.reservedOutputTokens}; projected total ${promptWindowEstimate.projectedTotalTokens}/${tokenLimit}`
         )
+        return null
+      }
+
+      if (
+        this.shouldSkipCompressionAfterNoGain(
+          stateContainer,
+          originalTokenCount,
+          promptWindowEstimate,
+          tokenLimit,
+          execution.force
+        )
+      ) {
         return null
       }
 
@@ -1120,6 +1311,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
             tokenLimit,
             options.threshold
           )
+          currentPromptWindowEstimate = prunedWindowEstimate
 
           this.logger.log(
             `After first layer pruning: ${currentTokenCount} tokens (saved ${pruneResult.prunedTokens} tokens)`
@@ -1129,6 +1321,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
             prunedWindowEstimate.estimatedPromptTokens <= prunedWindowEstimate.effectivePromptBudget &&
             prunedWindowEstimate.projectedTotalTokens <= tokenLimit
           ) {
+            this.clearNoGainRetryState(stateContainer)
             this.logger.log(
               `First layer pruning sufficient, no further compression needed: estimated prompt ${prunedWindowEstimate.estimatedPromptTokens} <= effective prompt budget ${prunedWindowEstimate.effectivePromptBudget}; reserved output ${prunedWindowEstimate.reservedOutputTokens}; projected total ${prunedWindowEstimate.projectedTotalTokens}/${tokenLimit}`
             )
@@ -1157,6 +1350,9 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
       if (historyToCompress.length === 0) {
         this.logger.debug('No messages to compress')
+        if (currentMessages !== messages) {
+          this.clearNoGainRetryState(stateContainer)
+        }
         this.emitCompressionChunk(runtime, {
           id: currentCompressionId,
           status: currentMessages !== messages ? 'success' : 'fail',
@@ -1184,6 +1380,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
       if (newTokenCount >= currentTokenCount) {
         const failureMessage = `Compression failed: new token count (${newTokenCount}) >= current count (${currentTokenCount})`
+        if (!execution.force) {
+          this.recordNoGainRetryState(
+            stateContainer,
+            currentTokenCount,
+            newTokenCount,
+            currentPromptWindowEstimate,
+            tokenLimit
+          )
+        }
         this.logger.warn(failureMessage)
         this.emitCompressionChunk(runtime, {
           id: currentCompressionId,
@@ -1194,14 +1399,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         return currentMessages !== messages ? currentMessages : null
       }
 
-      if (newTokenCount + promptWindowEstimate.reservedOutputTokens >= tokenLimit) {
-        const warningMessage = `Still close to context limit after compression: compressed history ${newTokenCount} + reserved output ${promptWindowEstimate.reservedOutputTokens} >= ${tokenLimit}`
+      if (newTokenCount + currentPromptWindowEstimate.reservedOutputTokens >= tokenLimit) {
+        const warningMessage = `Still close to context limit after compression: compressed history ${newTokenCount} + reserved output ${currentPromptWindowEstimate.reservedOutputTokens} >= ${tokenLimit}`
         this.logger.warn(warningMessage)
       }
 
       const compressionRatio = Math.round((newTokenCount / originalTokenCount) * 100)
       const compressionStats = `Two-phase compression complete: ${historyToCompress.length} messages → 1 summary | ${originalTokenCount} → ${newTokenCount} tokens (${compressionRatio}%)`
 
+      this.clearNoGainRetryState(stateContainer)
       this.logger.log(`✅ ${compressionStats}`)
 
       this.emitCompressionChunk(runtime, {
@@ -1242,6 +1448,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
     return {
       name: CONTEXT_COMPRESSION_MIDDLEWARE_NAME,
+      stateSchema: this.stateSchema,
       tools: [],
       beforeModel: async (state, runtime) => {
         const messages = state.messages
@@ -1250,10 +1457,14 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
           return
         }
 
+        if (await this.shouldSkipCompressionBeforeModel(messages, runtime, resolvedOptions, state)) {
+          return
+        }
+
         const compressedMessages = await this.compressMessages(messages, runtime, resolvedOptions, {
           force: false,
           reason: 'threshold_exceeded'
-        })
+        }, state)
 
         if (compressedMessages) {
           state.messages = compressedMessages
@@ -1268,8 +1479,9 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
             return
           }
 
-          const stateRecord = state as Record<string, unknown>
-          const retryAlreadyApplied = stateRecord[CONTEXT_WINDOW_RETRY_STATE_KEY] === true
+          const retryAlreadyApplied =
+            isStateContainer(state) &&
+            Reflect.get(state, CONTEXT_WINDOW_RETRY_STATE_KEY) === true
           const lastMessage = messages[messages.length - 1]
           const finishReason = this.getFinishReason(lastMessage)
 
@@ -1305,7 +1517,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
           const compressedMessages = await this.compressMessages(messagesToRetry, runtime, resolvedOptions, {
             force: true,
             reason: CONTEXT_WINDOW_EXCEEDED_FINISH_REASON
-          })
+          }, state)
 
           if (!compressedMessages) {
             this.logger.warn('Fallback compression retry skipped because compression did not produce a new history.')

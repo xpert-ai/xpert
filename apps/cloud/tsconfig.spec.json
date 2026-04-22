@@ -2,7 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
-    "module": "es2022",
+    "emitDecoratorMetadata": false,
+    "isolatedModules": true,
+    "module": "node16",
+    "moduleResolution": "node16",
     "types": [
       "jest",
       "node"

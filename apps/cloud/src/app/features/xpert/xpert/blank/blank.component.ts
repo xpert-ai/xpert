@@ -81,6 +81,7 @@ import {
   buildBlankWorkflowDraft,
   buildBlankXpertDraft,
   hasBlankWizardSelections,
+  mergeBlankMiddlewareRequiredFeatures,
   normalizeBlankMiddlewareSelections
 } from './blank-draft.util'
 import {
@@ -125,6 +126,11 @@ type BlankWorkspaceSkillItem = {
   repositoryProvider?: string | null
 }
 
+type BlankMiddlewareProviderOption = {
+  meta: TAgentMiddlewareMeta
+  unavailable?: boolean
+}
+
 type BlankSkillState = {
   loading: boolean
   skills: BlankWorkspaceSkillItem[]
@@ -138,13 +144,33 @@ export type BlankXpertWizardResult = {
   status: BlankXpertWizardStatus
 }
 
+export const BLANK_XPERT_DIALOG_CATEGORY = {
+  CLAW: 'claw'
+} as const
+
+export type BlankXpertDialogCategory =
+  (typeof BLANK_XPERT_DIALOG_CATEGORY)[keyof typeof BLANK_XPERT_DIALOG_CATEGORY]
+
+export function normalizeBlankXpertDialogCategory(
+  category: string | null | undefined
+): BlankXpertDialogCategory | null {
+  const value = category?.trim().toLowerCase()
+
+  switch (value) {
+    case BLANK_XPERT_DIALOG_CATEGORY.CLAW:
+      return value
+    default:
+      return null
+  }
+}
+
 export type BlankXpertDialogData = {
   workspace?: IXpertWorkspace | null
   type?: XpertTypeEnum | null
   allowWorkspaceSelection?: boolean
   allowedModes?: BlankXpertMode[] | null
   completionMode?: BlankXpertCompletionMode
-  category?: string | null
+  category?: BlankXpertDialogCategory | null
 }
 
 type DraftPreparationResult = {
@@ -159,6 +185,22 @@ const EMPTY_BLANK_SKILL_STATE: BlankSkillState = {
   loading: false,
   skills: [],
   errorMessage: null
+}
+const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
+  'When available, use the following runtime preference context to guide how you respond.',
+  '',
+  'Assistant soul:',
+  '{{sys.soul}}',
+  '',
+  'User profile:',
+  '{{sys.profile}}',
+  '',
+  'Treat the assistant soul as behavior guidance and use the user profile to personalize responses when relevant.'
+].join('\n')
+const UNAVAILABLE_TEMPLATE_MIDDLEWARE_DESCRIPTION: I18nObject = {
+  en_US:
+    'This middleware comes from the selected template, but is not available in the current runtime. Keep it selected to preserve it in the imported draft, or deselect it to remove it.',
+  zh_Hans: '该中间件来自所选模板，但当前运行时不可用。保留勾选会继续带入导入草稿，取消勾选会将其移除。'
 }
 const AGENT_SKILL_STEP_INDEX = 4
 
@@ -261,7 +303,8 @@ export class XpertNewBlankComponent {
   readonly requestedType = signal(this.#dialogData.type ?? null)
   readonly allowedModes = this.#dialogData.allowedModes ?? null
   readonly completionMode = this.#dialogData.completionMode ?? ('create' as BlankXpertCompletionMode)
-  readonly templateCategory = this.#dialogData.category?.trim() || null
+  readonly templateCategory = normalizeBlankXpertDialogCategory(this.#dialogData.category)
+  readonly usesWorkspaceSkillDefaults = computed(() => this.templateCategory === BLANK_XPERT_DIALOG_CATEGORY.CLAW)
   readonly allowWorkspaceSelection = !!this.#dialogData.allowWorkspaceSelection
   readonly availableModes = computed(() => getBlankWizardAvailableModes(this.requestedType(), this.allowedModes))
   readonly types = model<BlankXpertMode[]>([getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)])
@@ -381,11 +424,31 @@ export class XpertNewBlankComponent {
       (provider) => provider.name
     )
   )
-  readonly middlewareProviderOptions = computed(() =>
-    uniqueByName<{ meta: TAgentMiddlewareMeta }>(this.middlewareProviders(), (provider) => provider.meta.name).filter(
-      (provider) => provider.meta.name !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
-    )
-  )
+  readonly middlewareProviderOptions = computed<BlankMiddlewareProviderOption[]>(() => {
+    const availableProviders = uniqueByName<BlankMiddlewareProviderOption>(
+      this.middlewareProviders().map(({ meta }) => ({ meta })),
+      (provider) => provider.meta.name
+    ).filter((provider) => provider.meta.name !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+    const availableNames = new Set(availableProviders.map((provider) => provider.meta.name))
+    const unavailableTemplateSelections = this.selectedMiddlewares()
+      .filter(
+        (provider) =>
+          !!provider && provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER && !availableNames.has(provider)
+      )
+      .map((provider) => ({
+        meta: {
+          name: provider,
+          label: {
+            en_US: provider,
+            zh_Hans: provider
+          },
+          description: UNAVAILABLE_TEMPLATE_MIDDLEWARE_DESCRIPTION
+        },
+        unavailable: true
+      }))
+
+    return [...availableProviders, ...unavailableTemplateSelections]
+  })
   readonly dataSourceProviderOptions = computed(() =>
     uniqueByName<{ meta: IDocumentSourceProvider; integration: { service: string } }>(
       this.dataSourceProviders(),
@@ -454,6 +517,7 @@ export class XpertNewBlankComponent {
   readonly selectedUnderstandings = model<string[]>([])
   readonly selectedWorkflowNodes = model<BlankWorkflowStarterNodeKey[]>([])
   readonly preparedSkillWorkspaces = signal<Set<string>>(new Set())
+  readonly initializedWorkspaceSkillDefaultWorkspaces = signal<Set<string>>(new Set())
   readonly workflowActionNodeOptions = WORKFLOW_ACTION_NODE_OPTIONS
   readonly workflowTransformNodeOptions = WORKFLOW_TRANSFORM_NODE_OPTIONS
   readonly selectedMode = computed<BlankXpertMode>(
@@ -618,11 +682,7 @@ export class XpertNewBlankComponent {
       }
 
       previousSkillWorkspaceId = workspaceId
-      this.applyAgentSkillSelections({
-        skills: [],
-        repositoryDefault: null,
-        middlewares: []
-      })
+      this.clearWorkspaceScopedAgentSelections()
       this.skillRefreshTick.update((value) => value + 1)
     })
 
@@ -731,6 +791,13 @@ export class XpertNewBlankComponent {
   private async createBlankXpert(): Promise<BlankXpertWizardResult> {
     const selectedType = this.selectedType()
     const selectedMode = this.selectedMode()
+    const selectedMiddlewareDefinitions = this.getSelectedMiddlewareDefinitions()
+    const primaryAgentPrompt = this.buildInitialPrimaryAgentPrompt()
+    const features = mergeBlankMiddlewareRequiredFeatures(
+      undefined,
+      this.selectedMiddlewares(),
+      selectedMiddlewareDefinitions
+    )
 
     const xpert = await firstValueFrom(
       this.xpertService.create({
@@ -742,9 +809,11 @@ export class XpertNewBlankComponent {
         latest: true,
         workspaceId: this.workspaceId() ?? undefined,
         avatar: this.avatar(),
+        ...(features ? { features } : {}),
         agent: {
           key: genAgentKey(),
           avatar: this.avatar(),
+          ...(primaryAgentPrompt ? { prompt: primaryAgentPrompt } : {}),
           options: {
             ...(shouldHideBlankWizardPrimaryAgent(selectedMode)
               ? {
@@ -758,7 +827,18 @@ export class XpertNewBlankComponent {
         }
       })
     )
-    const preparedXpert = await this.provisionKnowledgebaseIfNeeded(xpert)
+    const hydratedXpert = this.withInitialPrimaryAgentPrompt(xpert, primaryAgentPrompt)
+    const mergedFeatures = features
+      ? mergeBlankMiddlewareRequiredFeatures(
+          hydratedXpert.features,
+          this.selectedMiddlewares(),
+          selectedMiddlewareDefinitions
+        )
+      : hydratedXpert.features
+    const preparedXpert = await this.provisionKnowledgebaseIfNeeded({
+      ...hydratedXpert,
+      ...(mergedFeatures ? { features: mergedFeatures } : {})
+    })
     return this.completeCreation(preparedXpert)
   }
 
@@ -768,9 +848,11 @@ export class XpertNewBlankComponent {
       throw new Error('Select a template before continuing.')
     }
 
-    const nextDraft = this.buildTemplateImportDraft(draft)
+    const primaryAgentPrompt = this.buildInitialPrimaryAgentPrompt()
+    const nextDraft = this.withInitialPrimaryAgentPromptInDraft(this.buildTemplateImportDraft(draft), primaryAgentPrompt)
     const xpert = await firstValueFrom(this.xpertService.importDSL(nextDraft))
-    const preparedXpert = await this.provisionKnowledgebaseIfNeeded(xpert)
+    const hydratedXpert = this.withInitialPrimaryAgentPrompt(xpert, primaryAgentPrompt)
+    const preparedXpert = await this.provisionKnowledgebaseIfNeeded(hydratedXpert)
     return this.completeImportedCreation(preparedXpert)
   }
 
@@ -785,6 +867,12 @@ export class XpertNewBlankComponent {
   }
 
   toggleSkill(skillId: string, enabled: boolean) {
+    if (this.usesWorkspaceSkillDefaults()) {
+      this.selectedExplicitSkills.set(this.toggleValue(this.selectedExplicitSkills(), skillId, enabled))
+      this.refreshAgentSkillMiddlewareSelections()
+      return
+    }
+
     const skill = this.skillState().skills.find((item) => item.id === skillId)
     if (!skill) {
       this.selectedExplicitSkills.set(this.toggleValue(this.selectedExplicitSkills(), skillId, enabled))
@@ -869,7 +957,7 @@ export class XpertNewBlankComponent {
       const skillPackage = await firstValueFrom(
         this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1))
       )
-      if (item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER && item.repositoryId) {
+      if (!this.usesWorkspaceSkillDefaults() && item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER && item.repositoryId) {
         const repositoryDefault = this.selectedRepositoryDefault()
         const disabledSkillIds =
           repositoryDefault?.repositoryId === item.repositoryId
@@ -881,9 +969,7 @@ export class XpertNewBlankComponent {
           disabledSkillIds
         })
       } else {
-        this.selectedExplicitSkills.set(
-          Array.from(new Set([...this.selectedExplicitSkills(), skillPackage.id]))
-        )
+        this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), skillPackage.id])))
       }
       this.refreshAgentSkillMiddlewareSelections()
       this.refreshSkills()
@@ -960,6 +1046,13 @@ export class XpertNewBlankComponent {
       : this.isKnowledgeType()
         ? applyKnowledgeTemplateWizardState(draft, this.getKnowledgeSelections())
         : draft
+    const features = this.isAgentType()
+      ? mergeBlankMiddlewareRequiredFeatures(
+          finalDraft.team.features,
+          this.selectedMiddlewares(),
+          this.getSelectedMiddlewareDefinitions()
+        )
+      : finalDraft.team.features
 
     return {
       ...finalDraft,
@@ -972,7 +1065,8 @@ export class XpertNewBlankComponent {
         title: this.title(),
         description: this.description(),
         avatar: this.avatar(),
-        copilotModel: this.copilotModel()
+        copilotModel: this.copilotModel(),
+        ...(features ? { features } : {})
       }
     }
   }
@@ -1261,12 +1355,57 @@ export class XpertNewBlankComponent {
     }
   }
 
+  private buildInitialPrimaryAgentPrompt(): string | undefined {
+    if (this.templateCategory !== BLANK_XPERT_DIALOG_CATEGORY.CLAW) {
+      return undefined
+    }
+
+    return CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE
+  }
+
+  private withInitialPrimaryAgentPromptInDraft(draft: TXpertTeamDraft, prompt?: string): TXpertTeamDraft {
+    const primaryAgentKey = draft.team?.agent?.key
+    if (!prompt || !primaryAgentKey) {
+      return draft
+    }
+
+    return {
+      ...draft,
+      nodes: draft.nodes.map((node) =>
+        node.type === 'agent' && node.key === primaryAgentKey
+          ? {
+              ...node,
+              entity: {
+                ...node.entity,
+                prompt: node.entity?.prompt || prompt
+              }
+            }
+          : node
+      )
+    }
+  }
+
+  private withInitialPrimaryAgentPrompt(xpert: IXpert, prompt?: string): IXpert {
+    if (!prompt || !xpert.agent) {
+      return xpert
+    }
+
+    return {
+      ...xpert,
+      agent: {
+        ...xpert.agent,
+        prompt: xpert.agent.prompt ?? prompt
+      }
+    }
+  }
+
   private getSelectedMiddlewareDefinitions(): BlankMiddlewareDefinition[] {
     const selected = new Set(this.selectedMiddlewares())
     return this.middlewareProviders()
       .map(({ meta }) => ({
         name: meta.name,
-        configSchema: meta.configSchema
+        configSchema: meta.configSchema,
+        features: meta.features
       }))
       .filter((definition) => selected.has(definition.name))
   }
@@ -1317,12 +1456,17 @@ export class XpertNewBlankComponent {
     this.selectedExplicitSkills.set(selections.skills)
     this.selectedRepositoryDefault.set(cloneRepositoryDefaultSelection(selections.repositoryDefault))
     this.selectedMiddlewares.set(
-      normalizeBlankMiddlewareSelections(
-        selections.middlewares,
-        selections.skills,
-        selections.repositoryDefault
-      )
+      normalizeBlankMiddlewareSelections(selections.middlewares, selections.skills, selections.repositoryDefault)
     )
+  }
+
+  private clearWorkspaceScopedAgentSelections() {
+    this.initializedWorkspaceSkillDefaultWorkspaces.set(new Set())
+    this.applyAgentSkillSelections({
+      skills: [],
+      repositoryDefault: null,
+      middlewares: this.selectedMiddlewares().filter((provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+    })
   }
 
   async onAgentStepChange(event: ZardStepperSelectionEvent) {
@@ -1340,6 +1484,11 @@ export class XpertNewBlankComponent {
     }
 
     if (this.preparedSkillWorkspaces().has(workspaceId)) {
+      if (this.usesWorkspaceSkillDefaults()) {
+        this.applyWorkspaceSkillDefaults(workspaceId, this.getWorkspaceSkillIds())
+        return
+      }
+
       if (!this.selectedRepositoryDefault()?.repositoryId) {
         const repositoryId = await this.getWorkspacePublicRepositoryId()
         if (repositoryId) {
@@ -1356,12 +1505,18 @@ export class XpertNewBlankComponent {
     this.installingSkillPackage.set(true)
     try {
       const repositoryId = await this.getWorkspacePublicRepositoryId()
+      let installedSkillIds: string[] = []
       if (repositoryId) {
-        await firstValueFrom(
+        const installedSkillPackages = await firstValueFrom(
           this.#skillPackageService.installRepositoryPackages(workspaceId, repositoryId).pipe(take(1))
         )
+        installedSkillIds = installedSkillPackages
+          .map((item) => (typeof item?.id === 'string' ? item.id.trim() : ''))
+          .filter((id) => !!id)
 
-        if (!this.selectedRepositoryDefault()?.repositoryId) {
+        if (this.usesWorkspaceSkillDefaults()) {
+          this.selectedRepositoryDefault.set(null)
+        } else if (!this.selectedRepositoryDefault()?.repositoryId) {
           this.selectedRepositoryDefault.set({
             repositoryId,
             disabledSkillIds: []
@@ -1370,6 +1525,7 @@ export class XpertNewBlankComponent {
       }
 
       this.preparedSkillWorkspaces.update((value) => new Set([...value, workspaceId]))
+      this.applyWorkspaceSkillDefaults(workspaceId, [...this.getWorkspaceSkillIds(), ...installedSkillIds])
       this.refreshAgentSkillMiddlewareSelections()
       this.refreshSkills()
     } catch (error) {
@@ -1393,9 +1549,32 @@ export class XpertNewBlankComponent {
   }
 
   private getRepositorySkillIds(repositoryId: string) {
-    return this.skillState().skills
-      .filter((skill) => skill.repositoryId === repositoryId)
+    return this.skillState()
+      .skills.filter((skill) => skill.repositoryId === repositoryId)
       .map((skill) => skill.id)
+  }
+
+  private getWorkspaceSkillIds() {
+    return this.skillState().skills.map((skill) => skill.id)
+  }
+
+  private applyWorkspaceSkillDefaults(workspaceId: string, skillIds: string[]) {
+    if (!this.usesWorkspaceSkillDefaults()) {
+      return
+    }
+
+    if (this.initializedWorkspaceSkillDefaultWorkspaces().has(workspaceId)) {
+      return
+    }
+
+    const normalizedSkillIds = Array.from(
+      new Set(skillIds.map((skillId) => skillId?.trim()).filter((skillId): skillId is string => !!skillId))
+    )
+    if (normalizedSkillIds.length) {
+      this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), ...normalizedSkillIds])))
+    }
+    this.selectedRepositoryDefault.set(null)
+    this.initializedWorkspaceSkillDefaultWorkspaces.update((value) => new Set([...value, workspaceId]))
   }
 
   private refreshAgentSkillMiddlewareSelections() {

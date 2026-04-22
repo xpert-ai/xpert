@@ -5,36 +5,47 @@
     "version": "0.2.0",
     "configurations": [
 		{
-			"name": "Attach NestJS",
-			"port": 9229,
-			"request": "attach",
-			"skipFiles": [
-				"<node_internals>/**"
-			],
-			"type": "node"
-		},
-        {
+			"name": "Attach API Debug",
 			"type": "node",
 			"request": "attach",
-			"name": "Debug Server",
+			"address": "localhost",
+			"port": 9229,
 			"sourceMaps": true,
 			"restart": true,
-			"port": 9229
+			"continueOnAttach": true,
+			"resolveSourceMapLocations": [
+				"${workspaceFolder}/**",
+				"!**/node_modules/**"
+			],
+			"skipFiles": ["<node_internals>/**"]
 		},
 		{
-			"name": "Debug NestJS",
+			"name": "Launch API Debug",
 			"type": "node",
 			"request": "launch",
-			"runtimeExecutable": "nodemon",
+			"cwd": "${workspaceFolder}",
+			"runtimeExecutable": "node",
+			"runtimeArgs": [
+				"--inspect=0.0.0.0:9229",
+				"-r",
+				"ts-node/register",
+				"-r",
+				"tsconfig-paths/register"
+			],
 			"program": "${workspaceFolder}/apps/api/src/main.ts",
-			"restart": true,
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
 			"env": {
-			  "TS_NODE_PROJECT": "apps/api/tsconfig.app.json"
+				"NODE_ENV": "development",
+				"TS_NODE_PROJECT": "apps/api/tsconfig.app.json"
 			},
+			"autoAttachChildProcesses": true,
 			"skipFiles": ["<node_internals>/**"],
-			"sourceMaps": true
+			"sourceMaps": true,
+			"resolveSourceMapLocations": [
+				"${workspaceFolder}/**",
+				"!**/node_modules/**"
+			]
 		}
     ]
 }

@@ -15,7 +15,9 @@
           {{ 'PAC.Files.FileContent' | translate: { Default: 'File Content' } }}
         </div>
         @if (dirty()) {
-          <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] text-text-warning">
+          <span
+            class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] text-text-warning"
+          >
             {{ 'PAC.Files.UnsavedChanges' | translate: { Default: 'Unsaved changes' } }}
           </span>
         }
@@ -37,23 +39,24 @@
 
       <z-segmented [(ngModel)]="mode">
         <z-segmented-item [value]="'view'" [label]="'PAC.Chat.View' | translate: { Default: 'View' }" />
-        <z-segmented-item [value]="'edit'" [label]="'PAC.Chat.Edit' | translate: { Default: 'Edit' }" [zDisabled]="!editable()" />
+        <z-segmented-item
+          [value]="'edit'"
+          [label]="'PAC.Chat.Edit' | translate: { Default: 'Edit' }"
+          [zDisabled]="!editable()"
+        />
       </z-segmented>
 
-      <button
-        type="button"
-        class="btn btn-secondary btn-small"
-        [disabled]="!dirty()"
-        (click)="discard.emit()"
-      >
+      @if (mode() === 'view' && canTogglePreview()) {
+        <z-segmented [ngModel]="previewMode()" (ngModelChange)="updatePreviewMode($event)">
+          <z-segmented-item [value]="'preview'" [label]="'PAC.Chat.Preview' | translate: { Default: 'Preview' }" />
+          <z-segmented-item [value]="'code'" [label]="'PAC.Chat.Code' | translate: { Default: 'Code' }" />
+        </z-segmented>
+      }
+
+      <button type="button" class="btn btn-secondary btn-small" [disabled]="!dirty()" (click)="discard.emit()">
         {{ 'PAC.Files.Discard' | translate: { Default: 'Discard' } }}
       </button>
-      <button
-        type="button"
-        class="btn btn-primary btn-small"
-        [disabled]="!dirty() || saving()"
-        (click)="save.emit()"
-      >
+      <button type="button" class="btn btn-primary btn-small" [disabled]="!dirty() || saving()" (click)="save.emit()">
         @if (saving()) {
           <i class="ri-loader-4-line mr-1 animate-spin"></i>
         }
@@ -65,11 +68,45 @@
   <div class="xp-pane-body relative overflow-hidden">
     @if (filePath()) {
       @if (loading()) {
-        <ngm-spin class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm" />
+        <ngm-spin
+          class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm"
+        />
+      } @else if (mode() === 'edit' && editable()) {
+        <pac-file-editor
+          class="h-full"
+          [referenceable]="editorReferenceable()"
+          [editable]="true"
+          lineNumbers
+          wordWrap
+          [fileName]="filePath() || ''"
+          [content]="content()"
+          (contentChange)="contentChange.emit($event)"
+          (referenceSelection)="referenceSelection.emit($event)"
+        />
+      } @else if (showEnhancedPreview()) {
+        <pac-file-preview-content
+          class="h-full"
+          [content]="previewData().content"
+          [documentHtml]="previewData().documentHtml"
+          [downloadable]="downloadable()"
+          [error]="previewData().error"
+          [fileName]="displayFileName() || filePath() || ''"
+          [loading]="previewLoading()"
+          [previewKind]="previewKind()"
+          [referenceable]="documentPreviewReferenceable()"
+          [spreadsheet]="previewData().spreadsheet"
+          [url]="previewUrl() || file()?.fileUrl || file()?.url || null"
+          (download)="download.emit()"
+          (referenceSelection)="referenceSelection.emit($event)"
+        />
       } @else if (!readable()) {
         <div class="flex h-full items-center justify-center p-6">
-          <div class="flex w-full max-w-lg flex-col items-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle/60 px-6 py-8 text-center">
-            <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-divider-regular bg-components-panel-bg text-2xl text-text-tertiary">
+          <div
+            class="flex w-full max-w-lg flex-col items-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle/60 px-6 py-8 text-center"
+          >
+            <div
+              class="flex h-14 w-14 items-center justify-center rounded-2xl border border-divider-regular bg-components-panel-bg text-2xl text-text-tertiary"
+            >
               <i class="ri-file-warning-line"></i>
             </div>
             <div class="mt-4 text-lg font-semibold text-text-primary">
@@ -90,19 +127,7 @@
             }
           </div>
         </div>
-      } @else if (mode() === 'edit' && editable()) {
-        <pac-file-editor
-          class="h-full"
-          [referenceable]="editorReferenceable()"
-          [editable]="true"
-          lineNumbers
-          wordWrap
-          [fileName]="filePath() || ''"
-          [content]="content()"
-          (contentChange)="contentChange.emit($event)"
-          (referenceSelection)="referenceSelection.emit($event)"
-        />
-      } @else if (markdown()) {
+      } @else if (markdown() && isPreviewMode()) {
         <div #markdownPreviewHost class="relative h-full overflow-auto px-6 py-5">
           <markdown class="ngm-copilot-markdown block" [data]="content()" />
 
@@ -143,7 +168,10 @@
           {{ 'PAC.Files.SelectFile' | translate: { Default: 'Select a file' } }}
         </div>
         <div class="text-sm text-text-tertiary">
-          {{ 'PAC.Files.SelectFileHint' | translate: { Default: 'Choose a file from the tree pane to preview or edit it.' } }}
+          {{
+            'PAC.Files.SelectFileHint'
+              | translate: { Default: 'Choose a file from the tree pane to preview or edit it.' }
+          }}
         </div>
       </div>
     }

@@ -226,6 +226,104 @@ describe('SkillsMiddleware', () => {
     expect(result.systemMessage.content).not.toContain('skill-b')
   })
 
+  it('forces workspace blacklist mode when requested at runtime', async () => {
+    const middleware = createMiddleware()
+    const loadWorkspaceSkillMetadata = jest
+      .spyOn(middleware as any, 'loadWorkspaceSkillMetadata')
+      .mockResolvedValue([
+        {
+          id: 'skill-a',
+          name: 'skill-a',
+          description: 'skill-a description',
+          path: `${runtimeSkillsRoot}/skill-a/SKILL.md`,
+          packagePath: 'skill-a',
+          workspaceId: 'workspace-1',
+          version: '1'
+        },
+        {
+          id: 'skill-b',
+          name: 'skill-b',
+          description: 'skill-b description',
+          path: `${runtimeSkillsRoot}/skill-b/SKILL.md`,
+          packagePath: 'skill-b',
+          workspaceId: 'workspace-1',
+          version: '1'
+        }
+      ])
+    const loadSkillMetadata = jest.spyOn(middleware as any, 'loadSkillMetadata').mockResolvedValue([
+      {
+        id: 'configured-skill',
+        name: 'configured-skill',
+        description: 'configured skill description',
+        path: `${runtimeSkillsRoot}/configured-skill/SKILL.md`,
+        packagePath: 'configured-skill',
+        workspaceId: 'workspace-1',
+        version: '1'
+      }
+    ])
+    const loadRepositoryWorkspaceSkillMetadata = jest
+      .spyOn(middleware as any, 'loadRepositoryWorkspaceSkillMetadata')
+      .mockResolvedValue([
+        {
+          id: 'repository-skill',
+          name: 'repository-skill',
+          description: 'repository skill description',
+          path: `${runtimeSkillsRoot}/repository-skill/SKILL.md`,
+          packagePath: 'repository-skill',
+          workspaceId: 'workspace-1',
+          version: '1'
+        }
+      ])
+
+    const instance = await middleware.createMiddleware(
+      {
+        skills: ['configured-skill'],
+        repositoryDefault: {
+          repositoryId: 'repository-1',
+          disabledSkillIds: ['repository-skill']
+        }
+      },
+      {
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1',
+        projectId: null,
+        node: {} as any,
+        tools: new Map()
+      }
+    )
+
+    const handler = jest.fn(async (request) => request)
+    const result = (await instance.wrapModelCall(
+      {
+        runtime: {
+          configurable: {
+            sandbox: {
+              workingDirectory: runtimeWorkingDirectory
+            }
+          }
+        },
+        state: {
+          selectedSkillIds: ['runtime-skill'],
+          disabledSkillIds: ['skill-b'],
+          selectedSkillWorkspaceId: 'workspace-1',
+          skillSelectionMode: 'workspace_blacklist'
+        },
+        systemMessage: new SystemMessage('base')
+      } as any,
+      handler
+    )) as any
+
+    expect(loadWorkspaceSkillMetadata).toHaveBeenCalledWith(runtimeSkillsRoot, 'workspace-1')
+    expect(loadSkillMetadata).not.toHaveBeenCalled()
+    expect(loadRepositoryWorkspaceSkillMetadata).not.toHaveBeenCalled()
+    expect(result.systemMessage.content).toContain('skill-a')
+    expect(result.systemMessage.content).not.toContain('skill-b')
+    expect(result.systemMessage.content).not.toContain('configured-skill')
+    expect(result.systemMessage.content).not.toContain('repository-skill')
+    expect(result.systemMessage.content).not.toContain('runtime-skill')
+  })
+
   it('loads repository-backed defaults, removes config blacklisted skills, and still applies runtime disabled skills last', async () => {
     const middleware = createMiddleware()
     ;(middleware as any).skillPackageRepository.find = jest.fn().mockResolvedValue([

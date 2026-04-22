@@ -280,6 +280,16 @@
                       }
               }}
             </div>
+            <div class="text-xs leading-5 text-text-secondary">
+              {{
+                'PAC.Xpert.MiddlewareFeaturesAutoEnabled'
+                  | translate
+                    : {
+                        Default:
+                          'If a middleware requires xpert features such as sandbox, they will be enabled automatically for this xpert.'
+                      }
+              }}
+            </div>
 
             <div class="grid gap-2 md:grid-cols-2">
               @for (middleware of middlewareProviderOptions(); track middleware.meta.name) {
@@ -293,8 +303,18 @@
                     (ngModelChange)="toggleMiddleware(middleware.meta.name, $event)"
                   />
                   <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}
+                    <div class="flex flex-wrap items-center gap-2 font-medium text-text-primary">
+                      <span>{{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}</span>
+                      @if (middleware.unavailable) {
+                        <span
+                          class="inline-flex items-center rounded-md bg-components-input-bg-normal px-2 py-px text-xs text-text-warning"
+                        >
+                          {{
+                            'PAC.Xpert.TemplateMiddlewareUnavailable'
+                              | translate: { Default: 'Unavailable in current runtime' }
+                          }}
+                        </span>
+                      }
                     </div>
                     <div class="text-sm text-text-secondary">
                       {{ middleware.meta.description ? (middleware.meta.description | i18n) : middleware.meta.name }}
@@ -319,11 +339,12 @@
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div class="max-w-3xl text-sm leading-6 text-text-secondary">
                 {{
-                  'PAC.Xpert.AddWorkspaceSkillsHelp'
+                          'PAC.Xpert.AddWorkspaceSkillsHelp'
                     | translate
                       : {
-                          Default:
-                            'The first time you open this step, we sync the built-in public skill repository into the workspace and enable it by default. Unchecked public skills become this Xpert’s blacklist, while other workspace skills stay opt-in.'
+                          Default: usesWorkspaceSkillDefaults()
+                            ? 'All workspace skills shown here are enabled by default for ClawXpert. Uncheck any skill to exclude it.'
+                            : 'The first time you open this step, we sync the built-in public skill repository into the workspace and enable it by default. Unchecked public skills become this Xpert’s blacklist, while other workspace skills stay opt-in.'
                         }
                 }}
               </div>

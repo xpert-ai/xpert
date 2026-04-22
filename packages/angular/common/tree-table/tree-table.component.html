@@ -18,12 +18,17 @@
       @for (column of columns; track column.name) {
         <th
           z-table-head
-          [ngClass]="stickyHeaders ? 'sticky top-0 z-20 bg-background' : ''"
+          [ngClass]="[stickyHeaders ? 'sticky top-0 z-20 bg-background' : '', column.headerClass]"
           [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
           [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
           [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 5 : 1"
+          [style.width]="column.width || null"
+          [style.min-width]="column.minWidth || null"
+          [style.max-width]="column.maxWidth || null"
         >
-          {{column.caption || column.name}}
+          <div class="min-w-0" [style.max-width]="column.maxWidth || null">
+            {{column.caption || column.name}}
+          </div>
         </th>
       }
     </tr>
@@ -61,13 +66,23 @@
             [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
             [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
             [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 4 : 1"
+            [ngClass]="column.cellClass"
+            [style.width]="column.width || null"
+            [style.min-width]="column.minWidth || null"
+            [style.max-width]="column.maxWidth || null"
           >
-            @if (column.cellTemplate) {
-              <ng-container *ngTemplateOutlet="column.cellTemplate; context: data"></ng-container>
-            }
-            @if (!column.cellTemplate) {
-              {{column.pipe ? column.pipe(data.raw?.[column.name]) : data.raw?.[column.name]}}
-            }
+            <div
+              [ngClass]="contentClass(column)"
+              [style.max-width]="column.maxWidth || null"
+              [attr.title]="cellTitle(data, column)"
+            >
+              @if (column.cellTemplate) {
+                <ng-container *ngTemplateOutlet="column.cellTemplate; context: data"></ng-container>
+              }
+              @if (!column.cellTemplate) {
+                {{displayValue(data, column)}}
+              }
+            </div>
           </td>
         }
       </tr>

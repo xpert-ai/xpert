@@ -1811,7 +1811,30 @@ connections: []`
                     findOne: jest.fn().mockResolvedValue(persistedXpert)
                 }
             },
-            commandBus
+            commandBus,
+            xpertAgentService: {
+                getMiddlewareStrategies: jest.fn().mockReturnValue([
+                    {
+                        meta: {
+                            name: 'SummarizationMiddleware',
+                            configSchema: {
+                                type: 'object',
+                                properties: {
+                                    model: {
+                                        type: 'object',
+                                        'x-ui': {
+                                            component: 'ai-model-select',
+                                            inputs: {
+                                                modelType: AiModelTypeEnum.LLM
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ])
+            }
         })
 
         await service.editXpertFromContext(
@@ -1887,6 +1910,167 @@ connections: []`
                 model: 'gpt-4.1'
             })
         )
+    })
+
+    it('does not normalize middleware options.model when the schema is not ai-model-select', async () => {
+        const currentDraft = {
+            team: {
+                id: 'xpert-model-custom-middleware',
+                name: 'Support Expert',
+                type: 'agent',
+                agent: {
+                    key: 'Agent_1'
+                }
+            },
+            nodes: [
+                {
+                    type: 'agent',
+                    key: 'Agent_1',
+                    position: { x: 0, y: 0 },
+                    entity: {
+                        key: 'Agent_1',
+                        name: 'Support Expert'
+                    }
+                },
+                {
+                    type: 'workflow',
+                    key: 'Middleware_Custom',
+                    position: { x: 240, y: 0 },
+                    entity: {
+                        key: 'Middleware_Custom',
+                        type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                        provider: 'CustomMiddleware',
+                        options: {
+                            model: {
+                                modelType: 'llm',
+                                model: 'gpt-4.1'
+                            }
+                        }
+                    }
+                }
+            ],
+            connections: []
+        }
+        const persistedXpert = buildPersistedXpert({
+            id: 'xpert-model-custom-middleware',
+            draft: currentDraft
+        })
+        const commandBus = {
+            execute: jest.fn().mockImplementation((command) => {
+                if (command instanceof XpertImportCommand) {
+                    return Promise.resolve(persistedXpert)
+                }
+
+                if (command instanceof XpertExportCommand) {
+                    return Promise.resolve(currentDraft)
+                }
+
+                return Promise.resolve(persistedXpert)
+            })
+        }
+        const { service } = createService({
+            xpertService: {
+                validate: jest.fn().mockResolvedValue([]),
+                repository: {
+                    findOne: jest.fn().mockResolvedValue(persistedXpert)
+                }
+            },
+            commandBus,
+            xpertAgentService: {
+                getMiddlewareStrategies: jest.fn().mockReturnValue([
+                    {
+                        meta: {
+                            name: 'CustomMiddleware',
+                            configSchema: {
+                                type: 'object',
+                                properties: {
+                                    model: {
+                                        type: 'object',
+                                        'x-ui': {
+                                            component: 'json-editor'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ])
+            }
+        })
+
+        await service.editXpertFromContext(
+            {
+                targetXpertId: 'xpert-model-custom-middleware',
+                baseDraftHash: (service as any).calculateDraftHash(currentDraft)
+            },
+            {
+                dslYaml: `team:
+  name: Support Expert
+  type: agent
+  agent:
+    key: Agent_1
+nodes:
+  - type: agent
+    key: Agent_1
+    position:
+      x: 0
+      y: 0
+    entity:
+      key: Agent_1
+      name: Support Expert
+  - type: workflow
+    key: Middleware_Custom
+    position:
+      x: 240
+      y: 0
+    entity:
+      key: Middleware_Custom
+      type: middleware
+      provider: CustomMiddleware
+      options:
+        model:
+          modelType: llm
+          model: gpt-4.1
+connections: []`
+            },
+            {
+                targetXpertId: 'xpert-model-custom-middleware',
+                currentCopilotId: 'copilot-openai',
+                currentProvider: 'openai',
+                currentModelId: 'gpt-4o',
+                availableModelIds: ['gpt-4o', 'gpt-4.1'],
+                items: [
+                    {
+                        copilotId: 'copilot-openai',
+                        provider: 'openai',
+                        modelType: AiModelTypeEnum.LLM,
+                        model: 'gpt-4o',
+                        label: 'GPT-4o',
+                        isCurrentProvider: true,
+                        isCurrentModel: true
+                    },
+                    {
+                        copilotId: 'copilot-openai',
+                        provider: 'openai',
+                        modelType: AiModelTypeEnum.LLM,
+                        model: 'gpt-4.1',
+                        label: 'GPT-4.1',
+                        isCurrentProvider: true,
+                        isCurrentModel: false
+                    }
+                ]
+            }
+        )
+
+        const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+        const middlewareNode = importCommand.draft.nodes.find((node) => node.key === 'Middleware_Custom')
+        expect(middlewareNode.entity.options.model).toEqual(
+            expect.objectContaining({
+                modelType: 'llm',
+                model: 'gpt-4.1'
+            })
+        )
+        expect(middlewareNode.entity.options.model.copilotId).toBeUndefined()
     })
 
     it('rejects editXpert when speech-to-text is enabled without a speech model', async () => {

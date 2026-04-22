@@ -1,4 +1,9 @@
-<ngx-monaco-editor class="w-full max-h-full min-h-[100px]" ngmResizable [directions]="['bottom']"
+<ngx-monaco-editor
+  class="code-editor w-full max-h-full min-h-[100px]"
+  [class.code-editor--readonly]="isReadonly()"
+  [attr.aria-readonly]="isReadonly()"
+  ngmResizable
+  [directions]="['bottom']"
   [options]="editorOptions()"
   [ngModel]="value$()"
   (ngModelChange)="onEditorChange($event)"

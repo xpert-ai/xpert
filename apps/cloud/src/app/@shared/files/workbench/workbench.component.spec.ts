@@ -20,6 +20,7 @@ type TFile = {
   filePath?: string
   fileType?: string
   contents?: string
+  previewText?: string
   fileUrl?: string
   url?: string
   mimeType?: string
@@ -89,6 +90,7 @@ jest.mock('../viewer/viewer.component', () => {
     template: ''
   })
   class MockFileViewerComponentImpl {
+    @Input() file?: TFile | null
     @Input() filePath?: string | null
     @Input() content?: string
     @Input() loading?: boolean
@@ -99,6 +101,7 @@ jest.mock('../viewer/viewer.component', () => {
     @Input() dirty?: boolean
     @Input() downloadable?: boolean
     @Input() referenceable?: boolean
+    @Input() previewUrl?: string | null
     @Input() mode?: 'view' | 'edit'
     @Input() readOnlyHint?: string
     @Input() unsupportedPreviewTitle?: string
@@ -285,7 +288,7 @@ describe('FileWorkbenchComponent', () => {
     const { component } = await setup()
 
     expect(component.uploadTargetPath()).toBe('')
-    expect(component.uploadTargetDisplayPath()).toBe('/')
+    expect(component.uploadTargetDisplayPath()).toBe('./')
 
     await component.openFile({
       filePath: 'SKILL.md',
@@ -305,7 +308,7 @@ describe('FileWorkbenchComponent', () => {
     } as FileTreeNode)
 
     expect(component.uploadTargetPath()).toBe('docs')
-    expect(component.uploadTargetDisplayPath()).toBe('/docs')
+    expect(component.uploadTargetDisplayPath()).toBe('./docs')
   })
 
   it('highlights the selected directory in the tree', async () => {
@@ -463,6 +466,44 @@ describe('FileWorkbenchComponent', () => {
         startLine: 2,
         endLine: 2,
         language: 'typescript'
+      }
+    ])
+  })
+
+  it('emits a selected-range reference for preview-text files even when the file is not directly editable', async () => {
+    const { component } = await setup({
+      referenceable: true,
+      rootFiles: [
+        {
+          filePath: 'proposal.docx',
+          fullPath: 'proposal.docx',
+          fileType: 'docx',
+          hasChildren: false
+        }
+      ],
+      fileContents: {
+        'proposal.docx': {
+          filePath: 'proposal.docx',
+          fileType: 'docx',
+          previewText: 'Executive summary\n\nNext steps'
+        }
+      }
+    })
+    const emitted: unknown[] = []
+    component.referenceRequest.subscribe((value) => emitted.push(value))
+
+    component.referenceSelectedRange({
+      text: 'Executive summary',
+      startLine: 1,
+      endLine: 1
+    })
+
+    expect(emitted).toEqual([
+      {
+        path: 'proposal.docx',
+        text: 'Executive summary',
+        startLine: 1,
+        endLine: 1
       }
     ])
   })

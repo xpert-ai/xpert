@@ -46,6 +46,7 @@ import { ProjectSwimlaneModule } from './project-swimlane/project-swimlane.modul
 import { ProjectTaskModule } from './project-task/project-task.module'
 import { ProjectAssistantModule } from './project-assistant/project-assistant.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
+import { VolumeModule } from './shared/volume'
 
 @Module({
     imports: [
@@ -69,6 +70,7 @@ import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscr
         GraphragModule,
         HandoffQueueModule,
         FileUploadTargetsModule,
+        VolumeModule,
         XpertModule,
         XpertAgentModule,
         XpertAgentExecutionModule,

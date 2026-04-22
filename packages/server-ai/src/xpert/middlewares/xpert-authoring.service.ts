@@ -3,7 +3,6 @@ import {
     AssistantCode,
     AiModelTypeEnum,
     ChecklistItem,
-    IAssistantBindingToolPreferences,
     ISkillPackage,
     IXpert,
     ModelFeature,
@@ -16,6 +15,7 @@ import {
     convertToUrlPath,
     createAgentConnections,
     createXpertNodes,
+    ensureAssistantBindingSkillWorkspacePreference,
     letterStartSUID,
     omitXpertRelations
 } from '@xpert-ai/contracts'
@@ -33,6 +33,7 @@ import { XpertAgentService } from '../../xpert-agent/xpert-agent.service'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 import { XpertToolsetService } from '../../xpert-toolset/xpert-toolset.service'
 import { XpertExportCommand, XpertImportCommand } from '../commands'
+import { buildMiddlewareModelTargetCatalog, MiddlewareModelTargetCatalog } from '../copilot-model-sync.util'
 import { buildOverwriteDraftFromImportedDsl } from '../import-draft.utils'
 import { XpertService } from '../xpert.service'
 import {
@@ -104,6 +105,7 @@ type ModelScanContext = {
     nodeType?: string | null
     workflowEntityType?: string | null
     middlewareProvider?: string | null
+    middlewareOptionPath?: string[]
 }
 
 type ModelConfigTarget = {
@@ -251,7 +253,7 @@ export class XpertAuthoringService {
                 ) === index
         )
         const currentSelection = currentDraftCopilotModel
-            ? deduplicatedItems.find(
+            ? (deduplicatedItems.find(
                   (item) =>
                       item.modelType === AiModelTypeEnum.LLM &&
                       item.model === currentDraftCopilotModel.model &&
@@ -263,7 +265,7 @@ export class XpertAuthoringService {
                       item.model === currentDraftCopilotModel.model &&
                       item.provider === currentDraftCopilotModel.provider
               ) ??
-              null
+              null)
             : null
         const currentCopilotId = currentSelection?.copilotId ?? null
         const currentProvider = currentSelection?.provider ?? null
@@ -762,7 +764,10 @@ export class XpertAuthoringService {
     }
 
     private async ensureClawXpertWorkspaceSkillPreference(workspaceId: string): Promise<string[]> {
-        const binding = await this.assistantBindingService.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+        const binding = await this.assistantBindingService.getBinding(
+            AssistantCode.CLAWXPERT,
+            AssistantBindingScope.USER
+        )
         if (!binding?.id) {
             return ['ClawXpert binding was not found, so skill preferences were not updated.']
         }
@@ -772,7 +777,7 @@ export class XpertAuthoringService {
                 AssistantCode.CLAWXPERT,
                 AssistantBindingScope.USER
             )
-            const nextToolPreferences = ensureWorkspaceSkillPreference(
+            const nextToolPreferences = ensureAssistantBindingSkillWorkspacePreference(
                 currentPreference?.toolPreferences ?? null,
                 workspaceId
             )
@@ -916,7 +921,9 @@ export class XpertAuthoringService {
         }
 
         if (!copilotModelCatalog || copilotModelCatalog.targetXpertId !== context.targetXpertId) {
-            return ['Draft model configuration changed. Call getAvailableCopilotModels before editXpert, then retry with a returned model id.']
+            return [
+                'Draft model configuration changed. Call getAvailableCopilotModels before editXpert, then retry with a returned model id.'
+            ]
         }
 
         return []
@@ -939,7 +946,10 @@ export class XpertAuthoringService {
             }
         }
 
-        const targets = this.getModelConfigTargets(parsedDsl)
+        const middlewareModelTargetCatalog = buildMiddlewareModelTargetCatalog(
+            this.xpertAgentService.getMiddlewareStrategies()
+        )
+        const targets = this.getModelConfigTargets(parsedDsl, middlewareModelTargetCatalog)
         let changed = false
         const errors: string[] = []
 
@@ -963,7 +973,10 @@ export class XpertAuthoringService {
         }
     }
 
-    private getModelConfigTargets(root: Record<string, unknown>) {
+    private getModelConfigTargets(
+        root: Record<string, unknown>,
+        middlewareModelTargetCatalog: MiddlewareModelTargetCatalog
+    ) {
         const targets: ModelConfigTarget[] = []
         const seen = new Set<string>()
 
@@ -986,13 +999,22 @@ export class XpertAuthoringService {
                 const childRecord = this.asRecord(child)
                 const childContext = this.extendModelScanContext(record, key, childRecord, context)
 
-                if (childRecord && this.shouldTreatAsModelTarget(key, childRecord, childContext)) {
+                if (
+                    childRecord &&
+                    this.shouldTreatAsModelTarget(key, childRecord, childContext, middlewareModelTargetCatalog)
+                ) {
                     if (!seen.has(childPath)) {
                         targets.push({
                             owner: record,
                             key,
                             label: childPath,
-                            expectedModelType: this.inferTargetModelType(childPath, key, childContext, childRecord),
+                            expectedModelType: this.inferTargetModelType(
+                                childPath,
+                                key,
+                                childContext,
+                                childRecord,
+                                middlewareModelTargetCatalog
+                            ),
                             requiredFeatures: this.inferTargetModelFeatures(key)
                         })
                         seen.add(childPath)
@@ -1117,7 +1139,11 @@ export class XpertAuthoringService {
             return []
         }
 
-        return this.getModelConfigTargets(root)
+        const middlewareModelTargetCatalog = buildMiddlewareModelTargetCatalog(
+            this.xpertAgentService.getMiddlewareStrategies()
+        )
+
+        return this.getModelConfigTargets(root, middlewareModelTargetCatalog)
             .map((target) => {
                 const config = this.asRecord(target.owner[target.key])
                 if (!config) {
@@ -1170,9 +1196,7 @@ export class XpertAuthoringService {
             return {
                 catalog: null,
                 error:
-                    error instanceof Error
-                        ? error.message
-                        : 'Failed to resolve available copilot models for editXpert.'
+                    error instanceof Error ? error.message : 'Failed to resolve available copilot models for editXpert.'
             }
         }
     }
@@ -1242,26 +1266,60 @@ export class XpertAuthoringService {
                 nodeKey: typeof record['key'] === 'string' ? record['key'] : context.nodeKey,
                 nodeType,
                 workflowEntityType: typeof child['type'] === 'string' ? child['type'] : context.workflowEntityType,
-                middlewareProvider: typeof child['provider'] === 'string' ? child['provider'] : context.middlewareProvider
+                middlewareProvider: typeof child['provider'] === 'string' ? child['provider'] : null,
+                middlewareOptionPath: undefined
             }
         }
 
         if (key === 'options' && context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE) {
             return {
-                ...context
+                ...context,
+                middlewareOptionPath: []
+            }
+        }
+
+        if (context.middlewareOptionPath) {
+            return {
+                ...context,
+                middlewareOptionPath: [...context.middlewareOptionPath, key]
             }
         }
 
         return context
     }
 
+    private resolveMiddlewareModelTarget(
+        middlewareModelTargetCatalog: MiddlewareModelTargetCatalog,
+        context: ModelScanContext
+    ) {
+        const provider =
+            typeof context.middlewareProvider === 'string' && context.middlewareProvider.trim()
+                ? context.middlewareProvider
+                : null
+        const path = context.middlewareOptionPath?.join('.')
+        if (!provider || !path) {
+            return null
+        }
+
+        return middlewareModelTargetCatalog[provider]?.find((target) => target.path === path) ?? null
+    }
+
     private shouldTreatAsModelTarget(
         key: string,
         value: Record<string, unknown>,
-        context: ModelScanContext
+        context: ModelScanContext,
+        middlewareModelTargetCatalog: MiddlewareModelTargetCatalog
     ) {
+        if (this.resolveMiddlewareModelTarget(middlewareModelTargetCatalog, context)) {
+            return true
+        }
+
         if (key === 'model') {
-            return this.isCopilotModelConfig(value) || context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE
+            if (context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE) {
+                return false
+            }
+
+            return this.isCopilotModelConfig(value)
         }
 
         if (key.endsWith('Model')) {
@@ -1275,7 +1333,8 @@ export class XpertAuthoringService {
         label: string,
         key: string,
         context: ModelScanContext,
-        value: Record<string, unknown>
+        value: Record<string, unknown>,
+        middlewareModelTargetCatalog: MiddlewareModelTargetCatalog
     ): AiModelTypeEnum {
         const explicitModelType =
             typeof value['modelType'] === 'string' && value['modelType'].trim()
@@ -1283,6 +1342,11 @@ export class XpertAuthoringService {
                 : null
         if (explicitModelType) {
             return explicitModelType
+        }
+
+        const middlewareTarget = this.resolveMiddlewareModelTarget(middlewareModelTargetCatalog, context)
+        if (middlewareTarget?.modelType) {
+            return middlewareTarget.modelType
         }
 
         if (key === 'rerankModel') {
@@ -1362,9 +1426,10 @@ export class XpertAuthoringService {
         model: string
     ) {
         const matchingItems = (copilotModelCatalog.items ?? []).filter((item) => item.modelType === modelType)
-        const providerLabel = copilotModelCatalog.currentProvider ? ` for provider '${copilotModelCatalog.currentProvider}'` : ''
-        const allowedModelIdList =
-            Array.from(new Set(matchingItems.map((item) => item.model))).join(', ') || 'none'
+        const providerLabel = copilotModelCatalog.currentProvider
+            ? ` for provider '${copilotModelCatalog.currentProvider}'`
+            : ''
+        const allowedModelIdList = Array.from(new Set(matchingItems.map((item) => item.model))).join(', ') || 'none'
 
         return `${label} uses unavailable ${modelType} model id "${model}"${providerLabel}. Call getAvailableCopilotModels and use one of: ${allowedModelIdList}.`
     }
@@ -1419,7 +1484,9 @@ export class XpertAuthoringService {
             const options = this.asRecord(entity['options'])
             const model = options ? this.asRecord(options['model']) : null
             if (!model || typeof model['model'] !== 'string' || !model['model'].trim()) {
-                errors.push(`middleware node "${node.key}" uses SummarizationMiddleware and must specify options.model.`)
+                errors.push(
+                    `middleware node "${node.key}" uses SummarizationMiddleware and must specify options.model.`
+                )
             }
         }
 
@@ -1759,28 +1826,6 @@ export class XpertAuthoringService {
             copilotId,
             provider,
             model
-        }
-    }
-}
-
-function ensureWorkspaceSkillPreference(
-    toolPreferences: IAssistantBindingToolPreferences | null,
-    workspaceId: string
-): IAssistantBindingToolPreferences {
-    const normalizedWorkspaceId = workspaceId.trim()
-    const currentSkills = toolPreferences?.skills ?? {}
-    const currentWorkspacePreference = currentSkills[normalizedWorkspaceId]
-
-    return {
-        version: 1,
-        ...(toolPreferences?.toolsets ? { toolsets: { ...toolPreferences.toolsets } } : {}),
-        ...(toolPreferences?.middlewares ? { middlewares: { ...toolPreferences.middlewares } } : {}),
-        skills: {
-            ...currentSkills,
-            [normalizedWorkspaceId]: {
-                workspaceId: currentWorkspacePreference?.workspaceId?.trim() || normalizedWorkspaceId,
-                disabledSkillIds: currentWorkspacePreference?.disabledSkillIds ?? []
-            }
         }
     }
 }

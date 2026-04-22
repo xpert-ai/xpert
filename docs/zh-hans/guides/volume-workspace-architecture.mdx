@@ -1,0 +1,340 @@
+# Volume / Workspace 架构
+
+这份文档说明 `xpert` 当前新的 Volume / Workspace 双层路径模型。
+
+核心约定只有两条：
+
+- `Volume` 永远表示 server 进程可见的文件系统路径。
+- `Workspace` 永远表示 sandbox 可见的文件系统路径。
+
+两者不是同一个概念，但它们之间存在稳定映射关系。
+
+## 为什么要拆开
+
+同一份底层数据，在不同运行位置看到的路径并不一样：
+
+- server 直接跑在开发机上时，server 看到的是本机路径。
+- server 跑在 Docker API 容器里时，server 看到的是 API 容器内路径。
+- sandbox 跑在本机 shell 或另一个容器里时，sandbox 看到的是它自己的工作目录。
+
+如果继续把这些路径都叫 `workspacePath`，调用方很容易把：
+
+- server 路径
+- Docker bind source
+- sandbox 工作目录
+
+混在一起传递。
+
+新架构的目标就是把这三层拆开，并通过显式映射重新连起来。
+
+## 核心对象
+
+### `VolumeScope`
+
+`packages/server-ai/src/shared/volume/volume.ts` 中的 `VolumeScope` 只表达逻辑卷定位，不表达 sandbox/provider 细节。
+
+主要字段：
+
+- `tenantId`
+- `catalog`
+- `projectId`
+- `userId`
+- `xpertId`
+- `knowledgeId`
+- `workspaceId`
+- `environmentId`
+- `rootId`
+- `isolateByUser`
+
+### `VolumeClient`
+
+`VolumeClient` 负责 server 侧路径解析。
+
+主接口：
+
+- `resolve(scope): VolumeHandle`
+- `resolveRoot(tenantId): { serverRoot, hostRoot }`
+
+它不负责 sandbox 生命周期，也不直接推导容器工作目录。
+
+### `VolumeHandle`
+
+`VolumeHandle` 是一个已经解析好的 server-side volume。
+
+关键字段：
+
+- `scope`
+- `serverRoot`
+- `hostRoot`
+- `publicBaseUrl`
+
+关键方法：
+
+- `ensureRoot()`
+- `path(relative?)`
+- `publicUrl(relative?)`
+- `readFile()`
+- `putFile()`
+- `deleteFile()`
+- `list()`
+
+语义上：
+
+- `serverRoot` 是 server 当前运行环境能直接访问的路径
+- `hostRoot` 是 Docker bind mount 需要使用的宿主机路径
+- `publicBaseUrl` 是浏览器或前端消费的 URL 前缀
+
+### `WorkspacePathMapper`
+
+`WorkspacePathMapper` 负责把 Volume 映射为 Workspace。
+
+主接口：
+
+- `mapVolumeToWorkspace(volume, options?)`
+- `mapWorkspaceToVolume(binding, workspacePath)`
+
+`WorkspaceBinding` 描述一次明确映射：
+
+- `volumeRoot`
+- `workspaceRoot`
+- `workspacePath`
+- `bindSource`
+- `containerMountPath`
+
+## 运行时实现
+
+### `DevVolumeClient`
+
+`DevVolumeClient` 表示 server 直接运行在本机文件系统上。
+
+此时：
+
+- `serverRoot === hostRoot`
+
+根路径规则：
+
+- `dev` 且未配置 `SANDBOX_VOLUME` 时使用 `~/data`
+- 其他情况下优先使用 `${SANDBOX_VOLUME}/${tenantId}`
+- 如果没有 `SANDBOX_VOLUME`，则回退到 `~/data/${tenantId}`
+
+### `DockerVolumeClient`
+
+`DockerVolumeClient` 表示 server 运行在 API Docker 容器内。
+
+此时：
+
+- `serverRoot` 使用 API 容器视角，例如 `/sandbox/${tenantId}`
+- `hostRoot` 使用宿主机视角，例如 `${SANDBOX_VOLUME}/${tenantId}`
+
+### `LocalShellWorkspacePathMapper`
+
+本地 shell sandbox 直接工作在 server 可见路径上。
+
+因此：
+
+- `workspaceRoot === volume.serverRoot`
+- `workspacePath === volume.serverRoot` 或其子路径
+
+### `DockerWorkspacePathMapper`
+
+Docker sandbox 会把一个精确的 Volume 根挂到容器内 `/workspace`。
+
+因此：
+
+- `bindSource === volume.hostRoot`
+- `containerMountPath === '/workspace'`
+- `workspaceRoot === '/workspace'`
+- `workspacePath` 是把 server 侧子路径映射到 `/workspace/...` 之后的结果
+
+## 根路径矩阵
+
+根路径计算集中在 [packages/server-ai/src/shared/volume/volume-layout.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-layout.ts:1)。
+
+### API 容器根
+
+`getApiContainerSandboxVolumeRootPath(tenantId)`：
+
+| 场景 | 返回值 |
+| --- | --- |
+| `dev` 且未配置 `SANDBOX_VOLUME` | `~/data` |
+| `dev` 且 server 不在 Docker 中，已配置 `SANDBOX_VOLUME` | `${SANDBOX_VOLUME}/${tenantId}` |
+| `dev` 且 server 在 Docker 中 | `/sandbox/${tenantId}` |
+| 非 `dev` | `/sandbox/${tenantId}` |
+
+### 宿主机根
+
+`getDockerHostSandboxVolumeRootPath(tenantId)`：
+
+| 场景 | 返回值 |
+| --- | --- |
+| `dev` 且未配置 `SANDBOX_VOLUME` | `~/data` |
+| 已配置 `SANDBOX_VOLUME` | `${SANDBOX_VOLUME}/${tenantId}` |
+| 未配置 `SANDBOX_VOLUME` 且不是扁平 dev | 回退到 API 容器根 |
+
+### 扁平开发模式
+
+当满足下面条件时，会启用扁平模式：
+
+- `environment.envName === 'dev'`
+- 未配置 `SANDBOX_VOLUME`
+
+这时：
+
+- `serverRoot` 和 `hostRoot` 都会直接落到 `~/data`
+- 所有逻辑 catalog 共用这一个根目录
+- public URL 会经过 `normalizeSandboxPublicVolumeSubpath()` 做兼容归一化
+
+这也是开发环境里 “磁盘根路径” 和 “逻辑 URL 子路径” 看起来不完全对齐的主要原因。
+
+## 逻辑 Volume 子路径
+
+`getVolumeSubpath()` 定义了逻辑子路径：
+
+| `catalog` | 子路径 |
+| --- | --- |
+| `environment` | `/environment/${environmentId}` |
+| `knowledges` | `/knowledges/${knowledgeId}` |
+| `projects` | `/project/${projectId}` |
+| `skills` | `/skills/${rootId}` |
+| `users` | `/user/${userId}` |
+| `workspaces` | `/workspaces/${workspaceId}` |
+| `xperts` 共享 | `/xpert/${xpertId}` |
+| `xperts` 按用户隔离 | `/xpert/${xpertId}/user/${userId}` |
+
+基于这个子路径，可以得到：
+
+- Volume 路径：`volume.serverRoot`
+- Public URL：`getVolumePublicBaseUrl(scope)`
+
+示例：
+
+| 逻辑对象 | server 侧路径 | public URL |
+| --- | --- | --- |
+| 项目 | `/sandbox/${tenantId}/project/${projectId}` | `/api/sandbox/volume/project/${projectId}` |
+| 用户 | `/sandbox/${tenantId}/user/${userId}` | `/api/sandbox/volume/user/${userId}` |
+| Xpert 共享卷 | `/sandbox/${tenantId}/xpert/${xpertId}` | `/api/sandbox/volume/xpert/${xpertId}` |
+| Xpert 用户隔离卷 | `/sandbox/${tenantId}/xpert/${xpertId}/user/${userId}` | `/api/sandbox/volume/xpert/${xpertId}/user/${userId}` |
+| Workspace | `/sandbox/${tenantId}/workspaces/${workspaceId}` | `/api/sandbox/volume/workspaces/${workspaceId}` |
+
+## 还有几类额外路径
+
+### Workspace 路径
+
+[packages/server-ai/src/xpert-workspace/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/xpert-workspace/types.ts:1)：
+
+- workspace 根目录：`${volumeRoot}/workspaces/${workspaceId}`
+
+[packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/skill-repository/types.ts:1)：
+
+- workspace skills 根目录：`${workspaceRoot}/skills`
+
+### 组织共享技能路径
+
+同样在 [packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/skill-repository/types.ts:1)：
+
+- 组织级共享技能根：`${volumeRoot}/organizations/${organizationId}/skills/public`
+- 全局共享技能根：`${volumeRoot}/skills/public`
+
+## 从 Volume 映射到 Workspace
+
+新的推荐流程是两步：
+
+1. 先解析 Volume
+2. 再映射 Workspace
+
+示例：
+
+```ts
+const volume = await this.volumeClient
+  .resolve({
+    tenantId,
+    catalog: 'xperts',
+    xpertId,
+    userId,
+    isolateByUser: true
+  })
+  .ensureRoot()
+
+const binding = this.workspacePathMapperFactory
+  .forProvider(provider)
+  .mapVolumeToWorkspace(volume)
+```
+
+结果含义：
+
+- `volume.serverRoot` 供 server 读写
+- `binding.workspacePath` 供 sandbox 作为工作目录使用
+- `binding.bindSource` 仅在 Docker sandbox 下有意义
+
+## 调用链里的字段语义
+
+新架构下，几个常见字段的语义应该固定下来：
+
+- `sys.volume`: server 侧 Volume 路径
+- `sys.workspace_path`: sandbox 侧 Workspace 路径
+- `sandbox.workingDirectory`: sandbox 侧 Workspace 路径
+- `workspaceBinding`: Volume 和 Workspace 的显式映射
+
+不要再把 `/sandbox/...` 的 server 路径直接塞到 Docker sandbox 的 `workingDirectory` 里。
+
+## 文件上传语义
+
+和新架构直接相关的是三种目标：
+
+### `volume`
+
+- 目标路径是 server 侧 Volume
+- 返回 public URL
+
+### `sandbox:mounted_workspace`
+
+- `workspacePath` 现在表示 server 可见的挂载路径
+- 本质上是直接写入已经挂载到 server 的 Volume
+
+### `sandbox:backend_upload`
+
+- `workspaceId` / backend `workspace_id` 表示 sandbox 侧工作目录
+- 实际文件写入发生在 sandbox backend 内
+
+这三类路径不要混用。
+
+## `VolumeSubtreeClient`
+
+旧的 `WorkspaceVolumeClient` 现在重定责为 `VolumeSubtreeClient`，定义在 [packages/server-ai/src/shared/volume/volume-subtree.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-subtree.ts:1)。
+
+它的职责不是“代表一个 Workspace”，而是：
+
+- 在一个 `VolumeHandle` 下面浏览某个子树
+- 读写受限目录中的文本文件
+- 生成相对于该子树的文件 URL
+
+适合用在：
+
+- conversation 文件目录
+- xpert memory 文件目录
+- 项目或 workspace 下的受控子目录
+
+## 依赖注入入口
+
+新架构默认通过 [packages/server-ai/src/shared/volume/volume.module.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume.module.ts:1) 注入：
+
+- `VOLUME_CLIENT`
+- `WorkspacePathMapperFactory`
+
+推荐写法：
+
+```ts
+@Inject(VOLUME_CLIENT)
+private readonly volumeClient: VolumeClient
+```
+
+而不是继续在业务代码里手动 `new VolumeClient(...)`。
+
+## 推荐实践
+
+- 先确定你需要的是 Volume 还是 Workspace。
+- 需要 server 读写时用 `VolumeHandle`。
+- 需要 sandbox 执行路径时先通过 `WorkspacePathMapper` 映射。
+- 需要浏览受控子目录时用 `VolumeSubtreeClient`。
+- 保留旧 static helper 只做兼容，不要把它们当作新的主入口。
+

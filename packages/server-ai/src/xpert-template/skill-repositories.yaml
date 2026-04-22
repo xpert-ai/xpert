@@ -5,6 +5,18 @@ repositories:
       url: https://github.com/anthropics/skills
       branch: main
       path: skills
+  - name: obra/superpowers
+    provider: github
+    options:
+      url: https://github.com/obra/superpowers
+      branch: main
+      path: skills
+  - name: coreyhaines31/marketingskills
+    provider: github
+    options:
+      url: https://github.com/coreyhaines31/marketingskills
+      branch: main
+      path: skills
   - name: clawhub/official
     provider: clawhub
     options:

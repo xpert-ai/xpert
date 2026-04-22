@@ -96,7 +96,8 @@ const mockVolumeClient = jest.fn().mockImplementation((params) => ({
 
 jest.mock('../shared/volume', () => ({
     VolumeClient: mockVolumeClient,
-    WorkspaceVolumeClient: mockWorkspaceVolumeClient
+    WorkspaceVolumeClient: mockWorkspaceVolumeClient,
+    VolumeSubtreeClient: mockWorkspaceVolumeClient
 }))
 
 import { TFile } from '@xpert-ai/contracts'
@@ -119,7 +120,8 @@ describe('XpertService memory files', () => {
             {} as any,
             {} as any,
             { list: jest.fn().mockReturnValue([]) } as any,
-            { listProviders: jest.fn().mockReturnValue([]) } as any
+            { listProviders: jest.fn().mockReturnValue([]) } as any,
+            { resolve: mockVolumeClient } as any
         )
     })
 

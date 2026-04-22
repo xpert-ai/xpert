@@ -19,6 +19,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Cache } from 'cache-manager'
+import { createHash } from 'crypto'
 import * as fs from 'fs'
 import { isNil } from 'lodash'
 import * as path from 'path'
@@ -115,6 +116,9 @@ const DEFAULT_SKILL_MARKET_FILTERS: ISkillMarketFilterGroups = {
 const TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE = 'bundle.yaml'
 const TEMPLATE_SKILL_BUNDLE_SEPARATOR = '__'
 const TEMPLATE_SKILL_BUNDLE_SHARED_PREFIX = 'template-bundle'
+const TEMPLATE_SKILL_BUNDLE_SKILL_FILE = 'SKILL.md'
+const TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER = 'local'
+const TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY = 'root/skills'
 
 const isObjectValue = (value: unknown): value is object =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -224,7 +228,14 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 	}
 
 	async onModuleInit() {
-		await this.ensureTemplateDirectoryReady()
+		try {
+			await this.ensureTemplateDirectoryReady()
+		} catch (error) {
+			this.#logger.error(
+				`Skip xpert template bootstrap during module init: ${getErrorMessage(error)}`,
+				error instanceof Error ? error.stack : undefined
+			)
+		}
 	}
 
 	async readTemplatesFile(): Promise<TXpertTemplatesCatalog> {
@@ -442,6 +453,35 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		}
 	}
 
+	async invalidateSkillTemplateCaches() {
+		const deletableCache = this.cacheManager as Cache & {
+			del?: (key: string) => Promise<void>
+		}
+		if (typeof deletableCache.del !== 'function') {
+			return
+		}
+
+		await Promise.all([
+			deletableCache.del('xpert:skills-market'),
+			deletableCache.del('xpert:skill-repositories'),
+			deletableCache.del('xpert:workspace-defaults'),
+			deletableCache.del('xpert:template-skill-bundles')
+		])
+	}
+
+	async calculateSkillAssetFingerprint() {
+		const hash = createHash('sha256')
+		for (const fileName of ['skills-market.yaml', 'skill-repositories.yaml', 'workspace-defaults.yaml'] as const) {
+			const filePath = await this.getExternalTemplatePath(fileName)
+			hash.update(fileName)
+			hash.update(await this.readTextFromFile(filePath, `template asset '${fileName}'`))
+		}
+
+		await this.appendDirectoryFingerprint(hash, await this.getExternalTemplatePath('skill-packages'), 'skill-packages')
+
+		return hash.digest('hex')
+	}
+
 	async readSkillsMarketCatalog(): Promise<TLocalizedSkillMarketCatalog> {
 		let config = await this.cacheManager.get<TLocalizedSkillMarketCatalog>('xpert:skills-market')
 		if (config) {
@@ -484,9 +524,18 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		return config
 	}
 
-	async getUserDefaultSkillRefs(): Promise<TWorkspaceDefaultSkillRef[]> {
+	async getBootstrapDefaultSkillRefs(): Promise<TWorkspaceDefaultSkillRef[]> {
 		const config = await this.readWorkspaceDefaults()
-		if (!config.userDefault.skills.length) {
+		return config.userDefault.skills
+	}
+
+	async getSkillsMarketFeaturedRefs() {
+		return Array.from((await this.getSkillsMarketFeaturedRefsByKey()).values())
+	}
+
+	async getUserDefaultSkillRefs(): Promise<TWorkspaceDefaultSkillRef[]> {
+		const skillRefs = await this.getBootstrapDefaultSkillRefs()
+		if (!skillRefs.length) {
 			return []
 		}
 
@@ -494,7 +543,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		const matchedRefs: TWorkspaceDefaultSkillRef[] = []
 		const missingRefs: TWorkspaceDefaultSkillRef[] = []
 
-		for (const ref of config.userDefault.skills) {
+		for (const ref of skillRefs) {
 			const key = this.getSkillRefKey(ref)
 			const featuredRef = featuredRefsByKey.get(key)
 			if (featuredRef) {
@@ -521,10 +570,10 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 			return []
 		}
 
-		const repositoriesByKey = await this.getRepositoriesByKey()
 		const resolved: TResolvedSkillRef[] = []
+		const resolvedByKey = await this.resolveSkillRefsByKey(skillRefs)
 		for (const ref of skillRefs) {
-			const skill = await this.resolveSkillRef(ref, repositoriesByKey)
+			const skill = resolvedByKey.get(this.getSkillRefKey(ref))
 			if (skill) {
 				resolved.push({
 					ref,
@@ -804,11 +853,16 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 			return []
 		}
 
-		const repositoriesByKey = await this.getRepositoriesByKey()
-
+		const resolvedByKey = await this.resolveSkillRefsByKey(
+			featuredRefs.map((ref) => ({
+				provider: ref.provider,
+				repositoryName: ref.repositoryName,
+				skillId: ref.skillId
+			}))
+		)
 		const featured: ISkillMarketFeaturedSkill[] = []
 		for (const ref of featuredRefs) {
-			const skill = await this.resolveSkillRef(ref, repositoriesByKey)
+			const skill = resolvedByKey.get(this.getSkillRefKey(ref))
 			if (!skill) {
 				continue
 			}
@@ -820,6 +874,29 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		}
 
 		return featured
+	}
+
+	private async appendDirectoryFingerprint(
+		hash: ReturnType<typeof createHash>,
+		directoryPath: string,
+		relativeDirectory: string
+	) {
+		const entries = await fs.promises.readdir(directoryPath, { withFileTypes: true }).catch(() => [])
+		for (const entry of [...entries].sort((left, right) => left.name.localeCompare(right.name))) {
+			const absolutePath = path.join(directoryPath, entry.name)
+			const relativePath = path.posix.join(relativeDirectory.replace(/\\/g, '/'), entry.name)
+			if (entry.isDirectory()) {
+				hash.update(`dir:${relativePath}`)
+				await this.appendDirectoryFingerprint(hash, absolutePath, relativePath)
+				continue
+			}
+			if (!entry.isFile()) {
+				continue
+			}
+
+			hash.update(`file:${relativePath}`)
+			hash.update(await fs.promises.readFile(absolutePath))
+		}
 	}
 
 	async getTemplateSkillBundles(): Promise<TTemplateSkillBundle[]> {
@@ -952,70 +1029,109 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		return repositoriesByKey
 	}
 
-	private async resolveSkillRef(
-		ref: Pick<ISkillMarketFeaturedRef, 'provider' | 'repositoryName' | 'skillId'>,
-		repositoriesByKey: Map<string, ISkillRepository>
-	) {
-		const bundledSkill = await this.resolveBundledSkillRef(ref, repositoriesByKey)
-		if (bundledSkill) {
-			return bundledSkill
-		}
-
-		const repository = repositoriesByKey.get(`${ref.provider}:${ref.repositoryName}`)
-		if (!repository?.id) {
-			return null
-		}
-
-		for (const skillId of this.resolveFeaturedSkillIds(ref.skillId, repository)) {
-			const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
-				where: {
-					repositoryId: repository.id,
-					skillId
-				},
-				relations: ['repository'],
-				take: 1,
-				order: {
-					updatedAt: 'DESC'
-				}
-			})
-			if (items[0]) {
-				return items[0]
-			}
-		}
-
-		return null
-	}
-
-	private async resolveBundledSkillRef(
-		ref: Pick<ISkillMarketFeaturedRef, 'provider' | 'repositoryName' | 'skillId'>,
-		repositoriesByKey: Map<string, ISkillRepository>
-	) {
+	private async resolveSkillRefsByKey(skillRefs: TWorkspaceDefaultSkillRef[]) {
+		const repositoriesByKey = await this.getRepositoriesByKey()
 		const bundlesByKey = await this.getTemplateSkillBundlesByRefKey()
-		const bundle = bundlesByKey.get(this.getSkillRefKey(ref))
-		if (!bundle) {
-			return null
-		}
-
-		const repository = Array.from(repositoriesByKey.values()).find(
+		const workspacePublicRepository = Array.from(repositoriesByKey.values()).find(
 			(candidate) => candidate.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
 		)
-		if (!repository?.id) {
-			return null
+		const remoteSkillIdsByRepository = new Map<string, Set<string>>()
+		const bundleSharedSkillIds = new Set<string>()
+
+		for (const ref of skillRefs) {
+			const key = this.getSkillRefKey(ref)
+			const bundle = bundlesByKey.get(key)
+			if (bundle) {
+				bundleSharedSkillIds.add(bundle.sharedSkillId)
+				continue
+			}
+
+			const repository = repositoriesByKey.get(`${ref.provider}:${ref.repositoryName}`)
+			if (!repository?.id) {
+				continue
+			}
+
+			const skillIds = this.resolveFeaturedSkillIds(ref.skillId, repository)
+			const knownSkillIds = remoteSkillIdsByRepository.get(repository.id) ?? new Set<string>()
+			for (const skillId of skillIds) {
+				knownSkillIds.add(skillId)
+			}
+			remoteSkillIdsByRepository.set(repository.id, knownSkillIds)
 		}
 
-		const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
-			where: {
-				repositoryId: repository.id,
-				skillId: bundle.sharedSkillId
-			},
-			relations: ['repository'],
-			take: 1,
-			order: {
-				updatedAt: 'DESC'
+		const resolvedByKey = new Map<string, ISkillRepositoryIndex>()
+		const bundleIndexBySharedSkillId = new Map<string, ISkillRepositoryIndex>()
+		if (workspacePublicRepository?.id && bundleSharedSkillIds.size) {
+			const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
+				where: {
+					repositoryId: workspacePublicRepository.id,
+					skillId: In(Array.from(bundleSharedSkillIds))
+				},
+				relations: ['repository'],
+				order: {
+					updatedAt: 'DESC'
+				},
+				take: bundleSharedSkillIds.size
+			})
+			for (const item of items) {
+				if (!bundleIndexBySharedSkillId.has(item.skillId)) {
+					bundleIndexBySharedSkillId.set(item.skillId, item)
+				}
 			}
-		})
+		}
 
-		return items[0] ?? null
+		const remoteIndexByRepositoryKey = new Map<string, ISkillRepositoryIndex>()
+		for (const [repositoryId, skillIds] of remoteSkillIdsByRepository.entries()) {
+			const requestedSkillIds = Array.from(skillIds)
+			if (!requestedSkillIds.length) {
+				continue
+			}
+
+			const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
+				where: {
+					repositoryId,
+					skillId: In(requestedSkillIds)
+				},
+				relations: ['repository'],
+				order: {
+					updatedAt: 'DESC'
+				},
+				take: requestedSkillIds.length
+			})
+			for (const item of items) {
+				const indexKey = `${repositoryId}:${item.skillId}`
+				if (!remoteIndexByRepositoryKey.has(indexKey)) {
+					remoteIndexByRepositoryKey.set(indexKey, item)
+				}
+			}
+		}
+
+		for (const ref of skillRefs) {
+			const key = this.getSkillRefKey(ref)
+			const bundle = bundlesByKey.get(key)
+			if (bundle) {
+				const bundleSkill = bundleIndexBySharedSkillId.get(bundle.sharedSkillId)
+				if (bundleSkill) {
+					resolvedByKey.set(key, bundleSkill)
+				}
+				continue
+			}
+
+			const repository = repositoriesByKey.get(`${ref.provider}:${ref.repositoryName}`)
+			if (!repository?.id) {
+				continue
+			}
+
+			for (const skillId of this.resolveFeaturedSkillIds(ref.skillId, repository)) {
+				const skill = remoteIndexByRepositoryKey.get(`${repository.id}:${skillId}`)
+				if (skill) {
+					resolvedByKey.set(key, skill)
+					break
+				}
+			}
+		}
+
+		return resolvedByKey
 	}
 
 	private getSkillRefKey(ref: Pick<ISkillMarketFeaturedRef, 'provider' | 'repositoryName' | 'skillId'>) {
@@ -1025,7 +1141,23 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 	private async readTemplateSkillBundle(directoryPath: string, directoryName: string): Promise<TTemplateSkillBundle | null> {
 		const manifestPath = path.join(directoryPath, TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE)
 		if (!(await this.pathExists(manifestPath))) {
-			return null
+			const skillFilePath = path.join(directoryPath, TEMPLATE_SKILL_BUNDLE_SKILL_FILE)
+			if (!(await this.pathExists(skillFilePath))) {
+				return null
+			}
+
+			const ref = {
+				provider: TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER,
+				repositoryName: TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY,
+				skillId: directoryName.trim()
+			} satisfies TWorkspaceDefaultSkillRef
+
+			return {
+				directoryName,
+				directoryPath,
+				ref,
+				sharedSkillId: this.buildTemplateSkillBundleSharedSkillId(ref)
+			}
 		}
 
 		const raw = await this.readYamlFromFile(manifestPath, `template skill bundle manifest '${directoryName}'`)

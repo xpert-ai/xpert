@@ -33,7 +33,10 @@ import { XpertChatHandler } from './chat.handler'
 
 describe('XpertChatHandler', () => {
     let xpertService: { findOne: jest.Mock }
-    let assistantBindingService: { getUserPreferenceByAssistantId: jest.Mock }
+    let assistantBindingService: {
+        getBinding: jest.Mock
+        getUserPreferenceByAssistantId: jest.Mock
+    }
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let handler: XpertChatHandler
@@ -54,6 +57,9 @@ describe('XpertChatHandler', () => {
             findOne: jest.fn().mockResolvedValue(xpert)
         }
         assistantBindingService = {
+            getBinding: jest.fn().mockResolvedValue({
+                assistantId: 'xpert-1'
+            }),
             getUserPreferenceByAssistantId: jest.fn().mockResolvedValue({
                 soul: '# Rules',
                 profile: '# Profile',
@@ -224,6 +230,7 @@ describe('XpertChatHandler', () => {
         )
         expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
         expect(agentCommand.state.disabledSkillIds).toEqual(['skill-2'])
+        expect(agentCommand.state.skillSelectionMode).toBe('workspace_blacklist')
         expect(agentCommand.options.toolPreferences).toEqual({
             version: 1,
             toolsets: {
@@ -239,6 +246,93 @@ describe('XpertChatHandler', () => {
                 }
             }
         })
+    })
+
+    it('forwards project scope to the agent sandbox options for project conversations', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        projectId: command.entity.projectId,
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    projectId: 'project-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return {
+                    id: 'execution-1',
+                    threadId: 'thread-1'
+                }
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            title: 'Generated title'
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    projectId: 'project-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello workspace'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+
+        expect(agentCommand.options.projectId).toBe('project-1')
+        expect(agentCommand.options.sandboxEnvironmentId).toBeUndefined()
     })
 
     it('reuses a persisted pending follow-up instead of creating a duplicate human message on fallback send', async () => {
@@ -676,6 +770,104 @@ describe('XpertChatHandler', () => {
         expect(agentCommand.options.toolPreferences).toBeNull()
         expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
         expect(agentCommand.state.disabledSkillIds).toEqual([])
+        expect(agentCommand.state.skillSelectionMode).toBe('workspace_blacklist')
+    })
+
+    it('keeps the default skills middleware mode when the xpert is not bound through clawxpert', async () => {
+        const commands: any[] = []
+        assistantBindingService.getBinding.mockResolvedValue(null)
+        assistantBindingService.getUserPreferenceByAssistantId.mockResolvedValue(null)
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.role === 'human') {
+                    return {
+                        id: 'human-1',
+                        ...command.entity
+                    }
+                }
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-1',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello world'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
+        expect(agentCommand.state.disabledSkillIds).toEqual([])
+        expect(agentCommand.state.skillSelectionMode).toBeUndefined()
     })
 
     it('reuses the interrupted ai message and execution for resume', async () => {

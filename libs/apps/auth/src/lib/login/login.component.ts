@@ -2,20 +2,35 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   Inject,
   OnDestroy,
-  computed,
   inject
 } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { HttpClient } from '@angular/common/http'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms'
-import { ActivatedRoute, Router } from '@angular/router'
-import { Store } from '@xpert-ai/cloud/state'
+import { ActivatedRoute, ParamMap, Router } from '@angular/router'
 import { CookieService } from 'ngx-cookie-service'
 import { firstValueFrom } from 'rxjs'
-import { PAC_API_BASE_URL, PAC_AUTH_OPTIONS } from '../auth.options'
+import { catchError, map } from 'rxjs/operators'
+import { of } from 'rxjs'
+import { PAC_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 import { PacAuthService } from '../services/auth.service'
+
+type SSOProviderDescriptor = {
+  provider: string
+  displayName: string
+  icon: string
+  order: number
+  startUrl: string
+}
+
+type SSOProviderDiscoveryResponse = {
+  fallbackApplied: boolean
+  providers: SSOProviderDescriptor[]
+}
 
 @Component({
   standalone: false,
@@ -26,8 +41,8 @@ import { PacAuthService } from '../services/auth.service'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserLoginComponent implements OnDestroy {
-  readonly #store = inject(Store)
-  readonly API_BASE_URL = inject(PAC_API_BASE_URL)
+  readonly #http = inject(HttpClient)
+  readonly #destroyRef = inject(DestroyRef)
 
   showMessages: any = {}
 
@@ -59,10 +74,13 @@ export class UserLoginComponent implements OnDestroy {
   /**
    * Signals
    */
-  readonly tenantSettings = toSignal(this.#store.tenantSettings$)
-  readonly enableDingtalk = computed(() => this.tenantSettings()?.tenant_enable_dingtalk)
-  readonly enableFeishu = computed(() => this.tenantSettings()?.tenant_enable_feishu)
-  readonly enableGithub = computed(() => this.tenantSettings()?.tenant_enable_github)
+  readonly ssoProviders = toSignal(
+    this.#http.get<SSOProviderDiscoveryResponse>('/api/auth/sso/providers').pipe(
+      map((result) => result.providers ?? []),
+      catchError(() => of([] as SSOProviderDescriptor[]))
+    ),
+    { initialValue: [] as SSOProviderDescriptor[] }
+  )
 
   constructor(
     private readonly cookieService: CookieService,
@@ -86,6 +104,13 @@ export class UserLoginComponent implements OnDestroy {
     this.showMessages = this.getConfigValue('forms.login.showMessages')
     this.redirectDelay = this.getConfigValue('forms.login.redirectDelay')
     this.strategy = this.getConfigValue('forms.login.strategy')
+
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((params) => {
+        this.errors = this.resolveSsoErrors(params)
+        this.cdr.markForCheck()
+      })
   }
 
   /**
@@ -167,12 +192,50 @@ export class UserLoginComponent implements OnDestroy {
     }
   }
 
-  open(type: string, openType = 'href'): void {
-    window.open(this.API_BASE_URL + `/api/auth/${type}`, '_self')
+  openProvider(provider: SSOProviderDescriptor): void {
+    if (!provider?.startUrl) {
+      return
+    }
+
+    const startUrl = new URL(provider.startUrl, window.location.origin)
+    const returnTo = this.route.snapshot.queryParams.returnUrl
+
+    if (typeof returnTo === 'string' && returnTo.trim().length > 0) {
+      startUrl.searchParams.set('returnTo', returnTo.trim())
+    }
+
+    window.location.assign(startUrl.toString())
   }
 
   getConfigValue(key: string): any {
     return getDeepFromObject(this.options, key, null)
+  }
+
+  private resolveSsoErrors(params: ParamMap): string[] {
+    const ssoMessage = params.get('ssoMessage')?.trim()
+    if (ssoMessage) {
+      return [ssoMessage]
+    }
+
+    const ssoError = params.get('ssoError')?.trim()
+    if (!ssoError) {
+      return []
+    }
+
+    return [`${this.resolveSsoProviderLabel(params.get('ssoProvider'))} sign-in failed. Please try again.`]
+  }
+
+  private resolveSsoProviderLabel(provider?: string | null): string {
+    const normalizedProvider = provider?.trim()
+    if (!normalizedProvider) {
+      return 'SSO'
+    }
+
+    return (
+      this.ssoProviders()
+        .find((item) => item.provider === normalizedProvider)
+        ?.displayName?.trim() || normalizedProvider
+    )
   }
 
   ngOnDestroy(): void {

@@ -75,7 +75,7 @@ jest.mock('./plugin-update.utils', () => ({
 }))
 
 jest.mock('./plugin-instance.entity', () => ({
-	resolvePluginLevel: jest.fn(() => 'organization')
+	resolvePluginLevel: jest.fn((level?: string) => (level === 'system' ? 'system' : 'organization'))
 }))
 
 const { RequestContext } = require('@xpert-ai/plugin-sdk')
@@ -83,6 +83,7 @@ const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-upd
 const { loadPlugin } = require('./plugin-loader')
 const { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } = require('./plugin-http-routes')
 const { assertPluginSdkInstallCandidate } = require('./plugin-sdk-versioning')
+const { resolvePluginLevel } = require('./plugin-instance.entity')
 const {
 	collectProvidersWithMetadata,
 	getEntitiesFromPlugins,
@@ -322,7 +323,8 @@ describe('PluginManagementService', () => {
 						}
 					})
 				]
-			})
+			}),
+			expect.anything()
 		)
 		expect(getOrganizationPluginPath).toHaveBeenCalledWith('org-1', runtimeName)
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
@@ -448,6 +450,34 @@ describe('PluginManagementService', () => {
 		)
 	})
 
+	it('does not persist a placeholder plugin record when system-level installs are rejected', async () => {
+		;(canManageSystemPlugins as jest.Mock).mockReturnValue(false)
+		;(resolvePluginLevel as jest.Mock).mockReturnValueOnce('system')
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-system-demo',
+				version: '1.0.0',
+				level: 'system'
+			}
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-system-demo',
+				source: 'code',
+				sourceConfig: {
+					workspacePath: '/tmp/workspaces/plugin-system-demo'
+				}
+			})
+		).rejects.toBeInstanceOf(Error)
+
+		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
+		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).removePlugins).toHaveBeenCalledWith('org-1', [
+			'@xpert-ai/plugin-system-demo'
+		])
+	})
+
 	it('rejects sdk-incompatible plugins before uninstalling the current installation', async () => {
 		;(assertPluginSdkInstallCandidate as jest.Mock).mockRejectedValue(
 			new Error('plugin-sdk peerDependencies range "^4.0.0" is incompatible with host SDK version 3.8.4')
@@ -469,6 +499,8 @@ describe('PluginManagementService', () => {
 		})
 		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
 		expect(registerPluginsAsync).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
+		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
 	})
 
 	it('allows super admins to uninstall global plugins from an organization context', async () => {

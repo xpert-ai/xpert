@@ -2,15 +2,14 @@ import { BaseStore } from '@langchain/langgraph'
 import { IChatMessage, LongTermMemoryTypeEnum, TFile, TFileDirectory } from '@xpert-ai/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
 import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
-import { VolumeClient } from '../shared/volume'
-import { WorkspaceVolumeClient } from '../shared/volume/workspace-volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationPublicDTO } from './dto'
@@ -25,7 +24,9 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		private readonly messageService: ChatMessageService,
 		readonly commandBus: CommandBus,
 		readonly queryBus: QueryBus,
-		@InjectQueue('conversation-summary') private summaryQueue: Queue
+		@InjectQueue('conversation-summary') private summaryQueue: Queue,
+		@Inject(VOLUME_CLIENT)
+		private readonly volumeClient: VolumeClient
 	) {
 		super(repository)
 	}
@@ -217,7 +218,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     private createWorkspaceVolumeClient(conversation: ChatConversation) {
         if (conversation.projectId) {
             return {
-                client: new WorkspaceVolumeClient(this.createProjectVolumeClient(conversation), {
+                client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
                     allowRootWorkspace: true
                 }),
                 scopePath: ''
@@ -226,7 +227,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
         if (conversation.xpertId) {
             return {
-                client: new WorkspaceVolumeClient(this.createXpertVolumeClient(conversation), {
+                client: new VolumeSubtreeClient(this.createXpertVolumeHandle(conversation), {
                     allowRootWorkspace: true
                 }),
                 scopePath: ''
@@ -236,8 +237,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         throw new BadRequestException('Non-project conversations require xpertId to access workspace files')
     }
 
-    private createProjectVolumeClient(conversation: ChatConversation) {
-        return new VolumeClient({
+    private createProjectVolumeHandle(conversation: ChatConversation) {
+        return this.volumeClient.resolve({
             tenantId: conversation.tenantId,
             catalog: 'projects',
             projectId: conversation.projectId,
@@ -245,8 +246,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         })
     }
 
-    private createXpertVolumeClient(conversation: ChatConversation) {
-        return new VolumeClient({
+    private createXpertVolumeHandle(conversation: ChatConversation) {
+        return this.volumeClient.resolve({
             tenantId: conversation.tenantId,
             catalog: 'xperts',
             userId: conversation.createdById,

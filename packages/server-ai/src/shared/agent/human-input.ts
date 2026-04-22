@@ -1,26 +1,95 @@
-import { STATE_VARIABLE_HUMAN, TChatCodeReference, TChatQuoteReference, TChatReference } from '@xpert-ai/contracts'
+import {
+    STATE_VARIABLE_HUMAN,
+    TChatCodeReference,
+    TChatImageReference,
+    TChatElementReference,
+    TChatElementReferenceCandidateFields,
+    TChatQuoteReference,
+    TChatReference
+} from '@xpert-ai/contracts'
 
-export type CodeReferenceLike = Omit<TChatCodeReference, 'type'> & {
+type CodeReferenceLike = Omit<TChatCodeReference, 'type'> & {
     type?: 'code'
 }
 
-export type QuoteReferenceLike = TChatQuoteReference
+type QuoteReferenceLike = TChatQuoteReference
 
-export type ReferenceLike = TChatReference
+type ImageReferenceLike = TChatImageReference
 
-export type ReferenceCompositionMode = 'compose' | 'preserve'
+type ElementReferenceLike = TChatElementReference
 
-type ReferenceCandidate = {
-    type?: unknown
-    text?: unknown
-    label?: unknown
-    path?: unknown
-    startLine?: unknown
+type ReferenceLike = TChatReference
+
+type ReferenceCompositionMode = 'compose' | 'preserve'
+
+type ReferenceCandidate = TChatElementReferenceCandidateFields & {
     endLine?: unknown
+    label?: unknown
     language?: unknown
-    taskId?: unknown
     messageId?: unknown
+    type?: unknown
+    path?: unknown
     source?: unknown
+    fileId?: unknown
+    url?: unknown
+    mimeType?: unknown
+    name?: unknown
+    size?: unknown
+    width?: unknown
+    height?: unknown
+    startLine?: unknown
+    taskId?: unknown
+    text?: unknown
+}
+
+type CodeReferenceCandidate = ReferenceCandidate & {
+    path: string
+    startLine: number
+    endLine: number
+    text: string
+    label?: string
+    language?: string
+    taskId?: string
+}
+
+type QuoteReferenceCandidate = ReferenceCandidate & {
+    type: 'quote'
+    text: string
+    label?: string
+    messageId?: string
+    source?: string
+}
+
+type ImageReferenceCandidate = ReferenceCandidate & {
+    type: 'image'
+    text?: string
+    label?: string
+    fileId?: string
+    url?: string
+    mimeType?: string
+    name?: string
+    size?: number
+    width?: number
+    height?: number
+}
+
+type ElementReferenceCandidate = ReferenceCandidate & {
+    type: 'element'
+    attributes: Array<{ name: string; value: string }>
+    outerHtml: string
+    pageUrl: string
+    selector: string
+    serviceId: string
+    tagName: string
+    text: string
+    label?: string
+    pageTitle?: string
+    role?: string
+}
+
+type ElementAttributeCandidate = {
+    name?: unknown
+    value?: unknown
 }
 
 type HumanInputCandidate = {
@@ -59,64 +128,208 @@ function isPositiveInteger(value: unknown): value is number {
     return typeof value === 'number' && Number.isInteger(value) && value > 0
 }
 
-export function normalizeCodeReferenceLike(value: unknown): TChatCodeReference | null {
+function isOptionalString(value: unknown): value is string | undefined {
+    return value === undefined || typeof value === 'string'
+}
+
+function isOptionalNumber(value: unknown): value is number | undefined {
+    return value === undefined || (typeof value === 'number' && Number.isFinite(value))
+}
+
+function toOptionalString(value: string | undefined): string | undefined {
+    return isNonEmptyString(value) ? value.trim() : undefined
+}
+
+function toOptionalNumber(value: unknown, options?: { allowZero?: boolean }): number | undefined {
+    const allowZero = options?.allowZero ?? false
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return undefined
+    }
+
+    if (value > 0 || (allowZero && value === 0)) {
+        return value
+    }
+
+    return undefined
+}
+
+function isElementAttribute(value: unknown): value is { name: string; value: string } {
     if (!isObjectLike(value)) {
-        return null
+        return false
+    }
+
+    const attribute = value as ElementAttributeCandidate
+    return isNonEmptyString(attribute.name) && typeof attribute.value === 'string'
+}
+
+function hasImageReferenceLocator(value: ReferenceCandidate): boolean {
+    return (
+        isNonEmptyString(value.fileId) ||
+        isNonEmptyString(value.url) ||
+        isNonEmptyString(value.name) ||
+        isNonEmptyString(value.label) ||
+        isNonEmptyString(value.text)
+    )
+}
+
+export function isCodeReferenceLike(value: unknown): value is CodeReferenceCandidate {
+    if (!isObjectLike(value)) {
+        return false
     }
 
     const reference = value as ReferenceCandidate
 
-    if (
-        !isNonEmptyString(reference.path) ||
-        !isPositiveInteger(reference.startLine) ||
-        !isPositiveInteger(reference.endLine) ||
-        !isNonEmptyString(reference.text)
-    ) {
-        return null
+    return (
+        isNonEmptyString(reference.path) &&
+        isPositiveInteger(reference.startLine) &&
+        isPositiveInteger(reference.endLine) &&
+        isNonEmptyString(reference.text) &&
+        isOptionalString(reference.label) &&
+        isOptionalString(reference.language) &&
+        isOptionalString(reference.taskId)
+    )
+}
+
+export function isQuoteReferenceLike(value: unknown): value is QuoteReferenceCandidate {
+    if (!isObjectLike(value)) {
+        return false
     }
 
+    const reference = value as ReferenceCandidate
+    return (
+        reference.type === 'quote' &&
+        isNonEmptyString(reference.text) &&
+        isOptionalString(reference.label) &&
+        isOptionalString(reference.messageId) &&
+        isOptionalString(reference.source)
+    )
+}
+
+export function isImageReferenceLike(value: unknown): value is ImageReferenceCandidate {
+    if (!isObjectLike(value)) {
+        return false
+    }
+
+    const reference = value as ReferenceCandidate
+    return (
+        reference.type === 'image' &&
+        isOptionalString(reference.label) &&
+        isOptionalString(reference.fileId) &&
+        isOptionalString(reference.url) &&
+        isOptionalString(reference.mimeType) &&
+        isOptionalString(reference.name) &&
+        isOptionalString(reference.text) &&
+        isOptionalNumber(reference.size) &&
+        isOptionalNumber(reference.width) &&
+        isOptionalNumber(reference.height) &&
+        hasImageReferenceLocator(reference)
+    )
+}
+
+export function isElementReferenceLike(value: unknown): value is ElementReferenceCandidate {
+    if (!isObjectLike(value)) {
+        return false
+    }
+
+    const reference = value as ReferenceCandidate
+
+    return (
+        reference.type === 'element' &&
+        isNonEmptyString(reference.text) &&
+        isNonEmptyString(reference.serviceId) &&
+        isNonEmptyString(reference.pageUrl) &&
+        isNonEmptyString(reference.selector) &&
+        isNonEmptyString(reference.tagName) &&
+        isNonEmptyString(reference.outerHtml) &&
+        Array.isArray(reference.attributes) &&
+        reference.attributes.every((attribute) => isElementAttribute(attribute)) &&
+        isOptionalString(reference.label) &&
+        isOptionalString(reference.pageTitle) &&
+        isOptionalString(reference.role)
+    )
+}
+
+function toCodeReference(reference: CodeReferenceCandidate): TChatCodeReference {
     return {
         type: 'code',
-        path: reference.path,
+        path: reference.path.trim(),
         startLine: reference.startLine,
         endLine: reference.endLine,
         text: reference.text,
-        ...(isNonEmptyString(reference.label) ? { label: reference.label } : {}),
-        ...(isNonEmptyString(reference.language) ? { language: reference.language } : {}),
-        ...(isNonEmptyString(reference.taskId) ? { taskId: reference.taskId } : {})
+        ...(toOptionalString(reference.label) ? { label: toOptionalString(reference.label) } : {}),
+        ...(toOptionalString(reference.language) ? { language: toOptionalString(reference.language) } : {}),
+        ...(toOptionalString(reference.taskId) ? { taskId: toOptionalString(reference.taskId) } : {})
     }
 }
 
-export function normalizeQuoteReferenceLike(value: unknown): TChatQuoteReference | null {
-    if (!isObjectLike(value)) {
-        return null
-    }
-
-    const reference = value as ReferenceCandidate
-    if (!isNonEmptyString(reference.text)) {
-        return null
-    }
-
+function toQuoteReference(reference: QuoteReferenceCandidate): TChatQuoteReference {
     return {
         type: 'quote',
         text: reference.text,
-        ...(isNonEmptyString(reference.label) ? { label: reference.label } : {}),
-        ...(isNonEmptyString(reference.messageId) ? { messageId: reference.messageId } : {}),
-        ...(isNonEmptyString(reference.source) ? { source: reference.source } : {})
+        ...(toOptionalString(reference.label) ? { label: toOptionalString(reference.label) } : {}),
+        ...(toOptionalString(reference.messageId) ? { messageId: toOptionalString(reference.messageId) } : {}),
+        ...(toOptionalString(reference.source) ? { source: toOptionalString(reference.source) } : {})
+    }
+}
+
+function toImageReference(reference: ImageReferenceCandidate): TChatImageReference {
+    const fileId = toOptionalString(reference.fileId)
+    const url = toOptionalString(reference.url)
+    const name = toOptionalString(reference.name)
+    const label = toOptionalString(reference.label)
+    const rawText = toOptionalString(reference.text)
+    const text = rawText ?? name ?? label ?? 'Pasted image'
+
+    return {
+        type: 'image',
+        text,
+        ...(label ? { label } : {}),
+        ...(fileId ? { fileId } : {}),
+        ...(url ? { url } : {}),
+        ...(toOptionalString(reference.mimeType) ? { mimeType: toOptionalString(reference.mimeType) } : {}),
+        ...(name ? { name } : {}),
+        ...(toOptionalNumber(reference.size, { allowZero: true }) !== undefined
+            ? { size: toOptionalNumber(reference.size, { allowZero: true }) }
+            : {}),
+        ...(toOptionalNumber(reference.width) !== undefined ? { width: toOptionalNumber(reference.width) } : {}),
+        ...(toOptionalNumber(reference.height) !== undefined ? { height: toOptionalNumber(reference.height) } : {})
+    }
+}
+
+function toElementReference(reference: ElementReferenceCandidate): TChatElementReference {
+    return {
+        type: 'element',
+        attributes: reference.attributes,
+        outerHtml: reference.outerHtml,
+        pageUrl: reference.pageUrl,
+        selector: reference.selector,
+        serviceId: reference.serviceId,
+        tagName: reference.tagName,
+        text: reference.text,
+        ...(toOptionalString(reference.label) ? { label: toOptionalString(reference.label) } : {}),
+        ...(toOptionalString(reference.pageTitle) ? { pageTitle: toOptionalString(reference.pageTitle) } : {}),
+        ...(toOptionalString(reference.role) ? { role: toOptionalString(reference.role) } : {})
     }
 }
 
 export function normalizeReferenceLike(value: unknown): ReferenceLike | null {
-    if (!isObjectLike(value)) {
-        return null
+    if (isQuoteReferenceLike(value)) {
+        return toQuoteReference(value)
     }
 
-    const reference = value as ReferenceCandidate
-    if (reference.type === 'quote') {
-        return normalizeQuoteReferenceLike(reference)
+    if (isImageReferenceLike(value)) {
+        return toImageReference(value)
     }
 
-    return normalizeCodeReferenceLike(reference)
+    if (isElementReferenceLike(value)) {
+        return toElementReference(value)
+    }
+
+    if (isCodeReferenceLike(value)) {
+        return toCodeReference(value)
+    }
+
+    return null
 }
 
 export function normalizeReferences(value: unknown): TChatReference[] {
@@ -143,10 +356,60 @@ function formatCodeReference(reference: CodeReferenceLike): string {
 }
 
 function formatQuoteReference(reference: QuoteReferenceLike): string {
-    const source = [reference.label, reference.source].filter(isNonEmptyString).join(' · ')
+    const source = [reference.label, reference.source].filter(isNonEmptyString).join(' - ')
     const quotedLines = reference.text.split('\n').map((line) => `> ${line}`)
 
     return [source ? `[${source}]` : '[Quoted text]', ...quotedLines].join('\n')
+}
+
+function formatReferenceSize(size: number): string {
+    if (size < 1024) {
+        return `${size} B`
+    }
+
+    if (size < 1024 * 1024) {
+        return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} KB`
+    }
+
+    return `${(size / (1024 * 1024)).toFixed(size < 10 * 1024 * 1024 ? 1 : 0)} MB`
+}
+
+function formatImageReference(reference: ImageReferenceLike): string {
+    const summary = [
+        reference.mimeType?.trim() || null,
+        reference.width && reference.height ? `${reference.width}x${reference.height}` : null,
+        typeof reference.size === 'number' ? formatReferenceSize(reference.size) : null
+    ].filter((item): item is string => Boolean(item))
+
+    return [
+        `[Image] ${reference.label?.trim() || reference.name?.trim() || 'Pasted image'}`,
+        ...(summary.length ? [`Metadata: ${summary.join(', ')}`] : []),
+        ...(reference.url?.trim() ? [`URL: ${reference.url.trim()}`] : []),
+        ...(reference.fileId?.trim() ? [`File ID: ${reference.fileId.trim()}`] : []),
+        `Text: ${reference.text}`
+    ].join('\n')
+}
+
+function formatElementReference(reference: ElementReferenceLike): string {
+    const heading = reference.label?.trim() || `${reference.tagName.toLowerCase()} ${reference.selector}`
+    const attributes = reference.attributes.length
+        ? reference.attributes.map(({ name, value }) => `${name}="${value}"`).join(' ')
+        : '(none)'
+
+    return [
+        `[Page element] ${heading}`,
+        `Page: ${reference.pageTitle?.trim() || reference.pageUrl}`,
+        `Selector: ${reference.selector}`,
+        `Tag: ${reference.tagName}`,
+        ...(isNonEmptyString(reference.role) ? [`Role: ${reference.role.trim()}`] : []),
+        `Attributes: ${attributes}`,
+        'Text:',
+        reference.text,
+        'HTML:',
+        '```html',
+        reference.outerHtml,
+        '```'
+    ].join('\n')
 }
 
 export function buildReferencedPrompt(references: ReferenceLike[]): string {
@@ -154,12 +417,18 @@ export function buildReferencedPrompt(references: ReferenceLike[]): string {
         return ''
     }
 
-    const header = references.every((reference) => reference.type !== 'quote')
+    const header = references.every((reference) => reference.type === 'code')
         ? 'Referenced code:'
         : 'Referenced content:'
     const body = references
         .map((reference) =>
-            reference.type === 'quote' ? formatQuoteReference(reference) : formatCodeReference(reference)
+            reference.type === 'quote'
+                ? formatQuoteReference(reference)
+                : reference.type === 'image'
+                  ? formatImageReference(reference)
+                  : reference.type === 'element'
+                    ? formatElementReference(reference)
+                    : formatCodeReference(reference)
         )
         .join('\n\n')
 
@@ -174,6 +443,9 @@ function getReferenceCompositionMode(input: HumanInputCandidate): ReferenceCompo
     return input.referenceComposition === 'compose' ? 'compose' : 'preserve'
 }
 
+/**
+ * Takes human input that may contain reference-only content and transforms it into fully synthesized input that can be directly used by graph/LLM.
+ */
 export function synthesizeHumanInputFromReferences(input: unknown): string | undefined {
     if (!isObjectLike(input)) {
         return undefined
@@ -204,13 +476,31 @@ export function synthesizeHumanInputFromReferences(input: unknown): string | und
     return `${baseInput.trimEnd()}\n\n${prompt}`
 }
 
+/**
+ * Hydrates the human input of a message.
+ */
+export function hydrateHumanInput<T extends HumanInputCandidate>(input: T): T {
+    const synthesizedInput = synthesizeHumanInputFromReferences(input)
+    if (!synthesizedInput) {
+        return input
+    }
+
+    return {
+        ...input,
+        input: synthesizedInput
+    } as T
+}
+
+/**
+ * Transform reference-only / referenceComposition: 'compose' requests into human input that can be directly used by graph/LLM.
+ */
 export function hydrateSendRequestHumanInput<T>(input: T): T {
     if (!isObjectLike(input)) {
         return input
     }
 
     const request = input as SendRequestCandidate
-    if (request.action !== 'send' || !isObjectLike(request.message)) {
+    if ((request.action !== 'send' && request.action !== 'follow_up') || !isObjectLike(request.message)) {
         return input
     }
 
@@ -220,14 +510,9 @@ export function hydrateSendRequestHumanInput<T>(input: T): T {
     }
 
     const messageInput = message.input as HumanInputCandidate
-    const synthesizedInput = synthesizeHumanInputFromReferences(messageInput)
-    if (!synthesizedInput) {
+    const nextMessageInput = hydrateHumanInput(messageInput)
+    if (nextMessageInput.input === messageInput.input) {
         return input
-    }
-
-    const nextMessageInput: HumanInputCandidate = {
-        ...messageInput,
-        input: synthesizedInput
     }
 
     if (!isObjectLike(request.state)) {
@@ -249,7 +534,7 @@ export function hydrateSendRequestHumanInput<T>(input: T): T {
 
         nextHumanState = {
             ...humanState,
-            input: synthesizedInput,
+            input: nextMessageInput.input,
             ...(Array.isArray(humanState.references) || !Array.isArray(nextMessageInput.references)
                 ? {}
                 : { references: nextMessageInput.references })

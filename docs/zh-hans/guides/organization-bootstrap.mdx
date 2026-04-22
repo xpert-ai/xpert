@@ -204,7 +204,7 @@ repository 注册完成后，会为每个 repository 单独入队一个异步 sy
 - 当 `bootstrapPersonalWorkspace=true` 时，为该用户在当前组织下幂等创建个人 workspace
 - 为个人 workspace 幂等创建默认 environment
 - 把该用户幂等加入组织默认 workspace
-- 异步把配置好的默认 skills 安装到个人 workspace
+- 当个人 workspace 是本次新创建时，异步把配置好的默认 skills 安装进去
 
 个人 workspace 通过以下字段标记：
 
@@ -237,6 +237,7 @@ userDefault:
 - 该文件会和 `skills-market.yaml`、`skill-repositories.yaml` 一起 seed 到 `XPERT_TEMPLATE_DIR`
 - ref 只使用机器字段：`provider`、`repositoryName`、`skillId`
 - 只有同时出现在 `skills-market.yaml` 里的 ref 才会进入默认安装链路
+- 已存在的个人 workspace 不会自动回填；默认安装 job 只针对新创建的 `user-default` workspace
 - 本地 bundle skill 从 `skill-packages/*/bundle.yaml` 读取，同目录放置 `SKILL.md` 和资源文件
 - 用户 bootstrap 会为这些安装动作单独入队异步 job，不会阻塞 workspace 创建主链路
 - 未解析到的 ref 会在 repository index 可用前持续重试，重复安装按 `workspaceId + skillIndexId` 幂等收敛

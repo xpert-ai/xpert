@@ -87,6 +87,34 @@ jest.mock('../editor/editor.component', () => {
   }
 })
 
+jest.mock('../preview/file-preview-content.component', () => {
+  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'pac-file-preview-content',
+    template: ''
+  })
+  class FilePreviewContentComponent {
+    @Input() previewKind?: unknown
+    @Input() content?: string | null
+    @Input() documentHtml?: string | null
+    @Input() downloadable?: boolean
+    @Input() error?: string | null
+    @Input() fileName?: string
+    @Input() loading?: boolean
+    @Input() referenceable?: boolean
+    @Input() spreadsheet?: unknown
+    @Input() url?: string | null
+    @Output() download = new EventEmitter<void>()
+    @Output() referenceSelection = new EventEmitter()
+  }
+
+  return {
+    FilePreviewContentComponent
+  }
+})
+
 describe('FileViewerComponent', () => {
   beforeEach(async () => {
     TestBed.resetTestingModule()
@@ -106,7 +134,7 @@ describe('FileViewerComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('emits file references for readable files and enables selection references after a Monaco selection', () => {
+  it('emits file references for readable files and enables selection references after switching to code mode', () => {
     const fixture = TestBed.createComponent(FileViewerComponent)
     fixture.componentRef.setInput('filePath', 'src/app.ts')
     fixture.componentRef.setInput('content', 'const x = 1\nconst y = 2\n')
@@ -117,6 +145,7 @@ describe('FileViewerComponent', () => {
     const component = fixture.componentInstance
     const fileReferences: number[] = []
     component.referenceFile.subscribe(() => fileReferences.push(1))
+    component.updatePreviewMode('code')
 
     expect(component.canReferenceFile()).toBe(true)
     expect(component.editorReferenceable()).toBe(true)
@@ -155,6 +184,20 @@ describe('FileViewerComponent', () => {
     expect(fixture.componentInstance.editorReferenceable()).toBe(true)
   })
 
+  it('enables preview selection references for document previews with extracted text', () => {
+    const fixture = TestBed.createComponent(FileViewerComponent)
+    fixture.componentRef.setInput('filePath', 'proposal.docx')
+    fixture.componentRef.setInput('referenceable', true)
+    fixture.componentRef.setInput('file', {
+      filePath: 'proposal.docx',
+      fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      previewText: 'Executive summary\n\nNext steps'
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.documentPreviewReferenceable()).toBe(true)
+  })
+
   it('infers markdown preview line ranges from rendered heading text', () => {
     expect(inferMarkdownPreviewSelection('# Title\n\nParagraph text\n', 'Title')).toEqual({
       text: 'Title',
@@ -165,7 +208,10 @@ describe('FileViewerComponent', () => {
 
   it('falls back to the first and last matching lines for multi-line preview selections', () => {
     expect(
-      inferMarkdownPreviewSelection('# Title\n\n- First item\n- Second item\n\nParagraph text\n', 'First item\nSecond item')
+      inferMarkdownPreviewSelection(
+        '# Title\n\n- First item\n- Second item\n\nParagraph text\n',
+        'First item\nSecond item'
+      )
     ).toEqual({
       text: 'First item\nSecond item',
       startLine: 3,

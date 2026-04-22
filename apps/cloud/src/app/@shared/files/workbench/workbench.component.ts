@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   TemplateRef,
   WritableSignal,
@@ -30,6 +31,7 @@ import {
 } from '../tree/tree.utils'
 import { type FileTreeSizeVariants } from '../tree/tree.component.variants'
 import { FilePanelMode, FileViewerComponent } from '../viewer/viewer.component'
+import { resolveFilePreviewKind, toFilePreviewSource, type FilePreviewKind } from '../preview/file-preview.utils'
 
 type DirtyDialogAction = 'save' | 'discard' | 'cancel'
 export type FileWorkbenchTreeItem = FileTreeNode
@@ -55,6 +57,11 @@ export type FileWorkbenchReferenceRequest = {
   startLine: number
   endLine: number
   language?: string
+}
+
+type FileWorkbenchPreviewResource = {
+  objectUrl: string | null
+  url: string | null
 }
 
 const DEFAULT_EDITABLE_EXTENSIONS = [
@@ -87,6 +94,7 @@ const DEFAULT_MARKDOWN_EXTENSIONS = ['md', 'mdx']
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FileWorkbenchComponent {
+  readonly #destroyRef = inject(DestroyRef)
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
@@ -122,6 +130,7 @@ export class FileWorkbenchComponent {
   readonly fileTree = signal<FileTreeNode[]>([])
   readonly activeFilePath = signal<string | null>(null)
   readonly activeFile = signal<TFile | null>(null)
+  readonly activePreviewUrl = signal<string | null>(null)
   readonly draftContent = signal('')
   readonly panelMode = signal<FilePanelMode>('view')
   readonly selectedTreeItem = signal<{ path: string; isDirectory: boolean } | null>(null)
@@ -141,7 +150,9 @@ export class FileWorkbenchComponent {
     const path = this.activeFilePath()
     return !!path && this.#markdownExtensionSet().has(fileExtension(path))
   })
-  readonly dirty = computed(() => this.isActiveFileEditable() && this.draftContent() !== (this.activeFile()?.contents ?? ''))
+  readonly dirty = computed(
+    () => this.isActiveFileEditable() && this.draftContent() !== (this.activeFile()?.contents ?? '')
+  )
   readonly canDeleteFiles = computed(() => !!this.fileDeleter())
   readonly canUploadFiles = computed(() => !!this.fileUploader() && !!this.rootId())
   readonly canDownloadFiles = computed(() => !!this.fileDownloader() || !!this.fileLoader())
@@ -180,6 +191,7 @@ export class FileWorkbenchComponent {
   #pendingNavigationAction: (() => Promise<void>) | null = null
   #treeRequestToken = 0
   #fileRequestToken = 0
+  #activePreviewObjectUrl: string | null = null
 
   readonly #reloadRootEffect = effect(() => {
     const rootId = this.rootId()
@@ -192,6 +204,12 @@ export class FileWorkbenchComponent {
 
     void this.reloadRootTree(rootId)
   })
+
+  constructor() {
+    this.#destroyRef.onDestroy(() => {
+      revokeObjectUrl(this.#activePreviewObjectUrl)
+    })
+  }
 
   isEditableFile(filePath: string | null | undefined) {
     return !!filePath && this.#editableExtensionSet().has(fileExtension(filePath))
@@ -273,7 +291,7 @@ export class FileWorkbenchComponent {
 
   referenceSelectedRange(selection: FileEditorSelection) {
     const filePath = normalizeReferencePath(this.activeFilePath())
-    if (!this.referenceable() || !filePath || !this.fileReadable()) {
+    if (!this.referenceable() || !filePath) {
       return
     }
 
@@ -282,9 +300,7 @@ export class FileWorkbenchComponent {
       return
     }
 
-    this.referenceRequest.emit(
-      createReferenceRequest(filePath, text, selection.startLine, selection.endLine)
-    )
+    this.referenceRequest.emit(createReferenceRequest(filePath, text, selection.startLine, selection.endLine))
   }
 
   discardActiveFileChanges() {
@@ -443,6 +459,7 @@ export class FileWorkbenchComponent {
       if (this.activeFilePath() === filePath) {
         this.activeFilePath.set(null)
         this.activeFile.set(null)
+        this.setActivePreviewResource({ objectUrl: null, url: null })
         this.draftContent.set('')
         this.panelMode.set('view')
 
@@ -521,6 +538,7 @@ export class FileWorkbenchComponent {
     this.fileTree.set([])
     this.activeFilePath.set(null)
     this.activeFile.set(null)
+    this.setActivePreviewResource({ objectUrl: null, url: null })
     this.draftContent.set('')
     this.panelMode.set('view')
 
@@ -598,8 +616,15 @@ export class FileWorkbenchComponent {
         return
       }
 
+      const previewResource = await this.resolvePreviewResource(file.filePath || filePath, file)
+      if (requestToken !== this.#fileRequestToken || this.rootId() !== rootId) {
+        revokeObjectUrl(previewResource.objectUrl)
+        return
+      }
+
       this.activeFilePath.set(file.filePath || filePath)
       this.activeFile.set(file)
+      this.setActivePreviewResource(previewResource)
       this.draftContent.set(file.contents ?? '')
       this.panelMode.set('view')
     } catch (error) {
@@ -696,6 +721,7 @@ export class FileWorkbenchComponent {
     this.fileTree.set([])
     this.activeFilePath.set(null)
     this.activeFile.set(null)
+    this.setActivePreviewResource({ objectUrl: null, url: null })
     this.draftContent.set('')
     this.panelMode.set('view')
     this.selectedTreeItem.set(null)
@@ -732,6 +758,65 @@ export class FileWorkbenchComponent {
 
     this.fileTree.update((state) => updateFileTreeNode(state, targetPath, (node) => ({ ...node, expanded: true })))
     await this.loadDirectoryChildren(targetPath)
+  }
+
+  private async resolvePreviewResource(filePath: string, file: TFile): Promise<FileWorkbenchPreviewResource> {
+    const directUrl = normalizeDownloadUrl(file.fileUrl || file.url)
+    if (directUrl) {
+      return {
+        objectUrl: null,
+        url: directUrl
+      }
+    }
+
+    const previewKind = resolveFilePreviewKind(
+      toFilePreviewSource({
+        ...file,
+        filePath: file.filePath || filePath
+      })
+    )
+
+    if (!requiresPreviewUrl(previewKind, typeof file.contents === 'string')) {
+      return {
+        objectUrl: null,
+        url: null
+      }
+    }
+
+    const fileDownloader = this.fileDownloader()
+    if (!fileDownloader) {
+      return {
+        objectUrl: null,
+        url: null
+      }
+    }
+
+    const payload = await resolveAsyncValue(fileDownloader(file.filePath || filePath))
+    if (!payload) {
+      return {
+        objectUrl: null,
+        url: null
+      }
+    }
+
+    if (payload.kind === 'url') {
+      return {
+        objectUrl: null,
+        url: payload.url
+      }
+    }
+
+    const objectUrl = URL.createObjectURL(payload.blob)
+    return {
+      objectUrl,
+      url: objectUrl
+    }
+  }
+
+  private setActivePreviewResource(resource: FileWorkbenchPreviewResource) {
+    revokeObjectUrl(this.#activePreviewObjectUrl)
+    this.#activePreviewObjectUrl = resource.objectUrl
+    this.activePreviewUrl.set(resource.url)
   }
 }
 
@@ -776,6 +861,29 @@ function normalizeDownloadUrl(url?: string | null) {
   return /^(https?:)?\/\//.test(url) || url.startsWith('/') ? url : null
 }
 
+function revokeObjectUrl(url?: string | null) {
+  if (typeof URL === 'undefined' || !url || !url.startsWith('blob:')) {
+    return
+  }
+
+  URL.revokeObjectURL(url)
+}
+
+function requiresPreviewUrl(previewKind: FilePreviewKind, hasContents: boolean) {
+  if (previewKind === 'text' || previewKind === 'code' || previewKind === 'html') {
+    return !hasContents
+  }
+
+  return (
+    previewKind === 'document' ||
+    previewKind === 'image' ||
+    previewKind === 'pdf' ||
+    previewKind === 'audio' ||
+    previewKind === 'video' ||
+    previewKind === 'spreadsheet'
+  )
+}
+
 function createDownloadPayload(
   file: TFile | null | undefined,
   filePath: string,
@@ -811,7 +919,7 @@ function createDownloadPayload(
 function triggerFileDownload(payload: FileWorkbenchDownloadPayload, fallbackPath: string) {
   if (payload.kind === 'url') {
     const anchor = document.createElement('a')
-    anchor.href = payload.url
+    anchor.href = appendDownloadQuery(payload.url)
     anchor.target = '_blank'
     anchor.rel = 'noopener'
     anchor.download = payload.fileName || fileNameFromPath(fallbackPath)
@@ -829,6 +937,12 @@ function triggerFileDownload(payload: FileWorkbenchDownloadPayload, fallbackPath
   anchor.click()
   document.body.removeChild(anchor)
   URL.revokeObjectURL(objectUrl)
+}
+
+function appendDownloadQuery(url: string) {
+  const normalizedUrl = new URL(url, window.location.origin)
+  normalizedUrl.searchParams.set('download', '1')
+  return normalizedUrl.toString()
 }
 
 function countTextLines(content: string) {
@@ -865,11 +979,7 @@ function readSelectedFiles(event: Event, kind: FileTreeUploadKind): FileWorkbenc
 }
 
 function normalizeUploadRelativePath(relativePath?: string | null) {
-  const normalized = (relativePath ?? '')
-    .trim()
-    .replace(/\\/g, '/')
-    .replace(/^\/+/, '')
-    .replace(/^\.\//, '')
+  const normalized = (relativePath ?? '').trim().replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
 
   return normalized || null
 }
@@ -888,7 +998,10 @@ function mergeFileTreeState(previous: FileTreeNode[], next: FileTreeNode[]) {
     const currentPath = item.fullPath || item.filePath
     const previousItem = currentPath ? previousMap.get(currentPath) : undefined
     const nextChildren = Array.isArray(item.children)
-      ? mergeFileTreeState(Array.isArray(previousItem?.children) ? (previousItem.children as FileTreeNode[]) : [], item.children)
+      ? mergeFileTreeState(
+          Array.isArray(previousItem?.children) ? (previousItem.children as FileTreeNode[]) : [],
+          item.children
+        )
       : previousItem?.expanded && Array.isArray(previousItem.children)
         ? (previousItem.children as FileTreeNode[])
         : item.children

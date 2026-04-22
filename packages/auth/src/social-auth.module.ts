@@ -14,12 +14,21 @@ export class SocialAuthModule {
 		return {
 			module: SocialAuthModule,
 			providers: [...SocialAuthModule.createConnectProviders(options)],
-			imports: [...options.imports],
-			exports: [...options.imports]
+			imports: [...(options.imports ?? [])],
+			exports: [...(options.imports ?? [])]
 		} as DynamicModule;
 	}
 
 	private static createConnectProviders(options: any): Provider[] {
+		if (options.useExisting) {
+			return [
+				{
+					provide: SocialAuthService,
+					useExisting: options.useExisting
+				}
+			];
+		}
+
 		return [
 			{
 				provide: SocialAuthService,

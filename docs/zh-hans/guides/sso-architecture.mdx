@@ -1,0 +1,1208 @@
+---
+title: SSO 技术架构调研
+description: 基于当前仓库实现，系统梳理 Xpert 主线 SSO、Lark SSO 插件、xpert-pro OIDC / Keycloak，以及遗留 Feishu social auth 的边界与机制。
+---
+
+# SSO 技术架构调研
+
+本文档不是通用 SSO 教材，而是基于当前仓库代码的现状调研结果整理出来的一份正式说明书。
+
+它要回答的核心问题只有一个：
+
+当前这个仓库里的 “SSO” 到底是什么，分成哪几套系统，各自负责什么，真实实现边界在哪里。
+
+先直接说结论：
+
+- `xpert` 主线当前真正成型的，是“插件驱动 + 先绑定再登录”的 SSO 架构。
+- 这条主线里，当前唯一真正落地的 provider 是 `lark`，也就是飞书 / Lark。
+- `xpert-pro` 里还有一套“按租户配置 OIDC / Keycloak”的 SSO 子系统，但它和主线插件式 SSO 不是同一套机制。
+- 仓库里仍保留着一条更老的 Feishu social auth 路径，它应该被视为 legacy / parallel path，而不是当前主线。
+
+如果用一句更准确的话概括当前仓库：
+
+`这个仓库不是只有一套 SSO，而是存在一套正在成为主线的 SSO 架构，以及若干并行或遗留的身份系统。`
+
+## 阅读方式
+
+本文会从四个层次讲：
+
+1. SDK 定义了哪些能力边界
+2. 宿主侧怎样接管绑定、登录、挑战会话和 token 发放
+3. 插件侧怎样完成 Lark OAuth 与宿主对接
+4. 前端怎样把用户真正带进“绑定 / 注册 / 成功登录”的页面流
+
+同时，本文还会把 `xpert-pro` 的租户 OIDC 体系和遗留 Feishu social auth 单独拆开说明。
+
+## 术语说明
+
+为了避免后面读着读着混掉，先把几个术语固定下来：
+
+- `tenant`
+  Xpert 里的顶层客户边界。当前账号绑定的真实作用域是 tenant 级。
+- `organization`
+  tenant 下的组织边界。当前主要影响 provider 展示、匿名解析默认组织、以及部分新用户注册归属。
+- `provider`
+  外部身份提供方，例如 `lark`。
+- `subjectId`
+  provider 侧用于标识某个外部身份的稳定主键。
+- `binding`
+  外部身份和本地 Xpert 用户之间的持久绑定关系。
+- `pending binding challenge`
+  宿主存到 Redis 里的短期票据，用于在 OAuth 完成后继续完成本地绑定或注册。
+
+## 一、仓库里到底有哪几套 SSO / 身份相关系统
+
+当前仓库里至少有 4 套和 SSO / 身份接入直接相关的系统。
+
+### 1. 主线 `xpert` 插件驱动 SSO
+
+这是当前最完整、最像“正式主线方案”的一套。
+
+特点：
+
+- provider 发现机制是插件式的
+- 插件只能通过 SDK token 和宿主 permission service 交互
+- 登录是 binding-first，不是 auto-provision-first
+- 宿主负责创建待绑定 challenge
+- 宿主负责最终发放本地 JWT / refreshToken
+
+当前真正落地的 provider 只有一个：
+
+- `lark`
+
+### 2. 主线 `xpert` 的账号绑定兼容层
+
+它不是另一套独立 SSO，但对理解当前系统非常重要。
+
+特点：
+
+- 新绑定真相表是 `external_identity_binding`
+- 对 `lark` provider，绑定还会同步回旧字段 `user.thirdPartyId`
+- 旧的 Lark 集成逻辑仍然会在 fallback 路径里读取 `thirdPartyId`
+
+也就是说，当前系统已经有了新绑定模型，但仍处在兼容迁移期。
+
+### 3. `xpert-pro` 的租户配置型 OIDC / Keycloak SSO
+
+这是 `xpert-pro` 下面的一套独立子系统。
+
+特点：
+
+- 管理员可以按 tenant 维护 `tenant_sso`
+- 前端会按租户请求 `/api/auth/sso-config?tenant=...`
+- 前端可以根据返回配置初始化 OIDC / Keycloak 登录
+- 这套机制和主线 `xpert` 的插件式 Lark SSO 是两套体系
+
+### 4. 遗留 Feishu social auth
+
+这是仓库里仍然保留的一条旧链路。
+
+特点：
+
+- 通过 `SocialAuthModule` 接入
+- 仍然依赖 `thirdPartyId`
+- 更像传统 social login / auto-register 方案
+- 不走新主线的 pending challenge 模型
+
+本文会把它作为 legacy / parallel path 处理。
+
+## 二、主线 `xpert` SSO 的一句话理解
+
+主线 `xpert` 当前最准确的理解方式是：
+
+`插件负责证明“这个外部身份是谁”，宿主负责决定“这个外部身份应该对应哪个本地用户”，并由宿主发放本地登录令牌。`
+
+这句话拆开有三层意思：
+
+1. 插件不是直接把用户登录进宿主。
+2. 插件不会直接绕过宿主的账号模型。
+3. 插件 OAuth 回来后，真正决定登录或绑定结果的，是宿主而不是插件。
+
+## 三、主线架构的高层分工
+
+当前主线可以分成四层：
+
+| 层 | 当前职责 |
+| --- | --- |
+| SDK | 定义 provider 策略接口、binding contract、permission token |
+| 宿主 | 发现 provider、解析 tenant / organization、保存 challenge、持久化绑定、签发 token |
+| 插件 | 跑外部 OAuth、规范化外部 profile、调用宿主 permission service |
+| 前端 | 展示 provider、承接绑定/注册/确认页面、完成最终 token 落地和跳转 |
+
+整个设计最重要的原则是：
+
+- 插件认证外部身份
+- 宿主管理本地身份
+
+## 四、SDK 层到底定义了什么
+
+主线 SSO 之所以能做成插件式，是因为 SDK 先把边界定义清楚了。
+
+### 4.1 Provider 发现能力
+
+`packages/plugin-sdk/src/lib/sso/strategy.interface.ts` 定义了：
+
+- `ISSOProviderDescriptor`
+- `ISSOProviderContext`
+- `ISSOProviderStrategy`
+
+一个 provider 插件只要实现 `describe(context)`，就能告诉宿主：
+
+- 这个 provider 的 `provider` key 是什么
+- 展示名是什么
+- 图标是什么
+- 排序是什么
+- 登录起点 URL 是什么
+
+它拿到的上下文包括：
+
+- `tenantId`
+- 可选 `organizationId`
+- `requestBaseUrl`
+
+这说明 SSO provider 的发现从 SDK 设计上就是 organization-aware 的。
+
+### 4.2 Pending binding contract
+
+`packages/plugin-sdk/src/lib/core/permissions/sso-binding.ts` 定义了：
+
+- `SSO_BINDING_PERMISSION_SERVICE_TOKEN`
+- `CreatePendingBindingInput`
+- `PendingSsoBindingFlow`
+
+其中 flow 只有两种：
+
+- `anonymous_bind`
+- `current_user_confirm`
+
+这件事很重要，因为它说明 SDK 一开始就把“匿名首次登录绑定”和“当前已登录用户确认绑定”设计成两条不同的宿主流程。
+
+### 4.3 Account binding contract
+
+`packages/plugin-sdk/src/lib/core/permissions/account-binding.ts` 定义了：
+
+- `ACCOUNT_BINDING_PERMISSION_SERVICE_TOKEN`
+- `bindCurrentUser`
+- `resolveBoundUser`
+- `unbindCurrentUser`
+
+这是一套通用账号绑定 API。
+
+### 4.4 已绑定身份直接登录 contract
+
+`packages/plugin-sdk/src/lib/core/permissions/bound-identity-login.ts` 定义了：
+
+- `BOUND_IDENTITY_LOGIN_PERMISSION_SERVICE_TOKEN`
+- `loginWithBoundIdentity`
+
+含义很直白：
+
+- 插件已经完成外部身份认证
+- 现在把 `provider + subjectId + tenantId (+ organizationId)` 给宿主
+- 如果这个外部身份已经绑过本地用户，就请宿主直接发 token
+
+但这里有一个实现细节要单独记住：
+
+- 接口上有 `organizationId`
+- 当前宿主实现的最终登录查找并没有把 `organizationId` 当作真正匹配键
+
+### 4.5 `PluginContext.resolve(token)` 是真正的依赖边界
+
+`packages/plugin-sdk/src/lib/types.ts` 定义的 `PluginContext.resolve(token)` 是整套权限边界的核心。
+
+它意味着：
+
+- 插件不能随便拿宿主服务
+- 插件只能拿宿主允许暴露出来的 token
+- 宿主可以围绕 token 做统一的 permission 控制
+
+### 4.6 策略注册中心是 organization-aware 的
+
+`packages/plugin-sdk/src/lib/strategy.ts` 里的 `BaseStrategyRegistry` 支持：
+
+- 按 organization 注册策略
+- `global` 作用域 fallback
+
+所以当前 provider discovery 不是“全局固定 provider 列表”，而是“当前组织可见 provider 列表”。
+
+## 五、宿主是怎样把 SDK 能力真正交给插件的
+
+SDK 只是接口，真正让插件用起来的是宿主的 permission injection 机制。
+
+### 5.1 插件上下文创建
+
+`packages/server/src/plugin/lifecycle.ts` 里的 `createPluginContext()` 会重写 `ctx.resolve()`。
+
+每次插件 resolve 某个 token 时，宿主会做三件事：
+
+1. 检查插件是否声明了对应 permission type
+2. 把 SDK token 映射到宿主实际 service
+3. 对拿到的 service 再包一层 operation / provider 级 guard
+
+### 5.2 token 到宿主服务的映射
+
+`packages/server/src/plugin/permissions/index.ts` 把下面这些 token 映射成宿主服务：
+
+- `SSO_BINDING_PERMISSION_SERVICE_TOKEN`
+- `BOUND_IDENTITY_LOGIN_PERMISSION_SERVICE_TOKEN`
+- `ACCOUNT_BINDING_PERMISSION_SERVICE_TOKEN`
+- 还有其它 integration / user 相关 token
+
+和主线 SSO 最相关的就是前三个。
+
+### 5.3 宿主不只检查 permission type，还检查 operation 和 provider
+
+这一点是当前设计很好的地方。
+
+宿主不仅要求插件声明：
+
+- 我需要 `sso_binding`
+
+还会要求：
+
+- 我需要 `create`
+- 我只能操作 `providers: ['lark']`
+
+所以某个插件即使拿到了 SSO binding service，也不能顺手拿去给其它 provider 用。
+
+## 六、宿主侧的 SSO 控制面是什么
+
+主线 SSO 的宿主控制面主要在：
+
+- `packages/server/src/auth/sso/auth-sso.controller.ts`
+- `packages/server/src/auth/sso/auth-sso-binding.service.ts`
+- `packages/server/src/auth/sso/auth-sso-discovery.service.ts`
+- `packages/server/src/auth/sso/pending-sso-binding-challenge.service.ts`
+
+### 6.1 对外接口
+
+当前主线宿主提供这些接口：
+
+| 接口 | 当前职责 |
+| --- | --- |
+| `GET /auth/sso/providers` | 匿名登录页发现可用 SSO provider |
+| `GET /auth/sso/bind/challenge` | 获取匿名绑定 challenge 元数据 |
+| `GET /auth/sso/bind/current-user/challenge` | 获取当前用户确认绑定 challenge 元数据 |
+| `POST /auth/sso/bind/complete` | 绑定已有本地账号 |
+| `POST /auth/sso/bind/current-user/complete` | 当前已登录用户确认绑定 |
+| `POST /auth/sso/bind/register` | 注册新用户并绑定 |
+
+它们共同组成了“插件 OAuth 回调之后，宿主如何接管本地账号决策”的那层控制面。
+
+## 七、匿名请求时，宿主怎样知道当前 tenant / organization
+
+匿名登录阶段，用户还没有本地登录态，但宿主仍然需要知道“你属于哪个 tenant，大概要看哪个 organization”。
+
+这一层的关键文件有：
+
+- `packages/server/src/core/context/tenant.middleware.ts`
+- `packages/server/src/core/context/tenant-domain.utils.ts`
+- `packages/server/src/tenant/anonymous-tenant-resolver.service.ts`
+- `packages/server/src/core/context/anonymous-tenant-context.middleware.ts`
+
+### 7.1 tenant 从哪里来
+
+当前逻辑是：
+
+- 优先从请求 host / x-forwarded-host / origin 取 hostname
+- 再取 hostname 的第一个 label
+- `localhost`、IP、异常 host 会被过滤掉
+
+例如：
+
+- `acme.example.com` 会推导 tenant 名 `acme`
+
+### 7.2 tenant 找不到怎么办
+
+`anonymous-tenant-resolver.service.ts` 会：
+
+1. 先按 tenant 名查租户
+2. 查不到就 fallback 到 `DEFAULT_TENANT`
+
+### 7.3 organization 怎么选
+
+匿名阶段还没有“当前登录用户所属 organization”的概念，所以宿主会从当前 tenant 下选一个组织：
+
+- 优先选 active 且 `isDefault=true` 的 organization
+- 否则选 active 且创建时间最早的 organization
+
+### 7.4 哪些匿名路由会自动注入 tenant / organization header
+
+`anonymous-tenant-context.middleware.ts` 当前会为这些 GET 路由自动补 `tenant-id` / `organization-id`：
+
+- `/api/auth/sso/providers`
+- `/auth/sso/providers`
+- `/api/tenant/onboard`
+- `^/(api/)?[^/]+/login/start$`
+
+这最后一个规则很关键，因为它正好覆盖了类似：
+
+- `/api/lark-identity/login/start`
+
+这就是为什么 provider 登录启动接口在匿名状态下也能拿到 tenant / organization 上下文。
+
+### 7.5 一个必须明确写出来的架构事实
+
+这套匿名解析机制带来了当前系统一个很容易被误解的现实：
+
+- provider 展示层是 organization-aware 的
+- 但匿名用户并不知道自己最终“属于哪个 organization”
+- 所以系统当前实际上是在 tenant 层选一个默认 organization 来做 provider discovery
+
+后面理解绑定和登录范围时，这一点非常重要。
+
+## 八、Provider discovery 的真实行为
+
+`auth-sso-discovery.service.ts` 做的事情其实很简单，但边界非常清楚：
+
+1. 先解析匿名 tenant / organization
+2. 如果没有有效 tenant，直接返回空 provider 列表
+3. 按 organization 列出 `ISSOProviderStrategy`
+4. 调用每个策略的 `describe()`
+5. 过滤掉 `null`
+6. 按 `order` 和 `displayName` 排序
+
+这里要注意两点：
+
+1. discovery 是 organization-aware 的。
+2. `describe()` 虽然拿到了 `requestBaseUrl`，但 provider 仍然可以返回相对 `startUrl`。
+
+当前 Lark provider 就是返回相对路径，而不是绝对 URL。
+
+## 九、Pending binding challenge 模型
+
+当插件完成了外部 OAuth，但宿主还没决定“这个外部身份绑定给哪个本地用户”时，系统会创建一个 pending challenge。
+
+### 9.1 存储方式
+
+`pending-sso-binding-challenge.service.ts` 当前把 challenge 存到 Redis。
+
+实现细节：
+
+- key 前缀：`auth:sso:bind:challenge:`
+- TTL：10 分钟，也就是 `600` 秒
+- `ticket`：随机 UUID 去掉中划线
+
+### 9.2 challenge 里都存了什么
+
+当前记录内容包括：
+
+- `ticket`
+- `flow`
+- `provider`
+- `subjectId`
+- `tenantId`
+- `organizationId`
+- `displayName`
+- `avatarUrl`
+- `profile`
+- `returnTo`
+- `expiresAt`
+
+### 9.3 支持的 flow
+
+当前只有两类：
+
+- `anonymous_bind`
+- `current_user_confirm`
+
+默认行为是：
+
+- 如果传入的 flow 为空或异常，会被归一化成 `anonymous_bind`
+
+### 9.4 它存在的意义是什么
+
+这张 challenge 票据的本质作用是：
+
+- 先把插件回调中拿到的外部身份冻结下来
+- 再把真正的“本地绑定、注册、确认”动作交给宿主自己的页面和接口去完成
+
+这样宿主对本地账号的控制权就不会丢给插件。
+
+## 十、绑定的真实数据模型是什么
+
+当前主线绑定模型在：
+
+- `packages/server/src/account-binding/external-identity-binding.entity.ts`
+- `packages/server/src/account-binding/account-binding.service.ts`
+
+### 10.1 主表
+
+当前绑定主表是：
+
+- `external_identity_binding`
+
+主要字段包括：
+
+- `tenantId`
+- `provider`
+- `subjectId`
+- `userId`
+- `profile`
+
+### 10.2 两个唯一约束
+
+当前有两个关键唯一约束：
+
+- `(tenantId, provider, subjectId)` 唯一
+- `(tenantId, provider, userId)` 唯一
+
+它们表达的业务语义很明确：
+
+- 同一个 tenant 下，一个外部身份不能绑定给两个人
+- 同一个 tenant 下，一个用户在同一个 provider 下只能绑定一个 subject
+
+### 10.3 当前真正的查找范围是 tenant 级
+
+`AccountBindingService.resolveUser()` 当前是按：
+
+- `tenantId`
+- `provider`
+- `subjectId`
+
+来查绑定用户的。
+
+所以当前主线有一个特别重要的实现事实：
+
+- provider 展示是 organization-aware
+- durable binding 和 bound-identity login 目前本质上是 tenant-scoped
+
+## 十一、为什么 `thirdPartyId` 还没消失
+
+这是当前架构最典型的“兼容迁移特征”。
+
+### 11.1 Lark 绑定会同步回旧字段
+
+`AccountBindingService` 对 provider `lark` 做了特殊处理：
+
+- 当新绑定成功时
+- 会把 `subjectId` 同步写回 `user.thirdPartyId`
+
+这是为了兼容旧的 Lark 插件和旧 social auth 逻辑。
+
+### 11.2 它不是简单覆盖，而是带“回收旧占位用户”的规则
+
+当前逻辑允许回收已占用的 Lark 身份，但只在这些情况下：
+
+- 占用者是 `COMMUNICATION` 类型用户
+- 占用者是 ghost user
+
+如果占用者是正常真实用户，就会报冲突。
+
+### 11.3 这说明当前仓库处在兼容迁移期
+
+也就是说，当前不是：
+
+- 旧模型彻底删除
+
+而是：
+
+- 新模型成为首选
+- 旧字段继续同步
+- 老代码还能 fallback 到旧字段
+
+## 十二、宿主最终怎么完成绑定和登录
+
+宿主真正决定绑定和登录结果的逻辑在：
+
+- `packages/server/src/auth/sso/auth-sso-binding.service.ts`
+
+它包含三条主流程。
+
+### 12.1 匿名首次登录后，绑定已有本地账号
+
+这条流程使用 `anonymous_bind`。
+
+当前步骤是：
+
+1. 根据 `ticket` 读取 challenge
+2. 校验 challenge 的 flow 必须是 `anonymous_bind`
+3. 要求用户输入 `userName` 和 `password`
+4. 只在同 tenant 下查本地用户
+5. 查找方式是：
+   - 已验证 email
+   - 或 username
+6. 密码校验通过后执行绑定
+7. 宿主为该用户签发本地 JWT / refreshToken
+8. 删除 challenge
+9. 跳转到 `/sign-in/success?...`
+
+如果 challenge 带了 `returnTo`，它会被保留下来。
+
+### 12.2 当前已登录用户，确认绑定
+
+这条流程使用 `current_user_confirm`。
+
+步骤是：
+
+1. 根据 `ticket` 读取 challenge
+2. 必须存在当前登录用户
+3. 当前请求 tenant 必须和 challenge.tenantId 一致
+4. 把外部身份绑定到当前用户
+5. 删除 challenge
+6. 跳到 `returnTo` 或 `/`
+
+注意：
+
+- 这里不会重新发登录 token
+- 因为用户本地已经处于登录态
+
+### 12.3 匿名首次登录后，注册并绑定
+
+步骤是：
+
+1. 读取 `anonymous_bind` challenge
+2. 要求 email、password、confirmPassword
+3. 确认该外部身份尚未绑定给别人
+4. 调用宿主 `register`
+5. 把 challenge 里的 `organizationId` 带入注册
+6. 绑定外部身份
+7. 发本地 token
+8. 删除 challenge
+9. 跳到 `/sign-in/success?...`
+
+### 12.4 冲突控制
+
+宿主当前主要处理两类冲突：
+
+- 这个本地账号在同 provider 下已经绑了另一个身份
+- 这个外部身份已经被其它 Xpert 用户占用
+
+冲突文案也做了对用户更可理解的统一封装。
+
+## 十三、主线里几个必须单独强调的实现真相
+
+这一节很关键，建议后续任何人改这块时都先看。
+
+### 13.1 `organizationId` 会被一路带着走，但它不是所有地方的最终决策键
+
+`organizationId` 当前会出现在：
+
+- provider discovery
+- pending challenge
+- provider callback state
+- register-and-bind 流程
+
+但在“已绑定身份直接登录”这件事上，当前真正决策的还是：
+
+- `tenantId`
+- `provider`
+- `subjectId`
+
+### 13.2 current-user confirm 目前是 tenant-scoped，不是 initiator-user-scoped
+
+当前 `current_user_confirm` challenge 的校验条件是：
+
+- 必须有当前登录用户
+- 当前 tenant 必须和 challenge tenant 一致
+
+它并没有把“最初发起绑定的那个本地 userId”持久化进 challenge 并严格校验。
+
+所以当前真实行为更像：
+
+- 这是一个 tenant 级确认挑战
+- 不是一个严格绑定到发起用户的确认挑战
+
+### 13.3 宿主不会统一兜底校验 `returnTo`
+
+宿主会保存 challenge 里的 `returnTo`，并在最后跳转时使用它。
+
+但当前宿主并没有统一做 open redirect 级别的安全校验。
+
+当前安全责任主要在 provider 插件侧。
+
+Lark 插件做了这件事，但这是“插件责任”，不是“宿主统一保证”。
+
+## 十四、主线前端用户看到的流程是什么
+
+主线前端入口主要在：
+
+- `libs/apps/auth/src/lib/login/login.component.ts`
+- `libs/apps/auth/src/lib/sso-bind/sso-bind.component.ts`
+- `libs/apps/auth/src/lib/current-user-sso-confirm/current-user-sso-confirm.component.ts`
+- `libs/apps/auth/src/lib/register/register.component.ts`
+- `apps/cloud/src/app/@core/auth/signin-success/sign-in-success.component.ts`
+
+### 14.1 登录页
+
+登录页当前会：
+
+- 请求 `/api/auth/sso/providers`
+- 渲染 provider 列表
+- 用户点击 provider 时，把当前 `returnUrl` 填进 provider 启动 URL 的 `returnTo`
+
+### 14.2 匿名绑定页 `/auth/sso-bind`
+
+这个页面会：
+
+- 根据 `ticket` 请求 `/api/auth/sso/bind/challenge`
+- 展示 provider 和过期时间等信息
+- 给用户两个选择：
+  - 绑定已有账号
+  - 去注册并绑定
+
+### 14.3 当前用户确认绑定页 `/auth/sso-confirm`
+
+这个页面会：
+
+- 根据 `ticket` 请求 `/api/auth/sso/bind/current-user/challenge`
+- 用户确认后 POST `/api/auth/sso/bind/current-user/complete`
+
+它必须跑在已有本地登录态下。
+
+### 14.4 注册页
+
+注册页当前如果 URL 里带了 `ticket`：
+
+- 提交时会调用 `/api/auth/sso/bind/register`
+
+如果没有 `ticket`：
+
+- 才走普通注册逻辑
+
+### 14.5 成功登录接力页 `/sign-in/success`
+
+这个页面当前会：
+
+- 从 query string 里取 `jwt`
+- 取 `refreshToken`
+- 取 `userId`
+- 把它们写入前端 store
+- 最后跳回 `returnTo` 或首页
+
+## 十五、为什么有些接口匿名也能调，有些不行
+
+因为前端 interceptor 故意给匿名 SSO 路由留了白名单。
+
+关键文件是：
+
+- `apps/cloud/src/app/@core/interceptors/token.interceptor.ts`
+- `apps/cloud/src/app/@core/interceptors/tenant.interceptor.ts`
+
+当前匿名白名单包括：
+
+- `/api/auth/sso/providers`
+- `/api/auth/sso/bind/challenge`
+- `/api/auth/sso/bind/complete`
+- `/api/auth/sso/bind/register`
+- `/api/tenant/onboard`
+
+但是以下 current-user 接口不在白名单里：
+
+- `/api/auth/sso/bind/current-user/challenge`
+- `/api/auth/sso/bind/current-user/complete`
+
+这正好对应当前设计意图：
+
+- 匿名首次登录绑定流程是公开入口
+- 当前用户确认绑定流程必须依赖已有本地登录态
+
+## 十六、当前真正落地的 provider：Lark SSO 插件
+
+当前 provider 实现位于：
+
+- `xpert-plugins/xpertai/integrations/lark-sso/`
+
+关键文件包括：
+
+- `src/index.ts`
+- `lark-sso-provider.strategy.ts`
+- `lark-state.service.ts`
+- `lark-oauth.service.ts`
+- `lark-sso.service.ts`
+- `lark-sso.controller.ts`
+
+### 16.1 插件声明
+
+插件当前声明自己是：
+
+- `organization` 级插件
+
+它声明的关键 permission 只有两个：
+
+- `sso_binding:create`，provider = `lark`
+- `bound_identity_login:create`，provider = `lark`
+
+这非常能说明当前主线设计：
+
+- 它可以让宿主创建 challenge
+- 它可以让宿主按已绑定身份直接登录
+- 但它不会在登录回调里自己直接改本地账号绑定
+
+### 16.2 provider descriptor
+
+`lark-sso-provider.strategy.ts` 当前返回：
+
+- `provider: 'lark'`
+- `displayName: 'Feishu'`
+- `icon`
+- `order: 100`
+- `startUrl: /api/lark-identity/login/start`
+
+如果插件配置不完整，例如 `appId` 或 `appSecret` 缺失，当前 provider 会直接从 discovery 里消失。
+
+### 16.3 插件配置
+
+当前插件配置项有：
+
+- `appId`
+- `appSecret`
+- `publicBaseUrl`
+
+其中 `publicBaseUrl` 的作用不止一个：
+
+1. 用于生成 callback URL
+2. 用于校验绝对 `returnTo` 是否同源
+
+## 十七、Lark state token 到底是什么
+
+`lark-state.service.ts` 当前没有直接依赖现成 JWT 库，而是手工拼了一个 JWT-like state。
+
+特征：
+
+- header `alg = HS256`
+- 签名 key 是 `appSecret`
+- 有效期 10 分钟
+
+payload 当前会携带：
+
+- `mode`
+- `tenantId`
+- `organizationId`
+- bind 模式下的 `userId`
+- `returnTo`
+- `nonce`
+- `iat`
+- `exp`
+
+这件事很重要，因为它说明：
+
+- 插件回调回来时，不依赖宿主 session 去恢复上下文
+- 它把 tenant / organization / returnTo / bind-or-login 模式都自己带过了飞书 OAuth 往返
+
+## 十八、为什么 Lark 用 `union_id` 作为绑定键
+
+当前实现里，真正用于绑定和已绑定登录查找的主键是：
+
+- `union_id`
+
+`open_id` 当前只是被收集后存进 binding `profile`。
+
+原因是：
+
+- `union_id` 在同一开发者主体下更稳定
+- `open_id` 是 app-scoped 的，不适合做当前主绑定键
+
+这对后续理解 inbound Lark 集成也非常重要，因为那边解析用户时也是围绕 `union_id` 在走。
+
+## 十九、Lark OAuth 回调到底怎么分流
+
+这部分是整条主线的核心，全部在：
+
+- `lark-sso.service.ts`
+
+当前完整行为是：
+
+1. 验 state
+2. 看 Feishu OAuth 是否报错
+3. 用 code 换 access token
+4. 拉用户 profile
+5. 强制要求 `union_id`
+6. 构造标准化 binding profile
+7. 根据 `mode` 决定下一步
+
+### 19.1 `bind` 模式
+
+如果 `mode = 'bind'`：
+
+- 不直接完成本地绑定
+- 只调用宿主 `createPendingBinding`
+- 指定 `flow = 'current_user_confirm'`
+- 跳 `/auth/sso-confirm?ticket=...`
+
+### 19.2 `login` 模式
+
+如果 `mode = 'login'`：
+
+1. 调用宿主 `loginWithBoundIdentity(provider='lark', subjectId=unionId, tenantId, organizationId)`
+2. 如果宿主找到已绑定用户：
+   - 宿主发本地 JWT / refreshToken
+   - 插件跳 `/sign-in/success?...`
+3. 如果宿主没找到绑定：
+   - 插件创建一个 `anonymous_bind` challenge
+   - 跳 `/auth/sso-bind?ticket=...`
+
+这就是当前主线最核心的业务语义：
+
+- 先看有没有绑定
+- 有绑定，直接登录
+- 没绑定，不自动建号
+- 没绑定，进入宿主自己的绑定 / 注册流程
+
+## 二十、`returnTo` 的安全边界是谁负责的
+
+当前不是宿主统一做 `returnTo` 安全校验，而是由具体 provider 插件负责。
+
+Lark 插件当前接受的 `returnTo` 只有两类：
+
+- 站内相对路径，例如 `/settings/account`
+- 与 `publicBaseUrl` 同源的绝对 URL
+
+当前会拒绝：
+
+- 双斜杠协议相对路径
+- 异源绝对地址
+- 非法 URL
+- 在未配置 `publicBaseUrl` 时传绝对 URL
+
+所以当前主线的安全事实是：
+
+- 宿主保存和传递 `returnTo`
+- provider 插件负责在进入 challenge 前把它校验干净
+
+## 二十一、Lark 插件对外暴露哪些路由
+
+`lark-sso.controller.ts` 当前提供：
+
+| 路由 | 是否公开 | 当前用途 |
+| --- | --- | --- |
+| `GET /lark-identity/login/start` | 公开 | 匿名登录起点 |
+| `GET /lark-identity/bind/start` | 需要登录 | 当前用户主动绑定起点 |
+| `GET /lark-identity/callback` | 公开 | OAuth 回调入口 |
+
+tenant / organization 的来源也不完全一样：
+
+- 匿名登录起点主要依赖匿名中间件注入的 header
+- 当前用户绑定起点优先读当前本地用户上下文
+
+## 二十二、主线 Lark 消息插件怎样消费绑定结果
+
+这部分不是“登录 SSO”，但它非常能说明当前绑定模型已经在系统里成为主路径。
+
+关键文件：
+
+- `xpert-plugins/xpertai/integrations/lark/src/index.ts`
+- `lark-inbound-identity.service.ts`
+- `lark-channel.strategy.ts`
+
+### 22.1 当前优先解析顺序
+
+收到 inbound webhook 后，当前会：
+
+1. 从 payload 提取 `union_id`
+2. 先调用 `accountBindingPermissionService.resolveBoundUser({ provider: 'lark', subjectId: unionId })`
+3. 如果查到绑定用户，直接用这个真实用户
+4. 如果没查到，再看 `autoProvision`
+5. 如果允许自动建用户，再退回旧 `thirdPartyId` 逻辑
+6. 如果仍然没有，再 fallback 到 integration creator
+
+### 22.2 这说明什么
+
+说明当前系统已经明显转向：
+
+- 新绑定表优先
+
+但还没有彻底完成：
+
+- 旧 `thirdPartyId` fallback 仍然在
+
+所以它是迁移中的混合模型，而不是已经完全切换完成的模型。
+
+## 二十三、`xpert-pro` 的租户 OIDC / Keycloak SSO 是什么
+
+`xpert-pro` 下面有一套独立的“按 tenant 配置 SSO provider”的方案。
+
+它不是插件驱动，也不是主线 `xpert` 那套 pending binding 模型。
+
+### 23.1 数据模型
+
+关键文件：
+
+- `packages/server/src/tenant/tenant-sso/tenant-sso.entity.ts`
+- `tenant-sso.service.ts`
+- `sso-config.service.ts`
+
+表是：
+
+- `tenant_sso`
+
+关键字段包括：
+
+- `tenantId`
+- `providerType: 'oidc' | 'keycloak'`
+- `issuer`
+- `clientId`
+- `scope`
+- `audience`
+- `extra`
+- `priority`
+- `isActive`
+
+### 23.2 管理流程
+
+管理员当前可以：
+
+- list
+- create
+- update
+- delete
+
+当前还做了这些约束：
+
+- `scope` 如果填写，必须包含 `openid`
+- 同租户下不允许重复 `(providerType + issuer + clientId)`
+- create / update / delete 后会清理缓存
+
+### 23.3 生效配置的生成方式
+
+`SsoConfigService.getSsoConfigByTenantCode()` 当前会：
+
+1. 先按 `tenant.name` 找 tenant
+2. 选出一条 active 配置
+3. 生成统一的前端 `SsoProviderConfig`
+
+里面会计算：
+
+- `redirectUri = ${clientBaseUrl}/auth/callback`
+- `postLogoutRedirectUri = clientBaseUrl`
+- `silentCheckSsoRedirectUri = ${clientBaseUrl}/assets/silent-check-sso.html`
+
+同时这份有效配置有 5 分钟内存缓存。
+
+### 23.4 对外读取接口
+
+`xpert-pro` 后端通过：
+
+- `GET /api/auth/sso-config?tenant=...`
+
+把当前 tenant 的生效 OIDC / Keycloak 配置发给前端。
+
+## 二十四、`xpert-pro` 前端实际怎样用这份配置
+
+关键文件：
+
+- `apps/cloud/src/app/auth/core/auth.config-resolver.ts`
+- `auth.bootstrap.ts`
+- `providers/oidc.provider.ts`
+- `providers/keycloak.provider.ts`
+- `auth.facade.ts`
+- `interceptors/oidc-token.interceptor.ts`
+
+### 24.1 启动过程
+
+当前前端启动时会：
+
+1. 通过 `TenantService` 拿当前 tenant
+2. 请求 `/api/auth/sso-config?tenant=...`
+3. 根据返回配置初始化对应 auth provider
+
+### 24.2 当前默认只启用了 `oidc`
+
+这里有一个必须说清楚的事实：
+
+- `keycloak` provider 类是存在的
+- 但在 `auth.bootstrap.ts` 里当前默认注册的只有 `oidc`
+- `keycloak` 注册代码还处于注释状态
+
+所以当前真实状态是：
+
+- OIDC 流程默认接好了
+- Keycloak 代码在，但默认没有启用
+
+### 24.3 `oidc-client-ts` 当前负责什么
+
+`OidcClientProvider` 当前负责：
+
+- 处理 `/auth/callback`
+- 执行 `signinRedirectCallback`
+- 做 silent renew
+- 从 OIDC session 里取 access token
+
+### 24.4 前端 token 注入
+
+`AuthFacade` 和 `OidcTokenInterceptor` 当前负责：
+
+- 保持当前 provider
+- 刷新 token
+- 把 `Authorization: Bearer <external access token>` 附加到 `/api` 请求
+
+这说明 `xpert-pro` 当前前端的角色确实是一个 OIDC client。
+
+## 二十五、`xpert-pro` 当前有一个非常关键的边界
+
+这个边界必须明确写出来，不然很容易误解它已经具备了“完全动态的多租户外部 OIDC 后端接入”能力。
+
+### 25.1 `tenant_sso` 和后端 Bearer token 校验，不是同一条管线
+
+虽然前端按 tenant 动态拿的是 `tenant_sso` 配置，但后端真正用来验 OIDC token 的 Passport strategy 是：
+
+- `packages/server/src/auth/strategies/oidc-jwt.strategy.ts`
+
+它当前读的是：
+
+- `environment.oidcConfig.issuer`
+- `environment.oidcConfig.audience`
+- `environment.oidcConfig.jwks`
+
+也就是说：
+
+- 它不是按 `tenant_sso` 动态切换 issuer / jwks
+- 它更像一套“静态环境变量配置的 OIDC resource server”
+
+### 25.2 这意味着什么
+
+当前 `xpert-pro` 真实状态更准确的描述应该是：
+
+- `tenant_sso` 已经能驱动前端按 tenant 初始化外部 OIDC / Keycloak 登录
+- 但后端 Bearer token 校验层还不是动态多 issuer 模型
+- 所以后端并不能天然接受任意 tenant_sso 指向的外部 IdP token
+
+这是当前最值得在后续设计中继续推进的边界之一。
+
+## 二十六、`xpert-pro` 还内嵌了一套 OIDC Provider
+
+除了“接外部 OIDC”，`xpert-pro` 还包含一套自己作为 OIDC Provider 的能力。
+
+关键文件：
+
+- `packages/server/src/oidc/oidc-provider.service.ts`
+- `packages/server/src/bootstrap/index.ts`
+
+当前行为包括：
+
+- 启动 `oidc-provider`
+- 挂载 `/oidc`
+- 处理 interaction 登录流程
+- 以内部 `user.id` 作为 `sub`
+- 生成 claims：
+  - `sub`
+  - `email`
+  - `name`
+  - `preferred_username`
+  - `roles`
+  - `tenant_id`
+  - `org_id`
+  - `org_ids`
+
+所以 `xpert-pro` 当前其实并存两件事：
+
+1. 作为 OIDC client 接外部 IdP
+2. 作为 OIDC provider 给下游系统发 token
+
+它们都存在，但不是同一层实现。
+
+## 二十七、遗留 Feishu social auth 到底是什么
+
+主线 `xpert` 当前仍然保留着旧的 Feishu social auth。
+
+关键文件：
+
+- `packages/auth/src/feishu/feishu.controller.ts`
+- `packages/auth/src/feishu/feishu.strategy.ts`
+- `packages/server/src/auth/auth.module.ts`
+- `packages/server/src/auth/auth.service.ts`
+
+### 27.1 当前形态
+
+它的路由是：
+
+- `GET /api/auth/feishu`
+- `GET /api/auth/feishu/callback`
+
+回调后走：
+
+- `validateOAuthLoginMobile()`
+
+它当前的核心特征是：
+
+- 以 `thirdPartyId` 为主
+- 找不到用户时会自动注册
+- 然后直接发本地 token
+
+### 27.2 为什么它不应该再被当成主线架构
+
+它和当前插件式 Lark SSO 的设计完全不是一路：
+
+| 遗留 Feishu social auth | 当前主线 Lark 插件式 SSO |
+| --- | --- |
+| social login 风格 | 插件驱动 OAuth |
+| `thirdPartyId` 为主键 | `external_identity_binding + union_id` 为主 |
+| auto-register 倾向 | binding-first 倾向 |
+| 没有 pending challenge | 明确的 Redis challenge 模型 |
+| 旧模块接入 | 新 permission-driven plugin 接入 |
+
+所以当前最合理的归类方式是：
+
+- 仍然存在
+- 仍然有兼容意义
+- 但已经不是当前正式主线
+
+## 二十八、当前最准确的总体总结
+
+如果把当前仓库缩成几句话，最准确的表达是：
+
+### 主线 `xpert`
+
+- 当前正式主线是插件驱动 SSO
+- provider discovery 是 organization-aware
+- 持久绑定和已绑定身份登录目前是 tenant-scoped
+- 当前唯一真正落地的 provider 是 `lark`
+- 首次 SSO 登录如果没有绑定，不会自动建号
+- 而是进入宿主自己的绑定 / 注册流程
+
+### 主线 Lark 集成
+
+- inbound 解析已优先使用新绑定表
+- 旧 `thirdPartyId` fallback 仍然保留
+- 兼容层还没有彻底退出
+
+### `xpert-pro`
+
+- 有按租户配置 OIDC / Keycloak 的 SSO 子系统
+- 前端可以据此启动 OIDC 登录
+- 后端 Bearer token 校验目前仍基于静态 env OIDC 配置
+- 同时它自己还内嵌了一套 OIDC Provider
+
+### 遗留链路
+
+- 老 Feishu social auth 仍然存在
+- 应视为 legacy / parallel path，而不是主线
+
+## 二十九、后续继续演进时最该注意什么
+
+如果后面要继续改这块，我认为最重要的是这 6 条。
+
+1. 不要把 provider 展示范围和绑定查找范围混为一谈。
+   当前是 org-aware discovery + tenant-scoped binding。
+
+2. 不要默认以为 `organizationId` 参与了已绑定身份登录主键。
+   当前更多只是用于展示与注册归属。
+
+3. 不要轻易删除 `thirdPartyId` 兼容逻辑。
+   旧 Lark 集成仍在 fallback 路径里依赖它。
+
+4. 新 provider 插件必须自己做好 `returnTo` 安全校验。
+   当前宿主没有统一兜底。
+
+5. 如果要让 `xpert-pro` 真正支持“按 tenant 动态接任意外部 OIDC，并让后端 API 直接验这些 token”，当前静态 `OidcJwtStrategy` 边界需要继续演进。
+
+6. 如果要让 current-user confirm 真正绑定到发起用户，而不是只绑定 tenant，pending challenge 模型需要记录 initiator user 并在完成时严格校验。
+
+## 三十、最终结论
+
+当前仓库已经足够清晰，可以被描述成：
+
+- 一套正在成为主线的插件驱动、permission-guarded、binding-first 的 SSO 架构
+- 加上若干仍然重要的并行或遗留身份系统
+
+所以正确的心智模型不是：
+
+- “Xpert 只有一套 SSO”
+
+而应该是：
+
+- `xpert` 主线已经形成了一套明确的 SSO 主架构
+- 但仓库里仍然保留着兼容层、并行体系和历史实现
+- 理解当前系统时，必须明确把这些边界拆开
+
+本文档的目的，就是把这张边界图完整画出来。

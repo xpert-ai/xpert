@@ -9,7 +9,7 @@ LABEL org.opencontainers.image.source=https://github.com/xpert-ai/xpert
 
 ENV CI=true
 
-RUN apk --update add bash jq && npm i -g npm && \
+RUN apk --update add bash jq python3 make g++ && npm i -g npm && \
     corepack enable && corepack prepare pnpm@10.24.0 --activate
 RUN mkdir /srv/xpert && chown -R node:node /srv/xpert
 
@@ -71,14 +71,13 @@ ENV NODE_OPTIONS="--max-old-space-size=2048" \
     DEMO=false \
     LOG_LEVEL=
 
-# Install sudo package
-RUN apt-get update && apt-get install -y sudo
+# Install native build tools for runtime plugin dependencies such as node-pty.
+RUN apt-get update && apt-get install -y sudo build-essential python3 python3-pip
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node
 
 # Install python uvx
-RUN apt-get install -y python3-pip && \
-    python3 -m pip install uv --break-system-packages
+RUN python3 -m pip install uv --break-system-packages
 
 WORKDIR /srv/xpert
 
@@ -108,6 +107,11 @@ COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
 RUN pnpm install --prod --no-frozen-lockfile && \
+    # node-pty@1.1.x can publish a linux-arm64 package where the prebuild
+    # directory exists but the actual native addon does not. Validate by
+    # loading the module for real, then fall back to a source rebuild only if
+    # that runtime check fails.
+    (node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),'packages/plugins/agent-middlewares'),path.join(process.cwd(),'dist/packages/plugins/agent-middlewares')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } try { require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok'); } catch (error) { console.error(error instanceof Error ? error.stack ?? error.message : String(error)); process.exit(1); }" || (npm_config_build_from_source=true npm rebuild node-pty --foreground-scripts && node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),'packages/plugins/agent-middlewares'),path.join(process.cwd(),'dist/packages/plugins/agent-middlewares')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok after rebuild');")) && \
     touch ormlogs.log && chown -R node:node /srv/xpert
 
 USER node:node

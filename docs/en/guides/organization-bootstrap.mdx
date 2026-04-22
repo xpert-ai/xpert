@@ -208,7 +208,7 @@ When a user joins an organization, `server-ai`:
 - idempotently creates the personal workspace when `bootstrapPersonalWorkspace=true`
 - idempotently creates the personal default environment
 - idempotently adds the user into the organization default workspace
-- asynchronously installs configured default skills into the personal workspace
+- asynchronously installs configured default skills into the personal workspace when that workspace is newly created
 
 The personal workspace is marked with:
 
@@ -241,6 +241,7 @@ Notes:
 - this file is seeded into `XPERT_TEMPLATE_DIR` alongside `skills-market.yaml` and `skill-repositories.yaml`
 - refs use machine fields only: `provider`, `repositoryName`, and `skillId`
 - only refs that also exist in `skills-market.yaml` are eligible for default installation
+- existing personal workspaces are not backfilled automatically; the default install job only runs for newly created `user-default` workspaces
 - local bundled skills are loaded from `skill-packages/*/bundle.yaml`, with `SKILL.md` and resources in the same folder
 - user bootstrap enqueues a separate async job for these installs, so workspace creation is not blocked by repository sync timing
 - unresolved refs are retried until repository indexes are available, and repeated installs are idempotent per `workspaceId + skillIndexId`

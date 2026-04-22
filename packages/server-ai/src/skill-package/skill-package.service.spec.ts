@@ -66,6 +66,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 	RequestContext: {
 		currentTenantId: jest.fn(),
 		getOrganizationId: jest.fn(),
+		getLanguageCode: jest.fn(),
 		currentUserId: jest.fn(),
 		currentUser: jest.fn()
 	},
@@ -179,6 +180,7 @@ describe('SkillPackageService', () => {
 	beforeEach(() => {
 		;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
 		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
+		;(RequestContext.getLanguageCode as jest.Mock).mockReturnValue('zh-Hans')
 		;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue({
 			id: 'user-1',
@@ -323,6 +325,164 @@ describe('SkillPackageService', () => {
 		expect(result.metadata.version).toBeUndefined()
 	})
 
+	it('reuses an existing installed marketplace skill when the same version is already present', async () => {
+		skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
+			id: 'index-1',
+			repositoryId: 'repo-1',
+			skillId: 'weather',
+			name: 'Weather',
+			skillPath: 'weather',
+			version: '1.2.3',
+			repository: {
+				id: 'repo-1',
+				provider: 'clawhub',
+				tenantId: 'tenant-1'
+			}
+		})
+		repository.findOne.mockResolvedValue({
+			id: 'skill-existing-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			skillIndexId: 'index-1',
+			metadata: {
+				name: 'weather',
+				displayName: {
+					en_US: 'Weather',
+					zh_Hans: 'Weather'
+				},
+				version: '1.2.3',
+				visibility: 'private'
+			},
+			skillIndex: {
+				id: 'index-1',
+				repositoryId: 'repo-1',
+				skillId: 'weather',
+				repository: {
+					id: 'repo-1',
+					provider: 'clawhub',
+					tenantId: 'tenant-1'
+				}
+			}
+		})
+
+		const result = await service.installSkillPackage('workspace-1', 'index-1')
+
+		expect(repository.findOne).toHaveBeenCalledWith({
+			where: {
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-1'
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		expect(strategy.installSkillPackage).not.toHaveBeenCalled()
+		expect(createSpy).not.toHaveBeenCalled()
+		expect(service.update).not.toHaveBeenCalled()
+		expect(result).toMatchObject({
+			id: 'skill-existing-1',
+			skillIndexId: 'index-1',
+			metadata: {
+				version: '1.2.3'
+			}
+		})
+	})
+
+	it('updates an installed marketplace skill in place when a newer version is installed for the same skill id', async () => {
+		skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
+			id: 'index-2',
+			repositoryId: 'repo-1',
+			skillId: 'weather',
+			name: 'Weather',
+			skillPath: 'weather',
+			version: '2.0.0',
+			repository: {
+				id: 'repo-1',
+				provider: 'clawhub',
+				tenantId: 'tenant-1'
+			}
+		})
+		repository.findOne
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce({
+				id: 'skill-existing-1',
+				tenantId: 'tenant-1',
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-1',
+				packagePath: 'clawhub/weather',
+				metadata: {
+					name: 'weather',
+					version: '1.2.3',
+					visibility: 'private'
+				},
+				skillIndex: {
+					id: 'index-1',
+					repositoryId: 'repo-1',
+					skillId: 'weather',
+					repository: {
+						id: 'repo-1',
+						provider: 'clawhub',
+						tenantId: 'tenant-1'
+					}
+				}
+			})
+
+		const result = await service.installSkillPackage('workspace-1', 'index-2')
+
+		expect(repository.findOne).toHaveBeenNthCalledWith(1, {
+			where: {
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-2'
+			},
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		expect(repository.findOne).toHaveBeenNthCalledWith(2, {
+			where: {
+				workspaceId: 'workspace-1',
+				skillIndex: {
+					repositoryId: 'repo-1',
+					skillId: 'weather'
+				}
+			},
+			relations: ['skillIndex', 'skillIndex.repository'],
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		expect(strategy.uninstallSkillPackage).toHaveBeenCalledWith('/tmp/workspace-skills/clawhub/weather')
+		expect(strategy.installSkillPackage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'index-2',
+				skillId: 'weather',
+				version: '2.0.0'
+			}),
+			'/tmp/workspace-skills'
+		)
+		expect(service.update).toHaveBeenCalledWith(
+			'skill-existing-1',
+			expect.objectContaining({
+				workspaceId: 'workspace-1',
+				skillIndexId: 'index-2',
+				packagePath: 'clawhub/weather',
+				metadata: expect.objectContaining({
+					version: '2.0.0'
+				})
+			})
+		)
+		expect(createSpy).not.toHaveBeenCalled()
+		expect(result).toMatchObject({
+			id: 'skill-existing-1',
+			skillIndexId: 'index-2',
+			packagePath: 'clawhub/weather',
+			metadata: expect.objectContaining({
+				version: '2.0.0'
+			}),
+			skillIndex: expect.objectContaining({
+				id: 'index-2',
+				skillId: 'weather',
+				version: '2.0.0'
+			})
+		})
+	})
+
 	it('reuses an existing installed skill package for the same workspace and index', async () => {
 		repository.findOne.mockResolvedValue({
 			id: 'skill-existing-1',
@@ -417,7 +577,7 @@ describe('SkillPackageService', () => {
 		expect(skillRepositoryService.findOneInOrganizationOrTenant).toHaveBeenCalledWith('repo-public')
 		expect(workspaceRepository.create).toHaveBeenCalledWith(
 			expect.objectContaining({
-				name: 'Default Workspace',
+				name: '组织工作空间',
 				organizationId: 'org-1',
 				ownerId: 'user-1',
 				tenantId: 'tenant-1'
@@ -515,9 +675,12 @@ describe('SkillPackageService', () => {
 				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fgithub'
 			}
 		])
-		const ensureSharedSkillPackageFromTemplateBundle = jest
-			.spyOn(service, 'ensureSharedSkillPackageFromTemplateBundle')
-			.mockResolvedValue({ id: 'index-public-1' } as any)
+		const syncTemplateSkillBundle = jest.spyOn(service, 'syncTemplateSkillBundle').mockResolvedValue({
+			status: 'created',
+			hash: 'bundle-hash',
+			sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api',
+			index: { id: 'index-public-1' }
+		})
 
 		const result = await service.initializeWorkspacePublicRepository()
 
@@ -535,7 +698,7 @@ describe('SkillPackageService', () => {
 				}
 			})
 		)
-		expect(ensureSharedSkillPackageFromTemplateBundle).toHaveBeenNthCalledWith(
+		expect(syncTemplateSkillBundle).toHaveBeenNthCalledWith(
 			1,
 			'workspace-org-default',
 			{
@@ -546,7 +709,7 @@ describe('SkillPackageService', () => {
 				skipAccessCheck: true
 			}
 		)
-		expect(ensureSharedSkillPackageFromTemplateBundle).toHaveBeenNthCalledWith(
+		expect(syncTemplateSkillBundle).toHaveBeenNthCalledWith(
 			2,
 			'workspace-org-default',
 			{
@@ -697,6 +860,134 @@ describe('SkillPackageService', () => {
 				description: 'Bundle skill.'
 			})
 		)
+	})
+
+	it('skips template bundle republish when the stored bundle hash is still current', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-current-'))
+		const bundleRoot = join(tempRoot, 'bundle')
+		const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+		await mkdir(bundleRoot, { recursive: true })
+		await writeFile(
+			join(bundleRoot, 'SKILL.md'),
+			'---\nname: Claude API\ndescription: Bundle skill.\nversion: 1.0.0\ntags:\n  - api\n---\n# Claude API\n',
+			'utf8'
+		)
+
+		skillRepositoryService.findAll.mockResolvedValue({
+			items: [{ id: 'repo-public', provider: 'workspace-public' }]
+		})
+		const validationResult = await service.syncTemplateSkillBundle(
+			'workspace-1',
+			{
+				bundleRootPath: bundleRoot,
+				sharedSkillId
+			},
+			{
+				validateOnly: true
+			}
+		)
+
+		repository.findOne.mockResolvedValue({
+			id: 'skill-existing-1',
+			workspaceId: 'workspace-1',
+			sharedSkillId,
+			packagePath: 'claude-api',
+			metadata: {
+				name: 'Claude API',
+				provenance: {
+					templateBundleHash: validationResult.hash
+				}
+			}
+		})
+		skillIndexService.findAll.mockResolvedValue({
+			items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
+		})
+
+		const result = await service.syncTemplateSkillBundle('workspace-1', {
+			bundleRootPath: bundleRoot,
+			sharedSkillId
+		})
+
+		expect(result).toEqual({
+			status: 'unchanged',
+			hash: validationResult.hash,
+			sharedSkillId,
+			index: {
+				id: 'index-existing-1',
+				repositoryId: 'repo-public',
+				skillId: sharedSkillId
+			}
+		})
+		expect(createSpy).not.toHaveBeenCalled()
+		expect(service.update).not.toHaveBeenCalled()
+		expect(skillIndexService.create).not.toHaveBeenCalled()
+	})
+
+	it('republishes a template bundle when the bundle contents change but the shared skill id stays the same', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-update-'))
+		const workspaceRoot = join(tempRoot, 'workspace')
+		const sharedRoot = join(tempRoot, 'shared')
+		const bundleRoot = join(tempRoot, 'bundle')
+		const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+		await mkdir(bundleRoot, { recursive: true })
+		await writeFile(
+			join(bundleRoot, 'SKILL.md'),
+			'---\nname: Claude API\ndescription: Updated bundle skill.\nversion: 2.0.0\ntags:\n  - api\n  - updated\n---\n# Claude API\n',
+			'utf8'
+		)
+		await writeFile(join(bundleRoot, 'guide.md'), 'updated guide\n', 'utf8')
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
+		;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
+			(_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
+		)
+
+		skillIndexService.findAll.mockResolvedValue({
+			items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
+		})
+		repository.findOne.mockResolvedValue({
+			id: 'skill-existing-1',
+			workspaceId: 'workspace-1',
+			sharedSkillId,
+			packagePath: 'claude-api',
+			metadata: {
+				name: 'Claude API',
+				provenance: {
+					templateBundleHash: 'stale-hash'
+				}
+			}
+		})
+
+		const result = await service.syncTemplateSkillBundle('workspace-1', {
+			bundleRootPath: bundleRoot,
+			sharedSkillId
+		})
+
+		expect(result.status).toBe('updated')
+		expect(result.sharedSkillId).toBe(sharedSkillId)
+		expect(createSpy).not.toHaveBeenCalled()
+		expect(service.update).toHaveBeenCalledWith(
+			'skill-existing-1',
+			expect.objectContaining({
+				workspaceId: 'workspace-1',
+				packagePath: 'claude-api',
+				metadata: expect.objectContaining({
+					version: '2.0.0',
+					provenance: expect.objectContaining({
+						templateBundleHash: expect.any(String)
+					})
+				})
+			})
+		)
+		expect(skillIndexService.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'index-existing-1',
+				repositoryId: 'repo-public',
+				skillId: sharedSkillId,
+				description: 'Updated bundle skill.',
+				version: '2.0.0'
+			})
+		)
+		await expect(readFile(join(sharedRoot, sharedSkillId, 'guide.md'), 'utf8')).resolves.toBe('updated guide\n')
 	})
 
 	it('lists workspace skill files from the installed package root', async () => {

@@ -25,7 +25,7 @@ import { omit } from 'lodash'
 import { v4 as uuid } from 'uuid'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
-import { VolumeClient } from '../../../shared/'
+import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../../../shared/'
 import { KnowledgeDocLoadCommand } from '../load.command'
 import { PluginPermissionsCommand } from '../../../knowledgebase/commands'
 import { TDocChunkMetadata } from '../../types'
@@ -49,6 +49,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 	@Inject(KnowledgeDocumentService)
 	private readonly kbDocumentService: KnowledgeDocumentService
 
+	@Inject(VOLUME_CLIENT)
+	private readonly volumeClient: VolumeClient
+
 	constructor(
 		private readonly knowledgebaseService: KnowledgebaseService,
 		private readonly commandBus: CommandBus,
@@ -59,12 +62,14 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		const { doc, stage } = command.input
 
 		let visionModel: BaseChatModel = null
-		const volumeClient = new VolumeClient({
-								tenantId: RequestContext.currentTenantId(),
-								catalog: 'knowledges',
-								userId: RequestContext.currentUserId(),
-								knowledgeId: doc.knowledgebaseId
-							})
+		const volumeClient = await this.volumeClient
+			.resolve({
+				tenantId: RequestContext.currentTenantId(),
+				catalog: 'knowledges',
+				userId: RequestContext.currentUserId(),
+				knowledgeId: doc.knowledgebaseId
+			})
+			.ensureRoot()
 
 		if (doc.category === KBDocumentCategoryEnum.Sheet) {
 			const parserConfig = doc.parserConfig as DocumentSheetParserConfig
@@ -116,7 +121,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 						, {
 							...(doc.parserConfig?.transformer ?? {}),
 							stage,
-							tempDir: volumeClient.getVolumePath('tmp'),
+							tempDir: volumeClient.path('tmp'),
 							permissions
 						}
 					)
@@ -304,8 +309,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		}
 	}
 
-	async loadSheet(doc: IKnowledgeDocument, volumeClient: VolumeClient): Promise<Record<string, any>[]> {
-		const filePath = volumeClient.getVolumePath(doc.filePath)
+	async loadSheet(doc: IKnowledgeDocument, volumeClient: VolumeHandle): Promise<Record<string, any>[]> {
+		const filePath = volumeClient.path(doc.filePath)
 		if (doc.name.endsWith('.csv')) {
 			return loadCsvWithAutoEncoding(filePath)
 		}

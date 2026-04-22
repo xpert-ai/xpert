@@ -1,6 +1,8 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
 import {
+    AssistantBindingScope,
+    AssistantCode,
     appendMessageContent,
     appendMessagePlainText,
     CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED,
@@ -22,6 +24,7 @@ import {
     STATE_VARIABLE_HUMAN,
     STATE_VARIABLE_SYS,
     TChatConversationStatus,
+    TChatRequest,
     TFollowUpConsumedEvent,
     TChatRequestHuman,
     TSensitiveOperation,
@@ -46,9 +49,9 @@ import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
+import { hydrateHumanInput, hydrateSendRequestHumanInput, normalizeReferences } from '../../../shared/agent/human-input'
 import { collectPendingFollowUpsByClientMessageId } from '../../../shared/agent/persisted-follow-up'
 import { normalizeChatState } from '../../../shared/agent/utils'
-import { normalizeReferences } from '../../../shared/agent'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
@@ -113,32 +116,39 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
     public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
         const request = c.request
+        const hydratedRequest = hydrateSendRequestHumanInput<TChatRequest>(request)
+        const hydratedSendRequest =
+            request.action === 'send' ? (hydratedRequest as Extract<TChatRequest, { action: 'send' }>) : null
+        const hydratedFollowUpRequest =
+            request.action === 'follow_up' ? (hydratedRequest as Extract<TChatRequest, { action: 'follow_up' }>) : null
         const { options } = c
         const { xpertId, taskId, from, fromEndUserId } = options ?? {}
         let { execution } = options ?? {}
         const userId = RequestContext.currentUserId()
-        const sendInput =
-            request.action === 'send'
-                ? request.message?.input
-                : null
+        const sendInput = request.action === 'send' ? request.message?.input : null
+        const hydratedSendInput = hydratedSendRequest?.message?.input ?? null
 
         if (request.action === 'send' && !sendInput) {
             throw new BadRequestException('Invalid send request: message.input is required')
         }
 
-        let input: TChatRequestHuman | null =
-            request.action === 'send'
-                ? normalizeChatState(request.state, sendInput)[STATE_VARIABLE_HUMAN]
-                : request.action === 'resume'
-                  ? normalizeChatState(request.state)[STATE_VARIABLE_HUMAN]
-                  : null
+        const rawSendInput = request.action === 'send' ? sendInput : null
+        const titleInput =
+            typeof rawSendInput?.input === 'string' && rawSendInput.input.trim().length > 0
+                ? rawSendInput.input
+                : undefined
+        let input: TChatRequestHuman | null = hydratedSendRequest
+            ? normalizeChatState(hydratedSendRequest.state, hydratedSendInput)[STATE_VARIABLE_HUMAN]
+            : request.action === 'resume'
+              ? normalizeChatState(request.state)[STATE_VARIABLE_HUMAN]
+              : null
         let state =
             request.action === 'retry'
                 ? null
-                : request.action === 'send'
-                  ? normalizeChatState(request.state, request.message.input)
-                  : request.action === 'follow_up'
-                    ? normalizeChatState(request.state, sendInput)
+                : hydratedSendRequest
+                  ? normalizeChatState(hydratedSendRequest.state, hydratedSendRequest.message.input)
+                  : hydratedFollowUpRequest
+                    ? normalizeChatState(hydratedFollowUpRequest.state, hydratedFollowUpRequest.message.input)
                     : normalizeChatState(request.state)
 
         if (request.action === 'follow_up') {
@@ -152,8 +162,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 throw new BadRequestException('Follow-up is not available while the conversation is interrupted')
             }
 
-            const followUpInput = normalizeChatState(request.state, request.message.input)[STATE_VARIABLE_HUMAN]
-            if (!followUpInput?.input?.trim()) {
+            const followUpInput = request.message.input
+            const hydratedFollowUpInput = normalizeChatState(
+                hydratedFollowUpRequest?.state,
+                hydratedFollowUpRequest?.message.input
+            )[STATE_VARIABLE_HUMAN]
+            const references = normalizeReferences(followUpInput.references)
+
+            if (
+                !hydratedFollowUpInput?.input?.trim() &&
+                references.length === 0 &&
+                (!Array.isArray(followUpInput.files) || followUpInput.files.length === 0)
+            ) {
                 throw new BadRequestException('Follow-up input is required')
             }
 
@@ -163,7 +183,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
                 null
 
-            const references = normalizeReferences(followUpInput.references)
             await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
                     parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
@@ -198,10 +217,20 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const timeStart = Date.now()
 
         const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent', 'knowledgebase'] })
-        const userPreference = await this.assistantBindingService.getUserPreferenceByAssistantId(xpertId)
+        const [userPreference, clawXpertBinding] = await Promise.all([
+            this.assistantBindingService.getUserPreferenceByAssistantId(xpertId),
+            this.assistantBindingService.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+        ])
         const latestXpert = figureOutXpert(xpert, options?.isDraft)
+        const forceWorkspaceSkillBlacklistMode = clawXpertBinding?.assistantId === xpertId
         const abortController = new AbortController()
+        /**
+         * @deprecated use memory middlewares
+         */
         const memory = latestXpert.memory
+        /**
+         * @deprecated use memory middlewares
+         */
         const memoryStore: BaseStore | null = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore | null>(
             new CreateMemoryStoreCommand(
                 RequestContext.currentTenantId(),
@@ -215,7 +244,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
             )
         )
-
+        /**
+         * @deprecated use memory middlewares
+         */
         let memories = null
 
         let conversation: IChatConversation
@@ -223,6 +254,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         let executionId: string
         let checkpointId: string = null
         let queueFollowUpConsumedEvent: TFollowUpConsumedEvent | null = null
+        const requestedSandboxEnvironmentId = resolveRequestSandboxEnvironmentId(request)
         // Resume continues an interrupted AI turn in place by reusing the existing
         // conversation, target AI message, and execution instead of creating a new run.
         if (request.action === 'resume') {
@@ -262,6 +294,25 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     )
                 )
 
+                if (
+                    request.action === 'send' &&
+                    requestedSandboxEnvironmentId &&
+                    conversation.options?.sandboxEnvironmentId !== requestedSandboxEnvironmentId
+                ) {
+                    conversation = await this.commandBus.execute(
+                        new ChatConversationUpsertCommand(
+                            {
+                                id: conversation.id,
+                                options: {
+                                    ...(conversation.options ?? {}),
+                                    sandboxEnvironmentId: requestedSandboxEnvironmentId
+                                }
+                            },
+                            ['messages']
+                        )
+                    )
+                }
+
                 // Cancel summary job
                 if (memory?.enabled && memory.profile?.enabled) {
                     await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
@@ -279,7 +330,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             taskId,
                             xpert,
                             options: {
-                                parameters: input
+                                parameters: input,
+                                ...(requestedSandboxEnvironmentId
+                                    ? {
+                                          sandboxEnvironmentId: requestedSandboxEnvironmentId
+                                      }
+                                    : {})
                             },
                             from,
                             fromEndUserId
@@ -344,6 +400,39 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 state = normalizeChatState(undefined, input)
             }
 
+            if (request.action !== 'retry' && persistedPendingFollowUpGroup?.matched?.id) {
+                const rawMergedInput = persistedPendingFollowUpGroup.mergedHumanInput
+                input = hydrateHumanInput(rawMergedInput)
+                state = normalizeChatState(request.state, input)
+
+                const visibleAt = new Date()
+                const consumedMessages: IChatMessage[] = []
+
+                for (const pendingFollowUp of persistedPendingFollowUpGroup.items) {
+                    consumedMessages.push(
+                        await this.commandBus.execute(
+                            new ChatMessageUpsertCommand({
+                                ...pendingFollowUp,
+                                followUpStatus: 'consumed',
+                                visibleAt
+                            })
+                        )
+                    )
+                }
+
+                userMessage =
+                    consumedMessages[consumedMessages.length - 1] ??
+                    conversation.messages.find((message) => message.id === persistedPendingFollowUpGroup.matched.id)
+
+                queueFollowUpConsumedEvent = createFollowUpConsumedEvent({
+                    mode: 'queue',
+                    messageIds: persistedPendingFollowUpGroup.messageIds,
+                    clientMessageIds: persistedPendingFollowUpGroup.clientMessageIds,
+                    executionId: persistedPendingFollowUpGroup.targetExecutionId,
+                    visibleAt: visibleAt.toISOString()
+                })
+            }
+
             // New execution (Run) in thread
             execution = await this.commandBus.execute(
                 new XpertAgentExecutionUpsertCommand({
@@ -358,51 +447,25 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             executionId = execution.id
 
             if (request.action !== 'retry') {
-                const references = normalizeReferences(input.references)
                 if (persistedPendingFollowUpGroup?.matched?.id) {
-                    input = persistedPendingFollowUpGroup.mergedHumanInput
-                    state = normalizeChatState(request.state, input)
-
-                    const visibleAt = new Date()
-                    const consumedMessages: IChatMessage[] = []
-
-                    for (const pendingFollowUp of persistedPendingFollowUpGroup.items) {
-                        consumedMessages.push(
-                            await this.commandBus.execute(
-                                new ChatMessageUpsertCommand({
-                                    ...pendingFollowUp,
-                                    followUpStatus: 'consumed',
-                                    visibleAt
-                                })
-                            )
-                        )
-                    }
-
-                    userMessage =
-                        consumedMessages[consumedMessages.length - 1] ??
-                        conversation.messages.find((message) => message.id === persistedPendingFollowUpGroup.matched.id)
-
-                    queueFollowUpConsumedEvent = createFollowUpConsumedEvent({
-                        mode: 'queue',
-                        messageIds: persistedPendingFollowUpGroup.messageIds,
-                        clientMessageIds: persistedPendingFollowUpGroup.clientMessageIds,
-                        executionId: persistedPendingFollowUpGroup.targetExecutionId,
-                        visibleAt: visibleAt.toISOString()
-                    })
+                    // Pending follow-ups were already merged into graph state and
+                    // marked consumed before the execution was created.
                 } else {
+                    const persistedInput = rawSendInput ?? input
+                    const references = normalizeReferences(persistedInput?.references)
                     const _humanMessage: Partial<IChatMessage> = {
                         parent: conversation.messages[conversation.messages.length - 1],
                         role: 'human',
-                        content: input.input,
+                        content: persistedInput?.input,
                         conversationId: conversation.id,
                         ...(references.length
                             ? {
                                   references
                               }
                             : {}),
-                        ...(input.files
+                        ...(persistedInput?.files
                             ? {
-                                  attachments: input.files as IStorageFile[]
+                                  attachments: persistedInput.files as IStorageFile[]
                               }
                             : {})
                     }
@@ -423,7 +486,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         }
         state ??= normalizeChatState(undefined, input)
         state = withPreferenceSystemState(state, userPreference)
-        state = withPreferenceSkillState(state, latestXpert?.workspaceId ?? xpert.workspaceId, userPreference?.toolPreferences)
+        state = withPreferenceSkillState(
+            state,
+            latestXpert?.workspaceId ?? xpert.workspaceId,
+            userPreference?.toolPreferences,
+            forceWorkspaceSkillBlacklistMode
+        )
 
         return new Observable<MessageEvent>((subscriber) => {
             // New conversation
@@ -433,7 +501,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     event: ChatMessageEventTypeEnum.ON_CONVERSATION_START,
                     data: {
                         id: conversation.id,
-                        title: conversation.title || shortTitle(input?.input),
+                        title: conversation.title || shortTitle(titleInput || input?.input),
                         status: conversation.status,
                         createdAt: conversation.createdAt,
                         updatedAt: conversation.updatedAt
@@ -487,12 +555,19 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
                 if (!agentObservable) {
                     // No memory reply then create agents graph
+                    const { projectId: sandboxProjectId, sandboxEnvironmentId } = resolveAgentSandboxScope(
+                        request,
+                        conversation,
+                        options
+                    )
                     agentObservable = await this.commandBus.execute<
                         XpertAgentChatCommand,
                         Promise<Observable<MessageEvent>>
                     >(
                         new XpertAgentChatCommand(state, xpert.agent.key, xpert, {
                             ...(options ?? {}),
+                            projectId: sandboxProjectId,
+                            sandboxEnvironmentId,
                             store: memoryStore,
                             conversationId: conversation.id,
                             isDraft: options?.isDraft,
@@ -518,10 +593,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 concat(
                     agentObservable.pipe(
                         concatMap(async (event) => {
-                            if (
-                                pendingSteerAssistantParentId &&
-                                shouldStartAssistantMessageAfterSteer(event)
-                            ) {
+                            if (pendingSteerAssistantParentId && shouldStartAssistantMessageAfterSteer(event)) {
                                 aiMessage = await this.commandBus.execute(
                                     new ChatMessageUpsertCommand({
                                         parent: { id: pendingSteerAssistantParentId } as IChatMessage,
@@ -546,8 +618,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
                                 const { messageContext } = messageAppendContextTracker.resolve({
                                     incoming: event.data.data,
-                                    fallbackSource:
-                                        typeof event.data.data === 'string' ? 'memory_reply' : undefined,
+                                    fallbackSource: typeof event.data.data === 'string' ? 'memory_reply' : undefined,
                                     fallbackStreamId: aiMessage?.id ?? executionId
                                 })
 
@@ -589,7 +660,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                             } as MessageEvent)
 
                                             pendingSteerAssistantParentId =
-                                                event.data.data.messageIds[event.data.data.messageIds.length - 1] ?? null
+                                                event.data.data.messageIds[event.data.data.messageIds.length - 1] ??
+                                                null
                                         }
                                         break
                                     }
@@ -662,7 +734,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     new ChatConversationUpsertCommand({
                                         id: conversation.id,
                                         status: convStatus,
-                                        title: conversation.title || _execution?.title || shortTitle(input?.input),
+                                        title:
+                                            conversation.title ||
+                                            _execution?.title ||
+                                            shortTitle(titleInput || input?.input),
                                         operation,
                                         error: _execution?.error,
                                         options: conversation.options
@@ -730,7 +805,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                         new ChatConversationUpsertCommand({
                                             id: conversation.id,
                                             status: 'idle',
-                                            title: conversation.title || _execution?.title || shortTitle(input?.input),
+                                            title:
+                                                conversation.title ||
+                                                _execution?.title ||
+                                                shortTitle(titleInput || input?.input),
                                             options: conversation.options
                                         })
                                     )
@@ -848,14 +926,19 @@ function withPreferenceSystemState(
 function withPreferenceSkillState(
     state: Record<string, any>,
     workspaceId?: string | null,
-    toolPreferences?: IAssistantBindingToolPreferences | null
+    toolPreferences?: IAssistantBindingToolPreferences | null,
+    forceWorkspaceSkillBlacklistMode = false
 ) {
     const normalizedWorkspaceId = workspaceId?.trim() || undefined
 
     return {
         ...state,
         selectedSkillWorkspaceId: normalizedWorkspaceId,
-        disabledSkillIds: normalizedWorkspaceId ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences) : undefined
+        disabledSkillIds: normalizedWorkspaceId
+            ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences)
+            : undefined,
+        skillSelectionMode:
+            normalizedWorkspaceId && forceWorkspaceSkillBlacklistMode ? 'workspace_blacklist' : undefined
     }
 }
 
@@ -926,4 +1009,34 @@ function findLastAiMessage(messages?: IChatMessage[] | null) {
 
     const message = [...messages].reverse().find((item) => item?.role === 'ai')
     return message ?? null
+}
+
+function resolveRequestProjectId(request: TChatRequest): string | undefined {
+    return 'projectId' in request ? request.projectId?.trim() || undefined : undefined
+}
+
+function resolveRequestSandboxEnvironmentId(request: TChatRequest): string | undefined {
+    return 'sandboxEnvironmentId' in request ? request.sandboxEnvironmentId?.trim() || undefined : undefined
+}
+
+function resolveAgentSandboxScope(
+    request: TChatRequest,
+    conversation: IChatConversation,
+    options?: XpertChatCommand['options']
+) {
+    const sandboxEnvironmentId =
+        options?.sandboxEnvironmentId?.trim() ||
+        resolveRequestSandboxEnvironmentId(request) ||
+        conversation.options?.sandboxEnvironmentId?.trim() ||
+        undefined
+
+    return {
+        sandboxEnvironmentId,
+        projectId: sandboxEnvironmentId
+            ? undefined
+            : options?.projectId?.trim() ||
+              resolveRequestProjectId(request) ||
+              conversation.projectId?.trim() ||
+              undefined
+    }
 }

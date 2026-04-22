@@ -1,8 +1,8 @@
 team:
-  name: My Claw Xpert
+  name: Claw Xpert
   type: agent
   title: Claw Xpert
-  description: 一只专家级龙虾。
+  description: 一只专家级龙虾智能体。
   avatar:
     emoji:
       id: lobster
@@ -15,52 +15,115 @@ team:
     agent:
       Agent_xtcQNJthR8:
         position:
-          x: 428
+          x: 108
           y: 12
     workflow:
-      Trigger_v3nDiDgTLf:
+      Middleware_jz1jzYUbrN:
+        position:
+          x: 2042
+          y: 342
+      Middleware_6uqPVyA1jb:
+        position:
+          x: 882
+          y: 292
+      Middleware_2hkYOSGYiL:
+        position:
+          x: 2332
+          y: 342
+      Middleware_NUThTeiDKi:
         position:
           x: 12
-          y: 12
-      Middleware_iYD7nhEDzL:
+          y: 342
+      Middleware_5XUDxT1cbv:
         position:
-          x: 740
-          y: 260
-      Middleware_H8ipCuLsIi:
+          x: 592
+          y: 342
+      Middleware_NkeAmzI1QN:
         position:
-          x: 160
-          y: 320
-      Middleware_S2qEeR8Fta:
+          x: 1462
+          y: 342
+      Middleware_UMpWOktjHh:
         position:
-          x: 200
-          y: 160
-      Middleware_w9bCaRR7bT:
+          x: 1752
+          y: 342
+      Middleware_7nUo7dO2s8:
         position:
-          x: 500
-          y: 340
+          x: 1172
+          y: 342
+      Middleware_wI7CU0hKO0:
+        position:
+          x: 302
+          y: 342
+      Middleware_257ePOgmpX:
+        position:
+          x: 882
+          y: 342
+      Middleware_1tcPT6q0VR:
+        position:
+          x: 108
+          y: 232
+      Middleware_zOVW7Pzo8N:
+        position:
+          x: 108
+          y: 352
+      Middleware_mkPBzOxg9l:
+        position:
+          x: 108
+          y: 472
+      Middleware_Og6WsPgSJx:
+        position:
+          x: 108
+          y: 592
+      Middleware_gbVCRaDNrL:
+        position:
+          x: 108
+          y: 712
+      Middleware_Rwf5Mlc5Vp:
+        position:
+          x: 108
+          y: 832
+      Middleware_UrHWMDuqBe:
+        position:
+          x: 108
+          y: 952
+      Middleware_gY2jduTeWL:
+        position:
+          x: 108
+          y: 1072
+      Middleware_h23z8r4aNO:
+        position:
+          x: 108
+          y: 1192
+      Middleware_jNrKMo464z:
+        position:
+          x: 108
+          y: 1312
+      Middleware_W2UbxcpcDy:
+        position:
+          x: 108
+          y: 1432
+      Middleware_LrWwN2N1Kc:
+        position:
+          x: 108
+          y: 1552
     position:
-      x: -18
-      y: 164
-    scale: 1
-  agentConfig: null
+      x: 23
+      y: 266
+    scale: 0.5325390624999995
+  agentConfig:
+    recursionLimit: 1000
   memory: null
   summarize: null
-  features: null
+  features:
+    sandbox:
+      enabled: true
+      provider: local-shell-sandbox
   version: "1"
   agent:
     key: Agent_xtcQNJthR8
   copilotModel:
-    copilotId: 5cd5b5e1-40ff-4e46-a16b-306f002140ee
-    referencedId: null
     modelType: llm
-    model: doubao-seed-2-0-pro-260215
-    options:
-      context_size: 256000
-      temperature: 0.2
-      maxRetries: 6
-      top_p: 1
-      max_tokens: 64
-      thinking: enabled
+    model: deepseek-chat
   knowledgebases: []
   toolsets: []
   tags: []
@@ -68,96 +131,231 @@ nodes:
   - type: agent
     key: Agent_xtcQNJthR8
     position:
-      x: 428
+      x: 113.53846153846155
       y: 12
     entity:
       key: Agent_xtcQNJthR8
       name: null
-      title: null
+      title: Primary Agent
       description: null
       avatar: null
-      prompt: null
+      prompt: >-
+        When available, use the following runtime preference context to guide
+        how you respond.
+
+
+        Assistant soul:
+
+        {{sys.soul}}
+
+
+        User profile:
+
+        {{sys.profile}}
+
+
+        Treat the assistant soul as behavior guidance and use the user profile
+        to personalize responses when relevant.
       promptTemplates: null
       parameters: null
       outputVariables: null
       options:
         vision:
           enabled: true
+        middlewares:
+          order:
+            - Middleware_NUThTeiDKi
+            - Middleware_jz1jzYUbrN
+            - Middleware_2hkYOSGYiL
+            - Middleware_NkeAmzI1QN
+            - Middleware_UMpWOktjHh
+            - Middleware_wI7CU0hKO0
+            - Middleware_5XUDxT1cbv
+            - Middleware_7nUo7dO2s8
+            - Middleware_257ePOgmpX
       copilotModel: null
       leaderKey: null
       collaboratorNames: []
       toolsetIds: []
       knowledgebaseIds: []
   - type: workflow
-    key: Middleware_iYD7nhEDzL
+    key: Middleware_1tcPT6q0VR
     position:
-      x: 740
-      y: 260
+      x: 2912
+      y: 372
     entity:
+      id: Middleware_1tcPT6q0VR
       type: middleware
-      key: Middleware_iYD7nhEDzL
+      key: Middleware_1tcPT6q0VR
       title: ModelRetryMiddleware
       provider: ModelRetryMiddleware
-    hash: 1294a215e6e143d537ff8877965d592f054b0198393f5bb4e682ff4049248108
   - type: workflow
-    key: Middleware_H8ipCuLsIi
+    key: Middleware_zOVW7Pzo8N
     position:
-      x: 160
-      y: 320
+      x: 3202
+      y: 372
     entity:
+      id: Middleware_zOVW7Pzo8N
       type: middleware
-      key: Middleware_H8ipCuLsIi
+      key: Middleware_zOVW7Pzo8N
+      title: scheduler
+      provider: scheduler
+  - type: workflow
+    key: Middleware_mkPBzOxg9l
+    position:
+      x: 12
+      y: 372
+    entity:
+      id: Middleware_mkPBzOxg9l
+      type: middleware
+      key: Middleware_mkPBzOxg9l
+      title: FileMemorySystemMiddleware
+      provider: FileMemorySystemMiddleware
+  - type: workflow
+    key: Middleware_Og6WsPgSJx
+    position:
+      x: 1172
+      y: 372
+    entity:
+      id: Middleware_Og6WsPgSJx
+      type: middleware
+      key: Middleware_Og6WsPgSJx
+      title: ContextCompressionMiddleware
+      provider: ContextCompressionMiddleware
+  - type: workflow
+    key: Middleware_gbVCRaDNrL
+    position:
+      x: 2332
+      y: 372
+    entity:
+      id: Middleware_gbVCRaDNrL
+      type: middleware
+      key: Middleware_gbVCRaDNrL
+      title: SandboxShell
+      provider: SandboxShell
+  - type: workflow
+    key: Middleware_Rwf5Mlc5Vp
+    position:
+      x: 2622
+      y: 372
+    entity:
+      id: Middleware_Rwf5Mlc5Vp
+      type: middleware
+      key: Middleware_Rwf5Mlc5Vp
+      title: SandboxFile
+      provider: SandboxFile
+  - type: workflow
+    key: Middleware_UrHWMDuqBe
+    position:
+      x: 2042
+      y: 372
+    entity:
+      id: Middleware_UrHWMDuqBe
+      type: middleware
+      key: Middleware_UrHWMDuqBe
       title: WebTools
       provider: WebTools
-    hash: b33e889004d72a188c68bfe47ffb0bf8dce29ef8c31a719a5f2663a7de6f4056
   - type: workflow
-    key: Middleware_S2qEeR8Fta
+    key: Middleware_gY2jduTeWL
     position:
-      x: 200
-      y: 160
+      x: 592
+      y: 372
     entity:
+      id: Middleware_gY2jduTeWL
       type: middleware
-      key: Middleware_S2qEeR8Fta
-      title: SummarizationMiddleware
-      provider: SummarizationMiddleware
-      options:
-        model:
-          model: doubao-seed-2-0-pro-260215
-          copilotId: 5cd5b5e1-40ff-4e46-a16b-306f002140ee
-          modelType: llm
-          options:
-            context_size: 256000
-            temperature: 0.2
-            maxRetries: 6
-            top_p: 1
-            max_tokens: 64
-            thinking: enabled
-    hash: 6ec4207fdf312cb739e39fb7611f7bc5acfe5e4a5976623fb44597947f306c84
-  - type: workflow
-    key: Middleware_w9bCaRR7bT
-    position:
-      x: 500
-      y: 340
-    entity:
-      type: middleware
-      key: Middleware_w9bCaRR7bT
+      key: Middleware_gY2jduTeWL
       title: todoListMiddleware
       provider: todoListMiddleware
-    hash: 694360ba269cb81b7cb36af55f1b71ea013e93811bbe3a0e72291a21937dded2
+  - type: workflow
+    key: Middleware_h23z8r4aNO
+    position:
+      x: 1462
+      y: 372
+    entity:
+      id: Middleware_h23z8r4aNO
+      type: middleware
+      key: Middleware_h23z8r4aNO
+      title: LoopGuardMiddleware
+      provider: LoopGuardMiddleware
+  - type: workflow
+    key: Middleware_jNrKMo464z
+    position:
+      x: 882
+      y: 372
+    entity:
+      id: Middleware_jNrKMo464z
+      type: middleware
+      key: Middleware_jNrKMo464z
+      title: ViewImageMiddleware
+      provider: ViewImageMiddleware
+  - type: workflow
+    key: Middleware_W2UbxcpcDy
+    position:
+      x: 302
+      y: 372
+    entity:
+      id: Middleware_W2UbxcpcDy
+      type: middleware
+      key: Middleware_W2UbxcpcDy
+      title: DanglingToolCallMiddleware
+      provider: DanglingToolCallMiddleware
+  - type: workflow
+    key: Middleware_LrWwN2N1Kc
+    position:
+      x: 1752
+      y: 372
+    entity:
+      id: Middleware_LrWwN2N1Kc
+      type: middleware
+      key: Middleware_LrWwN2N1Kc
+      title: skillsMiddleware
+      provider: skillsMiddleware
 connections:
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_iYD7nhEDzL
+    key: Agent_xtcQNJthR8/Middleware_1tcPT6q0VR
     from: Agent_xtcQNJthR8
-    to: Middleware_iYD7nhEDzL
+    to: Middleware_1tcPT6q0VR
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_H8ipCuLsIi
+    key: Agent_xtcQNJthR8/Middleware_zOVW7Pzo8N
     from: Agent_xtcQNJthR8
-    to: Middleware_H8ipCuLsIi
+    to: Middleware_zOVW7Pzo8N
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_S2qEeR8Fta
+    key: Agent_xtcQNJthR8/Middleware_mkPBzOxg9l
     from: Agent_xtcQNJthR8
-    to: Middleware_S2qEeR8Fta
+    to: Middleware_mkPBzOxg9l
   - type: workflow
-    key: Agent_xtcQNJthR8/Middleware_w9bCaRR7bT
+    key: Agent_xtcQNJthR8/Middleware_Og6WsPgSJx
     from: Agent_xtcQNJthR8
-    to: Middleware_w9bCaRR7bT
+    to: Middleware_Og6WsPgSJx
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_gbVCRaDNrL
+    from: Agent_xtcQNJthR8
+    to: Middleware_gbVCRaDNrL
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_Rwf5Mlc5Vp
+    from: Agent_xtcQNJthR8
+    to: Middleware_Rwf5Mlc5Vp
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_UrHWMDuqBe
+    from: Agent_xtcQNJthR8
+    to: Middleware_UrHWMDuqBe
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_gY2jduTeWL
+    from: Agent_xtcQNJthR8
+    to: Middleware_gY2jduTeWL
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_h23z8r4aNO
+    from: Agent_xtcQNJthR8
+    to: Middleware_h23z8r4aNO
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_jNrKMo464z
+    from: Agent_xtcQNJthR8
+    to: Middleware_jNrKMo464z
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_W2UbxcpcDy
+    from: Agent_xtcQNJthR8
+    to: Middleware_W2UbxcpcDy
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_LrWwN2N1Kc
+    from: Agent_xtcQNJthR8
+    to: Middleware_LrWwN2N1Kc

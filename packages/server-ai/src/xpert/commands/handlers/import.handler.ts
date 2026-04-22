@@ -16,8 +16,10 @@ import { t } from 'i18next'
 import { groupBy, omit } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { FindCopilotModelsQuery } from '../../../copilot/queries'
+import { XpertAgentService } from '../../../xpert-agent/xpert-agent.service'
 import { XpertNameInvalidException } from '../../types'
 import {
+    buildMiddlewareModelTargetCatalog,
     syncDraftLlmModelConfigsWithTeamSelection,
     syncPrimaryAgentModelWithTeamSelection
 } from '../../copilot-model-sync.util'
@@ -48,7 +50,8 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
     constructor(
         private readonly xpertService: XpertService,
         private readonly i18n: I18nService,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly xpertAgentService: XpertAgentService
     ) {}
 
     public async execute(command: XpertImportCommand): Promise<IXpert> {
@@ -73,6 +76,9 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         }
 
         const availableLlmCopilots = await this.queryBus.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
+        const middlewareModelTargetCatalog = buildMiddlewareModelTargetCatalog(
+            this.xpertAgentService.getMiddlewareStrategies()
+        )
         const primaryAgent = getLatestPrimaryAgent(draft, team.agent.key)
 
         syncPrimaryAgentModelWithTeamSelection(
@@ -82,7 +88,7 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             },
             availableLlmCopilots
         )
-        syncDraftLlmModelConfigsWithTeamSelection(draft, availableLlmCopilots)
+        syncDraftLlmModelConfigsWithTeamSelection(draft, availableLlmCopilots, middlewareModelTargetCatalog)
 
         const xpert = await this.xpertService.create({
             ...omit(team, 'draft', 'agent', 'agents', 'toolsets', 'knowledgebases', ...SYSTEM_FIELDS),

@@ -84,6 +84,8 @@ describe('XpertAgentInvokeHandler', () => {
     let i18nService: { t: jest.Mock }
     let executionCancelService: { register: jest.Mock; unregister: jest.Mock }
     let chatMessageRepository: { find: jest.Mock; save: jest.Mock }
+    let volumeClient: { resolve: jest.Mock }
+    let workspacePathMapperFactory: { forProvider: jest.Mock }
     let handler: XpertAgentInvokeHandler
 
     beforeEach(() => {
@@ -109,6 +111,24 @@ describe('XpertAgentInvokeHandler', () => {
             register: jest.fn(),
             unregister: jest.fn()
         }
+        const volumeHandle = {
+            ensureRoot: jest.fn(),
+            publicBaseUrl: '/xpert-workspace',
+            serverRoot: '/tmp/xpert-workspace'
+        }
+        volumeHandle.ensureRoot.mockResolvedValue(volumeHandle)
+        volumeClient = {
+            resolve: jest.fn().mockReturnValue(volumeHandle)
+        }
+        workspacePathMapperFactory = {
+            forProvider: jest.fn().mockReturnValue({
+                mapVolumeToWorkspace: jest.fn().mockReturnValue({
+                    volumeRoot: '/tmp/xpert-workspace',
+                    workspaceRoot: '/tmp/xpert-workspace',
+                    workspacePath: '/tmp/xpert-workspace'
+                })
+            })
+        }
         chatMessageRepository = {
             find: jest.fn().mockResolvedValue([]),
             save: jest.fn().mockResolvedValue(undefined)
@@ -121,9 +141,10 @@ describe('XpertAgentInvokeHandler', () => {
             envService as any,
             i18nService as unknown as I18nService,
             executionCancelService as unknown as ExecutionCancelService,
+            volumeClient as any,
+            workspacePathMapperFactory as any,
             chatMessageRepository as any
         )
-
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
@@ -133,10 +154,6 @@ describe('XpertAgentInvokeHandler', () => {
             timeZone: 'Asia/Shanghai',
             preferredLanguage: 'en-US'
         } as any)
-        jest.spyOn(VolumeClient, 'getSharedWorkspacePath').mockResolvedValue('/tmp/project-workspace')
-        jest.spyOn(VolumeClient, 'getSharedWorkspaceUrl').mockReturnValue('/project-workspace')
-        jest.spyOn(VolumeClient, 'getXpertWorkspacePath').mockResolvedValue('/tmp/xpert-workspace')
-        jest.spyOn(VolumeClient, 'getXpertWorkspaceUrl').mockReturnValue('/xpert-workspace')
     })
 
     afterEach(() => {
@@ -204,8 +221,13 @@ describe('XpertAgentInvokeHandler', () => {
         expect(graph.streamEvents.mock.calls[0][1]).toMatchObject({
             recursionLimit: 1000
         })
-        expect(VolumeClient.getXpertWorkspacePath).toHaveBeenCalledWith('tenant-1', 'xpert-1', 'user-1')
-        expect(VolumeClient.getXpertWorkspaceUrl).toHaveBeenCalledWith('xpert-1', 'user-1')
+        expect(volumeClient.resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            catalog: 'xperts',
+            xpertId: 'xpert-1',
+            userId: 'user-1',
+            isolateByUser: true
+        })
     })
 
     it('merges soul and profile into resume command updates', async () => {
@@ -421,6 +443,79 @@ describe('XpertAgentInvokeHandler', () => {
                     workFor: {
                         type: 'user',
                         id: 'user-1'
+                    }
+                })
+            })
+        )
+    })
+
+    it('uses the mapped environment workspace when sandboxEnvironmentId is provided', async () => {
+        const graph = createGraph()
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof SandboxAcquireBackendCommand) {
+                return {
+                    provider: 'local-shell-sandbox',
+                    workingDirectory: '/tmp/xpert-workspace'
+                }
+            }
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Use the shared environment'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {
+                        sandbox: {
+                            enabled: true,
+                            provider: 'local-shell-sandbox'
+                        }
+                    }
+                } as any,
+                {
+                    isDraft: true,
+                    sandboxEnvironmentId: 'sandbox-env-1',
+                    thread_id: 'thread-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(volumeClient.resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            catalog: 'environment',
+            environmentId: 'sandbox-env-1',
+            userId: 'user-1'
+        })
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    provider: 'local-shell-sandbox',
+                    tenantId: 'tenant-1',
+                    workingDirectory: '/tmp/xpert-workspace',
+                    workFor: {
+                        type: 'environment',
+                        id: 'sandbox-env-1'
                     }
                 })
             })

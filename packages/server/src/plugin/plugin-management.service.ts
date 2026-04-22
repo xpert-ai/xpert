@@ -147,6 +147,7 @@ export class PluginManagementService {
 		const tenantId = RequestContext.currentTenantId()
 		const packageName = body.pluginName
 		const level = PLUGIN_LEVEL.ORGANIZATION
+		let shouldPersistFailureState = false
 
 		try {
 			await assertPluginSdkInstallCandidate({
@@ -162,6 +163,7 @@ export class PluginManagementService {
 			const runtimePluginName =
 				source === 'code' ? this.createCodeRuntimePluginName(packageName) : packageNameWithVersion
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
+			shouldPersistFailureState = true
 
 			const { modules, errors } = await registerPluginsAsync({
 				module: this.moduleRef,
@@ -189,8 +191,10 @@ export class PluginManagementService {
 				source,
 				workspacePath
 			})
-			const resolvedLevel = resolvePluginLevel(plugin.meta?.level)
-			if (resolvedLevel === PLUGIN_LEVEL.SYSTEM && !allowSystemPlugins) {
+			const declaredSystemLevel = plugin.meta?.level === PLUGIN_LEVEL.SYSTEM
+			const resolvedLevel = declaredSystemLevel ? PLUGIN_LEVEL.SYSTEM : resolvePluginLevel(plugin.meta?.level)
+			if (declaredSystemLevel && !allowSystemPlugins) {
+				shouldPersistFailureState = false
 				throw new BadRequestException(
 					t('server:Error.PluginSystemLevelInstallForbidden', { name: plugin.meta?.name ?? packageName })
 				)
@@ -305,33 +309,35 @@ export class PluginManagementService {
 				)
 			}
 
-			const failedPluginName = normalizePluginName(packageName)
-			try {
-				await this.pluginInstanceService.upsert({
-					tenantId,
+			if (shouldPersistFailureState) {
+				const failedPluginName = normalizePluginName(packageName)
+				try {
+					await this.pluginInstanceService.upsert({
+						tenantId,
+						organizationId,
+						pluginName: failedPluginName,
+						packageName: failedPluginName,
+						version: body.version,
+						source,
+						sourceConfig,
+						level,
+						config: body.config ?? {},
+						configurationStatus: null,
+						configurationError: null
+					})
+				} catch (persistError) {
+					this.logger.error(
+						`Failed to persist plugin installation failure state for ${body.pluginName}`,
+						persistError
+					)
+				}
+				upsertPluginLoadFailure({
 					organizationId,
 					pluginName: failedPluginName,
 					packageName: failedPluginName,
-					version: body.version,
-					source,
-					sourceConfig,
-					level,
-					config: body.config ?? {},
-					configurationStatus: null,
-					configurationError: null
+					error: errorMessage
 				})
-			} catch (persistError) {
-				this.logger.error(
-					`Failed to persist plugin installation failure state for ${body.pluginName}`,
-					persistError
-				)
 			}
-			upsertPluginLoadFailure({
-				organizationId,
-				pluginName: failedPluginName,
-				packageName: failedPluginName,
-				error: errorMessage
-			})
 
 			throw new BadRequestException(
 				t('server:Error.PluginInstallFailed', { pluginName: body.pluginName, errorMessage })

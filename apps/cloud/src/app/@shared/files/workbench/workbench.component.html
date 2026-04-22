@@ -45,6 +45,7 @@
 
 <pac-file-viewer
   class="lg:block min-h-[320px]"
+  [file]="activeFile()"
   [class.hidden]="mobilePane() !== 'file'"
   [filePath]="activeFilePath()"
   [content]="draftContent()"
@@ -56,6 +57,7 @@
   [dirty]="dirty()"
   [downloadable]="canDownloadActiveFile()"
   [referenceable]="referenceable()"
+  [previewUrl]="activePreviewUrl()"
   [mode]="panelMode()"
   [readOnlyHint]="
     'PAC.Files.ReadOnlyFileHint'

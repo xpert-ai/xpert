@@ -95,24 +95,7 @@ export class ServerAIBootstrapProcessor {
 	@Process(AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB)
 	async handleTenantSkillRepositoryBootstrap(job: Job<TenantCreatedEvent>) {
 		try {
-			const result = await this.bootstrapService.bootstrapTenantSkillRepositories(job.data)
-			await Promise.all(
-				(result.repositoryIds ?? []).map((repositoryId) =>
-					this.bootstrapQueue.add(
-						AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
-						{
-							tenantId: job.data.tenantId,
-							repositoryId
-						},
-						{
-							jobId: `skill-repository-sync:tenant:${job.data.tenantId}:${repositoryId}`,
-							attempts: 3,
-							backoff: 10_000,
-							removeOnComplete: true
-						}
-					)
-				)
-			)
+			await this.bootstrapService.bootstrapTenantSkillRepositories(job.data)
 		} catch (error) {
 			this.logger.error(
 				`Failed tenant skill repository bootstrap for '${job.data.tenantId}': ${error instanceof Error ? error.stack : error}`
@@ -125,7 +108,7 @@ export class ServerAIBootstrapProcessor {
 	async handleUserOrganizationBootstrap(job: Job<UserOrganizationCreatedEvent>) {
 		try {
 			const result = await this.bootstrapService.bootstrapUserInOrganization(job.data)
-			if (result.workspaceId) {
+			if (result.workspaceId && result.createdNewUserDefaultWorkspace) {
 				await this.bootstrapQueue.add(
 					AI_USER_DEFAULT_WORKSPACE_SKILLS_BOOTSTRAP_JOB,
 					{

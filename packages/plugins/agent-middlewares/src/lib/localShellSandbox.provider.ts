@@ -1,5 +1,7 @@
 import cp from 'node:child_process'
 import fs from 'node:fs'
+import http from 'node:http'
+import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { Injectable } from '@nestjs/common'
@@ -12,14 +14,29 @@ import {
   FileDownloadResponse,
   FileUploadResponse,
   ISandboxProvider,
+  SandboxManagedServiceAdapter,
+  SandboxManagedServiceListOptions,
+  SandboxManagedServiceListResult,
+  SandboxManagedServiceLogsOptions,
+  SandboxManagedServiceRestartOptions,
+  SandboxManagedServiceStartOptions,
+  SandboxManagedServiceStartResult,
+  SandboxManagedServiceStateChange,
+  SandboxManagedServiceStopOptions,
   resolveSandboxExecutionOptions,
+  SandboxServiceProxyAdapter,
+  SandboxServiceProxyRequest,
   SandboxExecutionOptions,
   SandboxProviderCreateOptions,
   SandboxProviderStrategy
 } from '@xpert-ai/plugin-sdk'
 import type { SandboxTerminalAdapter, SandboxTerminalOpenOptions, SandboxTerminalSession } from '@xpert-ai/plugin-sdk'
-import type { TSandboxProviderMeta } from '@xpert-ai/contracts'
-import { spawn as spawnPty } from 'node-pty'
+import type {
+  ISandboxManagedService,
+  TSandboxManagedServiceEnvEntry,
+  TSandboxManagedServiceLogs,
+  TSandboxProviderMeta
+} from '@xpert-ai/contracts'
 import type { IPty } from 'node-pty'
 
 const LOCAL_SHELL_SANDBOX_PROVIDER = 'local-shell-sandbox'
@@ -118,6 +135,59 @@ type ShellLaunchConfig = {
   file: string
 }
 
+type NodePtyModule = Pick<typeof import('node-pty'), 'spawn'>
+
+type ManagedServiceLogPaths = {
+  stderrPath: string
+  stdoutPath: string
+}
+
+type ManagedServiceMetadataCandidate = {
+  logs?: {
+    stderrPath?: unknown
+    stdoutPath?: unknown
+  }
+}
+
+type LocalManagedServiceRecord = {
+  actualPort?: number | null
+  child: cp.ChildProcess
+  cwd: string
+  exitPromise: Promise<SandboxManagedServiceStateChange>
+  logPaths: ManagedServiceLogPaths
+  requestedPort?: number | null
+  resolveExit: (change: SandboxManagedServiceStateChange) => void
+  status: SandboxManagedServiceStateChange
+}
+
+let cachedNodePtyModule: NodePtyModule | null = null
+
+function buildNodePtyLoadError(error: unknown): Error {
+  const detail = error instanceof Error ? error.message : String(error)
+  return new Error(
+    `Failed to load terminal support dependency "node-pty". Install or rebuild it for ${process.platform}-${process.arch}. ` +
+      `In Docker images, ensure python3, make, and g++ are available during pnpm install. Original error: ${detail}`
+  )
+}
+
+function getNodePtyModule(): NodePtyModule {
+  if (cachedNodePtyModule) {
+    return cachedNodePtyModule
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const module = require('node-pty') as NodePtyModule
+    if (typeof module.spawn !== 'function') {
+      throw new Error('node-pty did not export a spawn function.')
+    }
+    cachedNodePtyModule = module
+    return module
+  } catch (error) {
+    throw buildNodePtyLoadError(error)
+  }
+}
+
 function tryEnsureNodePtySpawnHelperExecutable(): void {
   try {
     const packageRoot = path.dirname(require.resolve('node-pty/package.json'))
@@ -143,6 +213,142 @@ function tryEnsureNodePtySpawnHelperExecutable(): void {
 
 function clampTerminalSize(value: number | undefined, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.max(1, Math.trunc(value)) : fallback
+}
+
+function isObjectLike(value: unknown): value is object {
+  return typeof value === 'object' && value !== null
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function normalizeServiceEnv(entries: TSandboxManagedServiceEnvEntry[] | undefined): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {}
+
+  for (const entry of entries ?? []) {
+    if (!entry.name.trim()) {
+      continue
+    }
+
+    env[entry.name] = entry.value
+  }
+
+  return env
+}
+
+function isProcessMissingError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ESRCH'
+}
+
+function killProcessGroup(processId: number | undefined, signal: NodeJS.Signals): void {
+  if (!processId) {
+    return
+  }
+
+  if (process.platform === 'win32') {
+    process.kill(processId, signal)
+    return
+  }
+
+  process.kill(-processId, signal)
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+function resolveServiceLogPaths(
+  metadata: ISandboxManagedService['metadata'],
+  cwd: string,
+  serviceId: string
+): ManagedServiceLogPaths {
+  if (isObjectLike(metadata)) {
+    const candidate = metadata as ManagedServiceMetadataCandidate
+    if (isObjectLike(candidate.logs)) {
+      const { stdoutPath, stderrPath } = candidate.logs
+      if (isNonEmptyString(stdoutPath) && isNonEmptyString(stderrPath)) {
+        return { stdoutPath, stderrPath }
+      }
+    }
+  }
+
+  const basePath = path.join(cwd, '.xpert', 'managed-services', serviceId)
+  return {
+    stdoutPath: path.join(basePath, 'stdout.log'),
+    stderrPath: path.join(basePath, 'stderr.log')
+  }
+}
+
+function ensureServiceLogDirectory(logPaths: ManagedServiceLogPaths): void {
+  fs.mkdirSync(path.dirname(logPaths.stdoutPath), { recursive: true })
+  fs.mkdirSync(path.dirname(logPaths.stderrPath), { recursive: true })
+}
+
+function readLogTail(filePath: string, maxLines: number): string {
+  if (!fs.existsSync(filePath)) {
+    return ''
+  }
+
+  const content = fs.readFileSync(filePath, 'utf8')
+  const lines = content.split(/\r?\n/)
+  return lines.slice(Math.max(0, lines.length - maxLines)).join('\n').trim()
+}
+
+function doesServiceLogMatch(logPaths: ManagedServiceLogPaths, readyPattern: RegExp): boolean {
+  return readyPattern.test(`${readLogTail(logPaths.stdoutPath, 200)}\n${readLogTail(logPaths.stderrPath, 200)}`)
+}
+
+function waitForPort(port: number, timeoutMs: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const socket = net.connect({ host: '127.0.0.1', port })
+    const timer = setTimeout(() => {
+      socket.destroy()
+      reject(new Error(`Timed out while waiting for port ${port}`))
+    }, timeoutMs)
+
+    socket.once('connect', () => {
+      clearTimeout(timer)
+      socket.end()
+      resolve()
+    })
+    socket.once('error', (error) => {
+      clearTimeout(timer)
+      socket.destroy()
+      reject(error)
+    })
+  })
+}
+
+function ensurePortIsAvailable(port: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+
+    server.once('error', (error) => {
+      server.close()
+      if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
+        reject(new Error(`Port ${port} is already in use.`))
+        return
+      }
+      reject(error)
+    })
+
+    server.listen(port, '127.0.0.1', () => {
+      server.close((error) => {
+        if (error) {
+          reject(error)
+          return
+        }
+        resolve()
+      })
+    })
+  })
 }
 
 function resolveFallbackShell(): ShellLaunchConfig {
@@ -204,8 +410,12 @@ class LocalShellTerminalSession implements SandboxTerminalSession {
  * - uploadFiles(): Write files to the sandbox
  * - downloadFiles(): Read files from the sandbox
  */
-export class LocalShellSandbox extends BaseSandbox implements SandboxTerminalAdapter {
+export class LocalShellSandbox
+  extends BaseSandbox
+  implements SandboxManagedServiceAdapter, SandboxServiceProxyAdapter, SandboxTerminalAdapter
+{
   readonly id: string
+  private readonly managedServices = new Map<string, LocalManagedServiceRecord>()
 
   /**
    * Create a new LocalShellSandbox.
@@ -244,8 +454,9 @@ export class LocalShellSandbox extends BaseSandbox implements SandboxTerminalAda
 
   async open(options: SandboxTerminalOpenOptions): Promise<SandboxTerminalSession> {
     tryEnsureNodePtySpawnHelperExecutable()
+    const { spawn } = getNodePtyModule()
     const shell = resolveTerminalShell()
-    const ptyProcess = spawnPty(shell.file, shell.args, {
+    const ptyProcess = spawn(shell.file, shell.args, {
       cwd: this.workingDirectory,
       cols: clampTerminalSize(options.cols, DEFAULT_TERMINAL_COLS),
       rows: clampTerminalSize(options.rows, DEFAULT_TERMINAL_ROWS),
@@ -277,6 +488,386 @@ export class LocalShellSandbox extends BaseSandbox implements SandboxTerminalAda
     })
 
     return new LocalShellTerminalSession(ptyProcess)
+  }
+
+  async startService(options: SandboxManagedServiceStartOptions): Promise<SandboxManagedServiceStartResult> {
+    const cwd = path.resolve(options.cwd || this.workingDirectory)
+    if (options.port) {
+      await ensurePortIsAvailable(options.port)
+    }
+
+    const logPaths = resolveServiceLogPaths(options.metadata, cwd, options.serviceId)
+    ensureServiceLogDirectory(logPaths)
+
+    const stdoutFd = fs.openSync(logPaths.stdoutPath, 'a')
+    const stderrFd = fs.openSync(logPaths.stderrPath, 'a')
+
+    const env = {
+      ...process.env,
+      HOME: process.env['HOME'] ?? os.homedir(),
+      ...normalizeServiceEnv(options.env)
+    }
+
+    const child = cp.spawn('/bin/bash', ['-c', options.command], {
+      cwd,
+      detached: process.platform !== 'win32',
+      env,
+      stdio: ['ignore', stdoutFd, stderrFd]
+    })
+    fs.closeSync(stdoutFd)
+    fs.closeSync(stderrFd)
+
+    const initialState: SandboxManagedServiceStateChange = {
+      actualPort: options.port ?? null,
+      runtimeRef: child.pid
+        ? {
+            pid: child.pid,
+            pgid: child.pid
+          }
+        : null,
+      startedAt: new Date(),
+      status: 'starting',
+      stoppedAt: null,
+      transportMode: options.port ? 'http' : 'none'
+    }
+
+    let resolveExitPromise: ((change: SandboxManagedServiceStateChange) => void) | null = null
+    const exitPromise = new Promise<SandboxManagedServiceStateChange>((resolve) => {
+      resolveExitPromise = resolve
+    })
+
+    let exitResolved = false
+
+    const record: LocalManagedServiceRecord = {
+      actualPort: options.port ?? null,
+      child,
+      cwd,
+      exitPromise,
+      logPaths,
+      requestedPort: options.port ?? null,
+      resolveExit: (change: SandboxManagedServiceStateChange) => {
+        if (exitResolved) {
+          return
+        }
+        exitResolved = true
+        record.status = change
+        this.managedServices.delete(options.serviceId)
+        void options.onStateChange?.(change)
+        resolveExitPromise?.(change)
+      },
+      status: initialState
+    }
+    this.managedServices.set(options.serviceId, record)
+
+    child.once('error', (error) => {
+      record.resolveExit({
+        actualPort: options.port ?? null,
+        exitCode: 1,
+        runtimeRef: initialState.runtimeRef,
+        signal: null,
+        status: 'failed',
+        stoppedAt: new Date(),
+        transportMode: initialState.transportMode
+      })
+      fs.appendFileSync(logPaths.stderrPath, `${error.message}\n`)
+    })
+    child.once('exit', (exitCode, signal) => {
+      record.resolveExit({
+        actualPort: options.port ?? null,
+        exitCode,
+        runtimeRef: initialState.runtimeRef,
+        signal,
+        status: exitCode === 0 || record.status.status === 'stopping' ? 'stopped' : 'failed',
+        stoppedAt: new Date(),
+        transportMode: initialState.transportMode
+      })
+    })
+
+    child.unref()
+    await options.onStateChange?.(initialState)
+
+    try {
+      await this.waitForServiceReady({
+        logPaths,
+        port: options.port ?? null,
+        processId: child.pid,
+        readyPattern: options.readyPattern ?? null
+      })
+    } catch (error) {
+      try {
+        killProcessGroup(child.pid, 'SIGTERM')
+      } catch (killError) {
+        if (!isProcessMissingError(killError)) {
+          throw killError
+        }
+      }
+      await exitPromise
+      throw error
+    }
+
+    const runningState: SandboxManagedServiceStateChange = {
+      actualPort: options.port ?? null,
+      runtimeRef: initialState.runtimeRef,
+      startedAt: initialState.startedAt,
+      status: 'running',
+      stoppedAt: null,
+      transportMode: initialState.transportMode
+    }
+    const managedRecord = this.managedServices.get(options.serviceId)
+    if (managedRecord) {
+      managedRecord.status = runningState
+      managedRecord.actualPort = options.port ?? null
+    }
+    await options.onStateChange?.(runningState)
+
+    return runningState
+  }
+
+  async listServices(options: SandboxManagedServiceListOptions): Promise<SandboxManagedServiceListResult> {
+    const services = options.services.map((service) => {
+      const managedService = service.id ? this.managedServices.get(service.id) : null
+      if (managedService) {
+        return {
+          ...service,
+          actualPort: managedService.actualPort ?? service.actualPort ?? null,
+          runtimeRef: managedService.status.runtimeRef ?? service.runtimeRef ?? null,
+          startedAt: managedService.status.startedAt ?? service.startedAt ?? null,
+          status: managedService.status.status,
+          stoppedAt: managedService.status.stoppedAt ?? service.stoppedAt ?? null,
+          transportMode: managedService.status.transportMode ?? service.transportMode ?? null
+        }
+      }
+
+      if (service.status === 'running' || service.status === 'starting' || service.status === 'stopping') {
+        return {
+          ...service,
+          status: 'lost' as const
+        }
+      }
+
+      return service
+    })
+
+    return { services }
+  }
+
+  async getServiceLogs(options: SandboxManagedServiceLogsOptions): Promise<TSandboxManagedServiceLogs> {
+    const tail = options.tail && options.tail > 0 ? Math.trunc(options.tail) : 200
+    const logPaths = resolveServiceLogPaths(
+      options.service.metadata,
+      options.service.workingDirectory || this.workingDirectory,
+      options.service.id ?? 'service'
+    )
+
+    return {
+      stderr: readLogTail(logPaths.stderrPath, tail),
+      stdout: readLogTail(logPaths.stdoutPath, tail)
+    }
+  }
+
+  async stopService(options: SandboxManagedServiceStopOptions): Promise<SandboxManagedServiceStateChange> {
+    const serviceId = options.service.id
+    if (!serviceId) {
+      return {
+        status: 'stopped',
+        stoppedAt: new Date()
+      }
+    }
+
+    const managedService = this.managedServices.get(serviceId)
+    if (!managedService) {
+      const lostState: SandboxManagedServiceStateChange = {
+        actualPort: options.service.actualPort ?? null,
+        runtimeRef: options.service.runtimeRef ?? null,
+        status: options.service.status === 'failed' ? 'failed' : 'lost',
+        stoppedAt: new Date(),
+        transportMode: options.service.transportMode ?? null
+      }
+      await options.onStateChange?.(lostState)
+      return lostState
+    }
+
+    const stoppingState: SandboxManagedServiceStateChange = {
+      actualPort: managedService.actualPort ?? null,
+      runtimeRef: managedService.status.runtimeRef ?? null,
+      status: 'stopping',
+      stoppedAt: null,
+      transportMode: managedService.status.transportMode ?? null
+    }
+    managedService.status = stoppingState
+    await options.onStateChange?.(stoppingState)
+
+    try {
+      killProcessGroup(managedService.child.pid, 'SIGTERM')
+    } catch (error) {
+      if (!isProcessMissingError(error)) {
+        throw error
+      }
+    }
+
+    const timeoutPromise = sleep(5000).then(() => {
+      try {
+        killProcessGroup(managedService.child.pid, 'SIGKILL')
+      } catch (error) {
+        if (!isProcessMissingError(error)) {
+          throw error
+        }
+      }
+      return managedService.exitPromise
+    })
+
+    return Promise.race([managedService.exitPromise, timeoutPromise.then((result) => result)])
+  }
+
+  async restartService(options: SandboxManagedServiceRestartOptions): Promise<SandboxManagedServiceStartResult> {
+    await this.stopService({
+      onStateChange: options.onStateChange,
+      service: options.service
+    })
+
+    return this.startService({
+      command: options.command,
+      cwd: options.cwd,
+      env: options.env,
+      metadata: options.metadata,
+      onStateChange: options.onStateChange,
+      port: options.port,
+      previewPath: options.previewPath,
+      readyPattern: options.readyPattern,
+      serviceId: options.service.id ?? ''
+    })
+  }
+
+  async proxyServiceRequest(request: SandboxServiceProxyRequest): Promise<void> {
+    const serviceId = request.service.id
+    const managedService = serviceId ? this.managedServices.get(serviceId) : null
+    if (!managedService || managedService.status.status !== 'running') {
+      request.response.statusCode = 502
+      request.response.setHeader('content-type', 'text/plain; charset=utf-8')
+      request.response.end('The selected sandbox service is not running.')
+      return
+    }
+
+    const port = managedService.actualPort ?? managedService.requestedPort
+    if (!isFiniteNumber(port) || port <= 0) {
+      request.response.statusCode = 502
+      request.response.setHeader('content-type', 'text/plain; charset=utf-8')
+      request.response.end('The selected sandbox service does not expose an HTTP port.')
+      return
+    }
+
+    const headers = { ...request.request.headers }
+    delete headers.connection
+    delete headers['keep-alive']
+    delete headers['proxy-authenticate']
+    delete headers['proxy-authorization']
+    delete headers.te
+    delete headers.trailer
+    delete headers['transfer-encoding']
+    delete headers.upgrade
+    headers.host = `127.0.0.1:${port}`
+
+    await new Promise<void>((resolve) => {
+      const upstream = http.request(
+        {
+          headers,
+          host: '127.0.0.1',
+          method: request.request.method,
+          path: request.path,
+          port
+        },
+        (upstreamResponse) => {
+          request.response.statusCode = upstreamResponse.statusCode ?? 502
+          for (const [name, value] of Object.entries(upstreamResponse.headers)) {
+            if (
+              value !== undefined &&
+              name !== 'connection' &&
+              name !== 'keep-alive' &&
+              name !== 'proxy-authenticate' &&
+              name !== 'proxy-authorization' &&
+              name !== 'te' &&
+              name !== 'trailer' &&
+              name !== 'transfer-encoding' &&
+              name !== 'upgrade'
+            ) {
+              request.response.setHeader(name, value)
+            }
+          }
+          upstreamResponse.pipe(request.response)
+          upstreamResponse.on('end', () => resolve())
+        }
+      )
+
+      upstream.on('error', (error) => {
+        if (!request.response.headersSent) {
+          request.response.statusCode = 502
+          request.response.setHeader('content-type', 'text/plain; charset=utf-8')
+        }
+        request.response.end(`Failed to proxy sandbox service request: ${error.message}`)
+        resolve()
+      })
+
+      if (request.request.readableEnded || request.request.method === 'GET' || request.request.method === 'HEAD') {
+        upstream.end()
+      } else {
+        request.request.pipe(upstream)
+      }
+    })
+  }
+
+  private async waitForServiceReady(params: {
+    logPaths: ManagedServiceLogPaths
+    port?: number | null
+    processId?: number
+    readyPattern?: string | null
+  }): Promise<void> {
+    const readyRegex = isNonEmptyString(params.readyPattern) ? new RegExp(params.readyPattern) : null
+    const deadline = Date.now() + 30_000
+
+    while (Date.now() < deadline) {
+      if (params.port) {
+        try {
+          await waitForPort(params.port, 300)
+          return
+        } catch {
+          // Continue polling.
+        }
+      }
+
+      if (readyRegex && doesServiceLogMatch(params.logPaths, readyRegex)) {
+        return
+      }
+
+      if (!params.port && !readyRegex) {
+        await sleep(300)
+        if (params.processId) {
+          try {
+            process.kill(params.processId, 0)
+          } catch (error) {
+            if (isProcessMissingError(error)) {
+              throw new Error('The sandbox service exited before it became ready.')
+            }
+            throw error
+          }
+        }
+        return
+      }
+
+      if (params.processId) {
+        try {
+          process.kill(params.processId, 0)
+        } catch (error) {
+          if (isProcessMissingError(error)) {
+            throw new Error('The sandbox service exited before it became ready.')
+          }
+          throw error
+        }
+      }
+
+      await sleep(250)
+    }
+
+    throw new Error('Timed out while waiting for the sandbox service to become ready.')
   }
 
   private runCommand(

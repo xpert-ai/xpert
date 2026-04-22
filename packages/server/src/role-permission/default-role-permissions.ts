@@ -94,6 +94,7 @@ const AI_BUILDER_PLATFORM_PERMISSIONS = [
 	PermissionsEnum.PROFILE_EDIT,
 	PermissionsEnum.ADMIN_DASHBOARD_VIEW,
 	PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
+	PermissionsEnum.ORG_USERS_VIEW,
 	PermissionsEnum.ORG_INVITE_VIEW,
 	PermissionsEnum.ORG_CONTACT_VIEW,
 	PermissionsEnum.INTEGRATION_VIEW,
