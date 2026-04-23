@@ -3,13 +3,23 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { RouterModule } from '@angular/router'
 import { IXpert } from '@xpert-ai/contracts'
 import { TranslatePipe } from '@xpert-ai/core'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 
 @Component({
   standalone: true,
   selector: 'xp-project-assistant-picker',
-  imports: [CommonModule, RouterModule, TranslatePipe, NgmSpinComponent, EmojiAvatarComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    TranslatePipe,
+    NgmSpinComponent,
+    EmojiAvatarComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardInputDirective
+  ],
   templateUrl: './project-assistant-picker.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

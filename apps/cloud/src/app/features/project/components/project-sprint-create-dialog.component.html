@@ -19,80 +19,86 @@
   </div>
 
   <form class="flex flex-col gap-5 px-6 py-6" [formGroup]="form" (ngSubmit)="submit()">
-    <div>
-      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-sprint-goal">
+    <z-form-field>
+      <z-form-label for="project-sprint-goal">
         {{ 'PAC.Project.Goal' | translate: { Default: 'Goal' } }}
-      </label>
+      </z-form-label>
       <textarea
+        z-input
         id="project-sprint-goal"
         rows="4"
         formControlName="goal"
-        class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+        class="min-h-28 resize-y"
         [placeholder]="'PAC.Project.GoalPlaceholder' | translate: { Default: 'Describe what this sprint should deliver.' }"
       ></textarea>
-    </div>
+      @if (form.controls.goal.invalid && (form.controls.goal.touched || form.controls.goal.dirty)) {
+        <z-form-message zType="error">
+          {{ 'PAC.Project.GoalRequired' | translate: { Default: 'Sprint goal is required.' } }}
+        </z-form-message>
+      }
+    </z-form-field>
 
     <div class="grid gap-4 md:grid-cols-2">
-      <div>
-        <label class="mb-2 block text-sm font-medium text-text-primary" for="project-sprint-strategy">
+      <z-form-field>
+        <z-form-label for="project-sprint-strategy">
           {{ 'PAC.Project.Strategy' | translate: { Default: 'Strategy' } }}
-        </label>
-        <select
+        </z-form-label>
+        <z-select
           id="project-sprint-strategy"
           formControlName="strategyType"
-          class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep"
+          class="w-full"
         >
           @for (strategy of strategyOptions; track strategy) {
-            <option [value]="strategy">{{ formatProjectLabel(strategy) }}</option>
+            <z-select-item [zValue]="strategy">{{ formatProjectLabel(strategy) }}</z-select-item>
           }
-        </select>
-      </div>
+        </z-select>
+      </z-form-field>
 
-      <div>
-        <label class="mb-2 block text-sm font-medium text-text-primary" for="project-sprint-status">
+      <z-form-field>
+        <z-form-label for="project-sprint-status">
           {{ 'PAC.Project.Status' | translate: { Default: 'Status' } }}
-        </label>
-        <select
+        </z-form-label>
+        <z-select
           id="project-sprint-status"
           formControlName="status"
-          class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep"
+          class="w-full"
         >
           @for (status of statusOptions; track status) {
-            <option [value]="status">{{ formatProjectLabel(status) }}</option>
+            <z-select-item [zValue]="status">{{ formatProjectLabel(status) }}</z-select-item>
           }
-        </select>
-      </div>
+        </z-select>
+      </z-form-field>
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">
-      <div>
-        <label class="mb-2 block text-sm font-medium text-text-primary" for="project-sprint-start-at">
+      <z-form-field>
+        <z-form-label for="project-sprint-start-at">
           {{ 'PAC.Project.StartAt' | translate: { Default: 'Start date' } }}
-        </label>
+        </z-form-label>
         <input
+          z-input
           id="project-sprint-start-at"
           type="date"
           formControlName="startAt"
-          class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep"
         />
-      </div>
+      </z-form-field>
 
-      <div>
-        <label class="mb-2 block text-sm font-medium text-text-primary" for="project-sprint-end-at">
+      <z-form-field>
+        <z-form-label for="project-sprint-end-at">
           {{ 'PAC.Project.EndAt' | translate: { Default: 'End date' } }}
-        </label>
+        </z-form-label>
         <input
+          z-input
           id="project-sprint-end-at"
           type="date"
           formControlName="endAt"
-          class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep"
         />
         @if (form.controls.endAt.hasError('endBeforeStart')) {
-          <p class="mt-2 text-sm text-text-destructive">
+          <z-form-message zType="error">
             {{ 'PAC.Project.EndBeforeStart' | translate: { Default: 'End date must be on or after the start date.' } }}
-          </p>
+          </z-form-message>
         }
-      </div>
+      </z-form-field>
     </div>
 
     @if (hasCarryOverTasks()) {
@@ -120,13 +126,12 @@
 
         <div class="mt-4 grid gap-3">
           @for (task of backlogTasks; track task.id) {
-            <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-divider-regular bg-background-default px-4 py-3">
-              <input
-                type="checkbox"
-                class="mt-1 h-4 w-4 rounded border-divider-regular text-primary"
-                [checked]="selectedCarryOverTaskIds().includes(task.id ?? '')"
-                (change)="toggleCarryOverTask(task.id ?? '')"
-              />
+            <z-checkbox
+              class="w-full items-start gap-3 rounded-2xl border border-divider-regular bg-background-default px-4 py-3"
+              [ngModel]="selectedCarryOverTaskIds().includes(task.id ?? '')"
+              [ngModelOptions]="{ standalone: true }"
+              (checkChange)="toggleCarryOverTask(task.id ?? '')"
+            >
               <div class="min-w-0 flex-1">
                 <div class="truncate text-sm font-semibold text-text-primary">{{ task.title }}</div>
                 @if (task.description) {
@@ -135,7 +140,7 @@
                   </p>
                 }
               </div>
-            </label>
+            </z-checkbox>
           }
         </div>
       </section>
@@ -143,18 +148,20 @@
 
     <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
       <button
+        z-button
+        zType="ghost"
         type="button"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="submitting()"
+        [zDisabled]="submitting()"
         (click)="close()"
       >
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
 
       <button
+        z-button
+        zType="default"
         type="submit"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="form.invalid || submitting()"
+        [zDisabled]="form.invalid || submitting()"
       >
         @if (submitting()) {
           {{ 'PAC.Project.CreatingSprint' | translate: { Default: 'Creating sprint...' } }}

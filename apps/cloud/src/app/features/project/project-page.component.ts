@@ -2,6 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslatePipe } from '@xpert-ai/core'
 import type { IProjectCore } from '@xpert-ai/contracts'
@@ -27,6 +28,8 @@ import { getDefaultTaskSwimlane } from './project-page.utils'
     CommonModule,
     TranslatePipe,
     NgmSpinComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
     ProjectSidebarComponent,
     ProjectAssistantPanelComponent,
     ProjectBoardHeaderComponent,

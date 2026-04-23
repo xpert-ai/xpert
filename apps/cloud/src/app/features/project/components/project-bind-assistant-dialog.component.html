@@ -62,18 +62,20 @@
 
     <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
       <button
+        z-button
+        zType="ghost"
         type="button"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="submitting()"
+        [zDisabled]="submitting()"
         (click)="close()"
       >
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
 
       <button
+        z-button
+        zType="default"
         type="submit"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="form.invalid || submitting() || loadingAssistants() || !assistants().length"
+        [zDisabled]="form.invalid || submitting() || loadingAssistants() || !assistants().length"
       >
         @if (submitting()) {
           {{ 'PAC.Project.UpdatingMainAgent' | translate: { Default: 'Saving...' } }}

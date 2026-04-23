@@ -45,56 +45,56 @@
     <z-tab-nav-panel #tabPanel class="flex flex-col overflow-hidden">
       <div class="flex flex-col gap-5 py-5">
         @if (activeTab() === 'basic') {
-          <div>
-            <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-name">
+          <z-form-field>
+            <z-form-label for="project-create-name">
               {{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}
-            </label>
+            </z-form-label>
             <input
+              z-input
               id="project-create-name"
               type="text"
               formControlName="name"
-              class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
-              [class]="isInvalid(nameControl) ? 'border-destructive/60' : 'border-divider-regular'"
               [placeholder]="'PAC.Project.NamePlaceholder' | translate: { Default: 'For example, Customer onboarding revamp' }"
             />
             @if (isInvalid(nameControl)) {
-              <p class="mt-2 text-sm text-text-destructive">
+              <z-form-message zType="error">
                 {{ 'PAC.Project.NameRequired' | translate: { Default: 'Project name is required.' } }}
-              </p>
+              </z-form-message>
             }
-          </div>
+          </z-form-field>
 
-          <div>
-            <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-goal">
+          <z-form-field>
+            <z-form-label for="project-create-goal">
               {{ 'PAC.Project.Goal' | translate: { Default: 'Goal' } }}
-            </label>
+            </z-form-label>
             <textarea
+              z-input
               id="project-create-goal"
               rows="4"
               formControlName="goal"
-              class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
-              [class]="isInvalid(goalControl) ? 'border-destructive/60' : 'border-divider-regular'"
+              class="min-h-28 resize-y"
               [placeholder]="'PAC.Project.GoalPlaceholder' | translate: { Default: 'Describe the outcome this project should achieve.' }"
             ></textarea>
             @if (isInvalid(goalControl)) {
-              <p class="mt-2 text-sm text-text-destructive">
+              <z-form-message zType="error">
                 {{ 'PAC.Project.GoalRequired' | translate: { Default: 'Project goal is required.' } }}
-              </p>
+              </z-form-message>
             }
-          </div>
+          </z-form-field>
 
-          <div>
-            <label class="mb-2 block text-sm font-medium text-text-primary" for="project-create-description">
+          <z-form-field>
+            <z-form-label for="project-create-description">
               {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
-            </label>
+            </z-form-label>
             <textarea
+              z-input
               id="project-create-description"
               rows="4"
               formControlName="description"
-              class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+              class="min-h-28 resize-y"
               [placeholder]="'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional context, notes, or background for the team.' }"
             ></textarea>
-          </div>
+          </z-form-field>
         } @else {
           <div>
             <label class="mb-2 block text-sm font-medium text-text-primary">
@@ -119,18 +119,20 @@
 
     <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
       <button
+        z-button
+        zType="ghost"
         type="button"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="submitting()"
+        [zDisabled]="submitting()"
         (click)="close()"
       >
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
 
       <button
+        z-button
+        zType="default"
         type="submit"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="form.invalid || submitting() || loadingAssistants() || !assistants().length"
+        [zDisabled]="form.invalid || submitting() || loadingAssistants() || !assistants().length"
       >
         @if (submitting()) {
           {{ 'PAC.Project.Creating' | translate: { Default: 'Creating...' } }}

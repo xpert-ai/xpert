@@ -4,10 +4,10 @@
       {{ 'PAC.Project.MainAgentSearch' | translate: { Default: 'Search assistants' } }}
     </label>
     <input
+      z-input
       #searchInput
       id="project-assistant-search"
       type="text"
-      class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
       [value]="search()"
       [placeholder]="
         'PAC.Project.MainAgentSearchPlaceholder'
@@ -28,7 +28,7 @@
       </div>
     } @else if (!assistants().length) {
       <div class="flex min-h-[16rem] flex-col items-center justify-center rounded-[20px] border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
-        <i class="ri-robot-2-line text-3xl text-text-tertiary"></i>
+        <z-icon zType="robot_2" class="text-3xl text-text-tertiary"></z-icon>
         <div class="mt-4 text-base font-semibold text-text-primary">
           {{ 'PAC.Project.MainAgentEmptyTitle' | translate: { Default: 'No published assistants available' } }}
         </div>
@@ -43,8 +43,10 @@
           }}
         </div>
         <a
+          z-button
+          zType="outline"
           routerLink="/xpert/w"
-          class="mt-5 inline-flex h-11 items-center justify-center rounded-2xl border border-divider-regular bg-components-card-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+          class="mt-5 rounded-2xl"
         >
           {{ 'PAC.Project.GoToWorkspace' | translate: { Default: 'Go to Workspace' } }}
         </a>
@@ -57,13 +59,16 @@
       <div class="grid gap-3 lg:grid-cols-2">
         @for (assistant of filteredAssistants(); track assistant.id) {
           <button
+            z-button
             type="button"
-            class="w-full rounded-[22px] border p-4 text-left transition-colors"
+            zFull
+            [zType]="selectedAssistantId() === assistant.id ? 'outline' : 'ghost'"
+            class="h-auto justify-start rounded-[22px] p-4 text-left transition-colors whitespace-normal"
             [attr.aria-pressed]="selectedAssistantId() === assistant.id"
             [class]="
               selectedAssistantId() === assistant.id
                 ? 'border-primary bg-primary/5 shadow-sm'
-                : 'border-divider-regular bg-components-card-bg hover:border-divider-deep hover:bg-hover-bg'
+                : 'border-divider-regular bg-components-card-bg'
             "
             (click)="selectAssistant(assistant.id)"
           >

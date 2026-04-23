@@ -6,6 +6,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { AssistantBindingScope, AssistantCode, createXpertId, type IProjectCore, type IXpert } from '@xpert-ai/contracts'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { AssistantBindingService } from '../../../@core/services/assistant-binding.service'
 import { ProjectCoreService } from '../../../@core/services/project-core.service'
 import { getErrorMessage } from '../../../@core/types'
@@ -19,7 +20,7 @@ type ProjectBindAssistantDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-project-bind-assistant-dialog',
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, ProjectAssistantPickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, ProjectAssistantPickerComponent, ZardButtonComponent],
   templateUrl: './project-bind-assistant-dialog.component.html',
   styles: `
     :host {

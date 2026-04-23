@@ -1,10 +1,13 @@
 <button
+  z-button
+  zType="ghost"
   type="button"
-  class="w-full rounded-[24px] border p-4 text-left transition-all cursor-pointer"
+  zFull
+  class="h-auto justify-start rounded-[24px] p-4 text-left transition-all whitespace-normal"
   [class]="
     active()
       ? 'border-primary bg-primary/5 shadow-sm'
-      : 'border-divider-regular bg-components-card-bg hover:border-divider-deep hover:bg-hover-bg'
+      : 'border-divider-regular bg-components-card-bg'
   "
   (click)="selectProject()"
 >

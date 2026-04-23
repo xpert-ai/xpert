@@ -2,7 +2,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import {
@@ -15,6 +15,13 @@ import {
   ProjectTaskStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage, injectToastr, ProjectTaskService } from '../../../@core'
+import {
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardFormImports,
+  ZardInputDirective,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
 import { formatProjectLabel, getDefaultTaskSwimlane, ProjectBoundTeamViewModel } from '../project-page.utils'
 
 type ProjectTaskDialogData = {
@@ -30,7 +37,17 @@ type ProjectTaskDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-project-task-dialog',
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardInputDirective,
+    ...ZardFormImports,
+    ...ZardSelectImports
+  ],
   templateUrl: './project-task-dialog.component.html',
   styles: `
     :host {
@@ -136,6 +153,10 @@ export class ProjectTaskDialogComponent {
   }
 
   toggleDependency(taskId: string) {
+    if (!taskId || this.isBacklogLane()) {
+      return
+    }
+
     const current = this.form.controls.dependencies.value
     if (current.includes(taskId)) {
       this.form.controls.dependencies.setValue(current.filter((id) => id !== taskId))

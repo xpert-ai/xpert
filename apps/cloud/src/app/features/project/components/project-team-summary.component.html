@@ -35,11 +35,13 @@
     </div>
 
     <button
+      z-button
+      zType="outline"
       type="button"
-      class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-divider-regular bg-background-default-subtle px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+      class="rounded-xl"
       (click)="requestManage()"
     >
-      <i class="ri-team-line text-base"></i>
+      <z-icon zType="group"></z-icon>
       {{ 'PAC.Project.ManageTeams' | translate: { Default: 'Manage Teams' } }}
     </button>
   </div>

@@ -12,11 +12,14 @@
     </div>
 
     <button
+      z-button
+      zType="default"
       type="button"
-      class="mb-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-components-card-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+      zFull
+      class="mb-4 rounded-2xl"
       (click)="requestCreateProject()"
     >
-      <i class="ri-add-line text-base"></i>
+      <z-icon zType="add"></z-icon>
       {{ 'PAC.Project.NewProject' | translate: { Default: 'New Project' } }}
     </button>
 

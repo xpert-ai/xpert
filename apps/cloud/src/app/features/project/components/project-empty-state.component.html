@@ -1,12 +1,14 @@
-<div
-  class="flex w-full max-w-xl flex-col items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-8 py-10 text-center"
+<z-card
+  class="w-full max-w-xl rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg text-center shadow-none"
 >
-  <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle">
-    <i [class]="icon() + ' text-2xl text-text-secondary'"></i>
-  </div>
-  <h2 class="mt-5 text-xl font-semibold text-text-primary">{{ title() }}</h2>
-  <p class="mt-2 max-w-lg text-sm leading-6 text-text-secondary">{{ description() }}</p>
-  <div class="mt-6 flex items-center justify-center gap-3 empty:hidden">
-    <ng-content select="[projectEmptyStateActions]" />
-  </div>
-</div>
+  <z-card-content class="flex flex-col items-center justify-center px-8 py-10">
+    <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle">
+      <z-icon [zType]="iconType()" class="text-2xl text-text-secondary"></z-icon>
+    </div>
+    <h2 class="mt-5 text-xl font-semibold text-text-primary">{{ title() }}</h2>
+    <p class="mt-2 max-w-lg text-sm leading-6 text-text-secondary">{{ description() }}</p>
+    <div class="mt-6 flex items-center justify-center gap-3 empty:hidden">
+      <ng-content select="[projectEmptyStateActions]"></ng-content>
+    </div>
+  </z-card-content>
+</z-card>

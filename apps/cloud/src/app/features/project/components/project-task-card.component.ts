@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { IProjectTask, ProjectSwimlaneKindEnum, ProjectTaskStatusEnum } from '@xpert-ai/contracts'
 import { TranslatePipe } from '@xpert-ai/core'
+import { ZardIconComponent, ZardSelectImports, type ZardSelectValue } from '@xpert-ai/headless-ui'
 import { formatProjectLabel } from '../project-page.utils'
 
 @Component({
   standalone: true,
   selector: 'xp-project-task-card',
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, TranslatePipe, ZardIconComponent, ...ZardSelectImports],
   templateUrl: './project-task-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -43,11 +44,14 @@ export class ProjectTaskCardComponent {
     this.opened.emit(this.task())
   }
 
-  onStatusChange(event: Event) {
-    event.stopPropagation()
-    const status = (event.target as HTMLSelectElement).value as ProjectTaskStatusEnum
-    if (status) {
-      this.statusChanged.emit(status)
+  onStatusChange(value: ZardSelectValue | ZardSelectValue[]) {
+    if (typeof value === 'string' && value) {
+      this.statusChanged.emit(value as ProjectTaskStatusEnum)
+      return
+    }
+
+    if (typeof value === 'number') {
+      this.statusChanged.emit(String(value) as ProjectTaskStatusEnum)
     }
   }
 }

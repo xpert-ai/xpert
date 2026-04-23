@@ -2,7 +2,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import {
@@ -19,6 +19,13 @@ import {
   ProjectSwimlaneService,
   ProjectTaskService
 } from '../../../@core'
+import {
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardFormImports,
+  ZardInputDirective,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
 import { formatProjectLabel, getBacklogSwimlane } from '../project-page.utils'
 
 type ProjectSprintCreateDialogData = {
@@ -30,7 +37,17 @@ type ProjectSprintCreateDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-project-sprint-create-dialog',
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardInputDirective,
+    ...ZardFormImports,
+    ...ZardSelectImports
+  ],
   templateUrl: './project-sprint-create-dialog.component.html',
   styles: `
     :host {
@@ -121,6 +138,10 @@ export class ProjectSprintCreateDialogComponent {
   }
 
   toggleCarryOverTask(taskId: string) {
+    if (!taskId) {
+      return
+    }
+
     const current = this.selectedCarryOverTaskIds()
     if (current.includes(taskId)) {
       this.selectedCarryOverTaskIds.set(current.filter((id) => id !== taskId))

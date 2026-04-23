@@ -36,12 +36,14 @@
               "
             >
               <button
+                z-button
+                zType="default"
                 projectEmptyStateActions
                 type="button"
-                class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep"
+                class="rounded-2xl"
                 (click)="openCreateProject()"
               >
-                <i class="ri-add-line text-base"></i>
+                <z-icon zType="add"></z-icon>
                 {{ 'PAC.Project.NewProject' | translate: { Default: 'New Project' } }}
               </button>
             </xp-project-empty-state>
@@ -92,12 +94,14 @@
                 "
               >
                 <button
+                  z-button
+                  zType="default"
                   projectEmptyStateActions
                   type="button"
-                  class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep"
+                  class="rounded-2xl"
                   (click)="openCreateSprint()"
                 >
-                  <i class="ri-calendar-schedule-line text-base"></i>
+                  <z-icon zType="today"></z-icon>
                   {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
                 </button>
               </xp-project-empty-state>

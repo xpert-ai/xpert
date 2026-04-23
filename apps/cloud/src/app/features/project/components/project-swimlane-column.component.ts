@@ -3,13 +3,14 @@ import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { IProjectTask, ProjectSwimlaneKindEnum, ProjectTaskStatusEnum } from '@xpert-ai/contracts'
 import { TranslatePipe } from '@xpert-ai/core'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { ProjectBoardColumnViewModel, ProjectBoardTaskDropEvent, formatProjectLabel } from '../project-page.utils'
 import { ProjectTaskCardComponent } from './project-task-card.component'
 
 @Component({
   standalone: true,
   selector: 'xp-project-swimlane-column',
-  imports: [CommonModule, TranslatePipe, DragDropModule, ProjectTaskCardComponent],
+  imports: [CommonModule, TranslatePipe, DragDropModule, ZardButtonComponent, ZardIconComponent, ProjectTaskCardComponent],
   templateUrl: './project-swimlane-column.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

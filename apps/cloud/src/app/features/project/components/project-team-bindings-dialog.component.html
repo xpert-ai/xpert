@@ -45,12 +45,15 @@
           <div class="grid gap-3 lg:grid-cols-2">
             @for (team of availableTeams(); track team.id) {
               <button
+                z-button
                 type="button"
-                class="rounded-[24px] border p-4 text-left transition-colors"
+                zFull
+                [zType]="isSelected(team.id) ? 'outline' : 'ghost'"
+                class="h-auto justify-start rounded-[24px] p-4 text-left transition-colors whitespace-normal"
                 [class]="
                   isSelected(team.id)
                     ? 'border-primary bg-primary/5'
-                    : 'border-divider-regular bg-background-default hover:border-divider-deep hover:bg-hover-bg'
+                    : 'border-divider-regular bg-background-default'
                 "
                 (click)="toggleTeam(team.id)"
               >
@@ -117,8 +120,8 @@
                       {{ 'PAC.Project.TeamRole' | translate: { Default: 'Role' } }}
                     </label>
                     <input
+                      z-input
                       type="text"
-                      class="h-11 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
                       [ngModel]="item.binding.role"
                       (ngModelChange)="updateRole(item.team.id, $event)"
                       [placeholder]="'PAC.Project.TeamRolePlaceholder' | translate: { Default: 'Optional role, such as API team or QA team' }"
@@ -145,18 +148,20 @@
 
     <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
       <button
+        z-button
+        zType="ghost"
         type="button"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="submitting()"
+        [zDisabled]="submitting()"
         (click)="close()"
       >
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
 
       <button
+        z-button
+        zType="default"
         type="button"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
-        [disabled]="loading() || submitting()"
+        [zDisabled]="loading() || submitting()"
         (click)="submit()"
       >
         @if (submitting()) {

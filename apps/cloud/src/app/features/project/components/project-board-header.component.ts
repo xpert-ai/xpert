@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { IProjectCore, IProjectSprint } from '@xpert-ai/contracts'
 import { TranslatePipe } from '@xpert-ai/core'
+import { ZardButtonComponent, ZardIconComponent, ZardSelectImports, type ZardSelectValue } from '@xpert-ai/headless-ui'
 import { formatProjectLabel } from '../project-page.utils'
 
 @Component({
   standalone: true,
   selector: 'xp-project-board-header',
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, TranslatePipe, ZardButtonComponent, ZardIconComponent, ...ZardSelectImports],
   templateUrl: './project-board-header.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -27,10 +28,14 @@ export class ProjectBoardHeaderComponent {
   readonly projectStatusLabel = computed(() => formatProjectLabel(this.project().status))
   readonly sprintStatusLabel = computed(() => formatProjectLabel(this.sprint()?.status))
 
-  onSprintSelected(event: Event) {
-    const sprintId = (event.target as HTMLSelectElement).value
-    if (sprintId) {
-      this.sprintSelected.emit(sprintId)
+  onSprintSelected(value: ZardSelectValue | ZardSelectValue[]) {
+    if (typeof value === 'string' && value) {
+      this.sprintSelected.emit(value)
+      return
+    }
+
+    if (typeof value === 'number') {
+      this.sprintSelected.emit(String(value))
     }
   }
 

@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { IProjectCore } from '@xpert-ai/contracts'
 import { TranslatePipe } from '@xpert-ai/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { formatProjectLabel } from '../project-page.utils'
 
 @Component({
   standalone: true,
   selector: 'xp-project-sidebar-item',
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, TranslatePipe, ZardButtonComponent],
   templateUrl: './project-sidebar-item.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

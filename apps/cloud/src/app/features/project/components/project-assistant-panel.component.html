@@ -55,12 +55,14 @@
             "
           >
             <button
+              z-button
+              zType="default"
               projectEmptyStateActions
               type="button"
-              class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep"
+              class="rounded-2xl"
               (click)="requestBind()"
             >
-              <i class="ri-link text-base"></i>
+              <z-icon zType="link"></z-icon>
               {{ 'PAC.Project.BindMainAgent' | translate: { Default: 'Bind Main Agent' } }}
             </button>
           </xp-project-empty-state>
@@ -81,12 +83,14 @@
             "
           >
             <button
+              z-button
+              zType="default"
               projectEmptyStateActions
               type="button"
-              class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep"
+              class="rounded-2xl"
               (click)="requestBind()"
             >
-              <i class="ri-refresh-line text-base"></i>
+              <z-icon zType="refresh"></z-icon>
               {{ 'PAC.Project.ChangeMainAgent' | translate: { Default: 'Change Main Agent' } }}
             </button>
           </xp-project-empty-state>
@@ -100,12 +104,14 @@
             [description]="facade.error() || ('PAC.Project.MainAgentErrorDescription' | translate: { Default: 'Try again in a moment.' })"
           >
             <button
+              z-button
+              zType="default"
               projectEmptyStateActions
               type="button"
-              class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep"
+              class="rounded-2xl"
               (click)="facade.refresh()"
             >
-              <i class="ri-refresh-line text-base"></i>
+              <z-icon zType="refresh"></z-icon>
               {{ 'PAC.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
             </button>
           </xp-project-empty-state>
@@ -123,11 +129,13 @@
               </div>
 
               <button
+                z-button
+                zType="outline"
                 type="button"
-                class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-divider-regular bg-background-default-subtle px-3 text-xs font-semibold text-text-secondary transition-colors hover:border-divider-deep hover:bg-hover-bg hover:text-text-primary"
+                class="shrink-0 rounded-xl"
                 (click)="requestBind()"
               >
-                <i class="ri-refresh-line text-sm"></i>
+                <z-icon zType="refresh"></z-icon>
                 {{ 'PAC.Project.ChangeMainAgent' | translate: { Default: 'Change Main Agent' } }}
               </button>
             </div>

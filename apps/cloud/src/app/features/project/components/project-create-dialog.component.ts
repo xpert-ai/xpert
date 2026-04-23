@@ -6,7 +6,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { AssistantBindingScope, AssistantCode, createXpertId, type IProjectCore, type IXpert } from '@xpert-ai/contracts'
-import { ZardTabsImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { AssistantBindingService } from '../../../@core/services/assistant-binding.service'
 import { ProjectCoreService } from '../../../@core/services/project-core.service'
 import { injectToastr } from '../../../@core/services/toastr.service'
@@ -18,7 +18,16 @@ type ProjectCreateTabKey = 'basic' | 'assistantBinding'
 @Component({
   standalone: true,
   selector: 'xp-project-create-dialog',
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, ProjectAssistantPickerComponent, ...ZardTabsImports],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ProjectAssistantPickerComponent,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ...ZardFormImports,
+    ...ZardTabsImports
+  ],
   templateUrl: './project-create-dialog.component.html',
   styles: `
     :host {

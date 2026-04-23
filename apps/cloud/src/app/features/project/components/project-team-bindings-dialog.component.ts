@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import type { IProjectCore, IProjectTeamBinding, ITeamDefinition } from '@xpert-ai/contracts'
+import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { injectToastr, TeamBindingService, TeamDefinitionService } from '../../../@core/services'
 import { getErrorMessage } from '../../../@core/types'
@@ -23,7 +24,7 @@ type ProjectTeamBindingDraft = {
 @Component({
   standalone: true,
   selector: 'xp-project-team-bindings-dialog',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSpinComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmSpinComponent, ZardButtonComponent, ZardInputDirective],
   templateUrl: './project-team-bindings-dialog.component.html',
   styles: `
     :host {

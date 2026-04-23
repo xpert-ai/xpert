@@ -28,7 +28,7 @@
     </span>
     @if (teamLabel()) {
       <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
-        <i class="ri-team-line mr-1 text-sm"></i>
+        <z-icon zType="group" class="mr-1 text-sm"></z-icon>
         {{ teamLabel() }}
       </span>
     }
@@ -39,23 +39,22 @@
     }
   </div>
 
-  <div class="mt-4">
+  <div class="mt-4" (click)="$event.stopPropagation()">
     <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-tertiary" for="project-task-status-{{ task().id }}">
       {{ 'PAC.Project.TaskStatus' | translate: { Default: 'Status' } }}
     </label>
-    <select
+    <z-select
       id="project-task-status-{{ task().id }}"
-      class="h-10 w-full rounded-xl border border-divider-regular bg-background-default px-3 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
-      [value]="task().status"
-      [disabled]="!canUpdateStatus()"
-      (click)="$event.stopPropagation()"
-      (change)="onStatusChange($event)"
+      class="w-full"
+      [zValue]="task().status"
+      [zDisabled]="!canUpdateStatus()"
+      (zSelectionChange)="onStatusChange($event)"
     >
       @for (status of statusOptions; track status) {
-        <option [value]="status">
+        <z-select-item [zValue]="status">
           {{ formatProjectLabel(status) }}
-        </option>
+        </z-select-item>
       }
-    </select>
+    </z-select>
   </div>
 </article>
