@@ -1,4 +1,4 @@
-import { TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import { BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER } from './blank-draft.util'
 import {
   applyAgentTemplateWizardState,
@@ -362,6 +362,24 @@ describe('blank template util', () => {
     expect(state.selections.skills).toEqual(['writer'])
     expect(state.selections.repositoryDefault).toBeNull()
     expect(state.selections.middlewares).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER, 'audit'])
+  })
+
+  it('falls back to the primary agent model when the template team model is missing', () => {
+    const draft = createAgentTemplateDraft()
+    draft.team.copilotModel = undefined
+    ;(draft.nodes.find((node) => node.key === 'Agent_primary')!.entity as any).copilotModel = {
+      copilotId: 'copilot-glm',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'glm-5'
+    }
+
+    const state = extractAgentTemplateWizardState(draft)
+
+    expect(state.basic.copilotModel).toEqual({
+      copilotId: 'copilot-glm',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'glm-5'
+    })
   })
 
   it('ignores legacy skill nodes when extracting agent template wizard state', () => {
