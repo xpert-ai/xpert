@@ -31,12 +31,20 @@ import {
   injectCopilotProviderService,
   ModelPropertyKey,
   ModelFeature,
+  ParameterRule,
   ParameterType,
   ProviderModel
 } from '../../../@core'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+
+type ModelParameterRulesResourceValue = {
+  model: string | undefined
+  modelType: AiModelTypeEnum | undefined
+  providerId: string | undefined
+  rules: ParameterRule[]
+}
 
 @Component({
   standalone: true,
@@ -214,15 +222,37 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     }),
     loader: ({ request }) =>
       request.providerId && request.modelType && request.model
-        ? this.copilotProviderService.getModelParameterRules(request.providerId, request.modelType, request.model)
-        : of([])
+        ? this.copilotProviderService.getModelParameterRules(request.providerId, request.modelType, request.model).pipe(
+            map(
+              (rules): ModelParameterRulesResourceValue => ({
+                ...request,
+                rules
+              })
+            )
+          )
+        : of({
+            ...request,
+            rules: []
+          } satisfies ModelParameterRulesResourceValue)
   })
   readonly modelParameterRulesError = computed(() =>
     this.#modelParameterRules.status() === 'error' ? this.#modelParameterRules.error() : null
   )
   readonly modelParameterRules = computed(() =>
-    this.modelParameterRulesError() ? [] : (this.#modelParameterRules.value() ?? [])
+    this.modelParameterRulesError() ? [] : (this.#modelParameterRules.value()?.rules ?? [])
   )
+  readonly hasResolvedCurrentModelParameterRules = computed(() => {
+    if (this.#modelParameterRules.status() !== 'success') {
+      return false
+    }
+
+    const resource = this.#modelParameterRules.value()
+    return (
+      resource?.providerId === this.providerId() &&
+      resource?.modelType === this.modelType() &&
+      resource?.model === this.model()
+    )
+  })
 
   readonly isInherit = computed(() => !this.__copilotModel())
   readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
@@ -247,7 +277,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     effect(() => {
       const value = this.cva.value$()
       const rules = this.modelParameterRules()
-      if (value && rules?.length && this.shouldInitDefaultOptions(value.options)) {
+      if (value && rules?.length && this.hasResolvedCurrentModelParameterRules() && this.shouldInitDefaultOptions(value.options)) {
         const contextSize = this.parseContextSize(value.options?.[ModelPropertyKey.CONTEXT_SIZE])
         this.cva.value$.update((current) => {
           if (!current) {
@@ -309,12 +339,19 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   }
 
   setModel(copilot: ICopilot, model: ProviderModel) {
+    const currentValue = this.cva.value$()
+    const nextModelType = this.modelType()
+    const shouldResetOptions =
+      currentValue?.copilotId !== copilot.id ||
+      currentValue?.modelType !== nextModelType ||
+      currentValue?.model !== model.model
     const nValue = this.withModelContextSize(
       {
-        ...(this.cva.value$() ?? {}),
+        ...(currentValue ?? {}),
+        ...(shouldResetOptions ? { options: undefined } : {}),
         model: model.model,
         copilotId: copilot.id,
-        modelType: this.modelType()
+        modelType: nextModelType
       },
       model
     )
