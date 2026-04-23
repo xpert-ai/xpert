@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 import {
+  IProjectCore,
   API_PREFIX,
   IChatConversation,
   IStorageFile,
@@ -39,7 +40,10 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
-  findLatestByProject(projectId: string, assistantId: string) {
+  findLatestByProject(
+    projectId: IProjectCore['id'] | string,
+    assistantId: IProjectCore['mainAssistantId'] | string
+  ) {
     return this.httpClient.get<IChatConversation | null>(this.apiBaseUrl + `/project/${projectId}/latest`, {
       params: toParams({
         assistantId

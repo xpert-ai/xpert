@@ -1,4 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+import { XpertId } from '../ai/xpert-id.type'
+import { ProjectId } from './project-id.type'
 
 export enum ProjectCoreStatusEnum {
 	Active = 'active',
@@ -6,9 +8,10 @@ export enum ProjectCoreStatusEnum {
 }
 
 export interface IProjectCore extends IBasePerTenantAndOrganizationEntityModel {
+	id?: ProjectId
 	name: string
 	goal: string
 	description?: string
-	mainAssistantId: string | null
+	mainAssistantId: XpertId | null
 	status: ProjectCoreStatusEnum
 }

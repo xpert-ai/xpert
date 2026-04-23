@@ -1,4 +1,4 @@
-import { XpertTypeEnum } from '@xpert-ai/contracts'
+import { XpertTypeEnum, createTeamId } from '@xpert-ai/contracts'
 jest.mock('../xpert/published-xpert-access.service', () => ({
 	PublishedXpertAccessService: class PublishedXpertAccessService {}
 }))
@@ -58,7 +58,7 @@ describe('TeamDefinitionService', () => {
 
 		expect(teams).toEqual([
 			expect.objectContaining({
-				id: 'team-1',
+				id: createTeamId('team-1'),
 				name: 'Delivery Team',
 				source: 'xpert',
 				memberCount: 3,
@@ -68,11 +68,11 @@ describe('TeamDefinitionService', () => {
 	})
 
 	it('projects a single published xpert team definition', async () => {
-		const team = await service.findOne('team-1')
+		const team = await service.findOne(createTeamId('team-1'))
 
 		expect(team).toEqual(
 			expect.objectContaining({
-				id: 'team-1',
+				id: createTeamId('team-1'),
 				memberCount: 2
 			})
 		)

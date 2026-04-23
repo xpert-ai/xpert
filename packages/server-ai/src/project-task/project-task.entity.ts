@@ -27,8 +27,8 @@ export class ProjectTask extends TenantOrganizationBaseEntity implements IProjec
 	@RelationId((it: ProjectTask) => it.project)
 	@IsString()
 	@Index()
-	@Column()
-	projectId: string
+	@Column({ type: 'uuid' })
+	projectId: IProjectTask['projectId']
 
 	@ApiProperty({ type: () => ProjectSprint })
 	@ManyToOne(() => ProjectSprint, {
@@ -42,8 +42,8 @@ export class ProjectTask extends TenantOrganizationBaseEntity implements IProjec
 	@RelationId((it: ProjectTask) => it.sprint)
 	@IsString()
 	@Index()
-	@Column()
-	sprintId: string
+	@Column({ type: 'uuid' })
+	sprintId: IProjectTask['sprintId']
 
 	@ApiProperty({ type: () => ProjectSwimlane })
 	@ManyToOne(() => ProjectSwimlane, {
@@ -104,5 +104,5 @@ export class ProjectTask extends TenantOrganizationBaseEntity implements IProjec
 	@IsString()
 	@Index()
 	@Column({ type: 'uuid', nullable: true })
-	teamId?: string | null
+	teamId?: IProjectTask['teamId']
 }

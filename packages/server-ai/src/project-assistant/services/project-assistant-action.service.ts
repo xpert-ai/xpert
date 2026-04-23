@@ -1,21 +1,25 @@
 import {
+	createProjectId,
+	createSprintId,
 	IProjectAssistantActionAccepted,
 	IProjectAssistantActionRequest,
-	ProjectAssistantActionTypeEnum
+	ProjectAssistantActionTypeEnum,
+	ProjectId
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
 import { ConflictException, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {
 	AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
 	AgentChatDispatchPayload,
-	HandoffMessage
+	HandoffMessage,
+	RequestContext
 } from '@xpert-ai/plugin-sdk'
 import { randomUUID } from 'crypto'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { ChatConversationService } from '../../chat-conversation/conversation.service'
 import { HandoffQueueService } from '../../handoff/message-queue.service'
 import { AGENT_CHAT_CALLBACK_NOOP_MESSAGE_TYPE } from '../../handoff/plugins/agent-chat/agent-chat-callback-noop.processor'
+import { normalizeOptionalBrandedId, normalizeRequiredBrandedId } from '../../shared/utils'
 import { ProjectAssistantService } from './project-assistant.service'
 import { buildManageBacklogPrompt } from '../prompts/manage-backlog.prompt'
 
@@ -28,20 +32,26 @@ export class ProjectAssistantActionService {
 		private readonly commandBus: CommandBus
 	) {}
 
-	async execute(projectId: string, request: IProjectAssistantActionRequest): Promise<IProjectAssistantActionAccepted> {
+	async execute(projectId: string | ProjectId, request: IProjectAssistantActionRequest): Promise<IProjectAssistantActionAccepted> {
+		const resolvedProjectId = normalizeRequiredBrandedId(projectId, 'projectId', createProjectId)
+		const resolvedSprintId =
+			normalizeOptionalBrandedId(request.sprintId, 'sprintId', createSprintId, {
+				blankAs: 'null'
+			}) ?? null
+
 		if (request.actionType !== ProjectAssistantActionTypeEnum.ManageBacklog) {
 			throw new ConflictException(`Unsupported project assistant action: ${request.actionType}`)
 		}
 
-		const project = await this.projectAssistantService.resolveProject(projectId)
+		const project = await this.projectAssistantService.resolveProject(resolvedProjectId)
 		if (!project.mainAssistantId) {
 			throw new ConflictException('Project main assistant is not configured')
 		}
 
-		let sprint = await this.projectAssistantService.resolveSprint(projectId, request.sprintId)
+		let sprint = await this.projectAssistantService.resolveSprint(resolvedProjectId, resolvedSprintId)
 		if (!sprint && request.bootstrapSprint) {
 			sprint = await this.projectAssistantService.createProjectSprint({
-				projectId,
+				projectId: resolvedProjectId,
 				goal: request.bootstrapSprint.goal,
 				strategyType: request.bootstrapSprint.strategyType
 			})
@@ -51,9 +61,12 @@ export class ProjectAssistantActionService {
 			throw new ConflictException('Project does not have a sprint to manage yet')
 		}
 
-		const boundTeams = await this.projectAssistantService.listProjectTeams(projectId)
+		const boundTeams = await this.projectAssistantService.listProjectTeams(resolvedProjectId)
 
-		const latestConversation = await this.conversationService.findLatestByProject(projectId, project.mainAssistantId)
+		const latestConversation = await this.conversationService.findLatestByProject(
+			resolvedProjectId,
+			project.mainAssistantId
+		)
 		if (latestConversation?.status === 'busy') {
 			throw new ConflictException('Project assistant is already processing another backlog management pass')
 		}
@@ -64,7 +77,7 @@ export class ProjectAssistantActionService {
 				new ChatConversationUpsertCommand({
 					status: 'idle',
 					xpertId: project.mainAssistantId,
-					projectId,
+					projectId: resolvedProjectId,
 					from: 'job'
 				})
 			))
@@ -84,7 +97,7 @@ export class ProjectAssistantActionService {
 				request: {
 					action: 'send',
 					conversationId: conversation.id,
-					projectId,
+					projectId: resolvedProjectId,
 						message: {
 							input: {
 								input: buildManageBacklogPrompt({

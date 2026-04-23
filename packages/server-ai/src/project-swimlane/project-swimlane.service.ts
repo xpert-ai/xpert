@@ -6,7 +6,8 @@ import {
 	ProjectExecutionEnvironmentType,
 	ProjectSwimlaneKindEnum,
 	ProjectSystemSwimlaneKeyEnum,
-	ProjectSprintStrategyEnum
+	ProjectSprintStrategyEnum,
+	SprintId
 } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable } from '@nestjs/common'
@@ -87,7 +88,7 @@ export class ProjectSwimlaneService extends TenantOrganizationAwareCrudService<P
 		}
 	}
 
-	async ensureReservedBacklogLane(sprintId: string, manager?: EntityManager) {
+	async ensureReservedBacklogLane(sprintId: SprintId, manager?: EntityManager) {
 		const sprintRepository = manager?.getRepository(ProjectSprint) ?? this.sprintRepository
 		const repository = manager?.getRepository(ProjectSwimlane) ?? this.repository
 		const sprint = await sprintRepository.findOneBy({ id: sprintId })

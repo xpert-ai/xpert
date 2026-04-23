@@ -1,9 +1,10 @@
-import { IProjectCore, ProjectCoreStatusEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+import { createXpertId, IProjectCore, ProjectCoreStatusEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import { normalizeRequiredBrandedId } from '../shared/utils'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { ProjectCore } from './project-core.entity'
 
@@ -21,7 +22,14 @@ export class ProjectCoreService extends TenantOrganizationAwareCrudService<Proje
 		const name = entity.name?.trim()
 		const goal = entity.goal?.trim()
 		const description = entity.description?.trim()
-		const mainAssistantId = entity.mainAssistantId?.trim()
+		const mainAssistantId = normalizeRequiredBrandedId(
+			entity.mainAssistantId,
+			'mainAssistantId',
+			createXpertId,
+			{
+				missingMessage: 'mainAssistantId is required for a project'
+			}
+		)
 
 		if (!name) {
 			throw new BadRequestException('name is required for a project')
@@ -29,10 +37,6 @@ export class ProjectCoreService extends TenantOrganizationAwareCrudService<Proje
 
 		if (!goal) {
 			throw new BadRequestException('goal is required for a project')
-		}
-
-		if (!mainAssistantId) {
-			throw new BadRequestException('mainAssistantId is required for a project')
 		}
 
 		if (entity.status && entity.status !== ProjectCoreStatusEnum.Active) {
@@ -84,16 +88,16 @@ export class ProjectCoreService extends TenantOrganizationAwareCrudService<Proje
 			nextEntity.description = description || null
 		}
 
-		if ('mainAssistantId' in partialEntity) {
-			if (typeof partialEntity.mainAssistantId !== 'string') {
-				throw new BadRequestException('mainAssistantId cannot be cleared once it is set')
-			}
-
-			const mainAssistantId = partialEntity.mainAssistantId.trim()
-			if (!mainAssistantId) {
-				throw new BadRequestException('mainAssistantId is required for a project')
-			}
-
+		if (Object.prototype.hasOwnProperty.call(partialEntity, 'mainAssistantId')) {
+			const mainAssistantId = normalizeRequiredBrandedId(
+				partialEntity['mainAssistantId'],
+				'mainAssistantId',
+				createXpertId,
+				{
+					missingMessage: 'mainAssistantId cannot be cleared once it is set',
+					blankMessage: 'mainAssistantId is required for a project'
+				}
+			)
 			await this.validateMainAssistant(mainAssistantId)
 			nextEntity.mainAssistantId = mainAssistantId
 		}
@@ -102,7 +106,7 @@ export class ProjectCoreService extends TenantOrganizationAwareCrudService<Proje
 		return this.findOne(id)
 	}
 
-	private async validateMainAssistant(mainAssistantId: string) {
+	private async validateMainAssistant(mainAssistantId: IProjectCore['mainAssistantId'] | string) {
 		const assistant = await this.publishedXpertAccessService.getAccessiblePublishedXpert(mainAssistantId)
 		if (assistant.type !== XpertTypeEnum.Agent || assistant.latest !== true) {
 			throw new BadRequestException('Selected main assistant must be a published agent Xpert')

@@ -28,8 +28,8 @@ export class ProjectSwimlane extends TenantOrganizationBaseEntity implements IPr
 	@RelationId((it: ProjectSwimlane) => it.project)
 	@IsString()
 	@Index()
-	@Column()
-	projectId: string
+	@Column({ type: 'uuid' })
+	projectId: IProjectSwimlane['projectId']
 
 	@ApiProperty({ type: () => ProjectSprint })
 	@ManyToOne(() => ProjectSprint, {
@@ -43,8 +43,8 @@ export class ProjectSwimlane extends TenantOrganizationBaseEntity implements IPr
 	@RelationId((it: ProjectSwimlane) => it.sprint)
 	@IsString()
 	@Index()
-	@Column()
-	sprintId: string
+	@Column({ type: 'uuid' })
+	sprintId: IProjectSwimlane['sprintId']
 
 	@ApiProperty({ type: () => String })
 	@IsString()

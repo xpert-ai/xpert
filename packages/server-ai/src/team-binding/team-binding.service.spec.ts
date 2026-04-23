@@ -1,4 +1,5 @@
 import { ConflictException } from '@nestjs/common'
+import { createTeamId } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 jest.mock('../project-core/project-core.service', () => ({
 	ProjectCoreService: class ProjectCoreService {}
@@ -48,7 +49,7 @@ describe('TeamBindingService', () => {
 			findOne: jest.fn().mockResolvedValue({ id: 'project-1' })
 		}
 		teamDefinitionService = {
-			findOne: jest.fn().mockResolvedValue({ id: 'team-1', name: 'Delivery Team' })
+			findOne: jest.fn().mockResolvedValue({ id: createTeamId('team-1'), name: 'Delivery Team' })
 		}
 
 		service = new TeamBindingService(
@@ -62,14 +63,14 @@ describe('TeamBindingService', () => {
 	it('creates a project team binding with an appended sort order', async () => {
 		const binding = await service.create({
 			projectId: 'project-1',
-			teamId: 'team-1',
+			teamId: createTeamId('team-1'),
 			role: 'Delivery'
 		})
 
 		expect(binding).toEqual(
 			expect.objectContaining({
 				projectId: 'project-1',
-				teamId: 'team-1',
+				teamId: createTeamId('team-1'),
 				role: 'Delivery',
 				sortOrder: 0
 			})
@@ -80,13 +81,13 @@ describe('TeamBindingService', () => {
 		repository.findOne.mockResolvedValueOnce({
 			id: 'binding-existing',
 			projectId: 'project-1',
-			teamId: 'team-1'
+			teamId: createTeamId('team-1')
 		})
 
 		await expect(
 			service.create({
 				projectId: 'project-1',
-				teamId: 'team-1'
+				teamId: createTeamId('team-1')
 			})
 		).rejects.toBeInstanceOf(ConflictException)
 	})
@@ -95,7 +96,7 @@ describe('TeamBindingService', () => {
 		jest.spyOn(service, 'findOne').mockResolvedValueOnce({
 			id: 'binding-1',
 			projectId: 'project-1',
-			teamId: 'team-1',
+			teamId: createTeamId('team-1'),
 			sortOrder: 0
 		} as ProjectTeamBinding)
 		projectTaskRepository.countBy.mockResolvedValueOnce(2)

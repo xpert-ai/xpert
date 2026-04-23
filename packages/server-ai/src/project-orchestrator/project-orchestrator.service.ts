@@ -1,4 +1,4 @@
-import { ProjectSwimlaneKindEnum, ProjectTaskStatusEnum } from '@xpert-ai/contracts'
+import { ProjectSwimlaneKindEnum, ProjectTaskStatusEnum, SprintId } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -102,7 +102,7 @@ export class ProjectOrchestratorService {
 		private readonly taskRepository: Repository<ProjectTask>
 	) {}
 
-	async getSprintExecutionSnapshot(sprintId: string) {
+	async getSprintExecutionSnapshot(sprintId: SprintId) {
 		const sprint = await this.sprintRepository.findOneBy({ id: sprintId })
 		if (!sprint) {
 			throw new BadRequestException(`Sprint ${sprintId} was not found`)
@@ -116,7 +116,7 @@ export class ProjectOrchestratorService {
 		return buildSprintExecutionSnapshot(sprint, swimlanes, tasks)
 	}
 
-	async pickRunnableTasks(sprintId: string) {
+	async pickRunnableTasks(sprintId: SprintId) {
 		const snapshot = await this.getSprintExecutionSnapshot(sprintId)
 		return snapshot.runnableTasks.map(({ task }) => task)
 	}

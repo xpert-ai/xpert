@@ -13,8 +13,26 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Never use `as any`.
 - Never cast `unknown` or broad values to `Record<string, unknown>`, and never introduce generic `asRecord()`-style helpers to bypass type checking.
 - Narrow `unknown` values with explicit type guards and property-level structural checks; only cast to a specific interface after those checks.
+- For branded ID types, keep only the shared primitives in `packages/contracts/src/types.ts`, such as `Brand`, `EntityId`, and base `ID`.
+- Define concrete branded IDs inside their domain folders, such as `packages/contracts/src/project/project-id.type.ts`, `packages/contracts/src/team/team-id.type.ts`, and `packages/contracts/src/ai/xpert-id.type.ts`.
+- At I/O boundaries, convert raw strings to branded IDs with domain factory helpers like `createProjectId()` or `createXpertId()`; do not scatter inline branded casts throughout feature code.
+- Treat middleware tool schemas, controller params, DTOs, route params, form values, and other external inputs as raw `string` IDs. Convert them once at the adapter boundary before calling domain services.
+- In NestJS services, do not hand-roll repeated helpers like `normalizeRequiredProjectId()` for each field. Prefer the shared branded-id normalizers in `packages/server-ai/src/shared/utils/branded-id.ts`, then pass branded values into TypeORM create/update/query calls.
+- Be especially careful with `QueryDeepPartialEntity` and `FindOptionsWhere`: branded IDs should be normalized before building these objects, rather than trimmed or narrowed inline on the TypeORM generic payload.
+- In TypeORM entities, any branded string ID field must declare an explicit column type like `@Column({ type: 'uuid' })`. Do not rely on reflected metadata for branded fields, because Nest/TypeORM will see them as `Object`.
 - Never guess types, categories, or payload meaning from names, display text, localized copy, sample data, or incidental field combinations. Logic that depends on machine-readable distinctions must use explicit typed fields defined in shared contracts, such as discriminated unions or a stable `type`.
 - If the required discriminator or type is missing, do not invent one locally and do not hard-code heuristic detection. Add the type to the shared contract first, or pause and confirm the new type before implementing downstream filtering, routing, rendering, or business logic.
+
+## Boilerplate
+
+- Minimize boilerplate aggressively, but do it by extracting repeated logic into the nearest shared layer, not by adding thin wrappers everywhere.
+- Before adding a new helper, service method, or component abstraction, check whether an existing shared utility, base service, facade, or domain helper already solves at least 80 percent of the need.
+- If the same normalization, validation, mapping, or query-building pattern appears in two or more places within the same subdomain, extract it in the same change instead of copying it again.
+- Keep one-off code inline when it is truly local; do not introduce abstractions whose only job is renaming a single call or moving 2-3 obvious lines out of sight.
+- Prefer explicit input-to-domain mappers at boundaries over repeating ad hoc `trim`, defaulting, and guard logic across create, update, and query paths.
+- For branded IDs and similar boundary-heavy rules, centralize the conversion helpers once and reuse them; do not create per-service variants of the same normalizer.
+- For middleware and controllers, prefer one domain-specific boundary resolver per adapter, such as `resolveProjectToolScope()`, instead of normalizing the same IDs separately inside each handler.
+- When reducing boilerplate, prefer small, composable utilities with domain names over generic meta-helpers that hide types, validation rules, or ownership.
 
 ## Backend (NestJS)
 

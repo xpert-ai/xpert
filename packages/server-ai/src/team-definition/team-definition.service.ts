@@ -1,4 +1,4 @@
-import { ITeamDefinition, XpertTypeEnum } from '@xpert-ai/contracts'
+import { createTeamId, createXpertId, ITeamDefinition, XpertTypeEnum } from '@xpert-ai/contracts'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { Xpert } from '../xpert/xpert.entity'
@@ -22,7 +22,7 @@ export class TeamDefinitionService {
 		return xperts.map((xpert) => this.toTeamDefinition(xpert))
 	}
 
-	async findOne(id: string): Promise<ITeamDefinition> {
+	async findOne(id: ITeamDefinition['id'] | string): Promise<ITeamDefinition> {
 		const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
 			relations: ['agents']
 		})
@@ -36,7 +36,7 @@ export class TeamDefinitionService {
 
 	private toTeamDefinition(xpert: Xpert): ITeamDefinition {
 		return {
-			id: xpert.id,
+			id: createTeamId(xpert.id),
 			tenantId: xpert.tenantId,
 			organizationId: xpert.organizationId,
 			createdAt: xpert.createdAt,
@@ -49,7 +49,7 @@ export class TeamDefinitionService {
 			avatar: xpert.avatar,
 			source: 'xpert',
 			memberCount: 1 + (xpert.agents?.length ?? 0),
-			leadAssistantId: xpert.id
+			leadAssistantId: createXpertId(xpert.id)
 		}
 	}
 }

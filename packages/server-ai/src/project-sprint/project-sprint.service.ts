@@ -72,7 +72,7 @@ export class ProjectSprintService extends TenantOrganizationAwareCrudService<Pro
 		return this.findOne(id)
 	}
 
-	private async ensureProjectExists(projectId: string) {
+	private async ensureProjectExists(projectId: IProjectSprint['projectId']) {
 		const project = await this.projectCoreRepository.findOneBy({ id: projectId })
 		if (!project) {
 			throw new BadRequestException(`Project ${projectId} was not found`)

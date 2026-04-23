@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
-import { ProjectSwimlaneKindEnum, ProjectTaskStatusEnum } from '@xpert-ai/contracts'
+import { ProjectSwimlaneKindEnum, ProjectTaskStatusEnum, createTeamId } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
 import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
@@ -149,7 +149,7 @@ describe('ProjectTaskService', () => {
 				title: 'Implement feature',
 				status: ProjectTaskStatusEnum.Todo,
 				dependencies: [],
-				teamId: 'team-1'
+				teamId: createTeamId('team-1')
 			})
 		).rejects.toBeInstanceOf(BadRequestException)
 	})
@@ -158,7 +158,7 @@ describe('ProjectTaskService', () => {
 		teamBindingRepository.findOne.mockResolvedValueOnce({
 			id: 'binding-1',
 			projectId: 'project-1',
-			teamId: 'team-1'
+			teamId: createTeamId('team-1')
 		})
 
 		await service.create({
@@ -168,12 +168,12 @@ describe('ProjectTaskService', () => {
 			title: 'Implement feature',
 			status: ProjectTaskStatusEnum.Todo,
 			dependencies: [],
-			teamId: 'team-1'
+			teamId: createTeamId('team-1')
 		})
 
 		expect(taskRepository.create).toHaveBeenCalledWith(
 			expect.objectContaining({
-				teamId: 'team-1'
+				teamId: createTeamId('team-1')
 			})
 		)
 	})

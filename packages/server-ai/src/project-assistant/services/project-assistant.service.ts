@@ -8,7 +8,10 @@ import {
 	ProjectSprintStatusEnum,
 	ProjectSprintStrategyEnum,
 	ProjectSwimlaneKindEnum,
-	ProjectTaskStatusEnum
+	ProjectTaskStatusEnum,
+	ProjectId,
+	SprintId,
+	TeamId
 } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -63,11 +66,11 @@ export class ProjectAssistantService {
 		private readonly taskRepository: Repository<ProjectTask>
 	) {}
 
-	async resolveProject(projectId: string) {
+	async resolveProject(projectId: ProjectId) {
 		return this.projectCoreService.findOne(projectId)
 	}
 
-	async resolveSprint(projectId: string, sprintId?: string | null) {
+	async resolveSprint(projectId: ProjectId, sprintId?: SprintId | null) {
 		if (sprintId) {
 			const sprint = await this.projectSprintService.findOne(sprintId)
 			if (sprint.projectId !== projectId) {
@@ -94,7 +97,7 @@ export class ProjectAssistantService {
 		)
 	}
 
-	async resolveContext(projectId: string, sprintId?: string | null): Promise<ProjectAssistantResolvedContext> {
+	async resolveContext(projectId: ProjectId, sprintId?: SprintId | null): Promise<ProjectAssistantResolvedContext> {
 		const project = await this.resolveProject(projectId)
 		const boundTeams = await this.listProjectTeams(projectId)
 		const sprint = await this.resolveSprint(projectId, sprintId)
@@ -146,7 +149,7 @@ export class ProjectAssistantService {
 		}
 	}
 
-	async getProjectContext(projectId: string, sprintId?: string | null) {
+	async getProjectContext(projectId: ProjectId, sprintId?: SprintId | null) {
 		const context = await this.resolveContext(projectId, sprintId)
 		return {
 			project: context.project,
@@ -159,7 +162,7 @@ export class ProjectAssistantService {
 		}
 	}
 
-	async listProjectTeams(projectId: string): Promise<ProjectBoundTeam[]> {
+	async listProjectTeams(projectId: ProjectId): Promise<ProjectBoundTeam[]> {
 		const bindingsResult = await this.teamBindingService.listByProject(projectId)
 		const bindings = bindingsResult.items ?? []
 		if (!bindings.length) {
@@ -183,13 +186,13 @@ export class ProjectAssistantService {
 	}
 
 	async listProjectTasks(input: {
-		projectId: string
-		sprintId?: string
+		projectId: ProjectId
+		sprintId?: SprintId | null
 		laneId?: string
 		laneKind?: ProjectSwimlaneKindEnum
 		status?: ProjectTaskStatusEnum
 		query?: string
-		teamId?: string
+		teamId?: TeamId
 	}) {
 		const tasks = await this.projectTaskService.listByProjectContext({
 			projectId: input.projectId,
@@ -219,8 +222,8 @@ export class ProjectAssistantService {
 	}
 
 	async createProjectTasks(input: {
-		projectId: string
-		sprintId?: string
+		projectId: ProjectId
+		sprintId?: SprintId | null
 		laneId?: string
 		tasks: Array<
 			Pick<IProjectTask, 'title'> &
@@ -260,7 +263,7 @@ export class ProjectAssistantService {
 	}
 
 	async updateProjectTasks(input: {
-		projectId: string
+		projectId: ProjectId
 		tasks: Array<
 			Pick<IProjectTask, 'id'> &
 				Partial<
@@ -293,7 +296,7 @@ export class ProjectAssistantService {
 	}
 
 	async bindProjectTeams(input: {
-		projectId: string
+		projectId: ProjectId
 		teams: Array<Pick<IProjectTeamBinding, 'teamId'> & Partial<Pick<IProjectTeamBinding, 'role'>>>
 	}) {
 		await this.resolveProject(input.projectId)
@@ -326,7 +329,7 @@ export class ProjectAssistantService {
 	}
 
 	async updateProjectTeamBindings(input: {
-		projectId: string
+		projectId: ProjectId
 		bindings: Array<Pick<IProjectTeamBinding, 'id'> & Partial<Pick<IProjectTeamBinding, 'role' | 'sortOrder'>>>
 	}) {
 		const updated: ProjectBoundTeam[] = []
@@ -354,7 +357,7 @@ export class ProjectAssistantService {
 		return updated
 	}
 
-	async removeProjectTeamBinding(projectId: string, bindingId: string) {
+	async removeProjectTeamBinding(projectId: ProjectId, bindingId: string) {
 		const binding = await this.teamBindingService.findOne(bindingId)
 		if (binding.projectId !== projectId) {
 			throw new BadRequestException('Team binding does not belong to the selected project')
@@ -367,12 +370,12 @@ export class ProjectAssistantService {
 		}
 	}
 
-	async reorderProjectTasks(projectId: string, swimlaneId: string, orderedTaskIds: string[]) {
+	async reorderProjectTasks(projectId: ProjectId, swimlaneId: string, orderedTaskIds: string[]) {
 		await this.loadProjectLane(projectId, swimlaneId)
 		return this.projectTaskService.reorderInLane(swimlaneId, orderedTaskIds)
 	}
 
-	async moveProjectTasks(projectId: string, taskIds: string[], targetSwimlaneId: string) {
+	async moveProjectTasks(projectId: ProjectId, taskIds: string[], targetSwimlaneId: string) {
 		await this.loadProjectLane(projectId, targetSwimlaneId)
 		for (const taskId of taskIds) {
 			const task = await this.projectTaskService.findOne(taskId)
@@ -385,13 +388,13 @@ export class ProjectAssistantService {
 	}
 
 	async createProjectSprint(input: {
-		projectId: string
+		projectId: ProjectId
 		goal: string
 		strategyType: ProjectSprintStrategyEnum
 		status?: ProjectSprintStatusEnum
 		startAt?: Date
 		endAt?: Date
-		carryOverSprintId?: string
+		carryOverSprintId?: SprintId
 	}) {
 		const sprint = await this.projectSprintService.create({
 			projectId: input.projectId,
@@ -420,8 +423,8 @@ export class ProjectAssistantService {
 	}
 
 	async updateProjectSprint(input: {
-		projectId: string
-		sprintId: string
+		projectId: ProjectId
+		sprintId: SprintId
 		goal?: string
 		status?: ProjectSprintStatusEnum
 		retrospective?: string
@@ -447,7 +450,7 @@ export class ProjectAssistantService {
 	}
 
 	async updateProjectSwimlanes(input: {
-		projectId: string
+		projectId: ProjectId
 		swimlanes: Array<
 			Pick<IProjectSwimlane, 'id'> &
 				Partial<
@@ -482,12 +485,12 @@ export class ProjectAssistantService {
 		return updated
 	}
 
-	async getProjectExecutionSnapshot(projectId: string, sprintId?: string) {
+	async getProjectExecutionSnapshot(projectId: ProjectId, sprintId?: SprintId | null) {
 		const context = await this.resolveContext(projectId, sprintId)
 		return context.executionSnapshot
 	}
 
-	private async loadProjectLane(projectId: string, swimlaneId: string) {
+	private async loadProjectLane(projectId: ProjectId, swimlaneId: string) {
 		const swimlane = await this.projectSwimlaneService.findOne(swimlaneId)
 		if (swimlane.projectId !== projectId) {
 			throw new BadRequestException('Swimlane does not belong to the selected project')

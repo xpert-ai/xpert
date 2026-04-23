@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { IProjectSprint } from '@xpert-ai/contracts'
+import { createProjectId, IProjectSprint } from '@xpert-ai/contracts'
 import { API_PREFIX, OrganizationBaseCrudService, PaginationParams } from '@xpert-ai/cloud/state'
 
 export const API_PROJECT_SPRINT = API_PREFIX + '/project-sprint'
@@ -12,12 +12,12 @@ export class ProjectSprintService extends OrganizationBaseCrudService<IProjectSp
     super(API_PROJECT_SPRINT)
   }
 
-  listByProject(projectId: string, options?: PaginationParams<IProjectSprint>) {
+  listByProject(projectId: IProjectSprint['projectId'] | string, options?: PaginationParams<IProjectSprint>) {
     return this.getAll({
       ...options,
       where: {
         ...(options?.where ?? {}),
-        projectId
+        projectId: typeof projectId === 'string' ? createProjectId(projectId) : projectId
       }
     })
   }

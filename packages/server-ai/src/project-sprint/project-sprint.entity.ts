@@ -12,6 +12,8 @@ import { ProjectCore } from '../project-core/project-core.entity'
 
 @Entity('project_sprint')
 export class ProjectSprint extends TenantOrganizationBaseEntity implements IProjectSprint {
+	declare id?: IProjectSprint['id']
+
 	@ApiProperty({ type: () => ProjectCore })
 	@ManyToOne(() => ProjectCore, {
 		onUpdate: 'CASCADE',
@@ -24,8 +26,8 @@ export class ProjectSprint extends TenantOrganizationBaseEntity implements IProj
 	@RelationId((it: ProjectSprint) => it.project)
 	@IsString()
 	@Index()
-	@Column()
-	projectId: string
+	@Column({ type: 'uuid' })
+	projectId: IProjectSprint['projectId']
 
 	@ApiProperty({ type: () => String })
 	@IsString()

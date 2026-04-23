@@ -14,6 +14,8 @@ export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) 
  * @docsSubcategory Identifiers
  */
 export type ID = string;
+export type Brand<K, T extends string> = K & { readonly __brand: T }
+export type EntityId<T extends string> = Brand<ID, T>
 
 export interface I18nObject {
   en_US: string

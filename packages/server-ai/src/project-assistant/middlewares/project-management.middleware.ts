@@ -1,11 +1,16 @@
 import { tool } from '@langchain/core/tools'
 import { Command, getCurrentTaskInput } from '@langchain/langgraph'
 import {
+	createProjectId,
+	createSprintId,
+	createTeamId,
 	getToolCallIdFromConfig,
 	ProjectAgentRole,
+	ProjectId,
 	ProjectExecutionEnvironmentType,
 	ProjectSprintStatusEnum,
 	ProjectSprintStrategyEnum,
+	SprintId,
 	ProjectSwimlaneKindEnum,
 	ProjectTaskStatusEnum,
 	TAgentMiddlewareMeta
@@ -19,6 +24,7 @@ import {
 	PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
+import { normalizeOptionalBrandedId, normalizeRequiredBrandedId } from '../../shared/utils'
 import { ProjectAssistantService } from '../services/project-assistant.service'
 
 const PROJECT_MANAGEMENT_MIDDLEWARE_PROVIDER = 'project_management'
@@ -44,6 +50,10 @@ const stateSchema = z.object({
 })
 
 type ProjectManagementState = z.infer<typeof stateSchema>
+type ProjectManagementResolvedScope = {
+	projectId: ProjectId
+	sprintId: SprintId | null
+}
 
 @Injectable()
 @AgentMiddlewareStrategy(PROJECT_MANAGEMENT_MIDDLEWARE_PROVIDER)
@@ -90,8 +100,8 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 		return [
 			tool(
 				async (input, config) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
-					const result = await this.projectAssistantService.getProjectContext(resolved.projectId, input.sprintId ?? resolved.sprintId)
+					const resolved = this.resolveProjectScope(input.projectId, input.sprintId, options, context, this.readState())
+					const result = await this.projectAssistantService.getProjectContext(resolved.projectId, resolved.sprintId)
 					return this.withStateUpdate(
 						{
 							projectId: result.project.id,
@@ -116,15 +126,15 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, input.sprintId, options, context, this.readState())
 					return this.projectAssistantService.listProjectTasks({
 						projectId: resolved.projectId,
-						sprintId: input.sprintId ?? resolved.sprintId,
+						sprintId: resolved.sprintId,
 						laneId: input.laneId,
 						laneKind: input.laneKind,
 						status: input.status,
 						query: input.query,
-						teamId: input.teamId
+						teamId: this.normalizeOptionalTeamId(input.teamId, 'undefined')
 					})
 				},
 				{
@@ -143,25 +153,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, input.sprintId, options, context, this.readState())
 					return this.projectAssistantService.createProjectTasks({
 						projectId: resolved.projectId,
-						sprintId: input.sprintId ?? resolved.sprintId,
+						sprintId: resolved.sprintId,
 						laneId: input.laneId,
-						tasks: input.tasks.map((task) => {
-							if (!task.title) {
-								throw new Error('Task title is required')
-							}
-
-							return {
-								title: task.title,
-								description: task.description,
-								assignedAgentId: task.assignedAgentId,
-								status: task.status,
-								dependencies: task.dependencies,
-								teamId: task.teamId
-							}
-						})
+						tasks: input.tasks.map((task) => this.normalizeCreateTaskInput(task))
 					})
 				},
 				{
@@ -186,10 +183,10 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.updateProjectTasks({
 						projectId: resolved.projectId,
-						tasks: input.tasks
+						tasks: input.tasks.map((task) => this.normalizeUpdateTaskInput(task))
 					})
 				},
 				{
@@ -213,7 +210,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.reorderProjectTasks(
 						resolved.projectId,
 						input.laneId,
@@ -232,7 +229,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.moveProjectTasks(
 						resolved.projectId,
 						input.taskIds,
@@ -251,7 +248,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input, config) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					const sprint = await this.projectAssistantService.createProjectSprint({
 						projectId: resolved.projectId,
 						goal: input.goal,
@@ -259,7 +256,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						status: input.status,
 						startAt: input.startAt ? new Date(input.startAt) : undefined,
 						endAt: input.endAt ? new Date(input.endAt) : undefined,
-						carryOverSprintId: input.carryOverSprintId
+						carryOverSprintId: this.normalizeOptionalSprintId(input.carryOverSprintId) ?? undefined
 					})
 					const nextContext = await this.projectAssistantService.resolveContext(resolved.projectId, sprint.id)
 					return this.withStateUpdate(
@@ -291,10 +288,10 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.updateProjectSprint({
 						projectId: resolved.projectId,
-						sprintId: input.sprintId,
+						sprintId: normalizeRequiredBrandedId(input.sprintId, 'sprintId', createSprintId),
 						goal: input.goal,
 						status: input.status,
 						retrospective: input.retrospective,
@@ -318,7 +315,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.listProjectTeams(resolved.projectId)
 				},
 				{
@@ -331,19 +328,13 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.bindProjectTeams({
 						projectId: resolved.projectId,
-						teams: input.teams.map((team) => {
-							if (!team.teamId) {
-								throw new Error('teamId is required')
-							}
-
-							return {
-								teamId: team.teamId,
-								role: team.role
-							}
-						})
+						teams: input.teams.map((team) => ({
+							teamId: normalizeRequiredBrandedId(team.teamId, 'teamId', createTeamId),
+							role: team.role
+						}))
 					})
 				},
 				{
@@ -362,7 +353,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.updateProjectTeamBindings({
 						projectId: resolved.projectId,
 						bindings: input.bindings
@@ -385,7 +376,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.removeProjectTeamBinding(resolved.projectId, input.bindingId)
 				},
 				{
@@ -399,7 +390,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
 					return this.projectAssistantService.updateProjectSwimlanes({
 						projectId: resolved.projectId,
 						swimlanes: input.swimlanes
@@ -426,10 +417,10 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(input.projectId, input.sprintId, options, context, this.readState())
 					return this.projectAssistantService.getProjectExecutionSnapshot(
 						resolved.projectId,
-						input.sprintId ?? resolved.sprintId
+						resolved.sprintId
 					)
 				},
 				{
@@ -444,30 +435,85 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 		]
 	}
 
-	private resolveProjectRuntime(
+	private resolveProjectScope(
 		projectId: string | undefined,
+		sprintId: string | undefined,
 		options: z.infer<typeof configurableSchema>,
 		context: IAgentMiddlewareContext,
 		runtimeState: ProjectManagementState | null
-	) {
-		const resolvedProjectId =
+	): ProjectManagementResolvedScope {
+		const rawProjectId =
 			projectId ??
 			this.asString(context.projectId) ??
 			options.projectId ??
 			runtimeState?.projectId ??
 			null
-		const resolvedSprintId =
-			options.defaultSprintId ??
+		const rawSprintId =
+			sprintId ??
 			runtimeState?.sprintId ??
+			options.defaultSprintId ??
 			null
 
-		if (!resolvedProjectId) {
+		if (!rawProjectId) {
 			throw new Error('project_management middleware requires a projectId from runtime context or middleware options')
 		}
 
 		return {
-			projectId: resolvedProjectId,
-			sprintId: resolvedSprintId
+			projectId: normalizeRequiredBrandedId(rawProjectId, 'projectId', createProjectId),
+			sprintId: this.normalizeOptionalSprintId(rawSprintId) ?? null
+		}
+	}
+
+	private normalizeOptionalSprintId(value: unknown) {
+		return normalizeOptionalBrandedId(value, 'sprintId', createSprintId, {
+			blankAs: 'null'
+		})
+	}
+
+	private normalizeOptionalTeamId(value: unknown, blankAs: 'null' | 'undefined') {
+		return normalizeOptionalBrandedId(value, 'teamId', createTeamId, {
+			blankAs
+		})
+	}
+
+	private normalizeCreateTaskInput(task: {
+		title?: string
+		description?: string
+		assignedAgentId?: string
+		status?: ProjectTaskStatusEnum
+		dependencies?: string[]
+		teamId?: string | null
+	}) {
+		if (!task.title) {
+			throw new Error('Task title is required')
+		}
+
+		return {
+			title: task.title,
+			description: task.description,
+			assignedAgentId: task.assignedAgentId,
+			status: task.status,
+			dependencies: task.dependencies,
+			teamId: this.normalizeOptionalTeamId(task.teamId, 'null')
+		}
+	}
+
+	private normalizeUpdateTaskInput(task: {
+		id?: string
+		title?: string
+		description?: string
+		assignedAgentId?: string
+		status?: ProjectTaskStatusEnum
+		dependencies?: string[]
+		teamId?: string | null
+	}) {
+		if (!task.id) {
+			throw new Error('Task id is required')
+		}
+
+		return {
+			...task,
+			teamId: this.normalizeOptionalTeamId(task.teamId, 'null')
 		}
 	}
 

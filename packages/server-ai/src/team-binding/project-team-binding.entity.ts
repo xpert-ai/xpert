@@ -10,8 +10,8 @@ export class ProjectTeamBinding extends TenantOrganizationBaseEntity implements 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@Index()
-	@Column()
-	projectId: string
+	@Column({ type: 'uuid' })
+	projectId: IProjectTeamBinding['projectId']
 
 	@ApiProperty({
 		type: () => String,
@@ -20,8 +20,8 @@ export class ProjectTeamBinding extends TenantOrganizationBaseEntity implements 
 	})
 	@IsString()
 	@Index()
-	@Column()
-	teamId: string
+	@Column({ type: 'uuid' })
+	teamId: IProjectTeamBinding['teamId']
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsOptional()

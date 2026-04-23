@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+	createTeamId,
 	IProjectTeamBinding,
 	ITeamDefinition,
 	ProjectSprintStrategyEnum,
@@ -149,13 +150,13 @@ describe('ProjectAssistantService', () => {
 				{
 					id: 'binding-1',
 					projectId: 'project-1',
-					teamId: 'team-1',
+					teamId: createTeamId('team-1'),
 					role: 'Delivery'
 				} as Partial<IProjectTeamBinding>
 			]
 		})
 		teamDefinitionService.findOne.mockResolvedValueOnce({
-			id: 'team-1',
+			id: createTeamId('team-1'),
 			name: 'Delivery Team'
 		} as Partial<ITeamDefinition>)
 
@@ -168,7 +169,7 @@ describe('ProjectAssistantService', () => {
 					role: 'Delivery'
 				}),
 				team: expect.objectContaining({
-					id: 'team-1',
+					id: createTeamId('team-1'),
 					name: 'Delivery Team'
 				})
 			})
@@ -200,7 +201,7 @@ describe('ProjectAssistantService', () => {
 		teamBindingService.create.mockResolvedValueOnce({
 			id: 'binding-1',
 			projectId: 'project-1',
-			teamId: 'team-1',
+			teamId: createTeamId('team-1'),
 			role: 'Delivery'
 		})
 		teamBindingService.listByProject.mockResolvedValueOnce({
@@ -208,24 +209,24 @@ describe('ProjectAssistantService', () => {
 				{
 					id: 'binding-1',
 					projectId: 'project-1',
-					teamId: 'team-1',
+					teamId: createTeamId('team-1'),
 					role: 'Delivery'
 				}
 			]
 		})
 		teamDefinitionService.findOne.mockResolvedValueOnce({
-			id: 'team-1',
+			id: createTeamId('team-1'),
 			name: 'Delivery Team'
 		})
 
 		const result = await service.bindProjectTeams({
 			projectId: 'project-1',
-			teams: [{ teamId: 'team-1', role: 'Delivery' }]
+			teams: [{ teamId: createTeamId('team-1'), role: 'Delivery' }]
 		})
 
 		expect(teamBindingService.create).toHaveBeenCalledWith({
 			projectId: 'project-1',
-			teamId: 'team-1',
+			teamId: createTeamId('team-1'),
 			role: 'Delivery'
 		})
 		expect(result).toHaveLength(1)

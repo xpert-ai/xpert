@@ -1,3 +1,4 @@
+export * from './project-id.type'
 export * from './project-core.model'
 export * from './project-strategy.model'
 export * from './project-sprint.model'

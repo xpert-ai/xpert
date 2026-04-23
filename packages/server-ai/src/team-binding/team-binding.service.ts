@@ -1,4 +1,4 @@
-import { IProjectTeamBinding } from '@xpert-ai/contracts'
+import { createProjectId, createTeamId, IProjectTeamBinding } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -6,6 +6,7 @@ import { DeleteResult, FindOptionsWhere, Repository, UpdateResult } from 'typeor
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { ProjectCoreService } from '../project-core/project-core.service'
 import { ProjectTask } from '../project-task/project-task.entity'
+import { normalizeRequiredBrandedId } from '../shared/utils'
 import { TeamDefinitionService } from '../team-definition/team-definition.service'
 import { ProjectTeamBinding } from './project-team-binding.entity'
 
@@ -92,10 +93,18 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 		return super.delete(bindingId, options)
 	}
 
-	async listByProject(projectId: string) {
-		await this.projectCoreService.findOne(projectId)
+	async listByProject(projectId: IProjectTeamBinding['projectId'] | string) {
+		const normalizedProjectId = normalizeRequiredBrandedId(
+			projectId,
+			'projectId',
+			createProjectId,
+			{
+				missingMessage: 'projectId is required for a team binding'
+			}
+		)
+		await this.projectCoreService.findOne(normalizedProjectId)
 		return this.findAllInOrganizationOrTenant({
-			where: { projectId },
+			where: { projectId: normalizedProjectId },
 			order: {
 				sortOrder: 'ASC',
 				createdAt: 'ASC'
@@ -107,17 +116,13 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 		entity: Partial<IProjectTeamBinding>,
 		current?: ProjectTeamBinding
 	): Promise<Partial<IProjectTeamBinding>> {
-		const projectId = entity.projectId?.trim()
-		const teamId = entity.teamId?.trim()
+		const projectId = normalizeRequiredBrandedId(entity.projectId, 'projectId', createProjectId, {
+			missingMessage: 'projectId is required for a team binding'
+		})
+		const teamId = normalizeRequiredBrandedId(entity.teamId, 'teamId', createTeamId, {
+			missingMessage: 'teamId is required for a team binding'
+		})
 		const role = entity.role?.trim()
-
-		if (!projectId) {
-			throw new BadRequestException('projectId is required for a team binding')
-		}
-
-		if (!teamId) {
-			throw new BadRequestException('teamId is required for a team binding')
-		}
 
 		if (current && projectId !== current.projectId) {
 			throw new BadRequestException('Changing a team binding projectId is not supported')
@@ -150,7 +155,7 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 		}
 	}
 
-	private async getNextSortOrder(projectId: string, currentBindingId?: string) {
+	private async getNextSortOrder(projectId: IProjectTeamBinding['projectId'], currentBindingId?: string) {
 		const bindings = await this.repository.find({
 			where: { projectId },
 			order: { sortOrder: 'DESC', createdAt: 'DESC' },

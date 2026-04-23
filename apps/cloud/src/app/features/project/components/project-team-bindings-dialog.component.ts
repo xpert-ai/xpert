@@ -15,7 +15,7 @@ type ProjectTeamBindingsDialogData = {
 
 type ProjectTeamBindingDraft = {
   bindingId?: string
-  teamId: string
+  teamId: IProjectTeamBinding['teamId']
   role: string
   sortOrder: number
 }
@@ -75,11 +75,11 @@ export class ProjectTeamBindingsDialogComponent {
     this.#dialogRef.close()
   }
 
-  isSelected(teamId: string) {
+  isSelected(teamId: IProjectTeamBinding['teamId']) {
     return this.selectedTeamIds().has(teamId)
   }
 
-  toggleTeam(teamId: string) {
+  toggleTeam(teamId: IProjectTeamBinding['teamId']) {
     const current = this.draftBindings()
     const existingIndex = current.findIndex((binding) => binding.teamId === teamId)
 
@@ -102,7 +102,7 @@ export class ProjectTeamBindingsDialogComponent {
     ])
   }
 
-  updateRole(teamId: string, role: string) {
+  updateRole(teamId: IProjectTeamBinding['teamId'], role: string) {
     this.draftBindings.set(
       this.draftBindings().map((binding) =>
         binding.teamId === teamId

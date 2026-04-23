@@ -6,6 +6,8 @@ import { Column, Entity, Index } from 'typeorm'
 
 @Entity('project_core')
 export class ProjectCore extends TenantOrganizationBaseEntity implements IProjectCore {
+	declare id?: IProjectCore['id']
+
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsNotEmpty()
@@ -30,7 +32,7 @@ export class ProjectCore extends TenantOrganizationBaseEntity implements IProjec
 	@IsString()
 	@Index()
 	@Column({ type: 'uuid', nullable: true })
-	mainAssistantId: string | null
+	mainAssistantId: IProjectCore['mainAssistantId']
 
 	@ApiProperty({ enum: ProjectCoreStatusEnum })
 	@IsEnum(ProjectCoreStatusEnum)

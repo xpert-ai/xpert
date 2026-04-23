@@ -1,6 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { ITeamDefinition } from '../team/team-definition.model'
+import { TeamId } from '../team/team-id.type'
 import type { IProjectCore } from './project-core.model'
+import { ProjectId, SprintId } from './project-id.type'
 import type { IProjectSprint } from './project-sprint.model'
 import type { IProjectSwimlane } from './project-swimlane.model'
 
@@ -12,9 +13,9 @@ export enum ProjectTaskStatusEnum {
 }
 
 export interface IProjectTask extends IBasePerTenantAndOrganizationEntityModel {
-	projectId: string
+	projectId: ProjectId
 	project?: IProjectCore
-	sprintId: string
+	sprintId: SprintId
 	sprint?: IProjectSprint
 	swimlaneId: string
 	swimlane?: IProjectSwimlane
@@ -28,5 +29,5 @@ export interface IProjectTask extends IBasePerTenantAndOrganizationEntityModel {
 	 * Bound Team id for task routing.
 	 * In this phase it resolves to `ITeamDefinition.id`, which is projected from a published Xpert id.
 	 */
-	teamId?: ITeamDefinition['id'] | null
+	teamId?: TeamId | null
 }

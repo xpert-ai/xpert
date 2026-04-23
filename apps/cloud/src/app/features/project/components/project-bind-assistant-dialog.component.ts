@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
-import { AssistantBindingScope, AssistantCode, type IProjectCore, type IXpert } from '@xpert-ai/contracts'
+import { AssistantBindingScope, AssistantCode, createXpertId, type IProjectCore, type IXpert } from '@xpert-ai/contracts'
 import { AssistantBindingService } from '../../../@core/services/assistant-binding.service'
 import { ProjectCoreService } from '../../../@core/services/project-core.service'
 import { getErrorMessage } from '../../../@core/types'
@@ -90,7 +90,7 @@ export class ProjectBindAssistantDialogComponent {
     try {
       const result = await firstValueFrom(
         this.#projectCoreService.update(this.project.id, {
-          mainAssistantId: this.selectedAssistantId()
+          mainAssistantId: createXpertId(this.selectedAssistantId())
         })
       )
 

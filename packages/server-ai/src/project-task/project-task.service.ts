@@ -1,7 +1,11 @@
 import {
 	IProjectTask,
+	createProjectId,
+	createSprintId,
 	ProjectSwimlaneKindEnum,
-	ProjectTaskStatusEnum
+	ProjectTaskStatusEnum,
+	createOptionalTeamId,
+	ProjectId
 } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable } from '@nestjs/common'
@@ -9,6 +13,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
+import { normalizeOptionalBrandedId, normalizeRequiredBrandedId } from '../shared/utils'
 import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
 import { ProjectTeamBinding } from '../team-binding/project-team-binding.entity'
 import { ProjectTask } from './project-task.entity'
@@ -102,7 +107,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		swimlaneId?: string
 		status?: ProjectTaskStatusEnum
 		query?: string
-		teamId?: string
+		teamId?: IProjectTask['teamId']
 	}) {
 		const queryBuilder = this.repository.createQueryBuilder('task')
 		queryBuilder.where('task.projectId = :projectId', { projectId: filters.projectId })
@@ -211,13 +216,19 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		currentTask?: Pick<ProjectTask, 'id' | 'projectId' | 'sprintId'>,
 		currentSwimlane?: ProjectSwimlane
 	) {
-		const projectId = entity.projectId
-		const sprintId = entity.sprintId
+		const projectId = normalizeRequiredBrandedId(entity.projectId, 'projectId', createProjectId, {
+			missingMessage: 'projectId, sprintId, and swimlaneId are required for a task'
+		})
+		const sprintId = normalizeRequiredBrandedId(entity.sprintId, 'sprintId', createSprintId, {
+			missingMessage: 'projectId, sprintId, and swimlaneId are required for a task'
+		})
 		const swimlaneId = entity.swimlaneId
 		const dependencies = entity.dependencies ?? []
-		const teamId = this.normalizeOptionalString(entity.teamId)
+		const teamId = normalizeOptionalBrandedId(entity.teamId, 'teamId', createOptionalTeamIdValue, {
+			blankAs: 'null'
+		}) ?? null
 
-		if (!projectId || !sprintId || !swimlaneId) {
+		if (!swimlaneId) {
 			throw new BadRequestException('projectId, sprintId, and swimlaneId are required for a task')
 		}
 
@@ -265,15 +276,6 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 			sortOrder,
 			status: entity.status ?? ProjectTaskStatusEnum.Todo
 		}
-	}
-
-	private normalizeOptionalString(value: string | null | undefined) {
-		if (typeof value !== 'string') {
-			return value ?? null
-		}
-
-		const normalized = value.trim()
-		return normalized || null
 	}
 
 	private validateLaneSpecificRules(
@@ -338,7 +340,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		}
 	}
 
-	private async validateTeamBinding(projectId: string, teamId?: string | null) {
+	private async validateTeamBinding(projectId: ProjectId, teamId?: IProjectTask['teamId']) {
 		if (!teamId) {
 			return
 		}
@@ -354,4 +356,8 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 			throw new BadRequestException('Task teamId must belong to a bound team on the same project')
 		}
 	}
+}
+
+function createOptionalTeamIdValue(value: string) {
+	return createOptionalTeamId(value) ?? null
 }

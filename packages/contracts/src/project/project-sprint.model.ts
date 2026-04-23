@@ -1,5 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import type { IProjectCore } from './project-core.model'
+import { ProjectId, SprintId } from './project-id.type'
 import { ProjectSprintStrategyEnum } from './project-strategy.model'
 
 export enum ProjectSprintStatusEnum {
@@ -10,7 +11,8 @@ export enum ProjectSprintStatusEnum {
 }
 
 export interface IProjectSprint extends IBasePerTenantAndOrganizationEntityModel {
-	projectId: string
+	id?: SprintId
+	projectId: ProjectId
 	project?: IProjectCore
 	goal: string
 	status: ProjectSprintStatusEnum

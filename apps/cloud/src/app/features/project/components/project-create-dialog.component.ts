@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
-import { AssistantBindingScope, AssistantCode, type IProjectCore, type IXpert } from '@xpert-ai/contracts'
+import { AssistantBindingScope, AssistantCode, createXpertId, type IProjectCore, type IXpert } from '@xpert-ai/contracts'
 import { ZardTabsImports } from '@xpert-ai/headless-ui'
 import { AssistantBindingService } from '../../../@core/services/assistant-binding.service'
 import { ProjectCoreService } from '../../../@core/services/project-core.service'
@@ -96,7 +96,7 @@ export class ProjectCreateDialogComponent {
         this.#projectCoreService.create({
           name: value.name.trim(),
           goal: value.goal.trim(),
-          mainAssistantId: value.mainAssistantId.trim(),
+          mainAssistantId: createXpertId(value.mainAssistantId.trim()),
           ...(description ? { description } : {})
         })
       )
