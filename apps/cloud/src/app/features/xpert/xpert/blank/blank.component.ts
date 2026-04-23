@@ -1041,8 +1041,12 @@ export class XpertNewBlankComponent {
   }
 
   private buildTemplateImportDraft(draft: TXpertTeamDraft) {
+    const selectedCopilotModel = this.copilotModel() ?? draft.team.agent?.copilotModel ?? draft.team.copilotModel ?? null
     const finalDraft = this.isAgentType()
-      ? applyAgentTemplateWizardState(draft, this.getSelections())
+      ? applyAgentTemplateWizardState(draft, this.getSelections(), {
+          defaultCopilotModel: selectedCopilotModel,
+          middlewareDefinitions: this.getSelectedMiddlewareDefinitions()
+        })
       : this.isKnowledgeType()
         ? applyKnowledgeTemplateWizardState(draft, this.getKnowledgeSelections())
         : draft
@@ -1065,7 +1069,7 @@ export class XpertNewBlankComponent {
         title: this.title(),
         description: this.description(),
         avatar: this.avatar(),
-        copilotModel: this.copilotModel(),
+        copilotModel: selectedCopilotModel,
         ...(features ? { features } : {})
       }
     }
