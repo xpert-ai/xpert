@@ -59,11 +59,13 @@ export class ProjectSwimlaneService extends TenantOrganizationAwareCrudService<P
 	}
 
 	async createDefaultsForSprint(
-		sprint: Pick<IProjectSprint, 'id' | 'projectId' | 'strategyType'>,
+		sprint: Pick<IProjectSprint, 'id' | 'projectId' | 'strategyType' | 'tenantId' | 'organizationId'>,
 		manager?: EntityManager
 	) {
 		const repository = manager?.getRepository(ProjectSwimlane) ?? this.repository
-		const swimlanes = this.buildDefaultSwimlanes(sprint).map((lane) => repository.create(lane))
+		const swimlanes = this.buildDefaultSwimlanes(sprint).map((lane) =>
+			repository.create(this.writeSwimlaneToScope(lane, sprint))
+		)
 
 		return repository.save(swimlanes)
 	}
@@ -112,7 +114,9 @@ export class ProjectSwimlaneService extends TenantOrganizationAwareCrudService<P
 			return existingLane
 		}
 
-		const backlogLane = repository.create(this.buildReservedBacklogSwimlane(sprint))
+		const backlogLane = repository.create(
+			this.writeSwimlaneToScope(this.buildReservedBacklogSwimlane(sprint), sprint)
+		)
 		return repository.save(backlogLane)
 	}
 
@@ -196,5 +200,20 @@ export class ProjectSwimlaneService extends TenantOrganizationAwareCrudService<P
 		}
 
 		return entity
+	}
+
+	private writeSwimlaneToScope(
+		lane: Partial<IProjectSwimlane>,
+		scope?: Pick<IProjectSprint, 'tenantId' | 'organizationId'>
+	) {
+		if (scope?.tenantId !== undefined || scope?.organizationId !== undefined) {
+			return {
+				...lane,
+				...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
+				organizationId: scope.organizationId ?? null
+			}
+		}
+
+		return this.writeToCurrentScope(lane)
 	}
 }

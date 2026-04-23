@@ -31,3 +31,12 @@ export interface IProjectTask extends IBasePerTenantAndOrganizationEntityModel {
 	 */
 	teamId?: TeamId | null
 }
+
+export interface IProjectTaskMoveInput {
+	taskIds: string[]
+	targetSwimlaneId: string
+}
+
+export interface IProjectTaskReorderInput {
+	orderedTaskIds: string[]
+}

@@ -1,4 +1,6 @@
-<section class="flex h-full min-h-[36rem] w-[320px] flex-col rounded-[24px] border border-divider-regular bg-background-default">
+<section
+  class="flex h-full min-h-[36rem] w-[320px] flex-col rounded-[24px] border border-divider-regular bg-background-default"
+>
   <header class="flex items-center justify-between border-b border-divider-regular px-4 py-4">
     <div class="min-w-0 flex items-center gap-3">
       <span class="h-3 w-3 rounded-full" [class]="laneDotClass()"></span>
@@ -8,27 +10,59 @@
       </div>
     </div>
 
-    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+    <span
+      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary"
+    >
       {{ laneKeyLabel() }}
     </span>
   </header>
 
-  @if (showCreateTask()) {
-    <div class="px-3 pt-3">
-      <button
-        type="button"
-        class="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-divider-regular bg-components-card-bg px-4 text-sm font-semibold text-text-tertiary opacity-70 cursor-not-allowed"
-        disabled
-      >
-        <i class="ri-add-line mr-2 text-base"></i>
-        {{ 'PAC.Project.CreateTask' | translate: { Default: 'Create task' } }}
-      </button>
+  <div class="border-b border-divider-regular px-3 py-3">
+    <div class="flex flex-wrap gap-2 text-xs text-text-secondary">
+      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+        {{ laneKindLabel() }}
+      </span>
+      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+        {{ agentRoleLabel() }}
+      </span>
+      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+        {{ environmentLabel() }}
+      </span>
+      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+        {{ 'PAC.Project.SwimlaneConcurrency' | translate: { Default: 'Concurrency' } }} {{ column().lane.concurrencyLimit }}
+      </span>
+      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+        {{ 'PAC.Project.SwimlaneWip' | translate: { Default: 'WIP' } }} {{ column().lane.wipLimit }}
+      </span>
     </div>
-  }
 
-  <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-3 py-3">
+    <button
+      type="button"
+      class="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-components-card-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+      (click)="requestCreateTask()"
+    >
+      <i class="ri-add-line text-base"></i>
+      {{ 'PAC.Project.CreateTask' | translate: { Default: 'Create task' } }}
+    </button>
+  </div>
+
+  <div
+    class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-3 py-3"
+    cdkDropList
+    [id]="column().lane.id ?? ''"
+    [cdkDropListData]="column().tasks"
+    (cdkDropListDropped)="onDrop($event)"
+  >
     @for (task of column().tasks; track task.id) {
-      <xp-project-task-card [task]="task" [teamNames]="teamNames()" />
+      <div cdkDrag [cdkDragData]="task">
+        <xp-project-task-card
+          [task]="task"
+          [teamNames]="teamNames()"
+          [laneKind]="column().lane.kind"
+          (opened)="taskOpened.emit($event)"
+          (statusChanged)="taskStatusChanged.emit({ task, status: $event })"
+        />
+      </div>
     } @empty {
       <div class="flex min-h-[220px] flex-1 items-center justify-center rounded-[20px] border border-dashed border-divider-regular bg-components-card-bg px-4 text-center text-sm leading-6 text-text-tertiary">
         {{ 'PAC.Project.EmptyLaneTasks' | translate: { Default: 'No tasks in this swimlane yet.' } }}

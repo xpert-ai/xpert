@@ -1,0 +1,208 @@
+<div class="flex flex-col overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-xl">
+  <div class="border-b border-divider-regular px-6 py-5">
+    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+      {{ 'PAC.Project.TaskDialogEyebrow' | translate: { Default: 'Task Workspace' } }}
+    </div>
+    <h2 class="mt-2 text-2xl font-semibold text-text-primary">
+      {{ dialogTitle() | translate: { Default: dialogTitleDefault() } }}
+    </h2>
+    <p class="mt-2 text-sm leading-6 text-text-secondary">
+      {{
+        'PAC.Project.TaskDialogDescription'
+          | translate
+            : {
+                Default:
+                  'Edit task scope, team routing, and dependencies inside the selected sprint.'
+              }
+      }}
+    </p>
+  </div>
+
+  <form class="flex flex-col gap-5 px-6 py-6" [formGroup]="form" (ngSubmit)="submit()">
+    <div>
+      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-task-title">
+        {{ 'PAC.Project.Title' | translate: { Default: 'Title' } }}
+      </label>
+      <input
+        id="project-task-title"
+        type="text"
+        formControlName="title"
+        class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+        [placeholder]="'PAC.Project.TaskTitlePlaceholder' | translate: { Default: 'Describe the task outcome.' }"
+      />
+    </div>
+
+    <div>
+      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-task-description">
+        {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
+      </label>
+      <textarea
+        id="project-task-description"
+        rows="4"
+        formControlName="description"
+        class="w-full rounded-2xl border border-divider-regular bg-background-default px-4 py-3 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+        [placeholder]="'PAC.Project.TaskDescriptionPlaceholder' | translate: { Default: 'Optional implementation notes or context.' }"
+      ></textarea>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-2 block text-sm font-medium text-text-primary" for="project-task-swimlane">
+          {{ 'PAC.Project.Swimlane' | translate: { Default: 'Swimlane' } }}
+        </label>
+        <select
+          id="project-task-swimlane"
+          formControlName="swimlaneId"
+          class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep"
+        >
+          @for (lane of swimlanes; track lane.id) {
+            <option [value]="lane.id">{{ lane.name }} · {{ formatProjectLabel(lane.agentRole) }}</option>
+          }
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-2 block text-sm font-medium text-text-primary" for="project-task-status">
+          {{ 'PAC.Project.Status' | translate: { Default: 'Status' } }}
+        </label>
+        <select
+          id="project-task-status"
+          formControlName="status"
+          class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
+          [disabled]="isBacklogLane()"
+        >
+          @for (status of availableStatusOptions(); track status) {
+            <option [value]="status">{{ formatProjectLabel(status) }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <section class="rounded-[24px] border border-divider-regular bg-background-default-subtle p-4">
+      <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+        @if (selectedSwimlane(); as lane) {
+          <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
+            {{ formatProjectLabel(lane.kind) }}
+          </span>
+          <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
+            {{ formatProjectLabel(lane.agentRole) }}
+          </span>
+          <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
+            {{ formatProjectLabel(lane.environmentType) }}
+          </span>
+        }
+      </div>
+
+      @if (isBacklogLane()) {
+        <p class="mt-3 text-sm leading-6 text-text-secondary">
+          {{
+            'PAC.Project.BacklogTaskRule'
+              | translate
+                : {
+                    Default:
+                      'Backlog tasks stay in Todo and cannot declare dependencies until they move into an execution swimlane.'
+                  }
+          }}
+        </p>
+      }
+    </section>
+
+    <div>
+      <label class="mb-2 block text-sm font-medium text-text-primary" for="project-task-team">
+        {{ 'PAC.Project.Team' | translate: { Default: 'Team' } }}
+      </label>
+      <select
+        id="project-task-team"
+        formControlName="teamId"
+        class="h-12 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="!hasTeams()"
+      >
+        <option value="">{{ 'PAC.Project.TeamOptional' | translate: { Default: 'No team binding' } }}</option>
+        @for (boundTeam of boundTeams; track boundTeam.team.id) {
+          <option [value]="boundTeam.team.id">{{ boundTeam.team.name }}</option>
+        }
+      </select>
+      @if (!hasTeams()) {
+        <p class="mt-2 text-sm text-text-secondary">
+          {{
+            'PAC.Project.TeamBindingRequired'
+              | translate
+                : {
+                    Default:
+                      'Bind at least one team to the project before routing tasks to a team.'
+                  }
+          }}
+        </p>
+      }
+    </div>
+
+    <section class="rounded-[24px] border border-divider-regular bg-background-default-subtle p-4">
+      <div class="text-sm font-semibold text-text-primary">
+        {{ 'PAC.Project.TaskDependencies' | translate: { Default: 'Dependencies' } }}
+      </div>
+      <p class="mt-1 text-sm text-text-secondary">
+        {{
+          'PAC.Project.TaskDependenciesDescription'
+            | translate
+              : {
+                  Default:
+                    'Dependencies can only target tasks in the same sprint and are disabled for backlog tasks.'
+                }
+        }}
+      </p>
+
+      @if (availableDependencies().length) {
+        <div class="mt-4 grid gap-3">
+          @for (dependency of availableDependencies(); track dependency.id) {
+            <label class="flex items-start gap-3 rounded-2xl border border-divider-regular bg-background-default px-4 py-3">
+              <input
+                type="checkbox"
+                class="mt-1 h-4 w-4 rounded border-divider-regular text-primary"
+                [checked]="form.controls.dependencies.value.includes(dependency.id ?? '')"
+                [disabled]="isBacklogLane()"
+                (change)="toggleDependency(dependency.id ?? '')"
+              />
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-semibold text-text-primary">{{ dependency.title }}</div>
+                @if (dependency.description) {
+                  <p class="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">
+                    {{ dependency.description }}
+                  </p>
+                }
+              </div>
+            </label>
+          }
+        </div>
+      } @else {
+        <div class="mt-4 rounded-2xl border border-dashed border-divider-regular bg-background-default px-4 py-5 text-sm text-text-secondary">
+          {{ 'PAC.Project.NoTaskDependenciesAvailable' | translate: { Default: 'No other tasks are available for dependencies in this sprint.' } }}
+        </div>
+      }
+    </section>
+
+    <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
+      <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="submitting()"
+        (click)="close()"
+      >
+        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+
+      <button
+        type="submit"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="form.invalid || submitting()"
+      >
+        @if (submitting()) {
+          {{ 'PAC.Project.SavingTask' | translate: { Default: 'Saving task...' } }}
+        } @else if (task) {
+          {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+        } @else {
+          {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+        }
+      </button>
+    </div>
+  </form>
+</div>

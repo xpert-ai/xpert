@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+	createProjectId,
+	createSprintId,
 	ProjectSprintStrategyEnum,
 	ProjectSwimlaneKindEnum,
 	ProjectSystemSwimlaneKeyEnum
@@ -11,18 +13,37 @@ import { ProjectSwimlaneService } from './project-swimlane.service'
 
 describe('ProjectSwimlaneService', () => {
 	let service: ProjectSwimlaneService
+	let swimlaneRepository: {
+		create: jest.Mock
+		save: jest.Mock
+		findOne: jest.Mock
+	}
+	let sprintRepository: {
+		findOneBy: jest.Mock
+	}
+	const projectId = createProjectId('project-1')
+	const sprintId = createSprintId('sprint-1')
 
 	beforeEach(() => {
+		swimlaneRepository = {
+			create: jest.fn((value) => value),
+			save: jest.fn(async (value) => value),
+			findOne: jest.fn()
+		}
+		sprintRepository = {
+			findOneBy: jest.fn()
+		}
+
 		service = new ProjectSwimlaneService(
-			{} as unknown as Repository<ProjectSwimlane>,
-			{} as unknown as Repository<ProjectSprint>
+			swimlaneRepository as unknown as Repository<ProjectSwimlane>,
+			sprintRepository as unknown as Repository<ProjectSprint>
 		)
 	})
 
 	it('builds the default software delivery swimlanes', () => {
 		const swimlanes = service.buildDefaultSwimlanes({
-			id: 'sprint-1',
-			projectId: 'project-1',
+			id: sprintId,
+			projectId,
 			strategyType: ProjectSprintStrategyEnum.SoftwareDelivery
 		})
 
@@ -46,8 +67,8 @@ describe('ProjectSwimlaneService', () => {
 
 	it('builds the default data analysis swimlanes', () => {
 		const swimlanes = service.buildDefaultSwimlanes({
-			id: 'sprint-1',
-			projectId: 'project-1',
+			id: sprintId,
+			projectId,
 			strategyType: ProjectSprintStrategyEnum.DataAnalysis
 		})
 
@@ -64,5 +85,34 @@ describe('ProjectSwimlaneService', () => {
 		expect(() =>
 			service.getStrategyTemplateOrFail('unsupported_strategy' as ProjectSprintStrategyEnum)
 		).toThrow(BadRequestException)
+	})
+
+	it('writes default swimlanes into the sprint scope when creating them', async () => {
+		await service.createDefaultsForSprint({
+			id: sprintId,
+			projectId,
+			strategyType: ProjectSprintStrategyEnum.SoftwareDelivery,
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
+		})
+
+		expect(swimlaneRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				projectId,
+				sprintId,
+				tenantId: 'tenant-1',
+				organizationId: 'org-1'
+			})
+		)
+		expect(swimlaneRepository.save).toHaveBeenCalledWith(
+			expect.arrayContaining([
+				expect.objectContaining({
+					projectId,
+					sprintId,
+					tenantId: 'tenant-1',
+					organizationId: 'org-1'
+				})
+			])
+		)
 	})
 })

@@ -9,7 +9,7 @@
   />
 
   <section class="flex min-w-0 flex-1 flex-col overflow-hidden bg-background-default-subtle">
-    @if (facade.loading()) {
+    @if (facade.pageLoading()) {
       <div class="flex min-h-0 flex-1 items-center justify-center">
         <ngm-spin />
       </div>
@@ -62,11 +62,16 @@
         } @else {
           <xp-project-board-header
             [project]="facade.selectedProject()"
+            [sprints]="facade.sprints()"
             [sprint]="facade.selectedSprint()"
+            [selectedSprintId]="facade.selectedSprintId()"
             [laneCount]="facade.selectedLaneCount()"
             [taskCount]="facade.selectedTaskCount()"
             [teamCount]="facade.selectedTeamCount()"
             [strategyLabel]="facade.selectedStrategyLabel()"
+            (sprintSelected)="facade.selectSprint($event)"
+            (createSprintRequested)="openCreateSprint()"
+            (createTaskRequested)="openTaskDialog()"
           />
 
           <xp-project-team-summary
@@ -85,7 +90,17 @@
                         Default: 'Create or start a sprint to populate the swimlanes for this project.'
                       }
                 "
-              />
+              >
+                <button
+                  projectEmptyStateActions
+                  type="button"
+                  class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep"
+                  (click)="openCreateSprint()"
+                >
+                  <i class="ri-calendar-schedule-line text-base"></i>
+                  {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
+                </button>
+              </xp-project-empty-state>
             </div>
           } @else {
             <xp-project-sprint-summary
@@ -99,7 +114,12 @@
             <xp-project-board
               [columns]="facade.boardColumns()"
               [hasTasks]="facade.hasTasks()"
+              [loading]="facade.boardLoading()"
               [teamNames]="facade.teamNameById()"
+              (taskCreateRequested)="openTaskDialog(null, $event)"
+              (taskDropped)="facade.moveTask($event)"
+              (taskOpened)="openTaskDialog($event.id)"
+              (taskStatusChanged)="facade.updateTaskStatus($event.task, $event.status)"
             />
           }
         }

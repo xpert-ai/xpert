@@ -39,10 +39,12 @@ export class ProjectSprintService extends TenantOrganizationAwareCrudService<Pro
 
 		return this.dataSource.transaction(async (manager) => {
 			const repository = manager.getRepository(ProjectSprint)
-			const sprint = repository.create({
-				...entity,
-				status: entity.status ?? ProjectSprintStatusEnum.Planned
-			})
+			const sprint = repository.create(
+				this.writeToCurrentScope({
+					...entity,
+					status: entity.status ?? ProjectSprintStatusEnum.Planned
+				})
+			)
 			const savedSprint = await repository.save(sprint)
 			await this.swimlaneService.createDefaultsForSprint(savedSprint, manager)
 			return savedSprint

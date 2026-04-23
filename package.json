@@ -28,7 +28,7 @@
     "start": "concurrently \"pnpm start:api\" \"pnpm start:cloud\"",
     "backend": "pnpm run start:api:dev",
     "frontend": "pnpm run start:cloud",
-    "start:cloud": "pnpm run theme:check-hardcoded-colors && cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=12288 pnpm nx serve cloud",
+    "start:cloud": "pnpm run theme:check-hardcoded-colors && cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=12288 node tools/scripts/start-cloud.mjs",
     "start:analytics": "pnpm -C ./packages/analytics start",
     "start:angular": "nx serve --project ng --port 4400",
     "start:nest": "nx serve --project nest",

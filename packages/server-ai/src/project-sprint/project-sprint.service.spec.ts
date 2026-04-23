@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
-import { ProjectSprintStatusEnum, ProjectSprintStrategyEnum } from '@xpert-ai/contracts'
+import { createProjectId, ProjectSprintStatusEnum, ProjectSprintStrategyEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { DataSource, EntityManager, Repository } from 'typeorm'
 import { ProjectCore } from '../project-core/project-core.entity'
 import { ProjectSwimlaneService } from '../project-swimlane/project-swimlane.service'
@@ -26,6 +27,7 @@ describe('ProjectSprintService', () => {
 	let dataSource: {
 		transaction: jest.Mock
 	}
+	const projectId = createProjectId('project-1')
 
 	beforeEach(() => {
 		sprintRepository = {
@@ -57,14 +59,29 @@ describe('ProjectSprintService', () => {
 		)
 	})
 
+	afterEach(() => {
+		jest.restoreAllMocks()
+	})
+
 	it('creates a sprint and generates the default swimlanes in the same transaction', async () => {
+		jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+
 		const sprint = await service.create({
-			projectId: 'project-1',
+			projectId,
 			goal: 'Ship the MVP',
 			strategyType: ProjectSprintStrategyEnum.SoftwareDelivery
 		})
 
 		expect(dataSource.transaction).toHaveBeenCalled()
+		expect(sprintRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				projectId,
+				status: ProjectSprintStatusEnum.Planned,
+				tenantId: 'tenant-1',
+				organizationId: 'org-1'
+			})
+		)
 		expect(swimlaneService.getStrategyTemplateOrFail).toHaveBeenCalledWith(
 			ProjectSprintStrategyEnum.SoftwareDelivery
 		)
@@ -72,7 +89,9 @@ describe('ProjectSprintService', () => {
 			expect.objectContaining({
 				id: 'sprint-1',
 				projectId: 'project-1',
-				status: ProjectSprintStatusEnum.Planned
+				status: ProjectSprintStatusEnum.Planned,
+				tenantId: 'tenant-1',
+				organizationId: 'org-1'
 			}),
 			manager
 		)
@@ -88,7 +107,7 @@ describe('ProjectSprintService', () => {
 	it('rejects missing sprint strategies', async () => {
 		await expect(
 			service.create({
-				projectId: 'project-1',
+				projectId,
 				goal: 'Ship the MVP'
 			})
 		).rejects.toBeInstanceOf(BadRequestException)

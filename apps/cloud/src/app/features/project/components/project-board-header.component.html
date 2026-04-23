@@ -13,23 +13,60 @@
       </p>
     </div>
 
-    <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-      @if (strategyLabel()) {
-        <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-2 text-sm font-medium text-text-secondary">
-          {{ strategyLabel() }}
-        </span>
-      }
-      @if (sprintStatusLabel()) {
-        <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-2 text-sm font-medium text-text-secondary">
-          {{ sprintStatusLabel() }}
-        </span>
-      }
+    <div class="flex flex-col gap-3 lg:min-w-[22rem] lg:items-end">
+      <div class="flex w-full flex-col gap-2 sm:flex-row lg:justify-end">
+        <label class="sr-only" for="project-board-sprint-select">
+          {{ 'PAC.Project.CurrentSprint' | translate: { Default: 'Current Sprint' } }}
+        </label>
+        <select
+          id="project-board-sprint-select"
+          class="h-11 min-w-0 flex-1 rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors focus:border-divider-deep"
+          [value]="selectedSprintId() ?? ''"
+          [disabled]="!sprints().length"
+          (change)="onSprintSelected($event)"
+        >
+          @for (sprintOption of sprints(); track sprintOption.id) {
+            <option [value]="sprintOption.id">
+              {{ sprintOption.goal }}
+            </option>
+          } @empty {
+            <option value="">
+              {{ 'PAC.Project.EmptySprint' | translate: { Default: 'No sprint yet' } }}
+            </option>
+          }
+        </select>
+
+        <button
+          type="button"
+          class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+          (click)="requestCreateSprint()"
+        >
+          <i class="ri-calendar-schedule-line text-base"></i>
+          {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
+        </button>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+        @if (strategyLabel()) {
+          <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-2 text-sm font-medium text-text-secondary">
+            {{ strategyLabel() }}
+          </span>
+        }
+        @if (sprintStatusLabel()) {
+          <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-2 text-sm font-medium text-text-secondary">
+            {{ sprintStatusLabel() }}
+          </span>
+        }
+      </div>
+
       <button
         type="button"
-        class="inline-flex h-10 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-tertiary opacity-70 cursor-not-allowed"
-        disabled
+        class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="!sprint()"
+        (click)="requestCreateTask()"
       >
-        {{ 'PAC.Project.ReadOnly' | translate: { Default: 'Read only' } }}
+        <i class="ri-add-line text-base"></i>
+        {{ 'PAC.Project.NewTask' | translate: { Default: 'New Task' } }}
       </button>
     </div>
   </div>

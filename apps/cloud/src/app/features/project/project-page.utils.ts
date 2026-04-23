@@ -5,6 +5,7 @@ import type {
   IProjectTeamBinding,
   ITeamDefinition
 } from '@xpert-ai/contracts'
+import { ProjectSwimlaneKindEnum, ProjectSystemSwimlaneKeyEnum } from '@xpert-ai/contracts'
 
 export interface ProjectBoundTeamViewModel {
   binding: IProjectTeamBinding
@@ -18,6 +19,13 @@ export interface ProjectBoardColumnViewModel {
   todo: number
   doing: number
   done: number
+}
+
+export interface ProjectBoardTaskDropEvent {
+  taskId: string
+  sourceSwimlaneId: string
+  targetSwimlaneId: string
+  targetOrderedTaskIds: string[]
 }
 
 const ACTIVE_SPRINT_STATUS_PRIORITY: Record<string, number> = {
@@ -37,9 +45,9 @@ function toEpoch(value?: Date | string | null) {
 }
 
 export function pickDefaultSprint(sprints: IProjectSprint[]) {
-  if (!sprints.length) {
-    return null
-  }
+	if (!sprints.length) {
+		return null
+	}
 
   return [...sprints].sort((left, right) => {
     const leftPriority = ACTIVE_SPRINT_STATUS_PRIORITY[left.status] ?? Number.MAX_SAFE_INTEGER
@@ -50,7 +58,18 @@ export function pickDefaultSprint(sprints: IProjectSprint[]) {
 
     return toEpoch(right.updatedAt ?? right.createdAt ?? right.endAt ?? right.startAt) -
       toEpoch(left.updatedAt ?? left.createdAt ?? left.endAt ?? left.startAt)
-  })[0]
+	})[0]
+}
+
+export function pickRequestedSprint(sprints: IProjectSprint[], sprintId?: string | null) {
+  if (sprintId) {
+    const requestedSprint = sprints.find((sprint) => sprint.id === sprintId)
+    if (requestedSprint) {
+      return requestedSprint
+    }
+  }
+
+  return pickDefaultSprint(sprints)
 }
 
 export function buildProjectBoardColumns(swimlanes: IProjectSwimlane[], tasks: IProjectTask[]) {
@@ -80,6 +99,17 @@ export function buildProjectBoardColumns(swimlanes: IProjectSwimlane[], tasks: I
         done: laneTasks.filter((task) => task.status === 'done').length
       }
     })
+}
+
+export function getBacklogSwimlane(swimlanes: IProjectSwimlane[]) {
+  return swimlanes.find(
+    (lane) =>
+      lane.kind === ProjectSwimlaneKindEnum.Backlog || lane.key === ProjectSystemSwimlaneKeyEnum.Backlog
+  ) ?? null
+}
+
+export function getDefaultTaskSwimlane(swimlanes: IProjectSwimlane[]) {
+  return getBacklogSwimlane(swimlanes) ?? swimlanes[0] ?? null
 }
 
 export function formatProjectLabel(value?: string | null) {

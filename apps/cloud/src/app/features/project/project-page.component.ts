@@ -13,9 +13,12 @@ import { ProjectBindAssistantDialogComponent } from './components/project-bind-a
 import { ProjectCreateDialogComponent } from './components/project-create-dialog.component'
 import { ProjectEmptyStateComponent } from './components/project-empty-state.component'
 import { ProjectSidebarComponent } from './components/project-sidebar.component'
+import { ProjectSprintCreateDialogComponent } from './components/project-sprint-create-dialog.component'
 import { ProjectSprintSummaryComponent } from './components/project-sprint-summary.component'
+import { ProjectTaskDialogComponent } from './components/project-task-dialog.component'
 import { ProjectTeamBindingsDialogComponent } from './components/project-team-bindings-dialog.component'
 import { ProjectTeamSummaryComponent } from './components/project-team-summary.component'
+import { getDefaultTaskSwimlane } from './project-page.utils'
 
 @Component({
   standalone: true,
@@ -99,5 +102,65 @@ export class ProjectPageComponent {
     }
 
     await this.facade.refresh()
+  }
+
+  async openCreateSprint() {
+    const project = this.facade.selectedProject()
+    if (!project?.id) {
+      return
+    }
+
+    const backlogLane = this.facade.backlogSwimlane()
+    const backlogTasks = backlogLane?.id
+      ? this.facade.tasks().filter((task) => task.swimlaneId === backlogLane.id)
+      : []
+
+    const dialogRef = this.#dialog.open(ProjectSprintCreateDialogComponent, {
+      disableClose: true,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: {
+        project,
+        currentSprint: this.facade.selectedSprint(),
+        backlogTasks
+      }
+    })
+
+    const sprint = await firstValueFrom(dialogRef.closed, { defaultValue: undefined })
+    if (sprint?.id) {
+      await this.facade.refresh()
+      await this.facade.selectSprint(sprint.id)
+    }
+  }
+
+  async openTaskDialog(taskId?: string | null, preferredSwimlaneId?: string | null) {
+    const project = this.facade.selectedProject()
+    const sprint = this.facade.selectedSprint()
+
+    if (!project?.id || !sprint?.id) {
+      return
+    }
+
+    const task = taskId ? this.facade.tasks().find((item) => item.id === taskId) ?? null : null
+    const defaultSwimlaneId = preferredSwimlaneId ?? getDefaultTaskSwimlane(this.facade.swimlanes())?.id ?? null
+    const dialogRef = this.#dialog.open(ProjectTaskDialogComponent, {
+      disableClose: true,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: {
+        project,
+        sprint,
+        swimlanes: this.facade.swimlanes(),
+        tasks: this.facade.tasks(),
+        boundTeams: this.facade.boundTeams(),
+        task,
+        preferredSwimlaneId: defaultSwimlaneId
+      }
+    })
+
+    const result = await firstValueFrom(dialogRef.closed, { defaultValue: undefined })
+    if (result) {
+      await this.facade.refreshBoard()
+    }
   }
 }

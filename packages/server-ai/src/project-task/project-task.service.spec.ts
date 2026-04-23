@@ -1,5 +1,11 @@
 import { BadRequestException } from '@nestjs/common'
-import { ProjectSwimlaneKindEnum, ProjectTaskStatusEnum, createTeamId } from '@xpert-ai/contracts'
+import {
+	createProjectId,
+	createSprintId,
+	ProjectSwimlaneKindEnum,
+	ProjectTaskStatusEnum,
+	createTeamId
+} from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
 import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
@@ -25,6 +31,8 @@ describe('ProjectTaskService', () => {
 	let teamBindingRepository: {
 		findOne: jest.Mock
 	}
+	const projectId = createProjectId('project-1')
+	const sprintId = createSprintId('sprint-1')
 
 	beforeEach(() => {
 		taskRepository = {
@@ -66,8 +74,8 @@ describe('ProjectTaskService', () => {
 
 		await expect(
 			service.create({
-				projectId: 'project-1',
-				sprintId: 'sprint-1',
+				projectId,
+				sprintId,
 				swimlaneId: 'lane-1',
 				title: 'Implement feature',
 				status: ProjectTaskStatusEnum.Todo,
@@ -86,8 +94,8 @@ describe('ProjectTaskService', () => {
 
 		await expect(
 			service.create({
-				projectId: 'project-1',
-				sprintId: 'sprint-1',
+				projectId,
+				sprintId,
 				swimlaneId: 'lane-1',
 				title: 'Implement feature',
 				status: ProjectTaskStatusEnum.Todo,
@@ -106,8 +114,8 @@ describe('ProjectTaskService', () => {
 
 		await expect(
 			service.create({
-				projectId: 'project-1',
-				sprintId: 'sprint-1',
+				projectId,
+				sprintId,
 				swimlaneId: 'lane-backlog',
 				title: 'Backlog item',
 				status: ProjectTaskStatusEnum.Doing,
@@ -125,8 +133,8 @@ describe('ProjectTaskService', () => {
 		])
 
 		await service.create({
-			projectId: 'project-1',
-			sprintId: 'sprint-1',
+			projectId,
+			sprintId,
 			swimlaneId: 'lane-1',
 			title: 'Implement feature',
 			status: ProjectTaskStatusEnum.Todo,
@@ -143,8 +151,8 @@ describe('ProjectTaskService', () => {
 	it('rejects team ids that are not bound to the project', async () => {
 		await expect(
 			service.create({
-				projectId: 'project-1',
-				sprintId: 'sprint-1',
+				projectId,
+				sprintId,
 				swimlaneId: 'lane-1',
 				title: 'Implement feature',
 				status: ProjectTaskStatusEnum.Todo,
@@ -162,8 +170,8 @@ describe('ProjectTaskService', () => {
 		})
 
 		await service.create({
-			projectId: 'project-1',
-			sprintId: 'sprint-1',
+			projectId,
+			sprintId,
 			swimlaneId: 'lane-1',
 			title: 'Implement feature',
 			status: ProjectTaskStatusEnum.Todo,
@@ -270,6 +278,69 @@ describe('ProjectTaskService', () => {
 
 		await expect(service.moveTasks(['task-2'], 'lane-execution-2')).rejects.toBeInstanceOf(
 			BadRequestException
+		)
+	})
+
+	it('resets moved tasks when sending them into a backlog swimlane', async () => {
+		taskRepository.findBy
+			.mockResolvedValueOnce([
+				{
+					id: 'task-1',
+					projectId: 'project-1',
+					sprintId: 'sprint-1',
+					swimlaneId: 'lane-1',
+					status: ProjectTaskStatusEnum.Doing,
+					dependencies: ['task-dep-1']
+				}
+			])
+			.mockResolvedValueOnce([
+				{
+					id: 'task-1',
+					projectId: 'project-1',
+					sprintId: 'sprint-1',
+					swimlaneId: 'lane-backlog-1',
+					status: ProjectTaskStatusEnum.Todo,
+					dependencies: []
+				}
+			])
+
+		taskRepository.find.mockResolvedValue([{ id: 'existing-target-task', sortOrder: 0 }])
+
+		swimlaneRepository.findOneBy.mockImplementation(async ({ id }: { id: string }) => {
+			if (id === 'lane-1') {
+				return {
+					id,
+					projectId: 'project-1',
+					sprintId: 'sprint-1',
+					kind: ProjectSwimlaneKindEnum.Execution
+				}
+			}
+
+			return {
+				id,
+				projectId: 'project-1',
+				sprintId: 'sprint-1',
+				kind: ProjectSwimlaneKindEnum.Backlog
+			}
+		})
+
+		const [result] = await service.moveTasks(['task-1'], 'lane-backlog-1')
+
+		expect(taskRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'task-1',
+				swimlaneId: 'lane-backlog-1',
+				status: ProjectTaskStatusEnum.Todo,
+				dependencies: []
+			})
+		)
+		expect(result).toEqual(
+			expect.objectContaining({
+				id: 'task-1',
+				swimlaneId: 'lane-backlog-1',
+				status: ProjectTaskStatusEnum.Todo,
+				dependencies: []
+			})
 		)
 	})
 })
