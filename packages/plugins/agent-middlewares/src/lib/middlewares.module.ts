@@ -9,7 +9,6 @@ import { ClientEffectMiddleware } from './clientEffect';
 import { LLMToolSelectorNameMiddleware } from './llmToolSelector';
 import { LocalShellSandboxProvider } from './localShellSandbox.provider';
 import { StructuredOutputMiddleware } from './structuredOutput';
-import { SandboxShellMiddleware } from './sandboxShell';
 import { SandboxFileMiddleware } from './sandboxFile';
 import { ContextCompressionMiddleware } from './contextCompression';
 
@@ -26,7 +25,6 @@ import { ContextCompressionMiddleware } from './contextCompression';
 		LLMToolSelectorNameMiddleware,
 		ClientToolMiddleware,
 		ClientEffectMiddleware,
-		SandboxShellMiddleware,
 		SandboxFileMiddleware,
 		LocalShellSandboxProvider,
 		StructuredOutputMiddleware,

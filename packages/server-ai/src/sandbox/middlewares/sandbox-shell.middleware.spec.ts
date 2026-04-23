@@ -1,16 +1,28 @@
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import type { CommandBus } from '@nestjs/cqrs'
 import { DEFAULT_SANDBOX_SHELL_TIMEOUT_MS, ExecuteResponse } from '@xpert-ai/plugin-sdk'
-import { SandboxShellMiddleware } from './sandboxShell'
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { SandboxShellMiddleware } from './sandbox-shell.middleware'
+
+jest.mock('@langchain/core/callbacks/dispatch', () => ({
+  dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
+}))
 
 jest.mock('@xpert-ai/contracts', () => ({
+  ChatMessageEventTypeEnum: {
+    ON_TOOL_MESSAGE: 'ON_TOOL_MESSAGE'
+  },
+  ChatMessageStepCategory: {
+    Program: 'Program'
+  },
   SandboxManagedServiceErrorCode: {
     ConversationRequired: 'conversation_required',
     ProviderUnavailable: 'provider_unavailable'
   },
   WorkflowNodeTypeEnum: {
     MIDDLEWARE: 'middleware'
-  }
+  },
+  getToolCallIdFromConfig: (config: { metadata?: { tool_call_id?: string } }) => config?.metadata?.tool_call_id
 }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => {
@@ -42,39 +54,6 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
     AgentMiddlewareStrategy: () => (target: unknown) => target
   }
 })
-
-jest.mock('./toolMessageUtils', () => ({
-  __esModule: true,
-  getToolCallId: () => 'tool-call-1',
-  withStreamingToolMessage: async (
-    _toolCallId: string,
-    _toolName: string,
-    command: string,
-    backend: { streamExecute?: Function; execute: Function },
-    executionOptions?: { timeoutMs?: number }
-  ) =>
-    backend.streamExecute
-      ? backend.streamExecute(command, () => undefined, executionOptions)
-      : backend.execute(command, executionOptions)
-}))
-
-jest.mock('@xpert-ai/server-ai', () => ({
-  SandboxGetManagedServiceLogsCommand: class SandboxGetManagedServiceLogsCommand {
-    constructor(public readonly params: unknown) {}
-  },
-  SandboxListManagedServicesCommand: class SandboxListManagedServicesCommand {
-    constructor(public readonly params: unknown) {}
-  },
-  SandboxRestartManagedServiceCommand: class SandboxRestartManagedServiceCommand {
-    constructor(public readonly params: unknown) {}
-  },
-  SandboxStartManagedServiceCommand: class SandboxStartManagedServiceCommand {
-    constructor(public readonly params: unknown) {}
-  },
-  SandboxStopManagedServiceCommand: class SandboxStopManagedServiceCommand {
-    constructor(public readonly params: unknown) {}
-  }
-}))
 
 describe('SandboxShellMiddleware', () => {
   let commandBus: {
@@ -189,6 +168,7 @@ describe('SandboxShellMiddleware', () => {
     expect(backend.streamExecute).toHaveBeenCalledWith('npm install', expect.any(Function), {
       timeoutMs: DEFAULT_SANDBOX_SHELL_TIMEOUT_MS
     })
+    expect(dispatchCustomEvent).toHaveBeenCalled()
   })
 
   it('passes timeout_sec overrides through to the backend', async () => {
@@ -329,5 +309,8 @@ describe('SandboxShellMiddleware', () => {
         2
       )
     )
+    expect(commandBus.execute.mock.calls[0]?.[0]?.params).toEqual({
+      threadId: 'thread-1'
+    })
   })
 })

@@ -14,6 +14,7 @@ import { SandboxService } from './sandbox.service'
 import { SandboxController } from './sandbox.controller'
 import { SandboxTerminalGateway } from './sandbox-terminal.gateway'
 import { ChatConversationModule } from '../chat-conversation'
+import { SandboxShellMiddleware } from './middlewares'
 
 @Module({
 	imports: [
@@ -34,8 +35,15 @@ import { ChatConversationModule } from '../chat-conversation'
 		SandboxProviderRegistry,
 		SandboxConversationContextService,
 		SandboxTerminalGateway,
+		SandboxShellMiddleware,
 		...CommandHandlers
 	],
-	exports: [SandboxService, SandboxManagedServiceService, SandboxProviderRegistry, SandboxConversationContextService]
+	exports: [
+		SandboxService,
+		SandboxManagedServiceService,
+		SandboxProviderRegistry,
+		SandboxConversationContextService,
+		SandboxShellMiddleware
+	]
 })
 export class SandboxModule {}
