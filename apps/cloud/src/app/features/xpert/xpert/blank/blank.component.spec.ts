@@ -259,6 +259,49 @@ connections:
 `
 }
 
+function createAgentTemplateYamlWithPrimaryAgentModelOnly() {
+  return `
+team:
+  name: template-agent
+  type: agent
+  title: Template Agent
+  description: Template agent description
+  agent:
+    key: Agent_primary
+    options:
+      middlewares:
+        order:
+          - Middleware_summary
+nodes:
+  - type: agent
+    key: Agent_primary
+    position:
+      x: 360
+      y: 220
+    entity:
+      key: Agent_primary
+      copilotModel:
+        copilotId: copilot-glm
+        modelType: llm
+        model: glm-5
+  - type: workflow
+    key: Middleware_summary
+    position:
+      x: 360
+      y: 460
+    entity:
+      key: Middleware_summary
+      type: middleware
+      provider: SummarizationMiddleware
+      title: SummarizationMiddleware
+connections:
+  - key: Agent_primary/Middleware_summary
+    type: workflow
+    from: Agent_primary
+    to: Middleware_summary
+`
+}
+
 async function createComponent(
   data: BlankXpertDialogData,
   options?: {
@@ -1243,6 +1286,86 @@ describe('XpertNewBlankComponent', () => {
       copilotId: 'copilot-qwen',
       modelType: AiModelTypeEnum.LLM,
       model: 'qwen3.6-plus'
+    })
+  })
+
+  it('seeds template middleware model options from the primary agent model before importing', async () => {
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: {
+          export_data: createAgentTemplateYamlWithPrimaryAgentModelOnly()
+        },
+        agentTemplates: [
+          {
+            id: 'template-agent',
+            name: 'template-agent',
+            title: 'Template Agent',
+            description: 'Template agent description',
+            category: 'Agent',
+            type: XpertTypeEnum.Agent
+          }
+        ],
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'SummarizationMiddleware',
+              label: {
+                en_US: 'Summarization Middleware'
+              },
+              configSchema: {
+                type: 'object',
+                properties: {
+                  model: {
+                    type: 'object',
+                    'x-ui': {
+                      component: 'ai-model-select',
+                      inputs: {
+                        modelType: AiModelTypeEnum.LLM
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    component.setStartMode('template')
+    component.selectedTemplateId.set('template-agent')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(component.copilotModel()).toEqual({
+      copilotId: 'copilot-glm',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'glm-5'
+    })
+
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    const importedDraft = xpertService.importDSL.mock.calls[0][0]
+    const middlewareNode = importedDraft.nodes.find(
+      (node: any) => node.type === 'workflow' && node.entity?.provider === 'SummarizationMiddleware'
+    )
+
+    expect(importedDraft.team.copilotModel).toEqual({
+      copilotId: 'copilot-glm',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'glm-5'
+    })
+    expect(middlewareNode.entity.options.model).toEqual({
+      copilotId: 'copilot-glm',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'glm-5'
     })
   })
 

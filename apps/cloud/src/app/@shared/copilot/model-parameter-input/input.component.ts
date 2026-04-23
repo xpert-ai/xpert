@@ -25,7 +25,28 @@ export class ModelParameterInputComponent {
 
   readonly value$ = this.cva.value$
 
-  updateValue(value) {
+  updateValue(value: unknown) {
     this.value$.set(value)
+  }
+
+  updateNumericValue(value: unknown, type: ParameterType.FLOAT | ParameterType.INT) {
+    this.updateValue(this.normalizeNumericValue(value, type))
+  }
+
+  private normalizeNumericValue(value: unknown, type: ParameterType.FLOAT | ParameterType.INT): number | undefined {
+    if (value === '' || value === null || value === undefined) {
+      return undefined
+    }
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : undefined
+    }
+
+    if (typeof value === 'string') {
+      const parsed = type === ParameterType.INT ? Number.parseInt(value, 10) : Number.parseFloat(value)
+      return Number.isFinite(parsed) ? parsed : undefined
+    }
+
+    return undefined
   }
 }
