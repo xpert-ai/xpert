@@ -101,6 +101,10 @@ describe('ProjectAssistantActionService', () => {
 		expect(handoffQueueService.enqueue).toHaveBeenCalledWith(
 			expect.objectContaining({
 				payload: expect.objectContaining({
+					options: expect.objectContaining({
+						xpertId: 'assistant-1',
+						from: 'job'
+					}),
 					request: expect.objectContaining({
 						projectId: 'project-1',
 						message: expect.objectContaining({

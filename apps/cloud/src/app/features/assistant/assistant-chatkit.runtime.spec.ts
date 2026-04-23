@@ -5,6 +5,7 @@ import {
   type IResolvedAssistantBinding
 } from '../../@core'
 import {
+  buildHostedAssistantRequestOptions,
   hasAssistantBindingSource,
   hasCompleteAssistantBinding
 } from './assistant-chatkit.runtime'
@@ -41,5 +42,20 @@ describe('assistant chatkit runtime helpers', () => {
       hasCompleteAssistantBinding(createResolvedBinding({ assistantId: null }), 'https://chatkit.example.com')
     ).toBe(false)
     expect(hasCompleteAssistantBinding(createResolvedBinding(), null)).toBe(false)
+  })
+
+  it('mirrors project scope into hosted chatkit request state', () => {
+    expect(buildHostedAssistantRequestOptions(' project-1 ', { locale: 'zh-Hans' })).toEqual({
+      projectId: 'project-1',
+      state: {
+        projectId: 'project-1'
+      },
+      context: {
+        locale: 'zh-Hans'
+      }
+    })
+    expect(buildHostedAssistantRequestOptions(null, null)).toEqual({
+      context: {}
+    })
   })
 })

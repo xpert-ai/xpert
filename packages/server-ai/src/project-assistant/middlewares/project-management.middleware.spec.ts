@@ -69,6 +69,15 @@ describe('ProjectManagementMiddleware', () => {
 		middleware = new ProjectManagementMiddleware(projectAssistantService as never)
 	})
 
+	function hasProjectIdInShape(value: unknown) {
+		if (!value || typeof value !== 'object') {
+			return false
+		}
+
+		const shape = Reflect.get(value, 'shape')
+		return !!shape && typeof shape === 'object' && Reflect.has(shape, 'projectId')
+	}
+
 	it('exposes the project management tools', async () => {
 		const created = await middleware.createMiddleware({}, {
 			tenantId: 'tenant-1',
@@ -98,6 +107,23 @@ describe('ProjectManagementMiddleware', () => {
 		)
 	})
 
+	it('does not expose projectId in middleware or tool schemas', async () => {
+		const created = await middleware.createMiddleware({}, {
+			tenantId: 'tenant-1',
+			userId: 'user-1',
+			projectId: 'project-1',
+			node: {} as never,
+			tools: new Map()
+		})
+
+		const properties = Reflect.get(middleware.meta.configSchema, 'properties')
+		expect(!!properties && typeof properties === 'object' && Reflect.has(properties, 'projectId')).toBe(false)
+
+		for (const tool of created.tools ?? []) {
+			expect(hasProjectIdInShape(Reflect.get(tool, 'schema'))).toBe(false)
+		}
+	})
+
 	it('returns a state-updating command for getProjectContext', async () => {
 		const created = await middleware.createMiddleware({}, {
 			tenantId: 'tenant-1',
@@ -122,7 +148,7 @@ describe('ProjectManagementMiddleware', () => {
 		expect(projectAssistantService.getProjectContext).toHaveBeenCalledWith('project-1', null)
 	})
 
-	it('requires projectId from runtime context or middleware options', async () => {
+	it('requires projectId from middleware context', async () => {
 		const created = await middleware.createMiddleware({}, {
 			tenantId: 'tenant-1',
 			userId: 'user-1',

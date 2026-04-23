@@ -254,6 +254,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         let executionId: string
         let checkpointId: string = null
         let queueFollowUpConsumedEvent: TFollowUpConsumedEvent | null = null
+        const requestedProjectId = resolveRequestProjectId(request)
         const requestedSandboxEnvironmentId = resolveRequestSandboxEnvironmentId(request)
         // Resume continues an interrupted AI turn in place by reusing the existing
         // conversation, target AI message, and execution instead of creating a new run.
@@ -311,6 +312,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             ['messages']
                         )
                     )
+                } else if (request.action === 'send' && !conversation.projectId && requestedProjectId) {
+                    conversation = await this.commandBus.execute(
+                        new ChatConversationUpsertCommand(
+                            {
+                                id: conversation.id,
+                                projectId: requestedProjectId
+                            },
+                            ['messages']
+                        )
+                    )
                 }
 
                 // Cancel summary job
@@ -326,7 +337,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     new ChatConversationUpsertCommand(
                         {
                             status: 'busy',
-                            projectId: request.projectId,
+                            projectId: requestedProjectId,
                             taskId,
                             xpert,
                             options: {
@@ -1011,8 +1022,33 @@ function findLastAiMessage(messages?: IChatMessage[] | null) {
     return message ?? null
 }
 
+function isObject(value: unknown): value is object {
+    return typeof value === 'object' && value !== null
+}
+
+/**
+ * @deprecated Temporary compatibility for the hosted ChatKit state.projectId shim.
+ * Remove this once ChatKit forwards request.projectId natively in run payloads.
+ */
+function readStateProjectId(state: unknown): string | undefined {
+    if (!isObject(state) || !Reflect.has(state, 'projectId')) {
+        return undefined
+    }
+
+    const projectId = Reflect.get(state, 'projectId')
+    return typeof projectId === 'string' ? projectId.trim() || undefined : undefined
+}
+
 function resolveRequestProjectId(request: TChatRequest): string | undefined {
-    return 'projectId' in request ? request.projectId?.trim() || undefined : undefined
+    if ('projectId' in request) {
+        const projectId = request.projectId?.trim()
+        if (projectId) {
+            return projectId
+        }
+    }
+
+    // Deprecated fallback paired with the temporary ChatKit request.state shim.
+    return 'state' in request ? readStateProjectId(request.state) : undefined
 }
 
 function resolveRequestSandboxEnvironmentId(request: TChatRequest): string | undefined {

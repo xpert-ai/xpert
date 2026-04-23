@@ -4,12 +4,12 @@ import { IXpert } from './xpert.model'
 import { I18nObject } from '../types'
 import { CopilotChatMessage, CopilotMessageGroup, IChatMessage } from './chat-message.model'
 import { IXpertAgent } from './xpert-agent.model'
-import { IXpertProject } from './xpert-project.model'
 import { IStorageFile } from '../storage-file.model'
 import { IXpertTask } from './xpert-task.model'
 import { TToolCall } from '../agent'
 import { TInterrupt } from '../agent/interrupt'
 import { IUser } from '../user.model'
+import type { IProjectCore } from '../project'
 
 export type TChatConversationOptions = {
   parameters?: {
@@ -118,7 +118,7 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   xpert?: IXpert
   xpertId?: string | null
 
-  project?: IXpertProject
+  project?: IProjectCore
   projectId?: string | null
 
   task?: IXpertTask

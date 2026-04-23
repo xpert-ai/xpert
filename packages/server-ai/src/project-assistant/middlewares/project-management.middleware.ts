@@ -30,12 +30,10 @@ import { ProjectAssistantService } from '../services/project-assistant.service'
 const PROJECT_MANAGEMENT_MIDDLEWARE_PROVIDER = 'project_management'
 
 const configurableSchema = z.object({
-	projectId: z.string().optional(),
 	defaultSprintId: z.string().optional()
 })
 
 const stateSchema = z.object({
-	projectId: z.string().nullable().optional(),
 	sprintId: z.string().nullable().optional(),
 	backlogLaneId: z.string().nullable().optional(),
 	strategyType: z.nativeEnum(ProjectSprintStrategyEnum).nullable().optional(),
@@ -75,9 +73,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 		configSchema: {
 			type: 'object',
 			properties: {
-				projectId: {
-					type: 'string'
-				},
 				defaultSprintId: {
 					type: 'string'
 				}
@@ -100,11 +95,15 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 		return [
 			tool(
 				async (input, config) => {
-					const resolved = this.resolveProjectScope(input.projectId, input.sprintId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						input.sprintId,
+						options,
+						context,
+						this.readState()
+					)
 					const result = await this.projectAssistantService.getProjectContext(resolved.projectId, resolved.sprintId)
 					return this.withStateUpdate(
 						{
-							projectId: result.project.id,
 							sprintId: result.sprint?.id ?? null,
 							backlogLaneId: result.backlogLane?.id ?? null,
 							strategyType: result.sprint?.strategyType ?? null,
@@ -119,14 +118,18 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'getProjectContext',
 					description: 'Get the current project, sprint, backlog lane, execution lanes, bound teams, board task counts, and execution snapshot.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						sprintId: z.string().optional()
 					})
 				}
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, input.sprintId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						input.sprintId,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.listProjectTasks({
 						projectId: resolved.projectId,
 						sprintId: resolved.sprintId,
@@ -141,7 +144,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'listProjectTasks',
 					description: 'List project tasks filtered by sprint, lane, lane kind, status, or search query.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						sprintId: z.string().optional(),
 						laneId: z.string().optional(),
 						laneKind: z.nativeEnum(ProjectSwimlaneKindEnum).optional(),
@@ -153,7 +155,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, input.sprintId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						input.sprintId,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.createProjectTasks({
 						projectId: resolved.projectId,
 						sprintId: resolved.sprintId,
@@ -165,7 +172,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'createProjectTasks',
 					description: 'Create one or more project tasks. Tasks default to the backlog lane unless a target lane is provided.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						sprintId: z.string().optional(),
 						laneId: z.string().optional(),
 						tasks: z.array(
@@ -183,7 +189,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.updateProjectTasks({
 						projectId: resolved.projectId,
 						tasks: input.tasks.map((task) => this.normalizeUpdateTaskInput(task))
@@ -193,7 +204,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'updateProjectTasks',
 					description: 'Update task title, description, assigned agent, status, or dependencies.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						tasks: z.array(
 							z.object({
 								id: z.string(),
@@ -210,7 +220,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.reorderProjectTasks(
 						resolved.projectId,
 						input.laneId,
@@ -221,7 +236,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'reorderProjectTasks',
 					description: 'Reorder tasks within a single swimlane.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						laneId: z.string(),
 						orderedTaskIds: z.array(z.string())
 					})
@@ -229,7 +243,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.moveProjectTasks(
 						resolved.projectId,
 						input.taskIds,
@@ -240,7 +259,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'moveProjectTasks',
 					description: 'Move tasks between backlog and execution lanes. Cross-sprint carry-over is limited to backlog-to-backlog moves.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						taskIds: z.array(z.string()),
 						targetLaneId: z.string()
 					})
@@ -248,7 +266,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input, config) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					const sprint = await this.projectAssistantService.createProjectSprint({
 						projectId: resolved.projectId,
 						goal: input.goal,
@@ -261,7 +284,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					const nextContext = await this.projectAssistantService.resolveContext(resolved.projectId, sprint.id)
 					return this.withStateUpdate(
 						{
-							projectId: resolved.projectId,
 							sprintId: sprint.id,
 							backlogLaneId: nextContext.backlogLane?.id ?? null,
 							strategyType: sprint.strategyType,
@@ -276,7 +298,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'createProjectSprint',
 					description: 'Create a sprint for the current project and optionally carry over backlog tasks from an earlier sprint.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						goal: z.string(),
 						strategyType: z.nativeEnum(ProjectSprintStrategyEnum),
 						status: z.nativeEnum(ProjectSprintStatusEnum).optional(),
@@ -288,7 +309,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.updateProjectSprint({
 						projectId: resolved.projectId,
 						sprintId: normalizeRequiredBrandedId(input.sprintId, 'sprintId', createSprintId),
@@ -303,7 +329,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'updateProjectSprint',
 					description: 'Update sprint goal, status, retrospective, or timebox.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						sprintId: z.string(),
 						goal: z.string().optional(),
 						status: z.nativeEnum(ProjectSprintStatusEnum).optional(),
@@ -315,20 +340,28 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.listProjectTeams(resolved.projectId)
 				},
 				{
 					name: 'listProjectTeams',
 					description: 'List the teams currently bound to the selected project.',
-					schema: z.object({
-						projectId: z.string().optional()
-					})
+					schema: z.object({})
 				}
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.bindProjectTeams({
 						projectId: resolved.projectId,
 						teams: input.teams.map((team) => ({
@@ -341,7 +374,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'bindProjectTeams',
 					description: 'Bind one or more teams to the selected project.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						teams: z.array(
 							z.object({
 								teamId: z.string(),
@@ -353,7 +385,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.updateProjectTeamBindings({
 						projectId: resolved.projectId,
 						bindings: input.bindings
@@ -363,7 +400,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'updateProjectTeamBindings',
 					description: 'Update role or sort order for existing project team bindings.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						bindings: z.array(
 							z.object({
 								id: z.string(),
@@ -376,21 +412,30 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.removeProjectTeamBinding(resolved.projectId, input.bindingId)
 				},
 				{
 					name: 'removeProjectTeamBinding',
 					description: 'Remove a team binding from the selected project.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						bindingId: z.string()
 					})
 				}
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, undefined, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						undefined,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.updateProjectSwimlanes({
 						projectId: resolved.projectId,
 						swimlanes: input.swimlanes
@@ -400,7 +445,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'updateProjectSwimlanes',
 					description: 'Update execution swimlane priority, weight, concurrency, WIP, agent role, or environment.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						swimlanes: z.array(
 							z.object({
 								id: z.string(),
@@ -417,7 +461,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			),
 			tool(
 				async (input) => {
-					const resolved = this.resolveProjectScope(input.projectId, input.sprintId, options, context, this.readState())
+					const resolved = this.resolveProjectScope(
+						input.sprintId,
+						options,
+						context,
+						this.readState()
+					)
 					return this.projectAssistantService.getProjectExecutionSnapshot(
 						resolved.projectId,
 						resolved.sprintId
@@ -427,7 +476,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					name: 'getProjectExecutionSnapshot',
 					description: 'Get the orchestrator execution snapshot for the current sprint.',
 					schema: z.object({
-						projectId: z.string().optional(),
 						sprintId: z.string().optional()
 					})
 				}
@@ -436,18 +484,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 	}
 
 	private resolveProjectScope(
-		projectId: string | undefined,
 		sprintId: string | undefined,
 		options: z.infer<typeof configurableSchema>,
 		context: IAgentMiddlewareContext,
 		runtimeState: ProjectManagementState | null
 	): ProjectManagementResolvedScope {
-		const rawProjectId =
-			projectId ??
-			this.asString(context.projectId) ??
-			options.projectId ??
-			runtimeState?.projectId ??
-			null
+		const rawProjectId = this.asString(context.projectId) ?? null
 		const rawSprintId =
 			sprintId ??
 			runtimeState?.sprintId ??
@@ -455,7 +497,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			null
 
 		if (!rawProjectId) {
-			throw new Error('project_management middleware requires a projectId from runtime context or middleware options')
+			throw new Error('project_management middleware requires a projectId from middleware context')
 		}
 
 		return {
@@ -525,7 +567,6 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 			}
 
 			const parsed = stateSchema.safeParse({
-				projectId: this.asNullableString(raw['projectId']),
 				sprintId: this.asNullableString(raw['sprintId']),
 				backlogLaneId: this.asNullableString(raw['backlogLaneId']),
 				strategyType: this.asProjectStrategy(raw['strategyType']),

@@ -84,6 +84,32 @@ type AssistantHostedRuntimeInput = {
   onThreadLoadEnd?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadEnd']>
 }
 
+/**
+ * @deprecated Temporary ChatKit compatibility shim.
+ * Migrate this into ChatKit once hosted submit forwards request.projectId
+ * to the run payload instead of dropping custom top-level request fields.
+ */
+export function buildHostedAssistantRequestOptions(
+  projectId: string | null,
+  requestContext: Record<string, unknown> | null
+): AssistantRequestOptions {
+  const normalizedProjectId = projectId?.trim() || null
+
+  return {
+    ...(normalizedProjectId
+      ? {
+          // Deprecated bridge: mirror projectId into request.state so current
+          // ChatKit submit normalization still carries project scope through.
+          projectId: normalizedProjectId,
+          state: {
+            projectId: normalizedProjectId
+          }
+        }
+      : {}),
+    context: requestContext ?? {}
+  }
+}
+
 export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
   const bindingRuntime = injectAssistantBindingRuntimeState({
     assistantCode: input.assistantCode
@@ -291,10 +317,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         }
       },
       history: input.history,
-      request: {
-        ...(projectId ? { projectId } : {}),
-        context: requestContext ?? {}
-      },
+      request: buildHostedAssistantRequestOptions(projectId, requestContext),
       onReady: input.onReady,
       onEffect: input.onEffect,
       onLog: input.onLog,

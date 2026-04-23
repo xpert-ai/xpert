@@ -1,9 +1,9 @@
 import {
 	IChatConversation,
 	IChatMessage,
+	IProjectCore,
 	IStorageFile,
 	IXpert,
-	IXpertProject,
 	IXpertTask,
 	TChatConversationOptions,
 	TChatConversationStatus,
@@ -14,7 +14,7 @@ import { StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
-import { ChatMessage, Xpert, XpertProject, XpertTask } from '../core/entities/internal'
+import { ChatMessage, ProjectCore, Xpert, XpertTask } from '../core/entities/internal'
 
 @Entity('chat_conversation')
 @Index(['tenantId', 'organizationId', 'id'])
@@ -108,17 +108,20 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@Column({ nullable: true })
 	xpertId?: string
 
-	@ApiProperty({ type: () => XpertProject })
-	@ManyToOne(() => XpertProject, {
-		onDelete: 'CASCADE'
+	@ApiProperty({ type: () => ProjectCore })
+	// Keep project scope soft-bound so conversations can survive legacy rows and
+	// project lifecycle changes while still resolving the current project-core record.
+	@ManyToOne(() => ProjectCore, {
+		nullable: true,
+		createForeignKeyConstraints: false
 	})
-	@JoinColumn()
-	project?: IXpertProject
+	@JoinColumn({ name: 'projectId' })
+	project?: IProjectCore
 
 	@ApiProperty({ type: () => String })
 	@RelationId((it: ChatConversation) => it.project)
 	@IsString()
-	@Column({ nullable: true })
+	@Column({ type: 'uuid', nullable: true })
 	projectId?: string
 
 	@ApiProperty({ type: () => XpertTask })

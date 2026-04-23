@@ -98,18 +98,18 @@ export class ProjectAssistantActionService {
 					action: 'send',
 					conversationId: conversation.id,
 					projectId: resolvedProjectId,
-						message: {
-							input: {
-								input: buildManageBacklogPrompt({
-									instruction: request.instruction,
-									boundTeams: boundTeams.map(({ binding, team }) => ({
-										name: team.name,
-										role: binding.role ?? null
-									}))
-								})
-							}
+					message: {
+						input: {
+							input: buildManageBacklogPrompt({
+								instruction: request.instruction,
+								boundTeams: boundTeams.map(({ binding, team }) => ({
+									name: team.name,
+									role: binding.role ?? null
+								}))
+							})
 						}
-					},
+					}
+				},
 				options: {
 					xpertId: project.mainAssistantId,
 					from: 'job'
