@@ -277,23 +277,18 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     effect(() => {
       const value = this.cva.value$()
       const rules = this.modelParameterRules()
-      if (value && rules?.length && this.hasResolvedCurrentModelParameterRules() && this.shouldInitDefaultOptions(value.options)) {
-        const contextSize = this.parseContextSize(value.options?.[ModelPropertyKey.CONTEXT_SIZE])
+      if (value && this.hasResolvedCurrentModelParameterRules()) {
+        const options = this.resolveOptions(value.options, rules)
+        if (this.areOptionsEqual(value.options, options)) {
+          return
+        }
         this.cva.value$.update((current) => {
           if (!current) {
             return current
           }
           return {
             ...current,
-            options: rules.reduce(
-              (acc, curr) => {
-                acc[curr.name] = curr.default
-                return acc
-              },
-              {
-                ...(typeof contextSize === 'number' ? { [ModelPropertyKey.CONTEXT_SIZE]: contextSize } : {})
-              } as Record<string, any>
-            )
+            options
           }
         })
       }
@@ -326,12 +321,15 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   }
 
   initModel(copilotId: string, model?: ProviderModel | null) {
+    const effectiveModel = this._copilotModel()
     this.updateValue(
       this.withModelContextSize(
         {
+          ...(effectiveModel ?? {}),
           copilotId,
-          model: model?.model ?? this.model(),
-          modelType: this.modelType()
+          model: model?.model ?? effectiveModel?.model ?? this.model(),
+          modelType: this.modelType(),
+          options: this.cloneOptions(effectiveModel?.options)
         },
         model
       )
@@ -340,15 +338,12 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   setModel(copilot: ICopilot, model: ProviderModel) {
     const currentValue = this.cva.value$()
+    const effectiveValue = currentValue ?? this._copilotModel()
     const nextModelType = this.modelType()
-    const shouldResetOptions =
-      currentValue?.copilotId !== copilot.id ||
-      currentValue?.modelType !== nextModelType ||
-      currentValue?.model !== model.model
     const nValue = this.withModelContextSize(
       {
-        ...(currentValue ?? {}),
-        ...(shouldResetOptions ? { options: undefined } : {}),
+        ...(effectiveValue ?? {}),
+        options: this.cloneOptions(effectiveValue?.options),
         model: model.model,
         copilotId: copilot.id,
         modelType: nextModelType
@@ -490,7 +485,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
     if (typeof contextSize === 'number') {
       options[ModelPropertyKey.CONTEXT_SIZE] = contextSize
-    } else {
+    } else if (model) {
       delete options[ModelPropertyKey.CONTEXT_SIZE]
     }
 
@@ -511,6 +506,54 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
       }
     }
     return undefined
+  }
+
+  private resolveOptions(options: Record<string, any> | undefined, rules: ParameterRule[]) {
+    const contextSize = this.parseContextSize(options?.[ModelPropertyKey.CONTEXT_SIZE])
+    const nextOptions = {
+      ...(typeof contextSize === 'number' ? { [ModelPropertyKey.CONTEXT_SIZE]: contextSize } : {})
+    } as Record<string, any>
+
+    let hasRetainedRuleValue = false
+    for (const rule of rules) {
+      if (!rule.name) {
+        continue
+      }
+
+      const value = options?.[rule.name]
+      if (value !== undefined) {
+        nextOptions[rule.name] = value
+        hasRetainedRuleValue = true
+      }
+    }
+
+    if (!hasRetainedRuleValue && this.shouldInitDefaultOptions(options)) {
+      for (const rule of rules) {
+        if (rule.name && rule.default !== undefined) {
+          nextOptions[rule.name] = rule.default
+        }
+      }
+    }
+
+    return Object.keys(nextOptions).length ? nextOptions : undefined
+  }
+
+  private cloneOptions(options?: Record<string, any>) {
+    return options ? { ...options } : undefined
+  }
+
+  private areOptionsEqual(
+    current: Record<string, any> | undefined,
+    next: Record<string, any> | undefined
+  ) {
+    const currentKeys = Object.keys(current ?? {})
+    const nextKeys = Object.keys(next ?? {})
+
+    if (currentKeys.length !== nextKeys.length) {
+      return false
+    }
+
+    return currentKeys.every((key) => current?.[key] === next?.[key])
   }
 
   private shouldInitDefaultOptions(options?: Record<string, any>): boolean {

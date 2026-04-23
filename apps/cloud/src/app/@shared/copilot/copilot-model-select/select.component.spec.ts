@@ -36,12 +36,20 @@ describe('CopilotModelSelectComponent', () => {
           model_properties: {
             [ModelPropertyKey.CONTEXT_SIZE]: 200000
           }
+        },
+        {
+          model: 'minimal-chat',
+          model_type: AiModelTypeEnum.LLM,
+          model_properties: {
+            [ModelPropertyKey.CONTEXT_SIZE]: 32000
+          }
         }
       ]
     }
   } as any
   const deepseekModel = copilot.providerWithModels.models[0]
   const glmModel = copilot.providerWithModels.models[1]
+  const minimalModel = copilot.providerWithModels.models[2]
   let deepseekRules$: Subject<any[]>
   let glmRules$: Subject<any[]>
   let component: CopilotModelSelectComponent
@@ -97,34 +105,9 @@ describe('CopilotModelSelectComponent', () => {
     glmRules$.complete()
   })
 
-  it('resets model options and applies the new model defaults after switching models', fakeAsync(() => {
+  it('applies defaults when selecting a model without existing options', fakeAsync(() => {
     tick(600)
     fixture.detectChanges()
-
-    component.setModel(copilot, deepseekModel)
-    fixture.detectChanges()
-
-    deepseekRules$.next([
-      {
-        name: 'temperature',
-        type: ParameterType.FLOAT,
-        default: 0.2
-      },
-      {
-        name: 'max_tokens',
-        type: ParameterType.INT,
-        default: 64
-      }
-    ])
-    tick()
-    fixture.detectChanges()
-
-    expect(component['cva'].value$()?.options).toEqual({
-      [ModelPropertyKey.CONTEXT_SIZE]: 64000,
-      temperature: 0.2,
-      max_tokens: 64
-    })
-
     component.setModel(copilot, glmModel)
     fixture.detectChanges()
     tick()
@@ -153,6 +136,134 @@ describe('CopilotModelSelectComponent', () => {
       [ModelPropertyKey.CONTEXT_SIZE]: 200000,
       temperature: 1,
       max_tokens: 8192
+    })
+  }))
+
+  it('copies inherited options before applying the first local parameter override', fakeAsync(() => {
+    fixture.componentRef.setInput('inheritModel', {
+      copilotId: copilot.id,
+      model: glmModel.model,
+      modelType: AiModelTypeEnum.LLM,
+      options: {
+        [ModelPropertyKey.CONTEXT_SIZE]: 200000,
+        temperature: 0.2,
+        max_tokens: 1024,
+        response_format: 'json_object'
+      }
+    } as any)
+    tick(600)
+    fixture.detectChanges()
+
+    glmRules$.next([
+      {
+        name: 'temperature',
+        type: ParameterType.FLOAT,
+        default: 1
+      },
+      {
+        name: 'max_tokens',
+        type: ParameterType.INT,
+        default: 8192
+      },
+      {
+        name: 'response_format',
+        type: ParameterType.STRING,
+        default: 'text',
+        options: ['text', 'json_object']
+      }
+    ])
+    tick()
+    fixture.detectChanges()
+
+    component.updateParameter('response_format', 'text')
+    tick()
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()).toEqual({
+      copilotId: copilot.id,
+      model: glmModel.model,
+      modelType: AiModelTypeEnum.LLM,
+      options: {
+        [ModelPropertyKey.CONTEXT_SIZE]: 200000,
+        temperature: 0.2,
+        max_tokens: 1024,
+        response_format: 'text'
+      }
+    })
+  }))
+
+  it('preserves reusable options instead of resetting to defaults when switching models', fakeAsync(() => {
+    tick(600)
+    fixture.detectChanges()
+
+    component.writeValue({
+      copilotId: copilot.id,
+      model: deepseekModel.model,
+      modelType: AiModelTypeEnum.LLM,
+      options: {
+        [ModelPropertyKey.CONTEXT_SIZE]: 64000,
+        temperature: 0.3,
+        max_tokens: 256,
+        response_format: 'json_object'
+      }
+    } as any)
+    fixture.detectChanges()
+
+    component.setModel(copilot, glmModel)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+
+    glmRules$.next([
+      {
+        name: 'temperature',
+        type: ParameterType.FLOAT,
+        default: 1
+      },
+      {
+        name: 'max_tokens',
+        type: ParameterType.INT,
+        default: 8192
+      },
+      {
+        name: 'top_p',
+        type: ParameterType.FLOAT,
+        default: 0.9
+      }
+    ])
+    tick()
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()?.options).toEqual({
+      [ModelPropertyKey.CONTEXT_SIZE]: 200000,
+      temperature: 0.3,
+      max_tokens: 256
+    })
+  }))
+
+  it('drops non-applicable options when switching to a model without parameter rules', fakeAsync(() => {
+    tick(600)
+    fixture.detectChanges()
+
+    component.writeValue({
+      copilotId: copilot.id,
+      model: deepseekModel.model,
+      modelType: AiModelTypeEnum.LLM,
+      options: {
+        [ModelPropertyKey.CONTEXT_SIZE]: 64000,
+        temperature: 0.3,
+        max_tokens: 256
+      }
+    } as any)
+    fixture.detectChanges()
+
+    component.setModel(copilot, minimalModel)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()?.options).toEqual({
+      [ModelPropertyKey.CONTEXT_SIZE]: 32000
     })
   }))
 
