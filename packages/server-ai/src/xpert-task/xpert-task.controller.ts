@@ -119,6 +119,158 @@ export class XpertTaskController extends CrudController<XpertTask> {
 		})
 	}
 
+	@Get('schedule/overview')
+	async getScheduleOverview(
+		@Query('from') from?: string,
+		@Query('to') to?: string,
+	) {
+		return this.service.getScheduleOverview(from, to)
+	}
+
+	@Get('schedule/day/:date')
+	async getScheduleDay(@Param('date') date: string) {
+		return this.service.getScheduleDay(date)
+	}
+
+	@Post('schedule/notes')
+	async createScheduleNote(
+		@Body() body: {
+			title: string
+			content?: string | null
+			date: string
+			remindAt?: string | null
+			type?: string
+			status?: string
+			autoTask?: {
+				title?: string
+				description?: string | null
+				prompt?: string
+				repo?: string
+				branch?: string
+				schedule?: string
+				frequency?: string
+				enabled?: boolean
+				templateId?: string | null
+				runAt?: string | null
+				timeZone?: string | null
+				pushChannel?: string | null
+				params?: Record<string, unknown> | null
+			} | null
+		},
+	) {
+		return this.service.createScheduleNoteWithAutoTask(body)
+	}
+
+	@Put('schedule/notes/:id')
+	async updateScheduleNote(
+		@Param('id') id: string,
+		@Body() body: {
+			title?: string
+			content?: string | null
+			date?: string
+			remindAt?: string | null
+			type?: string
+			status?: string
+			autoTask?: {
+				title?: string
+				description?: string | null
+				prompt?: string
+				repo?: string
+				branch?: string
+				schedule?: string
+				frequency?: string
+				enabled?: boolean
+				templateId?: string | null
+				runAt?: string | null
+				timeZone?: string | null
+				pushChannel?: string | null
+				params?: Record<string, unknown> | null
+			} | null
+		},
+	) {
+		return this.service.updateScheduleNote(id, body)
+	}
+
+	@Delete('schedule/notes/:id')
+	async deleteScheduleNote(@Param('id') id: string) {
+		return this.service.deleteScheduleNote(id)
+	}
+
+	@Get('auto-tasks')
+	async listAutoTasks() {
+		return this.service.listAutoTasks()
+	}
+
+	@Post('auto-tasks')
+	async createAutoTask(
+		@Body()
+		body: {
+			title?: string
+			description?: string | null
+			prompt?: string
+			repo?: string
+			branch?: string
+			schedule?: string
+			frequency?: string
+			enabled?: boolean
+			templateId?: string | null
+			runAt?: string | null
+			timeZone?: string | null
+			pushChannel?: string | null
+			params?: Record<string, unknown> | null
+		},
+	) {
+		return this.service.createAutoTask(body)
+	}
+
+	@Put('auto-tasks/:id')
+	async updateAutoTask(
+		@Param('id') id: string,
+		@Body()
+		body: {
+			title?: string
+			description?: string | null
+			prompt?: string
+			repo?: string
+			branch?: string
+			schedule?: string
+			frequency?: string
+			enabled?: boolean
+			templateId?: string | null
+			runAt?: string | null
+			timeZone?: string | null
+			pushChannel?: string | null
+			params?: Record<string, unknown> | null
+		},
+	) {
+		return this.service.updateAutoTask(id, body)
+	}
+
+	@Delete('auto-tasks/:id')
+	async deleteAutoTask(@Param('id') id: string) {
+		return this.service.deleteAutoTask(id)
+	}
+
+	@Get('auto-task-templates')
+	async listAutoTaskTemplates() {
+		return this.service.listAutoTaskTemplates()
+	}
+
+	@Post('auto-task-templates')
+	async createAutoTaskTemplate(
+		@Body()
+		body: {
+			key?: string
+			title?: string
+			description?: string | null
+			prompt?: string
+			defaultParams?: Record<string, unknown> | null
+			icon?: string | null
+		},
+	) {
+		return this.service.createAutoTaskTemplate(body)
+	}
+
 	@Delete(':id/soft')
 	async softDelete(@Param('id') id: string) {
 		await this.service.pause(id)
