@@ -761,7 +761,6 @@ export class LocalShellSandbox
     delete headers['keep-alive']
     delete headers['proxy-authenticate']
     delete headers['proxy-authorization']
-    delete headers.te
     delete headers.trailer
     delete headers['transfer-encoding']
     delete headers.upgrade

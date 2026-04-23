@@ -15,6 +15,7 @@ import { ChatMessage } from '../../../chat-message/chat-message.entity'
 import {
     AgentStateAnnotation,
     createHumanMessage,
+    hydrateHumanInput,
     STATE_VARIABLE_PENDING_FOLLOW_UPS,
     TPendingFollowUpStateItem
 } from '../../../shared'
@@ -22,9 +23,7 @@ import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-co
 import { mergePendingFollowUpHumans } from './create-node-pending-steer-follow-ups.shared'
 
 @CommandHandler(CreateNodeConsumePendingSteerFollowUpsCommand)
-export class CreateNodeConsumePendingSteerFollowUpsHandler
-    implements ICommandHandler<CreateNodeConsumePendingSteerFollowUpsCommand>
-{
+export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHandler<CreateNodeConsumePendingSteerFollowUpsCommand> {
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
@@ -53,7 +52,7 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler
                     }
                 }
 
-                const mergedHumanInput = mergePendingFollowUpHumans(pendingFollowUps)
+                const mergedHumanInput = hydrateHumanInput(mergePendingFollowUpHumans(pendingFollowUps))
                 const humanState = {
                     ...state,
                     [STATE_VARIABLE_HUMAN]: mergedHumanInput

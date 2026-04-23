@@ -43,7 +43,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 import { EMPTY, of } from 'rxjs'
 import { ApiKeyBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { hydrateSendRequestHumanInput } from '../../../shared/agent'
+import { hydrateSendRequestHumanInput } from '../../../shared/agent/human-input'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
@@ -331,7 +331,7 @@ describe('validateRunCreateInput', () => {
         })
     })
 
-    it('hydrates legacy reference-only payloads into real human input', () => {
+    it('normalizes legacy reference-only payloads to v2 without hydrating message input', () => {
         const referenceText = [
             'gramming Language :: Python :: 3.12",',
             '    "Programming Language :: Python",',
@@ -378,14 +378,12 @@ describe('validateRunCreateInput', () => {
             conversation
         )
 
-        const synthesizedInput = `Referenced code:\n[pyproject.toml:14-21]\n\`\`\`\n${referenceText}\n\`\`\``
-
         expect(result).toEqual({
             action: 'send',
             conversationId: 'conversation-1',
             message: {
                 input: {
-                    input: synthesizedInput,
+                    input: '',
                     references: [
                         {
                             label: 'pyproject.toml 14-21',
@@ -400,7 +398,7 @@ describe('validateRunCreateInput', () => {
             },
             state: {
                 human: {
-                    input: synthesizedInput,
+                    input: '',
                     references: [
                         {
                             label: 'pyproject.toml 14-21',
@@ -688,6 +686,127 @@ describe('RunCreateStreamHandler execute', () => {
                         value: 'cn'
                     })
                 ])
+            }
+        })
+    })
+
+    it('forwards raw message input to Xpert chat and leaves hydration to downstream handlers', async () => {
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
+        const commandBus = {
+            execute: jest.fn(async (command) => {
+                if (command instanceof XpertAgentExecutionUpsertCommand) {
+                    return {
+                        id: 'execution-1'
+                    }
+                }
+
+                if (command instanceof XpertChatCommand) {
+                    return of({
+                        data: {
+                            data: null
+                        }
+                    } as any)
+                }
+
+                return null
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'GetChatConversationQuery') {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: 'xpert-1',
+                        options: {},
+                        status: 'idle'
+                    }
+                }
+
+                return {
+                    id: 'xpert-1'
+                }
+            })
+        }
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                id: 'xpert-1',
+                environmentId: null
+            }),
+            getPublishedXpertInTenant: jest.fn()
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
+        }
+
+        const handler = new RunCreateStreamHandler(
+            commandBus as any,
+            queryBus as any,
+            {
+                findOne: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            {
+                appendEvent: jest.fn().mockResolvedValue(undefined),
+                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            publishedXpertAccessService as any,
+            assistantBindingService as any
+        )
+
+        await handler.execute({
+            threadId: 'thread-1',
+            runCreate: {
+                assistant_id: 'xpert-1',
+                input: {
+                    action: 'send',
+                    message: {
+                        input: {
+                            input: 'Summarize this',
+                            referenceComposition: 'compose',
+                            references: [
+                                {
+                                    type: 'quote',
+                                    source: 'Pasted text',
+                                    text: 'Long pasted content'
+                                }
+                            ]
+                        }
+                    },
+                    state: {
+                        human: {
+                            input: 'Summarize this',
+                            referenceComposition: 'compose',
+                            references: [
+                                {
+                                    type: 'quote',
+                                    source: 'Pasted text',
+                                    text: 'Long pasted content'
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        } as any)
+
+        const xpertChatCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof XpertChatCommand
+        )?.[0] as XpertChatCommand
+
+        expect(xpertChatCommand.request).toMatchObject({
+            action: 'send',
+            message: {
+                input: {
+                    input: 'Summarize this',
+                    referenceComposition: 'compose',
+                    references: [
+                        {
+                            type: 'quote',
+                            source: 'Pasted text',
+                            text: 'Long pasted content'
+                        }
+                    ]
+                }
             }
         })
     })
