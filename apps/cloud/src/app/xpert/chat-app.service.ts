@@ -26,10 +26,11 @@ export class ChatAppService extends ChatService {
       takeUntilDestroyed()
     )
     .subscribe(([role, paramRole]) => {
-      if (role?.slug === 'common') {
-        this.#location.replaceState('/x')
-      } else if (role?.name && role.slug !== paramRole) {
-        this.#location.replaceState('/x/' + role.slug)
+      const targetPath =
+        role?.slug === 'common' ? '/x' : role?.name && role.slug !== paramRole ? '/x/' + role.slug : null
+
+      if (targetPath) {
+        this.#location.replaceState(targetPath)
       }
 
       if (!this.conversationId()) {
@@ -48,21 +49,10 @@ export class ChatAppService extends ChatService {
       takeUntilDestroyed()
     )
     .subscribe((id) => {
-      const roleName = this.paramRole()
-      const paramId = this.paramId()
-      // if (paramId !== id) {
-      if (this.xpert()?.slug) {
-        if (id) {
-          this.#location.replaceState('/x/' + this.xpert().slug + '/c/' + id)
-        } else {
-          this.#location.replaceState('/x/' + this.xpert().slug)
-        }
-      } else if (id) {
-        this.#location.replaceState('/x/c/' + id)
-      } else {
-        this.#location.replaceState('/x/')
-      }
-      // }
+      const xpertSlug = this.xpert()?.slug
+      const targetPath = xpertSlug ? (id ? '/x/' + xpertSlug + '/c/' + id : '/x/' + xpertSlug) : id ? '/x/c/' + id : '/x/'
+
+      this.#location.replaceState(targetPath)
     })
 
   constructor() {

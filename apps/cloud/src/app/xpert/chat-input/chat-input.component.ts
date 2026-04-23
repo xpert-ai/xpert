@@ -157,6 +157,7 @@ export class ChatInputComponent {
   readonly references = signal<XpertChatReference[]>([])
   readonly hasReferences = computed(() => this.references().length > 0)
   readonly canSend = computed(() => (!!this.draftPrompt() || this.hasReferences()) && !this.disabled())
+  readonly showCopilotEnableModel = !this.chatService.isPublic()
   readonly referenceKey = getReferenceKey
   readonly referenceLabel = getReferenceLabel
   readonly referenceSource = getReferenceSource
