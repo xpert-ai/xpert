@@ -171,6 +171,9 @@
   @case (eWorkflowNodeTypeEnum.DB_DELETE) {
     <xp-workflow-panel-db-delete [node]="node()" />
   }
+  @case (eWorkflowNodeTypeEnum.DB_QUERY) {
+    <xp-workflow-panel-db-query [node]="node()" />
+  }
 }
 
 @if (loading()) {

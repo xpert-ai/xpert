@@ -49,6 +49,7 @@ import { XpertWorkflowPanelDBInsertComponent } from './db-insert/db-insert.compo
 import { XpertWorkflowPanelDBUpdateComponent } from './db-update/db-update.component'
 import { XpertWorkflowPanelDBSQLComponent } from './db-sql/db-sql.component'
 import { XpertWorkflowPanelDBDeleteComponent } from './db-delete/db-delete.component'
+import { XpertWorkflowPanelDBQueryComponent } from './db-query/db-query.component'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpertWorkflowPanelJSONStringifyComponent } from './json-stringify/json-stringify.component'
 import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.component'
@@ -105,6 +106,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertWorkflowPanelDBUpdateComponent,
     XpertWorkflowPanelDBSQLComponent,
     XpertWorkflowPanelDBDeleteComponent,
+    XpertWorkflowPanelDBQueryComponent,
     XpertWorkflowPanelJSONStringifyComponent,
     XpertWorkflowPanelJSONParseComponent,
     XpertWorkflowMiddlewareComponent,
