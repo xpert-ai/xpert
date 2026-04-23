@@ -18,7 +18,8 @@
         [min]="parameter.min"
         [step]="0.1"
         type="number"
-        [(ngModel)]="value$"
+        [ngModel]="value$()"
+        (ngModelChange)="updateNumericValue($event, eParameterType.FLOAT)"
         [ngModelOptions]="{ standalone: true }"
       />
     }
@@ -39,7 +40,8 @@
         [min]="parameter.min"
         [step]="1"
         type="number"
-        [(ngModel)]="value$"
+        [ngModel]="value$()"
+        (ngModelChange)="updateNumericValue($event, eParameterType.INT)"
         [ngModelOptions]="{ standalone: true }"
       />
     }
