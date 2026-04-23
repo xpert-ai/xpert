@@ -20,6 +20,12 @@
       {{ task().dependencies.length }}
       {{ 'PAC.Project.TaskDependencies' | translate: { Default: 'dependencies' } }}
     </span>
+    @if (teamLabel()) {
+      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+        <i class="ri-team-line mr-1 text-sm"></i>
+        {{ teamLabel() }}
+      </span>
+    }
     @if (task().assignedAgentId) {
       <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
         {{ task().assignedAgentId }}

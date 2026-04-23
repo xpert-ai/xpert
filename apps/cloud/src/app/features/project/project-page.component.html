@@ -65,7 +65,13 @@
             [sprint]="facade.selectedSprint()"
             [laneCount]="facade.selectedLaneCount()"
             [taskCount]="facade.selectedTaskCount()"
+            [teamCount]="facade.selectedTeamCount()"
             [strategyLabel]="facade.selectedStrategyLabel()"
+          />
+
+          <xp-project-team-summary
+            [boundTeams]="facade.boundTeams()"
+            (manageRequested)="openManageTeams(facade.selectedProject())"
           />
 
           @if (!facade.hasSprint()) {
@@ -87,9 +93,14 @@
               [sprint]="facade.selectedSprint()"
               [laneCount]="facade.selectedLaneCount()"
               [taskCount]="facade.selectedTaskCount()"
+              [teamCount]="facade.selectedTeamCount()"
             />
 
-            <xp-project-board [columns]="facade.boardColumns()" [hasTasks]="facade.hasTasks()" />
+            <xp-project-board
+              [columns]="facade.boardColumns()"
+              [hasTasks]="facade.hasTasks()"
+              [teamNames]="facade.teamNameById()"
+            />
           }
         }
       </div>

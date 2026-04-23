@@ -1,0 +1,328 @@
+---
+title: "《技术架构设计文档》"
+description: ""
+---
+
+## 1. 总体架构
+
+```text
+User
+ ↓
+Main Agent
+ ↓
+Orchestrator
+ ↓
+Task Graph
+ ↓
+Agent Runtime
+ ↓
+Sandbox / Tools
+ ↓
+Artifacts
+```
+
+---
+
+## 2. 核心模块
+
+---
+
+### 2.1 Orchestrator（核心）
+
+职责：
+
+* 任务拆解
+* 调度执行
+* 状态管理
+
+---
+
+#### 核心方法
+
+```ts
+planProject()
+createTasks()
+schedule()
+dispatchTask()
+handleFailure()
+```
+
+---
+
+### 2.2 Task Graph（任务图）
+
+```ts
+type TaskNode = {
+  id: string
+  dependencies: string[]
+  status: string
+}
+```
+
+支持：
+
+* DAG
+* 并行执行
+* 依赖管理
+
+---
+
+### 2.3 Agent Runtime
+
+```ts
+runTask(taskId)
+resume(taskId)
+cancel(taskId)
+```
+
+特点：
+
+* 多轮执行
+* tool loop
+* 状态恢复
+
+---
+
+### 2.4 Sandbox Runtime
+
+```text
+Task → Container
+```
+
+能力：
+
+* 代码执行
+* 文件系统
+* shell
+
+---
+
+### 2.5 Artifact System
+
+```ts
+Artifact = {
+  type
+  content
+  metadata
+}
+```
+
+---
+
+### 2.6 Event Bus
+
+```ts
+emit(event)
+on(event)
+```
+
+事件：
+
+* task.started
+* task.completed
+* agent.failed
+
+---
+
+## 3. 数据模型（NestJS + TypeORM）
+
+---
+
+### 3.1 Team
+
+```ts
+Team {
+  id
+  name
+  topology
+}
+```
+
+---
+
+### 3.2 TeamAgent
+
+```ts
+TeamAgent {
+  teamId
+  agentId
+  role
+}
+```
+
+---
+
+### 3.3 Project
+
+```ts
+Project {
+  id
+  goal
+  type
+}
+```
+
+---
+
+### 3.4 TeamBinding
+
+```ts
+TeamBinding {
+  projectId
+  teamId
+  role
+}
+```
+
+---
+
+### 3.5 Iteration
+
+```ts
+Iteration {
+  projectId
+  status
+}
+```
+
+---
+
+### 3.6 Task
+
+```ts
+Task {
+  iterationId
+  agentId
+  status
+}
+```
+
+---
+
+## 4. 调度流程
+
+---
+
+### 1）任务生成
+
+```text
+Main Agent → Orchestrator → Tasks
+```
+
+---
+
+### 2）Team选择
+
+```text
+Task → TeamBinding → Team
+```
+
+---
+
+### 3）Agent选择
+
+```text
+Team → Agent
+```
+
+---
+
+### 4）执行
+
+```text
+Task → Agent → Sandbox
+```
+
+---
+
+### 5）结果回写
+
+```text
+Artifact → Task → Project
+```
+
+---
+
+## 5. 技术栈建议
+
+---
+
+### 后端
+
+* NestJS（已有）
+* BullMQ（调度）
+* TypeORM（数据）
+
+---
+
+### 执行层
+
+* Docker（sandbox）
+* LangGraph（Agent runtime）
+
+---
+
+### 存储
+
+* PostgreSQL（主数据）
+* Redis（缓存 / 队列）
+
+---
+
+## 6. 关键设计原则
+
+---
+
+### 1）Agent 隔离
+
+每个 Agent 独立上下文
+
+---
+
+### 2）Task 驱动
+
+所有执行围绕 Task
+
+---
+
+### 3）状态机
+
+Task 必须有完整生命周期
+
+---
+
+### 4）事件驱动
+
+系统解耦
+
+---
+
+### 5）Artifact 中心
+
+所有输出结构化
+
+---
+
+## 7. 分阶段实施
+
+---
+
+### Phase 1
+
+* Task + Orchestrator
+* 单 Team 执行
+
+---
+
+### Phase 2
+
+* 多 Team
+* Sandbox 深度集成
+
+---
+
+### Phase 3
+
+* Iteration
+* Event Bus
+* Review机制

@@ -10,6 +10,7 @@ import { In, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
 import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
+import { ProjectTeamBinding } from '../team-binding/project-team-binding.entity'
 import { ProjectTask } from './project-task.entity'
 
 @Injectable()
@@ -20,7 +21,9 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		@InjectRepository(ProjectSprint)
 		private readonly sprintRepository: Repository<ProjectSprint>,
 		@InjectRepository(ProjectSwimlane)
-		private readonly swimlaneRepository: Repository<ProjectSwimlane>
+		private readonly swimlaneRepository: Repository<ProjectSwimlane>,
+		@InjectRepository(ProjectTeamBinding)
+		private readonly teamBindingRepository: Repository<ProjectTeamBinding>
 	) {
 		super(repository)
 	}
@@ -46,11 +49,18 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		const nextDependencies = Array.isArray(partialEntity.dependencies)
 			? partialEntity.dependencies
 			: current.dependencies
+		const nextTeamId =
+			typeof partialEntity.teamId === 'string'
+				? partialEntity.teamId
+				: partialEntity.teamId === null
+					? null
+					: current.teamId
 		const normalizedEntityInput: Partial<IProjectTask> = {
 			projectId: nextProjectId,
 			sprintId: nextSprintId,
 			swimlaneId: nextSwimlaneId,
 			dependencies: nextDependencies,
+			teamId: nextTeamId,
 			sortOrder:
 				typeof partialEntity.sortOrder === 'number'
 					? partialEntity.sortOrder
@@ -76,6 +86,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 				sprintId: normalizedEntity.sprintId,
 				swimlaneId: normalizedEntity.swimlaneId,
 				dependencies: normalizedEntity.dependencies,
+				teamId: normalizedEntity.teamId ?? null,
 				sortOrder: normalizedEntity.sortOrder,
 				status: normalizedEntity.status
 			},
@@ -91,6 +102,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		swimlaneId?: string
 		status?: ProjectTaskStatusEnum
 		query?: string
+		teamId?: string
 	}) {
 		const queryBuilder = this.repository.createQueryBuilder('task')
 		queryBuilder.where('task.projectId = :projectId', { projectId: filters.projectId })
@@ -108,6 +120,9 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 			queryBuilder.andWhere('(task.title ILIKE :query OR task.description ILIKE :query)', {
 				query: `%${filters.query.trim()}%`
 			})
+		}
+		if (filters.teamId) {
+			queryBuilder.andWhere('task.teamId = :teamId', { teamId: filters.teamId })
 		}
 
 		queryBuilder.orderBy('task.sortOrder', 'ASC').addOrderBy('task.createdAt', 'ASC')
@@ -200,6 +215,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		const sprintId = entity.sprintId
 		const swimlaneId = entity.swimlaneId
 		const dependencies = entity.dependencies ?? []
+		const teamId = this.normalizeOptionalString(entity.teamId)
 
 		if (!projectId || !sprintId || !swimlaneId) {
 			throw new BadRequestException('projectId, sprintId, and swimlaneId are required for a task')
@@ -231,6 +247,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		}
 
 		await this.validateDependencies(dependencies, sprintId, currentTask?.id)
+		await this.validateTeamBinding(projectId, teamId)
 		this.validateLaneSpecificRules(swimlane, dependencies, entity.status ?? ProjectTaskStatusEnum.Todo)
 
 		const sortOrder =
@@ -244,9 +261,19 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 			sprintId,
 			swimlaneId,
 			dependencies,
+			teamId,
 			sortOrder,
 			status: entity.status ?? ProjectTaskStatusEnum.Todo
 		}
+	}
+
+	private normalizeOptionalString(value: string | null | undefined) {
+		if (typeof value !== 'string') {
+			return value ?? null
+		}
+
+		const normalized = value.trim()
+		return normalized || null
 	}
 
 	private validateLaneSpecificRules(
@@ -308,6 +335,23 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		const crossSprintDependency = dependencyTasks.find((task) => task.sprintId !== sprintId)
 		if (crossSprintDependency) {
 			throw new BadRequestException('Task dependencies must belong to the same sprint')
+		}
+	}
+
+	private async validateTeamBinding(projectId: string, teamId?: string | null) {
+		if (!teamId) {
+			return
+		}
+
+		const binding = await this.teamBindingRepository.findOne({
+			where: {
+				projectId,
+				teamId
+			}
+		})
+
+		if (!binding) {
+			throw new BadRequestException('Task teamId must belong to a bound team on the same project')
 		}
 	}
 }

@@ -13,8 +13,13 @@ import { formatProjectLabel } from '../project-page.utils'
 })
 export class ProjectTaskCardComponent {
   readonly task = input.required<IProjectTask>()
+  readonly teamNames = input<Map<string, string>>(new Map())
 
   readonly statusLabel = computed(() => formatProjectLabel(this.task().status))
+  readonly teamLabel = computed(() => {
+    const teamId = this.task().teamId
+    return teamId ? this.teamNames().get(teamId) ?? '' : ''
+  })
   readonly statusDotClass = computed(() => {
     switch (this.task().status) {
       case ProjectTaskStatusEnum.Doing:

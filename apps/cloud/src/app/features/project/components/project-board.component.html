@@ -7,9 +7,9 @@
 
   @if (columns().length) {
     <div class="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-4 pb-4 pt-4">
-      <div class="flex min-h-full min-w-max gap-4">
+        <div class="flex min-h-full min-w-max gap-4">
         @for (column of columns(); track column.lane.id; let isFirst = $first) {
-          <xp-project-swimlane-column [column]="column" [showCreateTask]="isFirst" />
+          <xp-project-swimlane-column [column]="column" [showCreateTask]="isFirst" [teamNames]="teamNames()" />
         }
       </div>
     </div>

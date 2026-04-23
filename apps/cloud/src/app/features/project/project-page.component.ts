@@ -14,6 +14,8 @@ import { ProjectCreateDialogComponent } from './components/project-create-dialog
 import { ProjectEmptyStateComponent } from './components/project-empty-state.component'
 import { ProjectSidebarComponent } from './components/project-sidebar.component'
 import { ProjectSprintSummaryComponent } from './components/project-sprint-summary.component'
+import { ProjectTeamBindingsDialogComponent } from './components/project-team-bindings-dialog.component'
+import { ProjectTeamSummaryComponent } from './components/project-team-summary.component'
 
 @Component({
   standalone: true,
@@ -25,6 +27,7 @@ import { ProjectSprintSummaryComponent } from './components/project-sprint-summa
     ProjectSidebarComponent,
     ProjectAssistantPanelComponent,
     ProjectBoardHeaderComponent,
+    ProjectTeamSummaryComponent,
     ProjectSprintSummaryComponent,
     ProjectBoardComponent,
     ProjectEmptyStateComponent
@@ -70,6 +73,28 @@ export class ProjectPageComponent {
 
     const updatedProject = await firstValueFrom(dialogRef.closed, { defaultValue: undefined })
     if (!updatedProject?.id) {
+      return
+    }
+
+    await this.facade.refresh()
+  }
+
+  async openManageTeams(project?: IProjectCore | null) {
+    if (!project?.id) {
+      return
+    }
+
+    const dialogRef = this.#dialog.open<boolean>(ProjectTeamBindingsDialogComponent, {
+      disableClose: true,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: {
+        project
+      }
+    })
+
+    const updated = await firstValueFrom(dialogRef.closed, { defaultValue: undefined })
+    if (!updated) {
       return
     }
 

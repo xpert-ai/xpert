@@ -1,0 +1,308 @@
+---
+title: "《PRD：XpertAI Agent Teams & Project 功能》"
+description: ""
+---
+
+## 1. 产品背景
+
+当前 XpertAI 平台已具备：
+
+* 数字专家（Agent）
+* 工具系统（Tools）
+* Sandbox 执行环境
+* 对话式交互
+
+但存在问题：
+
+* ❌ 只能单 Agent 执行
+* ❌ 无法处理复杂任务
+* ❌ 缺乏任务管理能力
+* ❌ 无法沉淀项目过程
+
+---
+
+## 2. 产品目标
+
+构建：
+
+> **一个以 Project 为核心、以 Agent Teams 为执行单元的 AI 项目执行系统**
+
+---
+
+## 3. 核心能力
+
+### 3.1 新增模块
+
+| 模块           | 说明         |
+| ------------ | ---------- |
+| Agent Teams  | 多智能体协作执行单元 |
+| Project      | 项目管理容器     |
+| Iteration    | 项目阶段       |
+| Task         | 任务执行单元     |
+| Orchestrator | 调度系统       |
+
+---
+
+## 4. 核心概念定义
+
+---
+
+### 4.1 Agent（已有）
+
+单个执行者：
+
+```text
+Agent = Role + Model + Tools + Memory
+```
+
+---
+
+### 4.2 Team（新增）
+
+> 多个 Agent 的协作组织
+
+```text
+Team =
+  Agents +
+  Roles +
+  Collaboration Strategy
+```
+
+支持结构：
+
+* Hierarchy（主从）
+* Pipeline（流水线）
+* Parallel（并行）
+
+---
+
+### 4.3 Project（新增）
+
+> 面向目标的执行容器
+
+```text
+Project =
+  Goal +
+  Iterations +
+  Tasks +
+  TeamBindings
+```
+
+---
+
+### 4.4 Iteration（新增）
+
+> 项目阶段管理单元
+
+```text
+Iteration =
+  Milestone +
+  Tasks +
+  Status
+```
+
+---
+
+### 4.5 Task（新增）
+
+> 最小执行单位
+
+```text
+Task =
+  Input +
+  Output +
+  Status +
+  Assigned Agent
+```
+
+---
+
+### 4.6 TeamBinding（关键）
+
+> Project 与 Team 的绑定关系
+
+```text
+Project ← TeamBinding → Team
+```
+
+支持：
+
+* 多 Team 绑定
+* 覆盖配置
+* Agent 替换
+
+---
+
+## 5. 用户使用流程
+
+---
+
+### Step 1 创建 Project
+
+用户输入目标：
+
+* “开发一个功能”
+* “完成一份报告”
+
+---
+
+### Step 2 选择 / 绑定 Team
+
+* Coding Team
+* Research Team
+* Data Team
+
+---
+
+### Step 3 系统自动拆解任务
+
+Main Agent + Orchestrator：
+
+* 创建 Iteration
+* 生成 Task
+
+---
+
+### Step 4 Agent Teams 执行
+
+* 自动分配 Agent
+* 调用工具 / Sandbox
+* 生成 Artifact
+
+---
+
+### Step 5 用户查看结果
+
+* 任务状态
+* 输出结果
+* 文件 / PR
+
+---
+
+## 6. 核心功能设计
+
+---
+
+### 6.1 Team 管理
+
+功能：
+
+* 创建 Team
+* 添加 Agent
+* 设置角色
+* 设置协作模式
+
+---
+
+### 6.2 Project 管理
+
+功能：
+
+* 创建 Project
+* 选择 Project Type
+* 绑定 Team
+* 查看执行进度
+
+---
+
+### 6.3 Iteration 管理
+
+功能：
+
+* 创建阶段
+* 管理任务周期
+* 状态跟踪
+
+---
+
+### 6.4 Task 管理
+
+功能：
+
+* 自动生成
+* 手动编辑
+* 分配 Agent
+* 查看执行日志
+
+---
+
+### 6.5 Orchestrator 调度
+
+能力：
+
+* 任务拆解
+* 调度执行
+* 并行控制
+* 失败重试
+
+---
+
+### 6.6 Artifact 管理
+
+支持：
+
+* 文件
+* 代码
+* 报告
+* PR
+
+---
+
+## 7. Project 类型设计
+
+支持：
+
+| 类型       | 示例   |
+| -------- | ---- |
+| Software | 编码项目 |
+| Research | 调研报告 |
+| Data     | 数据分析 |
+| Ops      | 营销运营 |
+
+---
+
+## 8. Swimlane 设计
+
+任务状态流：
+
+```text
+Backlog → Ready → In Progress → Review → Done
+```
+
+---
+
+## 9. MVP 范围
+
+---
+
+### 必须实现
+
+* Project
+* Team
+* Task
+* TeamBinding
+* Orchestrator（基础）
+
+---
+
+### 第二阶段
+
+* Iteration
+* 多 Team 协作
+* Review Agent
+
+---
+
+### 第三阶段
+
+* 动态 Agent 调度
+* Agent Marketplace
+
+---
+
+## 10. 成功指标
+
+* Task 完成率
+* 自动执行比例
+* Agent 使用率
+* 项目交付效率提升

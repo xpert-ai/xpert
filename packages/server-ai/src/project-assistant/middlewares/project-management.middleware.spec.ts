@@ -1,5 +1,8 @@
 import { Command } from '@langchain/langgraph'
 import { ProjectSprintStrategyEnum, ProjectSwimlaneKindEnum } from '@xpert-ai/contracts'
+jest.mock('../services/project-assistant.service', () => ({
+	ProjectAssistantService: class ProjectAssistantService {}
+}))
 jest.mock('../../project-core/project-core.service', () => ({
 	ProjectCoreService: class ProjectCoreService {}
 }))
@@ -18,6 +21,10 @@ describe('ProjectManagementMiddleware', () => {
 		createProjectSprint: jest.Mock
 		resolveContext: jest.Mock
 		updateProjectSprint: jest.Mock
+		listProjectTeams: jest.Mock
+		bindProjectTeams: jest.Mock
+		updateProjectTeamBindings: jest.Mock
+		removeProjectTeamBinding: jest.Mock
 		updateProjectSwimlanes: jest.Mock
 		getProjectExecutionSnapshot: jest.Mock
 	}
@@ -29,6 +36,7 @@ describe('ProjectManagementMiddleware', () => {
 				sprint: { id: 'sprint-1', strategyType: ProjectSprintStrategyEnum.SoftwareDelivery },
 				backlogLane: { id: 'lane-backlog' },
 				executionLanes: [],
+				boundTeams: [],
 				executionSnapshot: null
 			}),
 			buildExecutionSnapshotSummary: jest.fn().mockReturnValue({
@@ -50,6 +58,10 @@ describe('ProjectManagementMiddleware', () => {
 				executionSnapshot: null
 			}),
 			updateProjectSprint: jest.fn(),
+			listProjectTeams: jest.fn(),
+			bindProjectTeams: jest.fn(),
+			updateProjectTeamBindings: jest.fn(),
+			removeProjectTeamBinding: jest.fn(),
 			updateProjectSwimlanes: jest.fn(),
 			getProjectExecutionSnapshot: jest.fn()
 		}
@@ -76,6 +88,10 @@ describe('ProjectManagementMiddleware', () => {
 				'moveProjectTasks',
 				'createProjectSprint',
 				'updateProjectSprint',
+				'listProjectTeams',
+				'bindProjectTeams',
+				'updateProjectTeamBindings',
+				'removeProjectTeamBinding',
 				'updateProjectSwimlanes',
 				'getProjectExecutionSnapshot'
 			])

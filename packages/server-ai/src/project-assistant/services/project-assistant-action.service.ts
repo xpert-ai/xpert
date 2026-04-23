@@ -51,6 +51,8 @@ export class ProjectAssistantActionService {
 			throw new ConflictException('Project does not have a sprint to manage yet')
 		}
 
+		const boundTeams = await this.projectAssistantService.listProjectTeams(projectId)
+
 		const latestConversation = await this.conversationService.findLatestByProject(projectId, project.mainAssistantId)
 		if (latestConversation?.status === 'busy') {
 			throw new ConflictException('Project assistant is already processing another backlog management pass')
@@ -83,14 +85,18 @@ export class ProjectAssistantActionService {
 					action: 'send',
 					conversationId: conversation.id,
 					projectId,
-					message: {
-						input: {
-							input: buildManageBacklogPrompt({
-								instruction: request.instruction
-							})
+						message: {
+							input: {
+								input: buildManageBacklogPrompt({
+									instruction: request.instruction,
+									boundTeams: boundTeams.map(({ binding, team }) => ({
+										name: team.name,
+										role: binding.role ?? null
+									}))
+								})
+							}
 						}
-					}
-				},
+					},
 				options: {
 					xpertId: project.mainAssistantId,
 					from: 'job'

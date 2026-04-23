@@ -93,4 +93,16 @@ export class ProjectTask extends TenantOrganizationBaseEntity implements IProjec
 	@IsString()
 	@Column({ nullable: true })
 	assignedAgentId?: string
+
+	@ApiPropertyOptional({
+		type: () => String,
+		nullable: true,
+		description:
+			'Project-facing Team id for task routing. In this phase it stores ITeamDefinition.id, which is projected from a published Xpert id.'
+	})
+	@IsOptional()
+	@IsString()
+	@Index()
+	@Column({ type: 'uuid', nullable: true })
+	teamId?: string | null
 }

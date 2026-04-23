@@ -1,8 +1,10 @@
 import {
 	IProjectCore,
 	IProjectSprint,
+	IProjectTeamBinding,
 	IProjectTask,
 	IProjectSwimlane,
+	ITeamDefinition,
 	ProjectSprintStatusEnum,
 	ProjectSprintStrategyEnum,
 	ProjectSwimlaneKindEnum,
@@ -19,6 +21,13 @@ import { ProjectSwimlane } from '../../project-swimlane/project-swimlane.entity'
 import { ProjectSwimlaneService } from '../../project-swimlane/project-swimlane.service'
 import { ProjectTask } from '../../project-task/project-task.entity'
 import { ProjectTaskService } from '../../project-task/project-task.service'
+import { TeamBindingService } from '../../team-binding/team-binding.service'
+import { TeamDefinitionService } from '../../team-definition/team-definition.service'
+
+export interface ProjectBoundTeam {
+	binding: IProjectTeamBinding
+	team: ITeamDefinition
+}
 
 export interface ProjectAssistantResolvedContext {
 	project: IProjectCore
@@ -26,6 +35,7 @@ export interface ProjectAssistantResolvedContext {
 	backlogLane: IProjectSwimlane | null
 	executionLanes: IProjectSwimlane[]
 	tasks: IProjectTask[]
+	boundTeams: ProjectBoundTeam[]
 	executionSnapshot: Awaited<ReturnType<ProjectOrchestratorService['getSprintExecutionSnapshot']>> | null
 }
 
@@ -43,6 +53,8 @@ export class ProjectAssistantService {
 		private readonly projectSwimlaneService: ProjectSwimlaneService,
 		private readonly projectTaskService: ProjectTaskService,
 		private readonly projectOrchestratorService: ProjectOrchestratorService,
+		private readonly teamDefinitionService: TeamDefinitionService,
+		private readonly teamBindingService: TeamBindingService,
 		@InjectRepository(ProjectSprint)
 		private readonly sprintRepository: Repository<ProjectSprint>,
 		@InjectRepository(ProjectSwimlane)
@@ -84,6 +96,7 @@ export class ProjectAssistantService {
 
 	async resolveContext(projectId: string, sprintId?: string | null): Promise<ProjectAssistantResolvedContext> {
 		const project = await this.resolveProject(projectId)
+		const boundTeams = await this.listProjectTeams(projectId)
 		const sprint = await this.resolveSprint(projectId, sprintId)
 		if (!sprint) {
 			return {
@@ -92,6 +105,7 @@ export class ProjectAssistantService {
 				backlogLane: null,
 				executionLanes: [],
 				tasks: [],
+				boundTeams,
 				executionSnapshot: null
 			}
 		}
@@ -115,6 +129,7 @@ export class ProjectAssistantService {
 				(item) => (item.kind ?? ProjectSwimlaneKindEnum.Execution) === ProjectSwimlaneKindEnum.Execution
 			),
 			tasks,
+			boundTeams,
 			executionSnapshot
 		}
 	}
@@ -139,8 +154,32 @@ export class ProjectAssistantService {
 			backlogLane: context.backlogLane,
 			executionLanes: context.executionLanes,
 			taskCount: context.tasks.length,
+			boundTeams: context.boundTeams,
 			executionSnapshot: context.executionSnapshot
 		}
+	}
+
+	async listProjectTeams(projectId: string): Promise<ProjectBoundTeam[]> {
+		const bindingsResult = await this.teamBindingService.listByProject(projectId)
+		const bindings = bindingsResult.items ?? []
+		if (!bindings.length) {
+			return []
+		}
+
+		const teams = await Promise.all(bindings.map((binding) => this.teamDefinitionService.findOne(binding.teamId)))
+		const teamById = new Map(teams.map((team) => [team.id, team]))
+
+		return bindings
+			.map((binding) => {
+				const team = teamById.get(binding.teamId)
+				return team
+					? {
+							binding,
+							team
+						}
+					: null
+			})
+			.filter((value): value is ProjectBoundTeam => value !== null)
 	}
 
 	async listProjectTasks(input: {
@@ -150,13 +189,15 @@ export class ProjectAssistantService {
 		laneKind?: ProjectSwimlaneKindEnum
 		status?: ProjectTaskStatusEnum
 		query?: string
+		teamId?: string
 	}) {
 		const tasks = await this.projectTaskService.listByProjectContext({
 			projectId: input.projectId,
 			sprintId: input.sprintId,
 			swimlaneId: input.laneId,
 			status: input.status,
-			query: input.query
+			query: input.query,
+			teamId: input.teamId
 		})
 		if (!input.laneKind) {
 			return tasks
@@ -181,7 +222,12 @@ export class ProjectAssistantService {
 		projectId: string
 		sprintId?: string
 		laneId?: string
-		tasks: Array<Pick<IProjectTask, 'title'> & Partial<Pick<IProjectTask, 'description' | 'assignedAgentId' | 'status' | 'dependencies'>>>
+		tasks: Array<
+			Pick<IProjectTask, 'title'> &
+				Partial<
+					Pick<IProjectTask, 'description' | 'assignedAgentId' | 'status' | 'dependencies' | 'teamId'>
+				>
+		>
 	}) {
 		const context = await this.resolveContext(input.projectId, input.sprintId)
 		if (!context.sprint || !context.backlogLane) {
@@ -202,7 +248,8 @@ export class ProjectAssistantService {
 				description: task.description,
 				assignedAgentId: task.assignedAgentId,
 				status: task.status,
-				dependencies: task.dependencies ?? []
+				dependencies: task.dependencies ?? [],
+				teamId: task.teamId
 			})
 			created.push(
 				createdTask
@@ -216,7 +263,9 @@ export class ProjectAssistantService {
 		projectId: string
 		tasks: Array<
 			Pick<IProjectTask, 'id'> &
-				Partial<Pick<IProjectTask, 'title' | 'description' | 'assignedAgentId' | 'status' | 'dependencies'>>
+				Partial<
+					Pick<IProjectTask, 'title' | 'description' | 'assignedAgentId' | 'status' | 'dependencies' | 'teamId'>
+				>
 		>
 	}) {
 		const updated: IProjectTask[] = []
@@ -231,7 +280,8 @@ export class ProjectAssistantService {
 				description: task.description,
 				assignedAgentId: task.assignedAgentId,
 				status: task.status,
-				dependencies: task.dependencies
+				dependencies: task.dependencies,
+				teamId: task.teamId
 			})
 			if ('affected' in nextTask) {
 				throw new BadRequestException(`Task ${task.id} update did not return the updated entity`)
@@ -240,6 +290,81 @@ export class ProjectAssistantService {
 		}
 
 		return updated
+	}
+
+	async bindProjectTeams(input: {
+		projectId: string
+		teams: Array<Pick<IProjectTeamBinding, 'teamId'> & Partial<Pick<IProjectTeamBinding, 'role'>>>
+	}) {
+		await this.resolveProject(input.projectId)
+		const existingBindings = (await this.teamBindingService.listByProject(input.projectId)).items ?? []
+		const existingByTeamId = new Map(existingBindings.map((binding) => [binding.teamId, binding]))
+
+		for (const team of input.teams) {
+			const existing = existingByTeamId.get(team.teamId)
+			if (existing) {
+				const nextPartial =
+					Object.prototype.hasOwnProperty.call(team, 'role') && team.role !== undefined
+						? {
+								role: team.role
+							}
+						: {}
+				if (Object.keys(nextPartial).length) {
+					await this.teamBindingService.update(existing.id, nextPartial)
+				}
+				continue
+			}
+
+			await this.teamBindingService.create({
+				projectId: input.projectId,
+				teamId: team.teamId,
+				role: team.role
+			})
+		}
+
+		return this.listProjectTeams(input.projectId)
+	}
+
+	async updateProjectTeamBindings(input: {
+		projectId: string
+		bindings: Array<Pick<IProjectTeamBinding, 'id'> & Partial<Pick<IProjectTeamBinding, 'role' | 'sortOrder'>>>
+	}) {
+		const updated: ProjectBoundTeam[] = []
+		for (const bindingInput of input.bindings) {
+			const current = await this.teamBindingService.findOne(bindingInput.id)
+			if (current.projectId !== input.projectId) {
+				throw new BadRequestException('Team binding does not belong to the selected project')
+			}
+
+			const nextBinding = await this.teamBindingService.update(bindingInput.id, {
+				role: bindingInput.role,
+				sortOrder: bindingInput.sortOrder
+			})
+			if (this.isUpdateResult(nextBinding)) {
+				throw new BadRequestException(`Team binding ${bindingInput.id} update did not return the updated entity`)
+			}
+
+			const team = await this.teamDefinitionService.findOne(nextBinding.teamId)
+			updated.push({
+				binding: nextBinding,
+				team
+			})
+		}
+
+		return updated
+	}
+
+	async removeProjectTeamBinding(projectId: string, bindingId: string) {
+		const binding = await this.teamBindingService.findOne(bindingId)
+		if (binding.projectId !== projectId) {
+			throw new BadRequestException('Team binding does not belong to the selected project')
+		}
+
+		await this.teamBindingService.delete(bindingId)
+		return {
+			removed: true,
+			bindingId
+		}
 	}
 
 	async reorderProjectTasks(projectId: string, swimlaneId: string, orderedTaskIds: string[]) {
@@ -368,5 +493,9 @@ export class ProjectAssistantService {
 			throw new BadRequestException('Swimlane does not belong to the selected project')
 		}
 		return swimlane
+	}
+
+	private isUpdateResult(value: IProjectTeamBinding | UpdateResult): value is UpdateResult {
+		return 'affected' in value
 	}
 }

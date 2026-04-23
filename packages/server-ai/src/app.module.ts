@@ -39,6 +39,8 @@ import { SkillRepositoryIndexModule, SkillRepositoryModule } from './skill-repos
 import { SkillPackageModule } from './skill-package'
 import { FileUploadTargetsModule } from './shared'
 import { InitializationModule } from './initialization/initialization.module'
+import { TeamBindingModule } from './team-binding/team-binding.module'
+import { TeamDefinitionModule } from './team-definition/team-definition.module'
 import { ProjectCoreModule } from './project-core/project-core.module'
 import { ProjectOrchestratorModule } from './project-orchestrator/project-orchestrator.module'
 import { ProjectSprintModule } from './project-sprint/project-sprint.module'
@@ -90,6 +92,8 @@ import { VolumeModule } from './shared/volume'
         RagVStoreModule,
         RagWebModule,
         SandboxModule,
+        TeamDefinitionModule,
+        TeamBindingModule,
         ProjectCoreModule,
         ProjectSprintModule,
         ProjectSwimlaneModule,

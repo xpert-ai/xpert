@@ -28,7 +28,7 @@
 
   <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-3 py-3">
     @for (task of column().tasks; track task.id) {
-      <xp-project-task-card [task]="task" />
+      <xp-project-task-card [task]="task" [teamNames]="teamNames()" />
     } @empty {
       <div class="flex min-h-[220px] flex-1 items-center justify-center rounded-[20px] border border-dashed border-divider-regular bg-components-card-bg px-4 text-center text-sm leading-6 text-text-tertiary">
         {{ 'PAC.Project.EmptyLaneTasks' | translate: { Default: 'No tasks in this swimlane yet.' } }}

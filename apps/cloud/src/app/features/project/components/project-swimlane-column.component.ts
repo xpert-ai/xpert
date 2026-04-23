@@ -14,6 +14,7 @@ import { ProjectTaskCardComponent } from './project-task-card.component'
 export class ProjectSwimlaneColumnComponent {
   readonly column = input.required<ProjectBoardColumnViewModel>()
   readonly showCreateTask = input(false)
+  readonly teamNames = input<Map<string, string>>(new Map())
 
   readonly laneKeyLabel = computed(() => formatProjectLabel(this.column().lane.key))
   readonly laneDotClass = computed(() => {

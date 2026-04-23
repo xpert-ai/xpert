@@ -13,6 +13,8 @@ import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
 import { ProjectSwimlaneModule } from '../project-swimlane/project-swimlane.module'
 import { ProjectTask } from '../project-task/project-task.entity'
 import { ProjectTaskModule } from '../project-task/project-task.module'
+import { TeamBindingModule } from '../team-binding/team-binding.module'
+import { TeamDefinitionModule } from '../team-definition/team-definition.module'
 import { XpertModule } from '../xpert'
 import { ProjectAssistantController } from './project-assistant.controller'
 import { ProjectManagementMiddleware } from './middlewares/project-management.middleware'
@@ -30,6 +32,8 @@ import { ProjectAssistantService } from './services/project-assistant.service'
 		ProjectSwimlaneModule,
 		ProjectTaskModule,
 		ProjectOrchestratorModule,
+		TeamDefinitionModule,
+		TeamBindingModule,
 		XpertModule,
 		ChatConversationModule,
 		HandoffQueueModule

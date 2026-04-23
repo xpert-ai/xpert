@@ -1,4 +1,15 @@
-import type { IProjectSprint, IProjectSwimlane, IProjectTask } from '@xpert-ai/contracts'
+import type {
+  IProjectSprint,
+  IProjectSwimlane,
+  IProjectTask,
+  IProjectTeamBinding,
+  ITeamDefinition
+} from '@xpert-ai/contracts'
+
+export interface ProjectBoundTeamViewModel {
+  binding: IProjectTeamBinding
+  team: ITeamDefinition
+}
 
 export interface ProjectBoardColumnViewModel {
   lane: IProjectSwimlane
@@ -56,7 +67,8 @@ export function buildProjectBoardColumns(swimlanes: IProjectSwimlane[], tasks: I
     .map<ProjectBoardColumnViewModel>((lane) => {
       const laneTasks = [...(tasksByLane.get(lane.id ?? '') ?? [])].sort(
         (left, right) =>
-          toEpoch(right.updatedAt ?? right.createdAt) - toEpoch(left.updatedAt ?? left.createdAt)
+          (left.sortOrder ?? Number.MAX_SAFE_INTEGER) - (right.sortOrder ?? Number.MAX_SAFE_INTEGER) ||
+          toEpoch(left.createdAt) - toEpoch(right.createdAt)
       )
 
       return {

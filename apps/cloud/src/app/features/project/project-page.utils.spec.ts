@@ -5,6 +5,7 @@ import {
 import {
   ProjectAgentRole,
   ProjectExecutionEnvironmentType,
+  ProjectSwimlaneKindEnum,
   ProjectSprintStrategyEnum
 } from '../../../../../../packages/contracts/src/project/project-strategy.model'
 import type { IProjectSwimlane } from '../../../../../../packages/contracts/src/project/project-swimlane.model'
@@ -51,6 +52,7 @@ describe('project page utils', () => {
         sprintId: 'sprint-1',
         key: 'review',
         name: 'Review',
+        kind: ProjectSwimlaneKindEnum.Execution,
         priority: 1,
         weight: 1,
         concurrencyLimit: 1,
@@ -66,6 +68,7 @@ describe('project page utils', () => {
         sprintId: 'sprint-1',
         key: 'coding',
         name: 'Coding',
+        kind: ProjectSwimlaneKindEnum.Execution,
         priority: 2,
         weight: 2,
         concurrencyLimit: 2,
@@ -83,6 +86,7 @@ describe('project page utils', () => {
         sprintId: 'sprint-1',
         swimlaneId: 'lane-2',
         title: 'Review API',
+        sortOrder: 1,
         status: ProjectTaskStatusEnum.Todo,
         dependencies: [],
         updatedAt: new Date('2026-04-18T08:00:00.000Z')
@@ -93,6 +97,7 @@ describe('project page utils', () => {
         sprintId: 'sprint-1',
         swimlaneId: 'lane-1',
         title: 'Build board',
+        sortOrder: 0,
         status: ProjectTaskStatusEnum.Doing,
         dependencies: [],
         updatedAt: new Date('2026-04-18T09:00:00.000Z')

@@ -11,6 +11,7 @@ describe('ProjectAssistantActionService', () => {
 		resolveProject: jest.Mock
 		resolveSprint: jest.Mock
 		createProjectSprint: jest.Mock
+		listProjectTeams: jest.Mock
 	}
 	let conversationService: {
 		findLatestByProject: jest.Mock
@@ -35,7 +36,17 @@ describe('ProjectAssistantActionService', () => {
 			createProjectSprint: jest.fn().mockResolvedValue({
 				id: 'sprint-bootstrapped',
 				projectId: 'project-1'
-			})
+			}),
+			listProjectTeams: jest.fn().mockResolvedValue([
+				{
+					binding: {
+						role: 'Delivery'
+					},
+					team: {
+						name: 'Delivery Team'
+					}
+				}
+			])
 		}
 		conversationService = {
 			findLatestByProject: jest.fn().mockResolvedValue(null)
@@ -91,7 +102,12 @@ describe('ProjectAssistantActionService', () => {
 			expect.objectContaining({
 				payload: expect.objectContaining({
 					request: expect.objectContaining({
-						projectId: 'project-1'
+						projectId: 'project-1',
+						message: expect.objectContaining({
+							input: expect.objectContaining({
+								input: expect.stringContaining('Delivery Team')
+							})
+						})
 					})
 				})
 			})

@@ -107,7 +107,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				},
 				{
 					name: 'getProjectContext',
-					description: 'Get the current project, sprint, backlog lane, execution lanes, board task counts, and execution snapshot.',
+					description: 'Get the current project, sprint, backlog lane, execution lanes, bound teams, board task counts, and execution snapshot.',
 					schema: z.object({
 						projectId: z.string().optional(),
 						sprintId: z.string().optional()
@@ -123,7 +123,8 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						laneId: input.laneId,
 						laneKind: input.laneKind,
 						status: input.status,
-						query: input.query
+						query: input.query,
+						teamId: input.teamId
 					})
 				},
 				{
@@ -135,7 +136,8 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						laneId: z.string().optional(),
 						laneKind: z.nativeEnum(ProjectSwimlaneKindEnum).optional(),
 						status: z.nativeEnum(ProjectTaskStatusEnum).optional(),
-						query: z.string().optional()
+						query: z.string().optional(),
+						teamId: z.string().optional()
 					})
 				}
 			),
@@ -156,7 +158,8 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 								description: task.description,
 								assignedAgentId: task.assignedAgentId,
 								status: task.status,
-								dependencies: task.dependencies
+								dependencies: task.dependencies,
+								teamId: task.teamId
 							}
 						})
 					})
@@ -174,7 +177,8 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 								description: z.string().optional(),
 								assignedAgentId: z.string().optional(),
 								status: z.nativeEnum(ProjectTaskStatusEnum).optional(),
-								dependencies: z.array(z.string()).optional()
+								dependencies: z.array(z.string()).optional(),
+								teamId: z.string().nullable().optional()
 							})
 						)
 					})
@@ -200,7 +204,8 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 								description: z.string().optional(),
 								assignedAgentId: z.string().optional(),
 								status: z.nativeEnum(ProjectTaskStatusEnum).optional(),
-								dependencies: z.array(z.string()).optional()
+								dependencies: z.array(z.string()).optional(),
+								teamId: z.string().nullable().optional()
 							})
 						)
 					})
@@ -308,6 +313,87 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						retrospective: z.string().optional(),
 						startAt: z.string().optional(),
 						endAt: z.string().optional()
+					})
+				}
+			),
+			tool(
+				async (input) => {
+					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					return this.projectAssistantService.listProjectTeams(resolved.projectId)
+				},
+				{
+					name: 'listProjectTeams',
+					description: 'List the teams currently bound to the selected project.',
+					schema: z.object({
+						projectId: z.string().optional()
+					})
+				}
+			),
+			tool(
+				async (input) => {
+					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					return this.projectAssistantService.bindProjectTeams({
+						projectId: resolved.projectId,
+						teams: input.teams.map((team) => {
+							if (!team.teamId) {
+								throw new Error('teamId is required')
+							}
+
+							return {
+								teamId: team.teamId,
+								role: team.role
+							}
+						})
+					})
+				},
+				{
+					name: 'bindProjectTeams',
+					description: 'Bind one or more teams to the selected project.',
+					schema: z.object({
+						projectId: z.string().optional(),
+						teams: z.array(
+							z.object({
+								teamId: z.string(),
+								role: z.string().optional()
+							})
+						)
+					})
+				}
+			),
+			tool(
+				async (input) => {
+					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					return this.projectAssistantService.updateProjectTeamBindings({
+						projectId: resolved.projectId,
+						bindings: input.bindings
+					})
+				},
+				{
+					name: 'updateProjectTeamBindings',
+					description: 'Update role or sort order for existing project team bindings.',
+					schema: z.object({
+						projectId: z.string().optional(),
+						bindings: z.array(
+							z.object({
+								id: z.string(),
+								role: z.string().optional(),
+								sortOrder: z.number().optional()
+							})
+						)
+					})
+				}
+			),
+			tool(
+				async (input) => {
+					const resolved = this.resolveProjectRuntime(input.projectId, options, context, this.readState())
+					return this.projectAssistantService.removeProjectTeamBinding(resolved.projectId, input.bindingId)
+				},
+				{
+					name: 'removeProjectTeamBinding',
+					description: 'Remove a team binding from the selected project.',
+					schema: z.object({
+						projectId: z.string().optional(),
+						bindingId: z.string()
 					})
 				}
 			),

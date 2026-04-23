@@ -14,4 +14,5 @@ import { ProjectSwimlaneColumnComponent } from './project-swimlane-column.compon
 export class ProjectBoardComponent {
   readonly columns = input<ProjectBoardColumnViewModel[]>([])
   readonly hasTasks = input(false)
+  readonly teamNames = input<Map<string, string>>(new Map())
 }

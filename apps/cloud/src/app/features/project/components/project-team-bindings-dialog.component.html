@@ -1,0 +1,170 @@
+<div class="flex flex-col overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-xl">
+  <div class="border-b border-divider-regular px-6 py-5">
+    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+      {{ 'PAC.Project.TeamBindingsEyebrow' | translate: { Default: 'Project Teams' } }}
+    </div>
+    <h2 class="mt-2 text-2xl font-semibold text-text-primary">
+      {{ 'PAC.Project.TeamBindingsTitle' | translate: { Default: 'Bind execution teams' } }}
+    </h2>
+    <p class="mt-2 text-sm leading-6 text-text-secondary">
+      {{
+        'PAC.Project.TeamBindingsDescription'
+          | translate
+            : {
+                Default:
+                  'Select one or more published Xperts that should be available as execution teams for this project. The project assistant will use these bindings when routing work to tasks.'
+              }
+      }}
+    </p>
+  </div>
+
+  <div class="flex flex-col gap-5 px-6 py-6">
+    <div class="rounded-[24px] border border-divider-regular bg-background-default-subtle px-4 py-4">
+      <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+        {{ 'PAC.Project.CurrentProject' | translate: { Default: 'Current Project' } }}
+      </div>
+      <div class="mt-2 text-lg font-semibold text-text-primary">{{ project.name }}</div>
+      <div class="mt-2 text-sm leading-6 text-text-secondary">{{ project.goal }}</div>
+    </div>
+
+    @if (loading()) {
+      <div class="flex min-h-[320px] items-center justify-center rounded-[24px] border border-divider-regular bg-background-default-subtle">
+        <ngm-spin />
+      </div>
+    } @else if (error()) {
+      <div class="rounded-[24px] border border-divider-regular bg-background-default-subtle px-4 py-8 text-center text-sm text-text-secondary">
+        {{ error() }}
+      </div>
+    } @else {
+      <section>
+        <div class="mb-3 text-sm font-semibold text-text-primary">
+          {{ 'PAC.Project.AvailableTeams' | translate: { Default: 'Available Teams' } }}
+        </div>
+
+        @if (availableTeams().length) {
+          <div class="grid gap-3 lg:grid-cols-2">
+            @for (team of availableTeams(); track team.id) {
+              <button
+                type="button"
+                class="rounded-[24px] border p-4 text-left transition-colors"
+                [class]="
+                  isSelected(team.id)
+                    ? 'border-primary bg-primary/5'
+                    : 'border-divider-regular bg-background-default hover:border-divider-deep hover:bg-hover-bg'
+                "
+                (click)="toggleTeam(team.id)"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate text-base font-semibold text-text-primary">{{ team.name }}</div>
+                    @if (team.description) {
+                      <p class="mt-2 line-clamp-2 text-sm leading-6 text-text-secondary">
+                        {{ team.description }}
+                      </p>
+                    }
+                  </div>
+
+                  <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+                    {{ team.memberCount }}
+                    {{ 'PAC.Project.TeamMembers' | translate: { Default: 'members' } }}
+                  </span>
+                </div>
+
+                <div class="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                  @if (isSelected(team.id)) {
+                    {{ 'PAC.Project.TeamSelected' | translate: { Default: 'Selected' } }}
+                  } @else {
+                    {{ 'PAC.Project.TeamSelectable' | translate: { Default: 'Click to bind' } }}
+                  }
+                </div>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="rounded-[24px] border border-dashed border-divider-regular bg-background-default-subtle px-4 py-8 text-center text-sm text-text-secondary">
+            {{
+              'PAC.Project.NoAvailableTeams'
+                | translate
+                  : {
+                      Default:
+                        'No published Xperts are currently available as execution teams. Publish one in Xpert Studio first.'
+                    }
+            }}
+          </div>
+        }
+      </section>
+
+      <section>
+        <div class="mb-3 text-sm font-semibold text-text-primary">
+          {{ 'PAC.Project.SelectedTeams' | translate: { Default: 'Selected Teams' } }}
+        </div>
+
+        @if (selectedBindings().length) {
+          <div class="space-y-3">
+            @for (item of selectedBindings(); track item.team.id) {
+              <div class="rounded-[24px] border border-divider-regular bg-background-default px-4 py-4">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div class="min-w-0 flex-1">
+                    <div class="text-base font-semibold text-text-primary">{{ item.team.name }}</div>
+                    <div class="mt-1 text-sm text-text-secondary">
+                      {{ item.team.memberCount }}
+                      {{ 'PAC.Project.TeamMembers' | translate: { Default: 'members' } }}
+                    </div>
+                  </div>
+
+                  <div class="w-full lg:w-[22rem]">
+                    <label class="mb-2 block text-sm font-medium text-text-primary">
+                      {{ 'PAC.Project.TeamRole' | translate: { Default: 'Role' } }}
+                    </label>
+                    <input
+                      type="text"
+                      class="h-11 w-full rounded-2xl border border-divider-regular bg-background-default px-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-divider-deep"
+                      [ngModel]="item.binding.role"
+                      (ngModelChange)="updateRole(item.team.id, $event)"
+                      [placeholder]="'PAC.Project.TeamRolePlaceholder' | translate: { Default: 'Optional role, such as API team or QA team' }"
+                    />
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="rounded-[24px] border border-dashed border-divider-regular bg-background-default-subtle px-4 py-8 text-center text-sm text-text-secondary">
+            {{
+              'PAC.Project.NoSelectedTeams'
+                | translate
+                  : {
+                      Default:
+                        'Select one or more teams above to make them available for task routing in this project.'
+                    }
+            }}
+          </div>
+        }
+      </section>
+    }
+
+    <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
+      <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="submitting()"
+        (click)="close()"
+      >
+        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+
+      <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-divider-regular bg-hover-bg px-4 text-sm font-semibold text-text-primary transition-colors hover:border-divider-deep disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="loading() || submitting()"
+        (click)="submit()"
+      >
+        @if (submitting()) {
+          {{ 'PAC.Project.SavingTeams' | translate: { Default: 'Saving...' } }}
+        } @else {
+          {{ 'PAC.Project.SaveTeams' | translate: { Default: 'Save Teams' } }}
+        }
+      </button>
+    </div>
+  </div>
+</div>

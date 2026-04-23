@@ -3,6 +3,7 @@ import { ProjectSwimlaneKindEnum, ProjectTaskStatusEnum } from '@xpert-ai/contra
 import { Repository } from 'typeorm'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
 import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
+import { ProjectTeamBinding } from '../team-binding/project-team-binding.entity'
 import { ProjectTask } from './project-task.entity'
 import { ProjectTaskService } from './project-task.service'
 
@@ -20,6 +21,9 @@ describe('ProjectTaskService', () => {
 	}
 	let swimlaneRepository: {
 		findOneBy: jest.Mock
+	}
+	let teamBindingRepository: {
+		findOne: jest.Mock
 	}
 
 	beforeEach(() => {
@@ -41,11 +45,15 @@ describe('ProjectTaskService', () => {
 				kind: ProjectSwimlaneKindEnum.Execution
 			})
 		}
+		teamBindingRepository = {
+			findOne: jest.fn().mockResolvedValue(null)
+		}
 
 		service = new ProjectTaskService(
 			taskRepository as unknown as Repository<ProjectTask>,
 			sprintRepository as unknown as Repository<ProjectSprint>,
-			swimlaneRepository as unknown as Repository<ProjectSwimlane>
+			swimlaneRepository as unknown as Repository<ProjectSwimlane>,
+			teamBindingRepository as unknown as Repository<ProjectTeamBinding>
 		)
 	})
 
@@ -128,6 +136,44 @@ describe('ProjectTaskService', () => {
 		expect(taskRepository.create).toHaveBeenCalledWith(
 			expect.objectContaining({
 				sortOrder: 3
+			})
+		)
+	})
+
+	it('rejects team ids that are not bound to the project', async () => {
+		await expect(
+			service.create({
+				projectId: 'project-1',
+				sprintId: 'sprint-1',
+				swimlaneId: 'lane-1',
+				title: 'Implement feature',
+				status: ProjectTaskStatusEnum.Todo,
+				dependencies: [],
+				teamId: 'team-1'
+			})
+		).rejects.toBeInstanceOf(BadRequestException)
+	})
+
+	it('accepts team ids that are already bound to the project', async () => {
+		teamBindingRepository.findOne.mockResolvedValueOnce({
+			id: 'binding-1',
+			projectId: 'project-1',
+			teamId: 'team-1'
+		})
+
+		await service.create({
+			projectId: 'project-1',
+			sprintId: 'sprint-1',
+			swimlaneId: 'lane-1',
+			title: 'Implement feature',
+			status: ProjectTaskStatusEnum.Todo,
+			dependencies: [],
+			teamId: 'team-1'
+		})
+
+		expect(taskRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				teamId: 'team-1'
 			})
 		)
 	})

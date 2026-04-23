@@ -16,6 +16,7 @@ export class ProjectSprintSummaryComponent {
   readonly sprint = input.required<IProjectSprint>()
   readonly laneCount = input(0)
   readonly taskCount = input(0)
+  readonly teamCount = input(0)
 
   readonly sprintLabel = computed(() => formatProjectLabel(this.sprint().status))
   readonly dateRange = computed(() => {

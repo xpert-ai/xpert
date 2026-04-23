@@ -20,7 +20,7 @@
       }
     </div>
 
-    <div class="grid grid-cols-2 gap-3 lg:min-w-[240px]">
+    <div class="grid grid-cols-3 gap-3 lg:min-w-[360px]">
       <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
         <div class="text-xs uppercase tracking-[0.14em] text-text-tertiary">
           {{ 'PAC.Project.SummaryLanes' | translate: { Default: 'Lanes' } }}
@@ -32,6 +32,12 @@
           {{ 'PAC.Project.SummaryTasks' | translate: { Default: 'Tasks' } }}
         </div>
         <div class="mt-1 text-lg font-semibold text-text-primary">{{ taskCount() }}</div>
+      </div>
+      <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+        <div class="text-xs uppercase tracking-[0.14em] text-text-tertiary">
+          {{ 'PAC.Project.SummaryTeams' | translate: { Default: 'Teams' } }}
+        </div>
+        <div class="mt-1 text-lg font-semibold text-text-primary">{{ teamCount() }}</div>
       </div>
     </div>
   </div>

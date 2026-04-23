@@ -9,9 +9,16 @@ import {
   ProjectSprintService,
   ProjectSwimlaneService,
   ProjectTaskService,
+  TeamBindingService,
+  TeamDefinitionService,
   getErrorMessage
 } from '../../@core'
-import { buildProjectBoardColumns, formatProjectLabel, pickDefaultSprint } from './project-page.utils'
+import {
+  buildProjectBoardColumns,
+  formatProjectLabel,
+  pickDefaultSprint,
+  ProjectBoundTeamViewModel
+} from './project-page.utils'
 
 @Injectable()
 export class ProjectPageFacade {
@@ -21,6 +28,8 @@ export class ProjectPageFacade {
   readonly #projectSprintService = inject(ProjectSprintService)
   readonly #projectSwimlaneService = inject(ProjectSwimlaneService)
   readonly #projectTaskService = inject(ProjectTaskService)
+  readonly #teamBindingService = inject(TeamBindingService)
+  readonly #teamDefinitionService = inject(TeamDefinitionService)
 
   readonly #projectId = toSignal(this.#route.paramMap, {
     initialValue: this.#route.snapshot.paramMap
@@ -31,6 +40,7 @@ export class ProjectPageFacade {
   readonly projects = signal<IProjectCore[]>([])
   readonly sprints = signal<IProjectSprint[]>([])
   readonly tasks = signal<IProjectTask[]>([])
+  readonly boundTeams = signal<ProjectBoundTeamViewModel[]>([])
   readonly boardColumns = signal(buildProjectBoardColumns([], []))
 
   readonly projectId = computed(() => this.#projectId().get('projectId'))
@@ -43,8 +53,10 @@ export class ProjectPageFacade {
   readonly hasTasks = computed(() => this.tasks().length > 0)
   readonly selectedTaskCount = computed(() => this.tasks().length)
   readonly selectedLaneCount = computed(() => this.boardColumns().length)
+  readonly selectedTeamCount = computed(() => this.boundTeams().length)
   readonly selectedSprintLabel = computed(() => formatProjectLabel(this.selectedSprint()?.status))
   readonly selectedStrategyLabel = computed(() => formatProjectLabel(this.selectedSprint()?.strategyType))
+  readonly teamNameById = computed(() => new Map(this.boundTeams().map(({ team }) => [team.id, team.name])))
 
   #loadVersion = 0
 
@@ -92,16 +104,19 @@ export class ProjectPageFacade {
       if (!projects.length) {
         this.sprints.set([])
         this.tasks.set([])
+        this.boundTeams.set([])
         this.boardColumns.set([])
         return
       }
 
       if (!projectId) {
+        this.boundTeams.set([])
         await this.#router.navigate(['/project', projects[0].id], { replaceUrl: true })
         return
       }
 
       if (!projects.some((project) => project.id === projectId)) {
+        this.boundTeams.set([])
         await this.#router.navigate(['/project'], { replaceUrl: true })
         return
       }
@@ -113,12 +128,25 @@ export class ProjectPageFacade {
           }
         })
       )
+      const { items: teamBindings = [] } = await firstValueFrom(this.#teamBindingService.listByProject(projectId))
+
+      if (currentLoad !== this.#loadVersion) {
+        return
+      }
+
+      const boundTeams = await Promise.all(
+        teamBindings.map(async (binding) => ({
+          binding,
+          team: await firstValueFrom(this.#teamDefinitionService.get(binding.teamId))
+        }))
+      )
 
       if (currentLoad !== this.#loadVersion) {
         return
       }
 
       this.sprints.set(sprints)
+      this.boundTeams.set(boundTeams)
 
       const activeSprint = pickDefaultSprint(sprints)
       if (!activeSprint?.id) {
@@ -158,6 +186,7 @@ export class ProjectPageFacade {
       this.projects.set([])
       this.sprints.set([])
       this.tasks.set([])
+      this.boundTeams.set([])
       this.boardColumns.set([])
       this.error.set(getErrorMessage(error))
     } finally {

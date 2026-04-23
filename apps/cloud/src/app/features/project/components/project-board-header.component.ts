@@ -16,6 +16,7 @@ export class ProjectBoardHeaderComponent {
   readonly sprint = input<IProjectSprint | null>(null)
   readonly taskCount = input(0)
   readonly laneCount = input(0)
+  readonly teamCount = input(0)
   readonly strategyLabel = input('')
 
   readonly projectStatusLabel = computed(() => formatProjectLabel(this.project().status))
