@@ -11,12 +11,16 @@ import { XpertTask } from './xpert-task.entity'
 import { XpertAgentModule } from '../xpert-agent/xpert-agent.module'
 import { TaskSchedulerProcessor } from './scheduler.job'
 import { Strategies } from './plugins'
+import { ScheduleNote } from './schedule-note.entity'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { AutoTask } from './auto-task.entity'
+import { AutoTaskTemplate } from './auto-task-template.entity'
 
 
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/xpert-task', module: XpertTaskModule }]),
-		TypeOrmModule.forFeature([XpertTask]),
+		TypeOrmModule.forFeature([XpertTask, ScheduleNote, ChatConversation, AutoTask, AutoTaskTemplate]),
 		TenantModule,
 		CqrsModule,
 		forwardRef(() => XpertAgentModule),
