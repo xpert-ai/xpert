@@ -118,6 +118,9 @@ export class XpertWorkspaceHomeComponent {
   readonly workspace = computed(() => this.workspaces()?.find((_) => _.id === this.selectedWorkspace()?.id), {
     equal: (a, b) => a?.id === b?.id
   })
+  readonly isTenantSharedWorkspace = computed(() => this.workspaceService.isTenantShared(this.workspace()))
+  readonly canWriteWorkspace = computed(() => this.workspaceService.canWrite(this.workspace()))
+  readonly canManageWorkspace = computed(() => this.workspaceService.canManage(this.workspace()))
   readonly defaultWorkspace = signal<IXpertWorkspace | null>(null)
   readonly defaultWorkspaceId = computed(() => this.defaultWorkspace()?.id ?? null)
   readonly settingDefaultWorkspaceId = signal<string | null>(null)
@@ -324,6 +327,10 @@ export class XpertWorkspaceHomeComponent {
   }
 
   openSettings() {
+    if (!this.canManageWorkspace()) {
+      return
+    }
+
     this.#dialog
       .open(XpertWorkspaceSettingsComponent, {
         // backdropClass: 'backdrop-blur-md-white',
@@ -340,6 +347,10 @@ export class XpertWorkspaceHomeComponent {
   }
 
   openEnvs() {
+    if (!this.canWriteWorkspace()) {
+      return
+    }
+
     this.#dialog
       .open(XpertEnvironmentManageComponent, {
         backdropClass: 'backdrop-blur-md-white',

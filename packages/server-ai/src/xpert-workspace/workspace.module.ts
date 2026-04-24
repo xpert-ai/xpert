@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from '@nestjs/core'
 import { XpertWorkspaceController } from './workspace.controller'
 import { XpertWorkspace } from './workspace.entity'
+import { XpertWorkspaceAccessService } from './workspace-access.service'
 import { XpertWorkspaceService } from './workspace.service'
 import { QueryHandlers } from './queries/handlers'
 
@@ -17,7 +18,7 @@ import { QueryHandlers } from './queries/handlers'
 		CqrsModule,
 	],
 	controllers: [XpertWorkspaceController],
-	providers: [XpertWorkspaceService, ...QueryHandlers],
-	exports: [XpertWorkspaceService]
+	providers: [XpertWorkspaceService, XpertWorkspaceAccessService, ...QueryHandlers],
+	exports: [XpertWorkspaceService, XpertWorkspaceAccessService]
 })
 export class XpertWorkspaceModule {}

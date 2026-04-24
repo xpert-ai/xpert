@@ -13,7 +13,64 @@
         [(ngModel)]="name"
         >
     </div>
-    <button type="button" class="btn btn-large btn-primary pressable" (click)="update()">
+
+    <div class="mt-5 rounded-lg border border-divider-regular bg-background-default-subtle p-4">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <div class="font-semibold text-text-primary">
+            {{ 'PAC.Xpert.WorkspaceAccess' | translate: { Default: 'Workspace access' } }}
+          </div>
+          <div class="mt-1 text-sm text-text-tertiary">
+            {{ 'PAC.Xpert.WorkspaceAccessDesc' | translate: { Default: 'Control whether this tenant-level workspace is shared with all organizations in the tenant' } }}.
+          </div>
+        </div>
+
+        <div
+          [class]="
+            tenantShared()
+              ? 'shrink-0 rounded-full border border-divider-regular bg-components-input-bg-normal px-2.5 py-1 text-xs font-medium text-text-primary'
+              : 'shrink-0 rounded-full border border-divider-regular px-2.5 py-1 text-xs font-medium text-text-tertiary'
+          "
+        >
+          @if (tenantShared()) {
+            {{ 'PAC.Xpert.TenantShared' | translate: { Default: 'Tenant shared' } }}
+          } @else {
+            {{ 'PAC.Xpert.PrivateWorkspace' | translate: { Default: 'Private' } }}
+          }
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center justify-between gap-4">
+        <div class="min-w-0">
+          <div class="font-medium text-text-primary">
+            {{ 'PAC.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' } }}
+          </div>
+          <div class="mt-1 text-sm text-text-tertiary">
+            {{ 'PAC.Xpert.TenantSharedWorkspaceDesc' | translate: { Default: 'Organization users in this tenant can read and run resources in this workspace, but cannot edit them' } }}.
+          </div>
+          @if (!isTenantWorkspace()) {
+            <div class="mt-2 text-xs text-text-warning">
+              {{ 'PAC.Xpert.TenantSharedTenantOnly' | translate: { Default: 'Only tenant-level workspaces can be shared across the tenant' } }}.
+            </div>
+          }
+        </div>
+
+        <label [class]="canEditVisibility() ? 'inline-flex items-center cursor-pointer' : 'inline-flex items-center cursor-not-allowed opacity-60'">
+          <input
+            type="checkbox"
+            value=""
+            class="sr-only peer"
+            [disabled]="!canEditVisibility()"
+            [(ngModel)]="tenantShared"
+          />
+          <div
+            class="relative w-9 h-5 bg-components-list-option-active-bg peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-components-input-border-active rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-components-card-bg after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-components-card-bg after:border-divider-deep after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-components-toggle-bg peer-disabled:opacity-60"
+          ></div>
+        </label>
+      </div>
+    </div>
+
+    <button type="button" class="btn disabled:btn-disabled btn-large btn-primary pressable mt-4" [disabled]="loading() || !canManageWorkspace()" (click)="update()">
       {{ 'PAC.ACTIONS.Update' | translate: {Default: 'Update'} }}
     </button>
   </div>

@@ -63,6 +63,7 @@ export class XpertWorkspaceKnowledgesComponent {
   readonly organizationId$ = this.#store.selectOrganizationId()
 
   readonly workspace = this.homeComponent.workspace
+  readonly canWriteWorkspace = this.homeComponent.canWriteWorkspace
   readonly workspaceId = computed(() => this.workspace()?.id)
   readonly searchText = this.homeComponent.searchText
   readonly refresh$ = new BehaviorSubject<boolean>(true)
@@ -102,6 +103,10 @@ export class XpertWorkspaceKnowledgesComponent {
   }
 
   newKnowledgebase() {
+    if (!this.canWriteWorkspace()) {
+      return
+    }
+
     this.#dialog
       .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
         data: {
@@ -118,10 +123,18 @@ export class XpertWorkspaceKnowledgesComponent {
   }
 
   edit(item: IKnowledgebase) {
+    if (!this.canWriteWorkspace()) {
+      return
+    }
+
     this.#router.navigate(['/xpert/knowledges/', item.id, 'configuration'])
   }
 
   remove(item: IKnowledgebase) {
+    if (!this.canWriteWorkspace()) {
+      return
+    }
+
     this.confirmDelete(
       {
         value: item.name,

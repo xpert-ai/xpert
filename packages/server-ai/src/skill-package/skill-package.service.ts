@@ -11,7 +11,7 @@ import {
 	uuid,
 	WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
 } from '@xpert-ai/contracts'
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { createHash } from 'crypto'
@@ -37,7 +37,7 @@ import {
 import { getDefaultOrganizationWorkspaceName } from '../initialization/constants'
 import { extractOfficePreviewText, getMediaTypeWithCharset, listFiles } from '../shared/utils'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
-import { XpertWorkspaceBaseService } from '../xpert-workspace'
+import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { SkillPackage } from './skill-package.entity'
 
@@ -206,20 +206,21 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	constructor(
 		@InjectRepository(SkillPackage)
 		repository: Repository<SkillPackage>,
+		workspaceAccessService: XpertWorkspaceAccessService,
 		private readonly skillRepositoryService: SkillRepositoryService,
 		private readonly skillIndexService: SkillRepositoryIndexService,
 		@InjectRepository(XpertWorkspace)
 		private readonly workspaceRepository: Repository<XpertWorkspace>,
 		private readonly xpertTemplateService: XpertTemplateService
 	) {
-		super(repository)
+		super(repository, workspaceAccessService)
 	}
 
 	async installSkillPackage(workspaceId: string, indexId: string) {
 		if (!workspaceId) {
 			throw new BadRequestException('workspaceId is required')
 		}
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceWritePermission(workspaceId)
 		const index = await this.skillIndexService.findOneInOrganizationOrTenant(indexId, { relations: ['repository'] })
 		const metadata = this.buildMetadataFromIndex(index)
 		const existingSkillPackage = await this.findInstalledMarketplaceSkillPackage(workspaceId, {
@@ -311,7 +312,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new BadRequestException('indexId is required')
 		}
 
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceWritePermission(workspaceId)
 		const existing = await this.repository.findOne({
 			where: {
 				workspaceId,
@@ -334,7 +335,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new BadRequestException('repositoryId is required')
 		}
 
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceWritePermission(workspaceId)
 		await this.skillRepositoryService.findOneInOrganizationOrTenant(repositoryId)
 
 		const { items } = await this.skillIndexService.findAll({
@@ -457,7 +458,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		if (!workspaceId) {
 			throw new BadRequestException('workspaceId is required')
 		}
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceWritePermission(workspaceId)
 
 		const tenantId = RequestContext.currentTenantId()
 		if (!tenantId) {
@@ -511,7 +512,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		if (!workspaceId) {
 			throw new BadRequestException('workspaceId is required')
 		}
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceWritePermission(workspaceId)
 		const skillPackage = await this.findOne(id, {
 			where: { workspaceId },
 			relations: ['skillIndex', 'skillIndex.repository']
@@ -531,7 +532,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new BadRequestException('Tenant context is required to share workspace skills')
 		}
 
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceWritePermission(workspaceId)
 		const skillPackage = await this.findOne(id, {
 			where: { workspaceId },
 			relations: ['skillIndex', 'skillIndex.repository']
@@ -608,7 +609,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 
 		if (!options?.skipAccessCheck) {
-			await this.assertWorkspaceAccess(workspaceId)
+			await this.assertWorkspaceWritePermission(workspaceId)
 		}
 
 		const tenantId = RequestContext.currentTenantId()
@@ -760,7 +761,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		if (expectedWorkspaceId && expectedWorkspaceId !== workspaceId) {
 			throw new BadRequestException('Skill does not belong to the specified workspace')
 		}
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceWritePermission(workspaceId)
 
 		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
 		const installPath = this.resolveInstalledPath(skillPackage, installDir)
@@ -811,7 +812,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		if (!file?.buffer) {
 			throw new BadRequestException('A valid zip file is required')
 		}
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceWritePermission(workspaceId)
 
 		const tenantId = RequestContext.currentTenantId()
 		if (!tenantId) {
@@ -888,6 +889,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		folderPath: string,
 		file: { originalname: string; buffer: Buffer; mimetype?: string }
 	): Promise<TFile> {
+		await this.assertWorkspaceWriteAccess(workspaceId)
 		const { rootPath } = await this.resolveSkillPackageRoot(workspaceId, id)
 		const relativeFolderPath = validateSkillRelativePath(rootPath, folderPath)
 		let fileName = ''
@@ -910,6 +912,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	}
 
 	async saveSkillPackageFile(workspaceId: string, id: string, filePath: string, content: string): Promise<TFile> {
+		await this.assertWorkspaceWriteAccess(workspaceId)
 		const normalizedPath = normalizeSkillFilePath(filePath)
 		if (!normalizedPath) {
 			throw new BadRequestException('File path is required')
@@ -929,6 +932,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	}
 
 	async deleteSkillPackageFile(workspaceId: string, id: string, filePath: string): Promise<void> {
+		await this.assertWorkspaceWriteAccess(workspaceId)
 		const { absolutePath } = await this.resolveSkillPackageFilePath(workspaceId, id, filePath)
 		const stat = await fs.stat(absolutePath).catch(() => null)
 		if (!stat?.isFile()) {
@@ -1291,7 +1295,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			metadata?: Partial<SkillMetadata> | null
 		}
 		if (existingSkillPackage) {
-			await this.repository.save({
+			await super.save({
 				...existingSkillPackage,
 				name: input.skill.name,
 				packagePath: identifiers.packagePath,
@@ -1554,7 +1558,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		if (!workspaceId) {
 			throw new BadRequestException('workspaceId is required')
 		}
-		await this.assertWorkspaceAccess(workspaceId)
+		await this.assertWorkspaceReadAccess(workspaceId)
 
 		const skillPackage = await this.findOne(id, {
 			where: { workspaceId },
@@ -1597,31 +1601,8 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
-	private async assertWorkspaceAccess(workspaceId: string) {
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const userId = RequestContext.currentUserId()
-		if (!tenantId || !userId) {
-			throw new ForbiddenException('Missing tenant or user context')
-		}
-
-		const query = this.workspaceRepository
-			.createQueryBuilder('workspace')
-			.leftJoin('workspace.members', 'member')
-			.where('workspace.id = :workspaceId', { workspaceId })
-			.andWhere('workspace.tenantId = :tenantId', { tenantId })
-			.andWhere('(workspace.ownerId = :userId OR member.id = :userId)', { userId })
-
-		if (organizationId) {
-			query.andWhere('workspace.organizationId = :organizationId', { organizationId })
-		} else {
-			query.andWhere('workspace.organizationId IS NULL')
-		}
-
-		const workspace = await query.getOne()
-		if (!workspace) {
-			throw new ForbiddenException('Access denied to workspace')
-		}
+	private async assertWorkspaceWritePermission(workspaceId: string) {
+		await this.assertWorkspaceWriteAccess(workspaceId)
 	}
 }
 

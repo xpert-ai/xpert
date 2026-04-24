@@ -540,7 +540,14 @@
       "WorkspaceApiKeys": "Workspace API Keys",
       "WorkspaceApiKeyDescription": "Keys created here belong to the current workspace and can access published assistants in this workspace.",
       "CurrentWorkspace": "Current workspace",
-      "CreateWorkspaceSecretKey": "Create workspace secret key"
+      "CreateWorkspaceSecretKey": "Create workspace secret key",
+      "WorkspaceAccess": "Workspace access",
+      "WorkspaceAccessDesc": "Control whether this tenant-level workspace is shared with all organizations in the tenant",
+      "TenantShared": "Tenant shared",
+      "PrivateWorkspace": "Private",
+      "TenantSharedWorkspace": "Tenant shared workspace",
+      "TenantSharedWorkspaceDesc": "Organization users in this tenant can read and run resources in this workspace, but cannot edit them",
+      "TenantSharedTenantOnly": "Only tenant-level workspaces can be shared across the tenant"
     },
     "UserGroup": {
       "Title": "User Groups",

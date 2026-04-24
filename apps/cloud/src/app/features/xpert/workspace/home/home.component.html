@@ -10,6 +10,13 @@
       <div class="max-w-[160px] truncate text-token-text-secondary">
         {{ workspace()?.name || ('PAC.Xpert.SelectWorkspace' | translate: { Default: 'Select a workspace' }) }}
       </div>
+      @if (isTenantSharedWorkspace()) {
+        <i
+          class="ri-building-2-line text-sm text-token-text-tertiary"
+          [zTooltip]="'PAC.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' }"
+          zPosition="bottom"
+        ></i>
+      }
       <i class="ri-arrow-down-s-line text-token-text-tertiary"></i>
     </div>
 
@@ -186,7 +193,7 @@
           {{ 'PAC.KEY_WORDS.Skills' | translate: {Default: 'Skills'} }}
         </li>
 
-        <li class="xpert-list-option" (click)="openEnvs()">
+        <li [class]="canWriteWorkspace() ? 'xpert-list-option' : 'xpert-list-option opacity-50 cursor-not-allowed'" (click)="openEnvs()">
           <svg
             width="16"
             height="16"
@@ -288,6 +295,13 @@
               ></i>
             }
             <span [ngmHighlight]="searchWorkspace()" [content]="item.name">{{ item.name }}</span>
+            @if (workspaceService.isTenantShared(item)) {
+              <i
+                class="ri-building-2-line ml-1 opacity-50"
+                [zTooltip]="'PAC.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' }"
+                zPosition="left"
+              ></i>
+            }
           </div>
 
           @if (!loadingDefaultWorkspace() && defaultWorkspaceId() === item.id) {
@@ -349,7 +363,7 @@
       </svg> -->
     </button>
 
-    @if (workspace()) {
+    @if (workspace() && canManageWorkspace()) {
       <button class="ngm-cdk-menu-item p-2" cdkMenuItem (click)="openSettings()">
         <div
           class="shrink-0 flex justify-center items-center w-6 h-6 bg-background-default-subtle rounded-[6px] border-divider-deep border mr-2"

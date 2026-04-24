@@ -6,6 +6,7 @@ import {
     IEnvironment,
     IUser,
     IXpert,
+    isTenantSharedXpertWorkspace,
     RequestScopeLevel,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
@@ -283,6 +284,10 @@ function getRunCreateContext(context: unknown): Record<string, unknown> | undefi
     return context
 }
 
+type MutableRequestContextRequest = NonNullable<ReturnType<typeof RequestContext.currentRequest>> & {
+    user?: IUser | IApiPrincipal | null
+}
+
 export function validateRunCreateInput(
     input: LegacyTChatRequest | TChatRequestV2 | unknown,
     conversation: IChatConversation
@@ -305,7 +310,7 @@ export function validateRunCreateInput(
 }
 
 function applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
-    const request = RequestContext.currentRequest() as any
+    const request = RequestContext.currentRequest() as MutableRequestContextRequest | null
 
     if (!request?.headers) {
         return
@@ -325,7 +330,7 @@ function applyAssistantPrincipalToCurrentRequest(
     apiKey: IApiKey | null | undefined,
     principalUser: IUser | null | undefined
 ) {
-    const request = RequestContext.currentRequest() as any
+    const request = RequestContext.currentRequest() as MutableRequestContextRequest | null
     const currentUser = RequestContext.currentUser() as IApiPrincipal | null
 
     if (!request || !apiKey || !principalUser) {
@@ -351,7 +356,12 @@ function applyAssistantPrincipalToCurrentRequest(
 
 function applyAssistantScope(xpert: IXpert) {
     const apiKey = RequestContext.currentApiKey()
-    applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
+    const keepConsumerOrganizationScope =
+        !xpert.organizationId && RequestContext.isOrganizationScope() && isTenantSharedXpertWorkspace(xpert.workspace)
+
+    if (!keepConsumerOrganizationScope) {
+        applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
+    }
     applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)
 }
 
@@ -377,10 +387,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         const xpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(assistantId))
             ? await this.publishedXpertAccessService.getPublishedXpertInTenant(assistantId, {
-                  relations: ['user', 'createdBy']
+                  relations: ['user', 'createdBy', 'workspace']
               })
             : await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
-                  relations: ['user', 'createdBy']
+                  relations: ['user', 'createdBy', 'workspace']
               })
 
         if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {

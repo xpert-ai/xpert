@@ -19,7 +19,6 @@ import {
     OptionParams,
     PaginationParams,
     RequestContext,
-    TenantOrganizationAwareCrudService,
     transformWhere,
     UserGroupService
 } from '@xpert-ai/server-core'
@@ -34,7 +33,7 @@ import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
-import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
+import { MyXpertWorkspaceQuery, XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
 import { GetXpertMemoryEmbeddingsQuery } from './queries'
@@ -45,21 +44,22 @@ import { Xpert } from './xpert.entity'
 const XPERT_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 
 @Injectable()
-export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
+export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     constructor(
         @InjectRepository(Xpert)
         public readonly repository: Repository<Xpert>,
+        workspaceAccessService: XpertWorkspaceAccessService,
         private readonly storeService: CopilotStoreService,
         private readonly userGroupService: UserGroupService,
-        private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus,
+        protected readonly commandBus: CommandBus,
+        protected readonly queryBus: QueryBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly triggerRegistry: WorkflowTriggerRegistry,
         private readonly sandboxService: SandboxService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {
-        super(repository)
+        super(repository, workspaceAccessService)
     }
 
     /**
@@ -68,10 +68,10 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
     async update(id: string, entity: Partial<Xpert>) {
         const _entity = await super.findOne(id)
         assign(_entity, entity)
-        return await this.repository.save(_entity)
+        return await super.save(_entity)
     }
 
-    async create(entity: DeepPartial<Xpert>, ...options: any[]) {
+    async create(entity: DeepPartial<Xpert>, ...options: unknown[]) {
         return await super.create(
             {
                 ...entity,
@@ -113,11 +113,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
                 createdById: user.id
             }
         } else {
-            const workspace = await this.queryBus.execute(new GetXpertWorkspaceQuery(user, { id: workspaceId }))
-            if (!workspace) {
-                throw new NotFoundException(`Not found or no auth for xpert workspace '${workspaceId}'`)
-            }
-
+            await this.assertWorkspaceReadAccess(workspaceId)
             where = {
                 ...(<FindOptionsWhere<Xpert>>where),
                 workspaceId: workspaceId
@@ -235,7 +231,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
     }
 
     async save(entity: Xpert) {
-        return await this.repository.save({
+        return await super.save({
             ...entity,
             agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
         })
@@ -255,7 +251,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
         xpert.draft.checklist = await this.validate(xpert.draft)
 
-        await this.repository.save(xpert)
+        await super.save(xpert)
         return xpert.draft
     }
 

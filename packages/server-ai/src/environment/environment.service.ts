@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Not, Repository } from 'typeorm'
-import { XpertWorkspaceBaseService } from '../xpert-workspace'
+import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { Environment } from './environment.entity'
 
 @Injectable()
@@ -10,9 +10,10 @@ export class EnvironmentService extends XpertWorkspaceBaseService<Environment> {
 
 	constructor(
 		@InjectRepository(Environment)
-		readonly repository: Repository<Environment>
+		readonly repository: Repository<Environment>,
+		workspaceAccessService: XpertWorkspaceAccessService
 	) {
-		super(repository)
+		super(repository, workspaceAccessService)
 	}
 
 	async setAsDefault(id: string) {

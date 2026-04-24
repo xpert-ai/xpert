@@ -2,38 +2,40 @@
   ngmDynamicGrid colWidth="280"
   box="content-box"
   >
-  <div class="ngm-card-shadow relative col-span-1 flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-token-main-surface-low">
-    <div class="grow rounded-t-xl p-2">
-      <div class="px-6 pb-1 pt-2 text-sm font-medium leading-[18px] text-text-tertiary">
-        {{ 'PAC.Knowledgebase.CreateKnowledgebase' | translate: {Default: 'Create knowledgebase'} }}
+  @if (canWriteWorkspace()) {
+    <div class="ngm-card-shadow relative col-span-1 flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-token-main-surface-low">
+      <div class="grow rounded-t-xl p-2">
+        <div class="px-6 pb-1 pt-2 text-sm font-medium leading-[18px] text-text-tertiary">
+          {{ 'PAC.Knowledgebase.CreateKnowledgebase' | translate: {Default: 'Create knowledgebase'} }}
+        </div>
+        <a
+          class="mb-1 flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+          (click)="newKnowledgebase()"
+        >
+          <i class="ri-add-line mr-2 shrink-0 text-base"></i>
+          {{ 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} }}
+        </a>
+        <a
+          class="flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+          [routerLink]="['/xpert/knowledges/create-from-pipeline']"
+          [queryParams]="{ workspaceId: workspaceId() }"
+        >
+          <i class="ri-mind-map mr-2 shrink-0 text-base"></i>
+          {{ 'PAC.Knowledgebase.CreateFromKnowledgePipeline' | translate: {Default: 'Create from Knowledge Pipeline'} }}
+        </a>
       </div>
-      <a
-        class="mb-1 flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
-        (click)="newKnowledgebase()"
-      >
-        <i class="ri-add-line mr-2 shrink-0 text-base"></i>
-        {{ 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} }}
-      </a>
-      <a
-        class="flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
-        [routerLink]="['/xpert/knowledges/create-from-pipeline']"
-        [queryParams]="{ workspaceId: workspaceId() }"
-      >
-        <i class="ri-mind-map mr-2 shrink-0 text-base"></i>
-        {{ 'PAC.Knowledgebase.CreateFromKnowledgePipeline' | translate: {Default: 'Create from Knowledge Pipeline'} }}
-      </a>
+      <div class="rounded-b-xl border-t-[0.5px] border-components-panel-border p-2">
+        <a
+          class="flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+          [routerLink]="['/xpert/knowledges/connect']"
+          [queryParams]="{ workspaceId: workspaceId() }"
+        >
+          <i class="ri-plug-line mr-2 shrink-0 text-base"></i>
+          {{ 'PAC.Knowledgebase.ConnectExternalKnowledgebase' | translate: {Default: 'Connect External Knowledgebase'} }}
+        </a>
+      </div>
     </div>
-    <div class="rounded-b-xl border-t-[0.5px] border-components-panel-border p-2">
-      <a
-        class="flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
-        [routerLink]="['/xpert/knowledges/connect']"
-        [queryParams]="{ workspaceId: workspaceId() }"
-      >
-        <i class="ri-plug-line mr-2 shrink-0 text-base"></i>
-        {{ 'PAC.Knowledgebase.ConnectExternalKnowledgebase' | translate: {Default: 'Connect External Knowledgebase'} }}
-      </a>
-    </div>
-  </div>
+  }
 
   @for (item of knowledgebases(); track item.id) {
     <div class="ngm-card-shadow group relative min-h-[160px] flex-1 flex flex-col rounded-xl border-2 border-solid border-transparent p-4 overflow-hidden cursor-pointer bg-token-main-surface-low hover:bg-hover-bg"
@@ -82,6 +84,7 @@
         </a> -->
       </div>
 
+      @if (canWriteWorkspace()) {
       <div class="absolute right-2 top-2 z-[5] hidden group-hover:block">
         <button type="button" class="group inline-flex items-center text-base font-medium hover:bg-components-button-secondary-bg-hover focus:outline-none w-9 h-9 cursor-pointer justify-center rounded-[10px] border-[0.5px]
           border-components-actionbar-border bg-components-actionbar-bg p-0 shadow-lg shadow-shadow-shadow-5
@@ -96,6 +99,7 @@
           </div>
         </button>
       </div>
+      }
     </div>
   }
 </nav>

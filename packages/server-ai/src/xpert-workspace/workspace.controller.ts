@@ -1,4 +1,4 @@
-import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { AIPermissionsEnum, TXpertWorkspaceVisibility } from '@xpert-ai/contracts'
 import { DeepPartial } from '@xpert-ai/server-common'
 import {
 	CrudController,
@@ -102,6 +102,16 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
 	async updateMembers(@Param('workspaceId') id: string, @Body() members: string[]) {
 		const workspace = await this.service.updateMembers(id, members)
 		return new XpertWorkspaceDTO(workspace)
+	}
+
+	@UseGuards(WorkspaceOwnerGuard)
+	@Put(':workspaceId/visibility')
+	async updateVisibility(
+		@Param('workspaceId') id: string,
+		@Body('visibility') visibility: TXpertWorkspaceVisibility
+	) {
+		const workspace = await this.service.updateVisibility(id, visibility)
+		return new WorkspacePublicDTO(workspace)
 	}
 
 	@UseGuards(WorkspaceOwnerGuard)

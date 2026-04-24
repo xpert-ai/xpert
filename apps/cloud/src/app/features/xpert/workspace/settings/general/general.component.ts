@@ -1,16 +1,18 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
-import { Component, effect, inject, input, model, output, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { firstValueFrom } from 'rxjs'
 import {
   getErrorMessage,
   IfAnimation,
   injectToastr,
   injectTranslate,
   injectWorkspaceService,
-  IXpertWorkspace
+  IXpertWorkspace,
+  TXpertWorkspaceVisibility
 } from 'apps/cloud/src/app/@core'
 
 @Component({
@@ -35,35 +37,67 @@ export class XpertWorkspaceSettingsGeneralComponent {
   readonly archived = output()
 
   readonly name = model<string>()
+  readonly tenantShared = model(false)
 
   readonly loading = signal(false)
+  readonly savedVisibility = signal<TXpertWorkspaceVisibility>('private')
+  readonly isTenantWorkspace = computed(() => {
+    const workspace = this.workspace()
+    return !!workspace && !workspace.organizationId
+  })
+  readonly canManageWorkspace = computed(() => this.workspaceService.canManage(this.workspace()))
+  readonly canEditVisibility = computed(() => this.canManageWorkspace() && this.isTenantWorkspace())
+  readonly currentVisibility = computed(() => this.savedVisibility())
 
   constructor() {
     effect(
       () => {
-        if (this.workspace()) {
-          this.name.set(this.workspace().name)
+        const workspace = this.workspace()
+        if (workspace) {
+          const visibility: TXpertWorkspaceVisibility =
+            this.isTenantWorkspace() && this.workspaceService.isTenantShared(workspace) ? 'tenant-shared' : 'private'
+
+          this.name.set(workspace.name)
+          this.savedVisibility.set(visibility)
+          this.tenantShared.set(visibility === 'tenant-shared')
         }
       }
     )
   }
 
-  update() {
+  async update() {
+    const workspace = this.workspace()
+    if (!workspace?.id || !this.canManageWorkspace()) {
+      return
+    }
+
     this.loading.set(true)
-    this.workspaceService
-      .update(this.workspace().id, {
-        name: this.name()
-      })
-      .subscribe({
-        next: () => {
-          this.loading.set(false)
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
-        },
-        error: (error) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+    try {
+      if (this.name() !== workspace.name) {
+        await firstValueFrom(
+          this.workspaceService.update(workspace.id, {
+            name: this.name()
+          })
+        )
+      }
+
+      const visibility: TXpertWorkspaceVisibility = this.tenantShared() ? 'tenant-shared' : 'private'
+      if (this.canEditVisibility() && visibility !== this.currentVisibility()) {
+        const updatedWorkspace = await firstValueFrom(this.workspaceService.updateVisibility(workspace.id, visibility))
+        const updatedVisibility: TXpertWorkspaceVisibility = this.workspaceService.isTenantShared(updatedWorkspace)
+          ? 'tenant-shared'
+          : 'private'
+        this.savedVisibility.set(updatedVisibility)
+        this.tenantShared.set(updatedVisibility === 'tenant-shared')
+      }
+
+      this.workspaceService.refresh()
+      this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
   }
 
   archive() {
