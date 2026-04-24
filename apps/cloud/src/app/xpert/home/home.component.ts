@@ -11,7 +11,7 @@ import { RouterModule } from '@angular/router'
 import { provideECharts } from '@cloud/app/@core/providers/echarts'
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { HeaderUserComponent, OrganizationSelectorComponent } from '@cloud/app/@theme/header'
+import { HeaderUserComponent } from '@cloud/app/@theme/header'
 import { C_URI_API_MODELS, LanguagesEnum } from '@xpert-ai/cloud/state'
 import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -48,7 +48,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     WaIntersectionObserver,
     ...ZardTooltipImports,
-    OrganizationSelectorComponent,
     HeaderUserComponent,
     XpertChatAppComponent
 ],

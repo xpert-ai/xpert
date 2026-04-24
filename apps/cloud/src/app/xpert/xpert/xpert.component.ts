@@ -88,13 +88,24 @@ export class XpertChatAppComponent {
     return slug && slug !== 'common' ? this.homeService.getXpert(slug) : null
   })
   readonly xpert = computed(() => {
+    const paramRole = this.paramRole()
     const routeXpert = this.routeXpert()
+    const currentXpert = this.chatService.xpert()
 
     if (routeXpert) {
       return routeXpert
     }
 
-    return this.paramRole() === 'common' || !!this.conversationId() ? this.chatService.xpert() : null
+    if (paramRole === 'common' || !!this.conversationId()) {
+      return currentXpert
+    }
+
+    // Keep the xpert seeded from route.data while the async route lookup is still resolving.
+    if (paramRole && currentXpert?.slug === paramRole) {
+      return currentXpert
+    }
+
+    return null
   })
 
   readonly features = computed(() => this.xpert()?.features)
@@ -149,7 +160,13 @@ export class XpertChatAppComponent {
   constructor() {
     effect(
       () => {
-        this.chatService.xpert.set(this.xpert())
+        const resolvedXpert = this.xpert()
+
+        if (!resolvedXpert && this.paramRole() && this.paramRole() !== 'common' && !this.paramConvId()) {
+          return
+        }
+
+        this.chatService.xpert.set(resolvedXpert)
         // this.homeService.xpert.set(this.xpert())
       }
     )

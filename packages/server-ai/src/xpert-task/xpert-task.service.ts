@@ -628,10 +628,10 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
         if (payload.autoTask !== undefined) {
             if (payload.autoTask) {
-                note.type = ScheduleNoteType.TASK
+                note.type = 'task'
             }
             if (payload.autoTask === null && payload.type === undefined && existingAutoTask) {
-                note.type = ScheduleNoteType.NOTE
+                note.type = 'note'
             }
         }
 
@@ -1172,7 +1172,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     {
                         xpertId: assistantId,
                         timeZone: task.timeZone ?? undefined,
-                        from: 'auto-task',
+                        from: 'job',
                         taskId: task.id,
                     },
                 ),
