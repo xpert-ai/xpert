@@ -5,7 +5,7 @@ import { firstValueFrom, Observable } from 'rxjs'
 import { AuthStrategy } from '../auth'
 import { Store } from './store.service'
 import { injectLanguage } from '../providers'
-import { isPublicXpertRequestUrl } from '../utils/public-xpert-request'
+import { isPublicXpertRequest } from '../utils/public-xpert-request'
 
 export function injectFetchEventSource<T extends BodyInit | null>() {
   const store = inject(Store)
@@ -27,7 +27,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
         // Has retry request
         let haveTry = false
         const token = store.token
-        const shouldSkipScopeHeaders = isPublicXpertRequestUrl(url)
+        const shouldSkipScopeHeaders = isPublicXpertRequest(method, url)
         const headers = {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
