@@ -17,7 +17,11 @@
     </div>
 
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="btn btn-primary btn-large" (click)="openUploadDialog()">
+      <button type="button" class="btn btn-primary btn-large" (click)="openGithubInstallDialog()">
+        <i class="ri-add-line mr-1"></i>
+        <div>{{ 'PAC.Skill.AddSkill' | translate: { Default: 'Add Skill' } }}</div>
+      </button>
+      <button type="button" class="btn btn-secondary btn-large" (click)="openUploadDialog()">
         <i class="ri-upload-2-line mr-1"></i>
         <div>{{ 'PAC.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}</div>
       </button>
@@ -292,6 +296,29 @@
       <i class="ri-delete-bin-line mr-1"></i>
       {{ 'PAC.Skill.DeleteSelected' | translate: { Default: 'Delete Selected' } }}
     </button>
+  </div>
+</ng-template>
+
+<ng-template #githubInstallDialog>
+  <div class="relative flex w-full max-w-[44rem] flex-col overflow-hidden">
+    <div class="flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
+      <div class="text-lg font-semibold text-text-primary">
+        {{ 'PAC.Skill.AddSkillFromGithubTitle' | translate: { Default: 'Add skill from GitHub' } }}
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost flex h-8 w-8 items-center justify-center rounded-full"
+        (click)="closeGithubInstallDialog()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="px-6 py-4">
+      <xp-github-skill-install
+        [workspaceId]="workspace()?.id ?? null"
+        (installed)="onGithubSkillsInstalled($event)"
+      />
+    </div>
   </div>
 </ng-template>
 

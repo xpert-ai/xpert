@@ -315,7 +315,11 @@ describe('ClawXpertToolPreferencesComponent', () => {
     }
     const dialog = {
       open: jest.fn(() => ({
-        afterClosed: () => of({ id: 'index-2' } as ISkillRepositoryIndex)
+        afterClosed: () =>
+          of({
+            kind: 'repository-index',
+            skillIndex: { id: 'index-2' } as ISkillRepositoryIndex
+          })
       }))
     }
 

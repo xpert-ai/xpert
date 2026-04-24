@@ -243,6 +243,19 @@
       "DOWNLOAD_AGENT": "Download Agent",
       "CONFIRM_DELETE": "Confirm delete?"
     },
+    "Skill": {
+      "AddSkill": "Add Skill",
+      "AddSkillFromGithubTitle": "Add skill from GitHub",
+      "GithubRepositoryUrl": "GitHub repository URL",
+      "GithubRepositoryUrlPlaceholder": "https://github.com/op7418/guizang-ppt-skill",
+      "GithubRepositoryUrlRequired": "Repository URL is required.",
+      "GithubRepositoryUrlInvalid": "Use a valid github.com repository URL.",
+      "InstallGithubSkills": "Install skills",
+      "InstallingGithubSkills": "Installing...",
+      "GithubSkillInstallSuccess": "Installed {{count}} skill(s) from GitHub.",
+      "WorkspaceRequiredForGithubInstall": "Workspace is required before installing GitHub skills.",
+      "SelectSkillSource": "Select a skill source"
+    },
     "Explore": {
       "Square": "Square",
       "Mine": "Mine",

@@ -58,7 +58,7 @@ import {
   hasJsonSchemaRequiredErrors
 } from 'apps/cloud/src/app/@shared/workflow'
 import { RouterModule } from '@angular/router'
-import { XpertSkillInstallDialogComponent } from 'apps/cloud/src/app/@shared/skills'
+import { XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult } from 'apps/cloud/src/app/@shared/skills'
 import {
   BehaviorSubject,
   catchError,
@@ -934,14 +934,31 @@ export class XpertNewBlankComponent {
       this.#dialog
         .open(XpertSkillInstallDialogComponent, {
           width: 'min(96vw, 72rem)',
-          maxWidth: '72rem'
+          maxWidth: '72rem',
+          data: {
+            workspaceId: this.workspaceId()
+          }
         })
         .afterClosed()
         .pipe(take(1))
     )
 
     if (skillIndex) {
-      await this.installSkill(skillIndex)
+      await this.handleSkillInstallDialogResult(skillIndex)
+    }
+  }
+
+  async handleSkillInstallDialogResult(result: XpertSkillInstallDialogResult) {
+    if (result.kind === 'repository-index') {
+      await this.installSkill(result.skillIndex)
+      return
+    }
+
+    const packageIds = result.packages.map((item) => item.id).filter((id): id is string => !!id)
+    if (packageIds.length) {
+      this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), ...packageIds])))
+      this.refreshAgentSkillMiddlewareSelections()
+      this.refreshSkills()
     }
   }
 

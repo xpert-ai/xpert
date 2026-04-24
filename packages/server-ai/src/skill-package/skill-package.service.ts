@@ -3,6 +3,8 @@ import {
 	convertToUrlPath,
 	I18nObject,
 	IShareSkillPackageInput,
+	ISkillRepository,
+	ISkillRepositoryIndex,
 	ISkillRepositoryIndexPublisher,
 	IUser,
 	SkillMetadata,
@@ -64,6 +66,7 @@ const TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE = 'bundle.yaml'
 const WORKSPACE_PUBLIC_SOURCE_PACKAGE_PREFIX = 'workspace-public'
 const WORKSPACE_PUBLIC_SOURCE_SKILL_PREFIX = 'workspace-public-upload'
 const DEFAULT_TENANT_SKILL_WORKSPACE_NAME = 'Tenant Skills Workspace'
+const GITHUB_SKILL_SOURCE_PROVIDER = 'github'
 
 const isObjectValue = (value: unknown): value is object =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -118,6 +121,28 @@ type CreateWorkspaceSkillPackageResult = {
 	skillPackage: SkillPackage
 	packagePath: string
 	skillMdPath: string
+}
+
+export type InstallGithubSkillPackagesInput = {
+	url?: string
+	path?: string
+	branch?: string
+	token?: string
+}
+
+type NormalizedGithubSkillInstallInput = {
+	repositoryUrl: string
+	repositoryPath: string
+	branch: string
+	token?: string
+}
+
+type NormalizedGithubSkillInstallSource = {
+	repositoryUrl: string
+	repositoryPath: string
+	branch: string
+	skillId: string
+	skillPath: string
 }
 
 export type TTemplateSkillBundleSyncResult = {
@@ -355,6 +380,47 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			}
 
 			packages.push(await this.ensureInstalledSkillPackage(workspaceId, item.id))
+		}
+
+		return packages
+	}
+
+	async installGithubSkillPackages(workspaceId: string, input: InstallGithubSkillPackagesInput) {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		await this.assertWorkspaceWritePermission(workspaceId)
+
+		const tenantId = RequestContext.currentTenantId()
+		if (!tenantId) {
+			throw new BadRequestException('Tenant context is missing')
+		}
+
+		const normalizedInput = normalizeGithubSkillInstallInput(input)
+		const repository = this.buildDirectGithubRepository(normalizedInput, tenantId)
+		const strategy = this.skillSourceProviderRegistry.get(GITHUB_SKILL_SOURCE_PROVIDER)
+		const indexes = await strategy.listSkills(repository)
+		if (!indexes.length) {
+			throw new BadRequestException('No skills found in the GitHub repository')
+		}
+
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
+		const packages: SkillPackage[] = []
+		for (const index of indexes) {
+			const hydratedIndex: ISkillRepositoryIndex = {
+				...index,
+				repositoryId: repository.id ?? buildDirectGithubRepositoryId(normalizedInput),
+				repository
+			}
+
+			packages.push(
+				await this.installDirectGithubSkillPackage(
+					workspaceId,
+					hydratedIndex,
+					installDir,
+					normalizedInput
+				)
+			)
 		}
 
 		return packages
@@ -1017,7 +1083,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		license?: string
 		version?: string
 		publisher?: ISkillRepositoryIndexPublisher
-	}) {
+	}): SkillPackageInstallMetadata {
 		const displayName = index.name?.trim()
 		const description = index.description?.trim()
 		const publisherName =
@@ -1037,9 +1103,95 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			author: publisherName
 				? {
 					name: publisherName
-				}
+			}
 				: undefined
-		} satisfies Partial<SkillMetadata>
+		}
+	}
+
+	private buildDirectGithubRepository(
+		input: NormalizedGithubSkillInstallInput,
+		tenantId: string
+	): ISkillRepository {
+		const organizationId = RequestContext.getOrganizationId()
+		const token = input.token?.trim()
+
+		return {
+			id: buildDirectGithubRepositoryId(input),
+			name: input.repositoryUrl,
+			provider: GITHUB_SKILL_SOURCE_PROVIDER,
+			tenantId,
+			organizationId: organizationId ?? undefined,
+			options: {
+				url: input.repositoryUrl,
+				...(input.repositoryPath ? { path: input.repositoryPath } : {}),
+				...(input.branch ? { branch: input.branch } : {})
+			},
+			...(token ? { credentials: { token } } : {})
+		}
+	}
+
+	private async installDirectGithubSkillPackage(
+		workspaceId: string,
+		index: ISkillRepositoryIndex,
+		installDir: string,
+		input: NormalizedGithubSkillInstallInput
+	) {
+		if (!index.repository) {
+			throw new BadRequestException('GitHub repository context is required')
+		}
+
+		const source = buildDirectGithubSkillSource(input, index)
+		const existingSkillPackage = await this.findInstalledDirectGithubSkillPackage(workspaceId, source)
+		const metadata = this.mergeInstalledMetadata(existingSkillPackage?.metadata, {
+			...this.buildMetadataFromIndex(index),
+			source: GITHUB_SKILL_SOURCE_PROVIDER,
+			skillPath: index.skillPath,
+			provenance: buildDirectGithubSkillProvenance(source, index.link)
+		})
+
+		try {
+			if (existingSkillPackage) {
+				await this.uninstallInstalledSkillPackageFiles(existingSkillPackage)
+			}
+
+			const packagePath = this.normalizePackagePath(
+				await this.skillSourceProviderRegistry.get(GITHUB_SKILL_SOURCE_PROVIDER).installSkillPackage(index, installDir),
+				installDir
+			)
+			if (!packagePath) {
+				throw new BadRequestException('Unable to resolve installed GitHub skill path')
+			}
+
+			if (existingSkillPackage?.id) {
+				await this.update(existingSkillPackage.id, {
+					workspaceId,
+					skillIndexId: null,
+					packagePath,
+					metadata
+				})
+
+				return (
+					(await this.loadInstalledSkillPackageById(existingSkillPackage.id)) ?? {
+						...existingSkillPackage,
+						workspaceId,
+						skillIndexId: null,
+						packagePath,
+						metadata
+					}
+				)
+			}
+
+			return this.create({
+				workspaceId,
+				name: index.name ?? index.skillPath.split('/').pop() ?? index.skillId,
+				skillIndexId: null,
+				packagePath,
+				metadata
+			})
+		} catch (error) {
+			this.#logger.error(`Failed to install GitHub skill package: ${getErrorMessage(error)}`)
+			throw new BadRequestException(`Failed to install GitHub skill package: ${getErrorMessage(error)}`)
+		}
 	}
 
 	private buildWorkspacePublicSourceIdentifiers(skill: IUploadedSkill) {
@@ -1393,6 +1545,26 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		})
 	}
 
+	private async findInstalledDirectGithubSkillPackage(
+		workspaceId: string,
+		source: NormalizedGithubSkillInstallSource
+	) {
+		const { items } = await this.findAll({
+			where: {
+				workspaceId
+			},
+			relations: ['skillIndex', 'skillIndex.repository'],
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+
+		return items.find((item) => {
+			const installedSource = readDirectGithubSkillSource(item.metadata)
+			return installedSource ? isSameDirectGithubSkillSource(installedSource, source) : false
+		}) ?? null
+	}
+
 	private async loadInstalledSkillPackageById(id: string) {
 		return this.repository.findOne({
 			where: {
@@ -1604,6 +1776,142 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	private async assertWorkspaceWritePermission(workspaceId: string) {
 		await this.assertWorkspaceWriteAccess(workspaceId)
 	}
+}
+
+function normalizeGithubSkillInstallInput(input: InstallGithubSkillPackagesInput): NormalizedGithubSkillInstallInput {
+	const repositoryUrl = normalizeGithubRepositoryUrl(input?.url)
+	const repositoryPath = normalizeGithubRepositoryPath(input?.path)
+	const branch = normalizeOptionalString(input?.branch)
+	const token = normalizeOptionalString(input?.token)
+
+	return {
+		repositoryUrl,
+		repositoryPath,
+		branch,
+		...(token ? { token } : {})
+	}
+}
+
+function normalizeGithubRepositoryUrl(value?: string) {
+	const raw = normalizeOptionalString(value)
+	if (!raw) {
+		throw new BadRequestException('GitHub repository URL is required')
+	}
+
+	const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+	let url: URL
+	try {
+		url = new URL(candidate)
+	} catch {
+		throw new BadRequestException('GitHub repository URL is invalid')
+	}
+
+	if (url.hostname.toLowerCase() !== 'github.com') {
+		throw new BadRequestException('Only github.com repository URLs are supported')
+	}
+
+	const [owner, repoSegment] = url.pathname.replace(/^\/+/, '').split('/')
+	const repo = repoSegment?.replace(/\.git$/i, '')
+	if (!owner?.trim() || !repo?.trim()) {
+		throw new BadRequestException('GitHub repository URL must include owner and repository name')
+	}
+
+	return `https://github.com/${owner.trim()}/${repo.trim()}`
+}
+
+function normalizeGithubRepositoryPath(value?: string) {
+	return normalizeOptionalString(value)
+		.replace(/\\/g, '/')
+		.replace(/^\/+/, '')
+		.replace(/\/+$/, '')
+}
+
+function normalizeOptionalString(value?: string) {
+	return typeof value === 'string' ? value.trim() : ''
+}
+
+function buildDirectGithubRepositoryId(input: NormalizedGithubSkillInstallInput) {
+	return [
+		'github-direct',
+		input.repositoryUrl,
+		input.repositoryPath,
+		input.branch
+	]
+		.filter(Boolean)
+		.join(':')
+}
+
+function buildDirectGithubSkillSource(
+	input: NormalizedGithubSkillInstallInput,
+	index: ISkillRepositoryIndex
+): NormalizedGithubSkillInstallSource {
+	return {
+		repositoryUrl: input.repositoryUrl,
+		repositoryPath: input.repositoryPath,
+		branch: input.branch,
+		skillId: index.skillId,
+		skillPath: index.skillPath
+	}
+}
+
+function buildDirectGithubSkillProvenance(
+	source: NormalizedGithubSkillInstallSource,
+	link?: string
+): NonNullable<SkillMetadata['provenance']> {
+	return {
+		sourceProvider: GITHUB_SKILL_SOURCE_PROVIDER,
+		repositoryUrl: source.repositoryUrl,
+		repositoryPath: source.repositoryPath,
+		branch: source.branch,
+		skillId: source.skillId,
+		skillPath: source.skillPath,
+		...(link ? { link } : {})
+	}
+}
+
+function readDirectGithubSkillSource(metadata?: Partial<SkillMetadata> | null): NormalizedGithubSkillInstallSource | null {
+	const provenance = metadata?.provenance
+	if (!isObjectValue(provenance)) {
+		return null
+	}
+
+	const sourceProvider = readStringProperty(provenance, 'sourceProvider')
+	if (sourceProvider !== GITHUB_SKILL_SOURCE_PROVIDER) {
+		return null
+	}
+
+	const repositoryUrl = readStringProperty(provenance, 'repositoryUrl')
+	const skillId = readStringProperty(provenance, 'skillId')
+	const skillPath = readStringProperty(provenance, 'skillPath')
+	if (!repositoryUrl || !skillId) {
+		return null
+	}
+
+	return {
+		repositoryUrl,
+		repositoryPath: readStringProperty(provenance, 'repositoryPath'),
+		branch: readStringProperty(provenance, 'branch'),
+		skillId,
+		skillPath
+	}
+}
+
+function readStringProperty(value: object, key: string) {
+	const property = Reflect.get(value, key)
+	return typeof property === 'string' ? property.trim() : ''
+}
+
+function isSameDirectGithubSkillSource(
+	left: NormalizedGithubSkillInstallSource,
+	right: NormalizedGithubSkillInstallSource
+) {
+	return (
+		left.repositoryUrl === right.repositoryUrl &&
+		left.repositoryPath === right.repositoryPath &&
+		left.branch === right.branch &&
+		left.skillId === right.skillId &&
+		left.skillPath === right.skillPath
+	)
 }
 
 function parseWorkspaceSkillFrontmatter(skillMarkdown: string): WorkspaceSkillFrontmatter {

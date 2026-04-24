@@ -14,7 +14,11 @@ import {
   FileWorkbenchFileSaver,
   FileWorkbenchFileUploader
 } from '@cloud/app/@shared/files'
-import { XpertSkillIndexesComponent, XpertSkillRepositoriesComponent } from '@cloud/app/@shared/skills'
+import {
+  XpertGithubSkillInstallComponent,
+  XpertSkillIndexesComponent,
+  XpertSkillRepositoriesComponent
+} from '@cloud/app/@shared/skills'
 import { OverlayAnimation1 } from '@xpert-ai/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
@@ -47,6 +51,7 @@ type MobilePane = 'skills' | 'tree' | 'file'
     NgmSpinComponent,
     IconComponent,
     FileWorkbenchComponent,
+    XpertGithubSkillInstallComponent,
     XpertSkillRepositoriesComponent,
     XpertSkillIndexesComponent
   ],
@@ -77,6 +82,7 @@ export class XpertWorkspaceSkillsComponent {
   })
 
   readonly registerRepositoryDialog = viewChild<TemplateRef<unknown>>('registerRepositoryDialog')
+  readonly githubInstallDialog = viewChild<TemplateRef<unknown>>('githubInstallDialog')
   readonly fileWorkbench = viewChild(FileWorkbenchComponent)
 
   readonly workspace = this.homeComponent.workspace
@@ -136,6 +142,7 @@ export class XpertWorkspaceSkillsComponent {
 
   readonly registering = signal(false)
   #registerDialogRef: DialogRef<unknown, unknown> | null = null
+  #githubInstallDialogRef: DialogRef<unknown, unknown> | null = null
 
   readonly loadActiveSkillFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const workspaceId = this.workspace()?.id
@@ -245,11 +252,19 @@ export class XpertWorkspaceSkillsComponent {
   }
 
   repositoryLabel(skill: ISkillPackage | null | undefined): string {
-    return skill?.skillIndex?.repository?.name || this.translateDefault('PAC.Skill.DirectUpload', 'Direct Upload')
+    return (
+      skill?.skillIndex?.repository?.name ||
+      readGithubProvenanceText(skill?.metadata, 'repositoryUrl') ||
+      this.translateDefault('PAC.Skill.DirectUpload', 'Direct Upload')
+    )
   }
 
   providerLabel(skill: ISkillPackage | null | undefined): string {
-    return skill?.skillIndex?.repository?.provider || this.translateDefault('PAC.Skill.LocalProvider', 'local')
+    if (skill?.skillIndex?.repository?.provider) {
+      return skill.skillIndex.repository.provider
+    }
+
+    return readGithubProvenanceText(skill?.metadata, 'sourceProvider') || this.translateDefault('PAC.Skill.LocalProvider', 'local')
   }
 
   publisherLabel(skill: ISkillPackage | null | undefined): string {
@@ -304,6 +319,34 @@ export class XpertWorkspaceSkillsComponent {
           this.#skillsResource.reload()
         }
       })
+  }
+
+  openGithubInstallDialog() {
+    const dialogTemplate = this.githubInstallDialog()
+    if (!dialogTemplate || !this.workspace()?.id) {
+      return
+    }
+
+    this.#githubInstallDialogRef = this.#dialog.open(dialogTemplate, {
+      maxWidth: 'min(92vw, 44rem)',
+      disableClose: true,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet'
+    })
+  }
+
+  closeGithubInstallDialog() {
+    this.#githubInstallDialogRef?.close()
+    this.#githubInstallDialogRef = null
+  }
+
+  onGithubSkillsInstalled(packages: ISkillPackage[]) {
+    this.#skillsResource.reload()
+    const firstPackageId = packages.find((item) => !!item.id)?.id
+    if (firstPackageId) {
+      this.activeSkillId.set(firstPackageId)
+    }
+    this.closeGithubInstallDialog()
   }
 
   registerFromRepository() {
@@ -483,9 +526,31 @@ function readI18nText(value: unknown) {
   if (typeof value === 'string') {
     return value
   }
-  if (typeof value === 'object') {
-    const text = value as { en_US?: string; zh_Hans?: string }
-    return text.zh_Hans || text.en_US || ''
+  if (isObjectValue(value)) {
+    return readStringProperty(value, 'zh_Hans') || readStringProperty(value, 'en_US')
   }
   return ''
+}
+
+function readGithubProvenanceText(metadata: ISkillPackage['metadata'] | null | undefined, key: string): string {
+  const provenance = metadata?.provenance
+  if (!isObjectValue(provenance)) {
+    return ''
+  }
+
+  const sourceProvider = readStringProperty(provenance, 'sourceProvider')
+  if (sourceProvider !== 'github') {
+    return ''
+  }
+
+  return readStringProperty(provenance, key)
+}
+
+function readStringProperty(value: object, key: string): string {
+  const property = Reflect.get(value, key)
+  return typeof property === 'string' ? property.trim() : ''
+}
+
+function isObjectValue(value: unknown): value is object {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
