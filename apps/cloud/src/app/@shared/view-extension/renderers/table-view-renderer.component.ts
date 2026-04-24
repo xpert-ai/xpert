@@ -71,7 +71,13 @@ import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
               @for (item of items(); track trackRow(item)) {
                 <tr>
                   @for (column of schema().columns; track column.key) {
-                    <td class="px-4 py-3 text-text-primary">{{ cellValue(item, column.key) }}</td>
+                    <td class="px-4 py-3 text-text-primary">
+                      @if (column.dataType === 'datetime' && cellDateValue(item, column.key); as datetimeValue) {
+                        {{ datetimeValue | date: 'medium' }}
+                      } @else {
+                        {{ cellValue(item, column.key) }}
+                      }
+                    </td>
                   }
                   @if (rowActions().length) {
                     <td class="px-4 py-3">
@@ -157,16 +163,43 @@ export class TableViewRendererComponent {
   }
 
   cellValue(item: unknown, key: string) {
-    if (!item || typeof item !== 'object' || Array.isArray(item) || !(key in item)) {
-      return '-'
-    }
-
-    const value = Reflect.get(item, key)
-    if (value === null || value === undefined || value === '') {
+    const value = this.rawCellValue(item, key)
+    if (value === null) {
       return '-'
     }
 
     return String(value)
+  }
+
+  cellDateValue(item: unknown, key: string): Date | null {
+    const value = this.rawCellValue(item, key)
+    if (value === null) {
+      return null
+    }
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value
+    }
+
+    if (typeof value === 'number' || typeof value === 'string') {
+      const date = new Date(value)
+      return Number.isNaN(date.getTime()) ? null : date
+    }
+
+    return null
+  }
+
+  private rawCellValue(item: unknown, key: string): unknown | null {
+    if (!item || typeof item !== 'object' || Array.isArray(item) || !(key in item)) {
+      return null
+    }
+
+    const value = Reflect.get(item, key)
+    if (value === null || value === undefined || value === '') {
+      return null
+    }
+
+    return value
   }
 
   toggleSort(columnKey: string) {
