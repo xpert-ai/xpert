@@ -55,6 +55,62 @@ describe('organization-plugin.store', () => {
 		expect(fs.existsSync(path.join(targetPackageDir, 'dist', 'index.js'))).toBe(true)
 	})
 
+	it('keeps staged code plugins loadable when they declare runtime dependencies', () => {
+		const runtimeDependencyRoot = path.join(tempRoot, 'workspace', 'runtime-dependency')
+		fs.mkdirSync(runtimeDependencyRoot, { recursive: true })
+		fs.writeFileSync(
+			path.join(runtimeDependencyRoot, 'package.json'),
+			JSON.stringify(
+				{
+					name: 'xpert-runtime-dependency',
+					version: '1.0.0',
+					main: './index.js'
+				},
+				null,
+				2
+			)
+		)
+		fs.writeFileSync(
+			path.join(runtimeDependencyRoot, 'index.js'),
+			"module.exports = { runtimeDependencyName: 'xpert-runtime-dependency' }\n"
+		)
+		fs.writeFileSync(
+			path.join(workspaceRoot, 'package.json'),
+			JSON.stringify(
+				{
+					name: '@xpert-ai/plugin-lark',
+					version: '0.0.1',
+					main: './dist/index.js',
+					dependencies: {
+						'xpert-runtime-dependency': `file:${runtimeDependencyRoot}`
+					}
+				},
+				null,
+				2
+			)
+		)
+		fs.writeFileSync(
+			path.join(workspaceRoot, 'dist', 'index.js'),
+			[
+				"const dependency = require('xpert-runtime-dependency')",
+				'module.exports = dependency'
+			].join('\n')
+		)
+
+		const pluginDir = stageWorkspacePlugin({
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-lark',
+			expectedPackageName: '@xpert-ai/plugin-lark',
+			workspacePath: workspaceRoot,
+			rootDir: pluginRoot
+		})
+		const stagedEntry = path.join(pluginDir, 'node_modules', '@xpert-ai', 'plugin-lark', 'dist', 'index.js')
+
+		expect(require(stagedEntry)).toEqual({
+			runtimeDependencyName: 'xpert-runtime-dependency'
+		})
+	})
+
 	it('rejects workspace paths outside allowed roots', () => {
 		process.env.PLUGIN_WORKSPACE_ROOTS = path.join(tempRoot, 'allowed')
 
