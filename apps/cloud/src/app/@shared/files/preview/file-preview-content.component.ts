@@ -49,6 +49,7 @@ export class FilePreviewContentComponent {
   readonly download = output<void>()
   readonly referenceSelection = output<FileEditorSelection>()
 
+  readonly htmlPreviewUrl = signal<string | null>(null)
   readonly hasDocumentHtml = computed(() => this.previewKind() === 'document' && !!this.documentHtml())
   readonly documentPreviewReferenceable = computed(
     () => this.referenceable() && this.previewKind() === 'document' && !this.loading()
@@ -76,6 +77,22 @@ export class FilePreviewContentComponent {
     this.loading()
     this.referenceable()
     this.documentPreviewSelection.set(null)
+  })
+
+  readonly #htmlPreviewUrlEffect = effect((onCleanup) => {
+    const previewKind = this.previewKind()
+    const url = this.url()
+    const content = this.content()
+    const objectUrl =
+      previewKind === 'html' && !url && typeof content === 'string' ? createHtmlPreviewObjectUrl(content) : null
+
+    this.htmlPreviewUrl.set(previewKind === 'html' ? url || objectUrl : null)
+
+    onCleanup(() => {
+      if (objectUrl) {
+        revokePreviewObjectUrl(objectUrl)
+      }
+    })
   })
 
   private readonly documentPreviewHost = viewChild<ElementRef<HTMLElement>>('documentPreviewHost')
@@ -153,7 +170,11 @@ export class FilePreviewContentComponent {
     }
 
     const hostRect = host.getBoundingClientRect()
-    const left = clamp(rect.left + rect.width / 2 - hostRect.left + host.scrollLeft, 88, Math.max(88, host.clientWidth - 88))
+    const left = clamp(
+      rect.left + rect.width / 2 - hostRect.left + host.scrollLeft,
+      88,
+      Math.max(88, host.clientWidth - 88)
+    )
     const top = Math.max(48, rect.top - hostRect.top + host.scrollTop - 8)
 
     this.documentPreviewSelection.set({
@@ -186,4 +207,24 @@ export class FilePreviewContentComponent {
       selection.removeAllRanges()
     }
   }
+}
+
+function createHtmlPreviewObjectUrl(content: string) {
+  if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+    return `data:text/html;charset=utf-8,${encodeURIComponent(content)}`
+  }
+
+  return URL.createObjectURL(
+    new Blob([content], {
+      type: 'text/html;charset=utf-8'
+    })
+  )
+}
+
+function revokePreviewObjectUrl(url: string) {
+  if (typeof URL === 'undefined' || typeof URL.revokeObjectURL !== 'function' || !url.startsWith('blob:')) {
+    return
+  }
+
+  URL.revokeObjectURL(url)
 }

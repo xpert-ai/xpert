@@ -170,6 +170,24 @@ describe('FileViewerComponent', () => {
     expect(component.editorReferenceable()).toBe(false)
   })
 
+  it('uses the enhanced preview path for html files in view mode', () => {
+    const fixture = TestBed.createComponent(FileViewerComponent)
+    fixture.componentRef.setInput('filePath', 'index.html')
+    fixture.componentRef.setInput('content', '<!doctype html><html><body>Preview</body></html>')
+    fixture.componentRef.setInput('readable', true)
+    fixture.detectChanges()
+
+    const component = fixture.componentInstance
+
+    expect(component.previewKind()).toBe('html')
+    expect(component.canTogglePreview()).toBe(true)
+    expect(component.showEnhancedPreview()).toBe(true)
+
+    component.updatePreviewMode('code')
+
+    expect(component.isPreviewMode()).toBe(false)
+  })
+
   it('enables the inline selection action for markdown files after switching to edit mode', () => {
     const fixture = TestBed.createComponent(FileViewerComponent)
     fixture.componentRef.setInput('filePath', 'README.md')
