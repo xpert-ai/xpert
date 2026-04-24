@@ -84,6 +84,9 @@ jest.mock('@xpert-ai/core', () => {
 })
 
 describe('FilePreviewContentComponent', () => {
+  const originalCreateObjectURL = URL.createObjectURL
+  const originalRevokeObjectURL = URL.revokeObjectURL
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), FilePreviewContentComponent]
@@ -91,6 +94,24 @@ describe('FilePreviewContentComponent', () => {
   })
 
   afterEach(() => {
+    if (originalCreateObjectURL) {
+      Object.defineProperty(URL, 'createObjectURL', {
+        configurable: true,
+        value: originalCreateObjectURL
+      })
+    } else {
+      Reflect.deleteProperty(URL, 'createObjectURL')
+    }
+
+    if (originalRevokeObjectURL) {
+      Object.defineProperty(URL, 'revokeObjectURL', {
+        configurable: true,
+        value: originalRevokeObjectURL
+      })
+    } else {
+      Reflect.deleteProperty(URL, 'revokeObjectURL')
+    }
+
     TestBed.resetTestingModule()
     jest.clearAllMocks()
   })
@@ -104,6 +125,46 @@ describe('FilePreviewContentComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Executive summary')
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Executive summary')
+  })
+
+  it('renders html previews through blob urls so webpage effects load in the iframe', () => {
+    const previewUrls = ['blob:html-preview-1', 'blob:html-preview-2']
+    const createObjectURL = jest.fn((_blob: Blob) => previewUrls.shift() ?? 'blob:html-preview-fallback')
+    const revokeObjectURL = jest.fn()
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectURL
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURL
+    })
+
+    const fixture = TestBed.createComponent(FilePreviewContentComponent)
+    fixture.componentRef.setInput('fileName', 'index.html')
+    fixture.componentRef.setInput('previewKind', 'html')
+    fixture.componentRef.setInput(
+      'content',
+      '<!doctype html><html><body><script>document.body.dataset.ready = "true"</script></body></html>'
+    )
+    fixture.detectChanges()
+
+    const host: HTMLElement = fixture.nativeElement
+    const iframe = host.querySelector<HTMLIFrameElement>('iframe')
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+    expect(iframe?.getAttribute('src')).toBe('blob:html-preview-1')
+    expect(iframe?.hasAttribute('srcdoc')).toBe(false)
+    expect(iframe?.getAttribute('sandbox')).toContain('allow-scripts')
+
+    fixture.componentRef.setInput('content', '<!doctype html><html><body>Updated</body></html>')
+    fixture.detectChanges()
+
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:html-preview-1')
+    expect(host.querySelector<HTMLIFrameElement>('iframe')?.getAttribute('src')).toBe('blob:html-preview-2')
+
+    fixture.destroy()
+
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:html-preview-2')
   })
 
   it('emits selection references from rich document previews', () => {

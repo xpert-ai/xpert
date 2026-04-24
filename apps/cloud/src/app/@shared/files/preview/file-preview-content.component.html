@@ -47,11 +47,14 @@
         <pre class="flex-1 overflow-auto p-4 text-sm whitespace-pre-wrap"><code>{{ content() ?? '' }}</code></pre>
       }
       @case ('html') {
-        <iframe
-          [src]="url() | safe: 'resourceUrl'"
-          [srcdoc]="!url() ? (content() ?? '') : null"
-          class="h-full w-full border-none bg-components-panel-bg"
-        ></iframe>
+        @if (htmlPreviewUrl(); as previewUrl) {
+          <iframe
+            [src]="previewUrl | safe: 'resourceUrl'"
+            sandbox="allow-downloads allow-forms allow-modals allow-popups allow-scripts"
+            referrerpolicy="no-referrer"
+            class="h-full w-full border-none bg-components-panel-bg"
+          ></iframe>
+        }
       }
       @case ('document') {
         <div #documentPreviewHost class="relative h-full overflow-auto" data-file-preview-document-host="true">
@@ -67,9 +70,8 @@
               #documentPreviewBody
               data-file-preview-document-body="true"
               class="overflow-auto px-5 py-5 text-sm leading-6 whitespace-pre-wrap text-text-primary font-sans"
-            >{{
-              content() ?? ''
-            }}</pre>
+              >{{ content() ?? '' }}</pre
+            >
           }
 
           @if (documentPreviewSelection(); as previewSelection) {
