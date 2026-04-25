@@ -12,6 +12,14 @@ import { ProjectTaskCardComponent } from './project-task-card.component'
   selector: 'xp-project-swimlane-column',
   imports: [CommonModule, TranslatePipe, DragDropModule, ZardButtonComponent, ZardIconComponent, ProjectTaskCardComponent],
   templateUrl: './project-swimlane-column.component.html',
+  styles: `:host {
+    display: flex;
+    width: 20rem;
+    min-width: 20rem;
+    min-height: 0;
+    height: 100%;
+    flex: 0 0 20rem;
+  }`,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProjectSwimlaneColumnComponent {

@@ -1,9 +1,11 @@
 import { Dialog } from '@angular/cdk/dialog'
+import { BreakpointObserver } from '@angular/cdk/layout'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
-import { firstValueFrom } from 'rxjs'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { firstValueFrom, map } from 'rxjs'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmResizableDirective, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslatePipe } from '@xpert-ai/core'
 import type { IProjectCore } from '@xpert-ai/contracts'
 import { ProjectPageFacade } from './project-page.facade'
@@ -28,6 +30,7 @@ import { getDefaultTaskSwimlane } from './project-page.utils'
     CommonModule,
     TranslatePipe,
     NgmSpinComponent,
+    NgmResizableDirective,
     ZardButtonComponent,
     ZardIconComponent,
     ProjectSidebarComponent,
@@ -47,8 +50,42 @@ import { getDefaultTaskSwimlane } from './project-page.utils'
   providers: [ProjectPageFacade]
 })
 export class ProjectPageComponent {
+  readonly #logPrefix = '[ProjectChatKit]'
+  readonly #breakpointObserver = inject(BreakpointObserver)
   readonly #dialog = inject(Dialog)
   readonly facade = inject(ProjectPageFacade)
+  readonly desktopAssistantRailLayout = toSignal(
+    this.#breakpointObserver.observe('(min-width: 1280px)').pipe(map((state) => state.matches)),
+    {
+      initialValue: typeof window !== 'undefined' ? window.matchMedia('(min-width: 1280px)').matches : false
+    }
+  )
+
+  async handleAssistantProjectDataRefresh() {
+    const projectId = this.facade.selectedProject()?.id ?? null
+    const sprintId = this.facade.selectedSprint()?.id ?? null
+
+    console.debug(this.#logPrefix, 'Project page received assistant-triggered refresh request', {
+      projectId,
+      sprintId
+    })
+
+    try {
+      await this.facade.refresh()
+      console.debug(this.#logPrefix, 'Project page refresh completed', {
+        projectId: this.facade.selectedProject()?.id ?? projectId,
+        sprintId: this.facade.selectedSprint()?.id ?? sprintId,
+        sprintCount: this.facade.sprints().length,
+        taskCount: this.facade.tasks().length
+      })
+    } catch (error) {
+      console.debug(this.#logPrefix, 'Project page refresh failed', {
+        projectId,
+        sprintId,
+        error
+      })
+    }
+  }
 
   async openCreateProject() {
     const dialogRef = this.#dialog.open<IProjectCore>(ProjectCreateDialogComponent, {

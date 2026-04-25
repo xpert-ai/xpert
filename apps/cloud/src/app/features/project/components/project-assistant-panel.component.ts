@@ -11,6 +11,13 @@ import { ProjectEmptyStateComponent } from './project-empty-state.component'
 @Component({
   standalone: true,
   selector: 'xp-project-assistant-panel',
+  styles: `:host {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }`,
   imports: [
     CommonModule,
     TranslatePipe,
@@ -25,13 +32,23 @@ import { ProjectEmptyStateComponent } from './project-empty-state.component'
   providers: [ProjectAssistantFacade]
 })
 export class ProjectAssistantPanelComponent {
+  readonly #logPrefix = '[ProjectChatKit]'
+
   readonly project = input<IProjectCore | null>(null)
   readonly loading = input(false)
   readonly bindRequested = output<void>()
+  readonly projectDataRefreshRequested = output<void>()
 
   readonly facade = inject(ProjectAssistantFacade)
 
   constructor() {
+    this.facade.setProjectDataRefreshRequested(() => {
+      console.debug(this.#logPrefix, 'Panel received project data refresh request from facade', {
+        projectId: this.project()?.id ?? null
+      })
+      this.projectDataRefreshRequested.emit()
+    })
+
     effect(
       () => {
         const loading = this.loading()

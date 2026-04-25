@@ -1,5 +1,5 @@
-<div class="flex h-full min-h-0 flex-col bg-background-default xl:flex-row">
-  <xp-project-sidebar
+<div class="flex h-full min-h-0 max-h-full flex-col bg-background-default xl:flex-row">
+  <xp-project-sidebar class="sticky top-0 z-10"
     [projects]="facade.projects()"
     [selectedProjectId]="facade.projectId()"
     [selectedSprintLabel]="facade.selectedSprintLabel()"
@@ -8,7 +8,23 @@
     (createRequested)="openCreateProject()"
   />
 
-  <section class="flex min-w-0 flex-1 flex-col overflow-hidden bg-background-default-subtle">
+  <ng-container [ngTemplateOutlet]="projectWorkspaceTemplate" />
+
+  @if (desktopAssistantRailLayout()) {
+    <div
+      ngmResizable
+      [directions]="['left']"
+      class="relative hidden h-full min-h-0 w-[416px] min-w-[320px] max-w-[720px] shrink-0 xl:flex"
+    >
+      <ng-container [ngTemplateOutlet]="assistantRailTemplate" />
+    </div>
+  } @else {
+    <ng-container [ngTemplateOutlet]="assistantRailTemplate" />
+  }
+</div>
+
+<ng-template #projectWorkspaceTemplate>
+  <section class="flex h-full min-w-0 flex-1 flex-col bg-background-default-subtle">
     @if (facade.pageLoading()) {
       <div class="flex min-h-0 flex-1 items-center justify-center">
         <ngm-spin />
@@ -22,7 +38,7 @@
         />
       </div>
     } @else {
-      <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 lg:p-5">
+      <div class="flex min-h-0 flex-1 flex-col gap-4 p-4 lg:p-5">
         @if (!facade.hasProjects()) {
           <div class="flex min-h-0 flex-1 items-center justify-center">
             <xp-project-empty-state
@@ -130,10 +146,14 @@
       </div>
     }
   </section>
+</ng-template>
 
+<ng-template #assistantRailTemplate>
   <xp-project-assistant-panel
+    class="h-full min-h-0 w-full min-w-0"
     [project]="facade.selectedProject()"
     [loading]="facade.loading()"
     (bindRequested)="openBindMainAgent(facade.selectedProject())"
+    (projectDataRefreshRequested)="handleAssistantProjectDataRefresh()"
   />
-</div>
+</ng-template>

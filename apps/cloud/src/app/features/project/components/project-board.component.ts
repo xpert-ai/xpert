@@ -11,6 +11,11 @@ import { ProjectSwimlaneColumnComponent } from './project-swimlane-column.compon
   selector: 'xp-project-board',
   imports: [CommonModule, TranslatePipe, DragDropModule, ProjectSwimlaneColumnComponent],
   templateUrl: './project-board.component.html',
+  styles: `:host {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+  }`,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProjectBoardComponent {

@@ -3,6 +3,7 @@ import { ProjectCoreStatusEnum, createProjectId, createXpertId } from '@xpert-ai
 import { of } from 'rxjs'
 import { AssistantBindingService } from '../../@core/services/assistant-binding.service'
 import { ChatConversationService } from '../../@core/services/chat-conversation.service'
+import { injectHostedAssistantChatkitControl } from '../assistant/assistant-chatkit.runtime'
 import { ProjectAssistantFacade } from './project-assistant.facade'
 
 jest.mock('../assistant/assistant-chatkit.runtime', () => {
@@ -15,6 +16,8 @@ jest.mock('../assistant/assistant-chatkit.runtime', () => {
 })
 
 describe('ProjectAssistantFacade', () => {
+  const injectHostedAssistantChatkitControlMock = jest.mocked(injectHostedAssistantChatkitControl)
+
   function createFacade() {
     TestBed.resetTestingModule()
     const chatConversationService = {
@@ -67,5 +70,69 @@ describe('ProjectAssistantFacade', () => {
     await flushTasks()
 
     expect(chatConversationService.findLatestByProject).toHaveBeenCalledWith('project-1', 'assistant-1')
+  })
+
+  it('requests a single page refresh from matching mutating project tool logs', async () => {
+    const { facade } = createFacade()
+    const refreshRequested = jest.fn()
+    const options = injectHostedAssistantChatkitControlMock.mock.calls.at(-1)?.[0]
+
+    facade.setProjectDataRefreshRequested(refreshRequested)
+
+    options?.onLog?.({
+      name: 'lg.tool.end',
+      data: {
+        toolName: 'createProjectTasks'
+      }
+    })
+    options?.onLog?.({
+      name: 'lg.tool.end',
+      data: {
+        toolName: 'updateProjectTasks'
+      }
+    })
+
+    expect(refreshRequested).not.toHaveBeenCalled()
+
+    await flushTasks()
+
+    expect(refreshRequested).toHaveBeenCalledTimes(1)
+  })
+
+  it('requests a page refresh for sprint update tool logs', async () => {
+    const { facade } = createFacade()
+    const refreshRequested = jest.fn()
+    const options = injectHostedAssistantChatkitControlMock.mock.calls.at(-1)?.[0]
+
+    facade.setProjectDataRefreshRequested(refreshRequested)
+
+    options?.onLog?.({
+      name: 'lg.tool.end',
+      data: {
+        toolName: 'updateProjectSprint'
+      }
+    })
+
+    await flushTasks()
+
+    expect(refreshRequested).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores non-mutating project assistant tool logs', async () => {
+    const { facade } = createFacade()
+    const refreshRequested = jest.fn()
+    const options = injectHostedAssistantChatkitControlMock.mock.calls.at(-1)?.[0]
+
+    facade.setProjectDataRefreshRequested(refreshRequested)
+
+    options?.onLog?.({
+      name: 'lg.tool.end',
+      data: {
+        toolName: 'listProjectTasks'
+      }
+    })
+    await flushTasks()
+
+    expect(refreshRequested).not.toHaveBeenCalled()
   })
 })

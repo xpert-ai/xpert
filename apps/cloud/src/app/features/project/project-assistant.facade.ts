@@ -1,4 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core'
+import type { ChatKitEventHandlers } from '@xpert-ai/chatkit-angular'
 import { AssistantBindingScope, AssistantCode, type IChatConversation, type IProjectCore, type IXpert } from '@xpert-ai/contracts'
 import { ChatConversationService } from '../../@core/services/chat-conversation.service'
 import { AssistantBindingService } from '../../@core/services/assistant-binding.service'
@@ -15,6 +16,25 @@ type ProjectAssistantViewState =
   | 'error'
   | 'ready'
 
+type ProjectAssistantRefreshHandler = (() => void | Promise<void>) | null
+type ProjectAssistantEffectEvent = Parameters<NonNullable<ChatKitEventHandlers['onEffect']>>[0]
+type ProjectAssistantLogEvent = Parameters<NonNullable<ChatKitEventHandlers['onLog']>>[0]
+
+const PROJECT_ASSISTANT_LOG_PREFIX = '[ProjectChatKit]'
+const PROJECT_MUTATION_LOG_NAME = 'lg.tool.end'
+const PROJECT_MUTATION_TOOL_NAMES = new Set([
+  'createProjectTasks',
+  'updateProjectTasks',
+  'reorderProjectTasks',
+  'moveProjectTasks',
+  'createProjectSprint',
+  'updateProjectSprint',
+  'bindProjectTeams',
+  'updateProjectTeamBindings',
+  'removeProjectTeamBinding',
+  'updateProjectSwimlanes'
+])
+
 @Injectable()
 export class ProjectAssistantFacade {
   readonly #chatConversationService = inject(ChatConversationService)
@@ -30,6 +50,10 @@ export class ProjectAssistantFacade {
   readonly #conversationError = signal<string | null>(null)
   readonly #assistantLoadVersion = signal(0)
   readonly #conversationLoadVersion = signal(0)
+  #pendingProjectDataRefresh = false
+  #projectDataRefreshScheduled = false
+  #projectDataRefreshInFlight = false
+  #projectDataRefreshHandler: ProjectAssistantRefreshHandler = null
 
   readonly project = this.#project.asReadonly()
   readonly availableAssistants = this.#availableAssistants.asReadonly()
@@ -90,6 +114,8 @@ export class ProjectAssistantFacade {
     frameUrl: computed(() => sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL)),
     initialThread: computed(() => (this.viewState() === 'ready' ? this.#latestConversation()?.threadId ?? null : null)),
     projectId: computed(() => (this.viewState() === 'ready' ? this.#project()?.id ?? null : null)),
+    onEffect: (event) => this.logChatkitEffect(event),
+    onLog: (event) => this.trackProjectMutationLog(event),
     titleKey: 'PAC.Project.MainAgentTitle',
     titleDefault: 'Project Main Agent'
   })
@@ -108,11 +134,17 @@ export class ProjectAssistantFacade {
       return
     }
 
+    this.#pendingProjectDataRefresh = false
+    this.#projectDataRefreshScheduled = false
     void this.syncLatestConversation()
   }
 
   setPageLoading(loading: boolean) {
     this.#pageLoading.set(loading)
+  }
+
+  setProjectDataRefreshRequested(handler: ProjectAssistantRefreshHandler) {
+    this.#projectDataRefreshHandler = handler
   }
 
   async refresh() {
@@ -192,5 +224,131 @@ export class ProjectAssistantFacade {
     }
 
     return `${project.id}:${project.mainAssistantId}`
+  }
+
+  private trackProjectMutationLog(event: ProjectAssistantLogEvent) {
+    const toolName = typeof event.data?.toolName === 'string' ? event.data.toolName.trim() : ''
+    const matchesRefreshLog = event.name === PROJECT_MUTATION_LOG_NAME && PROJECT_MUTATION_TOOL_NAMES.has(toolName)
+
+    this.debugLog('Received ChatKit log event', {
+      eventName: event.name,
+      eventData: event.data ?? null,
+      toolName: toolName || null,
+      matchesRefreshLog,
+      pendingProjectDataRefresh: this.#pendingProjectDataRefresh
+    })
+
+    if (event.name !== PROJECT_MUTATION_LOG_NAME) {
+      return
+    }
+
+    if (!PROJECT_MUTATION_TOOL_NAMES.has(toolName)) {
+      this.debugLog('Ignored ChatKit tool log for project refresh', {
+        toolName: toolName || null,
+        allowedToolNames: Array.from(PROJECT_MUTATION_TOOL_NAMES)
+      })
+      return
+    }
+
+    this.#pendingProjectDataRefresh = true
+    this.debugLog('Queued project page refresh from ChatKit log event', {
+      toolName,
+      pendingProjectDataRefresh: this.#pendingProjectDataRefresh
+    })
+    this.scheduleProjectDataRefresh()
+  }
+
+  private scheduleProjectDataRefresh() {
+    if (this.#projectDataRefreshScheduled) {
+      this.debugLog('Skipped scheduling duplicate project page refresh microtask', {
+        pendingProjectDataRefresh: this.#pendingProjectDataRefresh,
+        projectDataRefreshInFlight: this.#projectDataRefreshInFlight
+      })
+      return
+    }
+
+    this.#projectDataRefreshScheduled = true
+    this.debugLog('Scheduled project page refresh processing from ChatKit log event', {
+      pendingProjectDataRefresh: this.#pendingProjectDataRefresh,
+      projectDataRefreshInFlight: this.#projectDataRefreshInFlight
+    })
+
+    queueMicrotask(() => {
+      this.#projectDataRefreshScheduled = false
+      void this.flushProjectDataRefresh()
+    })
+  }
+
+  private async flushProjectDataRefresh() {
+    this.debugLog('Processing project page refresh queue', {
+      pendingProjectDataRefresh: this.#pendingProjectDataRefresh,
+      hasRefreshHandler: Boolean(this.#projectDataRefreshHandler),
+      projectDataRefreshInFlight: this.#projectDataRefreshInFlight
+    })
+
+    if (!this.#pendingProjectDataRefresh) {
+      return
+    }
+
+    if (this.#projectDataRefreshInFlight) {
+      this.debugLog('Skipped starting a new project page refresh because one is already in flight', {
+        pendingProjectDataRefresh: this.#pendingProjectDataRefresh
+      })
+      return
+    }
+
+    this.#pendingProjectDataRefresh = false
+    this.#projectDataRefreshInFlight = true
+    this.debugLog('Triggering project page refresh from ChatKit log event', {
+      hasRefreshHandler: Boolean(this.#projectDataRefreshHandler)
+    })
+
+    try {
+      await this.runProjectDataRefreshHandler()
+    } finally {
+      this.#projectDataRefreshInFlight = false
+
+      this.debugLog('Finished project page refresh triggered from ChatKit log event', {
+        pendingProjectDataRefresh: this.#pendingProjectDataRefresh
+      })
+
+      if (this.#pendingProjectDataRefresh) {
+        this.scheduleProjectDataRefresh()
+      }
+    }
+  }
+
+  private logChatkitEffect(event: ProjectAssistantEffectEvent) {
+    this.debugLog('Received ChatKit effect event', {
+      effectName: event.name,
+      effectData: event.data ?? null
+    })
+  }
+
+  private async runProjectDataRefreshHandler() {
+    const refreshHandler = this.#projectDataRefreshHandler
+    if (!refreshHandler) {
+      this.debugLog('Skipped project page refresh because no refresh handler is registered')
+      return
+    }
+
+    this.debugLog('Invoking registered project page refresh handler')
+
+    try {
+      await refreshHandler()
+      this.debugLog('Registered project page refresh handler completed successfully')
+    } catch (error) {
+      this.debugLog('Registered project page refresh handler failed', {
+        error
+      })
+    }
+  }
+
+  private debugLog(message: string, details?: Record<string, unknown>) {
+    console.debug(PROJECT_ASSISTANT_LOG_PREFIX, message, {
+      projectId: this.#project()?.id ?? null,
+      assistantId: this.#project()?.mainAssistantId ?? null,
+      ...details
+    })
   }
 }

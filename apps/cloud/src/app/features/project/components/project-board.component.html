@@ -1,4 +1,4 @@
-<section class="flex min-h-0 flex-1 flex-col rounded-[28px] border border-divider-regular bg-components-card-bg">
+<section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg">
   @if (loading()) {
     <div class="border-b border-divider-regular px-5 py-4 text-sm text-text-secondary">
       {{ 'PAC.Project.RefreshingBoard' | translate: { Default: 'Refreshing sprint board...' } }}
@@ -13,7 +13,7 @@
 
   @if (columns().length) {
     <div class="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-4 pb-4 pt-4" cdkDropListGroup>
-      <div class="flex min-h-full min-w-max gap-4">
+      <div class="flex h-full min-h-0 min-w-max items-stretch gap-4">
         @for (column of columns(); track column.lane.id) {
           <xp-project-swimlane-column
             [column]="column"
