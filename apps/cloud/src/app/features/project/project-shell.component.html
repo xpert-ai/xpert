@@ -36,12 +36,20 @@
         [title]="'PAC.Project.EmptyProjects' | translate: { Default: 'No projects yet' }"
         [description]="
           'PAC.Project.EmptyProjectsDescription'
-            | translate: {
-                Default: 'Create a project to organize overview, sprints, teams, and files in one workspace.'
-              }
+            | translate
+              : {
+                  Default: 'Create a project to organize overview, sprints, teams, and files in one workspace.'
+                }
         "
       >
-        <button z-button zType="default" projectEmptyStateActions type="button" class="rounded-xl" (click)="openCreateProject()">
+        <button
+          z-button
+          zType="default"
+          projectEmptyStateActions
+          type="button"
+          class="rounded-xl"
+          (click)="openCreateProject()"
+        >
           <z-icon zType="add"></z-icon>
           {{ 'PAC.Project.NewProject' | translate: { Default: 'New Project' } }}
         </button>
@@ -49,84 +57,72 @@
     </div>
   } @else {
     <header class="shrink-0 border-b border-divider-regular px-5 pt-5 lg:px-7">
-      <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-3 text-base text-text-secondary">
+      <div class="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
+        <div class="min-w-0 flex-1 2xl:flex 2xl:items-center 2xl:gap-4 2xl:overflow-hidden">
+          <div class="flex items-center gap-3 text-base text-text-secondary 2xl:shrink-0">
             <span>{{ 'PAC.Project.Project' | translate: { Default: 'Project' } }}</span>
             @if (projectStatusLabel()) {
-              <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary">
+              <span
+                class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary"
+              >
                 {{ projectStatusLabel() }}
               </span>
             }
           </div>
-          <h1 class="mt-4 truncate text-4xl font-normal leading-tight text-text-primary">
+          <h1
+            class="mt-4 truncate text-4xl font-normal leading-tight text-text-primary 2xl:mt-0 2xl:min-w-0 2xl:flex-1 2xl:text-3xl 2xl:leading-none"
+          >
             {{ facade.selectedProject()?.name || ('PAC.Project.Project' | translate: { Default: 'Project' }) }}
           </h1>
           @if (projectSummary()) {
-            <p class="mt-3 max-w-4xl truncate text-sm text-text-secondary">
+            <p class="mt-3 max-w-4xl truncate text-sm text-text-secondary 2xl:mt-0 2xl:max-w-[28rem] 2xl:shrink-0">
               {{ projectSummary() }}
             </p>
           }
         </div>
 
-        <div class="flex flex-col gap-3 lg:items-end">
-          <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-            <z-select
-              class="min-w-[14rem]"
-              [zValue]="facade.projectId()"
-              [zPlaceholder]="'PAC.Project.SelectProject' | translate: { Default: 'Select project' }"
-              (zSelectionChange)="onProjectSelected($event)"
-            >
-              @for (project of facade.projects(); track project.id) {
-                <z-select-item [zValue]="project.id">
-                  {{ project.name }}
-                </z-select-item>
-              }
-            </z-select>
+        <div class="flex flex-wrap items-center gap-2 2xl:flex-nowrap 2xl:justify-end">
+          <z-select
+            class="min-w-[12rem]"
+            [zValue]="facade.projectId()"
+            [zPlaceholder]="'PAC.Project.SelectProject' | translate: { Default: 'Select project' }"
+            (zSelectionChange)="onProjectSelected($event)"
+          >
+            @for (project of facade.projects(); track project.id) {
+              <z-select-item [zValue]="project.id">
+                {{ project.name }}
+              </z-select-item>
+            }
+          </z-select>
 
-            <button z-button zType="outline" type="button" class="rounded-xl" (click)="openCreateProject()">
-              <z-icon zType="add"></z-icon>
-              {{ 'PAC.Project.NewProject' | translate: { Default: 'New Project' } }}
-            </button>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-            <button
-              z-button
-              zType="outline"
-              type="button"
-              class="rounded-xl"
-              (click)="openBindMainAgent(facade.selectedProject())"
-            >
-              <z-icon zType="robot_2"></z-icon>
-              {{ 'PAC.Project.BindAssistant' | translate: { Default: 'Bind Assistant' } }}
-            </button>
-            <button
-              z-button
-              zType="outline"
-              type="button"
-              class="rounded-xl"
-              (click)="openManageTeams(facade.selectedProject())"
-            >
-              <z-icon zType="group"></z-icon>
-              {{ 'PAC.Project.ManageTeams' | translate: { Default: 'Manage Teams' } }}
-            </button>
-            <button z-button zType="outline" type="button" class="rounded-xl" (click)="openCreateSprint()">
-              <z-icon zType="today"></z-icon>
-              {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
-            </button>
-            <button
-              z-button
-              zType="default"
-              type="button"
-              class="rounded-xl"
-              [zDisabled]="!facade.selectedSprint()"
-              (click)="openTaskDialog()"
-            >
-              <z-icon zType="add"></z-icon>
-              {{ 'PAC.Project.NewTask' | translate: { Default: 'New Task' } }}
-            </button>
-          </div>
+          <button z-button zType="outline" type="button" class="shrink-0 rounded-xl" (click)="openCreateProject()">
+            <z-icon zType="add"></z-icon>
+            {{ 'PAC.Project.NewProject' | translate: { Default: 'New Project' } }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            class="shrink-0 rounded-xl"
+            (click)="openBindMainAgent(facade.selectedProject())"
+          >
+            <z-icon zType="robot_2"></z-icon>
+            {{ 'PAC.Project.BindAssistant' | translate: { Default: 'Bind Assistant' } }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            class="shrink-0 rounded-xl"
+            (click)="openManageTeams(facade.selectedProject())"
+          >
+            <z-icon zType="group"></z-icon>
+            {{ 'PAC.Project.ManageTeams' | translate: { Default: 'Manage Teams' } }}
+          </button>
+          <button z-button zType="outline" type="button" class="shrink-0 rounded-xl" (click)="openCreateSprint()">
+            <z-icon zType="today"></z-icon>
+            {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
+          </button>
         </div>
       </div>
 

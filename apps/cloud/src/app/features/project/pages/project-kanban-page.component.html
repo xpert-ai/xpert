@@ -3,41 +3,47 @@
     <div class="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
       <section class="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
         <div class="shrink-0 rounded-lg border border-divider-regular bg-components-card-bg p-4">
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="min-w-0">
-              <div class="text-xs font-semibold uppercase text-text-tertiary">
+          <div class="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
+            <div class="min-w-0 2xl:flex 2xl:items-center 2xl:gap-4 2xl:overflow-hidden">
+              <div class="text-xs font-semibold uppercase text-text-tertiary 2xl:shrink-0">
                 {{ 'PAC.Project.Kanban' | translate: { Default: 'Kanban' } }}
               </div>
-              <h2 class="mt-2 truncate text-xl font-semibold text-text-primary">
-                {{ facade.selectedSprint()?.goal || ('PAC.Project.EmptySprint' | translate: { Default: 'No sprint yet' }) }}
+              <h2 class="mt-2 truncate text-xl font-semibold text-text-primary 2xl:mt-0 2xl:min-w-0 2xl:flex-1">
+                {{
+                  facade.selectedSprint()?.goal || ('PAC.Project.EmptySprint' | translate: { Default: 'No sprint yet' })
+                }}
               </h2>
-              <div class="mt-2 flex flex-wrap gap-2">
+              <div class="mt-2 flex flex-wrap gap-2 2xl:mt-0 2xl:flex-nowrap 2xl:shrink-0">
                 @if (strategyLabel()) {
-                  <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary">
+                  <span
+                    class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary"
+                  >
                     {{ strategyLabel() }}
                   </span>
                 }
                 @if (sprintStatusLabel()) {
-                  <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary">
+                  <span
+                    class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary"
+                  >
                     {{ sprintStatusLabel() }}
                   </span>
                 }
               </div>
             </div>
 
-            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+            <div class="flex flex-wrap items-center gap-2 2xl:flex-nowrap 2xl:justify-end">
               <label class="sr-only" for="project-kanban-sprint-select">
                 {{ 'PAC.Project.CurrentSprint' | translate: { Default: 'Current Sprint' } }}
               </label>
               <z-select
                 id="project-kanban-sprint-select"
-                class="min-w-[16rem]"
+                class=""
                 [zValue]="facade.selectedSprintId()"
                 [zDisabled]="!facade.sprints().length"
                 [zPlaceholder]="
-                  (facade.sprints().length
+                  facade.sprints().length
                     ? ('PAC.Project.CurrentSprint' | translate: { Default: 'Current Sprint' })
-                    : ('PAC.Project.EmptySprint' | translate: { Default: 'No sprint yet' }))
+                    : ('PAC.Project.EmptySprint' | translate: { Default: 'No sprint yet' })
                 "
                 (zSelectionChange)="onSprintSelected($event)"
               >
@@ -48,7 +54,34 @@
                 }
               </z-select>
 
-              <button z-button zType="outline" type="button" class="rounded-xl" (click)="shell.openCreateSprint()">
+              <div class="grid grid-cols-3 gap-3 2xl:min-w-[360px]">
+                <div class="px-4">
+                  <div class="text-xs uppercase tracking-[0.14em] text-text-tertiary">
+                    {{ 'PAC.Project.SummaryLanes' | translate: { Default: 'Lanes' } }}
+                  </div>
+                  <div class="mt-1 text-lg font-semibold text-text-primary">{{ facade.selectedLaneCount() }}</div>
+                </div>
+                <div class="px-4">
+                  <div class="text-xs uppercase tracking-[0.14em] text-text-tertiary">
+                    {{ 'PAC.Project.SummaryTasks' | translate: { Default: 'Tasks' } }}
+                  </div>
+                  <div class="mt-1 text-lg font-semibold text-text-primary">{{ facade.selectedTaskCount() }}</div>
+                </div>
+                <div class="px-4">
+                  <div class="text-xs uppercase tracking-[0.14em] text-text-tertiary">
+                    {{ 'PAC.Project.SummaryTeams' | translate: { Default: 'Teams' } }}
+                  </div>
+                  <div class="mt-1 text-lg font-semibold text-text-primary">{{ facade.selectedTeamCount() }}</div>
+                </div>
+              </div>
+
+              <button
+                z-button
+                zType="outline"
+                type="button"
+                class="shrink-0 rounded-xl"
+                (click)="shell.openCreateSprint()"
+              >
                 <z-icon zType="today"></z-icon>
                 {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
               </button>
@@ -57,7 +90,7 @@
                 z-button
                 zType="default"
                 type="button"
-                class="rounded-xl"
+                class="shrink-0 rounded-xl"
                 [zDisabled]="!facade.selectedSprint()"
                 (click)="shell.openTaskDialog()"
               >
@@ -75,27 +108,26 @@
               [title]="'PAC.Project.EmptySprint' | translate: { Default: 'No sprint ready yet' }"
               [description]="
                 'PAC.Project.EmptySprintDescription'
-                  | translate: {
-                      Default: 'Create or start a sprint to populate the swimlanes for this project.'
-                    }
+                  | translate
+                    : {
+                        Default: 'Create or start a sprint to populate the swimlanes for this project.'
+                      }
               "
             >
-              <button z-button zType="default" projectEmptyStateActions type="button" class="rounded-xl" (click)="shell.openCreateSprint()">
+              <button
+                z-button
+                zType="default"
+                projectEmptyStateActions
+                type="button"
+                class="rounded-xl"
+                (click)="shell.openCreateSprint()"
+              >
                 <z-icon zType="today"></z-icon>
                 {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
               </button>
             </xp-project-empty-state>
           </div>
         } @else {
-          <xp-project-sprint-summary
-            class="shrink-0"
-            [project]="project"
-            [sprint]="facade.selectedSprint()"
-            [laneCount]="facade.selectedLaneCount()"
-            [taskCount]="facade.selectedTaskCount()"
-            [teamCount]="facade.selectedTeamCount()"
-          />
-
           <xp-project-board
             [columns]="facade.boardColumns()"
             [hasTasks]="facade.hasTasks()"

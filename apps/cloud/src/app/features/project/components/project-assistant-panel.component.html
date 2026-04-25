@@ -1,4 +1,4 @@
-<aside class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-t border-divider-regular bg-components-card-bg xl:border-l xl:border-t-0">
+<aside class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden xl:border-t-0">
   @switch (facade.viewState()) {
     @case ('loading') {
       <div class="flex min-h-0 flex-1 items-center justify-center rounded-[24px] bg-background-default-subtle">
@@ -99,31 +99,7 @@
     }
     @default {
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-background-default">
-        <div class="border-b border-divider-regular px-4 py-3">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="truncate text-sm font-semibold text-text-primary">{{ facade.assistantLabel() }}</div>
-              <div class="mt-1 truncate text-xs text-text-tertiary">
-                {{ facade.assistantSecondaryLabel() || ('PAC.Project.MainAgentReadyLabel' | translate: { Default: 'Published coordinating assistant' }) }}
-              </div>
-            </div>
-
-            <button
-              z-button
-              zType="outline"
-              type="button"
-              class="shrink-0 rounded-xl"
-              (click)="requestBind()"
-            >
-              <z-icon zType="refresh"></z-icon>
-              {{ 'PAC.Project.ChangeMainAgent' | translate: { Default: 'Change Main Agent' } }}
-            </button>
-          </div>
-        </div>
-
-        <div class="min-h-0 flex-1">
-          <xpert-chatkit class="h-full min-h-[28rem]" [control]="facade.control()!" />
-        </div>
+        <xpert-chatkit class="h-full min-h-[28rem]" [control]="facade.control()!" />
       </div>
     }
   }
