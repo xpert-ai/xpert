@@ -8,7 +8,6 @@ import { SkillRepository } from '../skill-repository'
 import { SkillRepositoryModule } from '../skill-repository/skill-repository.module'
 import { SkillRepositoryIndexModule } from '../skill-repository/repository-index/skill-repository-index.module'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
-import { TemplateSkillSyncScheduler } from './template-skill-sync.scheduler'
 import { TemplateSkillSyncService } from './template-skill-sync.service'
 import { XpertTemplateService } from './xpert-template.service'
 import { XpertTemplateController } from './xpert-template.controller'
@@ -27,7 +26,7 @@ import { XpertTemplate } from './xpert-template.entity'
 		forwardRef(() => SkillPackageModule),
 	],
 	controllers: [XpertTemplateController],
-	providers: [XpertTemplateService, TemplateSkillSyncService, TemplateSkillSyncScheduler],
+	providers: [XpertTemplateService, TemplateSkillSyncService],
 	exports: [XpertTemplateService, TemplateSkillSyncService]
 })
 export class XpertTemplateModule {}
