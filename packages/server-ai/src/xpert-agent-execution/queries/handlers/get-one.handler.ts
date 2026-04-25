@@ -47,10 +47,7 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 	}
 
 	async expandSubExecutions(execution: IXpertAgentExecution, agents: IXpertAgent[]) {
-		const { items: executions } = await this.service.findAll({
-			where: {
-				parentId: execution.id
-			},
+		const executions = await this.service.findAllByParentId(execution.id, {
 			relations: ['createdBy', 'xpert'],
 			order: {
 				createdAt: OrderTypeEnum.ASC

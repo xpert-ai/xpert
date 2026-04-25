@@ -3,11 +3,27 @@ import type { CommandBus } from '@nestjs/cqrs'
 import type { ChatConversationService } from '../chat-conversation'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 
+jest.mock('../chat-conversation', () => ({
+    ChatConversationService: class ChatConversationService {}
+}))
+
+jest.mock('../shared', () => ({
+    VOLUME_CLIENT: 'VOLUME_CLIENT',
+    VolumeClient: class VolumeClient {},
+    WorkspacePathMapperFactory: class WorkspacePathMapperFactory {}
+}))
+
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
         currentUserId: jest.fn()
     }
+}))
+
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    resolveSandboxBackend: jest.fn().mockReturnValue({
+        execute: jest.fn()
+    })
 }))
 
 describe('SandboxConversationContextService', () => {
@@ -94,6 +110,9 @@ describe('SandboxConversationContextService', () => {
             conversationId: 'conversation-1'
         })
 
+        expect(conversationService.findOne).toHaveBeenCalledWith('conversation-1', {
+            relations: ['xpert']
+        })
         expect(volumeClient.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-from-conversation',
             catalog: 'xperts',
@@ -144,6 +163,9 @@ describe('SandboxConversationContextService', () => {
             projectId: 'project-override'
         })
 
+        expect(conversationService.findOne).toHaveBeenCalledWith('conversation-1', {
+            relations: ['xpert']
+        })
         expect(volumeClient.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'environment',

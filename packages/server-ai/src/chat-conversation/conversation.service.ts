@@ -60,7 +60,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 	}
 
 	async findOneByThreadId(threadId: string) {
-		return this.findOne({
+		return this.findOneByOptions({
 			where: {
 				threadId
 			}
@@ -164,9 +164,10 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
 	async getThreadState(id: string) {
 		const conversation = await this.findOne(id, { relations: ['messages'] })
-		const lastMessage = conversation.messages[conversation.messages.length - 1]
+		const messages = (conversation.messages ?? []).filter(Boolean)
+		const lastMessage = messages[messages.length - 1]
 
-		if (lastMessage.executionId) {
+		if (lastMessage?.executionId) {
 			return await this.queryBus.execute(new XpertAgentExecutionStateQuery(lastMessage.executionId))
 		}
 

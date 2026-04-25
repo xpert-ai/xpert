@@ -207,6 +207,7 @@ export class ChatConversationPreviewComponent {
 
   // Inputs
   readonly conversationId = model<string>()
+  readonly organizationId = input<string | null>(null)
   readonly xpert = model<Partial<IXpert>>()
   readonly input = model<string>()
   readonly environmentId = model<string>()
@@ -236,7 +237,7 @@ export class ChatConversationPreviewComponent {
   readonly #feedbacks = derivedAsync(() => {
     return this.conversationId()
       ? this.messageFeedbackService
-          .getMyAll({ where: { conversationId: this.conversationId() } })
+          .getMyAll({ where: { conversationId: this.conversationId() } }, this.organizationId() ?? undefined)
           .pipe(map(({ items }) => items))
       : of(null)
   })
@@ -321,7 +322,7 @@ export class ChatConversationPreviewComponent {
         id
           ? this.conversationService.getOneById(this.conversationId(), {
               relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents']
-            })
+            }, this.organizationId() ?? undefined)
           : of(null)
       )
     )

@@ -60,6 +60,8 @@ export class XpertLogsComponent {
 
   readonly preview = signal<string>(null)
   readonly executionId = signal<string>(null)
+  readonly previewConversation = computed(() => this.conversations().find((item) => item.id === this.preview()) ?? null)
+  readonly previewOrganizationId = computed(() => this.previewConversation()?.organizationId ?? null)
 
   constructor() {
     this.timeRange$.subscribe(() => {
@@ -123,7 +125,7 @@ export class XpertLogsComponent {
       return
     }
 
-    this.conversationService.cancelConversation(conversation.id).subscribe({
+    this.conversationService.cancelConversation(conversation.id, conversation.organizationId ?? undefined).subscribe({
       next: () => {
         this.conversations.update((state) =>
           state.map((item) =>

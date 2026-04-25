@@ -46,8 +46,8 @@ import fs from 'fs'
 import { I18nService } from 'nestjs-i18n'
 import { join } from 'path'
 import { Observable } from 'rxjs'
-import { ChatConversationService } from '../chat-conversation'
 import { VOLUME_CLIENT, VolumeClient, getMediaTypeWithCharset } from '../shared'
+import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxPreviewAuthGuard } from './sandbox-preview-auth.guard'
@@ -65,10 +65,10 @@ export class SandboxController {
         private readonly i18n: I18nService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly conversationService: ChatConversationService,
         private readonly sandboxConversationContextService: SandboxConversationContextService,
         private readonly sandboxManagedServiceService: SandboxManagedServiceService,
         private readonly sandboxPreviewSessionService: SandboxPreviewSessionService,
+        private readonly organizationScopeService: SuperAdminOrganizationScopeService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {}
@@ -147,33 +147,38 @@ export class SandboxController {
         @Body('workspace') workspace: string,
         @Body('conversationId') conversationId: string,
         @Body('path') path: string,
-        @UploadedFile() file: Express.Multer.File
+        @UploadedFile() file: Express.Multer.File,
+        @Query('organizationId') organizationId?: string
     ) {
-        const conversation = await this.conversationService.findOne({ where: { id: conversationId } })
-        const client = this.createConversationVolumeClient(conversation)
-
-        const asset = await this.commandBus.execute(
-            new UploadFileCommand({
-                source: {
-                    kind: 'multipart',
-                    file
-                },
-                targets: [
-                    {
-                        kind: 'sandbox',
-                        mode: 'mounted_workspace',
-                        workspacePath: client.path(workspace),
-                        workspaceUrl: client.publicUrl(workspace),
-                        folder: path || ''
-                    }
-                ]
+        return this.organizationScopeService.run(organizationId, async () => {
+            const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+                conversationId
             })
-        )
-        const destination = getFileAssetDestination(asset, 'sandbox')
-        if (!destination || destination.status !== 'success') {
-            throw new ForbiddenException(destination?.error || 'Failed to upload sandbox file')
-        }
-        return { url: destination.url, filePath: destination.path }
+            const client = this.createConversationVolumeClient(resolved.conversation)
+
+            const asset = await this.commandBus.execute(
+                new UploadFileCommand({
+                    source: {
+                        kind: 'multipart',
+                        file
+                    },
+                    targets: [
+                        {
+                            kind: 'sandbox',
+                            mode: 'mounted_workspace',
+                            workspacePath: client.path(workspace),
+                            workspaceUrl: client.publicUrl(workspace),
+                            folder: path || ''
+                        }
+                    ]
+                })
+            )
+            const destination = getFileAssetDestination(asset, 'sandbox')
+            if (!destination || destination.status !== 'success') {
+                throw new ForbiddenException(destination?.error || 'Failed to upload sandbox file')
+            }
+            return { url: destination.url, filePath: destination.path }
+        })
     }
 
     @Header('content-type', 'text/event-stream')
@@ -184,12 +189,15 @@ export class SandboxController {
         @Body() body: { cmd: string },
         @Query('projectId') projectId: string,
         @Query('conversationId') conversationId: string,
-        @Res() res: Response
+        @Res() res: Response,
+        @Query('organizationId') organizationId?: string
     ) {
-        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
-            conversationId,
-            projectId
-        })
+        const resolved = await this.organizationScopeService.run(organizationId, () =>
+            this.sandboxConversationContextService.resolveConversationSandbox({
+                conversationId,
+                projectId
+            })
+        )
         const backend = resolved.backend
         const effectiveProjectId = resolved.effectiveProjectId
 
@@ -243,9 +251,14 @@ export class SandboxController {
     }
 
     @Get('conversations/:conversationId/services')
-    async listManagedServices(@Param('conversationId') conversationId: string): Promise<ISandboxManagedService[]> {
+    async listManagedServices(
+        @Param('conversationId') conversationId: string,
+        @Query('organizationId') organizationId?: string
+    ): Promise<ISandboxManagedService[]> {
         try {
-            return await this.sandboxManagedServiceService.listByConversationId(conversationId)
+            return await this.organizationScopeService.run(organizationId, () =>
+                this.sandboxManagedServiceService.listByConversationId(conversationId)
+            )
         } catch (error) {
             this.throwManagedServiceHttpError(error)
         }
@@ -254,10 +267,13 @@ export class SandboxController {
     @Post('conversations/:conversationId/services/start')
     async startManagedService(
         @Param('conversationId') conversationId: string,
-        @Body() input: TSandboxManagedServiceStartInput
+        @Body() input: TSandboxManagedServiceStartInput,
+        @Query('organizationId') organizationId?: string
     ): Promise<ISandboxManagedService> {
         try {
-            return await this.sandboxManagedServiceService.startByConversationId(conversationId, input)
+            return await this.organizationScopeService.run(organizationId, () =>
+                this.sandboxManagedServiceService.startByConversationId(conversationId, input)
+            )
         } catch (error) {
             this.throwManagedServiceHttpError(error)
         }
@@ -267,11 +283,14 @@ export class SandboxController {
     async getManagedServiceLogs(
         @Param('conversationId') conversationId: string,
         @Param('serviceId') serviceId: string,
-        @Query('tail') tail?: string
+        @Query('tail') tail?: string,
+        @Query('organizationId') organizationId?: string
     ): Promise<TSandboxManagedServiceLogs> {
         try {
             const parsedTail = tail ? Number.parseInt(tail, 10) : undefined
-            return await this.sandboxManagedServiceService.getLogsByConversationId(conversationId, serviceId, parsedTail)
+            return await this.organizationScopeService.run(organizationId, () =>
+                this.sandboxManagedServiceService.getLogsByConversationId(conversationId, serviceId, parsedTail)
+            )
         } catch (error) {
             this.throwManagedServiceHttpError(error)
         }
@@ -280,10 +299,13 @@ export class SandboxController {
     @Post('conversations/:conversationId/services/:serviceId/stop')
     async stopManagedService(
         @Param('conversationId') conversationId: string,
-        @Param('serviceId') serviceId: string
+        @Param('serviceId') serviceId: string,
+        @Query('organizationId') organizationId?: string
     ): Promise<ISandboxManagedService> {
         try {
-            return await this.sandboxManagedServiceService.stopByConversationId(conversationId, serviceId)
+            return await this.organizationScopeService.run(organizationId, () =>
+                this.sandboxManagedServiceService.stopByConversationId(conversationId, serviceId)
+            )
         } catch (error) {
             this.throwManagedServiceHttpError(error)
         }
@@ -292,10 +314,13 @@ export class SandboxController {
     @Post('conversations/:conversationId/services/:serviceId/restart')
     async restartManagedService(
         @Param('conversationId') conversationId: string,
-        @Param('serviceId') serviceId: string
+        @Param('serviceId') serviceId: string,
+        @Query('organizationId') organizationId?: string
     ): Promise<ISandboxManagedService> {
         try {
-            return await this.sandboxManagedServiceService.restartByConversationId(conversationId, serviceId)
+            return await this.organizationScopeService.run(organizationId, () =>
+                this.sandboxManagedServiceService.restartByConversationId(conversationId, serviceId)
+            )
         } catch (error) {
             this.throwManagedServiceHttpError(error)
         }
@@ -305,11 +330,14 @@ export class SandboxController {
     async createManagedServicePreviewSession(
         @Param('conversationId') conversationId: string,
         @Param('serviceId') serviceId: string,
+        @Query('organizationId') organizationId: string,
         @Req() request: Request,
         @Res({ passthrough: true }) response: Response
     ): Promise<TSandboxManagedServicePreviewSession> {
         try {
-            const service = await this.sandboxManagedServiceService.getByConversationId(conversationId, serviceId)
+            const service = await this.organizationScopeService.run(organizationId, () =>
+                this.sandboxManagedServiceService.getByConversationId(conversationId, serviceId)
+            )
             const session = this.sandboxPreviewSessionService.createSession(service, {
                 secure: request.secure || request.headers['x-forwarded-proto'] === 'https'
             })

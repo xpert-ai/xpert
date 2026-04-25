@@ -14,6 +14,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Like } from 'typeorm'
+import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
@@ -27,7 +28,8 @@ export class ChatConversationController extends CrudController<ChatConversation>
 	constructor(
 		private readonly service: ChatConversationService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly organizationScopeService: SuperAdminOrganizationScopeService
 	) {
 		super(service)
 	}
@@ -69,9 +71,14 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		description: 'Record not found'
 	})
 	@Get('by-thread')
-	async findOneByThreadId(@Query('threadId') threadId: string): Promise<ChatConversationPublicDTO> {
-		const conversation = await this.service.findOneByThreadId(threadId)
-		return new ChatConversationPublicDTO(conversation)
+	async findOneByThreadId(
+		@Query('threadId') threadId: string,
+		@Query('organizationId') organizationId?: string
+	): Promise<ChatConversationPublicDTO> {
+		return this.organizationScopeService.run(organizationId, async () => {
+			const conversation = await this.service.findOneByThreadId(threadId)
+			return new ChatConversationPublicDTO(conversation)
+		})
 	}
 
 	@Get('project/:projectId/latest')
@@ -91,22 +98,33 @@ export class ChatConversationController extends CrudController<ChatConversation>
 	@Get(':id')
 	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
+		@Query('organizationId') organizationId: string,
 		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatConversation>['relations'],
 		@Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select'],
 		...options: any[]
 	): Promise<ChatConversationPublicDTO> {
-		return await this.service.findOneDetail(id, { select, relations })
+		return this.organizationScopeService.run(organizationId, () =>
+			this.service.findOneDetail(id, { select, relations })
+		)
 	}
 
 	@Get(':id/state')
-	async getThreadState(@Param('id', UUIDValidationPipe) id: string): Promise<any> {
-		return await this.service.getThreadState(id)
+	async getThreadState(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Query('organizationId') organizationId?: string
+	): Promise<any> {
+		return this.organizationScopeService.run(organizationId, () => this.service.getThreadState(id))
 	}
 
 	@Post(':id/cancel')
-	async cancelConversation(@Param('id', UUIDValidationPipe) id: string) {
+	async cancelConversation(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Query('organizationId') organizationId?: string
+	) {
 		try {
-			return await this.commandBus.execute(new CancelConversationCommand({ conversationId: id }))
+			return await this.organizationScopeService.run(organizationId, () =>
+				this.commandBus.execute(new CancelConversationCommand({ conversationId: id }))
+			)
 		} catch (error) {
 			console.error('Error cancelling conversation:', error)
 			throw error
@@ -126,45 +144,64 @@ export class ChatConversationController extends CrudController<ChatConversation>
 	}
 
 	@Get(':id/attachments')
-	async getAttachments(@Param('id') id: string) {
-		const items = await this.service.getAttachments(id)
-		return items.map((_) => new StorageFilePublicDTO(_))
+	async getAttachments(@Param('id') id: string, @Query('organizationId') organizationId?: string) {
+		return this.organizationScopeService.run(organizationId, async () => {
+			const items = await this.service.getAttachments(id)
+			return items.map((_) => new StorageFilePublicDTO(_))
+		})
 	}
 
 	@Get(':id/files')
 	async getFiles(
 		@Param('id', UUIDValidationPipe) id: string,
+		@Query('organizationId') organizationId: string,
 		@Query('deepth') deepth: number,
 		@Query('path') path: string
 	) {
-		return await this.service.getWorkspaceFiles(id, path, deepth)
+		return this.organizationScopeService.run(organizationId, () =>
+			this.service.getWorkspaceFiles(id, path, deepth)
+		)
 	}
 
 	@Get(':id/file')
-	async getFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
-		return await this.service.readWorkspaceFile(id, path)
+	async getFile(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Query('path') path: string,
+		@Query('organizationId') organizationId?: string
+	) {
+		return this.organizationScopeService.run(organizationId, () => this.service.readWorkspaceFile(id, path))
 	}
 
 	@Put(':id/file')
 	async saveFile(
 		@Param('id', UUIDValidationPipe) id: string,
+		@Query('organizationId') organizationId: string,
 		@Body() body: { path: string; content: string }
 	) {
-		return await this.service.saveWorkspaceFile(id, body?.path, body?.content ?? '')
+		return this.organizationScopeService.run(organizationId, () =>
+			this.service.saveWorkspaceFile(id, body?.path, body?.content ?? '')
+		)
 	}
 
 	@Post(':id/file/upload')
 	@UseInterceptors(FileInterceptor('file'))
 	async uploadFile(
 		@Param('id', UUIDValidationPipe) id: string,
+		@Query('organizationId') organizationId: string,
 		@Body('path') path: string,
 		@UploadedFile() file: Express.Multer.File
 	) {
-		return await this.service.uploadWorkspaceFile(id, path, file)
+		return this.organizationScopeService.run(organizationId, () =>
+			this.service.uploadWorkspaceFile(id, path, file)
+		)
 	}
 
 	@Delete(':id/file')
-	async deleteFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
-		return await this.service.deleteWorkspaceFile(id, path)
+	async deleteFile(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Query('path') path: string,
+		@Query('organizationId') organizationId?: string
+	) {
+		return this.organizationScopeService.run(organizationId, () => this.service.deleteWorkspaceFile(id, path))
 	}
 }

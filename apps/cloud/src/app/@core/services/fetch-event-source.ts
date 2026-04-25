@@ -6,6 +6,7 @@ import { AuthStrategy } from '../auth'
 import { Store } from './store.service'
 import { injectLanguage } from '../providers'
 import { isPublicXpertRequest } from '../utils/public-xpert-request'
+import { createOptionalQueryParams } from './query-params'
 
 export function injectFetchEventSource<T extends BodyInit | null>() {
   const store = inject(Store)
@@ -46,8 +47,10 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
         // Handle query params if provided
         let finalUrl = url
         if (typeof params === 'object' && params.params) {
-          const searchParams = new URLSearchParams(params.params as Record<string, string>).toString()
-          finalUrl += (finalUrl.includes('?') ? '&' : '?') + searchParams
+          const queryString = createOptionalQueryParams(params.params)?.toString()
+          if (queryString) {
+            finalUrl += (finalUrl.includes('?') ? '&' : '?') + queryString
+          }
         }
 
         fetchEventSource(finalUrl, {
