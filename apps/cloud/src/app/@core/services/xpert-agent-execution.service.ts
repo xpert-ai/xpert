@@ -18,20 +18,25 @@ export class XpertAgentExecutionService extends OrganizationBaseCrudService<IXpe
     super(API_XPERT_AGENT_EXECUTION)
   }
 
-  getOneLog(id: string, options?: PaginationParams<IXpertAgentExecution>) {
+  getOneLog(id: string, options?: PaginationParams<IXpertAgentExecution>, organizationId?: string) {
     return this.httpClient.get<IXpertAgentExecution>(this.apiBaseUrl + `/${id}/log`, {
-      params: toHttpParams(options)
+      params: appendOrganizationId(toHttpParams(options), organizationId)
     })
   }
 
-  getOneState(id: string, checkpointId?: string) {
+  getOneState(id: string, checkpointId?: string, organizationId?: string) {
     return this.httpClient.get<Record<string, unknown>>(this.apiBaseUrl + `/${id}/state`, {
-      params: checkpointId ? new HttpParams().set('checkpointId', checkpointId) : undefined
+      params: (() => {
+        let params = checkpointId ? new HttpParams().set('checkpointId', checkpointId) : null
+        return appendOrganizationId(params, organizationId)
+      })()
     })
   }
 
-  getCheckpoints(id: string) {
-    return this.httpClient.get<TXpertAgentExecutionCheckpoint[]>(this.apiBaseUrl + `/${id}/checkpoints`)
+  getCheckpoints(id: string, organizationId?: string) {
+    return this.httpClient.get<TXpertAgentExecutionCheckpoint[]>(this.apiBaseUrl + `/${id}/checkpoints`, {
+      params: appendOrganizationId(null, organizationId)
+    })
   }
 
   findAllByXpertAgent(xpertId: string, agentKey: string, options: PaginationParams<IXpertAgentExecution>) {
@@ -42,4 +47,12 @@ export class XpertAgentExecutionService extends OrganizationBaseCrudService<IXpe
       }
     )
   }
+}
+
+function appendOrganizationId(params: HttpParams | null, organizationId?: string) {
+  if (!organizationId) {
+    return params ?? undefined
+  }
+
+  return (params ?? new HttpParams()).set('organizationId', organizationId)
 }

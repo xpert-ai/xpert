@@ -55,10 +55,12 @@ export class ChatConversationLogsHandler
             query.take(take)
         }
 
-        const items = await query.getMany()
-        return {
-            items: items as unknown as TChatConversationLog[],
-            total: await this.service.count(command.options)
-        }
-    }
+		const items = await query.getMany()
+		return {
+			items: items as unknown as TChatConversationLog[],
+			total: await this.repository.count({
+				where
+			})
+		}
+	}
 }

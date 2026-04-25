@@ -126,7 +126,9 @@ export class SandboxManagedServiceService implements OnModuleInit {
     }
 
     async listByConversationId(conversationId: string): Promise<ISandboxManagedService[]> {
-        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({ conversationId })
+        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+            conversationId
+        })
         const adapter = resolveSandboxManagedServiceAdapter(resolved.sandbox)
         if (!adapter) {
             throw new SandboxManagedServiceError(
@@ -173,8 +175,10 @@ export class SandboxManagedServiceService implements OnModuleInit {
         input: TSandboxManagedServiceStartInput,
         owner?: { agentKey?: string | null; executionId?: string | null }
     ): Promise<ISandboxManagedService> {
-        const conversation = await this.requireConversation(conversationId)
-        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({ conversationId })
+        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+            conversationId
+        })
+        const conversation = resolved.conversation
         const adapter = resolveSandboxManagedServiceAdapter(resolved.sandbox)
 
         if (!adapter) {
@@ -288,7 +292,9 @@ export class SandboxManagedServiceService implements OnModuleInit {
         tail = 200
     ): Promise<TSandboxManagedServiceLogs> {
         const service = await this.requireService(conversationId, serviceId)
-        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({ conversationId })
+        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+            conversationId
+        })
         const adapter = resolveSandboxManagedServiceAdapter(resolved.sandbox)
         if (!adapter) {
             throw new SandboxManagedServiceError(
@@ -310,6 +316,7 @@ export class SandboxManagedServiceService implements OnModuleInit {
     }
 
     async getByConversationId(conversationId: string, serviceId: string): Promise<ISandboxManagedService> {
+        await this.requireConversation(conversationId)
         const service = await this.requireService(conversationId, serviceId)
         return this.toModel(service)
     }
@@ -321,7 +328,9 @@ export class SandboxManagedServiceService implements OnModuleInit {
 
     async stopByConversationId(conversationId: string, serviceId: string): Promise<ISandboxManagedService> {
         const service = await this.requireService(conversationId, serviceId)
-        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({ conversationId })
+        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+            conversationId
+        })
         const adapter = resolveSandboxManagedServiceAdapter(resolved.sandbox)
         if (!adapter) {
             throw new SandboxManagedServiceError(
@@ -347,7 +356,9 @@ export class SandboxManagedServiceService implements OnModuleInit {
 
     async restartByConversationId(conversationId: string, serviceId: string): Promise<ISandboxManagedService> {
         const service = await this.requireService(conversationId, serviceId)
-        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({ conversationId })
+        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+            conversationId
+        })
         const adapter = resolveSandboxManagedServiceAdapter(resolved.sandbox)
         if (!adapter) {
             throw new SandboxManagedServiceError(
@@ -387,7 +398,9 @@ export class SandboxManagedServiceService implements OnModuleInit {
         response: Response
     ): Promise<void> {
         const service = await this.requireService(conversationId, serviceId)
-        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({ conversationId })
+        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
+            conversationId
+        })
         const adapter = resolveSandboxServiceProxyAdapter(resolved.sandbox)
         if (!adapter) {
             throw new SandboxManagedServiceError(
@@ -406,9 +419,7 @@ export class SandboxManagedServiceService implements OnModuleInit {
     }
 
     private async requireConversation(conversationId: string) {
-        const conversation = await this.conversationService.findOne({
-            where: { id: conversationId }
-        })
+        const conversation = await this.conversationService.findOne(conversationId)
         if (!conversation) {
             throw new SandboxManagedServiceError(
                 SandboxManagedServiceErrorCode.ConversationNotFound,

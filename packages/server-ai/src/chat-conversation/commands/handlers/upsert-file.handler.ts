@@ -24,7 +24,9 @@ export class ConvFileUpsertHandler implements ICommandHandler<ConvFileUpsertComm
 		// 日志记录
 		this.#logger.log(`File uploaded and saved successfully: ${createdStorageFile.id}`)
 
-		const conv = await this.conversationService.findOne(id, { relations: ['attachments'] })
+		const conv = await this.conversationService.findOne(id, {
+			relations: ['attachments']
+		})
 		const index = conv.attachments.findIndex((_) => _.originalName === file.filePath)
 		if (index > -1) {
 			conv.attachments[index] = createdStorageFile

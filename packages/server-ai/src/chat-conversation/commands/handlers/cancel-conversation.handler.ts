@@ -1,10 +1,9 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { CancelConversationCommand } from '../cancel-conversation.command'
 import { ChatConversationService } from '../../conversation.service'
-import { ChatMessageService } from '../../../chat-message/chat-message.service'
 import { ExecutionCancelService } from '../../../shared/'
 import { IChatMessage, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
-import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
+import { XpertAgentExecutionService } from '../../../xpert-agent-execution/agent-execution.service'
 import { Logger } from '@nestjs/common'
 import { StopHandoffMessageCommand } from '../../../handoff/commands'
 
@@ -24,7 +23,7 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
 
 	constructor(
 		private readonly service: ChatConversationService,
-		private readonly messageService: ChatMessageService,
+		private readonly executionService: XpertAgentExecutionService,
 		private readonly executionCancelService: ExecutionCancelService,
 		private readonly commandBus: CommandBus
 	) {}
@@ -33,7 +32,7 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
 		const { conversationId, threadId, executionId } = command.input
 		const conversation = conversationId
 			? await this.service.findOne(conversationId, { relations: ['messages'] })
-			: await this.service.findOne({ where: { threadId }, relations: ['messages'] })
+			: await this.service.findOneByOptions({ where: { threadId }, relations: ['messages'] })
 
 		if (!conversation) {
 			return { canceledExecutionIds: [] }
@@ -68,21 +67,16 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
 		) as string[]
 		const messagesToUpdate = aiMessages.filter((message) => executionIds.includes(message.executionId))
 
-		for (const message of messagesToUpdate) {
-			await this.messageService.update(message.id, {
-				status: 'aborted',
-				error: 'Canceled by user'
-			})
-		}
+		messagesToUpdate.forEach((message) => {
+			message.status = 'aborted' as any
+			message.error = 'Canceled by user'
+		})
 
 		for (const id of executionIds) {
-			await this.commandBus.execute(
-				new XpertAgentExecutionUpsertCommand({
-					id,
-					status: XpertAgentExecutionStatusEnum.INTERRUPTED,
-					error: 'Canceled by user'
-				})
-			)
+			await this.executionService.update(id, {
+				status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+				error: 'Canceled by user'
+			})
 		}
 
 		if (executionIds.length) {
@@ -103,10 +97,9 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
 			}
 		}
 
-		await this.service.update(conversation.id, {
-			status: 'interrupted',
-			error: 'Canceled by user'
-		})
+		conversation.status = 'interrupted' as any
+		conversation.error = 'Canceled by user'
+		await this.service.repository.save(conversation)
 
 		return { canceledExecutionIds: executionIds }
 	}

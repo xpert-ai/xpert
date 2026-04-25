@@ -1,19 +1,15 @@
-import { PaginationParams, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { Injectable, Logger } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign } from 'lodash'
-import { IsNull, Repository } from 'typeorm'
+import { FindManyOptions, IsNull, Repository } from 'typeorm'
 import { XpertAgentExecution } from './agent-execution.entity'
 
 @Injectable()
 export class XpertAgentExecutionService extends TenantOrganizationAwareCrudService<XpertAgentExecution> {
-	readonly #logger = new Logger(XpertAgentExecutionService.name)
-
 	constructor(
 		@InjectRepository(XpertAgentExecution)
-		repository: Repository<XpertAgentExecution>,
-		private readonly commandBus: CommandBus,
+		repository: Repository<XpertAgentExecution>
 	) {
 		super(repository)
 	}
@@ -22,6 +18,16 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
 		const _entity = await super.findOne(id)
 		assign(_entity, entity)
 		return await this.repository.save(_entity)
+	}
+
+	async findAllByParentId(id: string, options?: Omit<FindManyOptions<XpertAgentExecution>, 'where'>) {
+		const { items } = await this.findAll({
+			...(options ?? {}),
+			where: {
+				parentId: id
+			}
+		})
+		return items
 	}
 
 	async findAllByXpertAgent(xpertId: string, agentKey: string, options: PaginationParams<XpertAgentExecution>) {

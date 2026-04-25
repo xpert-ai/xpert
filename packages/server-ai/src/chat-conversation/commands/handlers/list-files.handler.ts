@@ -14,7 +14,9 @@ export class ListConvFilesHandler implements ICommandHandler<ListConvFilesComman
 	) {}
 
 	public async execute(command: ListConvFilesCommand) {
-		const conversation = await this.service.findOne(command.conversationId, { relations: ['attachments'] })
+		const conversation = await this.service.findOne(command.conversationId, {
+			relations: ['attachments']
+		})
 		return conversation.attachments
 	}
 }

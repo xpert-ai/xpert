@@ -15,6 +15,7 @@ import { SandboxController } from './sandbox.controller'
 import { SandboxTerminalGateway } from './sandbox-terminal.gateway'
 import { ChatConversationModule } from '../chat-conversation'
 import { SandboxShellMiddleware } from './middlewares'
+import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 
 @Module({
 	imports: [
@@ -24,7 +25,8 @@ import { SandboxShellMiddleware } from './middlewares'
 		DiscoveryModule,
         TypeOrmModule.forFeature([SandboxManagedServiceEntity]),
 
-		ChatConversationModule
+		ChatConversationModule,
+		SuperAdminOrganizationScopeModule
 	],
 	controllers: [SandboxController],
 	providers: [
