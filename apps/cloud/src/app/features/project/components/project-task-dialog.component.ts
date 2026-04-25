@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal } from '@angular/core'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -65,6 +65,7 @@ export class ProjectTaskDialogComponent {
   readonly #data = inject<ProjectTaskDialogData>(DIALOG_DATA)
   readonly #projectTaskService = inject(ProjectTaskService)
   readonly #toastr = injectToastr()
+  readonly #destroyRef = inject(DestroyRef)
 
   readonly project = this.#data.project
   readonly sprint = this.#data.sprint
@@ -130,18 +131,14 @@ export class ProjectTaskDialogComponent {
 
   constructor() {
     effect(() => {
-      if (!this.isBacklogLane()) {
-        return
-      }
-
-      if (this.form.controls.status.value !== ProjectTaskStatusEnum.Todo) {
-        this.form.controls.status.setValue(ProjectTaskStatusEnum.Todo)
-      }
-
-      if (this.form.controls.dependencies.value.length) {
-        this.form.controls.dependencies.setValue([])
-      }
+      this.normalizeBacklogLane(this.isBacklogLane())
     })
+
+    this.form.controls.swimlaneId.valueChanges
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((swimlaneId) => {
+        this.normalizeBacklogLane(this.isBacklogSwimlaneId(swimlaneId))
+      })
   }
 
   close() {
@@ -196,6 +193,25 @@ export class ProjectTaskDialogComponent {
       this.#toastr.error(getErrorMessage(error))
     } finally {
       this.submitting.set(false)
+    }
+  }
+
+  private isBacklogSwimlaneId(swimlaneId: string) {
+    const swimlane = this.swimlanes.find((lane) => lane.id === swimlaneId)
+    return (swimlane?.kind ?? ProjectSwimlaneKindEnum.Execution) === ProjectSwimlaneKindEnum.Backlog
+  }
+
+  private normalizeBacklogLane(isBacklogLane: boolean) {
+    if (!isBacklogLane) {
+      return
+    }
+
+    if (this.form.controls.status.value !== ProjectTaskStatusEnum.Todo) {
+      this.form.controls.status.setValue(ProjectTaskStatusEnum.Todo)
+    }
+
+    if (this.form.controls.dependencies.value.length) {
+      this.form.controls.dependencies.setValue([])
     }
   }
 }

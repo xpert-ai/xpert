@@ -1,0 +1,72 @@
+<div class="flex min-h-0 flex-1 flex-col gap-5 overflow-auto p-5 lg:p-7">
+  @if (facade.selectedProject(); as project) {
+    <section class="rounded-lg border border-divider-regular bg-components-card-bg p-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <div class="text-xs font-semibold uppercase text-text-tertiary">
+            {{ 'PAC.Project.Teams' | translate: { Default: 'Teams' } }}
+          </div>
+          <h2 class="mt-2 text-2xl font-semibold text-text-primary">
+            {{ 'PAC.Project.ProjectTeams' | translate: { Default: 'Project teams' } }}
+          </h2>
+          <p class="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
+            {{
+              'PAC.Project.ProjectTeamsDescription'
+                | translate: { Default: 'Teams bound to this project are available for task routing and execution ownership.' }
+            }}
+          </p>
+        </div>
+
+        <button z-button zType="default" type="button" class="rounded-xl" (click)="shell.openManageTeams(project)">
+          <z-icon zType="group"></z-icon>
+          {{ 'PAC.Project.ManageTeams' | translate: { Default: 'Manage Teams' } }}
+        </button>
+      </div>
+    </section>
+
+    @if (facade.boundTeams().length) {
+      <section class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        @for (item of facade.boundTeams(); track item.binding.id) {
+          <article class="rounded-lg border border-divider-regular bg-components-card-bg p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="truncate text-lg font-semibold text-text-primary">{{ item.team.name }}</h3>
+                @if (item.binding.role) {
+                  <div class="mt-2 text-sm font-medium text-text-secondary">{{ item.binding.role }}</div>
+                }
+              </div>
+              <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary">
+                {{ item.team.memberCount }}
+                {{ 'PAC.Project.TeamMembers' | translate: { Default: 'members' } }}
+              </span>
+            </div>
+
+            @if (item.team.description) {
+              <p class="mt-4 line-clamp-3 text-sm leading-6 text-text-secondary">
+                {{ item.team.description }}
+              </p>
+            }
+          </article>
+        }
+      </section>
+    } @else {
+      <div class="flex min-h-0 flex-1 items-center justify-center">
+        <xp-project-empty-state
+          icon="ri-group-line"
+          [title]="'PAC.Project.NoSelectedTeams' | translate: { Default: 'No teams selected' }"
+          [description]="
+            'PAC.Project.NoSelectedTeamsDescription'
+              | translate: {
+                  Default: 'Bind one or more execution teams to make them available for task routing in this project.'
+                }
+          "
+        >
+          <button z-button zType="default" projectEmptyStateActions type="button" class="rounded-xl" (click)="shell.openManageTeams(project)">
+            <z-icon zType="group"></z-icon>
+            {{ 'PAC.Project.ManageTeams' | translate: { Default: 'Manage Teams' } }}
+          </button>
+        </xp-project-empty-state>
+      </div>
+    }
+  }
+</div>

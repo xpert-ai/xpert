@@ -8,6 +8,14 @@ import { normalizeRequiredBrandedId } from '../shared/utils'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { ProjectCore } from './project-core.entity'
 
+type ProjectCoreCreateInput = Omit<Partial<IProjectCore>, 'mainAssistantId'> & {
+	mainAssistantId?: IProjectCore['mainAssistantId'] | string | null
+}
+
+type ProjectCoreUpdateInput = Omit<QueryDeepPartialEntity<ProjectCore>, 'mainAssistantId'> & {
+	mainAssistantId?: IProjectCore['mainAssistantId'] | string | null
+}
+
 @Injectable()
 export class ProjectCoreService extends TenantOrganizationAwareCrudService<ProjectCore> {
 	constructor(
@@ -18,7 +26,7 @@ export class ProjectCoreService extends TenantOrganizationAwareCrudService<Proje
 		super(repository)
 	}
 
-	override async create(entity: Partial<IProjectCore>, ...options: unknown[]) {
+	override async create(entity: ProjectCoreCreateInput, ...options: unknown[]) {
 		const name = entity.name?.trim()
 		const goal = entity.goal?.trim()
 		const description = entity.description?.trim()
@@ -60,11 +68,12 @@ export class ProjectCoreService extends TenantOrganizationAwareCrudService<Proje
 
 	override async update(
 		id: string,
-		partialEntity: QueryDeepPartialEntity<ProjectCore>,
+		partialEntity: ProjectCoreUpdateInput,
 		...options: unknown[]
 	): Promise<UpdateResult | ProjectCore> {
+		const { mainAssistantId: rawMainAssistantId, ...partialEntityWithoutMainAssistantId } = partialEntity
 		const nextEntity: QueryDeepPartialEntity<ProjectCore> = {
-			...partialEntity
+			...partialEntityWithoutMainAssistantId
 		}
 
 		if (typeof partialEntity.name === 'string') {
@@ -90,7 +99,7 @@ export class ProjectCoreService extends TenantOrganizationAwareCrudService<Proje
 
 		if (Object.prototype.hasOwnProperty.call(partialEntity, 'mainAssistantId')) {
 			const mainAssistantId = normalizeRequiredBrandedId(
-				partialEntity['mainAssistantId'],
+				rawMainAssistantId,
 				'mainAssistantId',
 				createXpertId,
 				{

@@ -1,0 +1,137 @@
+<div class="flex min-h-0 max-w-full flex-1 flex-col gap-4 p-5 lg:p-7">
+  @if (facade.selectedProject(); as project) {
+    <div class="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
+      <section class="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+        <div class="shrink-0 rounded-lg border border-divider-regular bg-components-card-bg p-4">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0">
+              <div class="text-xs font-semibold uppercase text-text-tertiary">
+                {{ 'PAC.Project.Kanban' | translate: { Default: 'Kanban' } }}
+              </div>
+              <h2 class="mt-2 truncate text-xl font-semibold text-text-primary">
+                {{ facade.selectedSprint()?.goal || ('PAC.Project.EmptySprint' | translate: { Default: 'No sprint yet' }) }}
+              </h2>
+              <div class="mt-2 flex flex-wrap gap-2">
+                @if (strategyLabel()) {
+                  <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary">
+                    {{ strategyLabel() }}
+                  </span>
+                }
+                @if (sprintStatusLabel()) {
+                  <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs text-text-secondary">
+                    {{ sprintStatusLabel() }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+              <label class="sr-only" for="project-kanban-sprint-select">
+                {{ 'PAC.Project.CurrentSprint' | translate: { Default: 'Current Sprint' } }}
+              </label>
+              <z-select
+                id="project-kanban-sprint-select"
+                class="min-w-[16rem]"
+                [zValue]="facade.selectedSprintId()"
+                [zDisabled]="!facade.sprints().length"
+                [zPlaceholder]="
+                  (facade.sprints().length
+                    ? ('PAC.Project.CurrentSprint' | translate: { Default: 'Current Sprint' })
+                    : ('PAC.Project.EmptySprint' | translate: { Default: 'No sprint yet' }))
+                "
+                (zSelectionChange)="onSprintSelected($event)"
+              >
+                @for (sprint of facade.sprints(); track sprint.id) {
+                  <z-select-item [zValue]="sprint.id">
+                    {{ sprintLabel(sprint) }}
+                  </z-select-item>
+                }
+              </z-select>
+
+              <button z-button zType="outline" type="button" class="rounded-xl" (click)="shell.openCreateSprint()">
+                <z-icon zType="today"></z-icon>
+                {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
+              </button>
+
+              <button
+                z-button
+                zType="default"
+                type="button"
+                class="rounded-xl"
+                [zDisabled]="!facade.selectedSprint()"
+                (click)="shell.openTaskDialog()"
+              >
+                <z-icon zType="add"></z-icon>
+                {{ 'PAC.Project.NewTask' | translate: { Default: 'New Task' } }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        @if (!facade.hasSprint()) {
+          <div class="flex min-h-0 flex-1 items-center justify-center">
+            <xp-project-empty-state
+              icon="ri-calendar-schedule-line"
+              [title]="'PAC.Project.EmptySprint' | translate: { Default: 'No sprint ready yet' }"
+              [description]="
+                'PAC.Project.EmptySprintDescription'
+                  | translate: {
+                      Default: 'Create or start a sprint to populate the swimlanes for this project.'
+                    }
+              "
+            >
+              <button z-button zType="default" projectEmptyStateActions type="button" class="rounded-xl" (click)="shell.openCreateSprint()">
+                <z-icon zType="today"></z-icon>
+                {{ 'PAC.Project.CreateSprint' | translate: { Default: 'Create Sprint' } }}
+              </button>
+            </xp-project-empty-state>
+          </div>
+        } @else {
+          <xp-project-sprint-summary
+            class="shrink-0"
+            [project]="project"
+            [sprint]="facade.selectedSprint()"
+            [laneCount]="facade.selectedLaneCount()"
+            [taskCount]="facade.selectedTaskCount()"
+            [teamCount]="facade.selectedTeamCount()"
+          />
+
+          <xp-project-board
+            [columns]="facade.boardColumns()"
+            [hasTasks]="facade.hasTasks()"
+            [loading]="facade.boardLoading()"
+            [teamNames]="facade.teamNameById()"
+            (taskCreateRequested)="shell.openTaskDialog(null, $event)"
+            (taskDropped)="facade.moveTask($event)"
+            (taskOpened)="shell.openTaskDialog($event.id)"
+            (taskStatusChanged)="facade.updateTaskStatus($event.task, $event.status)"
+          />
+        }
+      </section>
+
+      @if (desktopAssistantRailLayout()) {
+        <aside
+          ngmResizable
+          [directions]="['left']"
+          class="relative hidden min-h-0 w-[416px] min-w-[320px] max-w-[720px] shrink-0 xl:flex"
+        >
+          <ng-container [ngTemplateOutlet]="assistantRailTemplate" />
+        </aside>
+      } @else {
+        <aside class="flex min-h-[36rem] shrink-0 xl:hidden">
+          <ng-container [ngTemplateOutlet]="assistantRailTemplate" />
+        </aside>
+      }
+    </div>
+  }
+</div>
+
+<ng-template #assistantRailTemplate>
+  <xp-project-assistant-panel
+    class="h-full min-h-0 w-full min-w-0"
+    [project]="facade.selectedProject()"
+    [loading]="facade.loading()"
+    (bindRequested)="shell.openBindMainAgent(facade.selectedProject())"
+    (projectDataRefreshRequested)="handleAssistantProjectDataRefresh()"
+  />
+</ng-template>

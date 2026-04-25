@@ -19,11 +19,13 @@ import { TeamDefinitionService } from '../../@core/services/team-definition.serv
 import { ProjectPageFacade } from './project-page.facade'
 
 describe('ProjectPageFacade', () => {
-  async function createFacade(query?: Record<string, string>) {
+  async function createFacade(query?: Record<string, string>, options?: { projectId?: string | null; childPath?: string }) {
     TestBed.resetTestingModule()
 
-    const paramMap$ = new BehaviorSubject(convertToParamMap({ projectId: 'project-1' }))
+    const projectId = options?.projectId === undefined ? 'project-1' : options.projectId
+    const paramMap$ = new BehaviorSubject(convertToParamMap(projectId ? { projectId } : {}))
     const queryParamMap$ = new BehaviorSubject(convertToParamMap(query ?? {}))
+    const childPath = options?.childPath ?? 'kanban'
     const router = {
       navigate: jest.fn().mockResolvedValue(true)
     }
@@ -162,7 +164,14 @@ describe('ProjectPageFacade', () => {
               queryParamMap: queryParamMap$.value
             },
             paramMap: paramMap$.asObservable(),
-            queryParamMap: queryParamMap$.asObservable()
+            queryParamMap: queryParamMap$.asObservable(),
+            firstChild: {
+              snapshot: {
+                routeConfig: {
+                  path: childPath
+                }
+              }
+            }
           }
         },
         {
@@ -215,7 +224,7 @@ describe('ProjectPageFacade', () => {
     const { facade, router } = await createFacade({ sprintId: 'missing' })
 
     expect(facade.selectedSprintId()).toBe('sprint-running')
-    expect(router.navigate).toHaveBeenCalledWith(['/project', 'project-1'], {
+    expect(router.navigate).toHaveBeenCalledWith(['/project', 'project-1', 'kanban'], {
       queryParams: { sprintId: 'sprint-running' },
       queryParamsHandling: 'merge',
       replaceUrl: true
@@ -228,8 +237,30 @@ describe('ProjectPageFacade', () => {
 
     await facade.selectSprint('sprint-planned')
 
-    expect(router.navigate).toHaveBeenCalledWith(['/project', 'project-1'], {
+    expect(router.navigate).toHaveBeenCalledWith(['/project', 'project-1', 'kanban'], {
       queryParams: { sprintId: 'sprint-planned' },
+      queryParamsHandling: 'merge'
+    })
+  })
+
+  it('redirects the root project route to the first project overview tab', async () => {
+    const { router } = await createFacade(undefined, { projectId: null, childPath: 'overview' })
+
+    expect(router.navigate).toHaveBeenCalledWith(['/project', 'project-1', 'overview'], {
+      replaceUrl: true,
+      queryParams: { sprintId: null },
+      queryParamsHandling: 'merge'
+    })
+  })
+
+  it('preserves the active tab when switching projects', async () => {
+    const { facade, router } = await createFacade(undefined, { childPath: 'teams' })
+    router.navigate.mockClear()
+
+    await facade.selectProject('project-2')
+
+    expect(router.navigate).toHaveBeenCalledWith(['/project', 'project-2', 'teams'], {
+      queryParams: { sprintId: null },
       queryParamsHandling: 'merge'
     })
   })

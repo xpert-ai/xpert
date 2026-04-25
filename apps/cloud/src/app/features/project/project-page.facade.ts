@@ -30,6 +30,8 @@ import {
   ProjectBoundTeamViewModel
 } from './project-page.utils'
 
+export type ProjectShellTabPath = 'overview' | 'kanban' | 'teams' | 'files'
+
 @Injectable()
 export class ProjectPageFacade {
   readonly #router = inject(Router)
@@ -83,45 +85,28 @@ export class ProjectPageFacade {
 
   #contextLoadVersion = 0
   #boardLoadVersion = 0
+  #lastSprintQuerySyncKey: string | null = null
 
   constructor() {
-    effect(
-      () => {
-        void this.loadProjectContext(this.projectId())
-      },
-      { allowSignalWrites: true }
-    )
+    effect(() => {
+      void this.loadProjectContext(this.projectId())
+    })
 
-    effect(
-      () => {
-        const sprint = pickRequestedSprint(this.sprints(), this.requestedSprintId())
-        this.selectedSprintId.set(sprint?.id ?? null)
-      },
-      { allowSignalWrites: true }
-    )
+    effect(() => {
+      this.selectedSprintId.set(this.pickSelectedSprintId(this.sprints()))
+    })
 
     effect(() => {
       const projectId = this.projectId()
       const sprintId = this.selectedSprintId()
       const requestedSprintId = this.requestedSprintId()
 
-      if (!projectId || !sprintId || requestedSprintId === sprintId) {
-        return
-      }
-
-      void this.#router.navigate(['/project', projectId], {
-        queryParams: { sprintId },
-        queryParamsHandling: 'merge',
-        replaceUrl: true
-      })
+      this.syncSprintQuery(projectId, sprintId, requestedSprintId)
     })
 
-    effect(
-      () => {
-        void this.loadSprintBoard(this.projectId(), this.selectedSprintId())
-      },
-      { allowSignalWrites: true }
-    )
+    effect(() => {
+      void this.loadSprintBoard(this.projectId(), this.selectedSprintId())
+    })
   }
 
   async selectProject(projectId: string) {
@@ -129,7 +114,7 @@ export class ProjectPageFacade {
       return
     }
 
-    await this.#router.navigate(['/project', projectId], {
+    await this.#router.navigate(this.buildProjectRoute(projectId, this.activeTabPath()), {
       queryParams: { sprintId: null },
       queryParamsHandling: 'merge'
     })
@@ -140,7 +125,7 @@ export class ProjectPageFacade {
       return
     }
 
-    await this.#router.navigate(['/project', this.projectId()], {
+    await this.#router.navigate(this.buildProjectRoute(this.projectId(), 'kanban'), {
       queryParams: { sprintId: sprintId ?? null },
       queryParamsHandling: 'merge'
     })
@@ -250,7 +235,7 @@ export class ProjectPageFacade {
 
       if (!projectId) {
         this.clearProjectScopedState()
-        await this.#router.navigate(['/project', projects[0].id], {
+        await this.#router.navigate(this.buildProjectRoute(projects[0].id, 'overview'), {
           replaceUrl: true,
           queryParams: { sprintId: null },
           queryParamsHandling: 'merge'
@@ -283,6 +268,11 @@ export class ProjectPageFacade {
         return
       }
 
+      const selectedSprintId = this.pickSelectedSprintId(sprints)
+      this.sprints.set(sprints)
+      this.selectedSprintId.set(selectedSprintId)
+      this.syncSprintQuery(projectId, selectedSprintId, this.requestedSprintId())
+
       const boundTeams = await Promise.all(
         teamBindings.map(async (binding) => ({
           binding,
@@ -294,7 +284,6 @@ export class ProjectPageFacade {
         return
       }
 
-      this.sprints.set(sprints)
       this.boundTeams.set(boundTeams)
     } catch (error) {
       if (currentLoad !== this.#contextLoadVersion) {
@@ -372,6 +361,38 @@ export class ProjectPageFacade {
     this.selectedSprintId.set(null)
   }
 
+  private activeTabPath(): ProjectShellTabPath {
+    const childPath = this.#route.firstChild?.snapshot.routeConfig?.path
+    return isProjectShellTabPath(childPath) ? childPath : 'overview'
+  }
+
+  private buildProjectRoute(projectId?: string | null, tab: ProjectShellTabPath = 'overview') {
+    return projectId ? ['/project', projectId, tab] : ['/project']
+  }
+
+  private pickSelectedSprintId(sprints: IProjectSprint[]) {
+    return pickRequestedSprint(sprints, this.requestedSprintId())?.id ?? null
+  }
+
+  private syncSprintQuery(projectId: string | null, sprintId: string | null, requestedSprintId: string | null) {
+    if (!projectId || !sprintId || requestedSprintId === sprintId) {
+      this.#lastSprintQuerySyncKey = null
+      return
+    }
+
+    const syncKey = `${projectId}:${requestedSprintId ?? ''}:${sprintId}:${this.activeTabPath()}`
+    if (this.#lastSprintQuerySyncKey === syncKey) {
+      return
+    }
+
+    this.#lastSprintQuerySyncKey = syncKey
+    void this.#router.navigate(this.buildProjectRoute(projectId, this.activeTabPath()), {
+      queryParams: { sprintId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    })
+  }
+
   private cloneTasks(tasks: IProjectTask[]) {
     return tasks.map((task) => ({
       ...task,
@@ -423,4 +444,8 @@ export class ProjectPageFacade {
 
     return [...untouchedTasks, ...targetTasks]
   }
+}
+
+function isProjectShellTabPath(value: string | undefined): value is ProjectShellTabPath {
+  return value === 'overview' || value === 'kanban' || value === 'teams' || value === 'files'
 }

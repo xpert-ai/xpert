@@ -1,151 +1,130 @@
 <aside class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-t border-divider-regular bg-components-card-bg xl:border-l xl:border-t-0">
-  <div class="border-b border-divider-regular px-5 py-4">
-    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
-      {{ 'PAC.Project.MainAgentRailEyebrow' | translate: { Default: 'Main Agent' } }}
-    </div>
-    <div class="mt-2 text-lg font-semibold text-text-primary">
-      {{ 'PAC.Project.MainAgentRailTitle' | translate: { Default: 'Project Coordinator' } }}
-    </div>
-    <p class="mt-2 text-sm leading-6 text-text-secondary">
-      {{
-        'PAC.Project.MainAgentRailDescription'
-          | translate
-            : {
-                Default:
-                  'Use the project main agent to coordinate backlog planning, execution decisions, and the next steps for this board.'
-              }
-      }}
-    </p>
-  </div>
+  @switch (facade.viewState()) {
+    @case ('loading') {
+      <div class="flex min-h-0 flex-1 items-center justify-center rounded-[24px] bg-background-default-subtle">
+        <ngm-spin />
+      </div>
+    }
+    @case ('no-project') {
+      <div class="flex min-h-0 flex-1 items-center justify-center">
+        <xp-project-empty-state
+          icon="ri-robot-2-line"
+          [title]="'PAC.Project.MainAgentNoProjectTitle' | translate: { Default: 'Select a project first' }"
+          [description]="
+            'PAC.Project.MainAgentNoProjectDescription'
+              | translate
+                : {
+                    Default: 'Choose a project from the sidebar to open its coordinating assistant.'
+                  }
+          "
+        />
+      </div>
+    }
+    @case ('binding-required') {
+      <div class="flex min-h-0 flex-1 items-center justify-center">
+        <xp-project-empty-state
+          icon="ri-user-settings-line"
+          [title]="'PAC.Project.MainAgentBindTitle' | translate: { Default: 'Bind a main agent' }"
+          [description]="
+            'PAC.Project.MainAgentBindDescription'
+              | translate
+                : {
+                    Default:
+                      'This legacy project does not have a coordinating assistant yet. Bind one to activate the project chat rail.'
+                  }
+          "
+        >
+          <button
+            z-button
+            zType="default"
+            projectEmptyStateActions
+            type="button"
+            class="rounded-2xl"
+            (click)="requestBind()"
+          >
+            <z-icon zType="link"></z-icon>
+            {{ 'PAC.Project.BindMainAgent' | translate: { Default: 'Bind Main Agent' } }}
+          </button>
+        </xp-project-empty-state>
+      </div>
+    }
+    @case ('assistant-unavailable') {
+      <div class="flex min-h-0 flex-1 items-center justify-center">
+        <xp-project-empty-state
+          icon="ri-error-warning-line"
+          [title]="'PAC.Project.MainAgentUnavailableTitle' | translate: { Default: 'Assistant unavailable' }"
+          [description]="
+            'PAC.Project.MainAgentUnavailableDescription'
+              | translate
+                : {
+                    Default:
+                      'The bound project assistant is no longer accessible. Rebind a published assistant to continue.'
+                  }
+          "
+        >
+          <button
+            z-button
+            zType="default"
+            projectEmptyStateActions
+            type="button"
+            class="rounded-2xl"
+            (click)="requestBind()"
+          >
+            <z-icon zType="refresh"></z-icon>
+            {{ 'PAC.Project.ChangeMainAgent' | translate: { Default: 'Change Main Agent' } }}
+          </button>
+        </xp-project-empty-state>
+      </div>
+    }
+    @case ('error') {
+      <div class="flex min-h-0 flex-1 items-center justify-center">
+        <xp-project-empty-state
+          icon="ri-error-warning-line"
+          [title]="'PAC.Project.MainAgentErrorTitle' | translate: { Default: 'Failed to prepare the assistant' }"
+          [description]="facade.error() || ('PAC.Project.MainAgentErrorDescription' | translate: { Default: 'Try again in a moment.' })"
+        >
+          <button
+            z-button
+            zType="default"
+            projectEmptyStateActions
+            type="button"
+            class="rounded-2xl"
+            (click)="facade.refresh()"
+          >
+            <z-icon zType="refresh"></z-icon>
+            {{ 'PAC.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
+          </button>
+        </xp-project-empty-state>
+      </div>
+    }
+    @default {
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-background-default">
+        <div class="border-b border-divider-regular px-4 py-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="truncate text-sm font-semibold text-text-primary">{{ facade.assistantLabel() }}</div>
+              <div class="mt-1 truncate text-xs text-text-tertiary">
+                {{ facade.assistantSecondaryLabel() || ('PAC.Project.MainAgentReadyLabel' | translate: { Default: 'Published coordinating assistant' }) }}
+              </div>
+            </div>
 
-  <div class="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
-    @switch (facade.viewState()) {
-      @case ('loading') {
-        <div class="flex min-h-0 flex-1 items-center justify-center rounded-[24px] bg-background-default-subtle">
-          <ngm-spin />
-        </div>
-      }
-      @case ('no-project') {
-        <div class="flex min-h-0 flex-1 items-center justify-center">
-          <xp-project-empty-state
-            icon="ri-robot-2-line"
-            [title]="'PAC.Project.MainAgentNoProjectTitle' | translate: { Default: 'Select a project first' }"
-            [description]="
-              'PAC.Project.MainAgentNoProjectDescription'
-                | translate
-                  : {
-                      Default: 'Choose a project from the sidebar to open its coordinating assistant.'
-                    }
-            "
-          />
-        </div>
-      }
-      @case ('binding-required') {
-        <div class="flex min-h-0 flex-1 items-center justify-center">
-          <xp-project-empty-state
-            icon="ri-user-settings-line"
-            [title]="'PAC.Project.MainAgentBindTitle' | translate: { Default: 'Bind a main agent' }"
-            [description]="
-              'PAC.Project.MainAgentBindDescription'
-                | translate
-                  : {
-                      Default:
-                        'This legacy project does not have a coordinating assistant yet. Bind one to activate the project chat rail.'
-                    }
-            "
-          >
             <button
               z-button
-              zType="default"
-              projectEmptyStateActions
+              zType="outline"
               type="button"
-              class="rounded-2xl"
-              (click)="requestBind()"
-            >
-              <z-icon zType="link"></z-icon>
-              {{ 'PAC.Project.BindMainAgent' | translate: { Default: 'Bind Main Agent' } }}
-            </button>
-          </xp-project-empty-state>
-        </div>
-      }
-      @case ('assistant-unavailable') {
-        <div class="flex min-h-0 flex-1 items-center justify-center">
-          <xp-project-empty-state
-            icon="ri-error-warning-line"
-            [title]="'PAC.Project.MainAgentUnavailableTitle' | translate: { Default: 'Assistant unavailable' }"
-            [description]="
-              'PAC.Project.MainAgentUnavailableDescription'
-                | translate
-                  : {
-                      Default:
-                        'The bound project assistant is no longer accessible. Rebind a published assistant to continue.'
-                    }
-            "
-          >
-            <button
-              z-button
-              zType="default"
-              projectEmptyStateActions
-              type="button"
-              class="rounded-2xl"
+              class="shrink-0 rounded-xl"
               (click)="requestBind()"
             >
               <z-icon zType="refresh"></z-icon>
               {{ 'PAC.Project.ChangeMainAgent' | translate: { Default: 'Change Main Agent' } }}
             </button>
-          </xp-project-empty-state>
-        </div>
-      }
-      @case ('error') {
-        <div class="flex min-h-0 flex-1 items-center justify-center">
-          <xp-project-empty-state
-            icon="ri-error-warning-line"
-            [title]="'PAC.Project.MainAgentErrorTitle' | translate: { Default: 'Failed to prepare the assistant' }"
-            [description]="facade.error() || ('PAC.Project.MainAgentErrorDescription' | translate: { Default: 'Try again in a moment.' })"
-          >
-            <button
-              z-button
-              zType="default"
-              projectEmptyStateActions
-              type="button"
-              class="rounded-2xl"
-              (click)="facade.refresh()"
-            >
-              <z-icon zType="refresh"></z-icon>
-              {{ 'PAC.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
-            </button>
-          </xp-project-empty-state>
-        </div>
-      }
-      @default {
-        <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-background-default">
-          <div class="border-b border-divider-regular px-4 py-3">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <div class="truncate text-sm font-semibold text-text-primary">{{ facade.assistantLabel() }}</div>
-                <div class="mt-1 truncate text-xs text-text-tertiary">
-                  {{ facade.assistantSecondaryLabel() || ('PAC.Project.MainAgentReadyLabel' | translate: { Default: 'Published coordinating assistant' }) }}
-                </div>
-              </div>
-
-              <button
-                z-button
-                zType="outline"
-                type="button"
-                class="shrink-0 rounded-xl"
-                (click)="requestBind()"
-              >
-                <z-icon zType="refresh"></z-icon>
-                {{ 'PAC.Project.ChangeMainAgent' | translate: { Default: 'Change Main Agent' } }}
-              </button>
-            </div>
-          </div>
-
-          <div class="min-h-0 flex-1">
-            <xpert-chatkit class="h-full min-h-[28rem]" [control]="facade.control()!" />
           </div>
         </div>
-      }
+
+        <div class="min-h-0 flex-1">
+          <xpert-chatkit class="h-full min-h-[28rem]" [control]="facade.control()!" />
+        </div>
+      </div>
     }
-  </div>
+  }
 </aside>

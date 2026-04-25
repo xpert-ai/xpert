@@ -1,0 +1,28 @@
+<div class="flex min-h-0 flex-1 flex-col gap-4 p-5 lg:p-7">
+  <section class="shrink-0 rounded-lg border border-divider-regular bg-components-card-bg p-5">
+    <div class="text-xs font-semibold uppercase text-text-tertiary">
+      {{ 'PAC.Project.Files' | translate: { Default: 'Files' } }}
+    </div>
+    <h2 class="mt-2 text-2xl font-semibold text-text-primary">
+      {{ 'PAC.Project.ProjectFiles' | translate: { Default: 'Project files' } }}
+    </h2>
+    <p class="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
+      {{
+        'PAC.Project.ProjectFilesDescription'
+          | translate: { Default: 'Browse, upload, preview, and edit files stored in this project workspace.' }
+      }}
+    </p>
+  </section>
+
+  <pac-file-workbench
+    class="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg"
+    [rootId]="facade.projectId()"
+    [rootLabel]="facade.selectedProject()?.name"
+    [filesLoader]="loadProjectFiles"
+    [fileLoader]="loadProjectFile"
+    [fileSaver]="saveProjectFile"
+    [fileUploader]="uploadProjectFile"
+    [fileDeleter]="deleteProjectFile"
+    treeSize="default"
+  />
+</div>
