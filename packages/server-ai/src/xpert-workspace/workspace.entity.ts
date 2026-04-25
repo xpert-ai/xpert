@@ -1,4 +1,11 @@
-import { IEnvironment, IUser, IXpertWorkspace, TXpertWorkspaceSettings, TXpertWorkspaceStatus } from '@xpert-ai/contracts'
+import {
+	IEnvironment,
+	IUser,
+	IXpertWorkspace,
+	TXpertWorkspaceCapabilities,
+	TXpertWorkspaceSettings,
+	TXpertWorkspaceStatus
+} from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
@@ -29,6 +36,10 @@ export class XpertWorkspace extends TenantOrganizationBaseEntity implements IXpe
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	settings?: TXpertWorkspaceSettings
+
+	capabilities?: TXpertWorkspaceCapabilities
+
+	isTenantShared?: boolean
 
 	/*
     |--------------------------------------------------------------------------

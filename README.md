@@ -88,7 +88,7 @@ The easiest way to start the Xpert server is through [docker compose](docker/doc
 ```bash
 cd xpert
 cd docker
-cp .env.example .env
+cp env.example .env
 docker compose up -d
 ```
 

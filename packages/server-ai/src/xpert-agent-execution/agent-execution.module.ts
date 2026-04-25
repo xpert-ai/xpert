@@ -8,6 +8,7 @@ import { XpertAgentExecution } from './agent-execution.entity'
 import { XpertAgentExecutionService } from './agent-execution.service'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 
 @Module({
 	imports: [
@@ -17,7 +18,7 @@ import { QueryHandlers } from './queries/handlers'
 		CqrsModule
 	],
 	controllers: [XpertAgentExecutionController],
-	providers: [XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],
+	providers: [XpertAgentExecutionService, AgentMiddlewareRuntimeService, ...CommandHandlers, ...QueryHandlers],
 	exports: [XpertAgentExecutionService]
 })
 export class XpertAgentExecutionModule {}

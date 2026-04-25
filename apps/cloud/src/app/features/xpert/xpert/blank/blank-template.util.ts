@@ -16,6 +16,7 @@ import {
   BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BlankRepositoryDefaultSelection,
   BlankTriggerSelection,
+  BlankXpertDraftBuildOptions,
   buildBlankKnowledgeSelectionGraph,
   buildBlankXpertSelectionGraph,
   KnowledgeBlankWizardSelections,
@@ -38,6 +39,8 @@ export type BlankKnowledgeTemplateWizardState = {
   selections: Required<KnowledgeBlankWizardSelections>
 }
 
+type BlankAgentTemplateApplyOptions = Pick<BlankXpertDraftBuildOptions, 'defaultCopilotModel' | 'middlewareDefinitions'>
+
 const KNOWLEDGE_MANAGED_NODE_TYPES = new Set<WorkflowNodeTypeEnum>([
   WorkflowNodeTypeEnum.TRIGGER,
   WorkflowNodeTypeEnum.SOURCE,
@@ -52,7 +55,9 @@ export function extractTemplateBasicInfo(draft: TXpertTeamDraft): BlankTemplateB
     title: draft.team?.title ?? undefined,
     description: draft.team?.description ?? undefined,
     avatar: cloneMaybe(draft.team?.avatar),
-    copilotModel: cloneMaybe(draft.team?.copilotModel)
+    copilotModel: cloneMaybe(
+      draft.team?.copilotModel ?? getPrimaryAgentNodeMaybe(draft)?.entity?.copilotModel ?? draft.team?.agent?.copilotModel
+    )
   }
 }
 
@@ -128,7 +133,8 @@ export function extractKnowledgeTemplateWizardState(draft: TXpertTeamDraft): Bla
 
 export function applyAgentTemplateWizardState(
   draft: TXpertTeamDraft,
-  selections?: XpertBlankWizardSelections
+  selections?: XpertBlankWizardSelections,
+  options?: BlankAgentTemplateApplyOptions
 ): TXpertTeamDraft {
   const nextDraft = cloneDeep(draft)
   const primaryAgentNode = getPrimaryAgentNode(nextDraft)
@@ -151,7 +157,7 @@ export function applyAgentTemplateWizardState(
     nodes: managedNodes,
     connections: managedConnections,
     middlewareNodes
-  } = buildBlankXpertSelectionGraph(primaryAgentNode, selections)
+  } = buildBlankXpertSelectionGraph(primaryAgentNode, selections, options)
 
   nextDraft.nodes = [...nextDraft.nodes.filter((node) => !managedNodeKeys.has(node.key)), ...managedNodes]
   nextDraft.connections = [
@@ -203,16 +209,25 @@ export function applyKnowledgeTemplateWizardState(
 }
 
 function getPrimaryAgentNode(draft: TXpertTeamDraft): TXpertTeamNode<'agent'> {
-  const primaryAgentKey = draft.team?.agent?.key
-  const primaryAgentNode = draft.nodes.find(
-    (node): node is TXpertTeamNode<'agent'> => node.type === 'agent' && node.key === primaryAgentKey
-  )
+  const primaryAgentNode = getPrimaryAgentNodeMaybe(draft)
 
-  if (!primaryAgentKey || !primaryAgentNode) {
+  if (!primaryAgentNode) {
     throw new Error('Primary agent node not found in template draft')
   }
 
   return primaryAgentNode
+}
+
+function getPrimaryAgentNodeMaybe(draft: TXpertTeamDraft): TXpertTeamNode<'agent'> | null {
+  const primaryAgentKey = draft.team?.agent?.key
+  if (!primaryAgentKey) {
+    return null
+  }
+
+  return (
+    draft.nodes.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent' && node.key === primaryAgentKey) ??
+    null
+  )
 }
 
 function getInboundNodeKeys(draft: TXpertTeamDraft, targetKey: string): string[] {

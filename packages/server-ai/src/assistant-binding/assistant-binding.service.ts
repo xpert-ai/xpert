@@ -15,7 +15,7 @@ import {
     isSystemManagedAssistant,
     isUserManagedAssistant
 } from '@xpert-ai/contracts'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, ForbiddenException, Injectable, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, DeepPartial, FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm'
@@ -23,6 +23,7 @@ import { PublishedXpertAccessService } from '../xpert/published-xpert-access.ser
 import { Xpert } from '../xpert/xpert.entity'
 import { AssistantBinding } from './assistant-binding.entity'
 import { AssistantBindingUserPreference } from './assistant-binding-user-preference.entity'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 type SystemScope = AssistantBindingScope.TENANT | AssistantBindingScope.ORGANIZATION
 type ScopeContext = {
@@ -95,6 +96,8 @@ export class AssistantBindingService
     }
 
     async getBinding(code: AssistantCode, scope: AssistantBindingScope) {
+        if (!RequestContext.getOrganizationId()) return null
+
         if (scope === AssistantBindingScope.USER) {
             this.ensureUserManagedCode(code)
             const { tenantId, organizationId, userId } = this.requireUserScope()

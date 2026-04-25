@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
 import {
   BaseMessage,
   AIMessage,
@@ -13,7 +12,7 @@ import {
 import {
   AgentMiddleware,
   AgentMiddlewareStrategy,
-  CreateModelClientCommand,
+  type AgentMiddlewareRuntimeApi,
   IAgentMiddlewareContext,
   IAgentMiddlewareStrategy,
   PromiseOrValue,
@@ -556,8 +555,6 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
   private readonly logger = new Logger(ContextCompressionMiddleware.name)
   private truncationIdCounter = 0
-
-  constructor(private readonly commandBus: CommandBus) {}
 
   private readNoGainRetryState(stateContainer: unknown): CompressionNoGainRetryState | null {
     if (!isStateContainer(stateContainer)) {
@@ -1201,6 +1198,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
   private async compressMessages(
     messages: BaseMessage[],
     runtime: { configurable?: TAgentRunnableConfigurable },
+    middlewareRuntime: AgentMiddlewareRuntimeApi,
     options: ResolvedContextCompressionOptions,
     execution: CompressionExecutionOptions,
     stateContainer?: unknown
@@ -1222,13 +1220,11 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
       if (compressionModelClient) {
         return compressionModelClient
       }
-      compressionModelClient = await this.commandBus.execute(
-        new CreateModelClientCommand<BaseLanguageModel>(model, {
-          usageCallback: (event) => {
-            this.logger.debug('[Compression Middleware] Model usage:', event)
-          }
-        })
-      )
+      compressionModelClient = await middlewareRuntime.createModelClient<BaseLanguageModel>(model, {
+        usageCallback: (event) => {
+          this.logger.debug('[Compression Middleware] Model usage:', event)
+        }
+      })
       return compressionModelClient
     }
 
@@ -1436,6 +1432,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
     options: ContextCompressionMiddlewareOptions,
     context: IAgentMiddlewareContext
   ): PromiseOrValue<AgentMiddleware> {
+    const middlewareRuntime = context.runtime
     const resolvedOptions: ResolvedContextCompressionOptions = {
       threshold: options?.threshold ?? DEFAULT_COMPRESSION_TOKEN_THRESHOLD,
       preserveFraction: options?.preserveFraction ?? COMPRESSION_PRESERVE_THRESHOLD,
@@ -1461,7 +1458,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
           return
         }
 
-        const compressedMessages = await this.compressMessages(messages, runtime, resolvedOptions, {
+        const compressedMessages = await this.compressMessages(messages, runtime, middlewareRuntime, resolvedOptions, {
           force: false,
           reason: 'threshold_exceeded'
         }, state)
@@ -1514,7 +1511,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
             return
           }
 
-          const compressedMessages = await this.compressMessages(messagesToRetry, runtime, resolvedOptions, {
+          const compressedMessages = await this.compressMessages(messagesToRetry, runtime, middlewareRuntime, resolvedOptions, {
             force: true,
             reason: CONTEXT_WINDOW_EXCEEDED_FINISH_REASON
           }, state)

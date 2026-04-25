@@ -13,15 +13,12 @@ import {
   WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
 import {
   AgentMiddleware,
   AgentMiddlewareStrategy,
-  CreateModelClientCommand,
   IAgentMiddlewareContext,
   IAgentMiddlewareStrategy,
-  JsonSchemaValidator,
-  WrapWorkflowNodeExecutionCommand
+  JsonSchemaValidator
 } from '@xpert-ai/plugin-sdk'
 import { v4 as uuid } from 'uuid'
 import { z } from 'zod/v3'
@@ -55,8 +52,6 @@ const STRUCTURED_OUTPUT_MIDDLEWARE_NAME = 'StructuredOutputMiddleware'
 @Injectable()
 @AgentMiddlewareStrategy(STRUCTURED_OUTPUT_MIDDLEWARE_NAME)
 export class StructuredOutputMiddleware implements IAgentMiddlewareStrategy {
-  constructor(private readonly commandBus: CommandBus) {}
-
   meta: TAgentMiddlewareMeta = {
     name: STRUCTURED_OUTPUT_MIDDLEWARE_NAME,
     label: {
@@ -171,11 +166,11 @@ export class StructuredOutputMiddleware implements IAgentMiddlewareStrategy {
       throw new Error(`StructuredOutputMiddleware configuration error: ${z4.prettifyError(error)}`)
     }
 
-    const model = await this.commandBus.execute(new CreateModelClientCommand<BaseLanguageModel>(userOptions.model, {
+    const model = await context.runtime.createModelClient<BaseLanguageModel>(userOptions.model, {
       usageCallback: () => {
         return
       }
-    }))
+    })
 
     return {
       name: STRUCTURED_OUTPUT_MIDDLEWARE_NAME,
@@ -206,7 +201,7 @@ export class StructuredOutputMiddleware implements IAgentMiddlewareStrategy {
         const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, agentKey, xpertName } = configurable ?? {}
 
         try {
-          const response = await this.commandBus.execute(new WrapWorkflowNodeExecutionCommand(async () => {
+          const response = await context.runtime.wrapWorkflowNodeExecution(async () => {
             const response = await structuredModel.invoke(messages)
             return {
               state: response,
@@ -228,7 +223,7 @@ export class StructuredOutputMiddleware implements IAgentMiddlewareStrategy {
               title: context.node.title
             },
             subscriber
-          }))
+          })
 
           const eventData: TChatEventMessage & {
             id: string

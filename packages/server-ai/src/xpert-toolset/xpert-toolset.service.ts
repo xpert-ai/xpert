@@ -1,13 +1,13 @@
-import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { PaginationParams, RequestContext } from '@xpert-ai/server-core'
 import { ConfigService } from '@xpert-ai/server-config'
-import { Injectable, Logger, NotFoundException, Type, Inject } from '@nestjs/common'
+import { Injectable, Logger, Type, Inject } from '@nestjs/common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
 import { XpertToolset } from './xpert-toolset.entity'
 import { ITag, IUser, IXpertToolset, mapTranslationLanguage, TagCategoryEnum, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { assign } from 'lodash'
-import { GetXpertWorkspaceQuery } from '../xpert-workspace'
+import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { DEFAULT_TOOL_TAG_MAP, defaultToolTags } from './utils/tags'
 import { ListBuiltinToolProvidersQuery } from './queries'
 import { ToolProviderNotFoundError } from './errors'
@@ -20,7 +20,7 @@ import { BuiltinToolset } from '../shared'
 import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 
 @Injectable()
-export class XpertToolsetService extends TenantOrganizationAwareCrudService<XpertToolset> {
+export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset> {
 	readonly #logger = new Logger(XpertToolsetService.name)
 
 	@Inject(ConfigService)
@@ -37,11 +37,12 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 	constructor(
 		@InjectRepository(XpertToolset)
 		repository: Repository<XpertToolset>,
+		workspaceAccessService: XpertWorkspaceAccessService,
 		private readonly i18n: I18nService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		protected readonly commandBus: CommandBus,
+		protected readonly queryBus: QueryBus
 	) {
-		super(repository)
+		super(repository, workspaceAccessService)
 	}
 
 	/**
@@ -54,7 +55,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 	/**
 	 * @deprecated
 	 */
-	async executeCommand(name: string, ...args: any[]) {
+	async executeCommand(name: string, ...args: unknown[]) {
 		const command = this.commands.get(name)
 		if (!command) {
 			throw new Error(`Command "${name}" not found`)
@@ -65,7 +66,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 	async update(id: string, entity: Partial<XpertToolset>) {
 		const _entity = await super.findOne(id)
 		assign(_entity, entity)
-		return await this.repository.save(_entity)
+		return await super.save(_entity)
 	}
 	
 	async getAllByWorkspace(workspaceId: string, data: Partial<PaginationParams<XpertToolset>>, published: boolean, user: IUser) {
@@ -79,11 +80,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 				createdById: user.id
 			}
 		} else {
-			const workspace = await this.queryBus.execute(new GetXpertWorkspaceQuery(user, { id: workspaceId }))
-			if (!workspace) {
-				throw new NotFoundException(`Not found or no auth for xpert workspace '${workspaceId}'`)
-			}
-
+			await this.assertWorkspaceReadAccess(workspaceId)
 			where = {
 				...(<FindOptionsWhere<XpertToolset>>where),
 				workspaceId: workspaceId

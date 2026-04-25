@@ -119,6 +119,7 @@ import {
     createAgentChannel
 } from '../../../shared'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
+import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
 import { AgenticWorkflowTypes } from '../../types'
 import { createThreadContextUsageEventHook } from '../../hooks/context-usage.hook'
 import { parseXmlString } from './types'
@@ -139,7 +140,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService,
-        private readonly xpertTitleMiddlewareService: XpertTitleMiddlewareService
+        private readonly xpertTitleMiddlewareService: XpertTitleMiddlewareService,
+        private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService
     ) {}
 
     public async execute(command: XpertAgentSubgraphCommand): Promise<TAgentSubgraphResult> {
@@ -701,7 +703,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 xpertFeatures: xpert.features ?? null,
                 agentKey,
                 knowledgebaseIds: agent.knowledgebaseIds,
-                tools: toolMap
+                tools: toolMap,
+                runtime: this.agentMiddlewareRuntimeService.api
             },
             {
                 toolPreferences: options.toolPreferences

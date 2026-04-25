@@ -8,6 +8,7 @@ import { CopilotModel } from './copilot-model.entity'
 import { CopilotModelService } from './copilot-model.service'
 import { QueryHandlers } from './queries/handlers'
 import { CommandHandlers } from './commands'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 
 @Module({
 	imports: [
@@ -18,7 +19,7 @@ import { CommandHandlers } from './commands'
 		UserModule
 	],
 	controllers: [CopilotModelController,],
-	providers: [CopilotModelService, ...QueryHandlers, ...CommandHandlers],
+	providers: [CopilotModelService, AgentMiddlewareRuntimeService, ...QueryHandlers, ...CommandHandlers],
 	exports: [CopilotModelService]
 })
 export class CopilotModelModule {}

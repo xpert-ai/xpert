@@ -32,7 +32,7 @@ import {
   XpertAgentService,
   XpertToolsetService
 } from '../../../@core'
-import { XpertSkillInstallDialogComponent } from '../../../@shared/skills'
+import { XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult } from '../../../@shared/skills'
 import {
   ClawXpertFacade,
   ClawXpertToolPreferenceSourceMetadata,
@@ -713,15 +713,29 @@ export class ClawXpertToolPreferencesComponent {
     this.#dialog
       .open(XpertSkillInstallDialogComponent, {
         width: 'min(96vw, 72rem)',
-        maxWidth: '72rem'
+        maxWidth: '72rem',
+        data: {
+          workspaceId: this.skillWorkspaceId()
+        }
       })
       .afterClosed()
       .pipe(take(1))
-      .subscribe((skillIndex) => {
-        if (skillIndex) {
-          this.installSkill(skillIndex)
+      .subscribe((result) => {
+        if (result) {
+          this.handleSkillInstallDialogResult(result)
         }
       })
+  }
+
+  handleSkillInstallDialogResult(result: XpertSkillInstallDialogResult) {
+    if (result.kind === 'repository-index') {
+      this.installSkill(result.skillIndex)
+      return
+    }
+
+    if (result.packages.length) {
+      this.refreshSkills()
+    }
   }
 
   installSkill(item: ISkillRepositoryIndex) {

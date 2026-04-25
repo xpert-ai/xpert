@@ -23,6 +23,10 @@ jest.mock('../xpert/queries', () => ({
     }
 }))
 
+jest.mock('../shared/agent/middleware-runtime.service', () => ({
+    AgentMiddlewareRuntimeService: class AgentMiddlewareRuntimeService {}
+}))
+
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     AgentMiddlewareRegistry: class AgentMiddlewareRegistry {},
     RequestContext: {
@@ -54,6 +58,12 @@ import { XpertAgentService } from './xpert-agent.service'
 describe('XpertAgentService', () => {
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
+    let agentMiddlewareRuntimeService: {
+        api: {
+            createModelClient: jest.Mock
+            wrapWorkflowNodeExecution: jest.Mock
+        }
+    }
     let service: XpertAgentService
 
     beforeEach(() => {
@@ -68,8 +78,19 @@ describe('XpertAgentService', () => {
                 }
             })
         }
+        agentMiddlewareRuntimeService = {
+            api: {
+                createModelClient: jest.fn(),
+                wrapWorkflowNodeExecution: jest.fn()
+            }
+        }
 
-        service = new XpertAgentService({} as any, commandBus as any, queryBus as any)
+        service = new XpertAgentService(
+            {} as any,
+            commandBus as any,
+            queryBus as any,
+            agentMiddlewareRuntimeService as any
+        )
         ;(service as any).agentMiddlewareRegistry = {
             list: jest.fn().mockReturnValue([
                 {
@@ -246,7 +267,8 @@ describe('XpertAgentService', () => {
                     sandbox: {
                         enabled: true
                     }
-                }
+                },
+                runtime: agentMiddlewareRuntimeService.api
             })
         )
     })
@@ -292,7 +314,8 @@ describe('XpertAgentService', () => {
                     sandbox: {
                         enabled: true
                     }
-                }
+                },
+                runtime: agentMiddlewareRuntimeService.api
             })
         )
         expect(invoke).toHaveBeenCalledWith({

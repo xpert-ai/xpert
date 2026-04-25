@@ -1,28 +1,37 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
-import { SandboxManagedServiceErrorCode, TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
-import { CommandBus } from '@nestjs/cqrs'
+import {
+  ChatMessageEventTypeEnum,
+  ChatMessageStepCategory,
+  SandboxManagedServiceErrorCode,
+  TAgentMiddlewareMeta,
+  TAgentRunnableConfigurable,
+  TChatMessageStep,
+  TProgramToolMessage,
+  getToolCallIdFromConfig
+} from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
 import {
   AgentMiddleware,
   AgentMiddlewareStrategy,
   DEFAULT_SANDBOX_SHELL_TIMEOUT_SEC,
-  SANDBOX_SHELL_TIMEOUT_LIMITS_SEC,
   IAgentMiddlewareContext,
   IAgentMiddlewareStrategy,
   PromiseOrValue,
+  SANDBOX_SHELL_TIMEOUT_LIMITS_SEC,
+  SandboxBackendProtocol,
+  SandboxExecutionOptions,
   resolveSandboxBackend,
   secondsToMilliseconds
 } from '@xpert-ai/plugin-sdk'
-import {
-  SandboxGetManagedServiceLogsCommand,
-  SandboxListManagedServicesCommand,
-  SandboxRestartManagedServiceCommand,
-  SandboxStartManagedServiceCommand,
-  SandboxStopManagedServiceCommand
-} from '@xpert-ai/server-ai'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod/v3'
-import { getToolCallId, withStreamingToolMessage } from './toolMessageUtils'
-import { assertSandboxFeatureEnabled } from './xpertFeatureGate'
+import { SandboxGetManagedServiceLogsCommand } from '../commands/get-managed-service-logs.command'
+import { SandboxListManagedServicesCommand } from '../commands/list-managed-services.command'
+import { SandboxRestartManagedServiceCommand } from '../commands/restart-managed-service.command'
+import { SandboxStartManagedServiceCommand } from '../commands/start-managed-service.command'
+import { SandboxStopManagedServiceCommand } from '../commands/stop-managed-service.command'
 
 const SANDBOX_SHELL_MIDDLEWARE_NAME = 'SandboxShell'
 const SANDBOX_SHELL_TOOL_NAME = 'sandbox_shell'
@@ -31,6 +40,7 @@ const SANDBOX_SERVICE_LIST_TOOL_NAME = 'sandbox_service_list'
 const SANDBOX_SERVICE_LOGS_TOOL_NAME = 'sandbox_service_logs'
 const SANDBOX_SERVICE_STOP_TOOL_NAME = 'sandbox_service_stop'
 const SANDBOX_SERVICE_RESTART_TOOL_NAME = 'sandbox_service_restart'
+const STREAM_THROTTLE_MS = 100
 
 const shellToolSchema = z.object({
   command: z.string().min(1, 'Command is required.'),
@@ -82,6 +92,19 @@ function isObjectLike(value: unknown): value is object {
   return typeof value === 'object' && value !== null
 }
 
+function assertSandboxFeatureEnabled(context: IAgentMiddlewareContext, middlewareName: string) {
+  if (context.xpertFeatures?.sandbox?.enabled === true) {
+    return
+  }
+
+  throw new Error(`${middlewareName} requires the xpert sandbox feature to be enabled.`)
+}
+
+function getToolCallId(config: unknown): string {
+  const toolCallId = getToolCallIdFromConfig(config)
+  return typeof toolCallId === 'string' && toolCallId.length > 0 ? toolCallId : randomUUID()
+}
+
 function normalizeManagedServiceError(error: unknown): ManagedServiceToolError {
   if (isObjectLike(error) && 'code' in error && typeof error.code === 'string' && 'message' in error) {
     const message = typeof error.message === 'string' ? error.message : 'Sandbox managed service request failed.'
@@ -116,6 +139,101 @@ function stringifyToolResult(value: unknown): string {
   } catch {
     return String(value)
   }
+}
+
+function createToolMessageStep(
+  toolCallId: string,
+  toolName: string,
+  input: {
+    command: string
+    timeout_sec?: number
+  },
+  overrides: Partial<TChatMessageStep<TProgramToolMessage>>
+): TChatMessageStep<TProgramToolMessage> {
+  return {
+    id: toolCallId,
+    category: 'Tool',
+    type: ChatMessageStepCategory.Program,
+    tool: toolName,
+    title: toolName,
+    input,
+    ...overrides
+  } as TChatMessageStep<TProgramToolMessage>
+}
+
+async function withStreamingToolMessage(
+  toolCallId: string,
+  toolName: string,
+  command: string,
+  backend: SandboxBackendProtocol,
+  executionOptions?: SandboxExecutionOptions
+) {
+  const input = {
+    command,
+    ...(executionOptions?.timeoutMs
+      ? {
+          timeout_sec: Number((executionOptions.timeoutMs / 1000).toFixed(3))
+        }
+      : {})
+  }
+
+  await dispatchCustomEvent(
+    ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+    createToolMessageStep(toolCallId, toolName, input, {
+      status: 'running',
+      created_date: new Date(),
+      output: '',
+      data: { code: command, output: '' }
+    })
+  ).catch((error) => {
+    console.warn('[ToolMessage] dispatch failed:', error instanceof Error ? error.message : String(error))
+  })
+
+  let result
+  if (typeof backend.streamExecute === 'function') {
+    let accumulatedOutput = ''
+    let lastDispatchTime = 0
+
+    result = await backend.streamExecute(
+      command,
+      (line) => {
+        accumulatedOutput += (accumulatedOutput ? '\n' : '') + line
+        const now = Date.now()
+        if (now - lastDispatchTime >= STREAM_THROTTLE_MS) {
+          lastDispatchTime = now
+          dispatchCustomEvent(
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            createToolMessageStep(toolCallId, toolName, input, {
+              status: 'running',
+              output: accumulatedOutput,
+              data: { code: command, output: accumulatedOutput }
+            })
+          ).catch((error) => {
+            console.warn('[ToolMessage] dispatch failed:', error instanceof Error ? error.message : String(error))
+          })
+        }
+      },
+      executionOptions
+    )
+  } else {
+    result = await backend.execute(command, executionOptions)
+  }
+
+  const finalOutput = result.output
+  await dispatchCustomEvent(
+    ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+    createToolMessageStep(toolCallId, toolName, input, {
+      status: result.exitCode === 0 ? 'success' : 'fail',
+      end_date: new Date(),
+      output: finalOutput,
+      data: { code: command, output: finalOutput },
+      error: result.exitCode !== 0 ? finalOutput : undefined
+    })
+  ).catch((error) => {
+    console.warn('[ToolMessage] dispatch failed:', error instanceof Error ? error.message : String(error))
+  })
+
+  return result
 }
 
 @Injectable()

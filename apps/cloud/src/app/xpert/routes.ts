@@ -46,16 +46,18 @@ export const authGuard: CanActivateFn = async (route: ActivatedRouteSnapshot, st
 export const routes: Routes = [
   {
     path: ':name',
-    children: [
-      {
-        path: 'c/:id',
-        component: ChatHomeComponent
-      },
-      {
-        path: '**',
-        component: ChatHomeComponent
-      }
-    ],
+    component: ChatHomeComponent,
+    data: {
+      title: 'Chat Xpert'
+    },
+    canActivate: [authGuard]
+  },
+  {
+    path: ':name/c/:id',
+    component: ChatHomeComponent,
+    data: {
+      title: 'Chat Xpert Conversation'
+    },
     canActivate: [authGuard]
   }
 ]

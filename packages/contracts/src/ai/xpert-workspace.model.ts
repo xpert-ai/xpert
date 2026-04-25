@@ -11,6 +11,8 @@ export interface IXpertWorkspace extends IBasePerTenantAndOrganizationEntityMode
   description?: string
   status: TXpertWorkspaceStatus
   settings?: TXpertWorkspaceSettings
+  capabilities?: TXpertWorkspaceCapabilities
+  isTenantShared?: boolean
 
   // Many to one
   ownerId: string
@@ -24,12 +26,37 @@ export interface IXpertWorkspace extends IBasePerTenantAndOrganizationEntityMode
 }
 
 export type TXpertWorkspaceSettings = {
+  access?: {
+    visibility?: TXpertWorkspaceVisibility
+  }
   system?: {
     kind?: 'org-default' | 'tenant-default' | 'user-default'
     userId?: string
   }
 }
 export type TXpertWorkspaceStatus = 'active' | 'deprecated' | 'archived'
+export type TXpertWorkspaceVisibility = 'private' | 'tenant-shared'
+
+export type TXpertWorkspaceCapabilities = {
+  canRead: boolean
+  canRun: boolean
+  canWrite: boolean
+  canManage: boolean
+}
+
+export function getXpertWorkspaceVisibility(
+  workspace?: Pick<IXpertWorkspace, 'settings'> | null
+): TXpertWorkspaceVisibility {
+  return workspace?.settings?.access?.visibility === 'tenant-shared'
+    ? 'tenant-shared'
+    : 'private'
+}
+
+export function isTenantSharedXpertWorkspace(
+  workspace?: Pick<IXpertWorkspace, 'settings'> | null
+): boolean {
+  return getXpertWorkspaceVisibility(workspace) === 'tenant-shared'
+}
 
 export interface IBasePerWorkspaceEntityModel extends IBasePerTenantAndOrganizationEntityModel {
   workspaceId?: string

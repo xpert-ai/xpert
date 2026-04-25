@@ -60,7 +60,7 @@ import {
 } from '../copilot-model/queries/index'
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
 import { RagCreateVStoreCommand } from '../rag-vstore'
-import { XpertWorkspaceBaseService } from '../xpert-workspace'
+import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { GetXpertWorkspaceQuery } from '../xpert-workspace/queries'
 import { EventName_XpertPublished } from '../xpert/types'
 import { XpertService } from '../xpert/xpert.service'
@@ -108,10 +108,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	constructor(
 		@InjectRepository(Knowledgebase)
 		repository: Repository<Knowledgebase>,
+		workspaceAccessService: XpertWorkspaceAccessService,
 		private readonly integrationService: IntegrationService,
 		private readonly taskService: KnowledgebaseTaskService,
 	) {
-		super(repository)
+		super(repository, workspaceAccessService)
 	}
 
 	/**
@@ -283,7 +284,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		
 		try {
 			assign(_entity, entity)
-			return await this.repository.save(_entity)
+			return await super.save(_entity)
 		} catch (error) {
 			// Catch database unique constraint errors as a fallback
 			// PostgreSQL error code for unique violation: 23505
