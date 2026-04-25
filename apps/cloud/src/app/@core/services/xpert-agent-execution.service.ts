@@ -6,6 +6,7 @@ import { BehaviorSubject } from 'rxjs'
 import { API_XPERT_AGENT_EXECUTION } from '../constants/app.constants'
 import { IXpertAgentExecution, TXpertAgentExecutionCheckpoint } from '../types'
 import { Store } from './store.service'
+import { appendOrganizationIdQueryParam } from './query-params'
 
 @Injectable({ providedIn: 'root' })
 export class XpertAgentExecutionService extends OrganizationBaseCrudService<IXpertAgentExecution> {
@@ -20,7 +21,7 @@ export class XpertAgentExecutionService extends OrganizationBaseCrudService<IXpe
 
   getOneLog(id: string, options?: PaginationParams<IXpertAgentExecution>, organizationId?: string) {
     return this.httpClient.get<IXpertAgentExecution>(this.apiBaseUrl + `/${id}/log`, {
-      params: appendOrganizationId(toHttpParams(options), organizationId)
+      params: appendOrganizationIdQueryParam(toHttpParams(options), organizationId)
     })
   }
 
@@ -28,14 +29,14 @@ export class XpertAgentExecutionService extends OrganizationBaseCrudService<IXpe
     return this.httpClient.get<Record<string, unknown>>(this.apiBaseUrl + `/${id}/state`, {
       params: (() => {
         let params = checkpointId ? new HttpParams().set('checkpointId', checkpointId) : null
-        return appendOrganizationId(params, organizationId)
+        return appendOrganizationIdQueryParam(params, organizationId)
       })()
     })
   }
 
   getCheckpoints(id: string, organizationId?: string) {
     return this.httpClient.get<TXpertAgentExecutionCheckpoint[]>(this.apiBaseUrl + `/${id}/checkpoints`, {
-      params: appendOrganizationId(null, organizationId)
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 
@@ -47,12 +48,4 @@ export class XpertAgentExecutionService extends OrganizationBaseCrudService<IXpe
       }
     )
   }
-}
-
-function appendOrganizationId(params: HttpParams | null, organizationId?: string) {
-  if (!organizationId) {
-    return params ?? undefined
-  }
-
-  return (params ?? new HttpParams()).set('organizationId', organizationId)
 }

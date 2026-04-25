@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http'
+import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { EventSourceMessage } from '@microsoft/fetch-event-source'
@@ -11,7 +11,7 @@ import {
 } from '@xpert-ai/contracts'
 import { injectFetchEventSource } from './fetch-event-source'
 import { injectApiBaseUrl } from '../providers'
-import { toParams } from '@xpert-ai/core'
+import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
 
 @Injectable({
   providedIn: 'root'
@@ -29,7 +29,7 @@ export class SandboxService {
     formData.append('path', params.path)
 
     return this.http.post<{ url: string; filePath: string }>(`${this.baseUrl}/file`, formData, {
-      params: appendOrganizationId(null, params.organizationId)
+      params: appendOrganizationIdQueryParam(null, params.organizationId)
     })
   }
 
@@ -49,13 +49,13 @@ export class SandboxService {
 
   listManagedServices(conversationId: string, organizationId?: string) {
     return this.http.get<ISandboxManagedService[]>(`${this.baseUrl}/conversations/${conversationId}/services`, {
-      params: appendOrganizationId(null, organizationId)
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 
   startManagedService(conversationId: string, input: TSandboxManagedServiceStartInput, organizationId?: string) {
     return this.http.post<ISandboxManagedService>(`${this.baseUrl}/conversations/${conversationId}/services/start`, input, {
-      params: appendOrganizationId(null, organizationId)
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 
@@ -63,9 +63,9 @@ export class SandboxService {
     return this.http.get<TSandboxManagedServiceLogs>(
       `${this.baseUrl}/conversations/${conversationId}/services/${serviceId}/logs`,
       {
-        params: toParams({
+        params: createOptionalQueryParams({
           ...(tail ? { tail } : {}),
-          ...(organizationId ? { organizationId } : {})
+          organizationId
         })
       }
     )
@@ -76,7 +76,7 @@ export class SandboxService {
       `${this.baseUrl}/conversations/${conversationId}/services/${serviceId}/stop`,
       {},
       {
-        params: appendOrganizationId(null, organizationId)
+        params: appendOrganizationIdQueryParam(null, organizationId)
       }
     )
   }
@@ -86,7 +86,7 @@ export class SandboxService {
       `${this.baseUrl}/conversations/${conversationId}/services/${serviceId}/restart`,
       {},
       {
-        params: appendOrganizationId(null, organizationId)
+        params: appendOrganizationIdQueryParam(null, organizationId)
       }
     )
   }
@@ -96,17 +96,9 @@ export class SandboxService {
       `${this.baseUrl}/conversations/${conversationId}/services/${serviceId}/preview-session`,
       {},
       {
-        params: appendOrganizationId(null, organizationId),
+        params: appendOrganizationIdQueryParam(null, organizationId),
         withCredentials: true
       }
     )
   }
-}
-
-function appendOrganizationId(params: HttpParams | null, organizationId?: string) {
-  if (!organizationId) {
-    return params ?? undefined
-  }
-
-  return (params ?? new HttpParams()).set('organizationId', organizationId)
 }

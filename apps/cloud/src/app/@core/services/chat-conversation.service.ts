@@ -1,4 +1,3 @@
-import { HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import {
   API_PREFIX,
@@ -9,9 +8,9 @@ import {
   TFileDirectory,
   toHttpParams
 } from '@xpert-ai/cloud/state'
-import { toParams } from '@xpert-ai/core'
 import { switchMap } from 'rxjs'
 import { TFile } from '../types'
+import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
@@ -24,7 +23,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     return this.selectOrganizationId().pipe(
       switchMap(() =>
         this.httpClient.get<IChatConversation>(this.apiBaseUrl + '/' + id, {
-          params: appendOrganizationId(toHttpParams(options), organizationId)
+          params: appendOrganizationIdQueryParam(toHttpParams(options), organizationId)
         })
       )
     )
@@ -52,13 +51,13 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
 
   getThreadState(id: string, organizationId?: string) {
     return this.httpClient.get<unknown>(this.apiBaseUrl + `/${id}/state`, {
-      params: appendOrganizationId(null, organizationId)
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 
   getByThreadId(threadId: string, organizationId?: string) {
     return this.httpClient.get<IChatConversation>(this.apiBaseUrl + '/by-thread', {
-      params: toParams({
+      params: createOptionalQueryParams({
         threadId,
         organizationId
       })
@@ -67,7 +66,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
 
   getAttachments(id: string, organizationId?: string) {
     return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`, {
-      params: appendOrganizationId(null, organizationId)
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 
@@ -76,7 +75,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
       this.apiBaseUrl + `/${id}/cancel`,
       {},
       {
-        params: appendOrganizationId(null, organizationId)
+        params: appendOrganizationIdQueryParam(null, organizationId)
       }
     )
   }
@@ -85,7 +84,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
 
   getFiles(id: string, path = '', organizationId?: string) {
     return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
-      params: toParams({
+      params: createOptionalQueryParams({
         path,
         organizationId
       })
@@ -94,7 +93,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
 
   getFile(id: string, path: string, organizationId?: string) {
     return this.httpClient.get<TFile>(this.apiBaseUrl + `/${id}/file`, {
-      params: toParams({
+      params: createOptionalQueryParams({
         path,
         organizationId
       })
@@ -109,7 +108,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
         content
       },
       {
-        params: appendOrganizationId(null, organizationId)
+        params: appendOrganizationIdQueryParam(null, organizationId)
       }
     )
   }
@@ -119,25 +118,17 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     formData.append('file', file)
     formData.append('path', path)
     return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/file/upload`, formData, {
-      params: appendOrganizationId(null, organizationId)
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 
   deleteFile(id: string, filePath: string, organizationId?: string) {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/file`, {
-      params: toParams({
+      params: createOptionalQueryParams({
         path: filePath,
         organizationId
       })
     })
   }
 
-}
-
-function appendOrganizationId(params: HttpParams | null, organizationId?: string) {
-  if (!organizationId) {
-    return params ?? undefined
-  }
-
-  return (params ?? new HttpParams()).set('organizationId', organizationId)
 }

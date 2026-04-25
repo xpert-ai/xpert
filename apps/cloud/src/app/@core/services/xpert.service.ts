@@ -40,6 +40,7 @@ import {
   XpertTypeEnum
 } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
+import { appendOrganizationIdQueryParam } from './query-params'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
 export type TXpertVariablesOptions = {
@@ -162,17 +163,13 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   getXpertUserGroups(id: string, organizationId?: string) {
     return this.httpClient.get<IUserGroup[]>(this.apiBaseUrl + `/${id}/user-groups`, {
-      params: toParams({
-        organizationId
-      })
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 
   updateXpertUserGroups(id: string, userGroupIds: string[], organizationId?: string) {
     return this.httpClient.put<IUserGroup[]>(this.apiBaseUrl + `/${id}/user-groups`, userGroupIds, {
-      params: toParams({
-        organizationId
-      })
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 
