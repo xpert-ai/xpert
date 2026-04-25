@@ -1,11 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Embeddings } from '@langchain/core/embeddings'
+import { BaseLanguageModel } from '@langchain/core/language_models/base'
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type {
   Runtime as LangGraphRuntime,
   PregelOptions,
   StreamMode,
 } from "@langchain/langgraph";
 import type { BaseMessage } from "@langchain/core/messages";
-import { TSandboxConfigurable } from "@xpert-ai/contracts";
+import {
+  ICopilotModel,
+  ILLMUsage,
+  IXpertAgentExecution,
+  JSONValue,
+  TSandboxConfigurable,
+} from "@xpert-ai/contracts";
+import { Subscriber } from 'rxjs'
+import { IRerank } from '../../ai-model/types'
 
 
 /**
@@ -67,3 +78,39 @@ export type Runtime<TContext = unknown> = Partial<
       [key: string]: unknown;
     };
   };
+
+export type AgentMiddlewareModelClient =
+  | BaseLanguageModel
+  | BaseChatModel
+  | Embeddings
+  | IRerank
+
+export type AgentMiddlewareCreateModelClientOptions = {
+  abortController?: AbortController
+  usageCallback: (tokens: ILLMUsage) => void
+}
+
+export type AgentMiddlewareWrapWorkflowNodeExecutionResult<T> = {
+  output?: string | JSONValue
+  state: T
+}
+
+export type AgentMiddlewareWrapWorkflowNodeExecutionParams = {
+  execution: Partial<IXpertAgentExecution>
+  subscriber?: Subscriber<MessageEvent>
+  catchError?: (error: Error) => Promise<void>
+}
+
+export interface AgentMiddlewareRuntimeApi {
+  createModelClient<T = AgentMiddlewareModelClient>(
+    copilotModel: ICopilotModel,
+    options: AgentMiddlewareCreateModelClientOptions
+  ): Promise<T>
+
+  wrapWorkflowNodeExecution<T>(
+    run: (
+      execution: Partial<IXpertAgentExecution>
+    ) => Promise<AgentMiddlewareWrapWorkflowNodeExecutionResult<T>>,
+    params: AgentMiddlewareWrapWorkflowNodeExecutionParams
+  ): Promise<T>
+}

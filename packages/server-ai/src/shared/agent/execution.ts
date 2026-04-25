@@ -1,11 +1,27 @@
-import { ChatMessageEventTypeEnum, IXpertAgentExecution, JSONValue, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import {
+	ChatMessageEventTypeEnum,
+	ChatMessageTypeEnum,
+	IXpertAgentExecution,
+	JSONValue,
+	XpertAgentExecutionStatusEnum
+} from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { instanceToPlain } from 'class-transformer'
 import { Subscriber } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
 import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
-import { messageEvent } from '../../xpert-agent/agent'
+
+function createAgentMessageEvent(event: ChatMessageEventTypeEnum, data: any) {
+	return {
+		data: {
+			type: ChatMessageTypeEnum.EVENT,
+			event,
+			data: instanceToPlain(data)
+		}
+	} as MessageEvent
+}
 
 /**
  * Wraps the agent execution in a try-catch block and handles the execution lifecycle.
@@ -37,7 +53,9 @@ export function wrapAgentExecution<T>(
 		)
 		execution.id = subexecution.id
 		// Start agent execution event
-		subscriber?.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, new XpertAgentExecutionDTO(subexecution)))
+		subscriber?.next(
+			createAgentMessageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, new XpertAgentExecutionDTO(subexecution))
+		)
 
 		let status = XpertAgentExecutionStatusEnum.SUCCESS
 		let error = null
@@ -78,7 +96,7 @@ export function wrapAgentExecution<T>(
 
 			// End agent execution event
 			subscriber?.next(
-				messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, new XpertAgentExecutionDTO(subexecution))
+				createAgentMessageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, new XpertAgentExecutionDTO(subexecution))
 			)
 		}
 	}

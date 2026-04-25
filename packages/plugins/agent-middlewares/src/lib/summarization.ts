@@ -21,9 +21,8 @@ import {
   InferInteropZodInput,
 } from "@langchain/core/utils/types";
 import { REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
-import { Inject, Injectable } from "@nestjs/common";
-import { CommandBus } from "@nestjs/cqrs";
-import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, getModelContextSize, IAgentMiddlewareContext, IAgentMiddlewareStrategy, WrapWorkflowNodeExecutionCommand } from "@xpert-ai/plugin-sdk";
+import { Injectable } from "@nestjs/common";
+import { AgentMiddleware, AgentMiddlewareStrategy, getModelContextSize, IAgentMiddlewareContext, IAgentMiddlewareStrategy } from "@xpert-ai/plugin-sdk";
 import { AiModelTypeEnum, ICopilotModel, JSONValue, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@xpert-ai/contracts";
 import { isNil, omitBy } from "lodash";
 import { countTokensApproximately, hasToolCalls } from "./utils";
@@ -143,10 +142,6 @@ export type SummarizationMiddlewareConfig = InferInteropZodInput<
 @Injectable()
 @AgentMiddlewareStrategy('SummarizationMiddleware')
 export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
-
-  @Inject(CommandBus)
-  private readonly commandBus: CommandBus;
-
   readonly meta: TAgentMiddlewareMeta = {
     name: 'SummarizationMiddleware',
     label: {
@@ -317,11 +312,11 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
       );
     }
 
-    const model = await this.commandBus.execute(new CreateModelClientCommand<BaseLanguageModel>(userOptions.model, {
+    const model = await context.runtime.createModelClient<BaseLanguageModel>(userOptions.model, {
           usageCallback: (event) => {
             console.log('[Middleware Summarization] Model Usage:', event);
           }
-        }))
+        })
 
     return {
       name: 'SummarizationMiddleware',
@@ -415,7 +410,7 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
 
         const configurable: TAgentRunnableConfigurable = runtime.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
-        return await this.commandBus.execute(new WrapWorkflowNodeExecutionCommand(async () => {
+        return await context.runtime.wrapWorkflowNodeExecution(async () => {
           const summary = await createSummary(
             messagesToSummarize,
             model,
@@ -458,7 +453,7 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
             title: context.node.title
           },
           subscriber
-        }))
+        })
       }
     } as AgentMiddleware
   }

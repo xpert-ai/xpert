@@ -4,10 +4,9 @@ import { BaseLanguageModel } from "@langchain/core/language_models/base";
 import { interopSafeParse, type InferInteropZodInput } from "@langchain/core/utils/types";
 import { HumanMessage, isHumanMessage } from "@langchain/core/messages";
 import type { StructuredToolInterface } from "@langchain/core/tools";
-import { Inject, Injectable } from "@nestjs/common";
-import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, IAgentMiddlewareContext, IAgentMiddlewareStrategy, ModelRequest, Runtime, WrapWorkflowNodeExecutionCommand } from "@xpert-ai/plugin-sdk";
+import { Injectable } from "@nestjs/common";
+import { AgentMiddleware, AgentMiddlewareStrategy, IAgentMiddlewareContext, IAgentMiddlewareStrategy, ModelRequest, Runtime } from "@xpert-ai/plugin-sdk";
 import { AiModelTypeEnum, ICopilotModel, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@xpert-ai/contracts";
-import { CommandBus } from "@nestjs/cqrs";
 
 
 const DEFAULT_SYSTEM_PROMPT =
@@ -126,9 +125,6 @@ const LLMToolSelectorName = "LLMToolSelector";
 @Injectable()
 @AgentMiddlewareStrategy(LLMToolSelectorName)
 export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
-  @Inject(CommandBus)
-  private readonly commandBus: CommandBus;
-
   meta: TAgentMiddlewareMeta = {
     name: LLMToolSelectorName,
     label: {
@@ -244,12 +240,11 @@ export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
           );
         }
 
-    const model = await this.commandBus.execute(new CreateModelClientCommand<BaseLanguageModel>(userOptions.model, {
+    const model = await context.runtime.createModelClient<BaseLanguageModel>(userOptions.model, {
               usageCallback: (event) => {
                 console.log('[Middleware llmToolSelector] Model Usage:', event);
               }
-            }))
-    const commandBus = this.commandBus;
+            })
     
     return {
       name: "LLMToolSelector",
@@ -278,7 +273,7 @@ export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
         // Execution logging
         const configurable = request.runtime.configurable as TAgentRunnableConfigurable
         const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
-        const response = await commandBus.execute(new WrapWorkflowNodeExecutionCommand(async () => {
+        const response = await context.runtime.wrapWorkflowNodeExecution(async () => {
             const response = await structuredModel?.invoke([
               { role: "system", content: selectionRequest.systemMessage },
               selectionRequest.lastUserMessage,
@@ -311,7 +306,7 @@ export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
             title: context.node.title
           },
           subscriber
-        }))
+        })
 
         return handler(
           processSelectionResponse(
