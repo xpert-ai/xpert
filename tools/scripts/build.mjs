@@ -70,7 +70,7 @@ try {
     
     console.log('Build completed successfully!');
 
-    fs.copyFileSync('tools/scripts/.env.example', 'dist/.env');
+    fs.copyFileSync('tools/scripts/env.example', 'dist/.env');
     fs.copyFileSync('tools/scripts/webapp.prod.conf', 'dist/webapp.prod.conf');
     fs.copyFileSync('tools/scripts/install.sh', 'dist/install.sh');
 
