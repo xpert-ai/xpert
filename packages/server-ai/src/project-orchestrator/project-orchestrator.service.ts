@@ -1,10 +1,28 @@
-import { ProjectSwimlaneKindEnum, ProjectTaskStatusEnum, SprintId } from '@xpert-ai/contracts'
+import {
+	IProjectTaskDispatchResult,
+	ProjectSprintStatusEnum,
+	ProjectSwimlaneKindEnum,
+	ProjectTaskDispatchSkippedReasonEnum,
+	ProjectTaskExecutionStatusEnum,
+	ProjectTaskStatusEnum,
+	SprintId
+} from '@xpert-ai/contracts'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { HandoffMessage, RequestContext } from '@xpert-ai/plugin-sdk'
+import { randomUUID } from 'crypto'
 import { Repository } from 'typeorm'
+import { HandoffQueueService } from '../handoff/message-queue.service'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
 import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
+import { ProjectTaskExecution } from '../project-task/project-task-execution.entity'
 import { ProjectTask } from '../project-task/project-task.entity'
+import { TeamDefinitionService } from '../team-definition/team-definition.service'
+import {
+	ProjectTaskDispatchPayload,
+	PROJECT_TASK_DISPATCH_MESSAGE_TYPE
+} from './project-task-dispatch.processor'
+import { ProjectTaskAssignmentService } from './project-task-assignment.service'
 
 export interface ProjectSwimlaneExecutionSnapshot {
 	lane: ProjectSwimlane
@@ -21,6 +39,17 @@ export interface ProjectSprintExecutionSnapshot {
 	lanes: ProjectSwimlaneExecutionSnapshot[]
 	blockedTaskIds: string[]
 	runnableTasks: Array<{ lane: ProjectSwimlane; task: ProjectTask }>
+}
+
+interface PendingProjectTaskDispatch {
+	taskId: string
+	taskExecutionId: string
+	teamId: ProjectTaskExecution['teamId']
+	xpertId: ProjectTaskExecution['xpertId']
+	dispatchId: string
+	tenantId: string
+	organizationId?: string | null
+	userId?: string | null
 }
 
 export function buildSprintExecutionSnapshot(
@@ -99,7 +128,12 @@ export class ProjectOrchestratorService {
 		@InjectRepository(ProjectSwimlane)
 		private readonly swimlaneRepository: Repository<ProjectSwimlane>,
 		@InjectRepository(ProjectTask)
-		private readonly taskRepository: Repository<ProjectTask>
+		private readonly taskRepository: Repository<ProjectTask>,
+		@InjectRepository(ProjectTaskExecution)
+		private readonly taskExecutionRepository: Repository<ProjectTaskExecution>,
+		private readonly taskAssignmentService: ProjectTaskAssignmentService,
+		private readonly teamDefinitionService: TeamDefinitionService,
+		private readonly handoffQueueService: HandoffQueueService
 	) {}
 
 	async getSprintExecutionSnapshot(sprintId: SprintId) {
@@ -120,4 +154,211 @@ export class ProjectOrchestratorService {
 		const snapshot = await this.getSprintExecutionSnapshot(sprintId)
 		return snapshot.runnableTasks.map(({ task }) => task)
 	}
+
+	async dispatchRunnableTasks(sprintId: SprintId): Promise<IProjectTaskDispatchResult> {
+		const transactionResult = await this.taskRepository.manager.transaction(async (manager) => {
+			const sprintRepository = manager.getRepository(ProjectSprint)
+			const swimlaneRepository = manager.getRepository(ProjectSwimlane)
+			const taskRepository = manager.getRepository(ProjectTask)
+			const taskExecutionRepository = manager.getRepository(ProjectTaskExecution)
+			const sprint = await sprintRepository.findOne({
+				where: { id: sprintId },
+				lock: { mode: 'pessimistic_write' }
+			})
+
+			if (!sprint) {
+				throw new BadRequestException(`Sprint ${sprintId} was not found`)
+			}
+
+			const skipped: IProjectTaskDispatchResult['skipped'] = []
+			const pendingDispatches: PendingProjectTaskDispatch[] = []
+
+			if (sprint.status !== ProjectSprintStatusEnum.Running) {
+				skipped.push({
+					reason: ProjectTaskDispatchSkippedReasonEnum.SprintNotRunning,
+					message: 'Only running sprints can dispatch project tasks.'
+				})
+				return {
+					skipped,
+					pendingDispatches
+				}
+			}
+
+			const [swimlanes, tasks] = await Promise.all([
+				swimlaneRepository.findBy({ sprintId }),
+				taskRepository.findBy({ sprintId })
+			])
+			const snapshot = buildSprintExecutionSnapshot(sprint, swimlanes, tasks)
+			const laneById = new Map(swimlanes.map((lane) => [lane.id, lane]))
+			const reservedTeamCounts = new Map<string, number>()
+
+			for (const runnable of snapshot.runnableTasks) {
+				const task = await taskRepository.findOne({
+					where: { id: runnable.task.id },
+					lock: { mode: 'pessimistic_write' }
+				})
+
+				if (!task || task.status !== ProjectTaskStatusEnum.Todo) {
+					skipped.push({
+						taskId: runnable.task.id,
+						reason: ProjectTaskDispatchSkippedReasonEnum.ClaimLost,
+						message: 'Task was already claimed or changed before dispatch.'
+					})
+					continue
+				}
+
+				const lane = laneById.get(task.swimlaneId)
+				if (!lane) {
+					skipped.push({
+						taskId: task.id,
+						reason: ProjectTaskDispatchSkippedReasonEnum.Blocked,
+						message: 'Task lane could not be resolved during dispatch.'
+					})
+					continue
+				}
+
+				const assignment = await this.taskAssignmentService.validateOrAssignTaskTeam(
+					task,
+					lane,
+					{ reservedTeamCounts },
+					manager
+				)
+				if (assignment.assigned === false) {
+					skipped.push({
+						taskId: task.id,
+						reason: assignment.reason,
+						message: assignment.message
+					})
+					continue
+				}
+
+				const team = await this.teamDefinitionService.findOne(assignment.binding.teamId).catch(() => null)
+				if (!team) {
+					skipped.push({
+						taskId: task.id,
+						reason: ProjectTaskDispatchSkippedReasonEnum.InvalidTeamAssignment,
+						message: 'Assigned team no longer resolves to an accessible published Xpert.'
+					})
+					continue
+				}
+
+				const dispatchId = `project-task-dispatch-${randomUUID()}`
+				await taskRepository.update(task.id, {
+					status: ProjectTaskStatusEnum.Doing,
+					teamId: assignment.binding.teamId,
+					assignedAgentId: team.leadAssistantId
+				})
+
+				const taskExecution = await taskExecutionRepository.save(
+					taskExecutionRepository.create({
+						projectId: task.projectId,
+						sprintId: task.sprintId,
+						taskId: task.id,
+						teamId: assignment.binding.teamId,
+						xpertId: team.leadAssistantId,
+						dispatchId,
+						status: ProjectTaskExecutionStatusEnum.Pending,
+						tenantId: task.tenantId,
+						organizationId: task.organizationId ?? null
+					})
+				)
+
+				reservedTeamCounts.set(
+					assignment.binding.teamId,
+					(reservedTeamCounts.get(assignment.binding.teamId) ?? 0) + 1
+				)
+
+				pendingDispatches.push({
+					taskId: task.id,
+					taskExecutionId: taskExecution.id,
+					teamId: assignment.binding.teamId,
+					xpertId: team.leadAssistantId,
+					dispatchId,
+					tenantId: task.tenantId,
+					organizationId: task.organizationId ?? null,
+					userId: RequestContext.currentUserId() ?? null
+				})
+			}
+
+			return {
+				skipped,
+				pendingDispatches
+			}
+		})
+
+		const dispatched: IProjectTaskDispatchResult['dispatched'] = []
+		const skipped: IProjectTaskDispatchResult['skipped'] = [...transactionResult.skipped]
+
+		for (const pending of transactionResult.pendingDispatches) {
+			try {
+				await this.handoffQueueService.enqueue(this.buildProjectTaskDispatchMessage(pending))
+				dispatched.push({
+					taskId: pending.taskId,
+					taskExecutionId: pending.taskExecutionId,
+					teamId: pending.teamId,
+					xpertId: pending.xpertId,
+					dispatchId: pending.dispatchId
+				})
+			} catch (error) {
+				await this.markDispatchEnqueueFailure(pending, getErrorMessage(error))
+				skipped.push({
+					taskId: pending.taskId,
+					reason: ProjectTaskDispatchSkippedReasonEnum.ClaimLost,
+					message: 'Task was claimed but dispatch enqueue failed.'
+				})
+			}
+		}
+
+		return {
+			dispatched,
+			skipped
+		}
+	}
+
+	private buildProjectTaskDispatchMessage(
+		pending: PendingProjectTaskDispatch
+	): HandoffMessage<ProjectTaskDispatchPayload> {
+		return {
+			id: pending.dispatchId,
+			type: PROJECT_TASK_DISPATCH_MESSAGE_TYPE,
+			version: 1,
+			tenantId: pending.tenantId,
+			sessionKey: pending.taskExecutionId,
+			businessKey: pending.taskExecutionId,
+			attempt: 1,
+			maxAttempts: 1,
+			enqueuedAt: Date.now(),
+			traceId: pending.taskExecutionId,
+			payload: {
+				taskExecutionId: pending.taskExecutionId
+			},
+			headers: {
+				...(pending.organizationId ? { organizationId: pending.organizationId } : {}),
+				...(pending.userId ? { userId: pending.userId } : {})
+			}
+		}
+	}
+
+	private async markDispatchEnqueueFailure(pending: PendingProjectTaskDispatch, error: string) {
+		await Promise.all([
+			this.taskExecutionRepository.update(pending.taskExecutionId, {
+				status: ProjectTaskExecutionStatusEnum.Failed,
+				error,
+				completedAt: new Date()
+			}),
+			this.taskRepository.update(pending.taskId, {
+				status: ProjectTaskStatusEnum.Failed
+			})
+		])
+	}
+}
+
+function getErrorMessage(error: unknown) {
+	if (error instanceof Error) {
+		return error.message
+	}
+	if (typeof error === 'string') {
+		return error
+	}
+	return 'Unknown project task dispatch error'
 }

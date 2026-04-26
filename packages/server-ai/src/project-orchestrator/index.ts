@@ -1,2 +1,5 @@
 export * from './project-orchestrator.module'
+export * from './project-orchestrator.controller'
 export * from './project-orchestrator.service'
+export * from './project-task-assignment.service'
+export * from './project-task-dispatch.processor'

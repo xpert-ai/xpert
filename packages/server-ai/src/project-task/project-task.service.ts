@@ -10,12 +10,15 @@ import {
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository, UpdateResult } from 'typeorm'
+import { FindManyOptions, In, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
 import { normalizeOptionalBrandedId, normalizeRequiredBrandedId } from '../shared/utils'
 import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
+import { ProjectCoreService } from '../project-core/project-core.service'
 import { ProjectTeamBinding } from '../team-binding/project-team-binding.entity'
+import { TeamDefinitionService } from '../team-definition/team-definition.service'
+import { ProjectTaskExecution } from './project-task-execution.entity'
 import { ProjectTask } from './project-task.entity'
 
 @Injectable()
@@ -28,9 +31,21 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		@InjectRepository(ProjectSwimlane)
 		private readonly swimlaneRepository: Repository<ProjectSwimlane>,
 		@InjectRepository(ProjectTeamBinding)
-		private readonly teamBindingRepository: Repository<ProjectTeamBinding>
+		private readonly teamBindingRepository: Repository<ProjectTeamBinding>,
+		@InjectRepository(ProjectTaskExecution)
+		private readonly taskExecutionRepository: Repository<ProjectTaskExecution>,
+		private readonly projectCoreService: ProjectCoreService,
+		private readonly teamDefinitionService: TeamDefinitionService
 	) {
 		super(repository)
+	}
+
+	override async findAll(filter?: FindManyOptions<ProjectTask>) {
+		const result = await super.findAll(filter)
+		return {
+			...result,
+			items: await this.attachLatestExecutions(result.items)
+		}
 	}
 
 	override async create(entity: Partial<IProjectTask>, ...options: unknown[]) {
@@ -131,7 +146,7 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		}
 
 		queryBuilder.orderBy('task.sortOrder', 'ASC').addOrderBy('task.createdAt', 'ASC')
-		return queryBuilder.getMany()
+		return this.attachLatestExecutions(await queryBuilder.getMany())
 	}
 
 	async reorderInLane(swimlaneId: string, orderedTaskIds: string[]) {
@@ -355,6 +370,42 @@ export class ProjectTaskService extends TenantOrganizationAwareCrudService<Proje
 		if (!binding) {
 			throw new BadRequestException('Task teamId must belong to a bound team on the same project')
 		}
+
+		const [project, team] = await Promise.all([
+			this.projectCoreService.findOne(projectId),
+			this.teamDefinitionService.findOne(teamId)
+		])
+		if (project.mainAssistantId && team.leadAssistantId === project.mainAssistantId) {
+			throw new BadRequestException('Task teamId cannot target the project main assistant')
+		}
+	}
+
+	private async attachLatestExecutions(tasks: ProjectTask[]) {
+		const taskIds = tasks.map((task) => task.id).filter((id): id is string => typeof id === 'string' && id.length > 0)
+		if (!taskIds.length) {
+			return tasks
+		}
+
+		const executions = await this.taskExecutionRepository.find({
+			where: {
+				taskId: In(taskIds)
+			},
+			order: {
+				createdAt: 'DESC',
+				updatedAt: 'DESC'
+			}
+		})
+		const latestExecutionByTaskId = new Map<string, ProjectTaskExecution>()
+		for (const execution of executions) {
+			if (!latestExecutionByTaskId.has(execution.taskId)) {
+				latestExecutionByTaskId.set(execution.taskId, execution)
+			}
+		}
+
+		return tasks.map((task) => {
+			task.latestExecution = latestExecutionByTaskId.get(task.id) ?? null
+			return task
+		})
 	}
 }
 

@@ -1,5 +1,6 @@
 import { Command } from '@langchain/langgraph'
 import { ProjectSprintStrategyEnum, ProjectSwimlaneKindEnum } from '@xpert-ai/contracts'
+import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 jest.mock('../services/project-assistant.service', () => ({
 	ProjectAssistantService: class ProjectAssistantService {}
 }))
@@ -78,14 +79,27 @@ describe('ProjectManagementMiddleware', () => {
 		return !!shape && typeof shape === 'object' && Reflect.has(shape, 'projectId')
 	}
 
-	it('exposes the project management tools', async () => {
-		const created = await middleware.createMiddleware({}, {
+	function createContext(overrides: Partial<IAgentMiddlewareContext> = {}): IAgentMiddlewareContext {
+		return {
 			tenantId: 'tenant-1',
 			userId: 'user-1',
 			projectId: 'project-1',
 			node: {} as never,
-			tools: new Map()
-		})
+			tools: new Map(),
+			runtime: {
+				createModelClient: async <T>() => {
+					throw new Error('createModelClient is not used in this spec')
+				},
+				wrapWorkflowNodeExecution: async <T>() => {
+					throw new Error('wrapWorkflowNodeExecution is not used in this spec')
+				}
+			},
+			...overrides
+		}
+	}
+
+	it('exposes the project management tools', async () => {
+		const created = await middleware.createMiddleware({}, createContext())
 
 		expect(created.tools?.map((item) => item.name)).toEqual(
 			expect.arrayContaining([
@@ -102,19 +116,33 @@ describe('ProjectManagementMiddleware', () => {
 				'updateProjectTeamBindings',
 				'removeProjectTeamBinding',
 				'updateProjectSwimlanes',
-				'getProjectExecutionSnapshot'
+				'getProjectExecutionSnapshot',
+				'dispatchRunnableTasks'
 			])
 		)
 	})
 
-	it('does not expose projectId in middleware or tool schemas', async () => {
-		const created = await middleware.createMiddleware({}, {
-			tenantId: 'tenant-1',
-			userId: 'user-1',
-			projectId: 'project-1',
-			node: {} as never,
-			tools: new Map()
+	it('exposes localized display metadata for project tools', async () => {
+		const created = await middleware.createMiddleware({}, createContext())
+		const moveTasks = created.tools?.find((item) => item.name === 'moveProjectTasks')
+		const dispatchTasks = created.tools?.find((item) => item.name === 'dispatchRunnableTasks')
+
+		expect(moveTasks?.metadata?.displayTitle).toEqual({
+			en_US: 'Move project tasks',
+			zh_Hans: '移动项目任务'
 		})
+		expect(moveTasks?.metadata?.displayMessage).toEqual({
+			en_US: 'Moving project tasks',
+			zh_Hans: '正在移动项目任务'
+		})
+		expect(dispatchTasks?.metadata?.displayTitle).toEqual({
+			en_US: 'Dispatch runnable tasks',
+			zh_Hans: '投递可执行任务'
+		})
+	})
+
+	it('does not expose projectId in middleware or tool schemas', async () => {
+		const created = await middleware.createMiddleware({}, createContext())
 
 		const properties = Reflect.get(middleware.meta.configSchema, 'properties')
 		expect(!!properties && typeof properties === 'object' && Reflect.has(properties, 'projectId')).toBe(false)
@@ -125,13 +153,7 @@ describe('ProjectManagementMiddleware', () => {
 	})
 
 	it('returns a state-updating command for getProjectContext', async () => {
-		const created = await middleware.createMiddleware({}, {
-			tenantId: 'tenant-1',
-			userId: 'user-1',
-			projectId: 'project-1',
-			node: {} as never,
-			tools: new Map()
-		})
+		const created = await middleware.createMiddleware({}, createContext())
 		const tool = created.tools?.find((item) => item.name === 'getProjectContext')
 		expect(tool).toBeDefined()
 
@@ -149,12 +171,7 @@ describe('ProjectManagementMiddleware', () => {
 	})
 
 	it('requires projectId from middleware context', async () => {
-		const created = await middleware.createMiddleware({}, {
-			tenantId: 'tenant-1',
-			userId: 'user-1',
-			node: {} as never,
-			tools: new Map()
-		})
+		const created = await middleware.createMiddleware({}, createContext({ projectId: undefined }))
 		const tool = created.tools?.find((item) => item.name === 'listProjectTasks')
 
 		await expect(

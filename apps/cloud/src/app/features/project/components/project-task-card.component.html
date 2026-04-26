@@ -37,24 +37,26 @@
         {{ task().assignedAgentId }}
       </span>
     }
+    @if (latestConversationId()) {
+      <button
+        type="button"
+        class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 transition-colors hover:border-divider-deep hover:text-text-primary"
+        [attr.aria-label]="'PAC.Project.OpenTaskConversation' | translate: { Default: 'Open task conversation' }"
+        (click)="openLatestConversation($event)"
+        (keydown.enter)="$event.stopPropagation()"
+      >
+        <z-icon zType="message-circle-more" class="mr-1 text-sm"></z-icon>
+        {{ 'PAC.Project.Conversation' | translate: { Default: 'Conversation' } }}
+      </button>
+    }
   </div>
 
-  <div class="mt-4" (click)="$event.stopPropagation()">
-    <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-tertiary" for="project-task-status-{{ task().id }}">
-      {{ 'PAC.Project.TaskStatus' | translate: { Default: 'Status' } }}
-    </label>
-    <z-select
-      id="project-task-status-{{ task().id }}"
-      class="w-full"
-      [zValue]="task().status"
-      [zDisabled]="!canUpdateStatus()"
-      (zSelectionChange)="onStatusChange($event)"
-    >
-      @for (status of statusOptions; track status) {
-        <z-select-item [zValue]="status">
-          {{ formatProjectLabel(status) }}
-        </z-select-item>
-      }
-    </z-select>
-  </div>
+  @if (failureMessage(); as message) {
+    <div class="mt-3 rounded-lg border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs leading-5 text-text-destructive">
+      <div class="font-semibold">
+        {{ 'PAC.Project.TaskFailureReason' | translate: { Default: 'Failure reason' } }}
+      </div>
+      <div class="mt-1 line-clamp-4 break-words">{{ message }}</div>
+    </div>
+  }
 </article>

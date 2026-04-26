@@ -3,7 +3,7 @@ import { StructuredToolInterface, DynamicStructuredTool } from '@langchain/core/
 import { END, Send } from '@langchain/langgraph'
 import { ToolInputSchemaBase } from '@langchain/core/dist/tools/types'
 import { InteropZodType } from '@langchain/core/utils/types'
-import { TVariableAssigner, TXpertGraph, TXpertTeamNode } from '@xpert-ai/contracts'
+import { I18nObject, TVariableAssigner, TXpertGraph, TXpertTeamNode } from '@xpert-ai/contracts'
 import { TStateChannel } from './state'
 
 /**
@@ -19,7 +19,9 @@ export type TGraphTool = {
 	 */
 	toolset: {
 		provider: string
-		title: string
+		title: string | I18nObject
+		displayTitle?: I18nObject
+		displayMessage?: I18nObject
 		id?: string
 	}
 	/**

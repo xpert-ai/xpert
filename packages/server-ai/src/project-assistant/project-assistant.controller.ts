@@ -1,7 +1,11 @@
 import { TransformInterceptor, UUIDValidationPipe } from '@xpert-ai/server-core'
 import { Body, Controller, Param, Post, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { ProjectAssistantActionDto, ProjectAssistantActionAcceptedDto } from './dto/project-assistant-action.dto'
+import {
+	isProjectAssistantActionAccepted,
+	ProjectAssistantActionDto,
+	ProjectAssistantActionAcceptedDto
+} from './dto/project-assistant-action.dto'
 import { ProjectAssistantActionService } from './services/project-assistant-action.service'
 
 @ApiTags('ProjectAssistant')
@@ -17,6 +21,6 @@ export class ProjectAssistantController {
 		@Body() body: ProjectAssistantActionDto
 	) {
 		const result = await this.actionService.execute(projectId, body)
-		return new ProjectAssistantActionAcceptedDto(result)
+		return isProjectAssistantActionAccepted(result) ? new ProjectAssistantActionAcceptedDto(result) : result
 	}
 }

@@ -1,21 +1,39 @@
 <div class="flex flex-col overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-xl">
   <div class="border-b border-divider-regular px-6 py-5">
-    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
-      {{ 'PAC.Project.TaskDialogEyebrow' | translate: { Default: 'Task Workspace' } }}
+    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div class="min-w-0">
+        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+          {{ 'PAC.Project.TaskDialogEyebrow' | translate: { Default: 'Task Workspace' } }}
+        </div>
+        <h2 class="mt-2 text-2xl font-semibold text-text-primary">
+          {{ dialogTitle() | translate: { Default: dialogTitleDefault() } }}
+        </h2>
+        <p class="mt-2 text-sm leading-6 text-text-secondary">
+          {{
+            'PAC.Project.TaskDialogDescription'
+              | translate
+                : {
+                    Default:
+                      'Edit task scope, team routing, and dependencies inside the selected sprint.'
+                  }
+          }}
+        </p>
+      </div>
+
+      @if (latestConversationId()) {
+        <button
+          z-button
+          zType="outline"
+          type="button"
+          class="shrink-0"
+          [zDisabled]="submitting()"
+          (click)="openLatestConversation()"
+        >
+          <z-icon zType="message-circle-more"></z-icon>
+          {{ 'PAC.Project.OpenConversation' | translate: { Default: 'Open conversation' } }}
+        </button>
+      }
     </div>
-    <h2 class="mt-2 text-2xl font-semibold text-text-primary">
-      {{ dialogTitle() | translate: { Default: dialogTitleDefault() } }}
-    </h2>
-    <p class="mt-2 text-sm leading-6 text-text-secondary">
-      {{
-        'PAC.Project.TaskDialogDescription'
-          | translate
-            : {
-                Default:
-                  'Edit task scope, team routing, and dependencies inside the selected sprint.'
-              }
-      }}
-    </p>
   </div>
 
   <form class="flex flex-col gap-5 px-6 py-6" [formGroup]="form" (ngSubmit)="submit()">

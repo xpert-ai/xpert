@@ -1,4 +1,10 @@
-import { createProjectId, createTeamId, IProjectTeamBinding } from '@xpert-ai/contracts'
+import {
+	createProjectId,
+	createTeamId,
+	IProjectTeamBinding,
+	ProjectAgentRole,
+	ProjectExecutionEnvironmentType
+} from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -9,6 +15,18 @@ import { ProjectTask } from '../project-task/project-task.entity'
 import { normalizeRequiredBrandedId } from '../shared/utils'
 import { TeamDefinitionService } from '../team-definition/team-definition.service'
 import { ProjectTeamBinding } from './project-team-binding.entity'
+
+type ProjectTeamBindingNormalizeInput = {
+	projectId?: unknown
+	teamId?: unknown
+	role?: unknown
+	sortOrder?: unknown
+	agentRoles?: unknown
+	environmentTypes?: unknown
+	swimlaneKeys?: unknown
+	assignmentPriority?: unknown
+	maxConcurrentTasks?: unknown
+}
 
 @Injectable()
 export class TeamBindingService extends TenantOrganizationAwareCrudService<ProjectTeamBinding> {
@@ -41,16 +59,33 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 		const nextProjectId =
 			typeof partialEntity.projectId === 'string' ? partialEntity.projectId : current.projectId
 		const nextTeamId = typeof partialEntity.teamId === 'string' ? partialEntity.teamId : current.teamId
+		const hasAgentRolesUpdate = Object.prototype.hasOwnProperty.call(partialEntity, 'agentRoles')
+		const hasEnvironmentTypesUpdate = Object.prototype.hasOwnProperty.call(partialEntity, 'environmentTypes')
+		const hasSwimlaneKeysUpdate = Object.prototype.hasOwnProperty.call(partialEntity, 'swimlaneKeys')
+		const hasAssignmentPriorityUpdate = Object.prototype.hasOwnProperty.call(partialEntity, 'assignmentPriority')
+		const hasMaxConcurrentTasksUpdate = Object.prototype.hasOwnProperty.call(partialEntity, 'maxConcurrentTasks')
 		const normalizedEntity = await this.normalizeBindingInput(
 			{
 				projectId: nextProjectId,
 				teamId: nextTeamId,
 				role: hasRoleUpdate
 					? typeof partialEntity.role === 'string'
-						? partialEntity.role
-						: undefined
+							? partialEntity.role
+							: undefined
 					: current.role,
-				sortOrder: typeof partialEntity.sortOrder === 'number' ? partialEntity.sortOrder : current.sortOrder
+				sortOrder: typeof partialEntity.sortOrder === 'number' ? partialEntity.sortOrder : current.sortOrder,
+				agentRoles: hasAgentRolesUpdate ? partialEntity.agentRoles : current.agentRoles,
+				environmentTypes: hasEnvironmentTypesUpdate
+					? partialEntity.environmentTypes
+					: current.environmentTypes,
+				swimlaneKeys: hasSwimlaneKeysUpdate ? partialEntity.swimlaneKeys : current.swimlaneKeys,
+				assignmentPriority:
+					hasAssignmentPriorityUpdate && typeof partialEntity.assignmentPriority === 'number'
+						? partialEntity.assignmentPriority
+						: current.assignmentPriority,
+				maxConcurrentTasks: hasMaxConcurrentTasksUpdate
+					? partialEntity.maxConcurrentTasks
+					: current.maxConcurrentTasks
 			},
 			current
 		)
@@ -62,7 +97,12 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 				projectId: normalizedEntity.projectId,
 				teamId: normalizedEntity.teamId,
 				role: normalizedEntity.role ?? null,
-				sortOrder: normalizedEntity.sortOrder
+				sortOrder: normalizedEntity.sortOrder,
+				agentRoles: normalizedEntity.agentRoles,
+				environmentTypes: normalizedEntity.environmentTypes ?? null,
+				swimlaneKeys: normalizedEntity.swimlaneKeys ?? null,
+				assignmentPriority: normalizedEntity.assignmentPriority,
+				maxConcurrentTasks: normalizedEntity.maxConcurrentTasks ?? null
 			},
 			...options
 		)
@@ -113,7 +153,7 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 	}
 
 	private async normalizeBindingInput(
-		entity: Partial<IProjectTeamBinding>,
+		entity: ProjectTeamBindingNormalizeInput,
 		current?: ProjectTeamBinding
 	): Promise<Partial<IProjectTeamBinding>> {
 		const projectId = normalizeRequiredBrandedId(entity.projectId, 'projectId', createProjectId, {
@@ -122,14 +162,30 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 		const teamId = normalizeRequiredBrandedId(entity.teamId, 'teamId', createTeamId, {
 			missingMessage: 'teamId is required for a team binding'
 		})
-		const role = entity.role?.trim()
+		const role = typeof entity.role === 'string' ? entity.role.trim() : undefined
+		const agentRoles = normalizeProjectAgentRoles(entity.agentRoles)
+		const environmentTypes = normalizeProjectEnvironmentTypes(entity.environmentTypes)
+		const swimlaneKeys = normalizeOptionalStringList(entity.swimlaneKeys, 'swimlaneKeys')
+		const assignmentPriority =
+			typeof entity.assignmentPriority === 'number' && Number.isInteger(entity.assignmentPriority)
+				? entity.assignmentPriority
+				: 0
+		const maxConcurrentTasks = normalizeOptionalPositiveInteger(
+			entity.maxConcurrentTasks,
+			'maxConcurrentTasks'
+		)
 
 		if (current && projectId !== current.projectId) {
 			throw new BadRequestException('Changing a team binding projectId is not supported')
 		}
 
-		await this.projectCoreService.findOne(projectId)
-		await this.teamDefinitionService.findOne(teamId)
+		const [project, team] = await Promise.all([
+			this.projectCoreService.findOne(projectId),
+			this.teamDefinitionService.findOne(teamId)
+		])
+		if (project.mainAssistantId && team.leadAssistantId === project.mainAssistantId) {
+			throw new BadRequestException('Project team binding cannot target the project main assistant')
+		}
 
 		const duplicate = await this.repository.findOne({
 			where: {
@@ -147,11 +203,15 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 				: await this.getNextSortOrder(projectId, current?.id)
 
 		return {
-			...entity,
 			projectId,
 			teamId,
 			role: role || undefined,
-			sortOrder
+			sortOrder,
+			agentRoles,
+			environmentTypes,
+			swimlaneKeys,
+			assignmentPriority,
+			maxConcurrentTasks
 		}
 	}
 
@@ -164,4 +224,76 @@ export class TeamBindingService extends TenantOrganizationAwareCrudService<Proje
 		const [lastBinding] = currentBindingId ? bindings.filter((binding) => binding.id !== currentBindingId) : bindings
 		return lastBinding ? lastBinding.sortOrder + 1 : 0
 	}
+}
+
+const PROJECT_AGENT_ROLE_VALUES = new Set<string>(Object.values(ProjectAgentRole))
+const PROJECT_ENVIRONMENT_TYPE_VALUES = new Set<string>(Object.values(ProjectExecutionEnvironmentType))
+
+function normalizeProjectAgentRoles(value: unknown): ProjectAgentRole[] {
+	if (value === undefined || value === null) {
+		return []
+	}
+	if (!Array.isArray(value)) {
+		throw new BadRequestException('agentRoles must be an array')
+	}
+
+	return [...new Set(value.map((item) => normalizeProjectAgentRole(item)))]
+}
+
+function normalizeProjectAgentRole(value: unknown): ProjectAgentRole {
+	if (typeof value !== 'string' || !PROJECT_AGENT_ROLE_VALUES.has(value)) {
+		throw new BadRequestException('agentRoles contains an unsupported project agent role')
+	}
+	return value as ProjectAgentRole
+}
+
+function normalizeProjectEnvironmentTypes(value: unknown): ProjectExecutionEnvironmentType[] | null {
+	if (value === undefined || value === null) {
+		return null
+	}
+	if (!Array.isArray(value)) {
+		throw new BadRequestException('environmentTypes must be an array')
+	}
+
+	const normalized = [...new Set(value.map((item) => normalizeProjectEnvironmentType(item)))]
+	return normalized.length ? normalized : null
+}
+
+function normalizeProjectEnvironmentType(value: unknown): ProjectExecutionEnvironmentType {
+	if (typeof value !== 'string' || !PROJECT_ENVIRONMENT_TYPE_VALUES.has(value)) {
+		throw new BadRequestException('environmentTypes contains an unsupported environment type')
+	}
+	return value as ProjectExecutionEnvironmentType
+}
+
+function normalizeOptionalStringList(value: unknown, field: string): string[] | null {
+	if (value === undefined || value === null) {
+		return null
+	}
+	if (!Array.isArray(value)) {
+		throw new BadRequestException(`${field} must be an array`)
+	}
+
+	const normalized = [
+		...new Set(
+			value.map((item) => {
+				if (typeof item !== 'string') {
+					throw new BadRequestException(`${field} must contain only strings`)
+				}
+				return item.trim()
+			}).filter((item) => item.length > 0)
+		)
+	]
+
+	return normalized.length ? normalized : null
+}
+
+function normalizeOptionalPositiveInteger(value: unknown, field: string): number | null {
+	if (value === undefined || value === null) {
+		return null
+	}
+	if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+		throw new BadRequestException(`${field} must be a positive integer`)
+	}
+	return value
 }

@@ -2,16 +2,27 @@ import { BadRequestException } from '@nestjs/common'
 import {
 	createProjectId,
 	createSprintId,
+	createXpertId,
 	ProjectSwimlaneKindEnum,
 	ProjectTaskStatusEnum,
 	createTeamId
 } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
+import { ProjectCoreService } from '../project-core/project-core.service'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'
 import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
 import { ProjectTeamBinding } from '../team-binding/project-team-binding.entity'
+import { TeamDefinitionService } from '../team-definition/team-definition.service'
+import { ProjectTaskExecution } from './project-task-execution.entity'
 import { ProjectTask } from './project-task.entity'
 import { ProjectTaskService } from './project-task.service'
+
+jest.mock('../project-core/project-core.service', () => ({
+	ProjectCoreService: class ProjectCoreService {}
+}))
+jest.mock('../team-definition/team-definition.service', () => ({
+	TeamDefinitionService: class TeamDefinitionService {}
+}))
 
 describe('ProjectTaskService', () => {
 	let service: ProjectTaskService
@@ -21,6 +32,7 @@ describe('ProjectTaskService', () => {
 		update: jest.Mock
 		find: jest.Mock
 		findBy: jest.Mock
+		findAndCount: jest.Mock
 	}
 	let sprintRepository: {
 		findOneBy: jest.Mock
@@ -29,6 +41,15 @@ describe('ProjectTaskService', () => {
 		findOneBy: jest.Mock
 	}
 	let teamBindingRepository: {
+		findOne: jest.Mock
+	}
+	let taskExecutionRepository: {
+		find: jest.Mock
+	}
+	let projectCoreService: {
+		findOne: jest.Mock
+	}
+	let teamDefinitionService: {
 		findOne: jest.Mock
 	}
 	const projectId = createProjectId('project-1')
@@ -40,7 +61,8 @@ describe('ProjectTaskService', () => {
 			save: jest.fn(async (value) => ({ id: 'task-1', ...value })),
 			update: jest.fn(),
 			find: jest.fn().mockResolvedValue([]),
-			findBy: jest.fn().mockResolvedValue([])
+			findBy: jest.fn().mockResolvedValue([]),
+			findAndCount: jest.fn().mockResolvedValue([[], 0])
 		}
 		sprintRepository = {
 			findOneBy: jest.fn().mockResolvedValue({ id: 'sprint-1', projectId: 'project-1' })
@@ -56,12 +78,30 @@ describe('ProjectTaskService', () => {
 		teamBindingRepository = {
 			findOne: jest.fn().mockResolvedValue(null)
 		}
+		taskExecutionRepository = {
+			find: jest.fn().mockResolvedValue([])
+		}
+		projectCoreService = {
+			findOne: jest.fn().mockResolvedValue({
+				id: projectId,
+				mainAssistantId: createXpertId('assistant-main')
+			})
+		}
+		teamDefinitionService = {
+			findOne: jest.fn().mockResolvedValue({
+				id: createTeamId('team-1'),
+				leadAssistantId: createXpertId('assistant-delivery')
+			})
+		}
 
 		service = new ProjectTaskService(
 			taskRepository as unknown as Repository<ProjectTask>,
 			sprintRepository as unknown as Repository<ProjectSprint>,
 			swimlaneRepository as unknown as Repository<ProjectSwimlane>,
-			teamBindingRepository as unknown as Repository<ProjectTeamBinding>
+			teamBindingRepository as unknown as Repository<ProjectTeamBinding>,
+			taskExecutionRepository as unknown as Repository<ProjectTaskExecution>,
+			projectCoreService as unknown as ProjectCoreService,
+			teamDefinitionService as unknown as TeamDefinitionService
 		)
 	})
 
@@ -184,6 +224,30 @@ describe('ProjectTaskService', () => {
 				teamId: createTeamId('team-1')
 			})
 		)
+	})
+
+	it('rejects bound team ids backed by the project main assistant', async () => {
+		teamBindingRepository.findOne.mockResolvedValueOnce({
+			id: 'binding-1',
+			projectId: 'project-1',
+			teamId: createTeamId('team-main')
+		})
+		teamDefinitionService.findOne.mockResolvedValueOnce({
+			id: createTeamId('team-main'),
+			leadAssistantId: createXpertId('assistant-main')
+		})
+
+		await expect(
+			service.create({
+				projectId,
+				sprintId,
+				swimlaneId: 'lane-1',
+				title: 'Implement feature',
+				status: ProjectTaskStatusEnum.Todo,
+				dependencies: [],
+				teamId: createTeamId('team-main')
+			})
+		).rejects.toBeInstanceOf(BadRequestException)
 	})
 
 	it('reorders tasks within a lane', async () => {
@@ -342,5 +406,45 @@ describe('ProjectTaskService', () => {
 				dependencies: []
 			})
 		)
+	})
+
+	it('attaches the latest task execution when listing tasks', async () => {
+		const task = {
+			id: 'task-1',
+			projectId,
+			sprintId,
+			swimlaneId: 'lane-1',
+			status: ProjectTaskStatusEnum.Failed,
+			dependencies: []
+		} as ProjectTask
+		const latestExecution = {
+			id: 'execution-new',
+			taskId: 'task-1',
+			status: 'failed',
+			error: 'missing_task_outcome'
+		} as ProjectTaskExecution
+		const olderExecution = {
+			id: 'execution-old',
+			taskId: 'task-1',
+			status: 'failed',
+			error: 'older error'
+		} as ProjectTaskExecution
+		taskRepository.findAndCount.mockResolvedValueOnce([[task], 1])
+		taskExecutionRepository.find.mockResolvedValueOnce([latestExecution, olderExecution])
+
+		const result = await service.findAll({
+			where: {
+				projectId
+			}
+		})
+
+		expect(taskExecutionRepository.find).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					taskId: expect.any(Object)
+				}
+			})
+		)
+		expect(result.items[0].latestExecution).toBe(latestExecution)
 	})
 })

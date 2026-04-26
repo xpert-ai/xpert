@@ -1,7 +1,7 @@
-import { IProjectTeamBinding } from '@xpert-ai/contracts'
+import { IProjectTeamBinding, ProjectAgentRole, ProjectExecutionEnvironmentType } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsInt, IsOptional, IsString, Min } from 'class-validator'
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator'
 import { Column, Entity, Index } from 'typeorm'
 
 @Entity('project_team_binding')
@@ -34,4 +34,36 @@ export class ProjectTeamBinding extends TenantOrganizationBaseEntity implements 
 	@Min(0)
 	@Column({ type: 'int', default: 0 })
 	sortOrder: number
+
+	@ApiProperty({ enum: ProjectAgentRole, isArray: true, default: [] })
+	@IsArray()
+	@IsEnum(ProjectAgentRole, { each: true })
+	@Column({ type: 'json', default: [] })
+	agentRoles: ProjectAgentRole[]
+
+	@ApiPropertyOptional({ enum: ProjectExecutionEnvironmentType, isArray: true, nullable: true })
+	@IsOptional()
+	@IsArray()
+	@IsEnum(ProjectExecutionEnvironmentType, { each: true })
+	@Column({ type: 'json', nullable: true })
+	environmentTypes?: ProjectExecutionEnvironmentType[] | null
+
+	@ApiPropertyOptional({ type: () => [String], nullable: true })
+	@IsOptional()
+	@IsArray()
+	@IsString({ each: true })
+	@Column({ type: 'json', nullable: true })
+	swimlaneKeys?: string[] | null
+
+	@ApiProperty({ type: () => Number, default: 0 })
+	@IsInt()
+	@Column({ type: 'int', default: 0 })
+	assignmentPriority: number
+
+	@ApiPropertyOptional({ type: () => Number, nullable: true })
+	@IsOptional()
+	@IsInt()
+	@Min(1)
+	@Column({ type: 'int', nullable: true })
+	maxConcurrentTasks?: number | null
 }

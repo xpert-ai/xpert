@@ -3,6 +3,7 @@ import {
 	createSprintId,
 	IProjectAssistantActionAccepted,
 	IProjectAssistantActionRequest,
+	IProjectAssistantActionResponse,
 	ProjectAssistantActionTypeEnum,
 	ProjectId
 } from '@xpert-ai/contracts'
@@ -32,12 +33,16 @@ export class ProjectAssistantActionService {
 		private readonly commandBus: CommandBus
 	) {}
 
-	async execute(projectId: string | ProjectId, request: IProjectAssistantActionRequest): Promise<IProjectAssistantActionAccepted> {
+	async execute(projectId: string | ProjectId, request: IProjectAssistantActionRequest): Promise<IProjectAssistantActionResponse> {
 		const resolvedProjectId = normalizeRequiredBrandedId(projectId, 'projectId', createProjectId)
 		const resolvedSprintId =
 			normalizeOptionalBrandedId(request.sprintId, 'sprintId', createSprintId, {
 				blankAs: 'null'
 			}) ?? null
+
+		if (request.actionType === ProjectAssistantActionTypeEnum.DispatchRunnableTasks) {
+			return this.projectAssistantService.dispatchRunnableTasks(resolvedProjectId, resolvedSprintId)
+		}
 
 		if (request.actionType !== ProjectAssistantActionTypeEnum.ManageBacklog) {
 			throw new ConflictException(`Unsupported project assistant action: ${request.actionType}`)
@@ -104,7 +109,13 @@ export class ProjectAssistantActionService {
 								instruction: request.instruction,
 								boundTeams: boundTeams.map(({ binding, team }) => ({
 									name: team.name,
-									role: binding.role ?? null
+									role: binding.role ?? null,
+									teamId: binding.teamId,
+									agentRoles: binding.agentRoles,
+									environmentTypes: binding.environmentTypes,
+									swimlaneKeys: binding.swimlaneKeys,
+									assignmentPriority: binding.assignmentPriority,
+									maxConcurrentTasks: binding.maxConcurrentTasks
 								}))
 							})
 						}

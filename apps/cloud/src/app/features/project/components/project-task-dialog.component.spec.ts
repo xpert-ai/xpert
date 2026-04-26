@@ -1,18 +1,25 @@
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
 import {
+  createProjectId,
+  createSprintId,
+  createTeamId,
+  createXpertId,
+  IProjectTask,
   ProjectAgentRole,
   ProjectExecutionEnvironmentType,
   ProjectSprintStrategyEnum,
   ProjectSwimlaneKindEnum,
+  ProjectTaskExecutionStatusEnum,
   ProjectTaskStatusEnum
 } from '@xpert-ai/contracts'
 import { ToastrService } from '../../../@core/services/toastr.service'
 import { ProjectTaskService } from '../../../@core/services/project-task.service'
+import { ProjectTaskConversationDialogComponent } from './project-task-conversation-dialog.component'
 import { ProjectTaskDialogComponent } from './project-task-dialog.component'
 
 describe('ProjectTaskDialogComponent', () => {
-  function createComponent(options?: { boundTeams?: unknown[] }) {
+  function createComponent(options?: { boundTeams?: unknown[]; task?: IProjectTask | null }) {
     TestBed.resetTestingModule()
 
     const dialogRef = { close: jest.fn() }
@@ -22,6 +29,9 @@ describe('ProjectTaskDialogComponent', () => {
     }
     const toastr = {
       error: jest.fn()
+    }
+    const dialog = {
+      open: jest.fn()
     }
 
     TestBed.configureTestingModule({
@@ -99,7 +109,8 @@ describe('ProjectTaskDialogComponent', () => {
                 dependencies: []
               }
             ],
-            boundTeams: options?.boundTeams ?? []
+            boundTeams: options?.boundTeams ?? [],
+            task: options?.task ?? null
           }
         },
         {
@@ -113,6 +124,10 @@ describe('ProjectTaskDialogComponent', () => {
         {
           provide: ToastrService,
           useValue: toastr
+        },
+        {
+          provide: Dialog,
+          useValue: dialog
         }
       ]
     })
@@ -123,7 +138,8 @@ describe('ProjectTaskDialogComponent', () => {
       component,
       dialogRef,
       taskService,
-      toastr
+      toastr,
+      dialog
     }
   }
 
@@ -145,5 +161,42 @@ describe('ProjectTaskDialogComponent', () => {
 
     expect(component.hasTeams()).toBeFalsy()
     expect(component.form.controls.teamId.value).toBe('')
+  })
+
+  it('opens the latest task execution conversation in a dialog', () => {
+    const task: IProjectTask = {
+      id: 'task-1',
+      projectId: createProjectId('project-1'),
+      sprintId: createSprintId('sprint-1'),
+      swimlaneId: 'lane-coding',
+      title: 'Existing task',
+      sortOrder: 0,
+      status: ProjectTaskStatusEnum.Failed,
+      dependencies: [],
+      latestExecution: {
+        id: 'execution-1',
+        projectId: createProjectId('project-1'),
+        sprintId: createSprintId('sprint-1'),
+        taskId: 'task-1',
+        teamId: createTeamId('team-1'),
+        xpertId: createXpertId('xpert-1'),
+        dispatchId: 'dispatch-1',
+        status: ProjectTaskExecutionStatusEnum.Success,
+        conversationId: 'conversation-1'
+      }
+    }
+    const { component, dialog } = createComponent({ task })
+
+    component.openLatestConversation()
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      ProjectTaskConversationDialogComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          conversationId: 'conversation-1',
+          taskTitle: 'Existing task'
+        })
+      })
+    )
   })
 })

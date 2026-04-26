@@ -60,7 +60,6 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 
 describe('ChatConversationService workspace files', () => {
-    let repository: { findOne: jest.Mock }
     let service: ChatConversationService
     let repository: {
         findOne: jest.Mock
@@ -78,9 +77,6 @@ describe('ChatConversationService workspace files', () => {
     beforeEach(() => {
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('organization-1')
-        repository = {
-            findOne: jest.fn()
-        }
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
 

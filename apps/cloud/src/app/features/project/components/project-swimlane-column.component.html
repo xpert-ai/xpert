@@ -57,13 +57,11 @@
     (cdkDropListDropped)="onDrop($event)"
   >
     @for (task of column().tasks; track task.id) {
-      <div cdkDrag [cdkDragData]="task">
+      <div cdkDrag [cdkDragData]="task" [cdkDragStartDelay]="300">
         <xp-project-task-card
           [task]="task"
           [teamNames]="teamNames()"
-          [laneKind]="column().lane.kind"
           (opened)="taskOpened.emit($event)"
-          (statusChanged)="taskStatusChanged.emit({ task, status: $event })"
         />
       </div>
     } @empty {

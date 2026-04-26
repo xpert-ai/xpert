@@ -115,6 +115,7 @@ import {
     hasMultipleInputs,
     filterDisabledTools,
     getAgentMiddlewares,
+    readToolDisplayMetadata,
     orderNodesByKeyOrder,
     createAgentChannel
 } from '../../../shared'
@@ -748,11 +749,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     if (team.agentConfig?.tools?.[tool.name]?.description) {
                         tool.description = team.agentConfig.tools[tool.name].description
                     }
+                    const toolDisplay = readToolDisplayMetadata(tool.metadata)
                     toolMap.set(tool.name, tool)
                     return {
                         toolset: {
                             provider: middleware.name,
-                            title: tool.name
+                            title: toolDisplay.displayTitle ?? tool.name,
+                            displayTitle: toolDisplay.displayTitle,
+                            displayMessage: toolDisplay.displayMessage
                         },
                         caller: agent.key,
                         tool,
@@ -1313,7 +1317,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 subgraphBuilder.addNode(
                     name,
-                    new ToolNode([tool], { caller, variables, toolName: toolset.title, wrapToolCall }).withConfig({
+                    new ToolNode([tool], {
+                        caller,
+                        variables,
+                        toolName: toolset.title,
+                        toolDisplayTitle: toolset.displayTitle,
+                        toolDisplayMessage: toolset.displayMessage,
+                        wrapToolCall
+                    }).withConfig({
                         signal: abortController.signal
                     }),
                     {

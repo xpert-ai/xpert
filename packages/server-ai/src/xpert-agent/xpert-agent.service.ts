@@ -135,6 +135,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
                 middleware.tools?.map((tool) => ({
                     name: tool.name,
                     description: tool.description,
+                    metadata: tool.metadata,
                     schema: this.normalizeSchema(tool.schema)
                 })) ?? []
         }

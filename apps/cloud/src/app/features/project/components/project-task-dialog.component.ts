@@ -1,4 +1,4 @@
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
@@ -19,10 +19,12 @@ import {
   ZardButtonComponent,
   ZardCheckboxComponent,
   ZardFormImports,
+  ZardIconComponent,
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { formatProjectLabel, getDefaultTaskSwimlane, ProjectBoundTeamViewModel } from '../project-page.utils'
+import { getLatestTaskConversationId, openProjectTaskConversationDialog } from './project-task-conversation-dialog.component'
 
 type ProjectTaskDialogData = {
   project: IProjectCore
@@ -44,6 +46,7 @@ type ProjectTaskDialogData = {
     TranslateModule,
     ZardButtonComponent,
     ZardCheckboxComponent,
+    ZardIconComponent,
     ZardInputDirective,
     ...ZardFormImports,
     ...ZardSelectImports
@@ -63,6 +66,7 @@ type ProjectTaskDialogData = {
 export class ProjectTaskDialogComponent {
   readonly #dialogRef = inject(DialogRef<IProjectTask | undefined>)
   readonly #data = inject<ProjectTaskDialogData>(DIALOG_DATA)
+  readonly #dialog = inject(Dialog)
   readonly #projectTaskService = inject(ProjectTaskService)
   readonly #toastr = injectToastr()
   readonly #destroyRef = inject(DestroyRef)
@@ -128,6 +132,7 @@ export class ProjectTaskDialogComponent {
   readonly dialogTitleDefault = computed(() =>
     this.task ? 'Task details' : 'Create task'
   )
+  readonly latestConversationId = computed(() => getLatestTaskConversationId(this.task))
 
   constructor() {
     effect(() => {
@@ -147,6 +152,15 @@ export class ProjectTaskDialogComponent {
     }
 
     this.#dialogRef.close()
+  }
+
+  openLatestConversation() {
+    const conversationId = this.latestConversationId()
+    if (!conversationId || this.submitting()) {
+      return
+    }
+
+    openProjectTaskConversationDialog(this.#dialog, this.task)
   }
 
   toggleDependency(taskId: string) {

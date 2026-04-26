@@ -1,7 +1,9 @@
 import { ProjectSprintStrategyEnum } from './project-strategy.model'
+import { IProjectTaskDispatchResult } from './project-task-execution.model'
 
 export enum ProjectAssistantActionTypeEnum {
-	ManageBacklog = 'manage_backlog'
+	ManageBacklog = 'manage_backlog',
+	DispatchRunnableTasks = 'dispatch_runnable_tasks'
 }
 
 export interface IProjectAssistantBootstrapSprintInput {
@@ -21,3 +23,5 @@ export interface IProjectAssistantActionAccepted {
 	conversationId: string
 	dispatchId: string
 }
+
+export type IProjectAssistantActionResponse = IProjectAssistantActionAccepted | IProjectTaskDispatchResult

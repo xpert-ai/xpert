@@ -1,6 +1,7 @@
 import {
 	IProjectAssistantActionAccepted,
 	IProjectAssistantActionRequest,
+	IProjectAssistantActionResponse,
 	ProjectAssistantActionTypeEnum,
 	ProjectSprintStrategyEnum
 } from '@xpert-ai/contracts'
@@ -53,4 +54,10 @@ export class ProjectAssistantActionAcceptedDto implements IProjectAssistantActio
 	constructor(partial: IProjectAssistantActionAccepted) {
 		Object.assign(this, partial)
 	}
+}
+
+export function isProjectAssistantActionAccepted(
+	value: IProjectAssistantActionResponse
+): value is IProjectAssistantActionAccepted {
+	return 'accepted' in value && value.accepted === true
 }

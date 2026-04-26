@@ -105,4 +105,6 @@ export class ProjectTask extends TenantOrganizationBaseEntity implements IProjec
 	@Index()
 	@Column({ type: 'uuid', nullable: true })
 	teamId?: IProjectTask['teamId']
+
+	latestExecution?: IProjectTask['latestExecution']
 }

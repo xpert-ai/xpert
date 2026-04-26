@@ -5,6 +5,7 @@ import {
 	createSprintId,
 	createTeamId,
 	getToolCallIdFromConfig,
+	I18nObject,
 	ProjectAgentRole,
 	ProjectId,
 	ProjectExecutionEnvironmentType,
@@ -51,6 +52,83 @@ type ProjectManagementState = z.infer<typeof stateSchema>
 type ProjectManagementResolvedScope = {
 	projectId: ProjectId
 	sprintId: SprintId | null
+}
+type ProjectToolDisplayMetadata = Record<string, unknown> & {
+	displayTitle: I18nObject
+	displayMessage: I18nObject
+}
+
+const PROJECT_TOOL_DISPLAYS = {
+	getProjectContext: projectToolDisplay(
+		{ en_US: 'Inspect project context', zh_Hans: '查看项目上下文' },
+		{ en_US: 'Inspecting project context', zh_Hans: '正在查看项目上下文' }
+	),
+	listProjectTasks: projectToolDisplay(
+		{ en_US: 'List project tasks', zh_Hans: '列出项目任务' },
+		{ en_US: 'Listing project tasks', zh_Hans: '正在列出项目任务' }
+	),
+	createProjectTasks: projectToolDisplay(
+		{ en_US: 'Create project tasks', zh_Hans: '创建项目任务' },
+		{ en_US: 'Creating project tasks', zh_Hans: '正在创建项目任务' }
+	),
+	updateProjectTasks: projectToolDisplay(
+		{ en_US: 'Update project tasks', zh_Hans: '更新项目任务' },
+		{ en_US: 'Updating project tasks', zh_Hans: '正在更新项目任务' }
+	),
+	reorderProjectTasks: projectToolDisplay(
+		{ en_US: 'Reorder project tasks', zh_Hans: '调整任务顺序' },
+		{ en_US: 'Reordering project tasks', zh_Hans: '正在调整任务顺序' }
+	),
+	moveProjectTasks: projectToolDisplay(
+		{ en_US: 'Move project tasks', zh_Hans: '移动项目任务' },
+		{ en_US: 'Moving project tasks', zh_Hans: '正在移动项目任务' }
+	),
+	createProjectSprint: projectToolDisplay(
+		{ en_US: 'Create project sprint', zh_Hans: '创建项目 Sprint' },
+		{ en_US: 'Creating project sprint', zh_Hans: '正在创建项目 Sprint' }
+	),
+	updateProjectSprint: projectToolDisplay(
+		{ en_US: 'Update project sprint', zh_Hans: '更新项目 Sprint' },
+		{ en_US: 'Updating project sprint', zh_Hans: '正在更新项目 Sprint' }
+	),
+	listProjectTeams: projectToolDisplay(
+		{ en_US: 'List project teams', zh_Hans: '列出项目团队' },
+		{ en_US: 'Listing project teams', zh_Hans: '正在列出项目团队' }
+	),
+	bindProjectTeams: projectToolDisplay(
+		{ en_US: 'Bind project teams', zh_Hans: '绑定项目团队' },
+		{ en_US: 'Binding project teams', zh_Hans: '正在绑定项目团队' }
+	),
+	updateProjectTeamBindings: projectToolDisplay(
+		{ en_US: 'Update team bindings', zh_Hans: '更新团队绑定' },
+		{ en_US: 'Updating team bindings', zh_Hans: '正在更新团队绑定' }
+	),
+	removeProjectTeamBinding: projectToolDisplay(
+		{ en_US: 'Remove team binding', zh_Hans: '移除团队绑定' },
+		{ en_US: 'Removing team binding', zh_Hans: '正在移除团队绑定' }
+	),
+	updateProjectSwimlanes: projectToolDisplay(
+		{ en_US: 'Update project swimlanes', zh_Hans: '更新项目泳道' },
+		{ en_US: 'Updating project swimlanes', zh_Hans: '正在更新项目泳道' }
+	),
+	getProjectExecutionSnapshot: projectToolDisplay(
+		{ en_US: 'Inspect execution snapshot', zh_Hans: '查看执行快照' },
+		{ en_US: 'Inspecting execution snapshot', zh_Hans: '正在查看执行快照' }
+	),
+	dispatchRunnableTasks: projectToolDisplay(
+		{ en_US: 'Dispatch runnable tasks', zh_Hans: '投递可执行任务' },
+		{ en_US: 'Dispatching runnable tasks', zh_Hans: '正在投递可执行任务' }
+	)
+} satisfies Record<string, ProjectToolDisplayMetadata>
+
+function projectToolDisplay(
+	displayTitle: I18nObject,
+	displayMessage: I18nObject = displayTitle
+): ProjectToolDisplayMetadata {
+	return {
+		displayTitle,
+		displayMessage
+	}
 }
 
 @Injectable()
@@ -117,6 +195,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'getProjectContext',
 					description: 'Get the current project, sprint, backlog lane, execution lanes, bound teams, board task counts, and execution snapshot.',
+					metadata: PROJECT_TOOL_DISPLAYS.getProjectContext,
 					schema: z.object({
 						sprintId: z.string().optional()
 					})
@@ -143,6 +222,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'listProjectTasks',
 					description: 'List project tasks filtered by sprint, lane, lane kind, status, or search query.',
+					metadata: PROJECT_TOOL_DISPLAYS.listProjectTasks,
 					schema: z.object({
 						sprintId: z.string().optional(),
 						laneId: z.string().optional(),
@@ -171,6 +251,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'createProjectTasks',
 					description: 'Create one or more project tasks. Tasks default to the backlog lane unless a target lane is provided.',
+					metadata: PROJECT_TOOL_DISPLAYS.createProjectTasks,
 					schema: z.object({
 						sprintId: z.string().optional(),
 						laneId: z.string().optional(),
@@ -202,7 +283,9 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				},
 				{
 					name: 'updateProjectTasks',
-					description: 'Update task title, description, assigned agent, status, or dependencies.',
+					description:
+						'Update task title, description, assigned agent, status, dependencies, or teamId. Use only explicit bound teamId values returned by getProjectContext or listProjectTeams.',
+					metadata: PROJECT_TOOL_DISPLAYS.updateProjectTasks,
 					schema: z.object({
 						tasks: z.array(
 							z.object({
@@ -235,6 +318,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'reorderProjectTasks',
 					description: 'Reorder tasks within a single swimlane.',
+					metadata: PROJECT_TOOL_DISPLAYS.reorderProjectTasks,
 					schema: z.object({
 						laneId: z.string(),
 						orderedTaskIds: z.array(z.string())
@@ -258,6 +342,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'moveProjectTasks',
 					description: 'Move tasks between backlog and execution lanes. Cross-sprint carry-over is limited to backlog-to-backlog moves.',
+					metadata: PROJECT_TOOL_DISPLAYS.moveProjectTasks,
 					schema: z.object({
 						taskIds: z.array(z.string()),
 						targetLaneId: z.string()
@@ -297,6 +382,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'createProjectSprint',
 					description: 'Create a sprint for the current project and optionally carry over backlog tasks from an earlier sprint.',
+					metadata: PROJECT_TOOL_DISPLAYS.createProjectSprint,
 					schema: z.object({
 						goal: z.string(),
 						strategyType: z.nativeEnum(ProjectSprintStrategyEnum),
@@ -328,6 +414,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'updateProjectSprint',
 					description: 'Update sprint goal, status, retrospective, or timebox.',
+					metadata: PROJECT_TOOL_DISPLAYS.updateProjectSprint,
 					schema: z.object({
 						sprintId: z.string(),
 						goal: z.string().optional(),
@@ -351,6 +438,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'listProjectTeams',
 					description: 'List the teams currently bound to the selected project.',
+					metadata: PROJECT_TOOL_DISPLAYS.listProjectTeams,
 					schema: z.object({})
 				}
 			),
@@ -373,6 +461,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'bindProjectTeams',
 					description: 'Bind one or more teams to the selected project.',
+					metadata: PROJECT_TOOL_DISPLAYS.bindProjectTeams,
 					schema: z.object({
 						teams: z.array(
 							z.object({
@@ -399,6 +488,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'updateProjectTeamBindings',
 					description: 'Update role or sort order for existing project team bindings.',
+					metadata: PROJECT_TOOL_DISPLAYS.updateProjectTeamBindings,
 					schema: z.object({
 						bindings: z.array(
 							z.object({
@@ -423,6 +513,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'removeProjectTeamBinding',
 					description: 'Remove a team binding from the selected project.',
+					metadata: PROJECT_TOOL_DISPLAYS.removeProjectTeamBinding,
 					schema: z.object({
 						bindingId: z.string()
 					})
@@ -444,6 +535,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'updateProjectSwimlanes',
 					description: 'Update execution swimlane priority, weight, concurrency, WIP, agent role, or environment.',
+					metadata: PROJECT_TOOL_DISPLAYS.updateProjectSwimlanes,
 					schema: z.object({
 						swimlanes: z.array(
 							z.object({
@@ -475,6 +567,30 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				{
 					name: 'getProjectExecutionSnapshot',
 					description: 'Get the orchestrator execution snapshot for the current sprint.',
+					metadata: PROJECT_TOOL_DISPLAYS.getProjectExecutionSnapshot,
+					schema: z.object({
+						sprintId: z.string().optional()
+					})
+				}
+			),
+			tool(
+				async (input) => {
+					const resolved = this.resolveProjectScope(
+						input.sprintId,
+						options,
+						context,
+						this.readState()
+					)
+					return this.projectAssistantService.dispatchRunnableTasks(
+						resolved.projectId,
+						resolved.sprintId
+					)
+				},
+				{
+					name: 'dispatchRunnableTasks',
+					description:
+						'Dispatch runnable project tasks to their assigned teams only after the user explicitly authorizes execution.',
+					metadata: PROJECT_TOOL_DISPLAYS.dispatchRunnableTasks,
 					schema: z.object({
 						sprintId: z.string().optional()
 					})

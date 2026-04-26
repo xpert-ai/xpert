@@ -5,6 +5,7 @@ import type { ToolCall, ToolMessage } from "@langchain/core/messages/tool";
 import { InferInteropZodOutput, InteropZodObject } from '@langchain/core/utils/types'
 import { RunnableToolLike } from '@langchain/core/runnables';
 import { Command } from '@langchain/langgraph';
+import type { I18nObject } from '@xpert-ai/contracts';
 import { AgentBuiltInState, Runtime } from './runtime';
 import { PromiseOrValue } from '../../types';
 
@@ -14,6 +15,15 @@ export type ClientTool =
   | StructuredToolInterface
   | DynamicTool
   | RunnableToolLike;
+
+export interface AgentMiddlewareToolDisplayMetadata {
+  displayTitle?: I18nObject;
+  displayMessage?: I18nObject;
+}
+
+export type AgentMiddlewareTool = DynamicStructuredTool & {
+  metadata?: Record<string, unknown> & AgentMiddlewareToolDisplayMetadata;
+};
 
 export type NormalizedSchemaInput<
   TSchema extends InteropZodObject | undefined | never = any
@@ -327,7 +337,7 @@ export interface AgentMiddleware<
    */
   contextSchema?: TContextSchema;
 
-  tools?: DynamicStructuredTool[]
+  tools?: AgentMiddlewareTool[]
 
   beforeAgent?: BeforeAgentHook<TSchema, TFullContext>
   beforeModel?: BeforeModelHook<TSchema, TFullContext>

@@ -10,7 +10,7 @@ import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
 import { Command, isCommand, isGraphInterrupt } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
-import { channelName, ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, TVariableAssigner } from "@xpert-ai/contracts";
+import { channelName, ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, I18nObject, TVariableAssigner } from "@xpert-ai/contracts";
 import { getErrorMessage } from "@xpert-ai/server-common";
 import { setContextVariable } from "@langchain/core/context";
 import type { AgentBuiltInState, ToolCallHandler, ToolCallRequest, WrapToolCallHook } from "@xpert-ai/plugin-sdk";
@@ -21,7 +21,9 @@ export type ToolNodeOptions = {
   handleToolErrors?: boolean;
   caller?: string
   variables?: TVariableAssigner[]
-  toolName: string
+  toolName: string | I18nObject
+  toolDisplayTitle?: I18nObject
+  toolDisplayMessage?: I18nObject
   wrapToolCall?: WrapToolCallHook
 };
 
@@ -39,7 +41,9 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   caller?: string
   variables: TVariableAssigner[]
   channel: string
-  toolName: string
+  toolName: string | I18nObject
+  toolDisplayTitle?: I18nObject
+  toolDisplayMessage?: I18nObject
   wrapToolCall?: WrapToolCallHook
 
   constructor(
@@ -53,6 +57,8 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     this.caller = options?.caller
     this.variables = options?.variables
     this.toolName = options?.toolName
+    this.toolDisplayTitle = options?.toolDisplayTitle
+    this.toolDisplayMessage = options?.toolDisplayMessage
     this.wrapToolCall = options?.wrapToolCall
 
     this.channel = options?.caller ? channelName(options.caller) : null
@@ -93,7 +99,14 @@ export class ToolNode<T = any> extends Runnable<T, T> {
               {
                 ...runtime,
                 metadata: {
-                  toolName: this.toolName
+                  ...runtime.metadata,
+                  toolName: this.toolName,
+                  ...(this.toolDisplayTitle
+                    ? { displayTitle: this.toolDisplayTitle, toolDisplayTitle: this.toolDisplayTitle }
+                    : {}),
+                  ...(this.toolDisplayMessage
+                    ? { displayMessage: this.toolDisplayMessage, toolDisplayMessage: this.toolDisplayMessage }
+                    : {})
                 },
                 configurable: {
                   ...runtime.configurable,

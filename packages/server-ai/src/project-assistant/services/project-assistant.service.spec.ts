@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+	createProjectId,
+	createSprintId,
 	createTeamId,
+	createXpertId,
 	IProjectTeamBinding,
 	ITeamDefinition,
 	ProjectSprintStrategyEnum,
@@ -27,6 +30,8 @@ import { ProjectTaskService } from '../../project-task/project-task.service'
 import { ProjectAssistantService } from './project-assistant.service'
 
 describe('ProjectAssistantService', () => {
+	const projectId = createProjectId('project-1')
+	const sprintId = createSprintId('sprint-1')
 	let service: ProjectAssistantService
 	let projectCoreService: { findOne: jest.Mock }
 	let projectSprintService: { findOne: jest.Mock; create: jest.Mock; update: jest.Mock }
@@ -41,17 +46,17 @@ describe('ProjectAssistantService', () => {
 
 	beforeEach(() => {
 		projectCoreService = {
-			findOne: jest.fn().mockResolvedValue({ id: 'project-1', mainAssistantId: 'assistant-1' })
+			findOne: jest.fn().mockResolvedValue({ id: projectId, mainAssistantId: createXpertId('assistant-1') })
 		}
 		projectSprintService = {
 			findOne: jest.fn().mockResolvedValue({
-				id: 'sprint-1',
-				projectId: 'project-1',
+				id: sprintId,
+				projectId,
 				strategyType: ProjectSprintStrategyEnum.SoftwareDelivery
 			}),
 			create: jest.fn().mockResolvedValue({
-				id: 'sprint-1',
-				projectId: 'project-1',
+				id: sprintId,
+				projectId,
 				strategyType: ProjectSprintStrategyEnum.SoftwareDelivery
 			}),
 			update: jest.fn()
@@ -59,8 +64,8 @@ describe('ProjectAssistantService', () => {
 		projectSwimlaneService = {
 			ensureReservedBacklogLane: jest.fn().mockResolvedValue({
 				id: 'lane-backlog',
-				projectId: 'project-1',
-				sprintId: 'sprint-1',
+				projectId,
+				sprintId,
 				kind: ProjectSwimlaneKindEnum.Backlog
 			}),
 			findOne: jest.fn(),
@@ -103,15 +108,15 @@ describe('ProjectAssistantService', () => {
 			find: jest.fn().mockResolvedValue([
 				{
 					id: 'lane-backlog',
-					projectId: 'project-1',
-					sprintId: 'sprint-1',
+					projectId,
+					sprintId,
 					sortOrder: 0,
 					kind: ProjectSwimlaneKindEnum.Backlog
 				},
 				{
 					id: 'lane-execution',
-					projectId: 'project-1',
-					sprintId: 'sprint-1',
+					projectId,
+					sprintId,
 					sortOrder: 1,
 					kind: ProjectSwimlaneKindEnum.Execution
 				}
@@ -137,9 +142,9 @@ describe('ProjectAssistantService', () => {
 	})
 
 	it('resolves context with a reserved backlog lane and execution lanes split by kind', async () => {
-		const context = await service.resolveContext('project-1', 'sprint-1')
+		const context = await service.resolveContext(projectId, sprintId)
 
-		expect(projectSwimlaneService.ensureReservedBacklogLane).toHaveBeenCalledWith('sprint-1')
+		expect(projectSwimlaneService.ensureReservedBacklogLane).toHaveBeenCalledWith(sprintId)
 		expect(context.backlogLane?.id).toBe('lane-backlog')
 		expect(context.executionLanes.map((lane) => lane.id)).toEqual(['lane-execution'])
 	})
@@ -149,7 +154,7 @@ describe('ProjectAssistantService', () => {
 			items: [
 				{
 					id: 'binding-1',
-					projectId: 'project-1',
+					projectId,
 					teamId: createTeamId('team-1'),
 					role: 'Delivery'
 				} as Partial<IProjectTeamBinding>
@@ -160,7 +165,7 @@ describe('ProjectAssistantService', () => {
 			name: 'Delivery Team'
 		} as Partial<ITeamDefinition>)
 
-		const context = await service.resolveContext('project-1', 'sprint-1')
+		const context = await service.resolveContext(projectId, sprintId)
 
 		expect(context.boundTeams).toEqual([
 			expect.objectContaining({
@@ -176,16 +181,63 @@ describe('ProjectAssistantService', () => {
 		])
 	})
 
+	it('filters bound teams backed by the project main assistant from project context', async () => {
+		teamBindingService.listByProject.mockResolvedValueOnce({
+			items: [
+				{
+					id: 'binding-main',
+					projectId,
+					teamId: createTeamId('team-main'),
+					role: 'Main Assistant'
+				} as Partial<IProjectTeamBinding>,
+				{
+					id: 'binding-delivery',
+					projectId,
+					teamId: createTeamId('team-delivery'),
+					role: 'Delivery'
+				} as Partial<IProjectTeamBinding>
+			]
+		})
+		teamDefinitionService.findOne.mockImplementation(async (id: string) => {
+			if (id === createTeamId('team-main')) {
+				return {
+					id,
+					name: 'Main Assistant Team',
+					leadAssistantId: createXpertId('assistant-1')
+				} as Partial<ITeamDefinition>
+			}
+
+			return {
+				id,
+				name: 'Delivery Team',
+				leadAssistantId: createXpertId('assistant-delivery')
+			} as Partial<ITeamDefinition>
+		})
+
+		const context = await service.resolveContext(projectId, sprintId)
+
+		expect(context.boundTeams).toEqual([
+			expect.objectContaining({
+				binding: expect.objectContaining({
+					id: 'binding-delivery'
+				}),
+				team: expect.objectContaining({
+					id: createTeamId('team-delivery')
+				})
+			})
+		])
+	})
+
 	it('rejects execution swimlane updates against the reserved backlog lane', async () => {
 		projectSwimlaneService.findOne.mockResolvedValue({
 			id: 'lane-backlog',
-			projectId: 'project-1',
+			projectId,
 			kind: ProjectSwimlaneKindEnum.Backlog
 		})
 
 		await expect(
 			service.updateProjectSwimlanes({
-				projectId: 'project-1',
+				projectId,
 				swimlanes: [
 					{
 						id: 'lane-backlog',
@@ -200,7 +252,7 @@ describe('ProjectAssistantService', () => {
 		teamBindingService.listByProject.mockResolvedValueOnce({ items: [] })
 		teamBindingService.create.mockResolvedValueOnce({
 			id: 'binding-1',
-			projectId: 'project-1',
+			projectId,
 			teamId: createTeamId('team-1'),
 			role: 'Delivery'
 		})
@@ -208,7 +260,7 @@ describe('ProjectAssistantService', () => {
 			items: [
 				{
 					id: 'binding-1',
-					projectId: 'project-1',
+					projectId,
 					teamId: createTeamId('team-1'),
 					role: 'Delivery'
 				}
@@ -220,12 +272,12 @@ describe('ProjectAssistantService', () => {
 		})
 
 		const result = await service.bindProjectTeams({
-			projectId: 'project-1',
+			projectId,
 			teams: [{ teamId: createTeamId('team-1'), role: 'Delivery' }]
 		})
 
 		expect(teamBindingService.create).toHaveBeenCalledWith({
-			projectId: 'project-1',
+			projectId,
 			teamId: createTeamId('team-1'),
 			role: 'Delivery'
 		})

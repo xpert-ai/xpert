@@ -163,6 +163,7 @@ export class ProjectAssistantService {
 	}
 
 	async listProjectTeams(projectId: ProjectId): Promise<ProjectBoundTeam[]> {
+		const project = await this.resolveProject(projectId)
 		const bindingsResult = await this.teamBindingService.listByProject(projectId)
 		const bindings = bindingsResult.items ?? []
 		if (!bindings.length) {
@@ -175,12 +176,14 @@ export class ProjectAssistantService {
 		return bindings
 			.map((binding) => {
 				const team = teamById.get(binding.teamId)
-				return team
-					? {
-							binding,
-							team
-						}
-					: null
+				if (!team || (project.mainAssistantId && team.leadAssistantId === project.mainAssistantId)) {
+					return null
+				}
+
+				return {
+					binding,
+					team
+				}
 			})
 			.filter((value): value is ProjectBoundTeam => value !== null)
 	}
@@ -488,6 +491,15 @@ export class ProjectAssistantService {
 	async getProjectExecutionSnapshot(projectId: ProjectId, sprintId?: SprintId | null) {
 		const context = await this.resolveContext(projectId, sprintId)
 		return context.executionSnapshot
+	}
+
+	async dispatchRunnableTasks(projectId: ProjectId, sprintId?: SprintId | null) {
+		const sprint = await this.resolveSprint(projectId, sprintId)
+		if (!sprint) {
+			throw new BadRequestException('Project does not have a sprint to dispatch')
+		}
+
+		return this.projectOrchestratorService.dispatchRunnableTasks(sprint.id)
 	}
 
 	private async loadProjectLane(projectId: ProjectId, swimlaneId: string) {

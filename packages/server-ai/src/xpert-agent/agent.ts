@@ -23,7 +23,7 @@ import {
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
-import { AgentStateAnnotation, createTextChunk } from '../shared'
+import { AgentStateAnnotation, createTextChunk, resolveToolActivityDisplay } from '../shared'
 
 /**
  * Create an operator function that intercepts Langgraph events,
@@ -208,6 +208,7 @@ export function createMapStreamEvents(
 							//
 						}
 					}
+					const toolDisplay = resolveToolActivityDisplay(metadata, rest.name)
 					subscriber.next({
 						data: {
 							type: ChatMessageTypeEnum.MESSAGE,
@@ -222,7 +223,8 @@ export function createMapStreamEvents(
 									toolset: rest.metadata.toolset,
 									toolset_id: rest.metadata.toolsetId,
 									tool: rest.name,
-									title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
+									title: toolDisplay.title,
+									...(toolDisplay.message ? { message: toolDisplay.message } : {}),
 									created_date: new Date(),
 									status: 'running',
 									input
