@@ -1,14 +1,18 @@
 import { TestBed } from '@angular/core/testing'
 import { convertToParamMap, ActivatedRoute, Router } from '@angular/router'
 import {
+  XpertEventRecord,
   ProjectAgentRole,
   ProjectExecutionEnvironmentType,
   ProjectSprintStatusEnum,
   ProjectSprintStrategyEnum,
   ProjectSwimlaneKindEnum,
+  ProjectTaskExecutionStatusEnum,
+  XpertProjectTaskEventPayload,
+  XPERT_EVENT_TYPES,
   ProjectTaskStatusEnum
 } from '@xpert-ai/contracts'
-import { BehaviorSubject, of } from 'rxjs'
+import { BehaviorSubject, of, ReplaySubject } from 'rxjs'
 import { ToastrService } from '../../@core/services/toastr.service'
 import { ProjectCoreService } from '../../@core/services/project-core.service'
 import { ProjectSprintService } from '../../@core/services/project-sprint.service'
@@ -16,6 +20,7 @@ import { ProjectSwimlaneService } from '../../@core/services/project-swimlane.se
 import { ProjectTaskService } from '../../@core/services/project-task.service'
 import { TeamBindingService } from '../../@core/services/team-binding.service'
 import { TeamDefinitionService } from '../../@core/services/team-definition.service'
+import { XpertEventService } from '../../@core/services/xpert-event.service'
 import { ProjectPageFacade } from './project-page.facade'
 
 describe('ProjectPageFacade', () => {
@@ -149,6 +154,10 @@ describe('ProjectPageFacade', () => {
     const teamDefinitionService = {
       get: jest.fn()
     }
+    const eventStream$ = new ReplaySubject<XpertEventRecord<XpertProjectTaskEventPayload>>(1)
+    const xpertEventService = {
+      stream: jest.fn().mockReturnValue(eventStream$.asObservable())
+    }
     const toastr = {
       error: jest.fn()
     }
@@ -203,6 +212,10 @@ describe('ProjectPageFacade', () => {
           useValue: teamDefinitionService
         },
         {
+          provide: XpertEventService,
+          useValue: xpertEventService
+        },
+        {
           provide: ToastrService,
           useValue: toastr
         }
@@ -216,6 +229,7 @@ describe('ProjectPageFacade', () => {
       facade,
       router,
       projectTaskService,
+      eventStream$,
       queryParamMap$
     }
   }
@@ -303,10 +317,58 @@ describe('ProjectPageFacade', () => {
       orderedTaskIds: ['task-2', 'task-1']
     })
   })
+
+  it('applies project task execution events to the loaded board', async () => {
+    const { facade, eventStream$ } = await createFacade()
+
+    eventStream$.next({
+      id: 'event-1',
+      streamId: '1-0',
+      type: XPERT_EVENT_TYPES.ProjectTaskExecutionSucceeded,
+      version: 1,
+      scope: {
+        projectId: 'project-1',
+        sprintId: 'sprint-running',
+        taskId: 'task-1',
+        taskExecutionId: 'execution-1'
+      },
+      source: {
+        type: 'project',
+        id: 'execution-1'
+      },
+      payload: {
+        taskId: 'task-1',
+        taskExecutionId: 'execution-1',
+        task: {
+          id: 'task-1',
+          status: ProjectTaskStatusEnum.Done
+        },
+        latestExecution: {
+          id: 'execution-1',
+          projectId: 'project-1',
+          sprintId: 'sprint-running',
+          taskId: 'task-1',
+          teamId: 'team-1',
+          xpertId: 'xpert-1',
+          dispatchId: 'dispatch-1',
+          status: ProjectTaskExecutionStatusEnum.Success
+        }
+      },
+      timestamp: 1
+    })
+    await flushAsync()
+
+    const task = facade.tasks().find((item) => item.id === 'task-1')
+    expect(task?.status).toBe(ProjectTaskStatusEnum.Done)
+    expect(task?.latestExecution?.status).toBe(ProjectTaskExecutionStatusEnum.Success)
+  })
 })
 
 async function flushAsync() {
+  TestBed.flushEffects()
   await Promise.resolve()
   await Promise.resolve()
   await new Promise((resolve) => setTimeout(resolve, 0))
+  TestBed.flushEffects()
+  await Promise.resolve()
 }

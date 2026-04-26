@@ -1,0 +1,405 @@
+---
+title: "AI 调度操作系统"
+description: ""
+---
+
+你现在已经不是在做“任务系统”，而是在做一个**AI 调度操作系统**了。
+所以这个“事件基础设施（Event Infrastructure）”必须按**平台级能力**来设计，而不是简单的 Pub/Sub。
+
+我给你一套可以直接落地在 **XpertAI（NestJS + 多 Agent + Workflow）** 的完整方案 👇
+
+---
+
+# 一、设计目标（先统一认知）
+
+你的事件系统需要同时满足：
+
+### ✅ 功能目标
+
+* 多进程 / 多 Agent / 多 Worker **统一事件流**
+* 前端看板 **实时/半实时更新**
+* 支持 **日志流 / 状态流 / 进度流**
+* 支持 **多用户订阅（协同）**
+
+### ✅ 架构目标
+
+* 解耦（执行层 ≠ UI层）
+* 可扩展（未来接 Kafka / 分布式）
+* 可回放（debug / audit）
+* 可过滤（project / task / agent）
+
+---
+
+# 二、整体架构（核心）
+
+```text
+                   ┌───────────────┐
+                   │  Agent Worker │
+                   └──────┬────────┘
+                          │ emit
+                   ┌──────▼────────┐
+                   │  Event SDK    │  ←（统一发事件入口）
+                   └──────┬────────┘
+                          │
+                ┌─────────▼─────────┐
+                │ Event Bus（Redis）│ ← Pub/Sub 或 Stream
+                └─────────┬─────────┘
+                          │
+                 subscribe│
+                ┌─────────▼─────────┐
+                │ Event Gateway     │（NestJS）
+                └─────────┬─────────┘
+                          │
+                ┌─────────▼─────────┐
+                │ SSE / WebSocket   │
+                └─────────┬─────────┘
+                          │
+                ┌─────────▼─────────┐
+                │ Frontend Store    │
+                └───────────────────┘
+```
+
+---
+
+# 三、核心模块设计
+
+## 1️⃣ Event Schema（统一事件协议）
+
+👉 这是最重要的，不统一你后面全乱
+
+```ts
+export interface XpertEvent<T = any> {
+  id: string              // event id (uuid)
+  type: string            // event type
+  scope: {
+    projectId?: string
+    taskId?: string
+    agentId?: string
+  }
+  source: {
+    type: 'agent' | 'workflow' | 'system' | 'tool'
+    id: string
+  }
+  payload: T
+  meta?: {
+    userId?: string
+    traceId?: string
+  }
+  timestamp: number
+}
+```
+
+---
+
+## 2️⃣ Event Type 设计（强烈建议标准化）
+
+```ts
+// Task
+task.created
+task.assigned
+task.status_changed
+task.progress
+
+// Agent
+agent.started
+agent.step
+agent.finished
+
+// Tool
+tool.called
+tool.result
+
+// Log
+log.stream
+
+// System
+system.error
+```
+
+👉 命名规则：
+
+> **domain.action**
+
+---
+
+## 3️⃣ Event SDK（统一发事件入口）
+
+👉 所有 Worker / Agent 都必须通过它发事件
+
+```ts
+@Injectable()
+export class EventPublisher {
+  constructor(private redis: Redis) {}
+
+  async publish(event: XpertEvent) {
+    await this.redis.xadd(
+      'xpert:events',
+      '*',
+      'data',
+      JSON.stringify(event)
+    )
+  }
+}
+```
+
+---
+
+## 4️⃣ Event Bus（推荐 Redis Stream）
+
+为什么不用 Pub/Sub？
+
+| 对比   | Pub/Sub | Redis Stream |
+| ---- | ------- | ------------ |
+| 持久化  | ❌       | ✅            |
+| 可回放  | ❌       | ✅            |
+| 消费确认 | ❌       | ✅            |
+
+👉 **推荐：Redis Stream**
+
+---
+
+## 5️⃣ Event Gateway（事件网关）
+
+👉 核心职责：
+
+* 从 Redis Stream 读取事件
+* 按 projectId / taskId 分发
+* 推送给前端
+
+```ts
+@Injectable()
+export class EventGateway {
+  private projectStreams = new Map<string, Subject<XpertEvent>>()
+
+  async start() {
+    while (true) {
+      const events = await this.readFromStream()
+
+      for (const event of events) {
+        const projectId = event.scope.projectId
+        this.projectStreams.get(projectId)?.next(event)
+      }
+    }
+  }
+
+  getProjectStream(projectId: string) {
+    if (!this.projectStreams.has(projectId)) {
+      this.projectStreams.set(projectId, new Subject())
+    }
+    return this.projectStreams.get(projectId)!.asObservable()
+  }
+}
+```
+
+---
+
+## 6️⃣ SSE 接口
+
+```ts
+@Controller('events')
+export class EventController {
+  constructor(private gateway: EventGateway) {}
+
+  @Sse('projects/:projectId')
+  stream(@Param('projectId') projectId: string) {
+    return this.gateway.getProjectStream(projectId).pipe(
+      map(e => ({ data: e }))
+    )
+  }
+}
+```
+
+---
+
+# 四、前端设计（Angular）
+
+## 1️⃣ 事件驱动 Store
+
+```ts
+class TaskStore {
+  tasks = signal<Map<string, Task>>(new Map())
+
+  applyEvent(event: XpertEvent) {
+    switch (event.type) {
+      case 'task.status_changed':
+        this.patchTask(event.scope.taskId, {
+          status: event.payload.status
+        })
+        break
+
+      case 'task.progress':
+        this.patchTask(event.scope.taskId, {
+          progress: event.payload.percent
+        })
+        break
+    }
+  }
+}
+```
+
+---
+
+## 2️⃣ SSE 接入
+
+```ts
+fetchEventSource(`/api/events/projects/${projectId}`, {
+  onmessage(ev) {
+    const event = JSON.parse(ev.data)
+    store.applyEvent(event)
+  }
+})
+```
+
+---
+
+# 五、关键能力（你这个系统必须要有）
+
+## ✅ 1. Replay（事件回放）
+
+用于：
+
+* 用户刷新页面
+* Debug
+* 审计
+
+```ts
+XRANGE xpert:events - +
+```
+
+---
+
+## ✅ 2. Snapshot（快照）
+
+👉 避免 replay 太慢
+
+* 定期保存 task/project 状态
+* 新用户：snapshot + 增量事件
+
+---
+
+## ✅ 3. Event Filtering（过滤）
+
+```ts
+GET /events?projectId=xxx&taskId=xxx
+```
+
+---
+
+## ✅ 4. Backpressure（限流）
+
+👉 防止前端炸掉
+
+* debounce（50ms合并）
+* 批量发送
+
+---
+
+## ✅ 5. 多租户隔离（你一定需要）
+
+```ts
+stream: xpert:{tenantId}:events
+```
+
+---
+
+# 六、和你现有系统的结合（重点）
+
+你现在有：
+
+* BullMQ
+* LangGraph
+* Agent
+
+👉 全部接入 Event SDK：
+
+```ts
+// Bull Worker
+worker.on('completed', () => {
+  eventPublisher.publish({
+    type: 'task.status_changed',
+    payload: { status: 'SUCCESS' }
+  })
+})
+```
+
+---
+
+# 七、进阶设计（建议你一步到位）
+
+## 1️⃣ 事件中间件（类似 Nest Middleware）
+
+```ts
+eventPipeline.use(loggingMiddleware)
+eventPipeline.use(traceMiddleware)
+eventPipeline.use(transformMiddleware)
+```
+
+---
+
+## 2️⃣ 事件驱动自动化（未来）
+
+👉 直接用事件驱动 workflow
+
+```ts
+on('task.failed') → trigger retry workflow
+```
+
+---
+
+## 3️⃣ 统一 Trace（强烈建议）
+
+```ts
+meta: {
+  traceId: 'xxx'
+}
+```
+
+👉 可以串起来：
+
+* agent step
+* tool call
+* task
+
+---
+
+# 八、最终总结（一句话）
+
+👉 你要做的不是“任务通知系统”，而是：
+
+> **一个面向 AI 调度系统的“事件操作系统（Event OS）”**
+
+---
+
+# 九、给你的落地优先级（务实版）
+
+如果你要分阶段做：
+
+### Phase 1（1天）
+
+* Redis Pub/Sub
+* SSE
+* 基础事件
+
+### Phase 2（3天）
+
+* Redis Stream
+* replay
+* event schema
+
+### Phase 3（1周）
+
+* snapshot
+* trace
+* event middleware
+
+---
+
+如果你愿意，我可以帮你下一步直接输出：
+
+✅ NestJS 完整模块代码结构（可直接放进 XpertAI）
+✅ Redis Stream 消费组 + ack 机制
+✅ Angular Signal Store 标准实现
+
+这套东西做完，你的平台就具备：
+
+👉 **企业级 AI 调度 + 可观测能力（对标 Claude / OpenAI 内部系统）**

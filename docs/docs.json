@@ -89,7 +89,8 @@
                   "zh-hans/guides/permission",
                   "zh-hans/guides/newroles",
                   "zh-hans/guides/features-current",
-                  "zh-hans/guides/permissions-current"
+                  "zh-hans/guides/permissions-current",
+                  "zh-hans/guides/event-system"
                 ]
               }
             ]

@@ -6,8 +6,11 @@ import {
   IProjectSprint,
   IProjectSwimlane,
   IProjectTask,
+  isXpertProjectTaskEventType,
   ProjectSwimlaneKindEnum,
-  ProjectTaskStatusEnum
+  ProjectTaskStatusEnum,
+  XpertEventRecord,
+  XpertProjectTaskEventPayload
 } from '@xpert-ai/contracts'
 import { OrderTypeEnum } from '@xpert-ai/cloud/state'
 import { firstValueFrom } from 'rxjs'
@@ -18,6 +21,7 @@ import {
   ProjectTaskService,
   TeamBindingService,
   TeamDefinitionService,
+  XpertEventService,
   getErrorMessage,
   injectToastr
 } from '../../@core'
@@ -42,6 +46,7 @@ export class ProjectPageFacade {
   readonly #projectTaskService = inject(ProjectTaskService)
   readonly #teamBindingService = inject(TeamBindingService)
   readonly #teamDefinitionService = inject(TeamDefinitionService)
+  readonly #xpertEventService = inject(XpertEventService)
   readonly #toastr = injectToastr()
 
   readonly #projectParamMap = toSignal(this.#route.paramMap, {
@@ -86,6 +91,7 @@ export class ProjectPageFacade {
   #contextLoadVersion = 0
   #boardLoadVersion = 0
   #lastSprintQuerySyncKey: string | null = null
+  #eventRefreshQueued = false
 
   constructor() {
     effect(() => {
@@ -106,6 +112,26 @@ export class ProjectPageFacade {
 
     effect(() => {
       void this.loadSprintBoard(this.projectId(), this.selectedSprintId())
+    })
+
+    effect((onCleanup) => {
+      const projectId = this.projectId()
+      const sprintId = this.selectedSprintId()
+      if (!projectId || !sprintId) {
+        return
+      }
+
+      const subscription = this.#xpertEventService
+        .stream<XpertProjectTaskEventPayload>({
+          projectId,
+          sprintId
+        })
+        .subscribe({
+          next: (event) => this.applyProjectTaskEvent(event),
+          error: () => this.scheduleBoardRefresh()
+        })
+
+      onCleanup(() => subscription.unsubscribe())
     })
   }
 
@@ -351,6 +377,61 @@ export class ProjectPageFacade {
         this.boardLoading.set(false)
       }
     }
+  }
+
+  private applyProjectTaskEvent(event: XpertEventRecord<XpertProjectTaskEventPayload>) {
+    if (!isXpertProjectTaskEventType(event.type)) {
+      return
+    }
+
+    const taskId = event.payload.taskId || event.scope.taskId
+    if (!taskId) {
+      this.scheduleBoardRefresh()
+      return
+    }
+
+    let found = false
+    this.tasks.update((tasks) =>
+      tasks.map((task) => {
+        if (task.id !== taskId) {
+          return task
+        }
+        found = true
+        return {
+          ...task,
+          ...(event.payload.task ?? {}),
+          latestExecution: this.mergeLatestExecution(task.latestExecution, event.payload.latestExecution)
+        }
+      })
+    )
+
+    if (!found) {
+      this.scheduleBoardRefresh()
+    }
+  }
+
+  private mergeLatestExecution(
+    current: IProjectTask['latestExecution'],
+    patch: XpertProjectTaskEventPayload['latestExecution']
+  ): IProjectTask['latestExecution'] {
+    if (!patch) {
+      return current
+    }
+    return {
+      ...(current ?? {}),
+      ...patch
+    } as IProjectTask['latestExecution']
+  }
+
+  private scheduleBoardRefresh() {
+    if (this.#eventRefreshQueued) {
+      return
+    }
+    this.#eventRefreshQueued = true
+    queueMicrotask(() => {
+      this.#eventRefreshQueued = false
+      void this.loadSprintBoard(this.projectId(), this.selectedSprintId())
+    })
   }
 
   private clearProjectScopedState() {

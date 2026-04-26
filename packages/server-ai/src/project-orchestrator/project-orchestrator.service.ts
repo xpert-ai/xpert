@@ -5,9 +5,11 @@ import {
 	ProjectTaskDispatchSkippedReasonEnum,
 	ProjectTaskExecutionStatusEnum,
 	ProjectTaskStatusEnum,
-	SprintId
+	SprintId,
+	XPERT_EVENT_TYPES,
+	XpertProjectTaskEventPayload
 } from '@xpert-ai/contracts'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { HandoffMessage, RequestContext } from '@xpert-ai/plugin-sdk'
 import { randomUUID } from 'crypto'
@@ -18,11 +20,10 @@ import { ProjectSwimlane } from '../project-swimlane/project-swimlane.entity'
 import { ProjectTaskExecution } from '../project-task/project-task-execution.entity'
 import { ProjectTask } from '../project-task/project-task.entity'
 import { TeamDefinitionService } from '../team-definition/team-definition.service'
-import {
-	ProjectTaskDispatchPayload,
-	PROJECT_TASK_DISPATCH_MESSAGE_TYPE
-} from './project-task-dispatch.processor'
+import type { ProjectTaskDispatchPayload } from './project-task-dispatch.processor'
+import { PROJECT_TASK_DISPATCH_MESSAGE_TYPE } from './project-task-dispatch.constants'
 import { ProjectTaskAssignmentService } from './project-task-assignment.service'
+import { XpertEventPublisher } from '../event-system'
 
 export interface ProjectSwimlaneExecutionSnapshot {
 	lane: ProjectSwimlane
@@ -47,6 +48,8 @@ interface PendingProjectTaskDispatch {
 	teamId: ProjectTaskExecution['teamId']
 	xpertId: ProjectTaskExecution['xpertId']
 	dispatchId: string
+	projectId: ProjectTaskExecution['projectId']
+	sprintId: ProjectTaskExecution['sprintId']
 	tenantId: string
 	organizationId?: string | null
 	userId?: string | null
@@ -133,7 +136,8 @@ export class ProjectOrchestratorService {
 		private readonly taskExecutionRepository: Repository<ProjectTaskExecution>,
 		private readonly taskAssignmentService: ProjectTaskAssignmentService,
 		private readonly teamDefinitionService: TeamDefinitionService,
-		private readonly handoffQueueService: HandoffQueueService
+		private readonly handoffQueueService: HandoffQueueService,
+		@Optional() private readonly eventPublisher?: XpertEventPublisher
 	) {}
 
 	async getSprintExecutionSnapshot(sprintId: SprintId) {
@@ -274,6 +278,8 @@ export class ProjectOrchestratorService {
 					teamId: assignment.binding.teamId,
 					xpertId: team.leadAssistantId,
 					dispatchId,
+					projectId: task.projectId,
+					sprintId: task.sprintId,
 					tenantId: task.tenantId,
 					organizationId: task.organizationId ?? null,
 					userId: RequestContext.currentUserId() ?? null
@@ -290,8 +296,27 @@ export class ProjectOrchestratorService {
 		const skipped: IProjectTaskDispatchResult['skipped'] = [...transactionResult.skipped]
 
 		for (const pending of transactionResult.pendingDispatches) {
+			this.publishProjectTaskEvent(XPERT_EVENT_TYPES.ProjectTaskClaimed, pending, {
+				task: {
+					id: pending.taskId,
+					status: ProjectTaskStatusEnum.Doing,
+					teamId: pending.teamId,
+					assignedAgentId: pending.xpertId
+				},
+				latestExecution: {
+					id: pending.taskExecutionId,
+					projectId: pending.projectId,
+					sprintId: pending.sprintId,
+					taskId: pending.taskId,
+					teamId: pending.teamId,
+					xpertId: pending.xpertId,
+					dispatchId: pending.dispatchId,
+					status: ProjectTaskExecutionStatusEnum.Pending
+				}
+			})
 			try {
 				await this.handoffQueueService.enqueue(this.buildProjectTaskDispatchMessage(pending))
+				this.publishProjectTaskEvent(XPERT_EVENT_TYPES.ProjectTaskDispatchEnqueued, pending)
 				dispatched.push({
 					taskId: pending.taskId,
 					taskExecutionId: pending.taskExecutionId,
@@ -350,6 +375,60 @@ export class ProjectOrchestratorService {
 				status: ProjectTaskStatusEnum.Failed
 			})
 		])
+		this.publishProjectTaskEvent(XPERT_EVENT_TYPES.ProjectTaskExecutionFailed, pending, {
+			task: {
+				id: pending.taskId,
+				status: ProjectTaskStatusEnum.Failed
+			},
+			latestExecution: {
+				id: pending.taskExecutionId,
+				projectId: pending.projectId,
+				sprintId: pending.sprintId,
+				taskId: pending.taskId,
+				teamId: pending.teamId,
+				xpertId: pending.xpertId,
+				dispatchId: pending.dispatchId,
+				status: ProjectTaskExecutionStatusEnum.Failed,
+				error,
+				completedAt: new Date()
+			},
+			error
+		})
+	}
+
+	private publishProjectTaskEvent(
+		type: string,
+		pending: PendingProjectTaskDispatch,
+		payload?: Partial<XpertProjectTaskEventPayload>
+	) {
+		this.eventPublisher
+			?.publish<XpertProjectTaskEventPayload>({
+				type,
+				scope: {
+					projectId: pending.projectId,
+					sprintId: pending.sprintId,
+					taskId: pending.taskId,
+					taskExecutionId: pending.taskExecutionId,
+					xpertId: pending.xpertId
+				},
+				source: {
+					type: 'project',
+					id: pending.taskExecutionId
+				},
+				payload: {
+					taskId: pending.taskId,
+					taskExecutionId: pending.taskExecutionId,
+					dispatchId: pending.dispatchId,
+					...payload
+				},
+				meta: {
+					tenantId: pending.tenantId,
+					organizationId: pending.organizationId ?? null,
+					userId: pending.userId ?? null,
+					traceId: pending.taskExecutionId
+				}
+			})
+			.catch(() => null)
 	}
 }
 

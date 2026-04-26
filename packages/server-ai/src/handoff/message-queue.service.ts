@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Optional } from '@nestjs/common'
 import {
 	HandoffEnqueueAndWaitOptions,
 	HandoffEnqueueOptions,
@@ -18,13 +18,16 @@ import {
 	HandoffQueueEnqueueItem,
 	HandoffQueueGatewayService
 } from './dispatcher/handoff-queue-gateway.service'
+import { XPERT_EVENT_TYPES } from '@xpert-ai/contracts'
+import { XpertEventPublisher } from '../event-system'
 
 @Injectable()
 export class HandoffQueueService implements HandoffPermissionService {
 	constructor(
 		private readonly queueGateway: HandoffQueueGatewayService,
 		private readonly routeResolver: HandoffRouteResolver,
-		private readonly pendingResults: HandoffPendingResultService
+		private readonly pendingResults: HandoffPendingResultService,
+		@Optional() private readonly eventPublisher?: XpertEventPublisher
 	) {}
 
 	@RequirePermissionOperation('handoff', 'enqueue')
@@ -32,6 +35,7 @@ export class HandoffQueueService implements HandoffPermissionService {
 		const route = this.routeResolver.resolve(message)
 		const normalized = this.normalize(message, route)
 		await this.addJob(normalized, route, options)
+		this.publishHandoffEnqueued(normalized, route.queue)
 		return { id: normalized.id }
 	}
 
@@ -42,6 +46,9 @@ export class HandoffQueueService implements HandoffPermissionService {
 			return this.toQueueEnqueueItem(normalized, route, options)
 		})
 		await this.queueGateway.enqueueMany(queueItems)
+		for (const item of queueItems) {
+			this.publishHandoffEnqueued(item.message, item.queueName)
+		}
 		return queueItems.map((item) => ({ id: item.message.id }))
 	}
 
@@ -62,6 +69,7 @@ export class HandoffQueueService implements HandoffPermissionService {
 		})
 		try {
 			await this.addJob(normalized, route, options)
+			this.publishHandoffEnqueued(normalized, route.queue)
 		} catch (error) {
 			this.pendingResults.reject(normalized.id, error)
 			throw error
@@ -119,5 +127,33 @@ export class HandoffQueueService implements HandoffPermissionService {
 			...message,
 			headers: headers as HandoffMessage['headers']
 		}
+	}
+
+	private publishHandoffEnqueued(message: HandoffMessage, queueName: string) {
+		this.eventPublisher
+			?.publish({
+				type: XPERT_EVENT_TYPES.HandoffEnqueued,
+				source: {
+					type: 'handoff',
+					id: message.id
+				},
+				payload: {
+					messageId: message.id,
+					messageType: message.type,
+					queueName,
+					sessionKey: message.sessionKey,
+					businessKey: message.businessKey,
+					attempt: message.attempt,
+					maxAttempts: message.maxAttempts,
+					parentMessageId: message.parentMessageId
+				},
+				meta: {
+					tenantId: message.tenantId,
+					organizationId: message.headers?.organizationId ?? null,
+					userId: message.headers?.userId ?? null,
+					traceId: message.traceId
+				}
+			})
+			.catch(() => null)
 	}
 }

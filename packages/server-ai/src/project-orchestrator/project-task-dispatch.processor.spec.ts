@@ -19,11 +19,8 @@ import { ProjectTaskExecution } from '../project-task/project-task-execution.ent
 import { ProjectTask } from '../project-task/project-task.entity'
 import { TeamDefinitionService } from '../team-definition/team-definition.service'
 import { XpertChatCommand } from '../xpert/commands/chat.command'
-import {
-	ProjectTaskDispatchPayload,
-	ProjectTaskDispatchProcessor,
-	PROJECT_TASK_DISPATCH_MESSAGE_TYPE
-} from './project-task-dispatch.processor'
+import { PROJECT_TASK_DISPATCH_MESSAGE_TYPE } from './project-task-dispatch.constants'
+import { ProjectTaskDispatchPayload, ProjectTaskDispatchProcessor } from './project-task-dispatch.processor'
 
 jest.mock('../team-definition/team-definition.service', () => ({
 	TeamDefinitionService: class TeamDefinitionService {}

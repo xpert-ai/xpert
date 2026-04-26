@@ -17,9 +17,12 @@ import { ProjectTaskExecution } from '../project-task/project-task-execution.ent
 import { ProjectTeamBinding } from '../team-binding/project-team-binding.entity'
 import { TeamDefinitionService } from '../team-definition/team-definition.service'
 import { ProjectTaskAssignmentService } from './project-task-assignment.service'
-import { PROJECT_TASK_DISPATCH_MESSAGE_TYPE } from './project-task-dispatch.processor'
+import { PROJECT_TASK_DISPATCH_MESSAGE_TYPE } from './project-task-dispatch.constants'
 jest.mock('../team-definition/team-definition.service', () => ({
 	TeamDefinitionService: class TeamDefinitionService {}
+}))
+jest.mock('../project-core/project-core.service', () => ({
+	ProjectCoreService: class ProjectCoreService {}
 }))
 import { buildSprintExecutionSnapshot, ProjectOrchestratorService } from './project-orchestrator.service'
 import { ProjectSprint } from '../project-sprint/project-sprint.entity'

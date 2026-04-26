@@ -3,18 +3,20 @@ import type { Observable } from 'rxjs'
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
+	IProjectTaskExecutionArtifact,
 	ProjectTaskExecutionOutcomeEnum,
 	ProjectTaskExecutionStatusEnum,
 	ProjectTaskStatusEnum,
 	TChatRequest,
+	XPERT_EVENT_TYPES,
+	XpertProjectTaskEventPayload,
 	XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { runWithRequestContext as runWithServerRequestContext } from '@xpert-ai/server-core'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Optional } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
-	defineAgentMessageType,
 	HandoffMessage,
 	HandoffProcessorStrategy,
 	IHandoffProcessor,
@@ -29,8 +31,8 @@ import { ProjectTaskExecution } from '../project-task/project-task-execution.ent
 import { ProjectTask } from '../project-task/project-task.entity'
 import { TeamDefinitionService } from '../team-definition/team-definition.service'
 import { XpertChatCommand } from '../xpert/commands/chat.command'
-
-export const PROJECT_TASK_DISPATCH_MESSAGE_TYPE = defineAgentMessageType('project_task_dispatch', 1)
+import { XpertEventPublisher } from '../event-system'
+import { PROJECT_TASK_DISPATCH_MESSAGE_TYPE } from './project-task-dispatch.constants'
 
 export interface ProjectTaskDispatchPayload extends Record<string, unknown> {
 	taskExecutionId: string
@@ -43,7 +45,14 @@ const taskOutcomeArtifactSchema = z.object({
 	name: z.string().min(1),
 	url: z.string().optional(),
 	metadata: z.unknown().optional()
-})
+}).transform(
+	(artifact): IProjectTaskExecutionArtifact => ({
+		type: artifact.type,
+		name: artifact.name,
+		url: artifact.url,
+		metadata: artifact.metadata
+	})
+)
 
 const taskOutcomeSchema = z.object({
 	outcome: z.nativeEnum(ProjectTaskExecutionOutcomeEnum),
@@ -82,7 +91,8 @@ export class ProjectTaskDispatchProcessor implements IHandoffProcessor<ProjectTa
 		@InjectRepository(ProjectTask)
 		private readonly taskRepository: Repository<ProjectTask>,
 		private readonly teamDefinitionService: TeamDefinitionService,
-		private readonly projectCoreService: ProjectCoreService
+		private readonly projectCoreService: ProjectCoreService,
+		@Optional() private readonly eventPublisher?: XpertEventPublisher
 	) {}
 
 	async process(message: HandoffMessage<ProjectTaskDispatchPayload>, ctx: ProcessContext): Promise<ProcessResult> {
@@ -139,11 +149,31 @@ export class ProjectTaskDispatchProcessor implements IHandoffProcessor<ProjectTa
 			return { status: 'ok' }
 		}
 
+		const startedAt = taskExecution.startedAt ?? new Date()
 		await this.taskExecutionRepository.update(taskExecution.id, {
 			status: ProjectTaskExecutionStatusEnum.Running,
-			startedAt: taskExecution.startedAt ?? new Date(),
+			startedAt,
 			dispatchId: message.id,
 			xpertId: team.leadAssistantId
+		})
+		this.publishExecutionEvent(XPERT_EVENT_TYPES.ProjectTaskExecutionStarted, taskExecution, {
+			task: {
+				id: task.id,
+				status: ProjectTaskStatusEnum.Doing,
+				teamId: task.teamId,
+				assignedAgentId: team.leadAssistantId
+			},
+			latestExecution: {
+				id: taskExecution.id,
+				projectId: taskExecution.projectId,
+				sprintId: taskExecution.sprintId,
+				taskId: taskExecution.taskId,
+				teamId: taskExecution.teamId,
+				xpertId: team.leadAssistantId,
+				dispatchId: message.id,
+				status: ProjectTaskExecutionStatusEnum.Running,
+				startedAt
+			}
 		})
 
 		const outcomeState: ProjectTaskOutcomeState = { reported: false }
@@ -167,7 +197,7 @@ export class ProjectTaskDispatchProcessor implements IHandoffProcessor<ProjectTa
 					tools: [outcomeTool]
 				})
 			)
-			const streamResult = await this.consumeChatStream(observable, taskExecution.id, ctx)
+			const streamResult = await this.consumeChatStream(observable, taskExecution, ctx)
 
 			if (!outcomeState.reported) {
 				const fallbackError = this.getStreamCompletionError(streamResult)
@@ -235,25 +265,74 @@ export class ProjectTaskDispatchProcessor implements IHandoffProcessor<ProjectTa
 				status: taskStatus
 			})
 		])
+		this.publishExecutionEvent(
+			input.outcome === ProjectTaskExecutionOutcomeEnum.Success
+				? XPERT_EVENT_TYPES.ProjectTaskExecutionSucceeded
+				: XPERT_EVENT_TYPES.ProjectTaskExecutionFailed,
+			taskExecution,
+			{
+				task: {
+					id: task.id,
+					status: taskStatus
+				},
+				latestExecution: {
+					id: taskExecution.id,
+					projectId: taskExecution.projectId,
+					sprintId: taskExecution.sprintId,
+					taskId: taskExecution.taskId,
+					teamId: taskExecution.teamId,
+					xpertId: taskExecution.xpertId,
+					dispatchId: taskExecution.dispatchId,
+					status: executionStatus,
+					outcome: input.outcome,
+					summary: input.summary,
+					artifacts: input.artifacts ?? null,
+					error: input.error ?? null,
+					completedAt
+				},
+				error: input.error ?? null
+			}
+		)
 	}
 
 	private async failTaskExecution(taskExecution: ProjectTaskExecution, error: string) {
+		const completedAt = new Date()
 		await Promise.all([
 			this.taskExecutionRepository.update(taskExecution.id, {
 				status: ProjectTaskExecutionStatusEnum.Failed,
 				outcome: ProjectTaskExecutionOutcomeEnum.Failed,
 				error,
-				completedAt: new Date()
+				completedAt
 			}),
 			this.taskRepository.update(taskExecution.taskId, {
 				status: ProjectTaskStatusEnum.Failed
 			})
 		])
+		this.publishExecutionEvent(XPERT_EVENT_TYPES.ProjectTaskExecutionFailed, taskExecution, {
+			task: {
+				id: taskExecution.taskId,
+				status: ProjectTaskStatusEnum.Failed
+			},
+			latestExecution: {
+				id: taskExecution.id,
+				projectId: taskExecution.projectId,
+				sprintId: taskExecution.sprintId,
+				taskId: taskExecution.taskId,
+				teamId: taskExecution.teamId,
+				xpertId: taskExecution.xpertId,
+				dispatchId: taskExecution.dispatchId,
+				status: ProjectTaskExecutionStatusEnum.Failed,
+				outcome: ProjectTaskExecutionOutcomeEnum.Failed,
+				error,
+				completedAt
+			},
+			error
+		})
 	}
 
 	private consumeChatStream(
 		observable: Observable<MessageEvent>,
-		taskExecutionId: string,
+		taskExecution: ProjectTaskExecution,
 		ctx: ProcessContext
 	): Promise<ProjectTaskStreamResult> {
 		let chain = Promise.resolve()
@@ -270,7 +349,7 @@ export class ProjectTaskDispatchProcessor implements IHandoffProcessor<ProjectTa
 			subscription = observable.subscribe({
 				next: (event) => {
 					this.collectStreamResult(event, streamResult)
-					chain = chain.then(() => this.recordChatEvent(taskExecutionId, event))
+					chain = chain.then(() => this.recordChatEvent(taskExecution, event))
 					chain.catch((error) => {
 						subscription?.unsubscribe()
 						reject(error)
@@ -292,7 +371,7 @@ export class ProjectTaskDispatchProcessor implements IHandoffProcessor<ProjectTa
 		})
 	}
 
-	private async recordChatEvent(taskExecutionId: string, event: MessageEvent) {
+	private async recordChatEvent(taskExecution: ProjectTaskExecution, event: MessageEvent) {
 		const payload = event.data
 		if (readStringProperty(payload, 'type') !== ChatMessageTypeEnum.EVENT) {
 			return
@@ -303,7 +382,10 @@ export class ProjectTaskDispatchProcessor implements IHandoffProcessor<ProjectTa
 		if (eventName === ChatMessageEventTypeEnum.ON_CONVERSATION_START) {
 			const conversationId = readStringProperty(data, 'id')
 			if (conversationId) {
-				await this.taskExecutionRepository.update(taskExecutionId, {
+				await this.taskExecutionRepository.update(taskExecution.id, {
+					conversationId
+				})
+				this.publishExecutionUpdated(taskExecution, {
 					conversationId
 				})
 			}
@@ -313,11 +395,67 @@ export class ProjectTaskDispatchProcessor implements IHandoffProcessor<ProjectTa
 		if (eventName === ChatMessageEventTypeEnum.ON_MESSAGE_START) {
 			const agentExecutionId = readStringProperty(data, 'executionId')
 			if (agentExecutionId) {
-				await this.taskExecutionRepository.update(taskExecutionId, {
+				await this.taskExecutionRepository.update(taskExecution.id, {
+					agentExecutionId
+				})
+				this.publishExecutionUpdated(taskExecution, {
 					agentExecutionId
 				})
 			}
 		}
+	}
+
+	private publishExecutionUpdated(
+		taskExecution: ProjectTaskExecution,
+		patch: Pick<ProjectTaskExecution, 'conversationId'> | Pick<ProjectTaskExecution, 'agentExecutionId'>
+	) {
+		this.publishExecutionEvent(XPERT_EVENT_TYPES.ProjectTaskExecutionUpdated, taskExecution, {
+			latestExecution: {
+				id: taskExecution.id,
+				projectId: taskExecution.projectId,
+				sprintId: taskExecution.sprintId,
+				taskId: taskExecution.taskId,
+				teamId: taskExecution.teamId,
+				xpertId: taskExecution.xpertId,
+				dispatchId: taskExecution.dispatchId,
+				status: ProjectTaskExecutionStatusEnum.Running,
+				...patch
+			}
+		})
+	}
+
+	private publishExecutionEvent(
+		type: string,
+		taskExecution: ProjectTaskExecution,
+		payload?: Partial<XpertProjectTaskEventPayload>
+	) {
+		this.eventPublisher
+			?.publish<XpertProjectTaskEventPayload>({
+				type,
+				scope: {
+					projectId: taskExecution.projectId,
+					sprintId: taskExecution.sprintId,
+					taskId: taskExecution.taskId,
+					taskExecutionId: taskExecution.id,
+					xpertId: taskExecution.xpertId
+				},
+				source: {
+					type: 'project',
+					id: taskExecution.id
+				},
+				payload: {
+					taskId: taskExecution.taskId,
+					taskExecutionId: taskExecution.id,
+					dispatchId: taskExecution.dispatchId,
+					...payload
+				},
+				meta: {
+					tenantId: taskExecution.tenantId,
+					organizationId: taskExecution.organizationId ?? null,
+					traceId: taskExecution.id
+				}
+			})
+			.catch(() => null)
 	}
 
 	private collectStreamResult(event: MessageEvent, result: ProjectTaskStreamResult) {

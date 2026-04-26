@@ -7,7 +7,15 @@ const nodeModulesRoot = path.join(workspaceRoot, 'node_modules')
 const transformSeedPackages = ['@xpert-ai/chatkit-types']
 const staticTransformAllowList = ['lodash-es', 'nanoid', 'marked', '@angular/common/locales']
 
-const readPackageJson = (packageName) => {
+type DependencyMap = { [packageName: string]: string }
+
+type NodePackageJson = {
+  dependencies?: DependencyMap
+  optionalDependencies?: DependencyMap
+  peerDependencies?: DependencyMap
+}
+
+const readPackageJson = (packageName: string): NodePackageJson | null => {
   const packagePath = path.join(nodeModulesRoot, ...packageName.split('/'), 'package.json')
   try {
     return JSON.parse(fs.readFileSync(packagePath, 'utf8'))
@@ -16,8 +24,8 @@ const readPackageJson = (packageName) => {
   }
 }
 
-const collectTransformPackages = (seedPackages) => {
-  const seen = new Set()
+const collectTransformPackages = (seedPackages: readonly string[]): string[] => {
+  const seen = new Set<string>()
   const queue = [...seedPackages]
 
   while (queue.length) {
@@ -48,7 +56,7 @@ const collectTransformPackages = (seedPackages) => {
   return Array.from(seen)
 }
 
-const escapeRegex = (value) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
+const escapeRegex = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
 const transformPackages = collectTransformPackages(transformSeedPackages)
 const transformAllowList = [...staticTransformAllowList, ...transformPackages]
 const transformIgnorePattern = transformAllowList.length

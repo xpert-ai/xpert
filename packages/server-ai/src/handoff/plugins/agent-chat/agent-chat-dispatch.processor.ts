@@ -1,5 +1,5 @@
 import { runWithRequestContext as _runWithRequestContext } from '@xpert-ai/server-core'
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, Optional } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {
 	HandoffMessage,
@@ -13,8 +13,10 @@ import {
 	AgentChatCallbackTarget,
 	AgentChatDispatchPayload,
 } from '@xpert-ai/plugin-sdk'
+import { mapChatMessageToXpertEvent, XpertChatEventBridgeContext } from '@xpert-ai/contracts'
 import type { Observable } from 'rxjs'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
+import { XpertEventPublisher } from '../../../event-system'
 import { HandoffQueueService } from '../../message-queue.service'
 
 @Injectable()
@@ -29,7 +31,8 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly handoffQueueService: HandoffQueueService
+		private readonly handoffQueueService: HandoffQueueService,
+		@Optional() private readonly eventPublisher?: XpertEventPublisher
 	) {}
 
 	async process(message: HandoffMessage<AgentChatDispatchPayload>, ctx: ProcessContext): Promise<ProcessResult> {
@@ -65,7 +68,12 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 		this.logger.debug(`Processing agent chat dispatch message "${message.id}" with request:`, request, 'and options:', options)
 		return this.runTaskWithRequestContext(message, async () => {
 			const observable = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
-				new XpertChatCommand(request, options)
+				new XpertChatCommand(request, {
+					...options,
+					eventBridge: {
+						disabled: true
+					}
+				})
 			)
 			await this.forwardStreamEvents(message, callback, observable, ctx)
 			return { status: 'ok' }
@@ -130,6 +138,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 			subscription = observable.subscribe({
 				next: (event) => {
 					// this.logger.debug(`Received stream event for source message "${sourceMessage.id}"`, event)
+					this.publishStreamEvent(sourceMessage, event)
 					enqueueCallback({
 						kind: 'stream',
 						sourceMessageId: sourceMessage.id,
@@ -197,6 +206,36 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 				...(callback.headers ?? {})
 			}
 		}
+	}
+
+	private publishStreamEvent(sourceMessage: HandoffMessage<AgentChatDispatchPayload>, event: MessageEvent) {
+		const context: XpertChatEventBridgeContext = {
+			projectId: this.getRequestProjectId(sourceMessage.payload?.request),
+			conversationId: this.toNonEmptyString(sourceMessage.payload?.request?.conversationId),
+			xpertId: this.toNonEmptyString(sourceMessage.payload?.options?.xpertId),
+			source: {
+				type: 'handoff',
+				id: sourceMessage.id
+			},
+			meta: {
+				tenantId: sourceMessage.tenantId,
+				organizationId: sourceMessage.headers?.organizationId ?? null,
+				userId: sourceMessage.headers?.userId ?? null,
+				traceId: sourceMessage.traceId
+			}
+		}
+		const eventInput = mapChatMessageToXpertEvent(event, context)
+		if (!eventInput) {
+			return
+		}
+		this.eventPublisher?.publish(eventInput).catch(() => null)
+	}
+
+	private getRequestProjectId(request: AgentChatDispatchPayload['request'] | undefined): string | null {
+		if (!request || request.action !== 'send') {
+			return null
+		}
+		return this.toNonEmptyString(request.projectId)
 	}
 
 	private async runTaskWithRequestContext(

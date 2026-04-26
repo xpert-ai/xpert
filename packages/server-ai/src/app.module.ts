@@ -49,11 +49,13 @@ import { ProjectTaskModule } from './project-task/project-task.module'
 import { ProjectAssistantModule } from './project-assistant/project-assistant.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 import { VolumeModule } from './shared/volume'
+import { XpertEventModule } from './event-system'
 
 @Module({
     imports: [
         forwardRef(() => CqrsModule),
         forwardRef(() => UserModule),
+        XpertEventModule,
         AssistantBindingModule,
         ChatModule,
         ChatConversationModule,

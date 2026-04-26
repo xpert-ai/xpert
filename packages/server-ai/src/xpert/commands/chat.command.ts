@@ -13,6 +13,9 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
 			isDraft?: boolean
 			fromEndUserId?: string
 			execution?: {id: string}
+			eventBridge?: {
+				disabled?: boolean
+			}
 		}
 	) {
 		super()

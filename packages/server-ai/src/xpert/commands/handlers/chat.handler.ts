@@ -19,6 +19,7 @@ import {
     IStorageFile,
     IXpert,
     LongTermMemoryTypeEnum,
+    mapChatMessageToXpertEvent,
     shortTitle,
     stringifyMessageContent,
     STATE_VARIABLE_HUMAN,
@@ -30,10 +31,11 @@ import {
     TSensitiveOperation,
     TXpertChatResumeRequest,
     TXpertChatRetryRequest,
+    XpertChatEventBridgeContext,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { BadRequestException, Logger } from '@nestjs/common'
+import { BadRequestException, Logger, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { catchError, concat, concatMap, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
@@ -55,6 +57,7 @@ import { normalizeChatState } from '../../../shared/agent/utils'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
+import { XpertEventPublisher } from '../../../event-system'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -64,7 +67,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly xpertService: XpertService,
         private readonly assistantBindingService: AssistantBindingService,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        @Optional() private readonly eventPublisher?: XpertEventPublisher
     ) {}
 
     /**
@@ -504,7 +508,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             forceWorkspaceSkillBlacklistMode
         )
 
-        return new Observable<MessageEvent>((subscriber) => {
+        const chatEventContext: XpertChatEventBridgeContext = {
+            projectId: conversation.projectId ?? requestedProjectId,
+            taskId: conversation.taskId ?? taskId,
+            conversationId: conversation.id,
+            agentExecutionId: executionId,
+            xpertId,
+            meta: {
+                traceId: executionId
+            }
+        }
+
+        const stream = new Observable<MessageEvent>((subscriber) => {
             // New conversation
             subscriber.next({
                 data: {
@@ -873,6 +888,24 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 //
             }
         })
+
+        if (options?.eventBridge?.disabled) {
+            return stream
+        }
+
+        return stream.pipe(
+            tap((event) => {
+                this.publishChatEvent(event, chatEventContext)
+            })
+        )
+    }
+
+    private publishChatEvent(event: MessageEvent, context: XpertChatEventBridgeContext) {
+        const eventInput = mapChatMessageToXpertEvent(event, context)
+        if (!eventInput) {
+            return
+        }
+        this.eventPublisher?.publish(eventInput).catch(() => null)
     }
 }
 
