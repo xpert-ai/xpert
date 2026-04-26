@@ -79,7 +79,7 @@
                 z-button
                 zType="outline"
                 type="button"
-                class="shrink-0 rounded-xl"
+                class="shrink-0"
                 (click)="shell.openCreateSprint()"
               >
                 <z-icon zType="today"></z-icon>
@@ -90,7 +90,8 @@
                 z-button
                 zType="default"
                 type="button"
-                class="shrink-0 rounded-xl"
+                zSize="lg"
+                class="shrink-0"
                 [zDisabled]="!facade.selectedSprint()"
                 (click)="shell.openTaskDialog()"
               >

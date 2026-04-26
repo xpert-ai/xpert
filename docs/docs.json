@@ -103,7 +103,10 @@
               },
               {
                 "group": "快速开始",
-                "pages": ["zh-hans/solutions/declarative-extended-view-system"]
+                "pages": [
+                  "zh-hans/solutions/declarative-extended-view-system",
+                  "zh-hans/solutions/acp"
+                ]
               }
             ]
           },
