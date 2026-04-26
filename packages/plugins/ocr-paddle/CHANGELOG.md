@@ -1,5 +1,12 @@
 # @xpert-ai/plugin-ocr-paddle
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies [e040933]
+  - @xpert-ai/plugin-sdk@3.9.1
+
 ## 0.0.2
 
 ### Patch Changes
