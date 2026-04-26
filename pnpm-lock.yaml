@@ -656,8 +656,8 @@ importers:
         specifier: ~0.1.0
         version: 0.1.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-ui':
-        specifier: ~0.1.1
-        version: 0.1.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
+        specifier: ~0.1.2
+        version: 0.1.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
       '@xterm/addon-fit':
         specifier: ^0.10.0
         version: 0.10.0(@xterm/xterm@5.5.0)
@@ -9122,8 +9122,8 @@ packages:
       '@a2ui/lit': 0.8.3
       '@langchain/core': 0.3.72
 
-  '@xpert-ai/chatkit-ui@0.1.1':
-    resolution: {integrity: sha512-NsAQ7dL/m3mNgUSo2T6u5K24iYsU0QGQdTfqMOaw4/GE0rlbGVrDD5LEJQMd+9agRpVtwcLS3OKiNjJLCa+ttA==}
+  '@xpert-ai/chatkit-ui@0.1.2':
+    resolution: {integrity: sha512-Gco5UXJeeGjMlmexeuuMGOc+ZTYBYNQx12lpukCJU9wjPQLuQ60GL6dtK/21UN1/3UwRe0T+ta+sqyWPWmBxZw==}
     peerDependencies:
       react: '>=19'
       react-dom: '>=19'
@@ -30738,7 +30738,7 @@ snapshots:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
 
-  '@xpert-ai/chatkit-ui@0.1.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))':
+  '@xpert-ai/chatkit-ui@0.1.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))':
     dependencies:
       '@fontsource-variable/inter': 5.2.8
       '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
