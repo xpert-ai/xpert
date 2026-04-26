@@ -14,11 +14,25 @@ export class SignInSuccessComponent {
     private readonly _route: ActivatedRoute,
     private readonly _router: Router
   ) {
-    this._route.queryParams.pipe(filter((params) => params.jwt)).subscribe(async ({ jwt, refreshToken, userId }) => {
-      this._store.token = jwt
-      this._store.userId = userId
-      this._store.refreshToken = refreshToken
-      await this._router.navigate(['/'])
-    })
+    this._route.queryParams
+      .pipe(filter((params) => params.jwt))
+      .subscribe(async ({ jwt, refreshToken, userId, returnTo }) => {
+        this._store.token = jwt
+        this._store.userId = userId
+        this._store.refreshToken = refreshToken
+
+        if (typeof returnTo === 'string' && returnTo.trim().length > 0) {
+          const normalizedReturnTo = returnTo.trim()
+          if (normalizedReturnTo.startsWith('/') && !normalizedReturnTo.startsWith('//')) {
+            await this._router.navigateByUrl(normalizedReturnTo)
+            return
+          }
+
+          window.location.assign(normalizedReturnTo)
+          return
+        }
+
+        await this._router.navigate(['/'])
+      })
   }
 }

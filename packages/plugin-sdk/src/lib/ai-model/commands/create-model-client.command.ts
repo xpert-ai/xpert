@@ -1,24 +1,23 @@
-import { Embeddings } from '@langchain/core/embeddings'
-import { BaseLanguageModel } from '@langchain/core/language_models/base'
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { ICopilotModel, ILLMUsage } from '@xpert-ai/contracts'
+import { ICopilotModel } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
-import { IRerank } from '../types'
+import {
+  AgentMiddlewareCreateModelClientOptions,
+  AgentMiddlewareModelClient,
+} from '../../agent/middleware/runtime'
 
 const COMMAND_METADATA = '__command__'
 
 /**
  * Get a Chat Model of copilot model and check it's token limitation, record the token usage
+ *
+ * @deprecated Prefer `IAgentMiddlewareContext.runtime.createModelClient(...)` in middleware and plugin code.
  */
-export class CreateModelClientCommand<T = BaseLanguageModel | BaseChatModel | Embeddings | IRerank> extends Command<T> {
+export class CreateModelClientCommand<T = AgentMiddlewareModelClient> extends Command<T> {
   static readonly type = '[AI Model] Create Model Client'
 
   constructor(
     public readonly copilotModel: ICopilotModel,
-    public readonly options: {
-      abortController?: AbortController
-      usageCallback: (tokens: ILLMUsage) => void
-    }
+    public readonly options: AgentMiddlewareCreateModelClientOptions
   ) {
     super()
   }

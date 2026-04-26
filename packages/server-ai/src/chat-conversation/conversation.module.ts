@@ -12,6 +12,8 @@ import { QueryHandlers } from './queries/handlers'
 import { ConversationSummaryProcessor } from './summary.job'
 import { ChatMessageModule } from '../chat-message/chat-message.module'
 import { ExecutionCancelModule } from '../shared'
+import { XpertAgentExecutionModule } from '../xpert-agent-execution'
+import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 
 @Module({
 	imports: [
@@ -26,6 +28,8 @@ import { ExecutionCancelModule } from '../shared'
 		forwardRef(() => StorageFileModule),
 		forwardRef(() => ChatMessageModule),
 		ExecutionCancelModule,
+		SuperAdminOrganizationScopeModule,
+		XpertAgentExecutionModule,
 	],
 	controllers: [ChatConversationController],
 	providers: [ChatConversationService, ConversationSummaryProcessor, ...CommandHandlers, ...QueryHandlers],

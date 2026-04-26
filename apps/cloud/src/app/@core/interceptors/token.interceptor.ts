@@ -4,6 +4,14 @@ import { BehaviorSubject, catchError, filter, firstValueFrom, Observable, switch
 import { AuthStrategy } from '../auth'
 import { Store } from '../services/store.service'
 
+const ANONYMOUS_AUTH_PATHS = new Set([
+  '/api/auth/sso/providers',
+  '/api/auth/sso/bind/challenge',
+  '/api/auth/sso/bind/complete',
+  '/api/auth/sso/bind/register',
+  '/api/tenant/onboard'
+])
+
 @Injectable()
 export class TokenInterceptor implements HttpInterceptor {
   private refreshTokenInProgress = false
@@ -12,8 +20,14 @@ export class TokenInterceptor implements HttpInterceptor {
   constructor(private store: Store, private auth: AuthStrategy) {}
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const anonymousAuthRequest = isAnonymousAuthRequest(request.url)
+
     return next.handle(this.addAuthenticationToken(request)).pipe(
       catchError((response) => {
+        if (anonymousAuthRequest) {
+          return throwError(() => response)
+        }
+
         // We don't want to refresh token for some requests like login or refresh token itself
         // So we verify url and we throw an error if it's the case
         if (request.url.includes('auth/refresh') || request.url.includes('login')) {
@@ -74,6 +88,10 @@ export class TokenInterceptor implements HttpInterceptor {
   }
 
   addAuthenticationToken(request) {
+    if (isAnonymousAuthRequest(request.url)) {
+      return request
+    }
+
     let token: string
     // Get access token from Local Storage
     if (request.url.includes('auth/refresh')) {
@@ -96,5 +114,13 @@ export class TokenInterceptor implements HttpInterceptor {
         Authorization: `Bearer ${token}`
       }
     })
+  }
+}
+
+function isAnonymousAuthRequest(url: string): boolean {
+  try {
+    return ANONYMOUS_AUTH_PATHS.has(new URL(url, 'http://localhost').pathname)
+  } catch {
+    return false
   }
 }

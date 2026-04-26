@@ -32,7 +32,7 @@ import { UserService } from '../user/user.service'
 import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
-import { OrganizationService } from '../organization'
+import { OrganizationService } from '../organization/organization.service'
 
 
 @Injectable()
@@ -719,6 +719,25 @@ export class AuthService extends SocialAuthService {
 
 		await this.updateRefreshToken(user.id, tokens.refreshToken)
 		return tokens
+	}
+
+	async issueTokensForUser(
+		userId: string
+	): Promise<{ jwt: string; refreshToken: string; userId: string }> {
+		const user = await this.userService.findOne(userId)
+
+		if (!user) {
+			throw new NotFoundException(`The user '${userId}' was not found`)
+		}
+
+		const { token, refreshToken } = await this.createToken(user)
+		await this.updateRefreshToken(user.id, refreshToken)
+
+		return {
+			jwt: token,
+			refreshToken,
+			userId: user.id
+		}
 	}
 
 	async updateRefreshToken(userId: string, refreshToken: string) {

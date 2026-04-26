@@ -16,6 +16,10 @@ import { getAgentMiddlewares } from './middleware'
 
 describe('getAgentMiddlewares', () => {
     it('filters middleware tools by xpert config and user preference for the matching node', async () => {
+        const runtime = {
+            createModelClient: jest.fn(),
+            wrapWorkflowNodeExecution: jest.fn()
+        }
         const createMiddleware = jest.fn(async () => ({
             name: 'provider-a',
             tools: [
@@ -79,7 +83,8 @@ describe('getAgentMiddlewares', () => {
                     sandbox: {
                         enabled: true
                     }
-                }
+                },
+                runtime
             } as any,
             {
                 toolPreferences: {
@@ -103,7 +108,8 @@ describe('getAgentMiddlewares', () => {
                     sandbox: {
                         enabled: true
                     }
-                }
+                },
+                runtime
             })
         )
         expect(middlewares[0].tools.map((tool) => tool.name)).toEqual(['shared'])

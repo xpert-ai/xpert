@@ -4,3 +4,4 @@ export * from './decorators';
 export * from './guards';
 export * from './validators';
 export * from './pipes';
+export * from './http';

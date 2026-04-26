@@ -1510,7 +1510,14 @@
       "WorkspaceApiKeys": "工作区 API 密钥",
       "WorkspaceApiKeyDescription": "在这里创建的密钥属于当前工作区，可访问该工作区内已发布的专家。",
       "CurrentWorkspace": "当前工作区",
-      "CreateWorkspaceSecretKey": "创建工作区密钥"
+      "CreateWorkspaceSecretKey": "创建工作区密钥",
+      "WorkspaceAccess": "工作空间访问",
+      "WorkspaceAccessDesc": "控制这个租户级工作空间是否共享给租户下所有组织",
+      "TenantShared": "租户共享",
+      "PrivateWorkspace": "私有",
+      "TenantSharedWorkspace": "租户共享工作空间",
+      "TenantSharedWorkspaceDesc": "该租户下的组织用户可以读取并运行此工作空间中的资源，但不能编辑",
+      "TenantSharedTenantOnly": "只有租户级工作空间可以在租户内共享"
     },
     "Feature": {
       "Features": {

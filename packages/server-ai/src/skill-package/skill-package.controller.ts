@@ -22,7 +22,7 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { createReadStream } from 'fs'
 import type { Response } from 'express'
 import { SkillPackage } from './skill-package.entity'
-import { SkillPackageService } from './skill-package.service'
+import { InstallGithubSkillPackagesInput, SkillPackageService } from './skill-package.service'
 import { WorkspaceGuard } from '../xpert-workspace'
 import { SimpleSkillPackageDTO } from './dto'
 
@@ -94,6 +94,19 @@ export class SkillPackageController {
 		@Param('repositoryId') repositoryId: string
 	) {
 		return this.service.installRepositorySkillPackages(workspaceId, repositoryId)
+	}
+
+	@UseGuards(WorkspaceGuard)
+	@Post('workspace/:workspaceId/install-github')
+	async installGithubSkillPackages(
+		@Param('workspaceId') workspaceId: string,
+		@Body() body: InstallGithubSkillPackagesInput
+	) {
+		try {
+			return await this.service.installGithubSkillPackages(workspaceId, body)
+		} catch (error) {
+			throw new BadRequestException(`Failed to install GitHub skill package: ${getErrorMessage(error)}`)
+		}
 	}
 
 	@UseGuards(WorkspaceGuard)

@@ -144,6 +144,7 @@
       <chat-message-execution-panel
         class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto w-[420px]"
         [id]="executionId()"
+        [organizationId]="previewOrganizationId()"
         [xpert]="prev.xpert()"
         (close)="closeExecution()"
       />
@@ -152,9 +153,9 @@
     <xp-chat-conversation-preview #prev class="h-full w-[420px] rounded-2xl shadow-lg overflow-auto border border-divider-regular bg-components-panel-bg-blur"
       readonly
       [conversationId]="preview()"
+      [organizationId]="previewOrganizationId()"
       (close)="preview.set(null)"
       (execution)="selectExecution($event)"
     />
   </div>
 }
-

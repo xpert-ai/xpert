@@ -26,6 +26,11 @@ export interface StageWorkspacePluginOptions extends OrganizationPluginStoreOpti
 	workspacePath: string
 }
 
+type WorkspacePluginPackageJson = {
+	name?: string
+	dependencies?: Record<string, string>
+}
+
 export const DEFAULT_ORG_PLUGIN_ROOT = path.join(getConfig().assetOptions.serverRoot, 'plugins')
 export const DEFAULT_ORG_MANIFEST = 'plugins.json'
 const COMPILED_PLUGIN_ENTRY_FILES = ['index.js', 'index.cjs.js', 'index.esm.js'] as const
@@ -33,6 +38,50 @@ const COMPILED_PLUGIN_ENTRY_FILES = ['index.js', 'index.cjs.js', 'index.esm.js']
 function ensureDir(dir: string) {
 	if (!fs.existsSync(dir)) {
 		fs.mkdirSync(dir, { recursive: true })
+	}
+}
+
+function hasRuntimeDependencies(packageJson: WorkspacePluginPackageJson) {
+	return Object.keys(packageJson.dependencies ?? {}).length > 0
+}
+
+function readExecFailureOutput(value: unknown) {
+	if (typeof value === 'string') {
+		return value.trim()
+	}
+	if (Buffer.isBuffer(value)) {
+		return value.toString('utf8').trim()
+	}
+	return ''
+}
+
+function installStagedWorkspaceRuntimeDependencies(
+	targetPackageDir: string,
+	packageJson: WorkspacePluginPackageJson
+) {
+	if (!hasRuntimeDependencies(packageJson)) {
+		return
+	}
+
+	try {
+		execSync('npm install --omit=dev --ignore-scripts --no-save --legacy-peer-deps', {
+			cwd: targetPackageDir,
+			stdio: 'pipe',
+			env: {
+				...process.env,
+				npm_config_package_lock: 'false',
+				npm_config_lockfile: 'false'
+			}
+		})
+	} catch (error) {
+		const details =
+			readExecFailureOutput((error as { stderr?: unknown })?.stderr) ||
+			readExecFailureOutput((error as { stdout?: unknown })?.stdout)
+		throw new Error(
+			details
+				? `Failed to install runtime dependencies for staged workspace plugin at ${targetPackageDir}: ${details}`
+				: `Failed to install runtime dependencies for staged workspace plugin at ${targetPackageDir}`
+		)
 	}
 }
 
@@ -153,7 +202,7 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 		throw new Error(`package.json not found in workspacePath: ${workspacePath}`)
 	}
 
-	const packageJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as { name?: string }
+	const packageJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as WorkspacePluginPackageJson
 	if (!packageJson?.name) {
 		throw new Error(`Invalid package.json in workspacePath: missing 'name'`)
 	}
@@ -194,6 +243,7 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 			return !['node_modules', '.git', '.DS_Store'].includes(base)
 		}
 	})
+	installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
 
 	return pluginDir
 }

@@ -5,6 +5,13 @@ import { toParams } from '@xpert-ai/core'
 import { IShareSkillPackageInput, TFile, TFileDirectory } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
+export type InstallGithubSkillPackagesInput = {
+  url: string
+  path?: string
+  branch?: string
+  token?: string
+}
+
 @Injectable({ providedIn: 'root' })
 export class SkillPackageService extends XpertWorkspaceBaseCrudService<ISkillPackage> {
   readonly #logger = inject(NGXLogger)
@@ -28,6 +35,10 @@ export class SkillPackageService extends XpertWorkspaceBaseCrudService<ISkillPac
       `${this.apiBaseUrl}/workspace/${workspaceId}/install-repository/${repositoryId}`,
       {}
     )
+  }
+
+  installGithubPackages(workspaceId: string, input: InstallGithubSkillPackagesInput) {
+    return this.httpClient.post<ISkillPackage[]>(`${this.apiBaseUrl}/workspace/${workspaceId}/install-github`, input)
   }
 
   sharePackage(workspaceId: string, id: string, input: IShareSkillPackageInput) {

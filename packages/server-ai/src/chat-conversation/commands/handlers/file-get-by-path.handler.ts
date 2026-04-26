@@ -13,7 +13,9 @@ export class ConvFileGetByPathCommandHandler implements ICommandHandler<ConvFile
 	) {}
 
 	public async execute(command: ConvFileGetByPathCommand): Promise<TFile> {
-		const conversation = await this.service.findOne(command.id, { relations: ['attachments'] })
+		const conversation = await this.service.findOne(command.id, {
+			relations: ['attachments']
+		})
 		const storageFile = conversation.attachments.find((_) => _.originalName === command.path)
 		if (storageFile) {
 			const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(

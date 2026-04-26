@@ -73,6 +73,7 @@ export class XpertWorkspaceXpertsComponent {
   readonly lang = this.appService.lang
 
   readonly workspace = this.homeComponent.workspace
+  readonly canWriteWorkspace = this.homeComponent.canWriteWorkspace
   readonly type = this.homeComponent.type
   readonly tags = this.homeComponent.tags
   readonly builtinTags = this.homeComponent.toolTags
@@ -123,6 +124,10 @@ export class XpertWorkspaceXpertsComponent {
   }
 
   newBlank() {
+    if (!this.canWriteWorkspace()) {
+      return
+    }
+
     this.dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
         disableClose: true,
@@ -140,6 +145,10 @@ export class XpertWorkspaceXpertsComponent {
   }
 
   deleteXpert(xpert: IXpert) {
+    if (!this.canWriteWorkspace()) {
+      return
+    }
+
     this.dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
@@ -171,12 +180,17 @@ export class XpertWorkspaceXpertsComponent {
   }
 
   importDSL() {
+    if (!this.canWriteWorkspace()) {
+      return
+    }
+
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.yaml, .yml'
 
-    input.onchange = (event: any) => {
-      const file = event.target.files[0]
+    input.onchange = (event: Event) => {
+      const target = event.target instanceof HTMLInputElement ? event.target : null
+      const file = target?.files?.[0]
       if (file) {
         uploadYamlFile<TXpertTeamDraft>(file)
           .then((parsedDSL) => {

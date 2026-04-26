@@ -5,6 +5,8 @@ import {
     IChatConversation,
     IEnvironment,
     IUser,
+    IXpert,
+    isTenantSharedXpertWorkspace,
     RequestScopeLevel,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
@@ -19,7 +21,6 @@ import { ChatConversationUpsertCommand } from '../../../chat-conversation/comman
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { AssistantBindingService } from '../../../assistant-binding'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
-import { hydrateSendRequestHumanInput } from '../../../shared/agent'
 import { PublishedXpertAccessService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
@@ -254,17 +255,17 @@ function normalizeRunCreateInput(input: unknown, options?: { isConversationBusy?
     }
 
     if (isLegacyChatRequest(input)) {
-        return hydrateSendRequestHumanInput(normalizeLegacyChatRequest(input, options))
+        return normalizeLegacyChatRequest(input, options)
     }
 
     if (!input.action) {
-        return hydrateSendRequestHumanInput({
+        return {
             ...input,
             action: 'send'
-        })
+        }
     }
 
-    return hydrateSendRequestHumanInput(input)
+    return input
 }
 
 function getChatRequestEnvironmentId(chatRequest: TChatRequestV2): string | undefined {
@@ -281,6 +282,10 @@ function getRunCreateContext(context: unknown): Record<string, unknown> | undefi
     }
 
     return context
+}
+
+type MutableRequestContextRequest = NonNullable<ReturnType<typeof RequestContext.currentRequest>> & {
+    user?: IUser | IApiPrincipal | null
 }
 
 export function validateRunCreateInput(
@@ -304,6 +309,62 @@ export function validateRunCreateInput(
     } as TChatRequestV2
 }
 
+function applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
+    const request = RequestContext.currentRequest() as MutableRequestContextRequest | null
+
+    if (!request?.headers) {
+        return
+    }
+
+    if (organizationId) {
+        request.headers['organization-id'] = organizationId
+        request.headers['x-scope-level'] = RequestScopeLevel.ORGANIZATION
+        return
+    }
+
+    delete request.headers['organization-id']
+    request.headers['x-scope-level'] = RequestScopeLevel.TENANT
+}
+
+function applyAssistantPrincipalToCurrentRequest(
+    apiKey: IApiKey | null | undefined,
+    principalUser: IUser | null | undefined
+) {
+    const request = RequestContext.currentRequest() as MutableRequestContextRequest | null
+    const currentUser = RequestContext.currentUser() as IApiPrincipal | null
+
+    if (!request || !apiKey || !principalUser) {
+        return
+    }
+
+    // An explicit x-principal-user-id represents the business user for this
+    // request and must not be overwritten by the xpert technical principal.
+    if (currentUser?.requestedUserId) {
+        return
+    }
+
+    request.user = {
+        ...principalUser,
+        apiKey,
+        ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
+        apiKeyUserId: currentUser?.apiKeyUserId ?? apiKey.userId ?? principalUser.id ?? null,
+        requestedUserId: currentUser?.requestedUserId ?? null,
+        requestedOrganizationId: currentUser?.requestedOrganizationId ?? null,
+        principalType: currentUser?.principalType ?? 'api_key'
+    }
+}
+
+function applyAssistantScope(xpert: IXpert) {
+    const apiKey = RequestContext.currentApiKey()
+    const keepConsumerOrganizationScope =
+        !xpert.organizationId && RequestContext.isOrganizationScope() && isTenantSharedXpertWorkspace(xpert.workspace)
+
+    if (!keepConsumerOrganizationScope) {
+        applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
+    }
+    applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)
+}
+
 @CommandHandler(RunCreateStreamCommand)
 export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCommand> {
     readonly #logger = new Logger(RunCreateStreamHandler.name)
@@ -317,48 +378,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly assistantBindingService: AssistantBindingService
     ) {}
 
-    private applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
-        const request = RequestContext.currentRequest() as any
-
-        if (!request?.headers) {
-            return
-        }
-
-        if (organizationId) {
-            request.headers['organization-id'] = organizationId
-            request.headers['x-scope-level'] = RequestScopeLevel.ORGANIZATION
-            return
-        }
-
-        delete request.headers['organization-id']
-        request.headers['x-scope-level'] = RequestScopeLevel.TENANT
-    }
-
-    private applyAssistantPrincipalToCurrentRequest(apiKey: IApiKey, principalUser: IUser | null | undefined) {
-        const request = RequestContext.currentRequest() as any
-        const currentUser = RequestContext.currentUser() as IApiPrincipal | null
-
-        if (!request || !principalUser) {
-            return
-        }
-
-        // An explicit x-principal-user-id represents the business user for this
-        // request and must not be overwritten by the xpert technical principal.
-        if (currentUser?.requestedUserId) {
-            return
-        }
-
-        request.user = {
-            ...principalUser,
-            apiKey,
-            ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
-            apiKeyUserId: currentUser?.apiKeyUserId ?? apiKey.userId ?? principalUser.id ?? null,
-            requestedUserId: currentUser?.requestedUserId ?? null,
-            requestedOrganizationId: currentUser?.requestedOrganizationId ?? null,
-            principalType: currentUser?.principalType ?? 'api_key'
-        }
-    }
-
     private async resolveAssistantForRun(assistantId: string) {
         const apiKey = RequestContext.currentApiKey()
 
@@ -368,18 +387,15 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         const xpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(assistantId))
             ? await this.publishedXpertAccessService.getPublishedXpertInTenant(assistantId, {
-                  relations: ['user', 'createdBy']
+                  relations: ['user', 'createdBy', 'workspace']
               })
             : await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
-                  relations: ['user', 'createdBy']
+                  relations: ['user', 'createdBy', 'workspace']
               })
 
         if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
             throw new ForbiddenException('API key is not allowed to access this workspace assistant.')
         }
-
-        this.applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
-        this.applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)
 
         return xpert
     }
@@ -404,8 +420,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const runCreate = command.runCreate
 
         // Find thread (conversation) and assistant (xpert)
-        const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
         const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
+        const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
+        applyAssistantScope(xpert)
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
         const runtimeContext = getRunCreateContext(runCreate.context)
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)

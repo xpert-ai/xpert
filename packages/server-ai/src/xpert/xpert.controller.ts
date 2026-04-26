@@ -940,12 +940,28 @@ export class XpertController extends CrudController<Xpert> {
         @Res() res: Response,
         @Param('name') name: string,
         @I18nLang() language: LanguagesEnum,
+        @TimeZone() timeZone: string,
         @Body() body: { request: TChatRequest; options: TChatOptions }
     ) {
+        const xpert = await this.service.findBySlug(name)
+        if (!xpert) {
+            throw new NotFoundException(`Not found xpert '${name}'`)
+        }
+
+        let environment = null
+        const requestEnvironmentId =
+            body.request && 'environmentId' in body.request ? body.request.environmentId : undefined
+        if (requestEnvironmentId) {
+            environment = await this.environmentService.findOne(requestEnvironmentId)
+        }
+
         const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
         const observable = await this.enqueueXpertChatTask(body.request, {
             ...body.options,
+            xpertId: xpert.id,
+            environment,
             language,
+            timeZone,
             from: 'webapp',
             fromEndUserId
         })

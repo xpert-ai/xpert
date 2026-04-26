@@ -8,15 +8,25 @@ import {
   TFileDirectory,
   toHttpParams
 } from '@xpert-ai/cloud/state'
-import { toParams } from '@xpert-ai/core'
 import { switchMap } from 'rxjs'
 import { TFile } from '../types'
+import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
 
   constructor() {
     super(API_PREFIX + '/chat-conversation')
+  }
+
+  override getOneById(id: string, options?: PaginationParams<IChatConversation>, organizationId?: string) {
+    return this.selectOrganizationId().pipe(
+      switchMap(() =>
+        this.httpClient.get<IChatConversation>(this.apiBaseUrl + '/' + id, {
+          params: appendOrganizationIdQueryParam(toHttpParams(options), organizationId)
+        })
+      )
+    )
   }
 
   getMyInOrg(options?: PaginationParams<IChatConversation>, search?: string) {
@@ -39,62 +49,84 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
-  getThreadState(id: string) {
-    return this.httpClient.get<unknown>(this.apiBaseUrl + `/${id}/state`)
+  getThreadState(id: string, organizationId?: string) {
+    return this.httpClient.get<unknown>(this.apiBaseUrl + `/${id}/state`, {
+      params: appendOrganizationIdQueryParam(null, organizationId)
+    })
   }
 
-  getByThreadId(threadId: string) {
+  getByThreadId(threadId: string, organizationId?: string) {
     return this.httpClient.get<IChatConversation>(this.apiBaseUrl + '/by-thread', {
-      params: toParams({
-        threadId
+      params: createOptionalQueryParams({
+        threadId,
+        organizationId
       })
     })
   }
 
-  getAttachments(id: string) {
-    return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`)
+  getAttachments(id: string, organizationId?: string) {
+    return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`, {
+      params: appendOrganizationIdQueryParam(null, organizationId)
+    })
   }
 
-  cancelConversation(id: string) {
-    return this.httpClient.post<{ canceledExecutionIds: string[] }>(this.apiBaseUrl + `/${id}/cancel`, {})
+  cancelConversation(id: string, organizationId?: string) {
+    return this.httpClient.post<{ canceledExecutionIds: string[] }>(
+      this.apiBaseUrl + `/${id}/cancel`,
+      {},
+      {
+        params: appendOrganizationIdQueryParam(null, organizationId)
+      }
+    )
   }
 
   // Files
 
-  getFiles(id: string, path = '') {
+  getFiles(id: string, path = '', organizationId?: string) {
     return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
-      params: toParams({
-        path
+      params: createOptionalQueryParams({
+        path,
+        organizationId
       })
     })
   }
 
-  getFile(id: string, path: string) {
+  getFile(id: string, path: string, organizationId?: string) {
     return this.httpClient.get<TFile>(this.apiBaseUrl + `/${id}/file`, {
-      params: toParams({
-        path
+      params: createOptionalQueryParams({
+        path,
+        organizationId
       })
     })
   }
 
-  saveFile(id: string, path: string, content: string) {
-    return this.httpClient.put<TFile>(this.apiBaseUrl + `/${id}/file`, {
-      path,
-      content
-    })
+  saveFile(id: string, path: string, content: string, organizationId?: string) {
+    return this.httpClient.put<TFile>(
+      this.apiBaseUrl + `/${id}/file`,
+      {
+        path,
+        content
+      },
+      {
+        params: appendOrganizationIdQueryParam(null, organizationId)
+      }
+    )
   }
 
-  uploadFile(id: string, file: File, path = '') {
+  uploadFile(id: string, file: File, path = '', organizationId?: string) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('path', path)
-    return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/file/upload`, formData)
+    return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/file/upload`, formData, {
+      params: appendOrganizationIdQueryParam(null, organizationId)
+    })
   }
 
-  deleteFile(id: string, filePath: string) {
+  deleteFile(id: string, filePath: string, organizationId?: string) {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/file`, {
-      params: toParams({
-        path: filePath
+      params: createOptionalQueryParams({
+        path: filePath,
+        organizationId
       })
     })
   }

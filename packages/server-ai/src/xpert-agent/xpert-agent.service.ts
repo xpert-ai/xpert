@@ -14,7 +14,8 @@ import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { assign } from 'lodash'
 import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
-import { ToolSchemaParser } from '../shared'
+import { ToolSchemaParser } from '../shared/tools/utils'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertAgentChatCommand } from './commands'
 import { XpertAgent } from './xpert-agent.entity'
@@ -30,7 +31,8 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         @InjectRepository(XpertAgent)
         repository: Repository<XpertAgent>,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService
     ) {
         super(repository)
     }
@@ -124,7 +126,8 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
             xpertId: body?.xpertId,
             xpertFeatures,
             node: this.createMiddlewareNode(provider, body?.options),
-            tools: new Map()
+            tools: new Map(),
+            runtime: this.agentMiddlewareRuntimeService.api
         })
         return {
             stateSchema: this.normalizeSchema(middleware.stateSchema),
@@ -150,7 +153,8 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
             xpertId: body?.xpertId,
             xpertFeatures,
             node: this.createMiddlewareNode(provider, body?.options),
-            tools: new Map()
+            tools: new Map(),
+            runtime: this.agentMiddlewareRuntimeService.api
         })
         const tool = middleware?.tools?.find((tool) => tool.name === toolName)
         if (!tool) {

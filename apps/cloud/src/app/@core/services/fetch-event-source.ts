@@ -5,6 +5,8 @@ import { firstValueFrom, Observable } from 'rxjs'
 import { AuthStrategy } from '../auth'
 import { Store } from './store.service'
 import { injectLanguage } from '../providers'
+import { isPublicXpertRequest } from '../utils/public-xpert-request'
+import { createOptionalQueryParams } from './query-params'
 
 export function injectFetchEventSource<T extends BodyInit | null>() {
   const store = inject(Store)
@@ -26,22 +28,29 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
         // Has retry request
         let haveTry = false
         const token = store.token
+        const shouldSkipScopeHeaders = isPublicXpertRequest(method, url)
         const headers = {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
           Language: lang(),
           'Time-Zone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-          'X-Scope-Level': activeScope.level,
           ..._headers
         }
-        if (activeScope.level === RequestScopeLevel.ORGANIZATION) {
+
+        if (!shouldSkipScopeHeaders) {
+          headers['X-Scope-Level'] = activeScope.level
+        }
+
+        if (!shouldSkipScopeHeaders && activeScope.level === RequestScopeLevel.ORGANIZATION) {
           headers['Organization-Id'] = activeScope.organizationId
         }
         // Handle query params if provided
         let finalUrl = url
         if (typeof params === 'object' && params.params) {
-          const searchParams = new URLSearchParams(params.params as Record<string, string>).toString()
-          finalUrl += (finalUrl.includes('?') ? '&' : '?') + searchParams
+          const queryString = createOptionalQueryParams(params.params)?.toString()
+          if (queryString) {
+            finalUrl += (finalUrl.includes('?') ? '&' : '?') + queryString
+          }
         }
 
         fetchEventSource(finalUrl, {

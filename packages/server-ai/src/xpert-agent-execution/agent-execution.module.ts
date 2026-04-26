@@ -8,16 +8,19 @@ import { XpertAgentExecution } from './agent-execution.entity'
 import { XpertAgentExecutionService } from './agent-execution.service'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
+import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/xpert-agent-execution', module: XpertAgentExecutionModule }]),
 		TypeOrmModule.forFeature([XpertAgentExecution]),
 		TenantModule,
-		CqrsModule
+		CqrsModule,
+		SuperAdminOrganizationScopeModule
 	],
 	controllers: [XpertAgentExecutionController],
-	providers: [XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],
+	providers: [XpertAgentExecutionService, AgentMiddlewareRuntimeService, ...CommandHandlers, ...QueryHandlers],
 	exports: [XpertAgentExecutionService]
 })
 export class XpertAgentExecutionModule {}

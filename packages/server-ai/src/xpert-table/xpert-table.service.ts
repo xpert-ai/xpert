@@ -1,25 +1,26 @@
 import { IDSSchema, IXpertTable, XpertTableStatus } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DBCreateTableMode, DBTableAction, DBTableDataAction } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
+import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { XpertDatabaseAdapterQuery } from './queries/get-database-adapter.query'
 import { XpertTable } from './xpert-table.entity'
 
 @Injectable()
-export class XpertTableService extends TenantOrganizationAwareCrudService<XpertTable> {
+export class XpertTableService extends XpertWorkspaceBaseService<XpertTable> {
 	readonly #logger = new Logger(XpertTableService.name)
 
 	constructor(
 		@InjectRepository(XpertTable)
 		repository: Repository<XpertTable>,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		workspaceAccessService: XpertWorkspaceAccessService,
+		protected readonly commandBus: CommandBus,
+		protected readonly queryBus: QueryBus
 	) {
-		super(repository)
+		super(repository, workspaceAccessService)
 	}
 
 	/**
@@ -190,10 +191,8 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 			
 			// Clean and prepare column definitions
 			const cleanedColumns = table.columns.map((column) => {
-				const col = column as any  // Type assertion to access newly added properties
-				
 				// Clean default value: treat empty string as no default
-				let defaultValue = col.defaultValue
+				let defaultValue = column.defaultValue
 				if (defaultValue && typeof defaultValue === 'string' && !defaultValue.trim()) {
 					defaultValue = undefined
 				}
@@ -202,16 +201,16 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 					name: column.name,
 					fieldName: column.name,
 					type: column.type,
-					isKey: col.isPrimaryKey || false,  // Primary key
+					isKey: column.isPrimaryKey || false,  // Primary key
 					required: column.required || false,  // NOT NULL constraint
-					unique: col.isUnique || false,  // Unique constraint
-					autoIncrement: col.autoIncrement || false,  // Auto increment
+					unique: column.isUnique || false,  // Unique constraint
+					autoIncrement: column.autoIncrement || false,  // Auto increment
 					defaultValue: defaultValue,  // Default value (cleaned)
-					length: col.length,  // Field length
-					precision: col.precision,  // Precision (for DECIMAL type)
-					scale: col.scale,  // Scale (for DECIMAL type)
-					enumValues: col.enumValues,  // Enum values (for ENUM type)
-					setValues: col.setValues  // Set values (for SET type)
+					length: column.length,  // Field length
+					precision: column.precision,  // Precision (for DECIMAL type)
+					scale: column.scale,  // Scale (for DECIMAL type)
+					enumValues: column.enumValues,  // Enum values (for ENUM type)
+					setValues: column.setValues  // Set values (for SET type)
 				}
 			})
 

@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { IUserGroup, PaginationParams } from '@xpert-ai/contracts'
 import { toParams } from '@xpert-ai/core'
+import { appendOrganizationIdQueryParam } from './query-params'
 
 const API_USER_GROUP = API_PREFIX + '/user-groups'
 
@@ -26,9 +27,7 @@ export class UserGroupService extends OrganizationBaseCrudService<IUserGroup> {
 
   updateMembers(id: string, memberIds: string[], organizationId?: string) {
     return this.httpClient.put<IUserGroup>(`${this.apiBaseUrl}/${id}/members`, memberIds, {
-      params: toParams({
-        organizationId
-      })
+      params: appendOrganizationIdQueryParam(null, organizationId)
     })
   }
 }

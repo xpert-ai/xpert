@@ -1,8 +1,8 @@
-import { SandboxTerminalErrorCode } from '@xpert-ai/contracts'
+import { IChatConversation, SandboxTerminalErrorCode } from '@xpert-ai/contracts'
 import type { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import type { SandboxBackendProtocol } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/server-core'
 import { ChatConversationService } from '../chat-conversation'
@@ -11,6 +11,7 @@ import { SandboxAcquireBackendCommand } from './commands'
 
 export type ResolvedConversationSandboxContext = {
     backend: SandboxBackendProtocol
+    conversation: IChatConversation
     conversationId: string
     effectiveProjectId: string | null
     effectiveSandboxEnvironmentId: string | null
@@ -32,10 +33,10 @@ export class SandboxConversationContextService {
         private readonly workspacePathMapperFactory: WorkspacePathMapperFactory
     ) {}
 
-    async resolveConversationSandbox(params: {
-        conversationId: string
-        projectId?: string | null
-    }): Promise<ResolvedConversationSandboxContext> {
+	async resolveConversationSandbox(params: {
+		conversationId: string
+		projectId?: string | null
+	}): Promise<ResolvedConversationSandboxContext> {
         const conversationId = params.conversationId?.trim()
         if (!conversationId) {
             throw new ForbiddenException({
@@ -44,12 +45,15 @@ export class SandboxConversationContextService {
             })
         }
 
-        const conversation = await this.conversationService.findOne({
-            where: { id: conversationId },
-            relations: ['xpert']
-        })
-
-        if (!conversation) {
+        let conversation: IChatConversation
+        try {
+            conversation = await this.conversationService.findOne(conversationId, {
+                relations: ['xpert']
+            })
+        } catch (error) {
+            if (!(error instanceof NotFoundException)) {
+                throw error
+            }
             throw new ForbiddenException({
                 code: SandboxTerminalErrorCode.ConversationNotFound,
                 message: 'Conversation was not found'
@@ -144,6 +148,7 @@ export class SandboxConversationContextService {
 
         return {
             backend,
+            conversation,
             conversationId,
             effectiveProjectId,
             effectiveSandboxEnvironmentId,

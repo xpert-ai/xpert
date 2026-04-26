@@ -202,9 +202,9 @@ export class ZardTableSortHeaderComponent {
   protected readonly iconName = computed(() => {
     switch (this.zDirection()) {
       case 'asc':
-        return 'arrow-up';
+        return 'chevron-up';
       case 'desc':
-        return 'arrow-down';
+        return 'chevron-down';
       default:
         return 'chevrons-up-down';
     }

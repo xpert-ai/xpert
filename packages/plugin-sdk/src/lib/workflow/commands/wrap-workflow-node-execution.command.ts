@@ -1,11 +1,16 @@
-import { IXpertAgentExecution, JSONValue } from '@xpert-ai/contracts'
+import { IXpertAgentExecution } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
-import { Subscriber } from 'rxjs'
+import {
+  AgentMiddlewareWrapWorkflowNodeExecutionParams,
+  AgentMiddlewareWrapWorkflowNodeExecutionResult,
+} from '../../agent/middleware/runtime'
 
 const COMMAND_METADATA = '__command__'
 
 /**
  * Wrap Workflow Node Execution Command
+ *
+ * @deprecated Prefer `IAgentMiddlewareContext.runtime.wrapWorkflowNodeExecution(...)` in middleware and plugin code.
  */
 export class WrapWorkflowNodeExecutionCommand<T = any> extends Command<T> {
   static readonly type = '[Workflow] Wrap Workflow Node Execution'
@@ -13,12 +18,8 @@ export class WrapWorkflowNodeExecutionCommand<T = any> extends Command<T> {
   constructor(
     public readonly fuc: (
       execution: Partial<IXpertAgentExecution>
-    ) => Promise<{ output?: string | JSONValue; state: T }>,
-    public readonly params: {
-      execution: Partial<IXpertAgentExecution>
-      subscriber?: Subscriber<MessageEvent>
-      catchError?: (error: Error) => Promise<void>
-    }
+    ) => Promise<AgentMiddlewareWrapWorkflowNodeExecutionResult<T>>,
+    public readonly params: AgentMiddlewareWrapWorkflowNodeExecutionParams
   ) {
     super()
   }

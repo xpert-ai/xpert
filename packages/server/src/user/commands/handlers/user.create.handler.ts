@@ -6,7 +6,7 @@ import { UserCreateCommand } from '../user.create.command';
 import { UserService } from '../../user.service';
 import { BadRequestException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { RequestContext } from '../../../core';
+import { RequestContext } from '../../../core/context/request-context';
 
 @CommandHandler(UserCreateCommand)
 export class UserCreateHandler implements ICommandHandler<UserCreateCommand> {

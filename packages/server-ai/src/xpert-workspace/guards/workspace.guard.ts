@@ -1,33 +1,24 @@
-// workspace.guard.ts
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { XpertWorkspaceService } from '../workspace.service';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
+import { XpertWorkspaceAccessService } from '../workspace-access.service'
 
 @Injectable()
 export class WorkspaceGuard implements CanActivate {
-  constructor(
-    private readonly reflector: Reflector,
-    private readonly workspaceService: XpertWorkspaceService,
-  ) {}
+	constructor(
+		private readonly reflector: Reflector,
+		private readonly workspaceAccessService: XpertWorkspaceAccessService
+	) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-    const workspaceId = request.params.workspaceId;
+	async canActivate(context: ExecutionContext): Promise<boolean> {
+		const request = context.switchToHttp().getRequest()
+		const workspaceId = request.params.workspaceId
 
-    const workspace = await this.workspaceService.findOne(workspaceId, { relations: ['members'] });
+		if (!workspaceId) {
+			throw new ForbiddenException('Workspace not found')
+		}
 
-    if (!workspace) {
-      throw new ForbiddenException('Workspace not found');
-    }
+		await this.workspaceAccessService.assertCanRead(workspaceId)
 
-    const isMember = workspace.members.some(member => member.id === user.id);
-    const isOwner = workspace.ownerId === user.id;
-
-    if (!isMember && !isOwner) {
-      throw new ForbiddenException('Access denied');
-    }
-
-    return true;
-  }
+		return true
+	}
 }

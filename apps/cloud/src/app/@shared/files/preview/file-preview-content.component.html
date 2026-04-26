@@ -17,8 +17,7 @@
       <div class="text-center text-base text-text-tertiary">
         {{ 'PAC.Chat.FormatCannotPreviewed' | translate: { Default: 'This format cannot be previewed.' } }}
         <br />{{
-          'PAC.Chat.DownloadFiletoView'
-            | translate: { Default: 'Please download the file to view its contents.' }
+          'PAC.Chat.DownloadFiletoView' | translate: { Default: 'Please download the file to view its contents.' }
         }}
       </div>
 
@@ -48,11 +47,78 @@
         <pre class="flex-1 overflow-auto p-4 text-sm whitespace-pre-wrap"><code>{{ content() ?? '' }}</code></pre>
       }
       @case ('html') {
-        <iframe
-          [src]="url() | safe: 'resourceUrl'"
-          [srcdoc]="!url() ? content() ?? '' : null"
-          class="h-full w-full border-none bg-components-panel-bg"
-        ></iframe>
+        @if (htmlPreviewUrl(); as previewUrl) {
+          <iframe
+            [src]="previewUrl | safe: 'resourceUrl'"
+            sandbox="allow-downloads allow-forms allow-modals allow-popups allow-scripts"
+            referrerpolicy="no-referrer"
+            class="h-full w-full border-none bg-components-panel-bg"
+          ></iframe>
+        }
+      }
+      @case ('document') {
+        <div #documentPreviewHost class="relative h-full overflow-auto" data-file-preview-document-host="true">
+          @if (hasDocumentHtml()) {
+            <article
+              #documentPreviewBody
+              data-file-preview-document-body="true"
+              class="mx-auto max-w-3xl text-text-primary shadow-sm leading-7 [&_a]:text-text-primary [&_a]:underline [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-divider-regular [&_blockquote]:pl-4 [&_blockquote]:text-text-secondary [&_h1]:mt-2 [&_h1]:mb-6 [&_h1]:text-3xl [&_h1]:font-semibold [&_h2]:mt-8 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_hr]:my-8 [&_hr]:border-divider-regular [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_li]:my-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-4 [&_pre]:my-6 [&_pre]:overflow-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-divider-regular [&_pre]:bg-background-default-subtle [&_pre]:p-4 [&_table]:my-6 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-divider-regular [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-divider-regular [&_th]:bg-background-default-subtle [&_th]:px-3 [&_th]:py-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
+              [innerHTML]="documentHtml()"
+            ></article>
+          } @else {
+            <pre
+              #documentPreviewBody
+              data-file-preview-document-body="true"
+              class="overflow-auto px-5 py-5 text-sm leading-6 whitespace-pre-wrap text-text-primary font-sans"
+              >{{ content() ?? '' }}</pre
+            >
+          }
+
+          @if (documentPreviewSelection(); as previewSelection) {
+            <button
+              type="button"
+              data-reference-button="preview-selection"
+              class="btn btn-primary btn-small absolute z-10"
+              [style.left.px]="previewSelection.left"
+              [style.top.px]="previewSelection.top"
+              [style.transform]="'translate(-50%, -100%)'"
+              (mousedown)="$event.preventDefault()"
+              (click)="emitDocumentReferenceSelection()"
+            >
+              <i class="ri-code-box-line mr-1"></i>
+              {{ 'PAC.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
+            </button>
+          }
+        </div>
+      }
+      @case ('presentation') {
+        <div class="h-full overflow-auto bg-components-panel-bg px-6 py-5">
+          <div
+            class="mx-auto flex max-w-4xl flex-col overflow-hidden rounded-3xl border border-divider-regular bg-background-default shadow-sm"
+          >
+            <div class="flex items-center gap-3 border-b border-divider-regular px-5 py-4">
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-2xl bg-background-default-subtle text-text-primary"
+              >
+                <i class="ri-slideshow-line text-xl"></i>
+              </div>
+
+              <div class="min-w-0">
+                <div class="truncate text-sm font-semibold text-text-primary">{{ fileName() }}</div>
+                <div class="text-xs text-text-tertiary">
+                  {{
+                    'PAC.Files.PresentationTextPreview'
+                      | translate: { Default: 'Extracted text preview from the slides.' }
+                  }}
+                </div>
+              </div>
+            </div>
+
+            <pre class="overflow-auto px-5 py-5 text-sm leading-6 whitespace-pre-wrap text-text-primary font-sans">{{
+              content() ?? ''
+            }}</pre>
+          </div>
+        </div>
       }
       @case ('image') {
         <div class="flex flex-1 items-center justify-center overflow-auto bg-components-panel-bg p-6">
@@ -74,12 +140,13 @@
       }
       @case ('spreadsheet') {
         <div class="flex h-full min-h-0 flex-col">
+          @let previewTopRowsText = 'PAC.Chat.PreviewTopRows' | translate: { count: spreadsheet()?.rowLimit };
           @if (spreadsheet()?.sheets?.length > 1) {
             <div class="flex gap-2 overflow-x-auto border-b border-divider-regular px-4 py-3">
               @for (sheet of spreadsheet()?.sheets; track sheet.name; let index = $index) {
                 <button
                   type="button"
-                  class="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                  class="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors"
                   [class]="
                     selectedSheetIndex() === index
                       ? 'bg-components-card-bg text-text-primary shadow-sm'
@@ -95,21 +162,17 @@
 
           <div class="border-b border-divider-regular px-4 py-2 text-xs text-text-tertiary">
             {{
-              'PAC.Chat.PreviewTopRows'
-                | translate: {
-                    Default: 'Previewing the first {{count}} rows per sheet.',
-                    count: spreadsheet()?.rowLimit
-                  }
+              previewTopRowsText === 'PAC.Chat.PreviewTopRows'
+                ? 'Previewing the first ' + (spreadsheet()?.rowLimit ?? 0) + ' rows per sheet.'
+                : previewTopRowsText
             }}
           </div>
 
-          <div class="min-h-0 flex-1 overflow-auto p-4">
-            <ngm-table
-              class="h-full max-w-full striped"
-              [columns]="activeSheet()?.columns ?? []"
-              [data]="activeSheet()?.rows ?? []"
-            />
-          </div>
+          <ngm-table
+            class="h-full max-w-full striped min-h-0 flex-1 overflow-auto"
+            [columns]="activeSheet()?.columns ?? []"
+            [data]="activeSheet()?.rows ?? []"
+          />
         </div>
       }
     }

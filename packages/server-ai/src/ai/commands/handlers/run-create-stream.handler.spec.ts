@@ -43,6 +43,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 import { EMPTY, of } from 'rxjs'
 import { ApiKeyBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { hydrateSendRequestHumanInput } from '../../../shared/agent/human-input'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
@@ -50,6 +51,186 @@ import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-str
 const conversation = {
     id: 'conversation-1'
 } as any
+
+describe('hydrateSendRequestHumanInput', () => {
+    it('hydrates reference-only send payloads into both message and human state', () => {
+        const referenceText = ['const region = "cn"', 'const workspace = "workspace-1"'].join('\n')
+
+        expect(
+            hydrateSendRequestHumanInput({
+                action: 'send',
+                message: {
+                    input: {
+                        input: '',
+                        references: [
+                            {
+                                path: 'src/example.ts',
+                                startLine: 10,
+                                endLine: 11,
+                                text: referenceText,
+                                taskId: 'task-1'
+                            }
+                        ]
+                    }
+                },
+                state: {
+                    human: {
+                        input: ''
+                    }
+                }
+            })
+        ).toEqual({
+            action: 'send',
+            message: {
+                input: {
+                    input: `Referenced code:\n[src/example.ts:10-11]\n\`\`\`\n${referenceText}\n\`\`\``,
+                    references: [
+                        {
+                            path: 'src/example.ts',
+                            startLine: 10,
+                            endLine: 11,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
+                }
+            },
+            state: {
+                human: {
+                    input: `Referenced code:\n[src/example.ts:10-11]\n\`\`\`\n${referenceText}\n\`\`\``,
+                    references: [
+                        {
+                            path: 'src/example.ts',
+                            startLine: 10,
+                            endLine: 11,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
+                }
+            }
+        })
+    })
+
+    it('appends structured quote references when the sender requests platform composition', () => {
+        expect(
+            hydrateSendRequestHumanInput({
+                action: 'send',
+                message: {
+                    input: {
+                        input: 'Summarize the discussion.',
+                        referenceComposition: 'compose',
+                        references: [
+                            {
+                                type: 'quote',
+                                text: 'The pipeline failed because the sandbox volume was missing.',
+                                source: 'Assistant',
+                                messageId: 'message-2'
+                            }
+                        ]
+                    }
+                }
+            })
+        ).toEqual({
+            action: 'send',
+            message: {
+                input: {
+                    input: 'Summarize the discussion.\n\nReferenced content:\n[Assistant]\n> The pipeline failed because the sandbox volume was missing.',
+                    referenceComposition: 'compose',
+                    references: [
+                        {
+                            type: 'quote',
+                            text: 'The pipeline failed because the sandbox volume was missing.',
+                            source: 'Assistant',
+                            messageId: 'message-2'
+                        }
+                    ]
+                }
+            }
+        })
+    })
+
+    it('preserves an existing human reference array when synthesizing input', () => {
+        const result = hydrateSendRequestHumanInput({
+            action: 'send',
+            message: {
+                input: {
+                    input: '',
+                    references: [
+                        {
+                            path: 'src/example.ts',
+                            startLine: 3,
+                            endLine: 3,
+                            text: 'const answer = 42'
+                        }
+                    ]
+                }
+            },
+            state: {
+                human: {
+                    input: '',
+                    references: [
+                        {
+                            path: 'src/existing.ts',
+                            startLine: 1,
+                            endLine: 1,
+                            text: 'keep me'
+                        }
+                    ]
+                }
+            }
+        })
+
+        expect(result).toMatchObject({
+            state: {
+                human: {
+                    references: [
+                        {
+                            path: 'src/existing.ts',
+                            startLine: 1,
+                            endLine: 1,
+                            text: 'keep me'
+                        }
+                    ]
+                }
+            }
+        })
+    })
+
+    it('keeps an explicit input untouched when references are present but composition was not requested', () => {
+        expect(
+            hydrateSendRequestHumanInput({
+                action: 'send',
+                message: {
+                    input: {
+                        input: 'Keep this exactly as-is.',
+                        references: [
+                            {
+                                type: 'quote',
+                                text: 'Do not duplicate me.',
+                                source: 'Assistant'
+                            }
+                        ]
+                    }
+                }
+            })
+        ).toEqual({
+            action: 'send',
+            message: {
+                input: {
+                    input: 'Keep this exactly as-is.',
+                    references: [
+                        {
+                            type: 'quote',
+                            text: 'Do not duplicate me.',
+                            source: 'Assistant'
+                        }
+                    ]
+                }
+            }
+        })
+    })
+})
 
 describe('validateRunCreateInput', () => {
     beforeEach(() => {
@@ -145,6 +326,89 @@ describe('validateRunCreateInput', () => {
             state: {
                 human: {
                     input: 'Tell me a joke.'
+                }
+            }
+        })
+    })
+
+    it('normalizes legacy reference-only payloads to v2 without hydrating message input', () => {
+        const referenceText = [
+            'gramming Language :: Python :: 3.12",',
+            '    "Programming Language :: Python",',
+            '    "Topic :: Software Development",',
+            ']',
+            'requires-python = ">=3.10,<3.13"',
+            'dynamic = ["dependencies", "optional-dependencies", "version"]',
+            ' ',
+            '[project.urls]'
+        ].join('\n')
+
+        const result = validateRunCreateInput(
+            {
+                conversationId: 'conversation-1',
+                input: {
+                    input: '',
+                    references: [
+                        {
+                            label: 'pyproject.toml 14-21',
+                            path: 'pyproject.toml',
+                            startLine: 14,
+                            endLine: 21,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
+                },
+                state: {
+                    human: {
+                        input: '',
+                        references: [
+                            {
+                                label: 'pyproject.toml 14-21',
+                                path: 'pyproject.toml',
+                                startLine: 14,
+                                endLine: 21,
+                                text: referenceText,
+                                taskId: 'task-1'
+                            }
+                        ]
+                    }
+                }
+            },
+            conversation
+        )
+
+        expect(result).toEqual({
+            action: 'send',
+            conversationId: 'conversation-1',
+            message: {
+                input: {
+                    input: '',
+                    references: [
+                        {
+                            label: 'pyproject.toml 14-21',
+                            path: 'pyproject.toml',
+                            startLine: 14,
+                            endLine: 21,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
+                }
+            },
+            state: {
+                human: {
+                    input: '',
+                    references: [
+                        {
+                            label: 'pyproject.toml 14-21',
+                            path: 'pyproject.toml',
+                            startLine: 14,
+                            endLine: 21,
+                            text: referenceText,
+                            taskId: 'task-1'
+                        }
+                    ]
                 }
             }
         })
@@ -422,6 +686,127 @@ describe('RunCreateStreamHandler execute', () => {
                         value: 'cn'
                     })
                 ])
+            }
+        })
+    })
+
+    it('forwards raw message input to Xpert chat and leaves hydration to downstream handlers', async () => {
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
+        const commandBus = {
+            execute: jest.fn(async (command) => {
+                if (command instanceof XpertAgentExecutionUpsertCommand) {
+                    return {
+                        id: 'execution-1'
+                    }
+                }
+
+                if (command instanceof XpertChatCommand) {
+                    return of({
+                        data: {
+                            data: null
+                        }
+                    } as any)
+                }
+
+                return null
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'GetChatConversationQuery') {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: 'xpert-1',
+                        options: {},
+                        status: 'idle'
+                    }
+                }
+
+                return {
+                    id: 'xpert-1'
+                }
+            })
+        }
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                id: 'xpert-1',
+                environmentId: null
+            }),
+            getPublishedXpertInTenant: jest.fn()
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
+        }
+
+        const handler = new RunCreateStreamHandler(
+            commandBus as any,
+            queryBus as any,
+            {
+                findOne: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            {
+                appendEvent: jest.fn().mockResolvedValue(undefined),
+                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            publishedXpertAccessService as any,
+            assistantBindingService as any
+        )
+
+        await handler.execute({
+            threadId: 'thread-1',
+            runCreate: {
+                assistant_id: 'xpert-1',
+                input: {
+                    action: 'send',
+                    message: {
+                        input: {
+                            input: 'Summarize this',
+                            referenceComposition: 'compose',
+                            references: [
+                                {
+                                    type: 'quote',
+                                    source: 'Pasted text',
+                                    text: 'Long pasted content'
+                                }
+                            ]
+                        }
+                    },
+                    state: {
+                        human: {
+                            input: 'Summarize this',
+                            referenceComposition: 'compose',
+                            references: [
+                                {
+                                    type: 'quote',
+                                    source: 'Pasted text',
+                                    text: 'Long pasted content'
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        } as any)
+
+        const xpertChatCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof XpertChatCommand
+        )?.[0] as XpertChatCommand
+
+        expect(xpertChatCommand.request).toMatchObject({
+            action: 'send',
+            message: {
+                input: {
+                    input: 'Summarize this',
+                    referenceComposition: 'compose',
+                    references: [
+                        {
+                            type: 'quote',
+                            source: 'Pasted text',
+                            text: 'Long pasted content'
+                        }
+                    ]
+                }
             }
         })
     })

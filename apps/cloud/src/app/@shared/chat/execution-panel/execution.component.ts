@@ -33,14 +33,15 @@ export class ChatMessageExecutionPanelComponent {
 
   // Inputs
   readonly id = input<string>(this.#data?.id) // ID of XpertAgentExecution
+  readonly organizationId = input<string | null>(null)
   readonly xpert = input<Partial<IXpert>>(this.#data?.xpert)
 
   // Output
   readonly close = output<void>()
 
   readonly #execution = myRxResource({
-    request: () => ({ id: this.id() }),
-    loader: ({ request }) => this.#executionService.getOneLog(request.id)
+    request: () => ({ id: this.id(), organizationId: this.organizationId() }),
+    loader: ({ request }) => this.#executionService.getOneLog(request.id, undefined, request.organizationId ?? undefined)
   })
 
   readonly error = computed(() => getErrorMessage(this.#execution.error()))

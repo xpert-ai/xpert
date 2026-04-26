@@ -58,7 +58,7 @@ import {
   hasJsonSchemaRequiredErrors
 } from 'apps/cloud/src/app/@shared/workflow'
 import { RouterModule } from '@angular/router'
-import { XpertSkillInstallDialogComponent } from 'apps/cloud/src/app/@shared/skills'
+import { XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult } from 'apps/cloud/src/app/@shared/skills'
 import {
   BehaviorSubject,
   catchError,
@@ -934,14 +934,31 @@ export class XpertNewBlankComponent {
       this.#dialog
         .open(XpertSkillInstallDialogComponent, {
           width: 'min(96vw, 72rem)',
-          maxWidth: '72rem'
+          maxWidth: '72rem',
+          data: {
+            workspaceId: this.workspaceId()
+          }
         })
         .afterClosed()
         .pipe(take(1))
     )
 
     if (skillIndex) {
-      await this.installSkill(skillIndex)
+      await this.handleSkillInstallDialogResult(skillIndex)
+    }
+  }
+
+  async handleSkillInstallDialogResult(result: XpertSkillInstallDialogResult) {
+    if (result.kind === 'repository-index') {
+      await this.installSkill(result.skillIndex)
+      return
+    }
+
+    const packageIds = result.packages.map((item) => item.id).filter((id): id is string => !!id)
+    if (packageIds.length) {
+      this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), ...packageIds])))
+      this.refreshAgentSkillMiddlewareSelections()
+      this.refreshSkills()
     }
   }
 
@@ -1041,8 +1058,12 @@ export class XpertNewBlankComponent {
   }
 
   private buildTemplateImportDraft(draft: TXpertTeamDraft) {
+    const selectedCopilotModel = this.copilotModel() ?? draft.team.agent?.copilotModel ?? draft.team.copilotModel ?? null
     const finalDraft = this.isAgentType()
-      ? applyAgentTemplateWizardState(draft, this.getSelections())
+      ? applyAgentTemplateWizardState(draft, this.getSelections(), {
+          defaultCopilotModel: selectedCopilotModel,
+          middlewareDefinitions: this.getSelectedMiddlewareDefinitions()
+        })
       : this.isKnowledgeType()
         ? applyKnowledgeTemplateWizardState(draft, this.getKnowledgeSelections())
         : draft
@@ -1065,7 +1086,7 @@ export class XpertNewBlankComponent {
         title: this.title(),
         description: this.description(),
         avatar: this.avatar(),
-        copilotModel: this.copilotModel(),
+        copilotModel: selectedCopilotModel,
         ...(features ? { features } : {})
       }
     }

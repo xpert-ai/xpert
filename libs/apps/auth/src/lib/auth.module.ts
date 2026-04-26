@@ -24,6 +24,8 @@ import { PacLogoutComponent } from './logout/logout.component'
 import { UserRegisterResultComponent } from './register-result/register-result.component'
 import { UserRegisterComponent } from './register/register.component'
 import { ResetPasswordComponent } from './reset-password/reset-password.component'
+import { SsoBindComponent } from './sso-bind/sso-bind.component'
+import { CurrentUserSsoConfirmComponent } from './current-user-sso-confirm/current-user-sso-confirm.component'
 import { PacAuthService } from './services/auth.service'
 import { NbAuthSimpleToken } from './services/token/token'
 import { PacAuthTokenParceler, PAC_AUTH_FALLBACK_TOKEN } from './services/token/token-parceler'
@@ -56,7 +58,9 @@ export function nbOptionsFactory(options) {
     PacLogoutComponent,
     ForgotPasswordComponent,
     ResetPasswordComponent,
-    VarifyEmailComponent
+    VarifyEmailComponent,
+    SsoBindComponent,
+    CurrentUserSsoConfirmComponent
   ],
   imports: [
     CommonModule,

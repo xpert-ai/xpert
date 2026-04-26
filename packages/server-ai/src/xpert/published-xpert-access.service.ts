@@ -1,4 +1,4 @@
-import { ApiKeyBindingType, IApiPrincipal } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, IApiPrincipal, isTenantSharedXpertWorkspace } from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { uniq } from 'lodash'
@@ -14,6 +14,9 @@ import {
 } from 'typeorm'
 import { Xpert } from './xpert.entity'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+
+const TENANT_SHARED_WORKSPACE_FILTER =
+    `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
 
 type PublishedXpertQueryOptions = {
     where?: Partial<Pick<Xpert, 'id' | 'slug' | 'workspaceId' | 'type' | 'latest' | 'version'>>
@@ -162,7 +165,14 @@ export class PublishedXpertAccessService {
                         .where('xpert.organizationId = :organizationId', {
                             organizationId
                         })
-                        .orWhere('xpert.organizationId IS NULL')
+                        .orWhere(
+                            new Brackets((tenantScopeQb) => {
+                                tenantScopeQb
+                                    .where('xpert.organizationId IS NULL')
+                                    .andWhere('workspace.id IS NOT NULL')
+                                    .andWhere(TENANT_SHARED_WORKSPACE_FILTER)
+                            })
+                        )
                 })
             )
             .andWhere(
@@ -172,6 +182,13 @@ export class PublishedXpertAccessService {
                         .orWhere('workspace.ownerId = :userId', { userId })
                         .orWhere('workspaceMember.id = :userId', { userId })
                         .orWhere('member.id = :userId', { userId })
+                        .orWhere(
+                            new Brackets((tenantSharedQb) => {
+                                tenantSharedQb
+                                    .where('xpert.organizationId IS NULL')
+                                    .andWhere(TENANT_SHARED_WORKSPACE_FILTER)
+                            })
+                        )
                 })
             )
 
@@ -210,11 +227,12 @@ export class PublishedXpertAccessService {
 
     private normalizeRelations(relations?: FindOneOptions<Xpert>['relations']) {
         if (Array.isArray(relations)) {
-            return uniq([...relations, 'userGroups'])
+            return uniq([...relations, 'workspace', 'userGroups'])
         }
 
         return {
             ...((relations ?? {}) as FindOptionsRelations<Xpert>),
+            workspace: true,
             userGroups: true
         }
     }
@@ -271,6 +289,20 @@ export class PublishedXpertAccessService {
         const userId = this.currentUserId()
 
         if (!xpert.organizationId) {
+            if (RequestContext.isTenantScope() || isTenantSharedXpertWorkspace(xpert.workspace)) {
+                return xpert
+            }
+
+            const count = await this.buildAccessibleQuery({
+                where: {
+                    id
+                }
+            }).getCount()
+
+            if (!count) {
+                throw new ForbiddenException('You do not have access to this assistant.')
+            }
+
             return xpert
         }
 

@@ -142,7 +142,7 @@ export type TXpert = {
    */
   summarize?: TSummarize
   /**
-   * Long-term memory config
+   * @deprecated use memory middlewares
    */
   memory?: TLongTermMemory
 
