@@ -2,6 +2,11 @@ import { runWithRequestContext as _runWithRequestContext } from '@xpert-ai/serve
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {
+	CHAT_EVENT_TYPE_ACP_OUTPUT,
+	ChatMessageEventTypeEnum,
+	ChatMessageTypeEnum
+} from '@xpert-ai/contracts'
+import {
 	HandoffMessage,
 	HandoffProcessorStrategy,
 	IHandoffProcessor,
@@ -16,6 +21,8 @@ import {
 import type { Observable } from 'rxjs'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { HandoffQueueService } from '../../message-queue.service'
+
+const TEXT_DELTA_COALESCE_WINDOW_MS = 200
 
 @Injectable()
 @HandoffProcessorStrategy(AGENT_CHAT_DISPATCH_MESSAGE_TYPE, {
@@ -82,6 +89,8 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 		let settled = false
 		let subscription: { unsubscribe: () => void } | undefined
 		let chain: Promise<void> = Promise.resolve()
+		let pendingText = ''
+		let textFlushTimer: ReturnType<typeof setTimeout> | undefined
 
 		const enqueueCallback = (
 			payload: Pick<
@@ -103,18 +112,63 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 		}
 
 		return new Promise<void>((resolve, reject) => {
+			const clearTextFlushTimer = () => {
+				if (!textFlushTimer) {
+					return
+				}
+				clearTimeout(textFlushTimer)
+				textFlushTimer = undefined
+			}
+
 			const finish = (handler: () => void) => {
 				if (settled) {
 					return
 				}
 				settled = true
+				clearTextFlushTimer()
 				ctx.abortSignal.removeEventListener('abort', onAbort)
 				subscription?.unsubscribe()
 				handler()
 			}
 
+			const rejectOnce = (error: unknown) => {
+				finish(() => reject(error))
+			}
+
+			const flushPendingText = () => {
+				clearTextFlushTimer()
+				if (!pendingText) {
+					return chain
+				}
+				const text = pendingText
+				pendingText = ''
+				return enqueueCallback({
+					kind: 'stream',
+					sourceMessageId: sourceMessage.id,
+					event: this.buildTextMessageEvent(text),
+					context: callback.context
+				})
+			}
+
+			const scheduleTextFlush = () => {
+				if (textFlushTimer) {
+					return
+				}
+				textFlushTimer = setTimeout(() => {
+					textFlushTimer = undefined
+					flushPendingText().catch(rejectOnce)
+				}, TEXT_DELTA_COALESCE_WINDOW_MS)
+			}
+
+			const enqueueAfterPendingText = (
+				payload: Pick<
+					AgentChatCallbackEnvelopePayload,
+					'kind' | 'sourceMessageId' | 'event' | 'error' | 'context'
+				>
+			) => flushPendingText().then(() => enqueueCallback(payload))
+
 			const onAbort = () => {
-				enqueueCallback({
+				enqueueAfterPendingText({
 					kind: 'error',
 					sourceMessageId: sourceMessage.id,
 					error: 'Agent chat dispatch aborted',
@@ -130,7 +184,16 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 			subscription = observable.subscribe({
 				next: (event) => {
 					// this.logger.debug(`Received stream event for source message "${sourceMessage.id}"`, event)
-					enqueueCallback({
+					if (this.shouldSkipCallbackStreamEvent(sourceMessage, callback, event)) {
+						return
+					}
+					const textDelta = this.extractCoalescableTextDelta(event)
+					if (textDelta !== null) {
+						pendingText += textDelta
+						scheduleTextFlush()
+						return
+					}
+					enqueueAfterPendingText({
 						kind: 'stream',
 						sourceMessageId: sourceMessage.id,
 						event,
@@ -141,7 +204,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 				},
 				error: (error) => {
 					this.logger.error(`Stream error for source message "${sourceMessage.id}": ${this.getErrorMessage(error)}`, error instanceof Error ? error.stack : undefined)
-					enqueueCallback({
+					enqueueAfterPendingText({
 						kind: 'error',
 						sourceMessageId: sourceMessage.id,
 						error: this.getErrorMessage(error),
@@ -156,7 +219,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 				},
 				complete: () => {
 					this.logger.debug(`Stream completed for source message "${sourceMessage.id}"`)
-					enqueueCallback({
+					enqueueAfterPendingText({
 						kind: 'complete',
 						sourceMessageId: sourceMessage.id,
 						context: callback.context
@@ -170,6 +233,69 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 				}
 			})
 		})
+	}
+
+	private shouldSkipCallbackStreamEvent(
+		sourceMessage: HandoffMessage<AgentChatDispatchPayload>,
+		callback: AgentChatCallbackTarget,
+		event: MessageEvent
+	): boolean {
+		if (!this.isLarkCallback(sourceMessage, callback)) {
+			return false
+		}
+		return this.isAcpOutputChatEvent(event)
+	}
+
+	private isLarkCallback(
+		sourceMessage: HandoffMessage<AgentChatDispatchPayload>,
+		callback: AgentChatCallbackTarget
+	): boolean {
+		return sourceMessage.headers?.source === 'lark' || callback.headers?.source === 'lark'
+	}
+
+	private isAcpOutputChatEvent(event: MessageEvent): boolean {
+		const eventData = this.toRecord(event.data)
+		if (
+			eventData?.type !== ChatMessageTypeEnum.EVENT ||
+			eventData.event !== ChatMessageEventTypeEnum.ON_CHAT_EVENT
+		) {
+			return false
+		}
+
+		const chatEventData = this.toRecord(eventData.data)
+		return chatEventData?.type === CHAT_EVENT_TYPE_ACP_OUTPUT
+	}
+
+	private extractCoalescableTextDelta(event: MessageEvent): string | null {
+		const eventData = this.toRecord(event.data)
+		if (eventData?.type !== ChatMessageTypeEnum.MESSAGE) {
+			return null
+		}
+
+		const messageData = eventData.data
+		if (typeof messageData === 'string') {
+			return messageData.length > 0 ? messageData : null
+		}
+
+		const textContent = this.toRecord(messageData)
+		if (
+			textContent?.type === 'text' &&
+			typeof textContent.text === 'string' &&
+			this.isPureTextContent(textContent)
+		) {
+			return textContent.text.length > 0 ? textContent.text : null
+		}
+
+		return null
+	}
+
+	private buildTextMessageEvent(text: string): MessageEvent {
+		return {
+			data: {
+				type: ChatMessageTypeEnum.MESSAGE,
+				data: text
+			}
+		} as MessageEvent
 	}
 
 	private buildCallbackMessage(
@@ -246,6 +372,17 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 
 	private toNonEmptyString(value: unknown): string | undefined {
 		return typeof value === 'string' && value.length > 0 ? value : undefined
+	}
+
+	private toRecord(value: unknown): Record<string, unknown> | null {
+		if (!value || typeof value !== 'object' || Array.isArray(value)) {
+			return null
+		}
+		return value as Record<string, unknown>
+	}
+
+	private isPureTextContent(value: Record<string, unknown>): boolean {
+		return Object.keys(value).every((key) => key === 'type' || key === 'text')
 	}
 
 	private getErrorMessage(error: unknown): string {
