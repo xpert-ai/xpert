@@ -1,0 +1,450 @@
+# Codexpert ACP 和 MCP 配置指南
+
+本文说明 ClawXpert 调 Codexpert 时用到的两个工具如何配置：
+
+- **Codexpert ACP**：把真正的编码任务通过远程 ACP 委派给 Codexpert。
+- **Codexpert MCP**：把 Codexpert 的上下文、仓库、会话和恢复工具暴露给 Xpert 智能体。
+
+当前集成是刻意收窄的第一版：优先跑通 ClawXpert 到 Codexpert 的链路，不做通用 ACP/MCP 平台化。
+
+## 必需服务
+
+需要同时启动两个后端：
+
+- Xpert host API：ClawXpert 运行在这里。
+- Codexpert API：对外暴露 ACP 和 MCP。
+
+在当前 Codexpert API 代码中：
+
+- ACP controller：`apps/api/src/features/acp/acp.controller.ts`
+- MCP controller：`apps/api/src/features/mcp/mcp.controller.ts`
+- MCP streamable HTTP endpoint：`/v1/mcp`
+- MCP legacy SSE endpoint：`/v1/mcp/sse`
+- ACP controller path：`/acp`，实际访问路径还取决于部署中的 API global prefix。本地 Nest 默认通常是 `/api/acp`。
+
+请以本地代理或部署真正暴露的 URL 为准，不要假设所有环境都使用同一个 prefix。
+
+## 配置模型
+
+可以把两个服务想成两个人：
+
+- **Codexpert 是干活的人**。它要知道自己开在哪个端口/路由，以及认哪些服务 token。
+- **Xpert 是派活的人**。它要知道 Codexpert 在哪里，以及调用 Codexpert 时拿哪把 token。
+
+用户身份不是 env 变量。Xpert 会在运行时解析当前业务用户，再把身份 headers 发给 Codexpert。
+
+不要把这些东西写成静态 env，也不要写死在 MCP schema 里：
+
+```http
+tenant-id
+organization-id
+x-principal-user-id
+```
+
+## 本地配置
+
+### 1. 生成本地服务 Token
+
+生成两串很长的随机 token：
+
+```bash
+openssl rand -hex 32
+openssl rand -hex 32
+```
+
+第一串当 `<local-acp-token>`，第二串当 `<local-mcp-token>`。
+
+### 2. 本地配置 Codexpert
+
+在 Codexpert 仓库根目录 `.env` 里配置：
+
+```bash
+# Codexpert API
+PORT=3001
+
+# Codexpert ACP 接收 Authorization: Bearer <token>
+ACP_SERVICE_TOKEN=<shared-acp-token>
+# ACP 也接受这个 Codexpert 专用名字。
+CODEXPERT_ACP_SERVICE_TOKEN=<shared-acp-token>
+
+# Codexpert MCP 接收 Authorization: Bearer <token>
+MCP_SERVER_TOKEN=<shared-mcp-token>
+# 可选，逗号分隔的多个 MCP token。
+MCP_SERVER_TOKENS=
+```
+
+ACP 接受 `ACP_SERVICE_TOKEN`、`CODEXPERT_ACP_SERVICE_TOKEN` 或 `XPERTAI_WORKSPACE_API_KEY`。MCP 接受 `MCP_SERVER_TOKEN` 和 `MCP_SERVER_TOKENS`。
+
+这条硬身份链路不要配置 `CODEXPERT_DEV_PRINCIPAL_USER_MAP` 或 `ACP_DEV_PRINCIPAL_USER_MAP` 这种本地 user-id 映射。Xpert 发出的 `x-principal-user-id` 应该已经是 Codexpert 要按其执行的 Xpert 业务用户。
+
+### 3. 确认本地 Codexpert 路由
+
+MCP 通常是：
+
+```text
+http://localhost:3001/v1/mcp
+```
+
+ACP 取决于本地 Codexpert API 实际暴露的路由。先试 `/api/acp`：
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <local-acp-token>" \
+  -H "tenant-id: <tenant-id>" \
+  -H "organization-id: <organization-id>" \
+  -H "x-principal-user-id: <user-id>" \
+  -X POST http://localhost:3001/api/acp/initialize
+```
+
+如果返回 404，再试：
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <local-acp-token>" \
+  -H "tenant-id: <tenant-id>" \
+  -H "organization-id: <organization-id>" \
+  -H "x-principal-user-id: <user-id>" \
+  -X POST http://localhost:3001/acp/initialize
+```
+
+哪个 base URL 能通，Xpert 侧的 `CODEXPERT_ACP_BASE_URL` 就填哪个。
+
+### 4. 本地配置 Xpert
+
+在 Xpert 的 `env.local` 里配置：
+
+```bash
+# Xpert server-ai
+
+# 远程 Codexpert ACP endpoint。
+# 按你的部署真实路由填写。常见本地例子：
+#   http://localhost:3001/api/acp
+#   http://localhost:3001/acp
+CODEXPERT_ACP_BASE_URL=http://localhost:3001/api/acp
+
+# Xpert 调 Codexpert ACP 时使用的 Bearer token。
+CODEXPERT_ACP_SERVICE_TOKEN=<shared-acp-token>
+
+# 远程 Codexpert MCP streamable HTTP endpoint。
+# 当前 Codexpert API 实现是 /v1/mcp。
+CODEXPERT_MCP_BASE_URL=http://localhost:3001/v1/mcp
+
+# Xpert 调 Codexpert MCP 时使用的 Bearer token。
+CODEXPERT_MCP_SERVICE_TOKEN=<shared-mcp-token>
+```
+
+建议显式配置 `CODEXPERT_MCP_BASE_URL`。如果不配，middleware 会尝试根据 `CODEXPERT_ACP_BASE_URL` 推导一个相邻的 MCP 地址，这只适用于部署中确实暴露了对应 `/mcp` 路由的情况。
+
+### 5. 本地配置 ClawXpert
+
+ClawXpert 的 ACP middleware 必须固定到远程 Codexpert：
+
+```yaml
+provider: DelegateCodingTask
+options:
+  enabledTargetRefs:
+    - remote_xpert_acp
+  defaultTargetRef: remote_xpert_acp
+  mode: persistent
+  reuseSession: true
+  permissionProfile: workspace_write
+  timeoutMs: 900000
+```
+
+ClawXpert 还要暴露 Codexpert MCP，推荐用 middleware：
+
+```yaml
+provider: CodexpertContextMcp
+options:
+  url: http://localhost:3001/v1/mcp
+```
+
+如果你用的是数据库里已经创建好的本地 ClawXpert，只改 YAML 模板不一定生效。还要更新线上/本地数据库里这个 assistant 的草稿、已绑定 middleware 或 toolset 记录。
+
+### 6. 本地重启
+
+按这个顺序重启：
+
+1. Codexpert API。
+2. Xpert API。
+3. 如果浏览器里已经打开了 assistant 编辑器或聊天界面，再刷新 Xpert cloud UI。
+
+然后验证 `listCodingAssistants` 或 `listGitConnections` 不再报缺身份 headers。
+
+## 线上配置
+
+### 1. 选择内部服务地址
+
+如果 Xpert 和 Codexpert 在同一个内网，优先用内部服务地址：
+
+```bash
+CODEXPERT_ACP_BASE_URL=https://codexpert-api.internal.example.com/api/acp
+CODEXPERT_MCP_BASE_URL=https://codexpert-api.internal.example.com/v1/mcp
+```
+
+如果 Codexpert 通过 ingress 或 gateway 暴露，就填能打到同一批 controller 的公网或网关地址：
+
+```bash
+CODEXPERT_ACP_BASE_URL=https://codexpert.example.com/api/acp
+CODEXPERT_MCP_BASE_URL=https://codexpert.example.com/v1/mcp
+```
+
+ACP 的 prefix 可能因部署不同而不同。上线前要用 `/initialize` 检查真实路径。
+
+### 2. 线上配置 Codexpert Secret
+
+这些值放在生产 secret manager 或部署平台的 secret 里，不要提交到仓库：
+
+```bash
+ACP_SERVICE_TOKEN=<production-acp-token>
+CODEXPERT_ACP_SERVICE_TOKEN=<production-acp-token>
+MCP_SERVER_TOKEN=<production-mcp-token>
+```
+
+如果 MCP token 需要灰度轮换，可以用：
+
+```bash
+MCP_SERVER_TOKENS=<production-mcp-token>,<next-production-mcp-token>
+```
+
+### 3. 线上配置 Xpert Secret
+
+Xpert 部署里配置：
+
+```bash
+CODEXPERT_ACP_BASE_URL=https://codexpert-api.internal.example.com/api/acp
+CODEXPERT_ACP_SERVICE_TOKEN=<production-acp-token>
+CODEXPERT_MCP_BASE_URL=https://codexpert-api.internal.example.com/v1/mcp
+CODEXPERT_MCP_SERVICE_TOKEN=<production-mcp-token>
+```
+
+Xpert 的 ACP token 必须等于 Codexpert ACP 接受的某个 token。Xpert 的 MCP token 必须等于 Codexpert MCP 接受的某个 token。
+
+### 4. 线上配置已发布的 ClawXpert
+
+生产 ClawXpert 要改已发布 assistant 的配置，不是只改模板文件：
+
+- 启用 `DelegateCodingTask`。
+- 这条路径下 `enabledTargetRefs` 只放 `remote_xpert_acp`。
+- `defaultTargetRef` 是 `remote_xpert_acp`。
+- 启用 `CodexpertContextMcp`，或者挂一个名为 `codexpert-context` 的 MCP toolset。
+- MCP schema 只保留 `Authorization` 这种连接鉴权，不写死业务身份 headers。
+
+### 5. 线上配置身份链路
+
+浏览器用户走普通 Xpert 登录上下文，必须能拿到 tenant、organization 和 user。
+
+飞书或未来三方 trigger 走：
+
+```text
+provider subject id -> account_binding -> Xpert user -> BusinessPrincipal
+```
+
+飞书具体是：
+
+```text
+Lark union_id -> account_binding(provider = lark) -> Xpert user
+```
+
+如果 Codexpert 执行路径找不到绑定用户，要返回明确的绑定错误或绑定链接，不能 fallback 到 integration creator。
+
+### 6. 线上上线检查
+
+开放给真实用户前检查：
+
+1. 用生产 URL 和生产 token 调 Codexpert ACP `/initialize`。
+2. 用生产 URL 和生产 token 打开 Codexpert MCP `/v1/mcp`。
+3. 用普通 Xpert 登录用户触发 ClawXpert。
+4. 如果启用了飞书，用已绑定飞书用户触发 ClawXpert。
+5. 确认 Codexpert 收到 `tenant-id`、`organization-id` 和 `x-principal-user-id`。
+6. 确认 `listCodingAssistants`、`listGitConnections` 等 MCP 工具可用。
+7. 确认 `delegate_coding_task` 能创建远程 Codexpert ACP session。
+8. 确认远程错误会明确失败，不会跑到本地 CLI。
+
+## 身份 Headers
+
+Codexpert 所需的业务身份 headers 由 Xpert 宿主生成，不要写死在 MCP schema 或 ACP target metadata 里。
+
+Xpert 会发送：
+
+```http
+tenant-id: <tenantId>
+organization-id: <organizationId>
+x-principal-user-id: <xpertUserId>
+Authorization: Bearer <service-token>
+```
+
+身份来源必须已经是 Xpert 平台用户。飞书触发链路的目标路径是：
+
+```text
+Lark union_id -> account_binding -> Xpert user -> BusinessPrincipal -> Codexpert headers
+```
+
+缺少 tenant、organization 或 user 时，应该在 Xpert 侧直接失败，不能继续请求 Codexpert。
+
+## 配置 Codexpert ACP
+
+Codexpert ACP 由 `DelegateCodingTask` agent middleware 提供。
+
+内置 ACP target 是 `remote_xpert_acp`。它在 `packages/server-ai/src/acp-runtime/backends/acp-target.registry.ts` 中解析，并读取：
+
+- `CODEXPERT_ACP_BASE_URL` 或 `XPERT_CODEXPERT_ACP_ENDPOINT`
+- `CODEXPERT_ACP_SERVICE_TOKEN` 或 `ACP_SERVICE_TOKEN`
+
+推荐 middleware 配置：
+
+```yaml
+provider: DelegateCodingTask
+options:
+  enabledTargetRefs:
+    - remote_xpert_acp
+  defaultTargetRef: remote_xpert_acp
+  mode: persistent
+  reuseSession: true
+  permissionProfile: workspace_write
+  timeoutMs: 900000
+```
+
+暴露给智能体的工具名是：
+
+```text
+delegate_coding_task
+```
+
+最小工具入参：
+
+```json
+{
+  "taskTitle": "Implement a focused coding change",
+  "prompt": "Exact user-approved coding instructions, target files, constraints, and acceptance criteria."
+}
+```
+
+常用可选字段：
+
+- `targetRef`：通常是 `remote_xpert_acp`
+- `mode`：`persistent` 或 `oneshot`
+- `reuseSession`：是否复用委派给 Codexpert 的 session
+- `permissionProfile`：`read_only`、`workspace_write` 或 `full_exec`
+- `timeoutMs`：本轮任务超时时间，单位毫秒
+- `targetPaths`：希望 Codexpert 聚焦的文件或目录
+- `repoConnectionId`、`repoId`、`repoName`、`repoOwner`、`repoSlug`
+- `branchName`、`baseBranchName`
+- `sourceConversationId`、`resumeThreadId`
+- `sandboxEnvironmentId`、`workspacePath`
+
+ClawXpert 只有在编码目标、范围和预期结果都明确后，才应该调用这个工具。
+
+## 配置 Codexpert MCP
+
+Codexpert MCP 有两种接入方式。
+
+### 方式 A：Agent Middleware
+
+使用 `CodexpertContextMcp` middleware。
+
+```yaml
+provider: CodexpertContextMcp
+options:
+  url: http://localhost:3001/v1/mcp
+```
+
+如果已经配置 `CODEXPERT_MCP_BASE_URL`，`url` 可以省略。
+
+这个 middleware 会：
+
+- 创建 Codexpert MCP client；
+- 注入当前 `BusinessPrincipal`；
+- 保留配置里的 `Authorization` header；
+- 给 Codexpert MCP 上游工具补上更保守的编码任务使用说明。
+
+### 方式 B：MCP Toolset Schema
+
+如果直接配置 MCP toolset，server name 必须精确叫 `codexpert-context`。Xpert 只会给这个 server name 注入 Codexpert 身份 headers。
+
+```json
+{
+  "mcpServers": {
+    "codexpert-context": {
+      "type": "http",
+      "url": "http://localhost:3001/v1/mcp",
+      "headers": {
+        "Authorization": "Bearer {{ CODEXPERT_MCP_SERVICE_TOKEN }}"
+      }
+    }
+  }
+}
+```
+
+不要在 schema 里写 `tenant-id`、`organization-id` 或 `x-principal-user-id`。Xpert 会为 `codexpert-context` 覆盖这三段业务身份 headers。
+
+## 主要 MCP 工具
+
+Codexpert 当前暴露的工具包括：
+
+- `listCodingAssistants`
+- `listCodexpertConversations`
+- `listGitConnections`
+- `listGitRepositories`
+- `listGitBranches`
+- `selectCodingContext`
+- `resolveCodexpertConversationContext`
+- `resumeCodexpertSession`
+- `createPR`
+- `publishTaskPR`
+- `createIssueComment`
+
+典型 ClawXpert 流程是：
+
+1. 先用 MCP 查询或选择 coding assistant、Git connection、repository 和 branch。
+2. 需要恢复上下文时，用 MCP 解析或恢复已有 Codexpert conversation。
+3. 真正改代码时，调用 ACP 的 `delegate_coding_task`。
+4. Codexpert ACP 的进度和终态流式回到 ClawXpert 对话里。
+
+## 本地验证
+
+验证 Codexpert ACP：
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <shared-acp-token>" \
+  -H "tenant-id: <tenant-id>" \
+  -H "organization-id: <organization-id>" \
+  -H "x-principal-user-id: <user-id>" \
+  -X POST http://localhost:3001/api/acp/initialize
+```
+
+验证 Codexpert MCP：
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <shared-mcp-token>" \
+  -H "tenant-id: <tenant-id>" \
+  -H "organization-id: <organization-id>" \
+  -H "x-principal-user-id: <user-id>" \
+  -X POST http://localhost:3001/v1/mcp
+```
+
+MCP 是 JSON-RPC 协议，所以空请求可能返回协议层错误；但如果 headers 正确，不应该再出现鉴权缺失或身份 headers 缺失。
+
+## 常见问题
+
+`Missing BusinessPrincipal...`
+
+Xpert 当前请求上下文里没有完整 tenant、organization、user。需要修上游登录、handoff 或 trigger 身份链路。
+
+`Missing tenant-id, organization-id, or x-principal-user-id headers for Codexpert MCP coding context.`
+
+Codexpert 收到 MCP 请求时缺少业务身份 headers。检查 MCP server name 是否为 `codexpert-context`，以及 Xpert 是否能解析出 `BusinessPrincipal`。
+
+`Invalid ACP service token` 或 `Invalid MCP token`
+
+Xpert 侧 token 和 Codexpert 侧 token 配置不一致。
+
+Codexpert MCP 工具没有出现
+
+检查 MCP endpoint path。当前 Codexpert streamable HTTP endpoint 是 `/v1/mcp`，不是 legacy SSE endpoint。
+
+ACP 任务悄悄跑到别的地方
+
+这条集成不应该 fallback 到本地 CLI。确认 `enabledTargetRefs` 和 `defaultTargetRef` 都是 `remote_xpert_acp`。

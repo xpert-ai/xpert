@@ -37,6 +37,8 @@
                   "en/guides/rustfs-file-storage",
                   "en/guides/agent-middleware",
                   "en/guides/handoff",
+                  "en/guides/codexpert-acp-mcp-configuration",
+                  "en/guides/codexpert-remote-acp-practice",
                   "en/guides/icon-schema",
                   "en/guides/release",
                   "en/guides/message-assembly-v2"
@@ -82,6 +84,8 @@
                   "zh-hans/guides/assistant-architecture",
                   "zh-hans/guides/agent-middleware",
                   "zh-hans/guides/handoff",
+                  "zh-hans/guides/codexpert-acp-mcp-configuration",
+                  "zh-hans/guides/codexpert-remote-acp-practice",
                   "zh-hans/guides/icon-schema",
                   "zh-hans/guides/release",
                   "zh-hans/guides/message-assembly-v2",

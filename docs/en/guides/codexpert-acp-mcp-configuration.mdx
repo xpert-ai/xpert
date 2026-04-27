@@ -1,0 +1,450 @@
+# Codexpert ACP and MCP Configuration
+
+This guide explains how to configure the two Codexpert-facing tools used by ClawXpert:
+
+- **Codexpert ACP**: delegates an actual coding task to Codexpert through remote ACP.
+- **Codexpert MCP**: exposes Codexpert context, repository, conversation, and resume tools to the Xpert agent.
+
+The current integration is intentionally narrow. It supports the ClawXpert to Codexpert path first, not a generic ACP/MCP platform.
+
+## Required Services
+
+Run both backends:
+
+- Xpert host API, where ClawXpert runs.
+- Codexpert API, which exposes ACP and MCP.
+
+In the current Codexpert API code:
+
+- ACP controller: `apps/api/src/features/acp/acp.controller.ts`
+- MCP controller: `apps/api/src/features/mcp/mcp.controller.ts`
+- MCP streamable HTTP endpoint: `/v1/mcp`
+- MCP legacy SSE endpoint: `/v1/mcp/sse`
+- ACP controller path: `/acp` under the API global prefix used by the deployment. In local Nest defaults this is usually `/api/acp`.
+
+Use the real URL exposed by your local proxy or deployment. Do not assume all environments use the same prefix.
+
+## Configuration Model
+
+Think of the two services as two people:
+
+- **Codexpert is the worker**. It needs to know which port or route it serves and which service tokens it accepts.
+- **Xpert is the dispatcher**. It needs to know where Codexpert is and which service tokens to use when calling it.
+
+The user identity is not an env variable. Xpert resolves the current business user at runtime and sends the identity headers to Codexpert.
+
+Do not configure these as static env values or MCP schema headers:
+
+```http
+tenant-id
+organization-id
+x-principal-user-id
+```
+
+## Local Configuration
+
+### 1. Generate Local Service Tokens
+
+Generate two long random tokens:
+
+```bash
+openssl rand -hex 32
+openssl rand -hex 32
+```
+
+Use the first value as `<local-acp-token>` and the second value as `<local-mcp-token>`.
+
+### 2. Configure Codexpert Locally
+
+In the Codexpert repository root `.env`, configure:
+
+```bash
+# Codexpert API
+PORT=3001
+
+# Accepted by Codexpert ACP Authorization: Bearer <token>
+ACP_SERVICE_TOKEN=<shared-acp-token>
+# Also accepted by ACP; useful when deployments use the Codexpert-specific name.
+CODEXPERT_ACP_SERVICE_TOKEN=<shared-acp-token>
+
+# Accepted by Codexpert MCP Authorization: Bearer <token>
+MCP_SERVER_TOKEN=<shared-mcp-token>
+# Optional comma-separated additional MCP tokens.
+MCP_SERVER_TOKENS=
+```
+
+ACP accepts `ACP_SERVICE_TOKEN`, `CODEXPERT_ACP_SERVICE_TOKEN`, or `XPERTAI_WORKSPACE_API_KEY`. MCP accepts `MCP_SERVER_TOKEN` and `MCP_SERVER_TOKENS`.
+
+For this hard identity chain, do not configure local user-id mapping env vars such as `CODEXPERT_DEV_PRINCIPAL_USER_MAP` or `ACP_DEV_PRINCIPAL_USER_MAP`. The `x-principal-user-id` sent by Xpert should already be the Xpert business user that Codexpert should execute as.
+
+### 3. Confirm the Local Codexpert Routes
+
+MCP is normally:
+
+```text
+http://localhost:3001/v1/mcp
+```
+
+ACP depends on the route exposed by your local Codexpert API. Try `/api/acp` first:
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <local-acp-token>" \
+  -H "tenant-id: <tenant-id>" \
+  -H "organization-id: <organization-id>" \
+  -H "x-principal-user-id: <user-id>" \
+  -X POST http://localhost:3001/api/acp/initialize
+```
+
+If that returns 404, try:
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <local-acp-token>" \
+  -H "tenant-id: <tenant-id>" \
+  -H "organization-id: <organization-id>" \
+  -H "x-principal-user-id: <user-id>" \
+  -X POST http://localhost:3001/acp/initialize
+```
+
+Whichever base URL works is the value to put into `CODEXPERT_ACP_BASE_URL` on the Xpert side.
+
+### 4. Configure Xpert Locally
+
+In Xpert `env.local`, configure:
+
+```bash
+# Xpert server-ai
+
+# Remote Codexpert ACP endpoint.
+# Use the real route in your deployment. Common local examples:
+#   http://localhost:3001/api/acp
+#   http://localhost:3001/acp
+CODEXPERT_ACP_BASE_URL=http://localhost:3001/api/acp
+
+# Bearer token sent from Xpert to Codexpert ACP.
+CODEXPERT_ACP_SERVICE_TOKEN=<shared-acp-token>
+
+# Remote Codexpert MCP streamable HTTP endpoint.
+# For the current Codexpert API implementation this is /v1/mcp.
+CODEXPERT_MCP_BASE_URL=http://localhost:3001/v1/mcp
+
+# Bearer token sent from Xpert to Codexpert MCP.
+CODEXPERT_MCP_SERVICE_TOKEN=<shared-mcp-token>
+```
+
+`CODEXPERT_MCP_BASE_URL` is recommended. If it is omitted, the middleware tries to derive an MCP sibling from `CODEXPERT_ACP_BASE_URL`, which only works in deployments that expose a matching `/mcp` route.
+
+### 5. Configure ClawXpert Locally
+
+ClawXpert must have the ACP middleware pinned to remote Codexpert:
+
+```yaml
+provider: DelegateCodingTask
+options:
+  enabledTargetRefs:
+    - remote_xpert_acp
+  defaultTargetRef: remote_xpert_acp
+  mode: persistent
+  reuseSession: true
+  permissionProfile: workspace_write
+  timeoutMs: 900000
+```
+
+ClawXpert must also expose Codexpert MCP, preferably through middleware:
+
+```yaml
+provider: CodexpertContextMcp
+options:
+  url: http://localhost:3001/v1/mcp
+```
+
+If you are using an already-created local ClawXpert instance from the database, updating only the YAML template is not enough. Update the live assistant draft or the bound middleware/toolset rows as well.
+
+### 6. Restart Locally
+
+Restart in this order:
+
+1. Codexpert API.
+2. Xpert API.
+3. Xpert cloud UI if the assistant editor or chat UI is already open.
+
+Then verify that `listCodingAssistants` or `listGitConnections` no longer fails with missing identity headers.
+
+## Production Configuration
+
+### 1. Choose Internal Service URLs
+
+Use internal service URLs when Xpert and Codexpert run in the same private network:
+
+```bash
+CODEXPERT_ACP_BASE_URL=https://codexpert-api.internal.example.com/api/acp
+CODEXPERT_MCP_BASE_URL=https://codexpert-api.internal.example.com/v1/mcp
+```
+
+If Codexpert is exposed through an ingress or gateway, use the routed URLs that reach the same controllers:
+
+```bash
+CODEXPERT_ACP_BASE_URL=https://codexpert.example.com/api/acp
+CODEXPERT_MCP_BASE_URL=https://codexpert.example.com/v1/mcp
+```
+
+The exact ACP prefix can differ by deployment. Validate it with the same `/initialize` check before rollout.
+
+### 2. Configure Codexpert Production Secrets
+
+Store these in the production secret manager or deployment secret system, not in committed files:
+
+```bash
+ACP_SERVICE_TOKEN=<production-acp-token>
+CODEXPERT_ACP_SERVICE_TOKEN=<production-acp-token>
+MCP_SERVER_TOKEN=<production-mcp-token>
+```
+
+If you need multiple MCP clients during rotation, use:
+
+```bash
+MCP_SERVER_TOKENS=<production-mcp-token>,<next-production-mcp-token>
+```
+
+### 3. Configure Xpert Production Secrets
+
+Store these on the Xpert deployment:
+
+```bash
+CODEXPERT_ACP_BASE_URL=https://codexpert-api.internal.example.com/api/acp
+CODEXPERT_ACP_SERVICE_TOKEN=<production-acp-token>
+CODEXPERT_MCP_BASE_URL=https://codexpert-api.internal.example.com/v1/mcp
+CODEXPERT_MCP_SERVICE_TOKEN=<production-mcp-token>
+```
+
+The Xpert ACP token must match one token accepted by Codexpert ACP. The Xpert MCP token must match one token accepted by Codexpert MCP.
+
+### 4. Configure Published ClawXpert
+
+For a production ClawXpert, update the published assistant configuration, not only the template file:
+
+- `DelegateCodingTask` is enabled.
+- `enabledTargetRefs` contains only `remote_xpert_acp` for this path.
+- `defaultTargetRef` is `remote_xpert_acp`.
+- `CodexpertContextMcp` is enabled, or an MCP toolset named `codexpert-context` is attached.
+- The MCP schema keeps only connection auth such as `Authorization`; it does not hard-code business identity headers.
+
+### 5. Configure Production Identity
+
+For browser users, the normal Xpert login context must include tenant, organization, and user.
+
+For Lark or future third-party triggers:
+
+```text
+provider subject id -> account_binding -> Xpert user -> BusinessPrincipal
+```
+
+For Lark specifically:
+
+```text
+Lark union_id -> account_binding(provider = lark) -> Xpert user
+```
+
+If no binding exists for a Codexpert execution path, return a clear binding error or binding link. Do not fall back to the integration creator.
+
+### 6. Production Rollout Checks
+
+Before enabling real users:
+
+1. Call Codexpert ACP `/initialize` through the production URL with the production token.
+2. Open Codexpert MCP `/v1/mcp` through the production URL with the production token.
+3. Trigger ClawXpert from a normal logged-in Xpert user.
+4. Trigger ClawXpert from a bound Lark user if Lark is enabled.
+5. Confirm Codexpert receives `tenant-id`, `organization-id`, and `x-principal-user-id`.
+6. Confirm MCP tools such as `listCodingAssistants` and `listGitConnections` work.
+7. Confirm `delegate_coding_task` creates a remote Codexpert ACP session.
+8. Confirm remote errors fail loudly and do not run local CLI.
+
+## Identity Headers
+
+Xpert generates the Codexpert business identity headers. Do not hard-code these in MCP schema or ACP target metadata.
+
+Xpert sends:
+
+```http
+tenant-id: <tenantId>
+organization-id: <organizationId>
+x-principal-user-id: <xpertUserId>
+Authorization: Bearer <service-token>
+```
+
+The identity source must already be an Xpert platform user. For Lark-triggered flows, the intended path is:
+
+```text
+Lark union_id -> account_binding -> Xpert user -> BusinessPrincipal -> Codexpert headers
+```
+
+If tenant, organization, or user is missing, Xpert should fail before calling Codexpert.
+
+## Configure Codexpert ACP
+
+Codexpert ACP is provided by the `DelegateCodingTask` agent middleware.
+
+The built-in ACP target is `remote_xpert_acp`. It is resolved by `packages/server-ai/src/acp-runtime/backends/acp-target.registry.ts` and reads:
+
+- `CODEXPERT_ACP_BASE_URL` or `XPERT_CODEXPERT_ACP_ENDPOINT`
+- `CODEXPERT_ACP_SERVICE_TOKEN` or `ACP_SERVICE_TOKEN`
+
+Recommended middleware options:
+
+```yaml
+provider: DelegateCodingTask
+options:
+  enabledTargetRefs:
+    - remote_xpert_acp
+  defaultTargetRef: remote_xpert_acp
+  mode: persistent
+  reuseSession: true
+  permissionProfile: workspace_write
+  timeoutMs: 900000
+```
+
+The exposed tool name is:
+
+```text
+delegate_coding_task
+```
+
+Minimum tool input:
+
+```json
+{
+  "taskTitle": "Implement a focused coding change",
+  "prompt": "Exact user-approved coding instructions, target files, constraints, and acceptance criteria."
+}
+```
+
+Useful optional fields:
+
+- `targetRef`: usually `remote_xpert_acp`
+- `mode`: `persistent` or `oneshot`
+- `reuseSession`: reuse a delegated Codexpert session
+- `permissionProfile`: `read_only`, `workspace_write`, or `full_exec`
+- `timeoutMs`: turn timeout in milliseconds
+- `targetPaths`: files or folders the task should focus on
+- `repoConnectionId`, `repoId`, `repoName`, `repoOwner`, `repoSlug`
+- `branchName`, `baseBranchName`
+- `sourceConversationId`, `resumeThreadId`
+- `sandboxEnvironmentId`, `workspacePath`
+
+ClawXpert should call this tool only after the coding goal, scope, and expected result are clear.
+
+## Configure Codexpert MCP
+
+Codexpert MCP can be exposed in two ways.
+
+### Option A: Agent Middleware
+
+Use the `CodexpertContextMcp` middleware.
+
+```yaml
+provider: CodexpertContextMcp
+options:
+  url: http://localhost:3001/v1/mcp
+```
+
+The `url` option is optional if `CODEXPERT_MCP_BASE_URL` is configured.
+
+The middleware:
+
+- creates a Codexpert MCP client,
+- injects the current `BusinessPrincipal`,
+- preserves the configured `Authorization` header,
+- wraps upstream Codexpert MCP tools with conservative coding-task instructions.
+
+### Option B: MCP Toolset Schema
+
+If configuring an MCP toolset directly, the server name must be exactly `codexpert-context`; Xpert only injects Codexpert identity headers for that server name.
+
+```json
+{
+  "mcpServers": {
+    "codexpert-context": {
+      "type": "http",
+      "url": "http://localhost:3001/v1/mcp",
+      "headers": {
+        "Authorization": "Bearer {{ CODEXPERT_MCP_SERVICE_TOKEN }}"
+      }
+    }
+  }
+}
+```
+
+Do not put `tenant-id`, `organization-id`, or `x-principal-user-id` in the schema. Xpert overwrites these for `codexpert-context`.
+
+## Main MCP Tools
+
+Codexpert currently exposes tools such as:
+
+- `listCodingAssistants`
+- `listCodexpertConversations`
+- `listGitConnections`
+- `listGitRepositories`
+- `listGitBranches`
+- `selectCodingContext`
+- `resolveCodexpertConversationContext`
+- `resumeCodexpertSession`
+- `createPR`
+- `publishTaskPR`
+- `createIssueComment`
+
+A typical ClawXpert flow is:
+
+1. Use MCP to list/select the coding assistant, Git connection, repository, and branch.
+2. Use MCP to resolve or resume an existing Codexpert conversation when needed.
+3. Use ACP `delegate_coding_task` for the actual code-changing task.
+4. Stream ACP progress back into the ClawXpert conversation.
+
+## Local Verification
+
+Check Codexpert ACP:
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <shared-acp-token>" \
+  -H "tenant-id: <tenant-id>" \
+  -H "organization-id: <organization-id>" \
+  -H "x-principal-user-id: <user-id>" \
+  -X POST http://localhost:3001/api/acp/initialize
+```
+
+Check Codexpert MCP:
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <shared-mcp-token>" \
+  -H "tenant-id: <tenant-id>" \
+  -H "organization-id: <organization-id>" \
+  -H "x-principal-user-id: <user-id>" \
+  -X POST http://localhost:3001/v1/mcp
+```
+
+MCP is JSON-RPC based, so a plain empty request may return a protocol-level error, but it should not fail with missing authentication or missing identity headers if your headers are correct.
+
+## Common Failures
+
+`Missing BusinessPrincipal...`
+
+The Xpert request context does not contain a complete tenant, organization, and user. Fix the upstream login, handoff, or trigger identity path.
+
+`Missing tenant-id, organization-id, or x-principal-user-id headers for Codexpert MCP coding context.`
+
+Codexpert received an MCP request without business identity headers. Make sure the MCP server name is `codexpert-context` and Xpert has a valid `BusinessPrincipal`.
+
+`Invalid ACP service token` or `Invalid MCP token`
+
+The Xpert token does not match the Codexpert token configuration.
+
+Codexpert MCP tools do not appear
+
+Check the MCP endpoint path. The current Codexpert streamable HTTP endpoint is `/v1/mcp`, not the legacy SSE endpoint.
+
+ACP task silently runs somewhere else
+
+This integration should not fall back to local CLI. Confirm `enabledTargetRefs` and `defaultTargetRef` are both `remote_xpert_acp`.
