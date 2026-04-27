@@ -10,7 +10,8 @@ import { OpenAPIToolset } from '../../provider/openapi/openapi-toolset'
 import { BaseToolset } from '../../toolset'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ToolsetGetToolsCommand } from '../get-tools.command'
-import { TBuiltinToolsetParams } from '../../../shared'
+import { requireCurrentBusinessPrincipal } from '../../../shared/identity'
+import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
 
 @CommandHandler(ToolsetGetToolsCommand)
 export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCommand> {
@@ -37,6 +38,7 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			relations: ['tools']
 		})
 
+		const principal = toolsets.some(requiresCodexpertPrincipal) ? requireCurrentBusinessPrincipal() : undefined
 		const context: TBuiltinToolsetParams = {
 			conversationId: command.environment?.conversationId,
 			tenantId,
@@ -50,7 +52,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			agentKey: command.environment?.agentKey,
 			signal: command.environment?.signal,
 			env: command.environment?.env,
-			store: command.environment?.store
+			store: command.environment?.store,
+			principal
 		}
 
 		return Promise.all(toolsets.map(async (toolset) => {
@@ -79,5 +82,18 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 				}
 			}
 		}))
+	}
+}
+
+function requiresCodexpertPrincipal(toolset: { category?: XpertToolsetCategoryEnum | string | null; schema?: string | null }): boolean {
+	if (toolset.category !== XpertToolsetCategoryEnum.MCP || !toolset.schema) {
+		return false
+	}
+	try {
+		const schema = JSON.parse(toolset.schema)
+		const servers = schema?.servers ?? schema?.mcpServers
+		return Boolean(servers && typeof servers === 'object' && servers['codexpert-context'])
+	} catch {
+		return false
 	}
 }

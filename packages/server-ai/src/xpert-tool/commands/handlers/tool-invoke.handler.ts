@@ -15,7 +15,8 @@ import {
 } from '../../../xpert-toolset'
 import { ToolInvokeCommand } from '../tool-invoke.command'
 import { EnvStateQuery } from '../../../environment'
-import { TBuiltinToolsetParams } from '../../../shared'
+import { requireCurrentBusinessPrincipal } from '../../../shared/identity'
+import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
 
 @CommandHandler(ToolInvokeCommand)
 export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
@@ -59,6 +60,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 		}
 
 		const envState = await this.queryBus.execute(new EnvStateQuery(toolset.workspaceId))
+		const principal = requiresCodexpertPrincipal(toolset) ? requireCurrentBusinessPrincipal() : undefined
 		const context: TBuiltinToolsetParams = {
 			tenantId,
 			organizationId,
@@ -68,7 +70,8 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 			userId: RequestContext.currentUserId(),
 			xpertId: parameters?.form?.xpertId,
 			agentKey: parameters?.form?.agentKey,
-			env: envState
+			env: envState,
+			principal
 		}
 
 		switch (toolset.category) {
@@ -136,5 +139,18 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 		}
 
 		throw new ToolNotSupportedError(`Toolset type ${toolset.type}`)
+	}
+}
+
+function requiresCodexpertPrincipal(toolset: { category?: XpertToolsetCategoryEnum | string | null; schema?: string | null }): boolean {
+	if (toolset.category !== XpertToolsetCategoryEnum.MCP || !toolset.schema) {
+		return false
+	}
+	try {
+		const schema = JSON.parse(toolset.schema)
+		const servers = schema?.servers ?? schema?.mcpServers
+		return Boolean(servers && typeof servers === 'object' && servers['codexpert-context'])
+	} catch {
+		return false
 	}
 }

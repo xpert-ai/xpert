@@ -6,6 +6,7 @@ import { LongTermMemoryTypeEnum } from './xpert.model'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { JSONValue } from '../core.model'
 import { IStorageFile } from '../storage-file.model'
+import { TAcpRuntimePhase } from './acp-session.model'
 
 export type TSummaryJob = Record<
   LongTermMemoryTypeEnum,
@@ -91,6 +92,24 @@ export type TChatElementReference = TChatReferenceBase &
   }
 
 export type TChatReference = TChatCodeReference | TChatQuoteReference | TChatImageReference | TChatElementReference
+
+export type TAcpSystemEventMessage = {
+  type: 'acp_system_event'
+  source: 'codexpert'
+  origin: 'system'
+  acpSessionId: string
+  executionId?: string | null
+  phase?: TAcpRuntimePhase | null
+  headline: string
+  sequence?: number
+  sequenceRange?: [number, number]
+  toolName?: string | null
+  toolStatus?: string | null
+  requiresAttention?: boolean
+  final?: boolean
+  liveText?: boolean
+  truncated?: boolean
+}
 
 /**
  * Chat message entity type

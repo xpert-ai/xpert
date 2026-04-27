@@ -13,11 +13,16 @@ import { environment } from '@xpert-ai/server-config'
 import { runScript } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { isNil, omitBy } from 'lodash'
+import { buildCodexpertIdentityHeaders } from '../../../codexpert'
+import type { BusinessPrincipal } from '../../../shared/identity'
 
 export async function createMCPClient(
 	toolset: Partial<IXpertToolset>,
 	schema: TMCPSchema,
-	envState: Record<string, unknown>
+	envState: Record<string, unknown>,
+	options?: {
+		principal?: BusinessPrincipal
+	}
 ) {
 	const logs: string[] = []
 	const mcpServers = {}
@@ -29,12 +34,7 @@ export async function createMCPClient(
 		const name = serverName || toolset.name || 'default'
 		const transport = server.type?.toLowerCase()
 		if (transport === MCPServerType.HTTP) {
-			const headers = server.headers ?? {}
-			for await (const name of Object.keys(headers)) {
-				headers[name] = await PromptTemplate.fromTemplate(headers[name], {
-					templateFormat: 'mustache'
-				}).format(envState)
-			}
+			const headers = await buildServerHeaders(serverName, server, envState, options?.principal)
 			mcpServers[name] = omitBy(
 				{
 					...server,
@@ -44,12 +44,7 @@ export async function createMCPClient(
 				isNil
 			)
 		} else if (transport === MCPServerType.SSE || (!transport && server.url)) {
-			const headers = server.headers ?? {}
-			for await (const name of Object.keys(headers)) {
-				headers[name] = await PromptTemplate.fromTemplate(headers[name], {
-					templateFormat: 'mustache'
-				}).format(envState)
-			}
+			const headers = await buildServerHeaders(serverName, server, envState, options?.principal)
 			mcpServers[name] = omitBy(
 				{
 					...server,
@@ -136,4 +131,31 @@ export async function createMCPClient(
 	} as TChatEventMessage)
 
 	return { client, destroy: null, logs }
+}
+
+async function buildServerHeaders(
+	serverName: string,
+	server: TMCPServer,
+	envState: Record<string, unknown>,
+	principal?: BusinessPrincipal
+): Promise<Record<string, string>> {
+	const headers: Record<string, string> = {}
+	for await (const name of Object.keys(server.headers ?? {})) {
+		headers[name] = await PromptTemplate.fromTemplate(server.headers[name], {
+			templateFormat: 'mustache'
+		}).format(envState)
+	}
+
+	if (serverName !== 'codexpert-context') {
+		return headers
+	}
+
+	if (!principal) {
+		throw new Error('Missing BusinessPrincipal for Codexpert MCP server "codexpert-context"')
+	}
+
+	return {
+		...headers,
+		...buildCodexpertIdentityHeaders(principal)
+	}
 }

@@ -12,6 +12,7 @@ import {
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { _BaseToolset } from './toolset'
+import type { BusinessPrincipal } from '../identity'
 
 /**
  * The context params of creating toolset
@@ -20,6 +21,7 @@ export type TBuiltinToolsetParams = TToolsetParams & {
 	commandBus: CommandBus
 	queryBus: QueryBus
 	store?: BaseStore
+	principal?: BusinessPrincipal
 }
 
 export interface IBuiltinToolset {

@@ -4,6 +4,15 @@ import { IXpert, TXpertTeamNodeType } from './xpert.model'
 import { IXpertAgent } from './xpert-agent.model'
 import { TSensitiveOperation } from './chat.model'
 import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
+import {
+  TAcpCodeContext,
+  TAcpRuntimePhase,
+  TAcpPermissionProfile,
+  TAcpSessionStatus,
+  TAcpTargetKind,
+  THarnessType,
+  TRuntimeKind
+} from './acp-session.model'
 
 export type TXpertExecution = {
   category?: TXpertTeamNodeType
@@ -122,4 +131,38 @@ export type TAgentExecutionMetadata = {
    * AI Model
    */
   model: string
+  runtimeKind?: TRuntimeKind
+  harnessType?: THarnessType
+  permissionProfile?: TAcpPermissionProfile
+  acpSessionId?: string
+  acpTargetRef?: string
+  acpTargetKind?: TAcpTargetKind
+  acpRequestId?: string
+  acpTurnIndex?: number
+  triggerSource?: 'acp' | string
+  sessionStatus?: TAcpSessionStatus
+  phase?: TAcpRuntimePhase
+  environmentId?: string
+  sandboxEnvironmentId?: string
+  projectId?: string
+  requestedUserId?: string
+  effectiveUserId?: string
+  sourceConversationIdSnapshot?: TAcpCodeContext['sourceConversationId']
+  resumeThreadIdSnapshot?: TAcpCodeContext['resumeThreadId']
+  repoConnectionIdSnapshot?: TAcpCodeContext['repoConnectionId']
+  repoIdSnapshot?: TAcpCodeContext['repoId']
+  repoNameSnapshot?: TAcpCodeContext['repoName']
+  repoOwnerSnapshot?: TAcpCodeContext['repoOwner']
+  repoSlugSnapshot?: TAcpCodeContext['repoSlug']
+  branchNameSnapshot?: TAcpCodeContext['branchName']
+  baseBranchNameSnapshot?: TAcpCodeContext['baseBranchName']
+  workspaceLabelSnapshot?: TAcpCodeContext['workspaceLabel']
+  workspacePathSnapshot?: TAcpCodeContext['workspacePath']
+  codingAgentNameSnapshot?: TAcpCodeContext['codingAgentName']
+  providerDisplayNameSnapshot?: TAcpCodeContext['providerDisplayName']
+  taskKind?: TAcpCodeContext['taskKind']
+  taskIntent?: TAcpCodeContext['taskIntent']
+  lastObservationAt?: string
+  lastObservationSequence?: number
+  lastUpstreamHandoff?: string
 }

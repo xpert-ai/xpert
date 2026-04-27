@@ -38,7 +38,9 @@ export class MCPToolset extends _BaseToolset {
 					JSON.parse(this.toolset.schema),
 					this.params.env
 				)
-			: await createMCPClient(this.toolset, JSON.parse(this.toolset.schema), this.params.env)
+				: await createMCPClient(this.toolset, JSON.parse(this.toolset.schema), this.params.env, {
+						principal: this.params?.principal
+					})
 		this.client = client
 		const tools = await this.client.getTools()
 		// Filter tools by custom instance config

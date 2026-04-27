@@ -26,6 +26,7 @@ import { PublishedXpertAccessService } from './published-xpert-access.service'
 import { AssistantBindingModule } from '../assistant-binding/assistant-binding.module'
 import { AgentViewHostDefinition } from '../view-extension/hosts/agent-view-host.definition'
 import { SkillPackageModule } from '../skill-package'
+import { AcpRuntimeModule } from '../acp-runtime/acp-runtime.module'
 
 @Module({
     imports: [
@@ -43,6 +44,7 @@ import { SkillPackageModule } from '../skill-package'
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => EnvironmentModule),
         forwardRef(() => AssistantBindingModule),
+        forwardRef(() => AcpRuntimeModule),
         SkillPackageModule,
         SandboxModule,
         CopilotCheckpointModule,
