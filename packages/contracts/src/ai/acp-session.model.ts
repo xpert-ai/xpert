@@ -138,7 +138,6 @@ export type TAcpSessionMetadata = TAcpCodeContext & {
   lastHeadline?: string | null
   lastObservationAt?: string | null
   lastObservationSequence?: number | null
-  lastConsumedObservationSequence?: number | null
   lastReportedObservationSequence?: number | null
   lastProjectedSequence?: number | null
   lastProjectedTextSequence?: number | null

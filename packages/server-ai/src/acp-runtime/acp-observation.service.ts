@@ -4,7 +4,6 @@ import { CommandBus } from '@nestjs/cqrs'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution/commands'
 import { AcpAuditService } from './acp-audit.service'
 import { AcpExecutionMapper } from './acp-execution.mapper'
-import { AcpObserverTriggerService } from './acp-observer-trigger.service'
 import { AcpSessionEvent } from './acp-session-event.entity'
 import { AcpSession } from './acp-session.entity'
 import { AcpSessionService } from './acp-session.service'
@@ -26,7 +25,6 @@ export class AcpObservationService {
     private readonly auditService: AcpAuditService,
     private readonly sessionService: AcpSessionService,
     private readonly executionMapper: AcpExecutionMapper,
-    private readonly observerTriggerService: AcpObserverTriggerService,
     private readonly commandBus: CommandBus
   ) {}
 
@@ -226,18 +224,7 @@ export class AcpObservationService {
       )
     }
 
-    if (shouldTriggerObserver(packet)) {
-      await this.observerTriggerService.publishObservation(refreshed, packet, observationEvent.sequence)
-    }
   }
-}
-
-function shouldTriggerObserver(packet: TAcpObservationPacket): boolean {
-  if (packet.requiresAttention) {
-    return true
-  }
-
-  return packet.phase !== 'queued'
 }
 
 function buildObservationPacket(

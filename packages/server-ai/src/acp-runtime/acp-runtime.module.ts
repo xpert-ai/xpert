@@ -3,7 +3,6 @@ import { Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { ChatConversationModule } from '../chat-conversation'
 import { EnvironmentModule } from '../environment'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { AcpArtifact } from './acp-artifact.entity'
@@ -12,7 +11,6 @@ import { AcpAuditService } from './acp-audit.service'
 import { AcpChatEventProjectorService } from './acp-chat-event-projector.service'
 import { AcpEventProjectorService } from './acp-event-projector.service'
 import { AcpExecutionMapper } from './acp-execution.mapper'
-import { AcpObserverTriggerService } from './acp-observer-trigger.service'
 import { AcpObservationService } from './acp-observation.service'
 import { AcpRuntimeController } from './acp-runtime.controller'
 import { AcpRuntimeService } from './acp-runtime.service'
@@ -38,8 +36,7 @@ import { CodexpertContextMcpMiddleware } from '../codexpert'
     TenantModule,
     CqrsModule,
     EnvironmentModule,
-    XpertAgentExecutionModule,
-    ChatConversationModule
+    XpertAgentExecutionModule
   ],
   controllers: [AcpRuntimeController],
   providers: [
@@ -51,7 +48,6 @@ import { CodexpertContextMcpMiddleware } from '../codexpert'
     AcpChatEventProjectorService,
     AcpExecutionMapper,
     AcpEventProjectorService,
-    AcpObserverTriggerService,
     AcpObservationService,
     AcpSystemEventProjectorService,
     AcpSessionBridgeService,

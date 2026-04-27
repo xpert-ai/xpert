@@ -1057,8 +1057,6 @@ export class AcpRuntimeService {
       lastObservationAt: readString(metadata.lastObservationAt) ?? null,
       lastObservationSequence:
         typeof metadata.lastObservationSequence === 'number' ? metadata.lastObservationSequence : null,
-      lastConsumedObservationSequence:
-        typeof metadata.lastConsumedObservationSequence === 'number' ? metadata.lastConsumedObservationSequence : null,
       lastReportedObservationSequence:
         typeof metadata.lastReportedObservationSequence === 'number' ? metadata.lastReportedObservationSequence : null,
       lastProjectedSequence: typeof metadata.lastProjectedSequence === 'number' ? metadata.lastProjectedSequence : null,

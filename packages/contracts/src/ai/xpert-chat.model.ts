@@ -33,7 +33,6 @@ export type TXpertChatSendRequest = {
   message: {
     clientMessageId?: string
     input: TChatRequestHuman
-    thirdPartyMessage?: Record<string, unknown> | null
   }
   state?: TXpertChatState
 }

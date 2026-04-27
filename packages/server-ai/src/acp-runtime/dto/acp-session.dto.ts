@@ -103,9 +103,6 @@ export class AcpSessionDto {
   lastObservationSequence?: number | null
 
   @Expose()
-  lastConsumedObservationSequence?: number | null
-
-  @Expose()
   lastReportedObservationSequence?: number | null
 
   @Expose()
@@ -144,8 +141,6 @@ export class AcpSessionDto {
     this.lastObservationAt = typeof metadata.lastObservationAt === 'string' ? metadata.lastObservationAt : null
     this.lastObservationSequence =
       typeof metadata.lastObservationSequence === 'number' ? metadata.lastObservationSequence : null
-    this.lastConsumedObservationSequence =
-      typeof metadata.lastConsumedObservationSequence === 'number' ? metadata.lastConsumedObservationSequence : null
     this.lastReportedObservationSequence =
       typeof metadata.lastReportedObservationSequence === 'number' ? metadata.lastReportedObservationSequence : null
     this.lastProjectedSequence =
