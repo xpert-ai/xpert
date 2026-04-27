@@ -1,5 +1,13 @@
 import { Command } from '@langchain/langgraph'
-import { ProjectSprintStrategyEnum, ProjectSwimlaneKindEnum } from '@xpert-ai/contracts'
+import {
+	ProjectAgentRole,
+	ProjectExecutionEnvironmentType,
+	ProjectSprintStatusEnum,
+	ProjectSprintStrategyEnum,
+	ProjectSwimlaneKindEnum,
+	ProjectTaskStatusEnum,
+	XPERT_EVENT_TYPES
+} from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 jest.mock('../services/project-assistant.service', () => ({
 	ProjectAssistantService: class ProjectAssistantService {}
@@ -28,6 +36,9 @@ describe('ProjectManagementMiddleware', () => {
 		removeProjectTeamBinding: jest.Mock
 		updateProjectSwimlanes: jest.Mock
 		getProjectExecutionSnapshot: jest.Mock
+	}
+	let eventPublisher: {
+		publish: jest.Mock
 	}
 
 	beforeEach(() => {
@@ -66,8 +77,11 @@ describe('ProjectManagementMiddleware', () => {
 			updateProjectSwimlanes: jest.fn(),
 			getProjectExecutionSnapshot: jest.fn()
 		}
+		eventPublisher = {
+			publish: jest.fn().mockResolvedValue(null)
+		}
 
-		middleware = new ProjectManagementMiddleware(projectAssistantService as never)
+		middleware = new ProjectManagementMiddleware(projectAssistantService as never, eventPublisher as never)
 	})
 
 	function hasProjectIdInShape(value: unknown) {
@@ -96,6 +110,57 @@ describe('ProjectManagementMiddleware', () => {
 			},
 			...overrides
 		}
+	}
+
+	function createTask(overrides: Record<string, unknown> = {}) {
+		return {
+			id: 'task-1',
+			projectId: 'project-1',
+			sprintId: 'sprint-1',
+			swimlaneId: 'lane-coding',
+			title: 'Task',
+			sortOrder: 0,
+			status: ProjectTaskStatusEnum.Todo,
+			dependencies: [],
+			...overrides
+		}
+	}
+
+	function createSprint(overrides: Record<string, unknown> = {}) {
+		return {
+			id: 'sprint-1',
+			projectId: 'project-1',
+			goal: 'Sprint goal',
+			status: ProjectSprintStatusEnum.Running,
+			strategyType: ProjectSprintStrategyEnum.SoftwareDelivery,
+			...overrides
+		}
+	}
+
+	function createSwimlane(overrides: Record<string, unknown> = {}) {
+		return {
+			id: 'lane-coding',
+			projectId: 'project-1',
+			sprintId: 'sprint-1',
+			key: 'coding',
+			name: 'Coding',
+			kind: ProjectSwimlaneKindEnum.Execution,
+			priority: 1,
+			weight: 1,
+			concurrencyLimit: 2,
+			wipLimit: 2,
+			agentRole: ProjectAgentRole.Coder,
+			environmentType: ProjectExecutionEnvironmentType.Container,
+			sortOrder: 1,
+			sourceStrategyType: ProjectSprintStrategyEnum.SoftwareDelivery,
+			...overrides
+		}
+	}
+
+	function getTool(middlewareValue: Awaited<ReturnType<ProjectManagementMiddleware['createMiddleware']>>, name: string) {
+		const selectedTool = middlewareValue.tools?.find((tool) => tool.name === name)
+		expect(selectedTool).toBeDefined()
+		return selectedTool!
 	}
 
 	it('exposes the project management tools', async () => {
@@ -168,6 +233,145 @@ describe('ProjectManagementMiddleware', () => {
 
 		expect(result).toBeInstanceOf(Command)
 		expect(projectAssistantService.getProjectContext).toHaveBeenCalledWith('project-1', null)
+	})
+
+	it('publishes project board changed events for mutating project tools', async () => {
+		const created = await middleware.createMiddleware({ defaultSprintId: 'sprint-1' }, createContext())
+		const cases = [
+			{
+				toolName: 'createProjectTasks',
+				operation: 'task.created',
+				input: {
+					tasks: [{ title: 'Task' }]
+				},
+				setup: () => projectAssistantService.createProjectTasks.mockResolvedValueOnce([createTask()])
+			},
+			{
+				toolName: 'updateProjectTasks',
+				operation: 'task.updated',
+				input: {
+					tasks: [{ id: 'task-1', status: ProjectTaskStatusEnum.Done }]
+				},
+				setup: () =>
+					projectAssistantService.updateProjectTasks.mockResolvedValueOnce([
+						createTask({ status: ProjectTaskStatusEnum.Done })
+					])
+			},
+			{
+				toolName: 'reorderProjectTasks',
+				operation: 'task.reordered',
+				input: {
+					laneId: 'lane-coding',
+					orderedTaskIds: ['task-2', 'task-1']
+				},
+				setup: () =>
+					projectAssistantService.reorderProjectTasks.mockResolvedValueOnce([
+						createTask({ id: 'task-2', sortOrder: 0 }),
+						createTask({ id: 'task-1', sortOrder: 1 })
+					])
+			},
+			{
+				toolName: 'moveProjectTasks',
+				operation: 'task.moved',
+				input: {
+					taskIds: ['task-1'],
+					targetLaneId: 'lane-backlog'
+				},
+				setup: () =>
+					projectAssistantService.moveProjectTasks.mockResolvedValueOnce([
+						createTask({ swimlaneId: 'lane-backlog' })
+					])
+			},
+			{
+				toolName: 'createProjectSprint',
+				operation: 'sprint.created',
+				input: {
+					goal: 'Sprint goal',
+					strategyType: ProjectSprintStrategyEnum.SoftwareDelivery
+				},
+				setup: () => projectAssistantService.createProjectSprint.mockResolvedValueOnce(createSprint())
+			},
+			{
+				toolName: 'updateProjectSprint',
+				operation: 'sprint.updated',
+				input: {
+					sprintId: 'sprint-1',
+					goal: 'Next goal'
+				},
+				setup: () =>
+					projectAssistantService.updateProjectSprint.mockResolvedValueOnce(
+						createSprint({ goal: 'Next goal' })
+					)
+			},
+			{
+				toolName: 'updateProjectSwimlanes',
+				operation: 'swimlanes.updated',
+				input: {
+					swimlanes: [{ id: 'lane-coding', wipLimit: 3 }]
+				},
+				setup: () =>
+					projectAssistantService.updateProjectSwimlanes.mockResolvedValueOnce([
+						createSwimlane({ wipLimit: 3 })
+					])
+			}
+		]
+
+		for (const item of cases) {
+			eventPublisher.publish.mockClear()
+			item.setup()
+
+			await getTool(created, item.toolName).invoke(item.input)
+
+			expect(eventPublisher.publish).toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: XPERT_EVENT_TYPES.ProjectBoardChanged,
+					scope: expect.objectContaining({
+						projectId: 'project-1',
+						sprintId: 'sprint-1'
+					}),
+					source: {
+						type: 'tool',
+						id: `project_management.${item.toolName}`,
+						name: item.toolName
+					},
+					payload: expect.objectContaining({
+						operation: item.operation,
+						projectId: 'project-1',
+						sprintId: 'sprint-1'
+					}),
+					meta: expect.objectContaining({
+						tenantId: 'tenant-1',
+						userId: 'user-1'
+					})
+				})
+			)
+		}
+	})
+
+	it('does not publish board changed events when a mutating tool fails', async () => {
+		const created = await middleware.createMiddleware({}, createContext())
+		projectAssistantService.updateProjectTasks.mockRejectedValueOnce(new Error('nope'))
+
+		await expect(
+			getTool(created, 'updateProjectTasks').invoke({
+				tasks: [{ id: 'task-1' }]
+			})
+		).rejects.toThrow('nope')
+
+		expect(eventPublisher.publish).not.toHaveBeenCalled()
+	})
+
+	it('does not fail mutating tools when board changed publishing fails', async () => {
+		const created = await middleware.createMiddleware({}, createContext())
+		const task = createTask({ status: ProjectTaskStatusEnum.Done })
+		projectAssistantService.updateProjectTasks.mockResolvedValueOnce([task])
+		eventPublisher.publish.mockRejectedValueOnce(new Error('redis down'))
+
+		await expect(
+			getTool(created, 'updateProjectTasks').invoke({
+				tasks: [{ id: 'task-1', status: ProjectTaskStatusEnum.Done }]
+			})
+		).resolves.toEqual([task])
 	})
 
 	it('requires projectId from middleware context', async () => {

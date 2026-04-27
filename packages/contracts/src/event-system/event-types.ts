@@ -18,7 +18,8 @@ export const XPERT_EVENT_TYPES = {
 	ProjectTaskExecutionStarted: 'project.task_execution_started',
 	ProjectTaskExecutionUpdated: 'project.task_execution_updated',
 	ProjectTaskExecutionSucceeded: 'project.task_execution_succeeded',
-	ProjectTaskExecutionFailed: 'project.task_execution_failed'
+	ProjectTaskExecutionFailed: 'project.task_execution_failed',
+	ProjectBoardChanged: 'project.board_changed'
 } as const
 
 export type XpertEventType = (typeof XPERT_EVENT_TYPES)[keyof typeof XPERT_EVENT_TYPES]

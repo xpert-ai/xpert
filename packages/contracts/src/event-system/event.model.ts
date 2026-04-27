@@ -1,5 +1,7 @@
 import type { IProjectTask } from '../project/project-task.model'
 import type { IProjectTaskExecution } from '../project/project-task-execution.model'
+import type { IProjectSprint } from '../project/project-sprint.model'
+import type { IProjectSwimlane } from '../project/project-swimlane.model'
 import type { XpertEventType } from './event-types'
 
 export type XpertEventSourceType = 'agent' | 'workflow' | 'system' | 'tool' | 'handoff' | 'chat' | 'project'
@@ -58,7 +60,7 @@ export interface XpertEventFilter extends XpertEventScope {
 	limit?: number
 }
 
-export type XpertProjectTaskPatch = Partial<IProjectTask> & {
+export type XpertProjectTaskPatch = Omit<Partial<IProjectTask>, 'id'> & {
 	id: string
 }
 
@@ -74,4 +76,31 @@ export interface XpertProjectTaskEventPayload {
 	task?: XpertProjectTaskPatch
 	latestExecution?: XpertProjectTaskExecutionPatch
 	error?: string | null
+}
+
+export type XpertProjectBoardChangedOperation =
+	| 'task.created'
+	| 'task.updated'
+	| 'task.moved'
+	| 'task.reordered'
+	| 'sprint.created'
+	| 'sprint.updated'
+	| 'swimlanes.updated'
+
+export type XpertProjectSprintPatch = Omit<Partial<IProjectSprint>, 'id'> & {
+	id: string
+}
+
+export type XpertProjectSwimlanePatch = Omit<Partial<IProjectSwimlane>, 'id'> & {
+	id: string
+}
+
+export interface XpertProjectBoardChangedEventPayload {
+	operation: XpertProjectBoardChangedOperation
+	projectId: string
+	sprintId?: string | null
+	tasks?: XpertProjectTaskPatch[]
+	sprint?: XpertProjectSprintPatch
+	swimlanes?: XpertProjectSwimlanePatch[]
+	requiresRefresh?: boolean
 }

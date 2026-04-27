@@ -9,7 +9,12 @@ import {
   isXpertProjectTaskEventType,
   ProjectSwimlaneKindEnum,
   ProjectTaskStatusEnum,
+  XPERT_EVENT_TYPES,
   XpertEventRecord,
+  XpertProjectBoardChangedEventPayload,
+  XpertProjectSprintPatch,
+  XpertProjectSwimlanePatch,
+  XpertProjectTaskPatch,
   XpertProjectTaskEventPayload
 } from '@xpert-ai/contracts'
 import { OrderTypeEnum } from '@xpert-ai/cloud/state'
@@ -92,6 +97,7 @@ export class ProjectPageFacade {
   #boardLoadVersion = 0
   #lastSprintQuerySyncKey: string | null = null
   #eventRefreshQueued = false
+  #projectRefreshQueued = false
 
   constructor() {
     effect(() => {
@@ -112,6 +118,25 @@ export class ProjectPageFacade {
 
     effect(() => {
       void this.loadSprintBoard(this.projectId(), this.selectedSprintId())
+    })
+
+    effect((onCleanup) => {
+      const projectId = this.projectId()
+      if (!projectId) {
+        return
+      }
+
+      const subscription = this.#xpertEventService
+        .stream<XpertProjectBoardChangedEventPayload>({
+          projectId,
+          type: XPERT_EVENT_TYPES.ProjectBoardChanged
+        })
+        .subscribe({
+          next: (event) => this.applyProjectBoardChangedEvent(event),
+          error: () => this.scheduleProjectRefresh()
+        })
+
+      onCleanup(() => subscription.unsubscribe())
     })
 
     effect((onCleanup) => {
@@ -379,6 +404,161 @@ export class ProjectPageFacade {
     }
   }
 
+  private applyProjectBoardChangedEvent(event: XpertEventRecord<XpertProjectBoardChangedEventPayload>) {
+    if (event.type !== XPERT_EVENT_TYPES.ProjectBoardChanged || event.payload.projectId !== this.projectId()) {
+      return
+    }
+
+    let applied = false
+    switch (event.payload.operation) {
+      case 'task.created':
+      case 'task.updated':
+      case 'task.moved':
+      case 'task.reordered':
+        applied = this.applyBoardChangedTasks(event.payload)
+        break
+      case 'sprint.created':
+      case 'sprint.updated':
+        applied = this.applyBoardChangedSprint(event.payload)
+        break
+      case 'swimlanes.updated':
+        applied = this.applyBoardChangedSwimlanes(event.payload)
+        break
+    }
+
+    if (!applied || event.payload.requiresRefresh) {
+      if (event.payload.operation.startsWith('sprint.')) {
+        this.scheduleProjectRefresh()
+      } else {
+        this.scheduleBoardRefresh()
+      }
+    }
+  }
+
+  private applyBoardChangedTasks(payload: XpertProjectBoardChangedEventPayload) {
+    const taskPatches = payload.tasks
+    const selectedSprintId = this.selectedSprintId()
+    if (!taskPatches?.length || !selectedSprintId) {
+      return false
+    }
+
+    let needsRefresh = false
+    this.tasks.update((tasks) => {
+      const nextTasks = [...tasks]
+
+      for (const patch of taskPatches) {
+        const taskId = this.asNonEmptyString(patch.id)
+        if (!taskId) {
+          needsRefresh = true
+          continue
+        }
+
+        const sprintId = this.asNonEmptyString(patch.sprintId) ?? this.asNonEmptyString(payload.sprintId)
+        const existingIndex = nextTasks.findIndex((task) => task.id === taskId)
+
+        if (existingIndex >= 0) {
+          if (sprintId && sprintId !== selectedSprintId) {
+            nextTasks.splice(existingIndex, 1)
+            continue
+          }
+
+          nextTasks[existingIndex] = this.mergeTaskPatch(nextTasks[existingIndex], patch)
+          continue
+        }
+
+        if (sprintId && sprintId !== selectedSprintId) {
+          continue
+        }
+
+        if (this.isCompleteTaskPatch(patch)) {
+          nextTasks.push(patch)
+        } else {
+          needsRefresh = true
+        }
+      }
+
+      return nextTasks
+    })
+
+    return !needsRefresh
+  }
+
+  private applyBoardChangedSprint(payload: XpertProjectBoardChangedEventPayload) {
+    const sprint = payload.sprint
+    const sprintId = this.asNonEmptyString(sprint?.id)
+    if (!sprint || !sprintId) {
+      return false
+    }
+
+    let needsRefresh = false
+    this.sprints.update((sprints) => {
+      const existingIndex = sprints.findIndex((item) => item.id === sprintId)
+      if (existingIndex >= 0) {
+        return sprints.map((item, index) => (index === existingIndex ? { ...item, ...sprint } : item))
+      }
+
+      if (!this.isCompleteSprintPatch(sprint)) {
+        needsRefresh = true
+        return sprints
+      }
+
+      return [...sprints, sprint]
+    })
+
+    return !needsRefresh
+  }
+
+  private applyBoardChangedSwimlanes(payload: XpertProjectBoardChangedEventPayload) {
+    const swimlanePatches = payload.swimlanes
+    const selectedSprintId = this.selectedSprintId()
+    if (!swimlanePatches?.length || !selectedSprintId) {
+      return false
+    }
+
+    let needsRefresh = false
+    this.swimlanes.update((swimlanes) => {
+      const nextSwimlanes = [...swimlanes]
+
+      for (const patch of swimlanePatches) {
+        const swimlaneId = this.asNonEmptyString(patch.id)
+        if (!swimlaneId) {
+          needsRefresh = true
+          continue
+        }
+
+        const sprintId = this.asNonEmptyString(patch.sprintId) ?? this.asNonEmptyString(payload.sprintId)
+        const existingIndex = nextSwimlanes.findIndex((swimlane) => swimlane.id === swimlaneId)
+
+        if (existingIndex >= 0) {
+          if (sprintId && sprintId !== selectedSprintId) {
+            nextSwimlanes.splice(existingIndex, 1)
+            continue
+          }
+
+          nextSwimlanes[existingIndex] = {
+            ...nextSwimlanes[existingIndex],
+            ...patch
+          }
+          continue
+        }
+
+        if (sprintId && sprintId !== selectedSprintId) {
+          continue
+        }
+
+        if (this.isCompleteSwimlanePatch(patch)) {
+          nextSwimlanes.push(patch)
+        } else {
+          needsRefresh = true
+        }
+      }
+
+      return nextSwimlanes
+    })
+
+    return !needsRefresh
+  }
+
   private applyProjectTaskEvent(event: XpertEventRecord<XpertProjectTaskEventPayload>) {
     if (!isXpertProjectTaskEventType(event.type)) {
       return
@@ -410,6 +590,27 @@ export class ProjectPageFacade {
     }
   }
 
+  private mergeTaskPatch(task: IProjectTask, patch: XpertProjectTaskPatch): IProjectTask {
+    if (!Object.prototype.hasOwnProperty.call(patch, 'latestExecution')) {
+      return {
+        ...task,
+        ...patch
+      }
+    }
+
+    return {
+      ...task,
+      ...patch,
+      latestExecution:
+        patch.latestExecution && task.latestExecution
+          ? {
+              ...task.latestExecution,
+              ...patch.latestExecution
+            }
+          : patch.latestExecution
+    }
+  }
+
   private mergeLatestExecution(
     current: IProjectTask['latestExecution'],
     patch: XpertProjectTaskEventPayload['latestExecution']
@@ -423,6 +624,50 @@ export class ProjectPageFacade {
     } as IProjectTask['latestExecution']
   }
 
+  private isCompleteTaskPatch(patch: XpertProjectTaskPatch): patch is IProjectTask & XpertProjectTaskPatch {
+    return (
+      !!this.asNonEmptyString(patch.id) &&
+      !!this.asNonEmptyString(patch.projectId) &&
+      !!this.asNonEmptyString(patch.sprintId) &&
+      !!this.asNonEmptyString(patch.swimlaneId) &&
+      !!this.asNonEmptyString(patch.title) &&
+      typeof patch.sortOrder === 'number' &&
+      !!this.asNonEmptyString(patch.status) &&
+      Array.isArray(patch.dependencies)
+    )
+  }
+
+  private isCompleteSprintPatch(patch: XpertProjectSprintPatch): patch is IProjectSprint & XpertProjectSprintPatch {
+    return (
+      !!this.asNonEmptyString(patch.id) &&
+      !!this.asNonEmptyString(patch.projectId) &&
+      !!this.asNonEmptyString(patch.goal) &&
+      !!this.asNonEmptyString(patch.status) &&
+      !!this.asNonEmptyString(patch.strategyType)
+    )
+  }
+
+  private isCompleteSwimlanePatch(
+    patch: XpertProjectSwimlanePatch
+  ): patch is IProjectSwimlane & XpertProjectSwimlanePatch {
+    return (
+      !!this.asNonEmptyString(patch.id) &&
+      !!this.asNonEmptyString(patch.projectId) &&
+      !!this.asNonEmptyString(patch.sprintId) &&
+      !!this.asNonEmptyString(patch.key) &&
+      !!this.asNonEmptyString(patch.name) &&
+      !!this.asNonEmptyString(patch.kind) &&
+      typeof patch.priority === 'number' &&
+      typeof patch.weight === 'number' &&
+      typeof patch.concurrencyLimit === 'number' &&
+      typeof patch.wipLimit === 'number' &&
+      !!this.asNonEmptyString(patch.agentRole) &&
+      !!this.asNonEmptyString(patch.environmentType) &&
+      typeof patch.sortOrder === 'number' &&
+      !!this.asNonEmptyString(patch.sourceStrategyType)
+    )
+  }
+
   private scheduleBoardRefresh() {
     if (this.#eventRefreshQueued) {
       return
@@ -431,6 +676,17 @@ export class ProjectPageFacade {
     queueMicrotask(() => {
       this.#eventRefreshQueued = false
       void this.loadSprintBoard(this.projectId(), this.selectedSprintId())
+    })
+  }
+
+  private scheduleProjectRefresh() {
+    if (this.#projectRefreshQueued) {
+      return
+    }
+    this.#projectRefreshQueued = true
+    queueMicrotask(() => {
+      this.#projectRefreshQueued = false
+      void this.refresh()
     })
   }
 
@@ -524,6 +780,10 @@ export class ProjectPageFacade {
     const untouchedTasks = otherTasks.filter((task) => task.swimlaneId !== event.targetSwimlaneId)
 
     return [...untouchedTasks, ...targetTasks]
+  }
+
+  private asNonEmptyString(value: unknown) {
+    return typeof value === 'string' && value.trim() ? value.trim() : null
   }
 }
 

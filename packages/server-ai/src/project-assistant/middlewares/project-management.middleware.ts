@@ -5,6 +5,9 @@ import {
 	createSprintId,
 	createTeamId,
 	getToolCallIdFromConfig,
+	IProjectSprint,
+	IProjectSwimlane,
+	IProjectTask,
 	I18nObject,
 	ProjectAgentRole,
 	ProjectId,
@@ -14,9 +17,16 @@ import {
 	SprintId,
 	ProjectSwimlaneKindEnum,
 	ProjectTaskStatusEnum,
-	TAgentMiddlewareMeta
+	TAgentMiddlewareMeta,
+	XPERT_EVENT_TYPES,
+	XpertEventScope,
+	XpertProjectBoardChangedEventPayload,
+	XpertProjectBoardChangedOperation,
+	XpertProjectSprintPatch,
+	XpertProjectSwimlanePatch,
+	XpertProjectTaskPatch
 } from '@xpert-ai/contracts'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Optional } from '@nestjs/common'
 import {
 	AgentMiddleware,
 	AgentMiddlewareStrategy,
@@ -26,6 +36,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 import { normalizeOptionalBrandedId, normalizeRequiredBrandedId } from '../../shared/utils'
+import { XpertEventPublisher } from '../../event-system'
 import { ProjectAssistantService } from '../services/project-assistant.service'
 
 const PROJECT_MANAGEMENT_MIDDLEWARE_PROVIDER = 'project_management'
@@ -158,7 +169,10 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 		}
 	}
 
-	constructor(private readonly projectAssistantService: ProjectAssistantService) {}
+	constructor(
+		private readonly projectAssistantService: ProjectAssistantService,
+		@Optional() private readonly eventPublisher?: XpertEventPublisher
+	) {}
 
 	createMiddleware(options: unknown, context: IAgentMiddlewareContext): PromiseOrValue<AgentMiddleware> {
 		const parsedOptions = configurableSchema.parse(options ?? {})
@@ -241,12 +255,18 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						context,
 						this.readState()
 					)
-					return this.projectAssistantService.createProjectTasks({
+					const tasks = await this.projectAssistantService.createProjectTasks({
 						projectId: resolved.projectId,
 						sprintId: resolved.sprintId,
 						laneId: input.laneId,
 						tasks: input.tasks.map((task) => this.normalizeCreateTaskInput(task))
 					})
+					this.publishBoardChanged(context, 'createProjectTasks', 'task.created', {
+						projectId: resolved.projectId,
+						sprintId: this.resolveCommonTaskSprintId(tasks) ?? resolved.sprintId,
+						tasks: this.toTaskPatches(tasks)
+					})
+					return tasks
 				},
 				{
 					name: 'createProjectTasks',
@@ -276,10 +296,16 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						context,
 						this.readState()
 					)
-					return this.projectAssistantService.updateProjectTasks({
+					const tasks = await this.projectAssistantService.updateProjectTasks({
 						projectId: resolved.projectId,
 						tasks: input.tasks.map((task) => this.normalizeUpdateTaskInput(task))
 					})
+					this.publishBoardChanged(context, 'updateProjectTasks', 'task.updated', {
+						projectId: resolved.projectId,
+						sprintId: this.resolveCommonTaskSprintId(tasks),
+						tasks: this.toTaskPatches(tasks)
+					})
+					return tasks
 				},
 				{
 					name: 'updateProjectTasks',
@@ -309,11 +335,17 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						context,
 						this.readState()
 					)
-					return this.projectAssistantService.reorderProjectTasks(
+					const tasks = await this.projectAssistantService.reorderProjectTasks(
 						resolved.projectId,
 						input.laneId,
 						input.orderedTaskIds
 					)
+					this.publishBoardChanged(context, 'reorderProjectTasks', 'task.reordered', {
+						projectId: resolved.projectId,
+						sprintId: this.resolveCommonTaskSprintId(tasks),
+						tasks: this.toTaskPatches(tasks)
+					})
+					return tasks
 				},
 				{
 					name: 'reorderProjectTasks',
@@ -333,11 +365,17 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						context,
 						this.readState()
 					)
-					return this.projectAssistantService.moveProjectTasks(
+					const tasks = await this.projectAssistantService.moveProjectTasks(
 						resolved.projectId,
 						input.taskIds,
 						input.targetLaneId
 					)
+					this.publishBoardChanged(context, 'moveProjectTasks', 'task.moved', {
+						projectId: resolved.projectId,
+						sprintId: this.resolveCommonTaskSprintId(tasks),
+						tasks: this.toTaskPatches(tasks)
+					})
+					return tasks
 				},
 				{
 					name: 'moveProjectTasks',
@@ -365,6 +403,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						startAt: input.startAt ? new Date(input.startAt) : undefined,
 						endAt: input.endAt ? new Date(input.endAt) : undefined,
 						carryOverSprintId: this.normalizeOptionalSprintId(input.carryOverSprintId) ?? undefined
+					})
+					this.publishBoardChanged(context, 'createProjectSprint', 'sprint.created', {
+						projectId: resolved.projectId,
+						sprintId: sprint.id ?? null,
+						sprint: this.toSprintPatch(sprint),
+						requiresRefresh: true
 					})
 					const nextContext = await this.projectAssistantService.resolveContext(resolved.projectId, sprint.id)
 					return this.withStateUpdate(
@@ -401,7 +445,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						context,
 						this.readState()
 					)
-					return this.projectAssistantService.updateProjectSprint({
+					const sprint = await this.projectAssistantService.updateProjectSprint({
 						projectId: resolved.projectId,
 						sprintId: normalizeRequiredBrandedId(input.sprintId, 'sprintId', createSprintId),
 						goal: input.goal,
@@ -410,6 +454,12 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						startAt: input.startAt ? new Date(input.startAt) : undefined,
 						endAt: input.endAt ? new Date(input.endAt) : undefined
 					})
+					this.publishBoardChanged(context, 'updateProjectSprint', 'sprint.updated', {
+						projectId: resolved.projectId,
+						sprintId: sprint.id ?? null,
+						sprint: this.toSprintPatch(sprint)
+					})
+					return sprint
 				},
 				{
 					name: 'updateProjectSprint',
@@ -527,10 +577,16 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 						context,
 						this.readState()
 					)
-					return this.projectAssistantService.updateProjectSwimlanes({
+					const swimlanes = await this.projectAssistantService.updateProjectSwimlanes({
 						projectId: resolved.projectId,
 						swimlanes: input.swimlanes
 					})
+					this.publishBoardChanged(context, 'updateProjectSwimlanes', 'swimlanes.updated', {
+						projectId: resolved.projectId,
+						sprintId: this.resolveCommonSwimlaneSprintId(swimlanes),
+						swimlanes: this.toSwimlanePatches(swimlanes)
+					})
+					return swimlanes
 				},
 				{
 					name: 'updateProjectSwimlanes',
@@ -597,6 +653,124 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 				}
 			)
 		]
+	}
+
+	private publishBoardChanged(
+		context: IAgentMiddlewareContext,
+		toolName: string,
+		operation: XpertProjectBoardChangedOperation,
+		payload: Omit<XpertProjectBoardChangedEventPayload, 'operation'>
+	) {
+		const projectId = this.asString(payload.projectId)
+		if (!projectId) {
+			return
+		}
+
+		const sprintId = this.asString(payload.sprintId) ?? this.resolveBoardChangedSprintId(payload)
+		const eventPayload: XpertProjectBoardChangedEventPayload = {
+			...payload,
+			operation,
+			projectId,
+			sprintId: payload.sprintId === null ? null : sprintId ?? null
+		}
+
+		this.eventPublisher
+			?.publish<XpertProjectBoardChangedEventPayload>({
+				type: XPERT_EVENT_TYPES.ProjectBoardChanged,
+				scope: this.buildBoardChangedScope(projectId, eventPayload),
+				source: {
+					type: 'tool',
+					id: `${PROJECT_MANAGEMENT_MIDDLEWARE_PROVIDER}.${toolName}`,
+					name: toolName
+				},
+				payload: eventPayload,
+				meta: {
+					tenantId: this.asString(context.tenantId) ?? undefined,
+					userId: this.asString(context.userId) ?? null
+				}
+			})
+			.catch(() => null)
+	}
+
+	private buildBoardChangedScope(projectId: string, payload: XpertProjectBoardChangedEventPayload): XpertEventScope {
+		const scope: XpertEventScope = { projectId }
+		const sprintId = this.asString(payload.sprintId) ?? this.resolveBoardChangedSprintId(payload)
+		const taskId = this.resolveSingleTaskId(payload.tasks)
+		if (sprintId) {
+			scope.sprintId = sprintId
+		}
+		if (taskId) {
+			scope.taskId = taskId
+		}
+		return scope
+	}
+
+	private resolveBoardChangedSprintId(payload: Omit<XpertProjectBoardChangedEventPayload, 'operation'>) {
+		return (
+			this.resolveCommonTaskSprintId(payload.tasks ?? []) ??
+			this.asString(payload.sprint?.id) ??
+			this.resolveCommonSwimlaneSprintId(payload.swimlanes ?? [])
+		)
+	}
+
+	private resolveSingleTaskId(tasks: XpertProjectTaskPatch[] | undefined) {
+		return tasks?.length === 1 ? this.asString(tasks[0]?.id) : null
+	}
+
+	private resolveCommonTaskSprintId(tasks: Array<Partial<IProjectTask>>) {
+		return this.onlyCommonString(tasks.map((task) => task.sprintId))
+	}
+
+	private resolveCommonSwimlaneSprintId(swimlanes: Array<Partial<IProjectSwimlane>>) {
+		return this.onlyCommonString(swimlanes.map((swimlane) => swimlane.sprintId))
+	}
+
+	private onlyCommonString(values: unknown[]) {
+		const normalized = [
+			...new Set(values.map((value) => this.asString(value)).filter((value): value is string => !!value))
+		]
+		return normalized.length === 1 ? normalized[0] : null
+	}
+
+	private toTaskPatches(tasks: Array<Partial<IProjectTask>>): XpertProjectTaskPatch[] {
+		return tasks.flatMap((task) => {
+			const { id: taskId, ...taskPatch } = task
+			const id = this.asString(taskId)
+			return id
+				? [
+						{
+							...taskPatch,
+							id
+						}
+					]
+				: []
+		})
+	}
+
+	private toSprintPatch(sprint: Partial<IProjectSprint>): XpertProjectSprintPatch | undefined {
+		const { id: sprintId, ...sprintPatch } = sprint
+		const id = this.asString(sprintId)
+		return id
+			? {
+					...sprintPatch,
+					id
+				}
+			: undefined
+	}
+
+	private toSwimlanePatches(swimlanes: Array<Partial<IProjectSwimlane>>): XpertProjectSwimlanePatch[] {
+		return swimlanes.flatMap((swimlane) => {
+			const { id: swimlaneId, ...swimlanePatch } = swimlane
+			const id = this.asString(swimlaneId)
+			return id
+				? [
+						{
+							...swimlanePatch,
+							id
+						}
+					]
+				: []
+		})
 	}
 
 	private resolveProjectScope(
@@ -745,7 +919,7 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 					{
 						role: 'tool',
 						content: JSON.stringify(payload),
-						tool_call_id: getToolCallIdFromConfig(config) ?? ''
+						tool_call_id: getToolCallIdFromConfig(config ?? {}) ?? ''
 					}
 				]
 			}

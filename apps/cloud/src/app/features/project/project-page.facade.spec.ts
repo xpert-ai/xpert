@@ -8,6 +8,7 @@ import {
   ProjectSprintStrategyEnum,
   ProjectSwimlaneKindEnum,
   ProjectTaskExecutionStatusEnum,
+  XpertProjectBoardChangedEventPayload,
   XpertProjectTaskEventPayload,
   XPERT_EVENT_TYPES,
   ProjectTaskStatusEnum
@@ -154,7 +155,9 @@ describe('ProjectPageFacade', () => {
     const teamDefinitionService = {
       get: jest.fn()
     }
-    const eventStream$ = new ReplaySubject<XpertEventRecord<XpertProjectTaskEventPayload>>(1)
+    const eventStream$ = new ReplaySubject<
+      XpertEventRecord<XpertProjectTaskEventPayload | XpertProjectBoardChangedEventPayload>
+    >(1)
     const xpertEventService = {
       stream: jest.fn().mockReturnValue(eventStream$.asObservable())
     }
@@ -228,9 +231,33 @@ describe('ProjectPageFacade', () => {
     return {
       facade,
       router,
+      projectSprintService,
+      projectSwimlaneService,
       projectTaskService,
+      xpertEventService,
       eventStream$,
       queryParamMap$
+    }
+  }
+
+  function createBoardChangedEvent(
+    payload: XpertProjectBoardChangedEventPayload
+  ): XpertEventRecord<XpertProjectBoardChangedEventPayload> {
+    return {
+      id: `event-${payload.operation}`,
+      streamId: '2-0',
+      type: XPERT_EVENT_TYPES.ProjectBoardChanged,
+      version: 1,
+      scope: {
+        projectId: payload.projectId,
+        ...(payload.sprintId ? { sprintId: payload.sprintId } : {})
+      },
+      source: {
+        type: 'tool',
+        id: 'project_management.updateProjectTasks'
+      },
+      payload,
+      timestamp: 1
     }
   }
 
@@ -316,6 +343,186 @@ describe('ProjectPageFacade', () => {
     expect(projectTaskService.reorderInLane).toHaveBeenCalledWith('lane-coding', {
       orderedTaskIds: ['task-2', 'task-1']
     })
+  })
+
+  it('subscribes to project board changed events in addition to task execution events', async () => {
+    const { xpertEventService } = await createFacade()
+
+    expect(xpertEventService.stream).toHaveBeenCalledWith({
+      projectId: 'project-1',
+      type: XPERT_EVENT_TYPES.ProjectBoardChanged
+    })
+    expect(xpertEventService.stream).toHaveBeenCalledWith({
+      projectId: 'project-1',
+      sprintId: 'sprint-running'
+    })
+  })
+
+  it('applies project board task changes to the loaded board', async () => {
+    const { facade, eventStream$ } = await createFacade()
+
+    eventStream$.next(
+      createBoardChangedEvent({
+        operation: 'task.created',
+        projectId: 'project-1',
+        sprintId: 'sprint-running',
+        tasks: [
+          {
+            id: 'task-3',
+            projectId: 'project-1',
+            sprintId: 'sprint-running',
+            swimlaneId: 'lane-coding',
+            title: 'Third task',
+            sortOrder: 2,
+            status: ProjectTaskStatusEnum.Todo,
+            dependencies: []
+          }
+        ]
+      })
+    )
+    await flushAsync()
+
+    expect(facade.tasks().some((task) => task.id === 'task-3')).toBe(true)
+
+    eventStream$.next(
+      createBoardChangedEvent({
+        operation: 'task.updated',
+        projectId: 'project-1',
+        sprintId: 'sprint-running',
+        tasks: [
+          {
+            id: 'task-1',
+            title: 'Updated first task',
+            status: ProjectTaskStatusEnum.Done
+          }
+        ]
+      })
+    )
+    await flushAsync()
+
+    expect(facade.tasks().find((task) => task.id === 'task-1')?.title).toBe('Updated first task')
+    expect(facade.tasks().find((task) => task.id === 'task-1')?.status).toBe(ProjectTaskStatusEnum.Done)
+
+    eventStream$.next(
+      createBoardChangedEvent({
+        operation: 'task.moved',
+        projectId: 'project-1',
+        sprintId: 'sprint-planned',
+        tasks: [
+          {
+            id: 'task-2',
+            projectId: 'project-1',
+            sprintId: 'sprint-planned',
+            swimlaneId: 'lane-backlog',
+            title: 'Second task',
+            sortOrder: 0,
+            status: ProjectTaskStatusEnum.Todo,
+            dependencies: []
+          }
+        ]
+      })
+    )
+    await flushAsync()
+
+    expect(facade.tasks().some((task) => task.id === 'task-2')).toBe(false)
+
+    eventStream$.next(
+      createBoardChangedEvent({
+        operation: 'task.reordered',
+        projectId: 'project-1',
+        sprintId: 'sprint-running',
+        tasks: [
+          {
+            id: 'task-3',
+            sortOrder: 0
+          },
+          {
+            id: 'task-1',
+            sortOrder: 1
+          }
+        ]
+      })
+    )
+    await flushAsync()
+
+    expect(facade.tasks().find((task) => task.id === 'task-3')?.sortOrder).toBe(0)
+    expect(facade.tasks().find((task) => task.id === 'task-1')?.sortOrder).toBe(1)
+  })
+
+  it('applies project board sprint and swimlane changes', async () => {
+    const { facade, eventStream$ } = await createFacade()
+
+    eventStream$.next(
+      createBoardChangedEvent({
+        operation: 'sprint.updated',
+        projectId: 'project-1',
+        sprintId: 'sprint-running',
+        sprint: {
+          id: 'sprint-running',
+          goal: 'Updated sprint goal'
+        }
+      })
+    )
+    await flushAsync()
+
+    expect(facade.selectedSprint()?.goal).toBe('Updated sprint goal')
+
+    eventStream$.next(
+      createBoardChangedEvent({
+        operation: 'sprint.created',
+        projectId: 'project-1',
+        sprintId: 'sprint-new',
+        sprint: {
+          id: 'sprint-new',
+          projectId: 'project-1',
+          goal: 'New sprint',
+          status: ProjectSprintStatusEnum.Planned,
+          strategyType: ProjectSprintStrategyEnum.SoftwareDelivery
+        }
+      })
+    )
+    await flushAsync()
+
+    expect(facade.sprints().some((sprint) => sprint.id === 'sprint-new')).toBe(true)
+
+    eventStream$.next(
+      createBoardChangedEvent({
+        operation: 'swimlanes.updated',
+        projectId: 'project-1',
+        sprintId: 'sprint-running',
+        swimlanes: [
+          {
+            id: 'lane-coding',
+            wipLimit: 4
+          }
+        ]
+      })
+    )
+    await flushAsync()
+
+    expect(facade.swimlanes().find((swimlane) => swimlane.id === 'lane-coding')?.wipLimit).toBe(4)
+  })
+
+  it('refreshes the board when a board changed event cannot be merged', async () => {
+    const { eventStream$, projectTaskService } = await createFacade()
+    const initialListCount = projectTaskService.listBySprint.mock.calls.length
+
+    eventStream$.next(
+      createBoardChangedEvent({
+        operation: 'task.updated',
+        projectId: 'project-1',
+        sprintId: 'sprint-running',
+        tasks: [
+          {
+            id: 'unknown-task',
+            status: ProjectTaskStatusEnum.Done
+          }
+        ]
+      })
+    )
+    await flushAsync()
+
+    expect(projectTaskService.listBySprint.mock.calls.length).toBeGreaterThan(initialListCount)
   })
 
   it('applies project task execution events to the loaded board', async () => {
