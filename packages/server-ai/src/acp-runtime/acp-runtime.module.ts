@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { ChatConversationModule } from '../chat-conversation'
 import { EnvironmentModule } from '../environment'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { AcpArtifact } from './acp-artifact.entity'
@@ -36,7 +37,8 @@ import { CodexpertContextMcpMiddleware } from '../codexpert'
     TenantModule,
     CqrsModule,
     EnvironmentModule,
-    XpertAgentExecutionModule
+    XpertAgentExecutionModule,
+    ChatConversationModule
   ],
   controllers: [AcpRuntimeController],
   providers: [
