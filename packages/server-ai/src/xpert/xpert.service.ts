@@ -12,7 +12,8 @@ import {
     TFileDirectory,
     TMemoryQA,
     TMemoryUserProfile,
-    TXpertTeamDraft
+    TXpertTeamDraft,
+    TXpertTeamNode
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
@@ -239,9 +240,36 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         })
     }
 
+    private syncDraftPrimaryAgent(draft: TXpertTeamDraft): TXpertTeamDraft {
+        const primaryAgentKey = draft.team?.agent?.key
+        if (!primaryAgentKey) {
+            return draft
+        }
+
+        const primaryAgentNode = draft.nodes?.find(
+            (node): node is TXpertTeamNode<'agent'> => node.type === 'agent' && node.key === primaryAgentKey
+        )
+        if (!primaryAgentNode) {
+            return draft
+        }
+
+        return {
+            ...draft,
+            team: {
+                ...draft.team,
+                agent: {
+                    ...draft.team.agent,
+                    ...primaryAgentNode.entity,
+                    copilotModel: primaryAgentNode.entity.copilotModel,
+                    copilotModelId: primaryAgentNode.entity.copilotModelId
+                }
+            }
+        }
+    }
+
     async saveDraft(id: string, draft: TXpertTeamDraft) {
         const xpert = await this.findOne(id)
-        xpert.draft = {
+        xpert.draft = this.syncDraftPrimaryAgent({
             ...draft,
             nodes: normalizeMiddlewareNodes(draft.nodes),
             team: {
@@ -249,7 +277,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()
             }
-        } as TXpertTeamDraft
+        } as TXpertTeamDraft)
 
         xpert.draft.checklist = await this.validate(xpert.draft)
 
@@ -259,7 +287,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async updateDraft(id: string, draft: Partial<TXpertTeamDraft>) {
         const xpert = await this.findOne(id)
-        xpert.draft = {
+        xpert.draft = this.syncDraftPrimaryAgent({
             ...(xpert.draft ?? {}),
             ...draft,
             nodes: normalizeMiddlewareNodes(draft.nodes ?? xpert.draft?.nodes ?? xpert.graph?.nodes),
@@ -270,7 +298,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()
             }
-        } as TXpertTeamDraft
+        } as TXpertTeamDraft)
 
         xpert.draft.checklist = await this.validate(xpert.draft)
 

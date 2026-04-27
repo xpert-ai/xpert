@@ -7,7 +7,7 @@ jest.mock('../copilot-model', () => ({
 	CopilotModelGetEmbeddingsQuery: class CopilotModelGetEmbeddingsQuery {}
 }))
 
-import { XpertTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import type { VolumeClient } from '../shared/volume'
 import type { XpertWorkspaceAccessService } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
@@ -212,5 +212,54 @@ describe('XpertService command facade', () => {
 				title: 'Updated title'
 			})
 		)
+	})
+
+	it('syncs stale primary agent model from the draft node before saving', async () => {
+		const { repository, service } = createService()
+		const qvqModel = {
+			copilotId: 'copilot-qvq',
+			modelType: AiModelTypeEnum.LLM,
+			model: 'qvq-max'
+		}
+		const deepSeekModel = {
+			copilotId: 'copilot-deepseek',
+			modelType: AiModelTypeEnum.LLM,
+			model: 'deepseek-r1'
+		}
+		const xpert = {
+			id: 'xpert-1',
+			name: 'research',
+			slug: 'research',
+			type: XpertTypeEnum.Agent
+		}
+		jest.spyOn(service, 'findOne').mockResolvedValue(xpert)
+		repository.save.mockImplementation(async (entity) => entity)
+
+		const draft = await service.saveDraft('xpert-1', {
+			team: {
+				id: 'xpert-1',
+				copilotModel: deepSeekModel,
+				agent: {
+					key: 'RESEARCH-MANAGER',
+					name: 'Research Manager',
+					copilotModel: qvqModel
+				}
+			},
+			nodes: [
+				{
+					key: 'RESEARCH-MANAGER',
+					type: 'agent' as const,
+					position: { x: 0, y: 0 },
+					entity: {
+						key: 'RESEARCH-MANAGER',
+						name: 'Research Manager'
+					}
+				}
+			],
+			connections: []
+		})
+
+		expect(draft.team.agent?.copilotModel).toBeUndefined()
+		expect(draft.team.copilotModel).toEqual(deepSeekModel)
 	})
 })
