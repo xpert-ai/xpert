@@ -1,3 +1,15 @@
+jest.mock('../copilot', () => ({
+	CopilotGetOneQuery: class CopilotGetOneQuery {},
+	CopilotOneByRoleQuery: class CopilotOneByRoleQuery {}
+}))
+
+jest.mock('../copilot-model', () => ({
+	CopilotModelGetEmbeddingsQuery: class CopilotModelGetEmbeddingsQuery {}
+}))
+
+import { XpertTypeEnum } from '@xpert-ai/contracts'
+import type { VolumeClient } from '../shared/volume'
+import type { XpertWorkspaceAccessService } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { XpertService } from './xpert.service'
 
@@ -20,6 +32,7 @@ describe('XpertService command facade', () => {
 				take: jest.fn().mockReturnThis()
 			})
 		}
+		const workspaceAccessService = {} as unknown as XpertWorkspaceAccessService
 		const storeService = {
 			findAll: jest.fn()
 		}
@@ -29,12 +42,17 @@ describe('XpertService command facade', () => {
 		}
 		const commandBus = { execute: jest.fn().mockResolvedValue(undefined) }
 		const queryBus = { execute: jest.fn() }
-		const eventEmitter = { emitAsync: jest.fn() }
+		const eventEmitter = { emitAsync: jest.fn().mockResolvedValue([]) }
 		const triggerRegistry = { get: jest.fn(), list: jest.fn().mockReturnValue([]) }
 		const sandboxService = { listProviders: jest.fn().mockReturnValue([]) }
+		const volumeClient = {
+			resolve: jest.fn<ReturnType<VolumeClient['resolve']>, Parameters<VolumeClient['resolve']>>(),
+			resolveRoot: jest.fn<ReturnType<VolumeClient['resolveRoot']>, Parameters<VolumeClient['resolveRoot']>>()
+		} satisfies VolumeClient
 
 		const service = new XpertService(
 			repository as any,
+			workspaceAccessService,
 			storeService as any,
 			userService as any,
 			commandBus as any,
@@ -42,7 +60,7 @@ describe('XpertService command facade', () => {
 			eventEmitter as any,
 			triggerRegistry as any,
 			sandboxService as any,
-			{ resolve: jest.fn() } as any
+			volumeClient
 		)
 
 		return {
@@ -146,6 +164,52 @@ describe('XpertService command facade', () => {
 					maxConcurrency: 2,
 					recursionLimit: 1000
 				}
+			})
+		)
+	})
+
+	it('preserves published graph when updating only draft basic information', async () => {
+		const { repository, service } = createService()
+		const xpert = {
+			id: 'xpert-1',
+			name: 'sales-agent',
+			slug: 'sales-agent',
+			type: XpertTypeEnum.Agent,
+			graph: {
+				nodes: [
+					{
+						key: 'Agent_1',
+						type: 'agent' as const,
+						position: { x: 0, y: 0 },
+						entity: { key: 'Agent_1', name: 'Sales Agent' }
+					}
+				],
+				connections: [
+					{
+						key: 'Agent_1/Workflow_1',
+						from: 'Agent_1',
+						to: 'Workflow_1',
+						type: 'edge' as const
+					}
+				]
+			}
+		}
+		jest.spyOn(service, 'findOne').mockResolvedValue(xpert)
+		repository.save.mockImplementation(async (entity) => entity)
+
+		const draft = await service.updateDraft('xpert-1', {
+			team: {
+				id: 'xpert-1',
+				title: 'Updated title'
+			}
+		})
+
+		expect(draft.nodes).toEqual(xpert.graph.nodes)
+		expect(draft.connections).toEqual(xpert.graph.connections)
+		expect(draft.team).toEqual(
+			expect.objectContaining({
+				id: 'xpert-1',
+				title: 'Updated title'
 			})
 		)
 	})

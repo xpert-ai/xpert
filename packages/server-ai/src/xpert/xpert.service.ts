@@ -33,7 +33,9 @@ import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
-import { MyXpertWorkspaceQuery, XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
+import { MyXpertWorkspaceQuery } from '../xpert-workspace/queries'
+import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
+import { XpertWorkspaceBaseService } from '../xpert-workspace/workspace-base.service'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
 import { GetXpertMemoryEmbeddingsQuery } from './queries'
@@ -255,12 +257,13 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return xpert.draft
     }
 
-    async updateDraft(id: string, draft: TXpertTeamDraft) {
+    async updateDraft(id: string, draft: Partial<TXpertTeamDraft>) {
         const xpert = await this.findOne(id)
         xpert.draft = {
             ...(xpert.draft ?? {}),
             ...draft,
-            nodes: normalizeMiddlewareNodes(draft.nodes ?? xpert.draft?.nodes),
+            nodes: normalizeMiddlewareNodes(draft.nodes ?? xpert.draft?.nodes ?? xpert.graph?.nodes),
+            connections: draft.connections ?? xpert.draft?.connections ?? xpert.graph?.connections,
             team: {
                 ...(xpert.draft?.team ?? {}),
                 ...(draft.team ?? {}),
