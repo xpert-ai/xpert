@@ -67,17 +67,21 @@ const PLAN_MODE_PROMPT = [
     'In Plan Mode:',
     '- Before the user confirms implementation, do not implement, mutate files, run migrations, or perform destructive actions.',
     "- First understand the user's goal and inspect non-mutating context when needed.",
-    `- If a high-impact product or implementation decision is missing, call the ${REQUEST_USER_INPUT_TOOL_NAME} tool with 1 to 3 questions before finalizing the plan.`,
+    '- Treat Plan Mode as a strict state machine: clarify intent, propose a plan, then implement only after explicit approval.',
+    `- You may call the ${REQUEST_USER_INPUT_TOOL_NAME} tool for clarification at most once before proposing the plan.`,
+    `- If a high-impact product or implementation decision is missing and you have not already asked clarification questions, call the ${REQUEST_USER_INPUT_TOOL_NAME} tool with 1 to 3 questions before finalizing the plan.`,
+    '- If important details are still missing after clarification answers, make conservative assumptions in the proposed plan instead of asking another clarification round.',
     `- ${REQUEST_USER_INPUT_TOOL_NAME} arguments must be JSON with this shape: ${JSON.stringify(PLAN_MODE_REQUEST_USER_INPUT_EXAMPLE)}.`,
     '- Each question must have 2 or 3 options. Put "(Recommended)" in the recommended option label when there is a clear default.',
-    '- When the plan is ready, show the proposed plan to the user wrapped in <proposed_plan> and </proposed_plan>.',
-    '- Inside <proposed_plan>, render the plan as a fenced markdown code block using this form:',
-    '```markdown',
-    '# Plan',
-    '...',
-    '```',
-    `- Immediately after presenting the proposed plan, call ${REQUEST_USER_INPUT_TOOL_NAME} to ask whether to implement it. Use this exact question structure: ${JSON.stringify(PLAN_MODE_IMPLEMENT_PLAN_REQUEST)}.`,
-    `- Do not start implementation until the ${REQUEST_USER_INPUT_TOOL_NAME} answer explicitly selects "Yes, implement this plan".`,
+    '- request_user_input results have a content.type of "request_user_input_result" and a content.purpose.',
+    '- If you receive content.purpose "plan_clarification", those answers only resolve planning questions. They are never approval to implement.',
+    `- After receiving "plan_clarification" answers, do not call ${REQUEST_USER_INPUT_TOOL_NAME} for more clarification. Your next assistant response must present the proposed plan. Do not implement first.`,
+    '- When the plan is ready, show the proposed plan to the user wrapped in <proposed_plan> and </proposed_plan>, with each tag on its own line.',
+    '- Inside <proposed_plan>, write the plan directly as Markdown, starting with a single "# <Plan title>" heading.',
+    '- Do not wrap the proposed plan in a fenced code block.',
+    `- Only after the current assistant response contains a complete <proposed_plan> block may you call ${REQUEST_USER_INPUT_TOOL_NAME} to ask whether to implement it. Use this exact question structure: ${JSON.stringify(PLAN_MODE_IMPLEMENT_PLAN_REQUEST)}.`,
+    `- Never call the implementation confirmation question unless the same assistant response has already presented the proposed plan.`,
+    `- Do not start implementation until you receive content.purpose "implementation_confirmation" and its ${REQUEST_USER_INPUT_TOOL_NAME} answer with id "implement_plan" explicitly selects "Yes, implement this plan".`,
     '- If the user selects "No, stop here" or provides any Other answer that does not explicitly approve implementation, do not implement. Reply briefly that you will stop and end the conversation.'
 ].join('\n')
 
@@ -184,7 +188,7 @@ export async function createPlanModeMiddlewareEntries(
                 {
                     name: REQUEST_USER_INPUT_TOOL_NAME,
                     description:
-                        'Ask the user one to three Plan Mode confirmation questions and resume with structured answers.',
+                        'Plan Mode user input. Use once for clarification before a plan, or after a visible proposed plan only for the final implementation confirmation. Never use for repeated clarification rounds.',
                     schema: PLAN_MODE_REQUEST_USER_INPUT_SCHEMA
                 }
             ]

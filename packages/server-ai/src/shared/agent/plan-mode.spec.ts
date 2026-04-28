@@ -49,6 +49,7 @@ describe('plan mode middleware helpers', () => {
                 clientTools: [
                     expect.objectContaining({
                         name: 'request_user_input',
+                        description: expect.stringContaining('Use once for clarification before a plan'),
                         schema: PLAN_MODE_REQUEST_USER_INPUT_SCHEMA
                     })
                 ]
@@ -85,7 +86,27 @@ describe('plan mode middleware helpers', () => {
                 })
             })
         )
-        expect(handler.mock.calls[0][0].systemMessage.content).toContain('```markdown')
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('write the plan directly as Markdown')
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain(
+            'Do not wrap the proposed plan in a fenced code block.'
+        )
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('strict state machine')
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('at most once before proposing the plan')
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain(
+            'make conservative assumptions in the proposed plan instead of asking another clarification round'
+        )
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('content.purpose "plan_clarification"')
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('They are never approval to implement.')
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain(
+            'do not call request_user_input for more clarification'
+        )
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain(
+            'same assistant response has already presented the proposed plan'
+        )
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain(
+            'content.purpose "implementation_confirmation"'
+        )
+        expect(handler.mock.calls[0][0].systemMessage.content).not.toContain('```markdown')
         expect(handler.mock.calls[0][0].systemMessage.content).toContain('Implement this plan?')
         expect(handler.mock.calls[0][0].systemMessage.content).toContain('Yes, implement this plan')
     })
