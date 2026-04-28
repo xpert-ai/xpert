@@ -21,6 +21,7 @@ import {
 import type { Observable } from 'rxjs'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { HandoffQueueService } from '../../message-queue.service'
+import { formatHandoffUserError, getErrorMessage, normalizeHandoffUserError } from '../../errors/handoff-user-error'
 
 const TEXT_DELTA_COALESCE_WINDOW_MS = 200
 
@@ -70,13 +71,21 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 		}
 
 		this.logger.debug(`Processing agent chat dispatch message "${message.id}" with request:`, request, 'and options:', options)
-		return this.runTaskWithRequestContext(message, async () => {
-			const observable = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
-				new XpertChatCommand(request, options)
-			)
-			await this.forwardStreamEvents(message, callback, observable, ctx)
-			return { status: 'ok' }
-		})
+		try {
+			return await this.runTaskWithRequestContext(message, async () => {
+				const observable = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
+					new XpertChatCommand(request, options)
+				)
+				await this.forwardStreamEvents(message, callback, observable, ctx)
+				return { status: 'ok' }
+			})
+		} catch (error) {
+			await this.forwardStartupError(message, callback, error)
+			return {
+				status: 'dead',
+				reason: getErrorMessage(error)
+			}
+		}
 	}
 
 	private async forwardStreamEvents(
@@ -233,6 +242,30 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 				}
 			})
 		})
+	}
+
+	private async forwardStartupError(
+		sourceMessage: HandoffMessage<AgentChatDispatchPayload>,
+		callback: AgentChatCallbackTarget,
+		error: unknown
+	) {
+		const userError = normalizeHandoffUserError(error, {
+			source: sourceMessage.headers?.source ?? callback.headers?.source,
+			diagnosticId: sourceMessage.traceId ?? sourceMessage.id
+		})
+		this.logger.error(
+			`Agent chat dispatch failed before stream for message "${sourceMessage.id}": ${getErrorMessage(error)}`,
+			error instanceof Error ? error.stack : undefined
+		)
+		await this.handoffQueueService.enqueue(
+			this.buildCallbackMessage(sourceMessage, callback, {
+				kind: 'error',
+				sourceMessageId: sourceMessage.id,
+				sequence: 1,
+				error: formatHandoffUserError(userError),
+				context: callback.context
+			})
+		)
 	}
 
 	private shouldSkipCallbackStreamEvent(

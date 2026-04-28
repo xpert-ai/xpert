@@ -349,6 +349,87 @@ describe('AgentChatDispatchHandoffProcessor', () => {
 		expect(handoffQueueService.enqueue.mock.calls[0][0].payload.kind).toBe('error')
 		expect(handoffQueueService.enqueue.mock.calls[0][0].payload.error).toBe('boom')
 	})
+
+	it('emits a user-friendly startup error when workspace access is denied', async () => {
+		const commandBus = { execute: jest.fn() }
+		const handoffQueueService = { enqueue: jest.fn().mockResolvedValue({ id: 'callback-job-id' }) }
+		const processor = new AgentChatDispatchHandoffProcessor(
+			commandBus as any,
+			handoffQueueService as any
+		)
+		const error = new Error('Access denied to workspace') as Error & { status: number }
+		error.status = 403
+
+		commandBus.execute.mockRejectedValue(error)
+
+		const result = await processor.process(
+			createMessage({
+				request: { input: { input: 'hello world' } },
+				options: { xpertId: 'xpert-id' },
+				callback: {
+					messageType: 'channel.lark.chat_stream_event.v1',
+					context: { integrationId: 'integration-id' }
+				}
+			}) as any,
+			createContext() as any
+		)
+
+		expect(result).toEqual({ status: 'dead', reason: 'Access denied to workspace' })
+		expect(handoffQueueService.enqueue).toHaveBeenCalledTimes(1)
+		expect(handoffQueueService.enqueue.mock.calls[0][0].payload).toEqual(
+			expect.objectContaining({
+				kind: 'error',
+				sourceMessageId: 'message-id',
+				sequence: 1,
+				context: { integrationId: 'integration-id' }
+			})
+		)
+		expect(handoffQueueService.enqueue.mock.calls[0][0].payload.error).toContain('没有工作区权限')
+		expect(handoffQueueService.enqueue.mock.calls[0][0].payload.error).toContain(
+			'你的飞书账号已经识别成功，但对应的 Xpert 账号没有访问当前 Claw 工作区的权限。'
+		)
+		expect(handoffQueueService.enqueue.mock.calls[0][0].payload.error).toContain('建议: 联系工作区管理员')
+		expect(handoffQueueService.enqueue.mock.calls[0][0].payload.error).toContain('诊断编号: trace-id')
+	})
+
+	it('builds a dynamic Lark SSO action for an unbound account startup error', async () => {
+		const originalPublicUrl = process.env.XPERT_PUBLIC_APP_URL
+		process.env.XPERT_PUBLIC_APP_URL = 'https://xpert.example.com'
+		const commandBus = { execute: jest.fn() }
+		const handoffQueueService = { enqueue: jest.fn().mockResolvedValue({ id: 'callback-job-id' }) }
+		const processor = new AgentChatDispatchHandoffProcessor(
+			commandBus as any,
+			handoffQueueService as any
+		)
+
+		try {
+			commandBus.execute.mockRejectedValue(new Error('Lark account is not bound'))
+
+			const result = await processor.process(
+				createMessage({
+					request: { input: { input: 'hello world' } },
+					options: { xpertId: 'xpert-id' },
+					callback: {
+						messageType: 'channel.lark.chat_stream_event.v1'
+					}
+				}) as any,
+				createContext() as any
+			)
+
+			expect(result).toEqual({ status: 'dead', reason: 'Lark account is not bound' })
+			expect(handoffQueueService.enqueue).toHaveBeenCalledTimes(1)
+			expect(handoffQueueService.enqueue.mock.calls[0][0].payload.error).toContain('需要绑定 Xpert 账号')
+			expect(handoffQueueService.enqueue.mock.calls[0][0].payload.error).toContain(
+				'用飞书登录 Xpert: https://xpert.example.com/api/lark-identity/login/start?returnTo=%2F'
+			)
+		} finally {
+			if (originalPublicUrl === undefined) {
+				delete process.env.XPERT_PUBLIC_APP_URL
+			} else {
+				process.env.XPERT_PUBLIC_APP_URL = originalPublicUrl
+			}
+		}
+	})
 })
 
 describe('AgentChatCallbackNoopHandoffProcessor', () => {
