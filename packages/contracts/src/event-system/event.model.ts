@@ -3,6 +3,7 @@ import type { IProjectTaskExecution } from '../project/project-task-execution.mo
 import type { IProjectSprint } from '../project/project-sprint.model'
 import type { IProjectSwimlane } from '../project/project-swimlane.model'
 import type { XpertEventType } from './event-types'
+import { SprintId } from '../project'
 
 export type XpertEventSourceType = 'agent' | 'workflow' | 'system' | 'tool' | 'handoff' | 'chat' | 'project'
 
@@ -88,7 +89,7 @@ export type XpertProjectBoardChangedOperation =
 	| 'swimlanes.updated'
 
 export type XpertProjectSprintPatch = Omit<Partial<IProjectSprint>, 'id'> & {
-	id: string
+	id: SprintId
 }
 
 export type XpertProjectSwimlanePatch = Omit<Partial<IProjectSwimlane>, 'id'> & {
