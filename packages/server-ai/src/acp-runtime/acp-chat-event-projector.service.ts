@@ -316,5 +316,8 @@ function shouldEmitToolEvent(
 }
 
 function isTerminalToolStatus(value: unknown) {
-  return value === 'completed' || value === 'failed' || value === 'success' || value === 'error'
+  if (typeof value !== 'string') {
+    return false
+  }
+  return ['completed', 'failed', 'success', 'error', 'canceled'].includes(value.trim().toLowerCase())
 }

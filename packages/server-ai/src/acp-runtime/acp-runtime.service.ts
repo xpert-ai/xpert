@@ -260,10 +260,18 @@ export class AcpRuntimeService {
     })
 
     const backend = this.backendRegistry.get(target.kind)
-    const handle = await backend.ensureSession({
-      session: seed,
-      target
-    })
+    let handle: Awaited<ReturnType<IAcpBackend['ensureSession']>>
+    try {
+      handle = await backend.ensureSession({
+        session: seed,
+        target
+      })
+    } catch (error) {
+      await this.failSessionLifecycle(seed.id, seed.executionId, error, {
+        headline: 'Failed before Codexpert session became ready'
+      })
+      throw error
+    }
 
     await this.sessionService.update(seed.id, {
       harnessType: handle.harnessType,

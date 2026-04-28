@@ -15,6 +15,7 @@ import {
 } from '../../../xpert-toolset'
 import { ToolInvokeCommand } from '../tool-invoke.command'
 import { EnvStateQuery } from '../../../environment'
+import { requiresCodexpertPrincipal } from '../../../codexpert/codexpert-mcp-schema'
 import { requireCurrentBusinessPrincipal } from '../../../shared/identity'
 import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
 
@@ -139,18 +140,5 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 		}
 
 		throw new ToolNotSupportedError(`Toolset type ${toolset.type}`)
-	}
-}
-
-function requiresCodexpertPrincipal(toolset: { category?: XpertToolsetCategoryEnum | string | null; schema?: string | null }): boolean {
-	if (toolset.category !== XpertToolsetCategoryEnum.MCP || !toolset.schema) {
-		return false
-	}
-	try {
-		const schema = JSON.parse(toolset.schema)
-		const servers = schema?.servers ?? schema?.mcpServers
-		return Boolean(servers && typeof servers === 'object' && servers['codexpert-context'])
-	} catch {
-		return false
 	}
 }

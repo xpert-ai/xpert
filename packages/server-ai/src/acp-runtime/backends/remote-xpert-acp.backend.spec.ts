@@ -30,6 +30,7 @@ describe('RemoteXpertAcpBackend', () => {
         authRef: 'token-1',
         metadata: {
           headers: {
+            Authorization: 'Bearer metadata-token',
             'x-principal-user-id': 'metadata-user'
           }
         }

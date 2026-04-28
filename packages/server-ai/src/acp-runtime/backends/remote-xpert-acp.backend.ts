@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios'
 import { createInterface } from 'node:readline'
 import { Injectable, Logger } from '@nestjs/common'
-import { buildCodexpertIdentityHeaders } from '../../codexpert'
+import { buildCodexpertIdentityHeaders } from '../../codexpert/codexpert-identity-headers'
 import { requireBusinessPrincipal } from '../../shared/identity'
 import { AcpRuntimeEnsureInput, AcpRuntimeEvent, AcpRuntimeHandle, AcpRuntimeTurnInput, IAcpBackend } from './acp-backend.types'
 
@@ -208,10 +208,6 @@ export class RemoteXpertAcpBackend implements IAcpBackend {
     const metadata = isRecord(target?.metadata) ? target?.metadata : {}
     const headers: Record<string, string> = {}
 
-    if (authRef) {
-      headers.Authorization = authRef.startsWith('Bearer ') ? authRef : `Bearer ${authRef}`
-    }
-
     const extraHeaders = metadata?.headers
     if (isRecord(extraHeaders)) {
       for (const [key, value] of Object.entries(extraHeaders)) {
@@ -227,6 +223,10 @@ export class RemoteXpertAcpBackend implements IAcpBackend {
           headers[key] = value
         }
       }
+    }
+
+    if (authRef) {
+      headers.Authorization = authRef.startsWith('Bearer ') ? authRef : `Bearer ${authRef}`
     }
 
     return axios.create({

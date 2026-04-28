@@ -13,7 +13,7 @@ import { environment } from '@xpert-ai/server-config'
 import { runScript } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { isNil, omitBy } from 'lodash'
-import { buildCodexpertIdentityHeaders } from '../../../codexpert'
+import { buildCodexpertIdentityHeaders } from '../../../codexpert/codexpert-identity-headers'
 import type { BusinessPrincipal } from '../../../shared/identity'
 
 export async function createMCPClient(
