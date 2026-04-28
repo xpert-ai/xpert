@@ -116,7 +116,8 @@ import {
     filterDisabledTools,
     getAgentMiddlewares,
     orderNodesByKeyOrder,
-    createAgentChannel
+    createAgentChannel,
+    createPlanModeMiddlewareEntries
 } from '../../../shared'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
@@ -689,27 +690,34 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             getAgentMiddlewareNodes(graph, agent.key),
             agent.options?.middlewares?.order || []
         )
+        const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> = {
+            tenantId: xpert.tenantId,
+            userId: RequestContext.currentUserId(),
+            workspaceId: xpert.workspaceId,
+            projectId: options.projectId,
+            conversationId: options.conversationId,
+            xpertId: xpert.id,
+            xpertFeatures: xpert.features ?? null,
+            agentKey,
+            knowledgebaseIds: agent.knowledgebaseIds,
+            tools: toolMap,
+            runtime: this.agentMiddlewareRuntimeService.api
+        }
         const visibleAgentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(
             graph,
             agent,
             this.agentMiddlewareRegistry,
-            {
-                tenantId: xpert.tenantId,
-                userId: RequestContext.currentUserId(),
-                workspaceId: xpert.workspaceId,
-                projectId: options.projectId,
-                conversationId: options.conversationId,
-                xpertId: xpert.id,
-                xpertFeatures: xpert.features ?? null,
-                agentKey,
-                knowledgebaseIds: agent.knowledgebaseIds,
-                tools: toolMap,
-                runtime: this.agentMiddlewareRuntimeService.api
-            },
+            middlewareContext,
             {
                 toolPreferences: options.toolPreferences
             }
         )
+        const runtimeMiddlewareEntries = await createPlanModeMiddlewareEntries(
+            this.agentMiddlewareRegistry,
+            middlewareContext,
+            options.planMode
+        )
+        const runtimeAgentMiddlewares = runtimeMiddlewareEntries.map(({ middleware }) => middleware)
         const shouldEnableTitleMiddleware = Boolean(
             xpert.features?.title?.enabled &&
                 isStart &&
@@ -738,10 +746,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     acc.push({ key: node.key, middleware })
                 }
                 return acc
-            }, [])
+            }, []),
+            ...runtimeMiddlewareEntries
         ]
         // Middleware tools
-        const middlewareTools: TGraphTool[] = visibleAgentMiddlewares
+        const middlewareTools: TGraphTool[] = [...visibleAgentMiddlewares, ...runtimeAgentMiddlewares]
             .filter((middleware) => middleware?.tools?.length)
             .flatMap((middleware) =>
                 middleware.tools.map((tool) => {

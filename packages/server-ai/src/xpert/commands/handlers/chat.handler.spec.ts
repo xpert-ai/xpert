@@ -982,6 +982,106 @@ describe('XpertChatHandler', () => {
         })
     })
 
+    it('inherits plan mode from interrupted execution inputs on resume', async () => {
+        const commands: any[] = []
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: 'execution-1',
+                    inputs: {
+                        human: {
+                            input: 'Plan this change',
+                            planMode: true
+                        }
+                    }
+                }
+            }
+            if ('conditions' in query || 'params' in query) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [
+                        {
+                            id: 'ai-1',
+                            role: 'ai',
+                            content: 'Pending',
+                            executionId: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.INTERRUPTED
+                        }
+                    ],
+                    status: 'interrupted'
+                }
+            }
+            return null
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return command.entity
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'resume',
+                    conversationId: 'conversation-1',
+                    target: {
+                        aiMessageId: 'ai-1',
+                        executionId: 'execution-1'
+                    },
+                    decision: {
+                        type: 'confirm'
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.state.human).toEqual({
+            planMode: true
+        })
+        expect(agentCommand.options.planMode).toBe(true)
+    })
+
     it('replays from the first human input checkpoint when human message has no executionId', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
