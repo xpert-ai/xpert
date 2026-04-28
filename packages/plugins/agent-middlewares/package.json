@@ -16,7 +16,7 @@
     "@xpert-ai/contracts": "workspace:*",
     "@nestjs/common": ">=10",
     "@nestjs/core": ">=10",
-    "@xpert-ai/chatkit-types": "^0.0.15",
+    "@xpert-ai/chatkit-types": "^0.2.0",
     "@xpert-ai/plugin-sdk": "workspace:*",
     "zod": ">=3.22.4"
   }

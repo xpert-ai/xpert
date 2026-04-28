@@ -316,7 +316,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 if (!userMessage) {
                     throw new Error('Retry source human message not found')
                 }
-                const fallbackRetryInput: TChatRequestHuman = {
+                const fallbackRetryInput = {
                     ...(conversation.options?.parameters ?? {}),
                     input: stringifyMessageContent(userMessage.content),
                     ...(userMessage.references?.length
@@ -329,7 +329,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                               files: userMessage.attachments
                           }
                         : {})
-                }
+                } as TChatRequestHuman
                 input = resolveRetryHumanInput(sourceExecution.inputs, fallbackRetryInput)
                 executionInputs = input
             }

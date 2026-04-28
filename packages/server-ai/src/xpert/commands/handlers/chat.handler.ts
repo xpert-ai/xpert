@@ -410,7 +410,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                           }
                         : {})
                 }
-                input = resolveRetryHumanInput(sourceExecution.inputs, fallbackRetryState)
+                input = resolveRetryHumanInput(sourceExecution.inputs, fallbackRetryState as TChatRequestHuman)
                 state = normalizeChatState(undefined, input)
             }
 

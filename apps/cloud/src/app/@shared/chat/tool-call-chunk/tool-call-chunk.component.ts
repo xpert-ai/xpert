@@ -42,13 +42,13 @@ export class ChatToolCallChunkComponent {
 
   readonly output = computed(() => {
     const artifact = this.chunk()?.artifact
-    const output = this.chunk()?.output
+    const output = this.chunk()?.output as string | object | undefined
     if (Array.isArray(artifact) ? artifact.length : !!artifact) {
       return artifact
     }
     if (output) {
       try {
-        return JSON.parse(output)
+        return typeof output === 'string' ? JSON.parse(output) : output
       } catch (error) {
         return output
       }

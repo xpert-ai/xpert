@@ -1,20 +1,20 @@
 import type {
-  TChatCodeReference,
-  TChatImageReference,
+  ChatKitCodeReference,
+  ChatKitImageReference,
+  ChatKitQuoteReference,
   TChatElementReference,
   TChatElementReferenceCandidateFields,
-  TChatQuoteReference,
   TChatReference
 } from '@xpert-ai/contracts'
 import type { TChatRequestHuman } from '@cloud/app/@core'
 
-export type XpertCodeReference = TChatCodeReference
+export type XpertCodeReference = ChatKitCodeReference
 
 export type XpertElementReference = TChatElementReference
 
-export type XpertQuoteReference = TChatQuoteReference
+export type XpertQuoteReference = ChatKitQuoteReference
 
-export type XpertImageReference = TChatImageReference
+export type XpertImageReference = ChatKitImageReference
 
 export type XpertChatReference = TChatReference
 
@@ -341,5 +341,5 @@ export function createReferenceHumanInput(input: {
     input: input.content,
     ...(input.files?.length ? { files: input.files } : {}),
     ...(references.length ? { references, referenceComposition: 'compose' as const } : {})
-  }
+  } as XpertChatRequestHuman
 }

@@ -85,5 +85,8 @@ describe('plan mode middleware helpers', () => {
                 })
             })
         )
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('```markdown')
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('Implement this plan?')
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('Yes, implement this plan')
     })
 })

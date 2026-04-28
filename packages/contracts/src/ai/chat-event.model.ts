@@ -1,21 +1,11 @@
-import type { TChatEventMessage } from '@xpert-ai/chatkit-types'
+import { CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED, type TFollowUpConsumedEvent, type TChatEventMessage } from '@xpert-ai/chatkit-types'
 
 export const CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE = 'thread_context_usage' as const
 export const CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY = 'conversation_title_summary' as const
-export const CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED = 'follow_up_consumed' as const
 
 export type TConversationTitleSummaryEvent = TChatEventMessage & {
   id?: string
   type: typeof CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY
-}
-
-export type TFollowUpConsumedEvent = TChatEventMessage & {
-  type: typeof CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED
-  mode: 'queue' | 'steer'
-  messageIds: string[]
-  clientMessageIds?: string[]
-  executionId?: string | null
-  visibleAt?: string | null
 }
 
 export function createConversationTitleSummaryEvent(

@@ -1,20 +1,20 @@
 import {
+    ChatKitCodeReference,
+    ChatKitImageReference,
+    ChatKitQuoteReference,
     STATE_VARIABLE_HUMAN,
-    TChatCodeReference,
-    TChatImageReference,
     TChatElementReference,
     TChatElementReferenceCandidateFields,
-    TChatQuoteReference,
     TChatReference
 } from '@xpert-ai/contracts'
 
-type CodeReferenceLike = Omit<TChatCodeReference, 'type'> & {
+type CodeReferenceLike = Omit<ChatKitCodeReference, 'type'> & {
     type?: 'code'
 }
 
-type QuoteReferenceLike = TChatQuoteReference
+type QuoteReferenceLike = ChatKitQuoteReference
 
-type ImageReferenceLike = TChatImageReference
+type ImageReferenceLike = ChatKitImageReference
 
 type ElementReferenceLike = TChatElementReference
 
@@ -249,7 +249,7 @@ export function isElementReferenceLike(value: unknown): value is ElementReferenc
     )
 }
 
-function toCodeReference(reference: CodeReferenceCandidate): TChatCodeReference {
+function toCodeReference(reference: CodeReferenceCandidate): ChatKitCodeReference {
     return {
         type: 'code',
         path: reference.path.trim(),
@@ -262,7 +262,7 @@ function toCodeReference(reference: CodeReferenceCandidate): TChatCodeReference 
     }
 }
 
-function toQuoteReference(reference: QuoteReferenceCandidate): TChatQuoteReference {
+function toQuoteReference(reference: QuoteReferenceCandidate): ChatKitQuoteReference {
     return {
         type: 'quote',
         text: reference.text,
@@ -272,7 +272,7 @@ function toQuoteReference(reference: QuoteReferenceCandidate): TChatQuoteReferen
     }
 }
 
-function toImageReference(reference: ImageReferenceCandidate): TChatImageReference {
+function toImageReference(reference: ImageReferenceCandidate): ChatKitImageReference {
     const fileId = toOptionalString(reference.fileId)
     const url = toOptionalString(reference.url)
     const name = toOptionalString(reference.name)
@@ -435,7 +435,7 @@ export function buildReferencedPrompt(references: ReferenceLike[]): string {
     return `${header}\n${body}`
 }
 
-export function buildReferencedCodePrompt(references: TChatCodeReference[]): string {
+export function buildReferencedCodePrompt(references: ChatKitCodeReference[]): string {
     return buildReferencedPrompt(references)
 }
 
