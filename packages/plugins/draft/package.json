@@ -22,7 +22,7 @@
     "@nestjs/common": "*",
     "@nestjs/config": "*",
     "@nestjs/core": "*",
-    "@xpert-ai/chatkit-types": "^0.2.0",
+    "@xpert-ai/chatkit-types": "^0.2.1",
     "@xpert-ai/plugin-sdk": "workspace:*"
   }
 }
