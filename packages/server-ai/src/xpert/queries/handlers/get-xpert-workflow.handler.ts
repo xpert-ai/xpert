@@ -7,6 +7,7 @@ import { I18nService } from 'nestjs-i18n'
 import { XpertService } from '../../xpert.service'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../get-xpert-workflow.query'
+import { resolveDraftAgentNode } from '../../draft-agent.utils'
 
 
 @QueryHandler(GetXpertWorkflowQuery)
@@ -39,19 +40,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 			const draft = xpert.draft
 			const nodes = draft.nodes ?? xpert.graph.nodes
 			const connections = draft.connections ?? xpert.graph.connections
-			let agentNode = nodes?.find((_) => _.type === 'agent' && (_.key === keyOrName || _.entity.name === keyOrName))
-			// Is hidden primary agent?
-			if (!agentNode) {
-				if (draft.team.agent?.options?.hidden) {
-					agentNode = {
-						key: draft.team.agent.key,
-						type: 'agent',
-						entity: draft.team.agent,
-						position: null
-					}
-				}
-
-			}
+			const agentNode = resolveDraftAgentNode(draft, nodes, keyOrName)
 			if (!agentNode) {
 				throw new Error(await this.i18nService.translate('xpert.Error.NoAgentInGraph', {
 					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
