@@ -13,6 +13,7 @@ import {
 } from '@angular/core'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import {
   ISandboxManagedService,
   TChatElementReference,
@@ -20,7 +21,7 @@ import {
   TSandboxManagedServiceStatus
 } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
-import { SandboxService, getErrorMessage, injectToastr } from '../../../@core'
+import { SandboxService, getErrorMessage, injectApiBaseUrl, injectToastr } from '../../../@core'
 
 type PreviewOverlay = {
   height: number
@@ -36,7 +37,22 @@ type PreviewOverlayTarget = {
   service: ISandboxManagedService
 }
 
-const SERVICE_REFRESH_INTERVAL_MS = 3000
+const SERVICE_REFRESH_INTERVAL_MS = 5000
+
+function joinPreviewResourceUrl(rawUrl: string, apiBaseUrl: string): string {
+  const previewUrl = rawUrl.trim()
+  const baseUrl = apiBaseUrl.trim()
+
+  if (!previewUrl || !baseUrl) {
+    return previewUrl
+  }
+
+  try {
+    return new URL(previewUrl, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString()
+  } catch {
+    return `${baseUrl.replace(/\/+$/, '')}/${previewUrl.replace(/^\/+/, '')}`
+  }
+}
 
 function isNonEmptyString(value: string | null | undefined): value is string {
   return typeof value === 'string' && value.trim().length > 0
@@ -169,7 +185,7 @@ function buildElementReference(service: ISandboxManagedService, element: Element
 @Component({
   standalone: true,
   selector: 'pac-clawxpert-conversation-preview',
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, ZardButtonComponent],
   template: `
     <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg">
       <div class="border-b border-divider-regular px-4 py-3">
@@ -192,8 +208,11 @@ function buildElementReference(service: ISandboxManagedService, element: Element
 
             <div class="flex flex-wrap items-center gap-2">
               <button
+                z-button
                 type="button"
-                class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
+                zType="outline"
+                zSize="lg"
+                class="rounded-xl border-divider-regular text-text-secondary hover:text-text-primary"
                 (click)="refreshServices()"
               >
                 <i class="ri-refresh-line text-base"></i>
@@ -201,12 +220,14 @@ function buildElementReference(service: ISandboxManagedService, element: Element
               </button>
 
               <button
+                z-button
                 type="button"
-                class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition"
-                [ngClass]="
+                zType="outline"
+                zSize="lg"
+                [class]="
                   mode() === 'inspect'
-                    ? 'border-text-accent text-text-accent'
-                    : 'border-divider-regular text-text-secondary hover:text-text-primary'
+                    ? 'rounded-xl border-text-accent text-text-accent hover:text-text-accent'
+                    : 'rounded-xl border-divider-regular text-text-secondary hover:text-text-primary'
                 "
                 (click)="toggleInspectMode()"
               >
@@ -258,8 +279,11 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                 </div>
 
                 <button
+                  z-button
                   type="button"
-                  class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
+                  zType="outline"
+                  zSize="lg"
+                  class="rounded-xl border-divider-regular text-text-secondary hover:text-text-primary"
                   (click)="restartSelectedService()"
                 >
                   <i class="ri-restart-line text-base"></i>
@@ -267,8 +291,11 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                 </button>
 
                 <button
+                  z-button
                   type="button"
-                  class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
+                  zType="outline"
+                  zSize="lg"
+                  class="rounded-xl border-divider-regular text-text-secondary hover:text-text-primary"
                   (click)="stopSelectedService()"
                 >
                   <i class="ri-stop-circle-line text-base"></i>
@@ -276,8 +303,11 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                 </button>
 
                 <button
+                  z-button
                   type="button"
-                  class="inline-flex items-center gap-2 rounded-xl border border-divider-regular px-3 py-2 text-sm text-text-secondary transition hover:text-text-primary"
+                  zType="outline"
+                  zSize="lg"
+                  class="rounded-xl border-divider-regular text-text-secondary hover:text-text-primary"
                   (click)="toggleLogs()"
                 >
                   <i class="ri-file-list-3-line text-base"></i>
@@ -411,6 +441,7 @@ function buildElementReference(service: ISandboxManagedService, element: Element
 export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly #sandboxService = inject(SandboxService)
   readonly #sanitizer = inject(DomSanitizer)
+  readonly #apiBaseUrl = injectApiBaseUrl()
   readonly #toastr = injectToastr()
   #frameCleanup: (() => void) | null = null
   #frameSyncRequestId: number | null = null
@@ -444,7 +475,8 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly activeOverlay = computed(() => this.selectedOverlay() ?? this.hoveredOverlay())
   readonly previewResourceUrl = computed<SafeResourceUrl | null>(() => {
     const rawUrl = this.previewSessionUrl()
-    return rawUrl ? this.#sanitizer.bypassSecurityTrustResourceUrl(rawUrl) : null
+    const previewUrl = rawUrl ? joinPreviewResourceUrl(rawUrl, this.#apiBaseUrl) : null
+    return previewUrl ? this.#sanitizer.bypassSecurityTrustResourceUrl(previewUrl) : null
   })
 
   constructor() {

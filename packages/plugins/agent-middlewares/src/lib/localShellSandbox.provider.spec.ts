@@ -342,6 +342,90 @@ describe('LocalShellSandbox', () => {
     }
   })
 
+  it('rewrites root-relative frontend asset URLs through the service proxy', async () => {
+    const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-proxy-rewrite-'))
+    const sandbox = new LocalShellSandbox({ workingDirectory })
+    const port = await reservePort()
+    const serviceId = 'service-proxy-rewrite'
+    const previewUrl = `/api/sandbox/conversations/conversation-1/services/${serviceId}/proxy/`
+    const html =
+      '<!doctype html><script type="module" src="/@vite/client"></script><script type="module" src="/src/main.tsx"></script><link rel="stylesheet" href=/assets/app.css><style>.hero{background:url(/assets/hero.png)}</style>'
+    const upstreamServer = http.createServer((_request, response) => {
+      response.setHeader('content-type', 'text/html; charset=utf-8')
+      response.end(html)
+    })
+    const response = {
+      body: '',
+      headers: new Map<string, number | string | string[]>(),
+      headersSent: false,
+      setHeader(name: string, value: number | string | string[]) {
+        this.headers.set(name.toLowerCase(), value)
+      },
+      end(chunk?: string | Buffer) {
+        this.body = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk ?? ''
+        this.headersSent = true
+      },
+      statusCode: 200
+    }
+
+    try {
+      await new Promise<void>((resolve) => {
+        upstreamServer.listen(port, '127.0.0.1', () => resolve())
+      })
+      const managedServices = (sandbox as unknown as { managedServices: Map<string, unknown> }).managedServices
+      managedServices.set(serviceId, {
+        actualPort: port,
+        requestedPort: port,
+        status: {
+          status: 'running'
+        }
+      })
+
+      await sandbox.proxyServiceRequest({
+        path: '/',
+        request: {
+          headers: {
+            'accept-encoding': 'gzip'
+          },
+          method: 'GET',
+          readableEnded: true
+        } as never,
+        response: response as never,
+        service: {
+          actualPort: port,
+          command: 'node server.js',
+          conversationId: 'conversation-1',
+          id: serviceId,
+          name: 'web',
+          previewUrl,
+          provider: 'local-shell-sandbox',
+          requestedPort: port,
+          status: 'running',
+          transportMode: 'http',
+          workingDirectory
+        }
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.body).toContain(`src="${previewUrl}@vite/client"`)
+      expect(response.body).toContain(`src="${previewUrl}src/main.tsx"`)
+      expect(response.body).toContain(`href=${previewUrl}assets/app.css`)
+      expect(response.body).toContain(`url(${previewUrl}assets/hero.png)`)
+      expect(response.headers.has('content-length')).toBe(false)
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        upstreamServer.close((error) => {
+          if (error) {
+            reject(error)
+            return
+          }
+          resolve()
+        })
+      })
+      fs.rmSync(workingDirectory, { recursive: true, force: true })
+    }
+  })
+
   it('fails fast when the requested service port is already occupied', async () => {
     const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-port-check-'))
     const sandbox = new LocalShellSandbox({ workingDirectory })
