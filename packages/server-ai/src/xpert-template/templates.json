@@ -250,6 +250,26 @@
                     "privacyPolicy": null
                 },
                 {
+                    "name": "Coding Delegation Expert",
+                    "type": "agent",
+                    "title": "Coding Delegation Expert",
+                    "description": "A dedicated template for selecting coding context and delegating precise coding tasks to Codexpert through ACP.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "computer"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "xpert-coding-delegation-expert",
+                    "category": "Programming",
+                    "copyright": null,
+                    "privacyPolicy": null,
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    }
+                },
+                {
                     "name": "Authoring Assistant",
                     "type": "agent",
                     "title": "Authoring Assistant",
@@ -292,6 +312,26 @@
                     },
                     "id": "xpert-my-claw-xpert",
                     "category": "claw",
+                    "copyright": null,
+                    "privacyPolicy": null,
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    }
+                },
+                {
+                    "name": "Coding Delegation Expert",
+                    "type": "agent",
+                    "title": "编码委派专家",
+                    "description": "面向 Codexpert 编码委派场景的专家模板。它会先确认编码助手、Git 连接、仓库和分支，再把明确的编码任务委派给 Codexpert ACP。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "computer"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "xpert-coding-delegation-expert",
+                    "category": "Programming",
                     "copyright": null,
                     "privacyPolicy": null,
                     "copilotModel": {

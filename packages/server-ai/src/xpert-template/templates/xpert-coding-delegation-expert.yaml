@@ -1,15 +1,15 @@
 team:
-  name: Claw Xpert
+  name: 编码委派专家
   type: agent
-  title: Claw Xpert
-  description: 一只专家级龙虾智能体。
+  title: 编码委派专家
+  description: 面向 Codexpert 编码委派场景的专家模板。它会先确认编码助手、Git 连接、仓库和分支，再把明确的编码任务委派给 Codexpert ACP。
   avatar:
     emoji:
-      id: lobster
+      id: computer
       set: ""
-      colons: ":lobster:"
-      unified: 1F99E
-    background: rgba(254, 247, 195, 0.8)
+      colons: ":computer:"
+      unified: 1F4BB
+    background: rgba(213, 245, 246, 0.8)
   starters: null
   options:
     agent:
@@ -58,6 +58,10 @@ team:
         position:
           x: 882
           y: 342
+      Middleware_qAcp7nV4Lp:
+        position:
+          x: 1752
+          y: 222
       Middleware_1tcPT6q0VR:
         position:
           x: 108
@@ -125,7 +129,48 @@ team:
     modelType: llm
     model: deepseek-chat
   knowledgebases: []
-  toolsets: []
+  toolsets:
+    - id: 7db9237c-5c63-4a7d-a342-2b2108c93001
+      name: Codexpert Context MCP
+      type: http
+      category: mcp
+      description: Select coding assistant, Git connection, repository, branch, or resume an existing Codexpert coding conversation.
+      options:
+        toolPositions:
+          listCodingAssistants: 0
+          listCodexpertConversations: 1
+          resolveCodexpertConversationContext: 2
+          resumeCodexpertSession: 3
+          listGitConnections: 4
+          listGitRepositories: 5
+          listGitBranches: 6
+          selectCodingContext: 7
+      schema: '{"mcpServers":{"codexpert-context":{"type":"http","url":"{{CODEXPERT_MCP_URL}}","headers":{"Authorization":"Bearer {{CODEXPERT_MCP_TOKEN}}"}}}}'
+      tools:
+        - id: 6ad87e64-f9e5-44ae-a6e0-f0b4b7990d76
+          name: listCodingAssistants
+          enabled: true
+        - id: 98d4d9c4-19fe-4ccb-9979-b8fd661f96c2
+          name: listCodexpertConversations
+          enabled: true
+        - id: 64904e4c-2fae-486c-96ee-c81308e2a0fd
+          name: resolveCodexpertConversationContext
+          enabled: true
+        - id: 2d2d825d-7d94-42a4-9900-4117c335d857
+          name: resumeCodexpertSession
+          enabled: true
+        - id: 559fe9bc-d9cc-4b6d-8357-6caf94e4fb51
+          name: listGitConnections
+          enabled: true
+        - id: ffefb80d-d0c8-459f-bfd0-c22ad6d70576
+          name: listGitRepositories
+          enabled: true
+        - id: 2edfaa3a-5f7b-461d-aae5-973a697b5f02
+          name: listGitBranches
+          enabled: true
+        - id: 4ccf85eb-50fe-4f14-95af-513b4f2ccedc
+          name: selectCodingContext
+          enabled: true
   tags: []
 nodes:
   - type: agent
@@ -154,8 +199,57 @@ nodes:
         {{sys.profile}}
 
 
+        When `sys.acpObserver` is present, you are handling an internal ACP
+        observation trigger rather than a normal user message.
+
+        - Do not call tools.
+        - Do not delegate a new coding task.
+        - Decide whether the observation contains a user-visible new stage,
+        blocker, or final result.
+        - If it does not add a meaningful new update, reply with exactly
+        `[[NO_USER_UPDATE]]`.
+        - If it requires attention, ask one concrete question.
+        - If it is meaningful progress, reply with a short Chinese progress
+        update.
+
+
         Treat the assistant soul as behavior guidance and use the user profile
         to personalize responses when relevant.
+
+
+        When MCP coding context tools are available:
+
+        - For coding requests, first establish the current coding assistant,
+        Git connection, repository, and branch before delegating a coding task.
+        - Only call delegate_coding_task when the user has clearly asked you to
+        execute or continue a coding task in Codexpert.
+        - delegate_coding_task keeps the current reply attached to the
+        Codexpert ACP session. During that time, Codexpert progress streams
+        inline in the current reply, and the tool result returns only after the
+        ACP bridge reaches a terminal state.
+        - Do not call delegate_coding_task for ACP/MCP explanations,
+        architecture discussion, configuration, debugging, queue/status
+        inspection, identity analysis, or other questions that can be answered
+        directly in chat.
+        - If the user has not clearly asked you to start coding work yet, stay
+        in chat and explain or ask for the missing execution intent instead of
+        opening a Codexpert task.
+        - Call listCodingAssistants before selectCodingContext when the coding
+        assistant is not already clear from the current context.
+        - If the user wants to continue an existing Codexpert conversation or
+        says `/resume`, first call listCodexpertConversations, then call
+        resumeCodexpertSession, and finally delegate the coding task with the
+        returned anchor or snapshot context, including sourceConversationId,
+        resumeThreadId, repository, branch, and environment details.
+        - If the user asks to switch repository or branch, re-select the coding
+        context before delegating again.
+        - If the user asks to switch coding assistant, re-select the coding
+        context before delegating again.
+        - If the user is continuing on the same repository and branch, reuse the
+        existing coding context and ACP session instead of re-selecting it.
+        - After delegate_coding_task returns, use the terminal tool result as
+        the source of truth for the final wrap-up. Do not pretend the tool only
+        created a receipt.
       promptTemplates: null
       parameters: null
       outputVariables: null
@@ -164,6 +258,7 @@ nodes:
           enabled: true
         middlewares:
           order:
+            - Middleware_qAcp7nV4Lp
             - Middleware_NUThTeiDKi
             - Middleware_jz1jzYUbrN
             - Middleware_2hkYOSGYiL
@@ -176,8 +271,28 @@ nodes:
       copilotModel: null
       leaderKey: null
       collaboratorNames: []
-      toolsetIds: []
+      toolsetIds:
+        - 7db9237c-5c63-4a7d-a342-2b2108c93001
       knowledgebaseIds: []
+  - type: workflow
+    key: Middleware_qAcp7nV4Lp
+    position:
+      x: 2042
+      y: 252
+    entity:
+      id: Middleware_qAcp7nV4Lp
+      type: middleware
+      key: Middleware_qAcp7nV4Lp
+      title: DelegateCodingTask
+      provider: DelegateCodingTask
+      options:
+        enabledTargetRefs:
+          - remote_xpert_acp
+        defaultTargetRef: remote_xpert_acp
+        mode: persistent
+        reuseSession: true
+        permissionProfile: workspace_write
+        timeoutMs: 900000
   - type: workflow
     key: Middleware_1tcPT6q0VR
     position:
@@ -311,6 +426,10 @@ nodes:
       title: skillsMiddleware
       provider: skillsMiddleware
 connections:
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_qAcp7nV4Lp
+    from: Agent_xtcQNJthR8
+    to: Middleware_qAcp7nV4Lp
   - type: workflow
     key: Agent_xtcQNJthR8/Middleware_1tcPT6q0VR
     from: Agent_xtcQNJthR8
