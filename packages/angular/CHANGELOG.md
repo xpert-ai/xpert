@@ -1,5 +1,12 @@
 # @xpert-ai/ocap-angular
 
+## 3.9.1
+
+### Patch Changes
+
+- Updated dependencies [e040933]
+  - @xpert-ai/ocap-core@3.9.1
+
 ## 3.9.0
 
 ### Patch Changes

@@ -277,7 +277,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     effect(() => {
       const value = this.cva.value$()
       const rules = this.modelParameterRules()
-      if (value && this.hasResolvedCurrentModelParameterRules()) {
+      if (value && this.selectedAiModel() && this.hasResolvedCurrentModelParameterRules()) {
         const options = this.resolveOptions(value.options, rules)
         if (this.areOptionsEqual(value.options, options)) {
           return
@@ -325,7 +325,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     this.updateValue(
       this.withModelContextSize(
         {
-          ...(effectiveModel ?? {}),
           copilotId,
           model: model?.model ?? effectiveModel?.model ?? this.model(),
           modelType: this.modelType(),
@@ -342,7 +341,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     const nextModelType = this.modelType()
     const nValue = this.withModelContextSize(
       {
-        ...(effectiveValue ?? {}),
         options: this.cloneOptions(effectiveValue?.options),
         model: model.model,
         copilotId: copilot.id,

@@ -261,7 +261,7 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Put(':id/draft')
-    async updateDraft(@Param('id') id: string, @Body() draft: TXpertTeamDraft) {
+    async updateDraft(@Param('id') id: string, @Body() draft: Partial<TXpertTeamDraft>) {
         // todo Check if you have permission to edit this xpert role
         draft.savedAt = new Date()
         // Save draft

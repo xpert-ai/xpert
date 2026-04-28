@@ -255,21 +255,35 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return xpert.draft
     }
 
-    async updateDraft(id: string, draft: TXpertTeamDraft) {
+    async updateDraft(id: string, draft: Partial<TXpertTeamDraft>) {
         const xpert = await this.findOne(id)
-        xpert.draft = {
-            ...(xpert.draft ?? {}),
+        const currentDraft: Partial<TXpertTeamDraft> = xpert.draft ?? {}
+        const nextDraft: Partial<TXpertTeamDraft> = {
+            ...currentDraft,
             ...draft,
-            nodes: normalizeMiddlewareNodes(draft.nodes ?? xpert.draft?.nodes),
             team: {
-                ...(xpert.draft?.team ?? {}),
+                ...(currentDraft.team ?? {}),
                 ...(draft.team ?? {}),
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()
             }
-        } as TXpertTeamDraft
+        }
 
-        xpert.draft.checklist = await this.validate(xpert.draft)
+        if (Object.prototype.hasOwnProperty.call(draft, 'nodes')) {
+            nextDraft.nodes = normalizeMiddlewareNodes(draft.nodes)
+        }
+        if (Object.prototype.hasOwnProperty.call(draft, 'connections')) {
+            nextDraft.connections = draft.connections
+        }
+
+        const draftForValidation = {
+            ...nextDraft,
+            nodes: nextDraft.nodes ?? xpert.graph?.nodes ?? [],
+            connections: nextDraft.connections ?? xpert.graph?.connections ?? []
+        } as TXpertTeamDraft
+        nextDraft.checklist = await this.validate(draftForValidation)
+
+        xpert.draft = nextDraft as TXpertTeamDraft
 
         await this.repository.save(xpert)
         return xpert.draft
