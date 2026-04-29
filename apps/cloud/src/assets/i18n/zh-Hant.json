@@ -2656,6 +2656,10 @@
           "Name": "數字專家",
           "Description": "數字專家模塊"
         },
+        "FEATURE_XPERT_CLAWXPERT": {
+          "Name": "ClawXpert",
+          "Description": "在聊天左側邊欄中顯示 ClawXpert 入口。"
+        },
         "FEATURE_XPERT_CHATBI": {
           "Name": "ChatBI",
           "Description": "在聊天左側邊欄中顯示 ChatBI 入口。"

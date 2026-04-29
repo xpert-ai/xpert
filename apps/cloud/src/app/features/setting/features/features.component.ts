@@ -68,6 +68,7 @@ export class PACFeaturesComponent {
     this.loading.set(true)
     this.#featureService.upgrade().subscribe({
       next: () => {
+        this.#featureService.notifyFeatureDefinitionsRefreshed()
         this.loading.set(false)
         this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
       },

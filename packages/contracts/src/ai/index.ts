@@ -38,6 +38,7 @@ export enum ChatMessageStepCategory {
 }
 
 export type * from '@xpert-ai/chatkit-types'
+export { CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED } from '@xpert-ai/chatkit-types'
 export type { TChatRequest } from './xpert-chat.model'
 export * from './assistant-binding.model'
 export * from './ai-model.model'

@@ -1,4 +1,4 @@
-import { stringifyMessageContent, TChatRequestHuman } from '@xpert-ai/contracts'
+import { ChatKitReference, stringifyMessageContent, TChatRequestHuman } from '@xpert-ai/contracts'
 
 type TFollowUpMessageLike = {
     id?: string | null
@@ -157,7 +157,7 @@ export function mergeFollowUpHumanInputs(inputs: Array<TChatRequestHuman | null 
         }
         const mergedInput = mergeInputText(acc.input, input)
         const mergedFiles = mergeArrayValues(acc.files, files)
-        const mergedReferences = mergeArrayValues(acc.references, references)
+        const mergedReferences = mergeArrayValues<ChatKitReference>(acc.references, references)
 
         if (mergedInput) {
             next.input = mergedInput

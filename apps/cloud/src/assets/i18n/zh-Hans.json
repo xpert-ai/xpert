@@ -562,6 +562,7 @@
       "WORD_WRAP": "换行",
       "Reset": "重置",
       "RENAME": "重命名",
+      "Restart": "重启",
       "SUCCEED": "成功",
       "ROLE": "角色",
       "PERMISSION": "权限",
@@ -577,6 +578,8 @@
       "STATUS": "状态",
       "SAVE": "保存",
       "Refresh": "刷新",
+      "Stop": "停止",
+      "Hide": "隐藏",
       "Management": "管理",
       "User": "用户",
       "Users": "用户",
@@ -3469,6 +3472,10 @@
         "FEATURE_XPERT": {
           "Name": "数字专家",
           "Description": "数字专家模块"
+        },
+        "FEATURE_XPERT_CLAWXPERT": {
+          "Name": "ClawXpert",
+          "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
         },
         "FEATURE_XPERT_CHATBI": {
           "Name": "ChatBI",

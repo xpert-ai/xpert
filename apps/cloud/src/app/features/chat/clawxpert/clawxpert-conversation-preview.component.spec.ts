@@ -1,6 +1,7 @@
 jest.mock('../../../@core', () => ({
   SandboxService: class SandboxService {},
   getErrorMessage: (error: { message?: string } | null | undefined) => error?.message ?? '',
+  injectApiBaseUrl: () => 'http://localhost:3000',
   injectToastr: () => ({
     danger: jest.fn(),
     warning: jest.fn()
@@ -103,6 +104,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     if (!iframe) {
       throw new Error('Expected preview iframe to be rendered for a running service.')
     }
+    expect(iframe.src).toBe('http://localhost:3000/api/sandbox/conversations/conversation-1/services/service-1/proxy/')
 
     const previewDocument = document
     const button = previewDocument.createElement('button')
