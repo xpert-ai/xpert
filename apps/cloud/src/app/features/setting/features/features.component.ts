@@ -6,18 +6,6 @@ import { SharedModule } from '../../../@shared/shared.module'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 
-type FeatureToggleOutletComponent = {
-  reloadFeatures: () => void
-}
-
-function canReloadFeatures(component: unknown): component is FeatureToggleOutletComponent {
-  if (typeof component !== 'object' || component === null || !('reloadFeatures' in component)) {
-    return false
-  }
-
-  return typeof component.reloadFeatures === 'function'
-}
-
 @Component({
   standalone: true,
   imports: [SharedModule, NgmSpinComponent],
@@ -36,7 +24,6 @@ export class PACFeaturesComponent {
   readonly #toastr = injectToastr()
 
   readonly loading = signal(false)
-  readonly #activeFeatureToggle = signal<FeatureToggleOutletComponent | null>(null)
   readonly activeScope = toSignal(this.#store.selectActiveScope(), {
     initialValue: this.#store.activeScope
   })
@@ -77,21 +64,11 @@ export class PACFeaturesComponent {
     return this.route.snapshot.firstChild?.routeConfig?.path ?? null
   }
 
-  onChildActivate(component: unknown) {
-    this.#activeFeatureToggle.set(canReloadFeatures(component) ? component : null)
-  }
-
-  onChildDeactivate(component: unknown) {
-    if (component === this.#activeFeatureToggle()) {
-      this.#activeFeatureToggle.set(null)
-    }
-  }
-
   upgrade() {
     this.loading.set(true)
     this.#featureService.upgrade().subscribe({
       next: () => {
-        this.#activeFeatureToggle()?.reloadFeatures()
+        this.#featureService.notifyFeatureDefinitionsRefreshed()
         this.loading.set(false)
         this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
       },

@@ -11,11 +11,7 @@
 
 <div class="pac-page-body flex flex-col items-center p-4"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
-  <router-outlet
-    #o="outlet"
-    (activate)="onChildActivate($event)"
-    (deactivate)="onChildDeactivate($event)"
-  ></router-outlet>
+  <router-outlet #o="outlet"></router-outlet>
 </div>
 
 @if (loading()) {

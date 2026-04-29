@@ -39,6 +39,8 @@ const childTenantFeatureOrganization: IFeatureOrganization = {
 
 class MockFeatureService {
   parentFeaturesRequestCount = 0
+  private readonly featureDefinitionsRefreshed = new Subject<void>()
+  readonly featureDefinitionsRefreshed$ = this.featureDefinitionsRefreshed.asObservable()
 
   getParentFeatures() {
     this.parentFeaturesRequestCount += 1
@@ -47,6 +49,10 @@ class MockFeatureService {
 
   getFeatureOrganizations() {
     return of({ items: [], total: 0 })
+  }
+
+  notifyFeatureDefinitionsRefreshed() {
+    this.featureDefinitionsRefreshed.next()
   }
 }
 
@@ -191,7 +197,8 @@ describe('FeatureToggleComponent', () => {
     const parentFeatures$ = new Subject<{ items: IFeature[]; total: number }>()
     const featureService = {
       getParentFeatures: jest.fn(() => parentFeatures$.asObservable()),
-      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 }))
+      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
+      featureDefinitionsRefreshed$: new Subject<void>().asObservable()
     }
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
@@ -225,7 +232,7 @@ describe('FeatureToggleComponent', () => {
     expect(fixture.componentInstance.loading()).toBe(false)
   })
 
-  it('reloads parent features on demand after the feature definition upgrade', async () => {
+  it('reloads parent features when feature definitions are refreshed', async () => {
     const featureService = new MockFeatureService()
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
@@ -249,7 +256,7 @@ describe('FeatureToggleComponent', () => {
     }).createComponent(FeatureToggleComponent)
 
     fixture.detectChanges()
-    fixture.componentInstance.reloadFeatures()
+    featureService.notifyFeatureDefinitionsRefreshed()
     fixture.detectChanges()
 
     expect(featureService.parentFeaturesRequestCount).toBe(2)

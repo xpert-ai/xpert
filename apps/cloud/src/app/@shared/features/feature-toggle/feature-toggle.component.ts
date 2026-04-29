@@ -7,7 +7,7 @@ import { IFeature, IFeatureOrganization } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectRouteData } from 'ngxtension/inject-route-data'
-import { of, pipe, Subject } from 'rxjs'
+import { of, pipe } from 'rxjs'
 import { finalize, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { injectConfirm, ZardAccordionImports, ZardCheckboxComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { environment } from '../../../../environments/environment'
@@ -69,8 +69,7 @@ export class FeatureToggleComponent {
 
   readonly organization = toSignal(this._storeService.selectedOrganization$)
 
-  private readonly reloadFeatures$ = new Subject<void>()
-  readonly features$ = this.reloadFeatures$.pipe(
+  readonly features$ = this._featureService.featureDefinitionsRefreshed$.pipe(
     startWith(undefined),
     switchMap(() => {
       this.loading.set(true)
@@ -132,10 +131,6 @@ export class FeatureToggleComponent {
 
   getFeatures() {
     this._featureStoreService.loadFeatures(['children']).pipe(takeUntilDestroyed(this.destroyRef)).subscribe()
-  }
-
-  reloadFeatures() {
-    this.reloadFeatures$.next()
   }
 
   featureChanged(isEnabled: boolean, feature: IFeature) {

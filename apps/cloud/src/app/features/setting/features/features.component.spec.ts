@@ -13,17 +13,15 @@ class MockStore {
 }
 
 describe('PACFeaturesComponent', () => {
-  it('reloads the active feature toggle child after feature definitions are upgraded', () => {
+  it('publishes the feature definition refresh event after feature definitions are upgraded', () => {
     const routerEvents = new Subject()
     const featureService = {
-      upgrade: jest.fn(() => of({}))
+      upgrade: jest.fn(() => of({})),
+      notifyFeatureDefinitionsRefreshed: jest.fn()
     }
     const toastr = {
       success: jest.fn(),
       error: jest.fn()
-    }
-    const child = {
-      reloadFeatures: jest.fn()
     }
 
     TestBed.configureTestingModule({
@@ -64,11 +62,10 @@ describe('PACFeaturesComponent', () => {
 
     const component = TestBed.runInInjectionContext(() => new PACFeaturesComponent())
 
-    component.onChildActivate(child)
     component.upgrade()
 
     expect(featureService.upgrade).toHaveBeenCalled()
-    expect(child.reloadFeatures).toHaveBeenCalled()
+    expect(featureService.notifyFeatureDefinitionsRefreshed).toHaveBeenCalled()
     expect(toastr.success).toHaveBeenCalled()
   })
 })
