@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.9.2
+
+### Patch Changes
+
+- 8187f99: Update chatkit
+
 ## 3.9.1
 
 ### Patch Changes
