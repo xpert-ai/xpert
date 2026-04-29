@@ -3473,6 +3473,10 @@
           "Name": "数字专家",
           "Description": "数字专家模块"
         },
+        "FEATURE_XPERT_CLAWXPERT": {
+          "Name": "ClawXpert",
+          "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
+        },
         "FEATURE_XPERT_CHATBI": {
           "Name": "ChatBI",
           "Description": "在聊天左侧边栏中显示 ChatBI 入口。"

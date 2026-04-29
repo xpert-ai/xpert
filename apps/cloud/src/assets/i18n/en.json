@@ -1227,6 +1227,10 @@
         "Name": "Digital Expert",
         "Description": "A virtual assistant that leverages artificial intelligence to provide personalized, real-time, and precise consulting, analysis, and decision support."
       },
+      "FEATURE_XPERT_CLAWXPERT": {
+        "Name": "ClawXpert",
+        "Description": "Show the ClawXpert entry in the chat sidebar."
+      },
       "FEATURE_XPERT_CHATBI": {
         "Name": "ChatBI",
         "Description": "Show the ChatBI entry in the chat sidebar."

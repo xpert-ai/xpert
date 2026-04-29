@@ -1580,6 +1580,10 @@
         "FEATURE_BUSINESS_AREA": {
           "Name": "业务域",
           "Description": "启用业务域功能，创建和使用业务域"
+        },
+        "FEATURE_XPERT_CLAWXPERT": {
+          "Name": "ClawXpert",
+          "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
         }
       }
     },

@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, DestroyRef, effect, inject, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { IFeature, IFeatureOrganization } from '@xpert-ai/contracts'
@@ -8,11 +8,36 @@ import { TranslateModule } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectRouteData } from 'ngxtension/inject-route-data'
 import { of, pipe } from 'rxjs'
-import { map, switchMap, tap } from 'rxjs/operators'
+import { finalize, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { injectConfirm, ZardAccordionImports, ZardCheckboxComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { environment } from '../../../../environments/environment'
 import { FeatureService, FeatureStoreService, Store } from '../../../@core/services'
 import { injectI18nService } from '../../i18n'
+
+function areFeatureOrganizationsEqual(
+  left: IFeatureOrganization[] | null | undefined,
+  right: IFeatureOrganization[] | null | undefined
+) {
+  const leftItems = left ?? []
+  const rightItems = right ?? []
+
+  if (leftItems.length !== rightItems.length) {
+    return false
+  }
+
+  return leftItems.every((leftItem, index) => {
+    const rightItem = rightItems[index]
+
+    return (
+      leftItem.id === rightItem.id &&
+      leftItem.featureId === rightItem.featureId &&
+      leftItem.organizationId === rightItem.organizationId &&
+      leftItem.tenantId === rightItem.tenantId &&
+      leftItem.isEnabled === rightItem.isEnabled &&
+      leftItem.feature?.code === rightItem.feature?.code
+    )
+  })
+}
 
 @Component({
   standalone: true,
@@ -40,13 +65,20 @@ export class FeatureToggleComponent {
 
   readonly isOrganization = injectRouteData('isOrganization')
 
-  // loading = false
-  readonly loading = signal(false)
-  readonly featureToggles = signal([])
+  readonly loading = signal(true)
 
   readonly organization = toSignal(this._storeService.selectedOrganization$)
 
-  readonly features$ = this._featureService.getParentFeatures(['children']).pipe(map(({ items }) => items))
+  readonly features$ = this._featureService.featureDefinitionsRefreshed$.pipe(
+    startWith(undefined),
+    switchMap(() => {
+      this.loading.set(true)
+      return this._featureService.getParentFeatures(['children']).pipe(
+        map(({ items }) => items),
+        finalize(() => this.loading.set(false))
+      )
+    })
+  )
 
   readonly featureTenant = toSignal(this._storeService.featureTenant$)
 
@@ -65,34 +97,36 @@ export class FeatureToggleComponent {
     { initialValue: [] }
   )
 
-  constructor() {
-    this.loading.set(true)
-    effect(
-      () => {
-        const isOrganization = this.isOrganization()
-        const organization = this.organization()
-        const featureTenant = this.featureTenant()
-        const featureOrganizations = this.featureOrganizations()
-        if (isOrganization && organization) {
-          this._storeService.featureOrganizations = featureOrganizations
-        }
+  readonly featureToggles = computed(() => {
+    const isOrganization = this.isOrganization()
+    const organization = this.organization()
+    const featureTenant = this.featureTenant() ?? []
+    const featureOrganizations = this.featureOrganizations()
+    const featureToggles = isOrganization && organization ? [...featureOrganizations] : []
 
-        let featureToggles = []
-        if (isOrganization && organization) {
-          featureToggles = [...featureOrganizations]
-        }
-
-        featureTenant.forEach((item) => {
-          if (!featureToggles.find((toggle) => toggle.featureId === item.featureId)) {
-            featureToggles.push(item)
-          }
-        })
-
-        this.featureToggles.set(featureToggles)
-
-        this.loading.set(false)
+    featureTenant.forEach((item) => {
+      if (!featureToggles.find((toggle) => toggle.featureId === item.featureId)) {
+        featureToggles.push(item)
       }
-    )
+    })
+
+    return featureToggles
+  })
+
+  constructor() {
+    effect(() => {
+      const isOrganization = this.isOrganization()
+      const organization = this.organization()
+      const featureOrganizations = this.featureOrganizations()
+
+      if (
+        isOrganization &&
+        organization &&
+        !areFeatureOrganizationsEqual(this._storeService.featureOrganizations, featureOrganizations)
+      ) {
+        this._storeService.featureOrganizations = featureOrganizations
+      }
+    })
   }
 
   getFeatures() {
