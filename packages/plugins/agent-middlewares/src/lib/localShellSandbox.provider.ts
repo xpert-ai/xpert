@@ -227,6 +227,83 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
+function normalizeHeaderValue(value: number | string | string[] | undefined): string {
+  return Array.isArray(value) ? value.join(', ') : value?.toString() ?? ''
+}
+
+function shouldRewritePreviewResponse(headers: http.IncomingHttpHeaders, method: string | undefined): boolean {
+  if (method === 'HEAD') {
+    return false
+  }
+
+  if (normalizeHeaderValue(headers['content-encoding']).trim()) {
+    return false
+  }
+
+  const contentType = normalizeHeaderValue(headers['content-type']).toLowerCase()
+  return (
+    contentType.includes('text/html') ||
+    contentType.includes('application/xhtml+xml') ||
+    contentType.includes('text/css') ||
+    contentType.includes('javascript') ||
+    contentType.includes('ecmascript')
+  )
+}
+
+function shouldForwardProxyResponseHeader(name: string, rewriteBody: boolean): boolean {
+  const normalized = name.toLowerCase()
+  if (
+    normalized === 'connection' ||
+    normalized === 'keep-alive' ||
+    normalized === 'proxy-authenticate' ||
+    normalized === 'proxy-authorization' ||
+    normalized === 'te' ||
+    normalized === 'trailer' ||
+    normalized === 'transfer-encoding' ||
+    normalized === 'upgrade'
+  ) {
+    return false
+  }
+
+  return !rewriteBody || (normalized !== 'content-length' && normalized !== 'content-encoding')
+}
+
+function normalizePreviewProxyBasePath(service: ISandboxManagedService): string | null {
+  if (!isNonEmptyString(service.previewUrl)) {
+    return null
+  }
+
+  try {
+    const pathname = new URL(service.previewUrl, 'http://xpert.local').pathname
+    return pathname.endsWith('/') ? pathname : `${pathname}/`
+  } catch {
+    return service.previewUrl.endsWith('/') ? service.previewUrl : `${service.previewUrl}/`
+  }
+}
+
+function rewritePreviewRootPath(pathname: string, proxyBasePath: string): string {
+  if (!pathname.startsWith('/') || pathname.startsWith('//') || pathname.startsWith(proxyBasePath)) {
+    return pathname
+  }
+
+  return `${proxyBasePath}${pathname.replace(/^\/+/, '')}`
+}
+
+function rewritePreviewTextResponse(content: string, proxyBasePath: string): string {
+  return content
+    .replace(/(["'`])\/(?!\/)([^"'`\s<>)]*)/g, (_match, quote: string, pathname: string) => {
+      return `${quote}${rewritePreviewRootPath(`/${pathname}`, proxyBasePath)}`
+    })
+    .replace(/(\b(?:src|href|action|poster|data|xlink:href)\s*=\s*)(\/(?!\/)[^\s"'<>]*)/gi, (
+      _match,
+      prefix: string,
+      pathname: string
+    ) => `${prefix}${rewritePreviewRootPath(pathname, proxyBasePath)}`)
+    .replace(/(url\(\s*)(\/(?!\/)[^"')\s]+)(\s*\))/gi, (_match, prefix: string, pathname: string, suffix: string) => {
+      return `${prefix}${rewritePreviewRootPath(pathname, proxyBasePath)}${suffix}`
+    })
+}
+
 function normalizeServiceEnv(entries: TSandboxManagedServiceEnvEntry[] | undefined): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {}
 
@@ -764,6 +841,7 @@ export class LocalShellSandbox
     delete headers.trailer
     delete headers['transfer-encoding']
     delete headers.upgrade
+    delete headers['accept-encoding']
     headers.host = `127.0.0.1:${port}`
 
     await new Promise<void>((resolve) => {
@@ -776,24 +854,32 @@ export class LocalShellSandbox
           port
         },
         (upstreamResponse) => {
+          const proxyBasePath = normalizePreviewProxyBasePath(request.service)
+          const rewriteBody = Boolean(
+            proxyBasePath && shouldRewritePreviewResponse(upstreamResponse.headers, request.request.method)
+          )
+
           request.response.statusCode = upstreamResponse.statusCode ?? 502
           for (const [name, value] of Object.entries(upstreamResponse.headers)) {
-            if (
-              value !== undefined &&
-              name !== 'connection' &&
-              name !== 'keep-alive' &&
-              name !== 'proxy-authenticate' &&
-              name !== 'proxy-authorization' &&
-              name !== 'te' &&
-              name !== 'trailer' &&
-              name !== 'transfer-encoding' &&
-              name !== 'upgrade'
-            ) {
+            if (value !== undefined && shouldForwardProxyResponseHeader(name, rewriteBody)) {
               request.response.setHeader(name, value)
             }
           }
-          upstreamResponse.pipe(request.response)
-          upstreamResponse.on('end', () => resolve())
+
+          if (!rewriteBody || !proxyBasePath) {
+            upstreamResponse.pipe(request.response)
+            upstreamResponse.on('end', () => resolve())
+            return
+          }
+
+          const chunks: Buffer[] = []
+          upstreamResponse.on('data', (chunk) => {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+          })
+          upstreamResponse.on('end', () => {
+            request.response.end(rewritePreviewTextResponse(Buffer.concat(chunks).toString('utf8'), proxyBasePath))
+            resolve()
+          })
         }
       )
 

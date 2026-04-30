@@ -14,7 +14,7 @@ import { SandboxService } from './sandbox.service'
 import { SandboxController } from './sandbox.controller'
 import { SandboxTerminalGateway } from './sandbox-terminal.gateway'
 import { ChatConversationModule } from '../chat-conversation'
-import { SandboxShellMiddleware } from './middlewares'
+import { SandboxServiceMiddleware, SandboxShellMiddleware } from './middlewares'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 
 @Module({
@@ -37,6 +37,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
 		SandboxProviderRegistry,
 		SandboxConversationContextService,
 		SandboxTerminalGateway,
+		SandboxServiceMiddleware,
 		SandboxShellMiddleware,
 		...CommandHandlers
 	],
@@ -45,6 +46,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
 		SandboxManagedServiceService,
 		SandboxProviderRegistry,
 		SandboxConversationContextService,
+		SandboxServiceMiddleware,
 		SandboxShellMiddleware
 	]
 })

@@ -1,4 +1,11 @@
-import { IKnowledgebase, IUser, KBMetadataFieldDef, KnowledgebasePermission, TAvatar } from '@xpert-ai/contracts'
+import {
+	IKnowledgebase,
+	IUser,
+	KBMetadataFieldDef,
+	KnowledgebasePermission,
+	KnowledgebaseStatusEnum,
+	TAvatar
+} from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 @Exclude()
@@ -19,7 +26,7 @@ export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
 	declare description?: string
 
 	@Expose()
-	declare status: string
+	declare status: KnowledgebaseStatusEnum
 
 	@Expose()
 	metadataSchema?: KBMetadataFieldDef[];

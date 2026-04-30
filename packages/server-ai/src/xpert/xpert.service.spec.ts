@@ -1,5 +1,40 @@
+jest.mock('../xpert-workspace', () => ({
+	MyXpertWorkspaceQuery: class MyXpertWorkspaceQuery {},
+	XpertWorkspaceAccessService: class XpertWorkspaceAccessService {},
+	XpertWorkspaceBaseService: class XpertWorkspaceBaseService {
+		constructor(
+			protected readonly repository: {
+				create: (entity: unknown) => unknown
+				findOne: (id: unknown) => unknown
+				save: (entity: unknown) => unknown
+			}
+		) {}
+
+		async create(entity: unknown) {
+			return await this.repository.save(this.repository.create(entity))
+		}
+
+		async findOne(id: unknown) {
+			return await this.repository.findOne(id)
+		}
+
+		async save(entity: unknown) {
+			return await this.repository.save(entity)
+		}
+	}
+}))
+
+jest.mock('./types', () => ({
+	EventNameXpertValidate: 'xpert.validate',
+	XpertDraftValidateEvent: class XpertDraftValidateEvent {
+		constructor(readonly draft: unknown) {}
+	}
+}))
+
+import { RequestContext } from '@xpert-ai/server-core'
 import { XpertPublishCommand } from './commands'
 import { XpertService } from './xpert.service'
+import type { Xpert } from './xpert.entity'
 
 describe('XpertService command facade', () => {
 	function createService() {
@@ -23,32 +58,35 @@ describe('XpertService command facade', () => {
 		const storeService = {
 			findAll: jest.fn()
 		}
-		const userService = {
+		const workspaceAccessService = {}
+		const userGroupService = {
 			findAll: jest.fn(),
 			findOne: jest.fn()
 		}
 		const commandBus = { execute: jest.fn().mockResolvedValue(undefined) }
 		const queryBus = { execute: jest.fn() }
-		const eventEmitter = { emitAsync: jest.fn() }
+		const eventEmitter = { emitAsync: jest.fn().mockResolvedValue([]) }
 		const triggerRegistry = { get: jest.fn(), list: jest.fn().mockReturnValue([]) }
 		const sandboxService = { listProviders: jest.fn().mockReturnValue([]) }
 
 		const service = new XpertService(
-			repository as any,
-			storeService as any,
-			userService as any,
-			commandBus as any,
-			queryBus as any,
-			eventEmitter as any,
-			triggerRegistry as any,
-			sandboxService as any,
-			{ resolve: jest.fn() } as any
+			repository as unknown as ConstructorParameters<typeof XpertService>[0],
+			workspaceAccessService as unknown as ConstructorParameters<typeof XpertService>[1],
+			storeService as unknown as ConstructorParameters<typeof XpertService>[2],
+			userGroupService as unknown as ConstructorParameters<typeof XpertService>[3],
+			commandBus as unknown as ConstructorParameters<typeof XpertService>[4],
+			queryBus as unknown as ConstructorParameters<typeof XpertService>[5],
+			eventEmitter as unknown as ConstructorParameters<typeof XpertService>[6],
+			triggerRegistry as unknown as ConstructorParameters<typeof XpertService>[7],
+			sandboxService as unknown as ConstructorParameters<typeof XpertService>[8],
+			{ resolve: jest.fn() } as unknown as ConstructorParameters<typeof XpertService>[9]
 		)
 
 		return {
 			service,
 			commandBus,
 			repository,
+			eventEmitter,
 			triggerRegistry
 		}
 	}
@@ -148,5 +186,54 @@ describe('XpertService command facade', () => {
 				}
 			})
 		)
+	})
+
+	it('does not materialize graph fields when a draft patch only updates team', async () => {
+		const { repository, service } = createService()
+		const currentUserIdSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+		const xpert = {
+			id: 'xpert-1',
+			graph: {
+				nodes: [
+					{
+						key: 'Agent_Primary',
+						type: 'agent',
+						entity: {
+							key: 'Agent_Primary',
+							name: 'Primary'
+						},
+						position: {
+							x: 0,
+							y: 0,
+							width: 100,
+							height: 100
+						}
+					}
+				],
+				connections: []
+			}
+		} as Xpert
+		jest.spyOn(service, 'findOne').mockResolvedValue(xpert)
+		repository.save.mockImplementation(async (entity) => entity)
+
+		await service.updateDraft('xpert-1', {
+			team: {
+				name: 'Updated Basic Info'
+			}
+		})
+
+		expect(repository.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				draft: expect.objectContaining({
+					team: expect.objectContaining({
+						name: 'Updated Basic Info',
+						updatedById: 'user-1'
+					})
+				})
+			})
+		)
+		expect(xpert.draft).not.toHaveProperty('nodes')
+		expect(xpert.draft).not.toHaveProperty('connections')
+		currentUserIdSpy.mockRestore()
 	})
 })

@@ -222,6 +222,24 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		}
 	}
 
+	@Post(':id/rebuild-embedding')
+	async rebuildEmbedding(@Param('id') id: string) {
+		try {
+			return await this.service.startEmbeddingRebuild(id)
+		} catch (err) {
+			throw new BadRequestException(getErrorMessage(err))
+		}
+	}
+
+	@Post(':id/cancel-pending-embedding-model')
+	async cancelPendingEmbeddingModel(@Param('id') id: string) {
+		try {
+			return await this.service.cancelPendingEmbeddingModel(id)
+		} catch (err) {
+			throw new BadRequestException(getErrorMessage(err))
+		}
+	}
+
 	/**
 	 * Create a new task for a knowledgebase.
 	 *
@@ -264,6 +282,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		@Body('path') subpath: string,
 		@UploadedFile() file: Express.Multer.File
 	) {
+		await this.service.assertNotRebuilding(id)
 		let parentFolder = ''
 		if (parentId) {
 			const parents = await this.documentService.findAncestors(parentId)

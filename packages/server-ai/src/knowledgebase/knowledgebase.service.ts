@@ -14,10 +14,10 @@ import {
 	IWFNKnowledgeBase,
 	IWFNProcessor,
 	IWFNSource,
-	IXpert,
 	KBDocumentStatusEnum,
 	KnowledgebaseChannel,
 	KnowledgebasePermission,
+	KnowledgebaseStatusEnum,
 	KnowledgebaseTypeEnum,
 	KnowledgeProviderEnum,
 	KNOWLEDGE_SOURCES_NAME,
@@ -37,9 +37,9 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@xpert-ai/server-core'
+import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
-import { QueryFailedError } from 'typeorm'
-import { OnEvent } from '@nestjs/event-emitter'
+import { Queue } from 'bull'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
 	DocumentSourceRegistry,
@@ -52,27 +52,52 @@ import {
 import { t } from 'i18next'
 import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm'
+import { DataSource, FindOptionsWhere, In, IsNull, Not, QueryFailedError, Repository } from 'typeorm'
 import {
 	CopilotModelGetChatModelQuery,
 	CopilotModelGetEmbeddingsQuery,
 	CopilotModelGetRerankQuery
 } from '../copilot-model/queries/index'
+import { CopilotGetOneQuery } from '../copilot/queries'
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
 import { RagCreateVStoreCommand } from '../rag-vstore'
 import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { GetXpertWorkspaceQuery } from '../xpert-workspace/queries'
-import { EventName_XpertPublished } from '../xpert/types'
 import { XpertService } from '../xpert/xpert.service'
 import { Knowledgebase } from './knowledgebase.entity'
+import {
+	createEmbeddingCollectionName,
+	createEmbeddingFingerprint,
+	resolveEmbeddingModelUpdateState,
+	TResolvedEmbeddingModelTarget
+} from './embedding-state'
 import { KnowledgeSearchQuery } from './queries'
 import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
-import { KnowledgeDocumentStore } from './vector-store'
+import { KnowledgeDocumentStore, TEmbeddingVectorMetadata } from './vector-store'
 import { VOLUME_CLIENT, VolumeClient } from '../shared'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
+import { KnowledgeDocumentChunk } from '../knowledge-document/chunk/chunk.entity'
+import { TDocChunkMetadata } from '../knowledge-document/types'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
 import { XpertEnqueueTriggerDispatchCommand } from '../xpert/commands'
+import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING, TKnowledgebaseRebuildEmbeddingJob } from './types'
+
+type TEmbeddingCopilotModel = Partial<TCopilotModel> & { id?: string }
+
+function getQueryFailedErrorCode(error: QueryFailedError) {
+	const driverError: unknown = error.driverError
+	if (!driverError || typeof driverError !== 'object') {
+		return null
+	}
+	if ('code' in driverError && (typeof driverError.code === 'string' || typeof driverError.code === 'number')) {
+		return driverError.code
+	}
+	if ('errno' in driverError && (typeof driverError.errno === 'string' || typeof driverError.errno === 'number')) {
+		return driverError.errno
+	}
+	return null
+}
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -111,6 +136,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		workspaceAccessService: XpertWorkspaceAccessService,
 		private readonly integrationService: IntegrationService,
 		private readonly taskService: KnowledgebaseTaskService,
+		private readonly dataSource: DataSource,
+		@InjectQueue(JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING)
+		private readonly rebuildQueue: Queue<TKnowledgebaseRebuildEmbeddingJob>
 	) {
 		super(repository, workspaceAccessService)
 	}
@@ -256,7 +284,16 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	 * To solve the problem that Update cannot create OneToOne relation, it is uncertain whether using save to update might pose risks
 	 */
 	async update(id: string, entity: Partial<Knowledgebase>) {
-		const _entity = await super.findOne(id)
+		const _entity = await super.findOne(id, {
+			relations: [
+				'copilotModel',
+				'copilotModel.copilot',
+				'copilotModel.copilot.modelProvider',
+				'pendingCopilotModel',
+				'pendingCopilotModel.copilot',
+				'pendingCopilotModel.copilot.modelProvider'
+			]
+		})
 		
 		// Check name uniqueness if name is being changed
 		if (entity.name && entity.name !== _entity.name) {
@@ -283,15 +320,34 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		}
 		
 		try {
-			assign(_entity, entity)
-			return await super.save(_entity)
+			const hasCopilotModel = Object.prototype.hasOwnProperty.call(entity, 'copilotModel')
+			const hasCopilotModelId = Object.prototype.hasOwnProperty.call(entity, 'copilotModelId')
+			const hasEmbeddingModelChange = hasCopilotModel || hasCopilotModelId
+			let embeddingPatch: Partial<Knowledgebase> = {}
+			if (hasEmbeddingModelChange) {
+				if (_entity.status === KnowledgebaseStatusEnum.REBUILDING) {
+					throw new BadRequestException('Embedding rebuild is running')
+				}
+				if (!hasCopilotModel && entity.copilotModelId !== _entity.copilotModelId) {
+					throw new BadRequestException('copilotModel is required when changing embedding model')
+				}
+				if (hasCopilotModel) {
+					const target = await this.resolveEmbeddingModelTarget(id, entity.copilotModel ?? null, entity.copilotModelId ?? null)
+					embeddingPatch = resolveEmbeddingModelUpdateState(_entity, target) as Partial<Knowledgebase>
+				}
+			}
+			assign(_entity, entity, embeddingPatch)
+			const saved = await super.save(_entity)
+			if (embeddingPatch.status === KnowledgebaseStatusEnum.REBUILD_REQUIRED) {
+				return await this.startEmbeddingRebuild(id)
+			}
+			return saved
 		} catch (error) {
 			// Catch database unique constraint errors as a fallback
 			// PostgreSQL error code for unique violation: 23505
 			// MySQL error code for duplicate entry: 1062
 			if (error instanceof QueryFailedError) {
-				const driverError = (error as any).driverError
-				const errorCode = driverError?.code || driverError?.errno
+				const errorCode = getQueryFailedErrorCode(error)
 				if (errorCode === '23505' || errorCode === 1062 || 
 					error.message?.includes('duplicate key') || 
 					error.message?.includes('UNIQUE constraint') ||
@@ -362,6 +418,261 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		)
 
 		return results
+	}
+
+	async assertNotRebuilding(knowledgebaseId: string) {
+		const knowledgebase = await this.findOne(knowledgebaseId)
+		if (knowledgebase.status === KnowledgebaseStatusEnum.REBUILDING) {
+			throw new BadRequestException('Embedding rebuild is running')
+		}
+	}
+
+	private clearPendingEmbeddingModelFields() {
+		return {
+			pendingCopilotModel: null,
+			pendingCopilotModelId: null,
+			pendingEmbeddingCollectionName: null,
+			pendingEmbeddingModelFingerprint: null,
+			pendingEmbeddingDimensions: null,
+			pendingEmbeddingRevision: null,
+			rebuildTaskId: null,
+			embeddingRebuildError: null
+		}
+	}
+
+	async cancelPendingEmbeddingModel(id: string) {
+		const knowledgebase = await this.findOne(id, {
+			relations: this.getPendingVectorStoreRelations()
+		})
+		if (knowledgebase.status === KnowledgebaseStatusEnum.REBUILDING) {
+			throw new BadRequestException('Embedding rebuild is running')
+		}
+
+		assign(knowledgebase, {
+			...this.clearPendingEmbeddingModelFields(),
+			status: KnowledgebaseStatusEnum.READY
+		})
+		return this.save(knowledgebase)
+	}
+
+	async startEmbeddingRebuild(id: string) {
+		const knowledgebase = await this.findOne(id, {
+			relations: [
+				'copilotModel',
+				'copilotModel.copilot',
+				'copilotModel.copilot.modelProvider',
+				...this.getPendingVectorStoreRelations()
+			]
+		})
+
+		if (knowledgebase.status === KnowledgebaseStatusEnum.REBUILDING) {
+			throw new BadRequestException('Embedding rebuild is already running')
+		}
+		if (!knowledgebase.pendingCopilotModel || !knowledgebase.pendingEmbeddingModelFingerprint) {
+			throw new BadRequestException('Pending embedding model is required for rebuild')
+		}
+
+		if (knowledgebase.pendingEmbeddingModelFingerprint === knowledgebase.embeddingModelFingerprint) {
+			assign(knowledgebase, {
+				...this.clearPendingEmbeddingModelFields(),
+				status: KnowledgebaseStatusEnum.READY
+			})
+			return this.save(knowledgebase)
+		}
+
+		if (
+			knowledgebase.status !== KnowledgebaseStatusEnum.REBUILD_REQUIRED &&
+			knowledgebase.status !== KnowledgebaseStatusEnum.REBUILD_FAILED
+		) {
+			throw new BadRequestException(`Embedding rebuild cannot start from status '${knowledgebase.status ?? KnowledgebaseStatusEnum.READY}'`)
+		}
+
+		const rebuildTaskId = shortuuid()
+		const pendingEmbeddingRevision = (knowledgebase.pendingEmbeddingRevision ?? knowledgebase.embeddingRevision ?? 0) + 1
+		assign(knowledgebase, {
+			status: KnowledgebaseStatusEnum.REBUILDING,
+			rebuildTaskId,
+			pendingEmbeddingRevision,
+			embeddingRebuildError: null
+		})
+		const saved = await this.save(knowledgebase)
+
+		await this.rebuildQueue.add({
+			userId: RequestContext.currentUserId(),
+			tenantId: knowledgebase.tenantId,
+			organizationId: knowledgebase.organizationId,
+			knowledgebaseId: id,
+			rebuildTaskId,
+			pendingEmbeddingRevision
+		})
+
+		return saved
+	}
+
+	private assertCurrentRebuildTask(
+		knowledgebase: IKnowledgebase,
+		rebuildTaskId: string,
+		pendingEmbeddingRevision: number
+	) {
+		if (
+			knowledgebase.status !== KnowledgebaseStatusEnum.REBUILDING ||
+			knowledgebase.rebuildTaskId !== rebuildTaskId ||
+			knowledgebase.pendingEmbeddingRevision !== pendingEmbeddingRevision
+		) {
+			throw new BadRequestException('Embedding rebuild task is stale')
+		}
+	}
+
+	async processEmbeddingRebuildJob(data: TKnowledgebaseRebuildEmbeddingJob) {
+		const knowledgebase = await this.findOne(data.knowledgebaseId, {
+			relations: this.getPendingVectorStoreRelations()
+		})
+		this.assertCurrentRebuildTask(knowledgebase, data.rebuildTaskId, data.pendingEmbeddingRevision)
+
+		const vectorStore = await this.getPendingVectorStoreForRebuild(knowledgebase)
+		await vectorStore.clear()
+
+		const chunkRepository = this.dataSource.getRepository(KnowledgeDocumentChunk)
+		const chunks = await chunkRepository.find({
+			where: {
+				knowledgebaseId: data.knowledgebaseId
+			},
+			relations: ['parent'],
+			order: {
+				createdAt: 'ASC'
+			}
+		})
+
+		const embeddingChunks = await this.documentService.findAllEmbeddingNodes({ chunks } as IKnowledgeDocument)
+		const missingContent = embeddingChunks.find((chunk) => !chunk.pageContent)
+		if (missingContent) {
+			throw new BadRequestException(`Chunk '${missingContent.id}' has no pageContent for embedding rebuild`)
+		}
+
+		const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
+		let count = 0
+		while (batchSize * count < embeddingChunks.length) {
+			const batch = embeddingChunks.slice(batchSize * count, batchSize * (count + 1))
+			await vectorStore.addKnowledgeChunks(batch, {
+				ids: batch.map((chunk) => chunk.id)
+			})
+			count++
+		}
+
+		return this.promoteEmbeddingRebuild(data.knowledgebaseId, data.rebuildTaskId, data.pendingEmbeddingRevision)
+	}
+
+	async markEmbeddingRebuildFailed(data: TKnowledgebaseRebuildEmbeddingJob, error: string) {
+		const knowledgebase = await this.findOne(data.knowledgebaseId)
+		if (
+			knowledgebase.rebuildTaskId !== data.rebuildTaskId ||
+			knowledgebase.pendingEmbeddingRevision !== data.pendingEmbeddingRevision
+		) {
+			this.#logger.warn(`Skip stale embedding rebuild failure for knowledgebase '${data.knowledgebaseId}'`)
+			return knowledgebase
+		}
+
+		return this.update(data.knowledgebaseId, {
+			status: KnowledgebaseStatusEnum.REBUILD_FAILED,
+			embeddingRebuildError: error
+		})
+	}
+
+	private async promoteEmbeddingRebuild(
+		knowledgebaseId: string,
+		rebuildTaskId: string,
+		pendingEmbeddingRevision: number
+	) {
+		let oldCollectionName: string | null = null
+		let oldCopilotModel: TEmbeddingCopilotModel | null = null
+		let promotedCollectionName: string | null = null
+
+		const promoted = await this.dataSource.transaction(async (manager) => {
+			const knowledgebaseRepository = manager.getRepository(Knowledgebase)
+			const knowledgebase = await knowledgebaseRepository.findOne({
+				where: { id: knowledgebaseId },
+				relations: [
+					'copilotModel',
+					'copilotModel.copilot',
+					'copilotModel.copilot.modelProvider',
+					...this.getPendingVectorStoreRelations()
+				]
+			})
+			if (!knowledgebase) {
+				throw new NotFoundException(`Knowledgebase '${knowledgebaseId}' not found`)
+			}
+			this.assertCurrentRebuildTask(knowledgebase, rebuildTaskId, pendingEmbeddingRevision)
+			if (!knowledgebase.pendingCopilotModel || !knowledgebase.pendingEmbeddingCollectionName) {
+				throw new BadRequestException('Pending embedding model is required for promote')
+			}
+
+			oldCollectionName = knowledgebase.embeddingCollectionName ?? null
+			oldCopilotModel = knowledgebase.copilotModel ?? null
+			promotedCollectionName = knowledgebase.pendingEmbeddingCollectionName
+
+			assign(knowledgebase, {
+				copilotModel: knowledgebase.pendingCopilotModel,
+				copilotModelId: knowledgebase.pendingCopilotModelId,
+				embeddingCollectionName: knowledgebase.pendingEmbeddingCollectionName,
+				embeddingModelFingerprint: knowledgebase.pendingEmbeddingModelFingerprint,
+				embeddingDimensions: knowledgebase.pendingEmbeddingDimensions,
+				embeddingRevision: knowledgebase.pendingEmbeddingRevision,
+				...this.clearPendingEmbeddingModelFields(),
+				status: KnowledgebaseStatusEnum.READY
+			})
+
+			const saved = await knowledgebaseRepository.save(knowledgebase)
+			const chunkRepository = manager.getRepository(KnowledgeDocumentChunk)
+			const chunks = await chunkRepository.find({
+				where: {
+					knowledgebaseId
+				}
+			})
+			chunks.forEach((chunk) => {
+				chunk.metadata ??= {} as TDocChunkMetadata
+				chunk.metadata.model = this.getEmbeddingModelName(saved.copilotModel)
+				chunk.metadata.provider = this.getEmbeddingProviderName(saved.copilotModel)
+				chunk.metadata.embeddingModelFingerprint = saved.embeddingModelFingerprint
+				chunk.metadata.embeddingDimensions = saved.embeddingDimensions
+				chunk.metadata.embeddingRevision = saved.embeddingRevision
+			})
+			if (chunks.length) {
+				await chunkRepository.save(chunks)
+			}
+
+			return saved
+		})
+
+		if (oldCollectionName && oldCollectionName !== promotedCollectionName) {
+			this.cleanupEmbeddingCollection(promoted, oldCopilotModel, oldCollectionName).catch((error) => {
+				this.#logger.warn(`Failed to cleanup old embedding collection '${oldCollectionName}': ${getErrorMessage(error)}`)
+			})
+		}
+
+		return promoted
+	}
+
+	private async cleanupEmbeddingCollection(
+		knowledgebase: IKnowledgebase,
+		copilotModel: TEmbeddingCopilotModel | null,
+		collectionName: string
+	) {
+		const vectorStore = await this.createVectorStoreForModel({
+			knowledgebase,
+			copilotModel,
+			collectionName,
+			requiredEmbeddings: false,
+			rerankEnabled: false,
+			embeddingMetadata: {
+				provider: this.getEmbeddingProviderName(copilotModel),
+				model: this.getEmbeddingModelName(copilotModel),
+				embeddingModelFingerprint: knowledgebase.embeddingModelFingerprint ?? null,
+				embeddingDimensions: knowledgebase.embeddingDimensions ?? null,
+				embeddingRevision: knowledgebase.embeddingRevision ?? null,
+				vectorIdCollectionName: collectionName
+			}
+		})
+		await vectorStore.clear()
 	}
 
 	/**
@@ -457,29 +768,181 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		return chatModel
 	}
 
-	async getVectorStore(knowledgebaseId: IKnowledgebase | string, requiredEmbeddings = false) {
+	private getActiveVectorStoreRelations(requiredEmbeddings: boolean) {
+		return requiredEmbeddings
+			? [
+					'rerankModel',
+					'rerankModel.copilot',
+					'rerankModel.copilot.modelProvider',
+					'copilotModel',
+					'copilotModel.copilot',
+					'copilotModel.copilot.modelProvider',
+					'documents'
+				]
+			: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']
+	}
+
+	private getPendingVectorStoreRelations() {
+		return [
+			'pendingCopilotModel',
+			'pendingCopilotModel.copilot',
+			'pendingCopilotModel.copilot.modelProvider'
+		]
+	}
+
+	private async findKnowledgebaseForActiveVectorStore(knowledgebaseId: IKnowledgebase | string, requiredEmbeddings: boolean) {
 		let knowledgebase: IKnowledgebase
 		if (typeof knowledgebaseId === 'string') {
-			if (requiredEmbeddings) {
-				knowledgebase = await this.findOne(knowledgebaseId, {
-					relations: [
-						'rerankModel',
-						'rerankModel.copilot',
-						'rerankModel.copilot.modelProvider',
-						'copilotModel',
-						'copilotModel.copilot',
-						'copilotModel.copilot.modelProvider',
-						'documents'
-					]
-				})
-			} else {
-				knowledgebase = await this.findOne(knowledgebaseId, { relations: ['copilotModel'] })
-			}
+			knowledgebase = await this.findOne(knowledgebaseId, {
+				relations: this.getActiveVectorStoreRelations(requiredEmbeddings)
+			})
 		} else {
 			knowledgebase = knowledgebaseId
 		}
 
-		const copilotModel = knowledgebase.copilotModel
+		return knowledgebase
+	}
+
+	private async findKnowledgebaseForPendingVectorStore(knowledgebaseId: IKnowledgebase | string) {
+		if (typeof knowledgebaseId === 'string') {
+			return this.findOne(knowledgebaseId, {
+				relations: this.getPendingVectorStoreRelations()
+			})
+		}
+
+		return knowledgebaseId
+	}
+
+	private async ensureCopilotModel(model: TEmbeddingCopilotModel | null | undefined) {
+		if (!model) {
+			return null
+		}
+
+		if (model.copilot?.modelProvider || !model.copilotId) {
+			return model
+		}
+
+		const copilot = await this.queryBus.execute(
+			new CopilotGetOneQuery(RequestContext.currentTenantId(), model.copilotId, ['modelProvider'])
+		)
+		return {
+			...model,
+			copilot
+		}
+	}
+
+	private getEmbeddingModelName(copilotModel: TEmbeddingCopilotModel | null | undefined) {
+		return copilotModel?.model || copilotModel?.copilot?.copilotModel?.model || null
+	}
+
+	private getEmbeddingProviderName(copilotModel: TEmbeddingCopilotModel | null | undefined) {
+		return copilotModel?.copilot?.modelProvider?.providerName ?? copilotModel?.copilot?.modelProvider?.providerType ?? null
+	}
+
+	private resolveConfiguredEmbeddingDimensions(copilotModel: TEmbeddingCopilotModel | null | undefined) {
+		const dimensions = copilotModel?.options?.dimensions
+		if (typeof dimensions === 'number') {
+			return dimensions
+		}
+
+		const dimension = copilotModel?.options?.dimension
+		return typeof dimension === 'number' ? dimension : null
+	}
+
+	private async resolveEmbeddingDimensions(copilotModel: TEmbeddingCopilotModel) {
+		const configuredDimensions = this.resolveConfiguredEmbeddingDimensions(copilotModel)
+		if (configuredDimensions) {
+			return configuredDimensions
+		}
+
+		const copilot = copilotModel.copilot
+		if (!copilot) {
+			throw new CopilotNotFoundException(`Copilot not set for embedding model '${this.getEmbeddingModelName(copilotModel)}'`)
+		}
+
+		const embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
+			new CopilotModelGetEmbeddingsQuery(copilot, copilotModel as TCopilotModel, {
+				tokenCallback: () => {
+					//
+				}
+			})
+		)
+		const probe = await embeddings.embedQuery('xpert embedding dimension probe')
+		return probe.length
+	}
+
+	private async resolveEmbeddingModelTarget(
+		knowledgebaseId: string,
+		copilotModel: TEmbeddingCopilotModel | null,
+		copilotModelId?: string | null
+	): Promise<TResolvedEmbeddingModelTarget> {
+		const resolvedModel = await this.ensureCopilotModel(copilotModel)
+		if (!resolvedModel) {
+			throw new BadRequestException('Embedding model is required')
+		}
+
+		const dimensions = await this.resolveEmbeddingDimensions(resolvedModel)
+		const fingerprint = createEmbeddingFingerprint({
+			provider: this.getEmbeddingProviderName(resolvedModel),
+			model: this.getEmbeddingModelName(resolvedModel),
+			dimensions,
+			options: resolvedModel.options ?? null,
+			providerConfig: {
+				providerId: resolvedModel.copilot?.modelProvider?.id ?? null,
+				providerName: resolvedModel.copilot?.modelProvider?.providerName ?? null,
+				providerType: resolvedModel.copilot?.modelProvider?.providerType ?? null,
+				options: resolvedModel.copilot?.modelProvider?.options ?? null
+			}
+		})
+
+		return {
+			copilotModel: resolvedModel,
+			copilotModelId: copilotModelId ?? resolvedModel.id ?? null,
+			collectionName: createEmbeddingCollectionName(knowledgebaseId, fingerprint),
+			fingerprint,
+			dimensions
+		}
+	}
+
+	async resolveEmbeddingModelTargetForComparison(
+		knowledgebaseId: string,
+		copilotModel: TEmbeddingCopilotModel | null,
+		copilotModelId?: string | null
+	) {
+		return this.resolveEmbeddingModelTarget(knowledgebaseId, copilotModel, copilotModelId)
+	}
+
+	private async ensureLegacyActiveEmbeddingState(knowledgebase: IKnowledgebase, requiredEmbeddings: boolean) {
+		if (!requiredEmbeddings || knowledgebase.embeddingCollectionName || !knowledgebase.copilotModel) {
+			return
+		}
+
+		const target = await this.resolveEmbeddingModelTarget(
+			knowledgebase.id,
+			knowledgebase.copilotModel,
+			knowledgebase.copilotModelId
+		)
+		const patch: Partial<Knowledgebase> = {
+			embeddingCollectionName: knowledgebase.id,
+			embeddingModelFingerprint: target.fingerprint,
+			embeddingDimensions: target.dimensions,
+			embeddingRevision: knowledgebase.embeddingRevision ?? 1,
+			status: (knowledgebase.status as KnowledgebaseStatusEnum) ?? KnowledgebaseStatusEnum.READY
+		}
+		await this.repository.update(knowledgebase.id, patch)
+		assign(knowledgebase, patch)
+	}
+
+	private async createVectorStoreForModel(options: {
+		knowledgebase: IKnowledgebase
+		copilotModel: TEmbeddingCopilotModel | null | undefined
+		collectionName: string
+		requiredEmbeddings: boolean
+		rerankEnabled: boolean
+		embeddingMetadata: TEmbeddingVectorMetadata
+	}) {
+		const { knowledgebase, collectionName, requiredEmbeddings, rerankEnabled, embeddingMetadata } = options
+		const copilotModel = await this.ensureCopilotModel(options.copilotModel)
 		if (requiredEmbeddings && !copilotModel) {
 			throw new CopilotModelNotFoundException(
 				await this.i18nService.t('rag.Error.KnowledgebaseNoModel', {
@@ -498,7 +961,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		let embeddings = null
 		if (copilotModel && copilot?.modelProvider) {
 			embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-				new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {
+				new CopilotModelGetEmbeddingsQuery(copilot, copilotModel as TCopilotModel, {
 					tokenCallback: (token) => {
 						// execution.tokens += (token ?? 0)
 					}
@@ -508,12 +971,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 		if (requiredEmbeddings && !embeddings) {
 			throw new AiModelNotFoundException(
-				`Embeddings model '${copilotModel.model || copilot?.copilotModel?.model}' not found for knowledgebase '${knowledgebase.name}'`
+				`Embeddings model '${this.getEmbeddingModelName(copilotModel)}' not found for knowledgebase '${knowledgebase.name}'`
 			)
 		}
 
 		let rerankModel: IRerank = null
-		if (knowledgebase.rerankModel) {
+		if (rerankEnabled && knowledgebase.rerankModel) {
 			rerankModel = await this.queryBus.execute<CopilotModelGetRerankQuery, IRerank>(
 				new CopilotModelGetRerankQuery(knowledgebase.rerankModel.copilot, knowledgebase.rerankModel, {
 					tokenCallback: (token) => {
@@ -530,10 +993,19 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 		const store = await this.commandBus.execute(
 			new RagCreateVStoreCommand(embeddings, {
-				collectionName: knowledgebase.id
+				collectionName
 			})
 		)
-		const vStore = new KnowledgeDocumentStore(knowledgebase, store, rerankModel)
+		const vStore = new KnowledgeDocumentStore(
+			{
+				...knowledgebase,
+				copilotModel: copilotModel as TCopilotModel,
+				copilotModelId: copilotModel?.id ?? knowledgebase.copilotModelId
+			},
+			store,
+			rerankModel,
+			embeddingMetadata
+		)
 
 		// const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings, rerankModel)
 
@@ -541,6 +1013,51 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		// await vectorStore.ensureTableInDatabase()
 
 		return vStore
+	}
+
+	async getActiveVectorStore(knowledgebaseId: IKnowledgebase | string, requiredEmbeddings = false) {
+		const knowledgebase = await this.findKnowledgebaseForActiveVectorStore(knowledgebaseId, requiredEmbeddings)
+		await this.ensureLegacyActiveEmbeddingState(knowledgebase, requiredEmbeddings)
+		const copilotModel = knowledgebase.copilotModel
+		const collectionName = knowledgebase.embeddingCollectionName ?? knowledgebase.id
+		return this.createVectorStoreForModel({
+			knowledgebase,
+			copilotModel,
+			collectionName,
+			requiredEmbeddings,
+			rerankEnabled: true,
+			embeddingMetadata: {
+				provider: this.getEmbeddingProviderName(copilotModel),
+				model: this.getEmbeddingModelName(copilotModel),
+				embeddingModelFingerprint: knowledgebase.embeddingModelFingerprint ?? null,
+				embeddingDimensions: knowledgebase.embeddingDimensions ?? null,
+				embeddingRevision: knowledgebase.embeddingRevision ?? null,
+				vectorIdCollectionName: collectionName
+			}
+		})
+	}
+
+	async getPendingVectorStoreForRebuild(knowledgebaseId: IKnowledgebase | string) {
+		const knowledgebase = await this.findKnowledgebaseForPendingVectorStore(knowledgebaseId)
+		if (!knowledgebase.pendingCopilotModel || !knowledgebase.pendingEmbeddingCollectionName) {
+			throw new BadRequestException('Pending embedding model is required for rebuild')
+		}
+
+		return this.createVectorStoreForModel({
+			knowledgebase,
+			copilotModel: knowledgebase.pendingCopilotModel,
+			collectionName: knowledgebase.pendingEmbeddingCollectionName,
+			requiredEmbeddings: true,
+			rerankEnabled: false,
+			embeddingMetadata: {
+				provider: this.getEmbeddingProviderName(knowledgebase.pendingCopilotModel),
+				model: this.getEmbeddingModelName(knowledgebase.pendingCopilotModel),
+				embeddingModelFingerprint: knowledgebase.pendingEmbeddingModelFingerprint ?? null,
+				embeddingDimensions: knowledgebase.pendingEmbeddingDimensions ?? null,
+				embeddingRevision: knowledgebase.pendingEmbeddingRevision ?? null,
+				vectorIdCollectionName: knowledgebase.pendingEmbeddingCollectionName
+			}
+		})
 	}
 
 	async similaritySearch(
@@ -569,7 +1086,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const documents: { doc: DocumentInterface<Record<string, any>>; score: number }[] = []
 		const kbs = await Promise.all(
 			_knowledgebases.map((kb) => {
-				return this.getVectorStore(kb.id, true).then((vectorStore) => {
+				return this.getActiveVectorStore(kb.id, true).then((vectorStore) => {
 					return vectorStore.similaritySearchWithScore(query, k, filter)
 				})
 			})
@@ -600,30 +1117,6 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		//
 	}
 
-	/**
-	 * Handle knowledgebase related xpert published event, update knowledgebase config from knowledge pipeline
-	 *
-	 * @param xpert The knowledgebase related xpert
-	 * @returns
-	 */
-	@OnEvent(EventName_XpertPublished)
-	async handle(xpert: IXpert) {
-		if (xpert.type !== XpertTypeEnum.Knowledge || !xpert.knowledgebase?.id) return
-
-		const knowledgebaseNode = xpert.graph.nodes.find(
-			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE
-		)
-		if (!knowledgebaseNode) return
-
-		const knowledgebaseEntity = knowledgebaseNode.entity as IWFNKnowledgeBase
-
-		await this.update(xpert.knowledgebase.id, {
-			copilotModel: knowledgebaseEntity.copilotModel,
-			rerankModel: knowledgebaseEntity.rerankModel,
-			visionModel: knowledgebaseEntity.visionModel
-		})
-	}
-
 	// Pipeline
 
 	/**
@@ -631,6 +1124,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	 * If the task status is running, start immediately.
 	 */
 	async createTask(knowledgebaseId: string, task: Partial<IKnowledgebaseTask>) {
+		if (task.status === 'running') {
+			await this.assertNotRebuilding(knowledgebaseId)
+		}
 		const {id} = await this.taskService.createTask(knowledgebaseId, task)
 		const _task = await this.taskService.findOne(id, { relations: ['documents'] })
 		if (task.status === 'running') {
@@ -667,6 +1163,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	 * Process a task, start the knowledge ingestion pipeline
 	 */
 	async processTask(knowledgebaseId: string, taskId: string, inputs: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any; isDraft?: boolean }) {
+		await this.assertNotRebuilding(knowledgebaseId)
 		const kb = await this.findOne(knowledgebaseId, { relations: ['pipeline'] })
 		const execution = await this.commandBus.execute(
 					new XpertAgentExecutionUpsertCommand({

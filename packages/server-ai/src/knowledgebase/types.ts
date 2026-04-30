@@ -1,6 +1,16 @@
 import { TWFCase, WorkflowComparisonOperator, WorkflowLogicalOperator } from '@xpert-ai/contracts'
 import { Raw } from 'typeorm'
 
+export const JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING = 'rebuild-knowledgebase-embedding'
+
+export type TKnowledgebaseRebuildEmbeddingJob = {
+  userId: string
+  tenantId?: string | null
+  organizationId?: string | null
+  knowledgebaseId: string
+  rebuildTaskId: string
+  pendingEmbeddingRevision: number
+}
 
 /**
  * Build TypeORM Raw() JSON filter for document.metadata

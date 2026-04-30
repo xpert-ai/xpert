@@ -32,16 +32,56 @@ export class KnowledgeDocumentConsumer {
 	@Process({ concurrency: 5 })
 	async process(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>) {
 		const user = await this.userService.findOne(job.data.userId, { relations: ['role'] })
+		const firstDoc = job.data.docs[0]
+		if (!firstDoc) {
+			return {}
+		}
+
+		return new Promise((resolve, reject) => {
+			runWithRequestContext(
+				{
+					user,
+					headers: {
+						['organization-id']: firstDoc.organizationId,
+						language: user.preferredLanguage
+					}
+				},
+				() => {
+					this.processInRequestContext(job)
+						.then(resolve)
+						.catch(async (err) => {
+							this.logger.error(err)
+							await this.markQueuedDocsFailed(job, err)
+							reject(err)
+						})
+				}
+			)
+		})
+	}
+
+	private async processInRequestContext(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>) {
 		const knowledgebaseId = job.data.docs[0]?.knowledgebaseId
 		const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, {
 			relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']
 		})
 
-		runWithRequestContext({ user, headers: { ['organization-id']: knowledgebase.organizationId, language: user.preferredLanguage } }, () => {
-			this._processJob(knowledgebase, job.data.docs, job).catch((err) => {
-				this.logger.error(err)
-			})
-		})
+		return this._processJob(knowledgebase, job.data.docs, job)
+	}
+
+	private async markQueuedDocsFailed(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>, err: unknown) {
+		const processBeginAt = new Date()
+		await Promise.all(
+			job.data.docs.map((doc) =>
+				this.documentService.update(doc.id, {
+					status: KBDocumentStatusEnum.ERROR,
+					processBeginAt,
+					processDuration: 0,
+					processDuation: 0,
+					processMsg: getErrorMessage(err),
+					progress: 0
+				})
+			)
+		)
 	}
 
 	async _processJob(knowledgebase: IKnowledgebase, docs: IKnowledgeDocument<KnowledgeDocumentMetadata>[], job: Job) {
@@ -49,26 +89,31 @@ export class KnowledgeDocumentConsumer {
 		let vectorStore: KnowledgeDocumentStore
 		try {
 			// const doc = job.data.docs[0]
-			vectorStore = await this.knowledgebaseService.getVectorStore(knowledgebase, true)
+			vectorStore = await this.knowledgebaseService.getActiveVectorStore(knowledgebase, true)
 		} catch (err) {
+			const processBeginAt = new Date()
 			await Promise.all(
 				docs.map((doc) =>
 					this.documentService.update(doc.id, {
 						status: KBDocumentStatusEnum.ERROR,
-						processMsg: getErrorMessage(err)
+						processBeginAt,
+						processDuration: 0,
+						processDuation: 0,
+						processMsg: getErrorMessage(err),
+						progress: 0
 					})
 				)
 			)
-			await job.moveToFailed(err)
-			return
+			throw err
 		}
 
 		for await (const doc of job.data.docs) {
 			const document = await this.documentService.findOne(doc.id, { relations: ['chunks'] })
+			let processBeginAt: Date | null = null
 
 			try {
 				// Start processing
-				const processBeginAt = new Date()
+				processBeginAt = new Date()
 				await this.documentService.update(document.id, { processBeginAt })
 
 				const data = await this.commandBus.execute<
@@ -118,6 +163,15 @@ export class KnowledgeDocumentConsumer {
 						this.logger.debug(`Embeddings document '${document.name}' progress: ${progress}%`)
 						if (await this.checkIfJobCancelled(doc.id)) {
 							this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
+							const processDuration = new Date().getTime() - processBeginAt.getTime()
+							await this.documentService.update(doc.id, {
+								status: KBDocumentStatusEnum.CANCEL,
+								processMsg: '',
+								processDuration,
+								processDuation: processDuration,
+								progress: Number(progress),
+								metadata: { ...doc.metadata, tokens: docTokenUsed }
+							})
 							return
 						}
 						await this.documentService.update(doc.id, {
@@ -128,22 +182,27 @@ export class KnowledgeDocumentConsumer {
 					}
 				}
 
+				const processDuration = new Date().getTime() - processBeginAt.getTime()
 				await this.documentService.update(doc.id, {
 					status: KBDocumentStatusEnum.FINISH,
-					processMsg: '', 
-					processDuation: new Date().getTime() - processBeginAt.getTime(), 
-					progress: 100, 
+					processMsg: '',
+					processDuration,
+					processDuation: processDuration,
+					progress: 100,
 					metadata: { ...doc.metadata, tokens: docTokenUsed }
 				})
 
 				this.logger.debug(`[Job: entity '${job.id}'] End!`)
 			} catch (err) {
 				this.logger.debug(`[Job: entity '${job.id}'] Error!`)
-				this.documentService.update(document.id, {
+				const processDuration = processBeginAt ? new Date().getTime() - processBeginAt.getTime() : null
+				await this.documentService.update(document.id, {
 					status: KBDocumentStatusEnum.ERROR,
-					processMsg: getErrorMessage(err)
+					processMsg: getErrorMessage(err),
+					processDuration,
+					processDuation: processDuration
 				})
-				await job.moveToFailed(err)
+				throw err
 			}
 		}
 

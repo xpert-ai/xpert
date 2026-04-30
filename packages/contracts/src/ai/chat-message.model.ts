@@ -1,5 +1,5 @@
 import { MessageType } from '@langchain/core/messages'
-import type { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types'
+import type { ChatKitReference, ChatKitReferenceBase, TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
@@ -16,54 +16,6 @@ export type TSummaryJob = Record<
     memoryKey?: string
   }
 >
-
-/**
- * @deprecated Temporary duplicate of `ChatKitReferenceBase` from `@xpert-ai/chatkit-types`.
- * Use the shared chatkit type once that package release is available to contracts.
- */
-export type TChatReferenceBase = {
-  id?: string
-  label?: string
-  text: string
-}
-
-/**
- * @deprecated Temporary duplicate of `ChatKitCodeReference` from `@xpert-ai/chatkit-types`.
- * Use the shared chatkit type once that package release is available to contracts.
- */
-export type TChatCodeReference = TChatReferenceBase & {
-  type: 'code'
-  path: string
-  startLine: number
-  endLine: number
-  language?: string
-  taskId?: string
-}
-
-/**
- * @deprecated Temporary duplicate of `ChatKitQuoteReference` from `@xpert-ai/chatkit-types`.
- * Use the shared chatkit type once that package release is available to contracts.
- */
-export type TChatQuoteReference = TChatReferenceBase & {
-  type: 'quote'
-  messageId?: string
-  source?: string
-}
-
-/**
- * @deprecated Temporary duplicate of `ChatKitImageReference` from `@xpert-ai/chatkit-types`.
- * Use the shared chatkit type once that package release is available to contracts.
- */
-export type TChatImageReference = TChatReferenceBase & {
-  type: 'image'
-  fileId?: string
-  url?: string
-  mimeType?: string
-  name?: string
-  size?: number
-  width?: number
-  height?: number
-}
 
 export type TChatElementAttribute = {
   name: string
@@ -85,12 +37,12 @@ export type TChatElementReferenceCandidateFields = {
   [Property in keyof TChatElementReferenceFields]?: unknown
 }
 
-export type TChatElementReference = TChatReferenceBase &
+export type TChatElementReference = ChatKitReferenceBase &
   TChatElementReferenceFields & {
     type: 'element'
   }
 
-export type TChatReference = TChatCodeReference | TChatQuoteReference | TChatImageReference | TChatElementReference
+export type TChatReference = ChatKitReference | TChatElementReference
 
 /**
  * Chat message entity type

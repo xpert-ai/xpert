@@ -590,6 +590,15 @@
       "NoMatchingMembers": "No matching members",
       "NoMatchingMembersHint": "Try another search keyword."
     },
+    "Knowledgebase": {
+      "ModelConfiguration": "Model Configuration",
+      "ChangeEmbeddingModelDraftNotice": "Changing the embedding model requires vector rebuild. Save to create a pending rebuild model.",
+      "ModelConfigurationManagedInSettings": "Embedding, vision, and rerank models are configured on the knowledgebase configuration page.",
+      "OpenConfiguration": "Open configuration",
+      "Status_RebuildRequired": "Pending vector rebuild",
+      "Status_Rebuilding": "Vector rebuilding",
+      "Status_RebuildFailed": "Vector rebuild failed"
+    },
     "Certification": {
       "Entry": "Certification entry",
       "UpdateCertification": "Update certification",

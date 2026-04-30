@@ -42,7 +42,13 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService, mergeRuntimeContextWithEnv } from '../../../environment'
-import { ExecutionCancelService, VOLUME_CLIENT, VolumeClient, WorkspacePathMapperFactory } from '../../../shared'
+import {
+    ExecutionCancelService,
+    isPlanModeEnabledFromState,
+    VOLUME_CLIENT,
+    VolumeClient,
+    WorkspacePathMapperFactory
+} from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
@@ -173,9 +179,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         if (execution?.id) {
             this.executionCancelService.register(execution.id, abortController)
         }
+        const planMode = options.planMode === true || isPlanModeEnabledFromState(state)
         const { graph, agent, xpertGraph } = await this.commandBus.execute(
             new CompileGraphCommand(agentKeyOrName, xpert, {
                 ...options,
+                planMode,
                 execution,
                 rootController: abortController,
                 signal: abortController.signal,

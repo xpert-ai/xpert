@@ -52,6 +52,7 @@ export type TStateChannel = {
 
 export type TXpertAgentRuntimeOptions = {
 	toolPreferences?: IAssistantBindingToolPreferences | null
+	planMode?: boolean
 }
 
 export const AgentStateAnnotation = Annotation.Root({

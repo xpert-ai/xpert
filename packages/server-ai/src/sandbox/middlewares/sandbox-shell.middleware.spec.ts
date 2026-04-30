@@ -1,5 +1,4 @@
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import type { CommandBus } from '@nestjs/cqrs'
 import { DEFAULT_SANDBOX_SHELL_TIMEOUT_MS, ExecuteResponse } from '@xpert-ai/plugin-sdk'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { SandboxShellMiddleware } from './sandbox-shell.middleware'
@@ -56,10 +55,6 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
 })
 
 describe('SandboxShellMiddleware', () => {
-  let commandBus: {
-    execute: jest.Mock
-  }
-
   const createXpertFeatures = () => ({
     opener: {
       enabled: false,
@@ -82,7 +77,7 @@ describe('SandboxShellMiddleware', () => {
   })
 
   const createTool = async (toolName: string, xpertFeatures = createXpertFeatures()) => {
-    const middleware = new SandboxShellMiddleware(commandBus as unknown as CommandBus)
+    const middleware = new SandboxShellMiddleware()
     const agentMiddleware = await Promise.resolve(
       middleware.createMiddleware(
         {},
@@ -96,6 +91,7 @@ describe('SandboxShellMiddleware', () => {
             type: WorkflowNodeTypeEnum.MIDDLEWARE,
             provider: 'sandbox-shell'
           },
+          runtime: {} as never,
           tools: new Map()
         }
       )
@@ -114,13 +110,10 @@ describe('SandboxShellMiddleware', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    commandBus = {
-      execute: jest.fn()
-    }
   })
 
   it('requires the sandbox xpert feature before creating middleware', async () => {
-    const middleware = new SandboxShellMiddleware(commandBus as unknown as CommandBus)
+    const middleware = new SandboxShellMiddleware()
 
     expect(() =>
       middleware.createMiddleware(
@@ -135,10 +128,35 @@ describe('SandboxShellMiddleware', () => {
             type: WorkflowNodeTypeEnum.MIDDLEWARE,
             provider: 'sandbox-shell'
           },
+          runtime: {} as never,
           tools: new Map()
         }
       )
     ).toThrow('SandboxShell requires the xpert sandbox feature to be enabled.')
+  })
+
+  it('registers only the shell tool', async () => {
+    const middleware = new SandboxShellMiddleware()
+    const agentMiddleware = await Promise.resolve(
+      middleware.createMiddleware(
+        {},
+        {
+          tenantId: 'tenant-1',
+          userId: 'user-1',
+          xpertFeatures: createXpertFeatures(),
+          node: {
+            id: 'middleware-1',
+            key: 'middleware-1',
+            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+            provider: 'sandbox-shell'
+          },
+          runtime: {} as never,
+          tools: new Map()
+        }
+      )
+    )
+
+    expect(agentMiddleware.tools.map((tool) => tool.name)).toEqual(['sandbox_shell'])
   })
 
   it('passes the 600 second default timeout to the backend', async () => {
@@ -243,74 +261,6 @@ describe('SandboxShellMiddleware', () => {
     expect(result).toBe('ok')
     expect(backend.streamExecute).toHaveBeenCalledWith('ls', expect.any(Function), {
       timeoutMs: DEFAULT_SANDBOX_SHELL_TIMEOUT_MS
-    })
-  })
-
-  it('returns stable error codes for unsupported managed service providers', async () => {
-    commandBus.execute.mockRejectedValue({
-      code: 'unsupported_provider',
-      message: 'Sandbox provider "legacy" does not support managed services.'
-    })
-    const tool = await createTool('sandbox_service_start')
-
-    const result = await tool.invoke(
-      {
-        command: 'npm run dev',
-        name: 'web',
-        port: 4173
-      },
-      {
-        configurable: {
-          agentKey: 'agent-1',
-          executionId: 'execution-1',
-          sandbox: {
-            backend: {}
-          },
-          thread_id: 'thread-1'
-        }
-      }
-    )
-
-    expect(result).toBe(
-      JSON.stringify(
-        {
-          code: 'unsupported_provider',
-          message: 'Sandbox provider "legacy" does not support managed services.'
-        },
-        null,
-        2
-      )
-    )
-  })
-
-  it('stringifies managed service command results', async () => {
-    commandBus.execute.mockResolvedValue({
-      serviceId: 'service-1',
-      status: 'running'
-    })
-    const tool = await createTool('sandbox_service_list')
-
-    const result = await tool.invoke(
-      {},
-      {
-        configurable: {
-          thread_id: 'thread-1'
-        }
-      }
-    )
-
-    expect(result).toBe(
-      JSON.stringify(
-        {
-          serviceId: 'service-1',
-          status: 'running'
-        },
-        null,
-        2
-      )
-    )
-    expect(commandBus.execute.mock.calls[0]?.[0]?.params).toEqual({
-      threadId: 'thread-1'
     })
   })
 })

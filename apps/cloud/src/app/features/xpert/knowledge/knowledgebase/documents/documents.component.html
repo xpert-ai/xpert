@@ -93,9 +93,10 @@
     </button>
     <button
       type="button"
-      class="btn btn-primary btn-large flex justify-center items-center gap-2"
+      class="btn disabled:btn-disabled btn-primary btn-large flex justify-center items-center gap-2"
       [zTooltip]="'PAC.Knowledgebase.NewDocuments' | translate: { Default: 'New Documents' }"
       zPosition="left"
+      [disabled]="vectorMutationLocked()"
       [cdkMenuTriggerFor]="docMenu"
     >
       <i class="ri-folder-shared-fill"></i>
@@ -206,74 +207,136 @@
           <td class="px-6 py-2 w-36">
             @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
               <div class="cursor-pointer" (click)="openTask(element)">
-                @switch (element.status) {
-                  @case (eKBDocumentStatusEnum.RUNNING) {
+                @switch (knowledgebase()?.status) {
+                  @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
                     <ngm-tags
                       class="text-sm"
-                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }]"
+                      [tags]="[
+                        {
+                          caption:
+                            'PAC.Knowledgebase.Status_RebuildRequired'
+                            | translate: { Default: 'Pending vector rebuild' }
+                        }
+                      ]"
+                      color="orange"
+                    />
+                  }
+                  @case (eKnowledgebaseStatusEnum.REBUILDING) {
+                    <ngm-tags
+                      class="text-sm"
+                      [tags]="[
+                        {
+                          caption:
+                            'PAC.Knowledgebase.Status_Rebuilding'
+                            | translate: { Default: 'Vector rebuilding' }
+                        }
+                      ]"
                       color="blue"
                     />
                   }
-                  @case (eKBDocumentStatusEnum.FINISH) {
+                  @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
                     <ngm-tags
                       class="text-sm"
-                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }]"
-                      color="green"
-                    />
-                  }
-                  @case (eKBDocumentStatusEnum.ERROR) {
-                    <ngm-tags
-                      class="text-sm"
-                      [zTooltip]="element.processMsg"
+                      [zTooltip]="knowledgebase()?.embeddingRebuildError"
                       zPosition="left"
-                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
+                      [tags]="[
+                        {
+                          caption:
+                            'PAC.Knowledgebase.Status_RebuildFailed'
+                            | translate: { Default: 'Vector rebuild failed' }
+                        }
+                      ]"
                       color="red"
                     />
                   }
-                  @case (eKBDocumentStatusEnum.WAITING) {
-                    <ngm-tags
-                      class="text-sm"
-                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }]"
-                      color="orange"
-                    />
-                  }
-                  @case (eKBDocumentStatusEnum.TRANSFORMED) {
-                    <ngm-tags
-                      class="text-sm"
-                      [tags]="[
-                        { caption: 'PAC.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' } }
-                      ]"
-                      color="orange"
-                    />
-                  }
-                  @case (eKBDocumentStatusEnum.SPLITTED) {
-                    <ngm-tags
-                      class="text-sm"
-                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' } }]"
-                      color="orange"
-                    />
-                  }
-                  @case (eKBDocumentStatusEnum.UNDERSTOOD) {
-                    <ngm-tags
-                      class="text-sm"
-                      [tags]="[
-                        { caption: 'PAC.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' } }
-                      ]"
-                      color="orange"
-                    />
-                  }
-                  @case (eKBDocumentStatusEnum.EMBEDDING) {
-                    <div class="flex items-center gap-1">
-                      <ngm-progress-spinner class="w-6 h-6 shrink-0 text-text-success" [value]="element.progress" />
-                      <span>{{ element.progress }}%</span>
-                    </div>
-                  }
                   @default {
-                    <ngm-tags
-                      class="text-sm"
-                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }]"
-                      color="gray"
-                    />
+                    @switch (element.status) {
+                      @case (eKBDocumentStatusEnum.RUNNING) {
+                        <ngm-tags
+                          class="text-sm"
+                          [tags]="[
+                            { caption: 'PAC.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }
+                          ]"
+                          color="blue"
+                        />
+                      }
+                      @case (eKBDocumentStatusEnum.FINISH) {
+                        <ngm-tags
+                          class="text-sm"
+                          [tags]="[
+                            { caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }
+                          ]"
+                          color="green"
+                        />
+                      }
+                      @case (eKBDocumentStatusEnum.ERROR) {
+                        <ngm-tags
+                          class="text-sm"
+                          [zTooltip]="element.processMsg"
+                          zPosition="left"
+                          [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
+                          color="red"
+                        />
+                      }
+                      @case (eKBDocumentStatusEnum.WAITING) {
+                        <ngm-tags
+                          class="text-sm"
+                          [tags]="[
+                            { caption: 'PAC.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }
+                          ]"
+                          color="orange"
+                        />
+                      }
+                      @case (eKBDocumentStatusEnum.TRANSFORMED) {
+                        <ngm-tags
+                          class="text-sm"
+                          [tags]="[
+                            {
+                              caption:
+                                'PAC.Knowledgebase.Status_Transformed'
+                                | translate: { Default: 'Transformed' }
+                            }
+                          ]"
+                          color="orange"
+                        />
+                      }
+                      @case (eKBDocumentStatusEnum.SPLITTED) {
+                        <ngm-tags
+                          class="text-sm"
+                          [tags]="[
+                            { caption: 'PAC.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' } }
+                          ]"
+                          color="orange"
+                        />
+                      }
+                      @case (eKBDocumentStatusEnum.UNDERSTOOD) {
+                        <ngm-tags
+                          class="text-sm"
+                          [tags]="[
+                            {
+                              caption:
+                                'PAC.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
+                            }
+                          ]"
+                          color="orange"
+                        />
+                      }
+                      @case (eKBDocumentStatusEnum.EMBEDDING) {
+                        <div class="flex items-center gap-1">
+                          <ngm-progress-spinner class="w-6 h-6 shrink-0 text-text-success" [value]="element.progress" />
+                          <span>{{ element.progress }}%</span>
+                        </div>
+                      }
+                      @default {
+                        <ngm-tags
+                          class="text-sm"
+                          [tags]="[
+                            { caption: 'PAC.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }
+                          ]"
+                          color="gray"
+                        />
+                      }
+                    }
                   }
                 }
               </div>
@@ -284,6 +347,7 @@
               @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
                 <button
                   class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
+                  [disabled]="vectorMutationLocked()"
                   (click)="openChunkSettings(element)"
                 >
                   <i class="ri-equalizer-2-line"></i>
@@ -330,12 +394,22 @@
         <i class="ri-close-circle-line mr-1"></i>
         {{ 'PAC.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
       </button>
-      <button type="button" class="btn btn-secondary btn-large" (click)="reprocess(selectionModel.selected)">
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-large"
+        [disabled]="vectorMutationLocked()"
+        (click)="reprocess(selectionModel.selected)"
+      >
         <i class="ri-reset-right-line mr-1"></i>
         <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
       </button>
       <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
-      <button type="button" class="btn btn-large btn-secondary danger" (click)="deleteSelected()">
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-large btn-secondary danger"
+        [disabled]="vectorMutationLocked()"
+        (click)="deleteSelected()"
+      >
         <i class="ri-delete-bin-line mr-1"></i>
         {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
       </button>
@@ -351,13 +425,13 @@
 
 <ng-template #docMenu>
   <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="createFolder()">
+    <div cdkMenuItem [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="createFolder()">
       <i class="ri-folder-add-fill mr-1 text-xl text-text-accent"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.NewFolder' | translate: { Default: 'New Folder' } }}</span>
     </div>
     <div
       cdkMenuItem
-      [cdkMenuItemDisabled]="!hasPipeline()"
+      [cdkMenuItemDisabled]="!hasPipeline() || vectorMutationLocked()"
       [zTooltip]="
         hasPipeline()
           ? ('PAC.Knowledgebase.AddDocumentFromPipeline'
@@ -366,9 +440,9 @@
             | translate: { Default: 'Create and publish a knowledge pipeline first.' })
       "
       zPosition="left"
-      [class.opacity-50]="!hasPipeline()"
-      [class.!cursor-pointer]="!hasPipeline()"
-      (click)="hasPipeline() && createFromPipeline()"
+      [class.opacity-50]="!hasPipeline() || vectorMutationLocked()"
+      [class.!cursor-pointer]="!hasPipeline() || vectorMutationLocked()"
+      (click)="hasPipeline() && !vectorMutationLocked() && createFromPipeline()"
     >
       <i class="ri-flow-chart mr-1 text-xl text-primary-600"></i>
       <span class="ml-2">{{
@@ -377,6 +451,7 @@
     </div>
     <div
       cdkMenuItem
+      [cdkMenuItemDisabled]="vectorMutationLocked()"
       [zTooltip]="
         'PAC.Knowledgebase.AddDocumentFixedConfig'
           | translate: { Default: 'Add a new document and convert it with a fixed configuration.' }
@@ -393,7 +468,7 @@
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
     @if (doc.sourceType !== eKDocumentSourceType.FOLDER) {
-      <div cdkMenuItem (click)="reprocess([doc.id])">
+      <div cdkMenuItem [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="reprocess([doc.id])">
         <i class="ri-reset-right-line mr-2"></i>
         <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
       </div>
@@ -411,7 +486,7 @@
       <i class="ri-edit-line mr-2"></i>
       <span>{{ 'PAC.ACTIONS.Rename' | translate: { Default: 'Rename' } }}</span>
     </div>
-    <div cdkMenuItem class="danger" (click)="deleteDocument(doc)">
+    <div cdkMenuItem class="danger" [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="deleteDocument(doc)">
       <i class="ri-delete-bin-line mr-2"></i>
       <span>{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </div>

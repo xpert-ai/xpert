@@ -52,12 +52,14 @@ describe('CopilotModelSelectComponent', () => {
   const minimalModel = copilot.providerWithModels.models[2]
   let deepseekRules$: Subject<any[]>
   let glmRules$: Subject<any[]>
+  let deletedModelRules$: Subject<any[]>
   let component: CopilotModelSelectComponent
   let fixture: ComponentFixture<CopilotModelSelectComponent>
 
   beforeEach(async () => {
     deepseekRules$ = new Subject<any[]>()
     glmRules$ = new Subject<any[]>()
+    deletedModelRules$ = new Subject<any[]>()
     const copilotServer = {
       getCopilotModels: jest.fn(() => of([copilot]))
     }
@@ -68,6 +70,8 @@ describe('CopilotModelSelectComponent', () => {
             return deepseekRules$.asObservable()
           case 'glm-5':
             return glmRules$.asObservable()
+          case 'qwen-deleted':
+            return deletedModelRules$.asObservable()
           default:
             return of([])
         }
@@ -103,6 +107,7 @@ describe('CopilotModelSelectComponent', () => {
   afterEach(() => {
     deepseekRules$.complete()
     glmRules$.complete()
+    deletedModelRules$.complete()
   })
 
   it('applies defaults when selecting a model without existing options', fakeAsync(() => {
@@ -239,6 +244,71 @@ describe('CopilotModelSelectComponent', () => {
       temperature: 0.3,
       max_tokens: 256
     })
+  }))
+
+  it('drops stale persisted model identity when switching to a different model', fakeAsync(() => {
+    tick(600)
+    fixture.detectChanges()
+
+    component.writeValue({
+      id: 'persisted-v3-row',
+      copilotId: copilot.id,
+      model: deepseekModel.model,
+      modelType: AiModelTypeEnum.LLM,
+      options: {
+        [ModelPropertyKey.CONTEXT_SIZE]: 64000
+      },
+      copilot: {
+        id: copilot.id,
+        copilotModel: {
+          model: deepseekModel.model
+        }
+      }
+    })
+    fixture.detectChanges()
+
+    component.setModel(copilot, glmModel)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+
+    const value = component['cva'].value$()
+    expect(value).toMatchObject({
+      copilotId: copilot.id,
+      model: glmModel.model,
+      modelType: AiModelTypeEnum.LLM
+    })
+    expect(value?.id).toBeUndefined()
+    expect(value?.copilot).toBeUndefined()
+    expect(value?.referencedModel).toBeUndefined()
+  }))
+
+  it('does not initialize default options for a deleted persisted model', fakeAsync(() => {
+    const onChange = jest.fn()
+
+    component.registerOnChange(onChange)
+    component.writeValue({
+      copilotId: copilot.id,
+      model: 'qwen-deleted',
+      modelType: AiModelTypeEnum.LLM
+    })
+    fixture.detectChanges()
+    tick(600)
+    fixture.detectChanges()
+    onChange.mockClear()
+
+    deletedModelRules$.next([
+      {
+        name: 'temperature',
+        type: ParameterType.FLOAT,
+        default: 0.7
+      }
+    ])
+    tick()
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()?.options).toBeUndefined()
+    expect(onChange).not.toHaveBeenCalled()
   }))
 
   it('drops non-applicable options when switching to a model without parameter rules', fakeAsync(() => {

@@ -14,6 +14,10 @@ import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-fi
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 import {
+  shouldOpenSandboxPreviewFromEffectEvent,
+  shouldOpenSandboxPreviewFromLogEvent
+} from './clawxpert-sandbox-preview.utils'
+import {
   shouldRefreshWorkspaceFilesFromEffectEvent,
   shouldRefreshWorkspaceFilesFromLogEvent
 } from './clawxpert-workspace-file-refresh.utils'
@@ -32,6 +36,7 @@ type ChatKitCodeComposerReference = {
 }
 
 type ChatKitComposerReference = ChatKitCodeComposerReference | TChatElementReference
+type ClawXpertConversationPanel = 'files' | 'computer' | 'preview' | 'terminal'
 
 type ChatKitReferenceComposerControl = {
   element: unknown
@@ -331,10 +336,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
+      if (shouldOpenSandboxPreviewFromEffectEvent(event)) {
+        this.activePanel.set('preview')
+      }
     },
     onLog: (event) => {
       if (shouldRefreshWorkspaceFilesFromLogEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
+      }
+      if (shouldOpenSandboxPreviewFromLogEvent(event)) {
+        this.activePanel.set('preview')
       }
     },
     onResponseStart: () => {
@@ -350,7 +361,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     }
   })
-  readonly activePanel = signal<'files' | 'computer' | 'preview' | 'terminal' | null>('files')
+  readonly activePanel = signal<ClawXpertConversationPanel | null>('files')
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
@@ -496,7 +507,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     await this.attachComposerReferences([request])
   }
 
-  selectPanel(panel: 'files' | 'computer' | 'preview' | 'terminal') {
+  selectPanel(panel: ClawXpertConversationPanel) {
     this.activePanel.update((activePanel) => (activePanel === panel ? null : panel))
   }
 

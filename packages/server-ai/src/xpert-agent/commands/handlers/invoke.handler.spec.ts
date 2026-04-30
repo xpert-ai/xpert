@@ -41,6 +41,7 @@ jest.mock('../../../environment', () => {
 
 jest.mock('../../../shared', () => ({
     getWorkspace: jest.fn(),
+    isPlanModeEnabledFromState: (state: any) => state?.human?.planMode === true,
     VolumeClient: class VolumeClient {
         static getWorkspacePath = jest.fn()
         static getWorkspaceUrl = jest.fn()
@@ -159,6 +160,53 @@ describe('XpertAgentInvokeHandler', () => {
     afterEach(() => {
         jest.restoreAllMocks()
         jest.clearAllMocks()
+    })
+
+    it('passes plan mode into graph compilation when human input enables it', async () => {
+        const graph = createGraph()
+        let compileCommand: CompileGraphCommand | null = null
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CompileGraphCommand) {
+                compileCommand = command
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Plan this change',
+                        planMode: true
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {}
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(compileCommand).not.toBeNull()
+        expect(compileCommand!.options.planMode).toBe(true)
     })
 
     it('preserves soul and profile in fresh graph input sys state', async () => {

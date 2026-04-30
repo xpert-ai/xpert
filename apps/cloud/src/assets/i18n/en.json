@@ -1052,6 +1052,15 @@
       "NoMatchingMembers": "No matching members",
       "NoMatchingMembersHint": "Try another search keyword."
     },
+    "Knowledgebase": {
+      "ModelConfiguration": "Model Configuration",
+      "ChangeEmbeddingModelDraftNotice": "Changing the embedding model requires vector rebuild. Save to create a pending rebuild model.",
+      "ModelConfigurationManagedInSettings": "Embedding, vision, and rerank models are configured on the knowledgebase configuration page.",
+      "OpenConfiguration": "Open configuration",
+      "Status_RebuildRequired": "Pending vector rebuild",
+      "Status_Rebuilding": "Vector rebuilding",
+      "Status_RebuildFailed": "Vector rebuild failed"
+    },
     "Certification": {
       "Entry": "Certification entry",
       "UpdateCertification": "Update certification",
@@ -1226,6 +1235,10 @@
       "FEATURE_XPERT": {
         "Name": "Digital Expert",
         "Description": "A virtual assistant that leverages artificial intelligence to provide personalized, real-time, and precise consulting, analysis, and decision support."
+      },
+      "FEATURE_XPERT_CLAWXPERT": {
+        "Name": "ClawXpert",
+        "Description": "Show the ClawXpert entry in the chat sidebar."
       },
       "FEATURE_XPERT_CHATBI": {
         "Name": "ChatBI",

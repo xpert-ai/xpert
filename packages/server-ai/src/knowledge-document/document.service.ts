@@ -9,7 +9,6 @@ import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash-es'
 import { DataSource, DeepPartial, In, Repository } from 'typeorm'
-import { v4 as uuidv4 } from 'uuid'
 import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
@@ -104,6 +103,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		if (!documents?.length) {
 			return []
 		}
+		const knowledgebaseIds = uniq(compact(documents.map((document) => document.knowledgebaseId)))
+		await Promise.all(knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)))
 
 		// Update chunkStructure
 		const textSplitterType = documents[0].parserConfig?.textSplitterType
@@ -132,7 +133,15 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	}
 
 	async deleteBulk(ids: string[]): Promise<void> {
-		await this.repository.delete(ids)
+		const { items } = await this.findAll({
+			where: { id: In(ids) },
+			select: { id: true, knowledgebaseId: true }
+		})
+		const knowledgebaseIds = uniq(compact(items.map((document) => document.knowledgebaseId)))
+		await Promise.all(knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)))
+		for await (const id of ids) {
+			await this.delete(id)
+		}
 	}
 
 	async save(document: DeepPartial<KnowledgeDocument>)
@@ -155,7 +164,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		const document = await this.findOne(documentId, {
 			relations: ['pages', 'knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
 		})
-		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
+		await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
+		const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase)
 		await vectorStore.delete({ filter: { docPageId: id, knowledgeId: documentId } })
 
 		document.pages = document.pages.filter((_) => _.id !== id)
@@ -196,7 +206,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		const document = await this.findOne(id, {
 			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
 		})
-		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase, true)
+		const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, true)
 		
 		if (document.knowledgebase.structure === KnowledgeStructureEnum.ParentChild && !params.search) {
 			const pages = await this.pageRepository.find({
@@ -251,8 +261,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			documentId: id,
 			knowledgebaseId: document.knowledgebaseId,
 			metadata: {
-				...(entity.metadata ?? {}),
-				chunkId: entity.metadata?.chunkId || uuidv4() // Ensure chunkId exists
+				...(entity.metadata ?? {})
 			}
 		})
 		await vectorStore.addKnowledgeDocument(document, [chunk])
@@ -316,7 +325,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		const document = await this.findOne(id, {
 			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
 		})
-		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
+		await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
+		const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase)
 		return { document, vectorStore }
 	}
 
@@ -346,6 +356,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		})
 
 		const docs = items.filter((doc) => doc.status !== KBDocumentStatusEnum.RUNNING)
+		const knowledgebaseIds = uniq(compact(docs.map((doc) => doc.knowledgebaseId)))
+		await Promise.all(knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)))
 
 		const job = await this.docQueue.add({
 			userId,
@@ -369,7 +381,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 				knowledgebase: { id: true, documentNum: true, documents: { id: true, sourceType: true, metadata: true } }
 			}
 		})
-		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase, false)
+		await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
+		const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, false)
 		await vectorStore.deleteKnowledgeDocument(document)
 
 		const nextDocumentNum =

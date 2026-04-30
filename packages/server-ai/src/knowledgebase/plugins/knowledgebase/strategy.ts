@@ -132,7 +132,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
 						let vectorStore: KnowledgeDocumentStore
 						try {
-							vectorStore = await this.knowledgebaseService.getVectorStore(knowledgebase, true)
+							vectorStore = await this.knowledgebaseService.getActiveVectorStore(knowledgebase, true)
 						} catch (err) {
 							statisticsInformation += `- Error initializing vector store: ${getErrorMessage(err)} \n`
 							throw new Error(`Error initializing vector store: ${getErrorMessage(err)}`)

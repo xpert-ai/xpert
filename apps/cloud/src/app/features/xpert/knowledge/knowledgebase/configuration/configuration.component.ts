@@ -1,6 +1,6 @@
 
-import { ChangeDetectorRef, Component, computed, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { ChangeDetectorRef, Component, computed, DestroyRef, effect, inject, signal } from '@angular/core'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -12,11 +12,14 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ZardFormImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { omit } from 'lodash-es'
+import { filter, finalize, switchMap, take, timer } from 'rxjs'
 import {
   AiModelTypeEnum,
+  ICopilotModel,
   IKnowledgebase,
   KnowledgebasePermission,
   KnowledgebaseService,
+  KnowledgebaseStatusEnum,
   ModelFeature,
   Store,
   ToastrService,
@@ -25,6 +28,10 @@ import {
 } from '../../../../../@core'
 import { EmojiAvatarComponent } from '../../../../../@shared/avatar/'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
+
+function hasRebuildingStatus(value: unknown): value is { status: KnowledgebaseStatusEnum.REBUILDING } {
+  return typeof value === 'object' && value !== null && 'status' in value && value.status === KnowledgebaseStatusEnum.REBUILDING
+}
 
 @Component({
   standalone: true,
@@ -58,9 +65,11 @@ export class KnowledgeConfigurationComponent {
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly #translate = inject(I18nService)
+  readonly #destroyRef = inject(DestroyRef)
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly rebuilding = computed(() => this.knowledgebase()?.status === KnowledgebaseStatusEnum.REBUILDING)
 
   readonly pristine = signal(true)
   readonly knowledgebaseModel = linkedModel({
@@ -75,7 +84,14 @@ export class KnowledgeConfigurationComponent {
   readonly name = attrModel(this.knowledgebaseModel, 'name')
   readonly description = attrModel(this.knowledgebaseModel, 'description')
   readonly visionModel = attrModel(this.knowledgebaseModel, 'visionModel')
-  readonly copilotModel = attrModel(this.knowledgebaseModel, 'copilotModel')
+  readonly copilotModel = linkedModel<Partial<ICopilotModel> | null>({
+    initialValue: null,
+    compute: () => this.knowledgebase()?.copilotModel ?? null,
+    update: () => {
+      this.pristine.set(false)
+    }
+  })
+  readonly embeddingModelDraftChanged = computed(() => this.embeddingModelChanged())
   readonly permission = attrModel(this.knowledgebaseModel, 'permission')
   readonly parserConfig = attrModel(this.knowledgebaseModel, 'parserConfig')
   readonly chunkSize = attrModel(this.parserConfig, 'chunkSize')
@@ -114,21 +130,103 @@ export class KnowledgeConfigurationComponent {
   })
 
   readonly loading = signal(false)
+  readonly #pollingRebuild = signal(false)
+
+  readonly #rebuildPollingEffect = effect(() => {
+    if (this.rebuilding()) {
+      this.pollRebuildStatus()
+    }
+  })
+
+  private embeddingModelChanged() {
+    const active = this.knowledgebase()?.copilotModel
+    const selected = this.copilotModel()
+    return (
+      JSON.stringify(this.toComparableCopilotModelConfig(selected)) !==
+      JSON.stringify(this.toComparableCopilotModelConfig(active))
+    )
+  }
+
+  private toComparableCopilotModelConfig(model: Partial<ICopilotModel> | null | undefined) {
+    return model ? { id: model.id, ...this.toCopilotModelConfig(model) } : null
+  }
+
+  private toCopilotModelConfig(model: Partial<ICopilotModel> | null | undefined) {
+    if (!model) {
+      return null
+    }
+
+    return {
+      copilotId: model.copilotId,
+      referencedId: model.referencedId,
+      modelType: model.modelType,
+      model: model.model,
+      options: model.options
+    }
+  }
 
   save() {
+    if (this.rebuilding()) {
+      return
+    }
+
+    const embeddingModelChanged = this.embeddingModelDraftChanged()
     this.loading.set(true)
+    const payload = omit(this.knowledgebaseModel(), 'id') as Partial<IKnowledgebase>
+    if (embeddingModelChanged) {
+      payload.copilotModel = this.toCopilotModelConfig(this.copilotModel())
+      delete payload.copilotModelId
+    } else {
+      delete payload.copilotModel
+      delete payload.copilotModelId
+    }
+
     this.knowledgebaseService
-      .update(this.knowledgebase().id, omit(this.knowledgebaseModel(), 'id') as Partial<IKnowledgebase>)
+      .update(this.knowledgebase().id, payload)
       .subscribe({
-        next: () => {
+        next: (knowledgebase) => {
           this.loading.set(false)
           this._toastrService.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
           this.knowledgebaseComponent.refresh()
           this.pristine.set(true)
+          if (hasRebuildingStatus(knowledgebase)) {
+            this.pollRebuildStatus()
+          }
         },
         error: (error) => {
           this._toastrService.error(getErrorMessage(error))
           this.loading.set(false)
+        }
+      })
+  }
+
+  private pollRebuildStatus() {
+    const knowledgebaseId = this.knowledgebase()?.id
+    if (!knowledgebaseId || this.#pollingRebuild()) {
+      return
+    }
+
+    this.#pollingRebuild.set(true)
+    timer(0, 2000)
+      .pipe(
+        switchMap(() =>
+          this.knowledgebaseService.getOneById(knowledgebaseId, {
+            relations: ['copilotModel']
+          })
+        ),
+        filter((knowledgebase) => knowledgebase.status !== KnowledgebaseStatusEnum.REBUILDING),
+        take(1),
+        takeUntilDestroyed(this.#destroyRef),
+        finalize(() => {
+          this.#pollingRebuild.set(false)
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.knowledgebaseComponent.refresh()
+        },
+        error: (error) => {
+          this._toastrService.error(getErrorMessage(error))
         }
       })
   }

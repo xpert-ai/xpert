@@ -2,6 +2,7 @@ import { IXpert, IXpertAgent } from '@xpert-ai/contracts'
 import { nonNullable } from '@xpert-ai/ocap-core'
 import { pick } from '@xpert-ai/server-common'
 import { isKeyEqual } from '../shared'
+import { resolveDraftAgentNode } from './draft-agent.utils'
 
 export function getXpertAgent(xpert: IXpert, keyOrName: string, options: { isDraft: boolean }) {
 	const { isDraft } = options
@@ -9,9 +10,7 @@ export function getXpertAgent(xpert: IXpert, keyOrName: string, options: { isDra
 		const draft = xpert.draft
 		const nodes = draft.nodes ?? xpert.graph.nodes
 		const connections = draft.connections ?? xpert.graph.connections
-		const agentNode = nodes?.find(
-			(_) => _.type === 'agent' && (isKeyEqual(_.key, keyOrName) || isKeyEqual(_.entity.name, keyOrName))
-		)
+		const agentNode = resolveDraftAgentNode(draft, nodes, keyOrName)
 		if (!agentNode) {
 			return null
 		}

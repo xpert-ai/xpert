@@ -103,12 +103,27 @@
     </div>
     <div class="grow flex flex-col space-y-2">
       <copilot-model-select
-        class="block mb-4"
+        class="block"
         [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: { Default: 'Embedding Model' }"
         required
         [modelType]="eModelType.TEXT_EMBEDDING"
+        [readonly]="rebuilding()"
         [(ngModel)]="copilotModel"
       />
+
+      @if (embeddingModelDraftChanged()) {
+        <div
+          class="mt-2 mb-4 flex items-start gap-x-2 rounded-md border border-text-warning bg-background-default-subtle px-3 py-2 system-sm-regular text-text-warning"
+        >
+          <i class="ri-alert-line mt-0.5 shrink-0"></i>
+          <span>
+            {{
+              'PAC.Knowledgebase.ChangeEmbeddingModelDraftNotice'
+                | translate: { Default: 'Changing the embedding model requires vector rebuild. Save to create a pending rebuild model.' }
+            }}
+          </span>
+        </div>
+      }
 
       <copilot-model-select
         class="block mb-4"
@@ -141,7 +156,7 @@
       <button
         type="button"
         class="btn disabled:btn-disabled btn-primary btn-medium min-w-[96px]"
-        [disabled]="loading() || pristine()"
+        [disabled]="loading() || rebuilding() || pristine()"
         (click)="save()"
       >
         {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}

@@ -19,6 +19,13 @@ export enum KnowledgebaseTypeEnum {
   External = 'external'
 }
 
+export enum KnowledgebaseStatusEnum {
+  READY = 'ready',
+  REBUILD_REQUIRED = 'rebuild_required',
+  REBUILDING = 'rebuilding',
+  REBUILD_FAILED = 'rebuild_failed'
+}
+
 export enum KnowledgeStructureEnum {
   General = 'general',
   ParentChild = 'parent-child',
@@ -70,6 +77,20 @@ export type TKnowledgebase = {
    */
   copilotModel?: ICopilotModel
   copilotModelId?: string
+  embeddingCollectionName?: string | null
+  embeddingModelFingerprint?: string | null
+  embeddingDimensions?: number | null
+  embeddingRevision?: number | null
+
+  pendingCopilotModel?: ICopilotModel | null
+  pendingCopilotModelId?: string | null
+  pendingEmbeddingCollectionName?: string | null
+  pendingEmbeddingModelFingerprint?: string | null
+  pendingEmbeddingDimensions?: number | null
+  pendingEmbeddingRevision?: number | null
+
+  rebuildTaskId?: string | null
+  embeddingRebuildError?: string | null
 
   // Rerank model for re-ranking retrieved chunks
   rerankModel?: ICopilotModel
@@ -106,7 +127,7 @@ export type TKnowledgebase = {
    */
   recall?: TKBRecallParams
 
-  status?: string
+  status?: KnowledgebaseStatusEnum
   
   /**
    * Metadata custom field definition array

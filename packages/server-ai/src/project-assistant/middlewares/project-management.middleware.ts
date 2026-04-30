@@ -749,11 +749,10 @@ export class ProjectManagementMiddleware implements IAgentMiddlewareStrategy {
 
 	private toSprintPatch(sprint: Partial<IProjectSprint>): XpertProjectSprintPatch | undefined {
 		const { id: sprintId, ...sprintPatch } = sprint
-		const id = this.asString(sprintId)
-		return id
+		return sprintId
 			? {
 					...sprintPatch,
-					id
+					id: sprintId
 				}
 			: undefined
 	}

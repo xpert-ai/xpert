@@ -4,6 +4,7 @@ import { pick } from '@xpert-ai/server-common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { isKeyEqual } from '../../../shared'
+import { resolveDraftAgentNode } from '../../draft-agent.utils'
 import { XpertService } from '../../xpert.service'
 import { GetXpertAgentQuery } from '../get-xpert-agent.query'
 
@@ -35,9 +36,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			const draft = xpert.draft
 			const nodes = draft.nodes ?? xpert.graph.nodes
 			const connections = draft.connections ?? xpert.graph.connections
-			const agentNode = nodes?.find(
-				(_) => _.type === 'agent' && (isKeyEqual(_.key, keyOrName) || isKeyEqual(_.entity.name, keyOrName))
-			)
+			const agentNode = resolveDraftAgentNode(draft, nodes, keyOrName)
 			if (!agentNode) {
 				return null
 			}

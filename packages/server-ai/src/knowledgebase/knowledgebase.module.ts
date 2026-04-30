@@ -1,4 +1,5 @@
 import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@xpert-ai/server-core'
+import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -17,6 +18,7 @@ import { CommandHandlers } from './commands/handlers'
 import { KnowledgebaseController } from './knowledgebase.controller'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
+import { KnowledgebaseRebuildEmbeddingConsumer } from './knowledgebase-rebuild-embedding.job'
 import { QueryHandlers } from './queries/handlers'
 import { XpertModule } from '../xpert/xpert.module'
 import { KnowledgebaseTaskService } from './task/task.service'
@@ -25,6 +27,7 @@ import { Validators, Strategies } from './plugins'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowledgebase-view-host.definition'
 import { KnowledgebaseWriterMiddleware } from './knowledgebase-writer.middleware'
+import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING } from './types'
 
 @Module({
 	imports: [
@@ -39,11 +42,15 @@ import { KnowledgebaseWriterMiddleware } from './knowledgebase-writer.middleware
 		forwardRef(() => XpertWorkspaceModule),
 		forwardRef(() => IntegrationModule),
 		forwardRef(() => KnowledgeDocumentModule),
-		forwardRef(() => XpertModule)
+		forwardRef(() => XpertModule),
+		BullModule.registerQueue({
+			name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
+		})
 	],
 	controllers: [KnowledgebaseController],
 	providers: [
 		KnowledgebaseService,
+		KnowledgebaseRebuildEmbeddingConsumer,
 		KnowledgebaseTaskService,
 		KnowledgeRetrievalLogService,
 		DocumentSourceRegistry,

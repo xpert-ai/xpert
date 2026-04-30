@@ -39,6 +39,7 @@ import {
   KBMetadataFieldDef,
   KDocumentSourceType,
   KnowledgebaseService,
+  KnowledgebaseStatusEnum,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
   OrderTypeEnum,
@@ -78,6 +79,7 @@ const REFRESH_DEBOUNCE_TIME = 5000
 export class KnowledgeDocumentsComponent {
   eKDocumentSourceType = KDocumentSourceType
   eKBDocumentStatusEnum = KBDocumentStatusEnum
+  eKnowledgebaseStatusEnum = KnowledgebaseStatusEnum
   STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
 
   readonly kbAPI = inject(KnowledgebaseService)
@@ -97,6 +99,8 @@ export class KnowledgeDocumentsComponent {
   // readonly pageSize = model(20)
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly knowledgebase$ = toObservable(this.knowledgebase)
+  readonly vectorRebuildStatus = computed(() => this.knowledgebase()?.status)
+  readonly vectorMutationLocked = computed(() => this.vectorRebuildStatus() === KnowledgebaseStatusEnum.REBUILDING)
   readonly xperts = computed(() => this.knowledgebase()?.xperts)
   readonly parentId$ = toObservable(this.parentId)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
@@ -259,7 +263,16 @@ export class KnowledgeDocumentsComponent {
       }
     })
 
-    this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => this.refresh())
+    effect(() => {
+      if (this.vectorMutationLocked()) {
+        this.delayRefresh$.next(true)
+      }
+    })
+
+    this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => {
+      this.knowledgebaseComponent.refresh()
+      this.refresh()
+    })
   }
 
   getValue(row: any, name: string) {
@@ -275,6 +288,9 @@ export class KnowledgeDocumentsComponent {
   }
 
   createFolder() {
+    if (this.vectorMutationLocked()) {
+      return
+    }
     this.confirmUnique<IKnowledgeDocument>(
       {
         title: this.#translate.instant('PAC.Knowledgebase.NewFolder', { Default: 'New Folder' })
@@ -300,6 +316,9 @@ export class KnowledgeDocumentsComponent {
   }
 
   createFromPipeline() {
+    if (this.vectorMutationLocked()) {
+      return
+    }
     this.#router.navigate(['create-from-pipeline'], {
       relativeTo: this.#route,
       queryParams: { parentId: this.parentId() }
@@ -307,10 +326,16 @@ export class KnowledgeDocumentsComponent {
   }
 
   uploadDocuments() {
+    if (this.vectorMutationLocked()) {
+      return
+    }
     this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 
   deleteDocument(doc: IKnowledgeDocument) {
+    if (this.vectorMutationLocked()) {
+      return
+    }
     this.confirmDelete(
       {
         value: doc.id,
@@ -344,6 +369,9 @@ export class KnowledgeDocumentsComponent {
   }
 
   startParsing(row: IKnowledgeDocument) {
+    if (this.vectorMutationLocked()) {
+      return
+    }
     row.status = KBDocumentStatusEnum.RUNNING
     this.knowledgeDocumentAPI.startParsing(row.id).subscribe({
       next: () => {
@@ -390,6 +418,9 @@ export class KnowledgeDocumentsComponent {
   }
 
   deleteSelected() {
+    if (this.vectorMutationLocked()) {
+      return
+    }
     this.isLoading.set(true)
     this.knowledgeDocumentAPI.deleteBulk(this.selectionModel.selected).subscribe({
       next: () => {
@@ -485,6 +516,9 @@ export class KnowledgeDocumentsComponent {
   }
 
   reprocess(docs: string[]) {
+    if (this.vectorMutationLocked()) {
+      return
+    }
     const calls: Observable<any>[] = []
     const documents = docs
       .map((id) => this.#data().find((doc) => doc.id === id))
@@ -527,6 +561,9 @@ export class KnowledgeDocumentsComponent {
   }
 
   openChunkSettings(document: IKnowledgeDocument) {
+    if (this.vectorMutationLocked()) {
+      return
+    }
     this.#router.navigate(['./', document.id, 'settings'], {
       relativeTo: this.#route,
       queryParams: { parentId: this.parentId() }

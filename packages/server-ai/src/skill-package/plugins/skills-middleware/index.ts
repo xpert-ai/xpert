@@ -216,56 +216,6 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 						component: 'textarea',
 						span: 2
 					}
-				},
-				skills: {
-					type: 'array',
-					default: [],
-					title: {
-						en_US: 'Skills to Enable',
-						zh_Hans: '启用的技能'
-					},
-					description: {
-						en_US: 'Enabled skills for the agent.',
-						zh_Hans: '启用的技能。'
-					},
-					items: {
-						type: 'string'
-					},
-					'x-ui': {
-						component: 'skills-select',
-						span: 2
-					}
-				},
-				repositoryDefault: {
-					type: 'object',
-					title: {
-						en_US: 'Repository Default Skills',
-						zh_Hans: '仓库默认技能集'
-					},
-					description: {
-						en_US: 'Default skill set backed by one repository, with disabledSkillIds acting as a blacklist.',
-						zh_Hans: '基于单个仓库的默认技能集合，disabledSkillIds 作为黑名单。'
-					},
-					properties: {
-						repositoryId: {
-							type: 'string',
-							title: {
-								en_US: 'Repository ID',
-								zh_Hans: '仓库 ID'
-							}
-						},
-						disabledSkillIds: {
-							type: 'array',
-							default: [],
-							title: {
-								en_US: 'Disabled Skill IDs',
-								zh_Hans: '禁用技能 ID'
-							},
-							items: {
-								type: 'string'
-							}
-						}
-					}
 				}
 			}
 		}

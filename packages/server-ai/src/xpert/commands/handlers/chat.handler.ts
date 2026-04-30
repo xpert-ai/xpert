@@ -52,6 +52,7 @@ import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
 import { hydrateHumanInput, hydrateSendRequestHumanInput, normalizeReferences } from '../../../shared/agent/human-input'
+import { hasExplicitPlanModeFlag, isPlanModeEnabledFromState } from '../../../shared/agent/plan-mode'
 import { collectPendingFollowUpsByClientMessageId } from '../../../shared/agent/persisted-follow-up'
 import { normalizeChatState } from '../../../shared/agent/utils'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
@@ -280,6 +281,19 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 throw new BadRequestException('Missing resume target execution')
             }
             state ??= normalizeChatState()
+            if (!hasExplicitPlanModeFlag(state)) {
+                const targetExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(executionId))
+                if (isPlanModeEnabledFromState(targetExecution?.inputs)) {
+                    state = normalizeChatState({
+                        ...state,
+                        [STATE_VARIABLE_HUMAN]: {
+                            ...(state[STATE_VARIABLE_HUMAN] ?? {}),
+                            planMode: true
+                        }
+                    })
+                    input = state[STATE_VARIABLE_HUMAN]
+                }
+            }
 
             // Cancel summary job
             if (memory?.enabled && memory.profile?.enabled) {
@@ -411,7 +425,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                           }
                         : {})
                 }
-                input = resolveRetryHumanInput(sourceExecution.inputs, fallbackRetryState)
+                input = resolveRetryHumanInput(sourceExecution.inputs, fallbackRetryState as TChatRequestHuman)
                 state = normalizeChatState(undefined, input)
             }
 
@@ -598,6 +612,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             conversationId: conversation.id,
                             isDraft: options?.isDraft,
                             toolPreferences: userPreference?.toolPreferences ?? null,
+                            planMode: isPlanModeEnabledFromState(state),
                             execution: { id: executionId, category: 'agent' },
                             resume:
                                 request.action === 'resume'

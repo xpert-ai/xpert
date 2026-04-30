@@ -1,11 +1,12 @@
 <div fNodeInput [fInputId]="node().key" fInputConnectableSide="left" class="left absolute"></div>
 
-<div class="relative w-full flex">
-  <copilot-model-select class="w-full" readonly [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'} "
-    [inheritModel]="xpertCopilotModel()"
-    [modelType]="eModelType.LLM"
-    [copilotModel]="copilotModel()"
-  />
+<div class="relative w-full flex px-1">
+  <div class="flex min-w-0 items-center gap-x-1 rounded-md bg-components-input-bg-normal px-2 py-1 text-text-tertiary">
+    <i class="ri-settings-3-line shrink-0"></i>
+    <span class="truncate system-xs-medium">
+      {{ 'PAC.Knowledgebase.ModelConfiguration' | translate: { Default: 'Model Configuration' } }}
+    </span>
+  </div>
 </div>
 
 <div class="relative w-full flex h-8 p-1">

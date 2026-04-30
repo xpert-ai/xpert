@@ -175,7 +175,7 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
 	@ApiPropertyOptional({ type: () => Date })
 	@IsDate()
 	@Optional()
-	@Column({ type: 'date', nullable: true })
+	@Column({ type: 'timestamp', nullable: true })
 	processBeginAt?: Date
 
 	@ApiPropertyOptional({ type: () => Number })
@@ -183,6 +183,12 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
 	@Optional()
 	@Column({ nullable: true })
 	processDuation?: number
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@Optional()
+	@Column({ nullable: true })
+	processDuration?: number
 
 	@ApiPropertyOptional({ enum: KBDocumentStatusEnum, description: 'Status of the document process' })
 	@IsEnum(KBDocumentStatusEnum)

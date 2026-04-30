@@ -20,6 +20,7 @@ import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.co
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
 import { ClawXpertToolPreferencesComponent } from './clawxpert-tool-preferences.component'
 import { ClawXpertTriggerConfigEditorComponent } from './clawxpert-trigger-config-editor.component'
+import { buildHeatmapLegend, buildHeatmapStyles } from './clawxpert-heatmap.utils'
 
 type ClawXpertMetric = {
   labelKey: string
@@ -61,7 +62,6 @@ type ClawXpertHeatmapModel = {
 const HEATMAP_WEEK_COUNT = 12
 const HEATMAP_DAYS_PER_WEEK = 7
 const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
-const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
 
 @Component({
   standalone: true,
@@ -383,7 +383,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
 
                 <div class="flex items-center gap-2 text-[11px] text-text-tertiary">
                   <span>{{ 'PAC.Chat.ClawXpert.HeatmapLegendQuiet' | translate: { Default: 'Quiet' } }}</span>
-                  @for (legendCell of heatmapLegend; track legendCell.background) {
+                  @for (legendCell of heatmapLegend; track legendCell.key) {
                     <div
                       class="h-3 w-3 rounded-[4px] border"
                       [style.background-color]="legendCell.background"
@@ -474,7 +474,7 @@ export class ClawXpertOverviewComponent {
   readonly heatmap = computed<ClawXpertHeatmapModel>(() =>
     buildHeatmapModel(this.facade.dailyMessageSeries(), this.#locale, this.#translate)
   )
-  readonly heatmapLegend = HEATMAP_LEGEND_LEVELS.map((level) => buildHeatmapStyles(level, false))
+  readonly heatmapLegend = buildHeatmapLegend()
   readonly documentCards = computed<ClawXpertDocumentCard[]>(() => [
     {
       labelKey: 'PAC.Chat.ClawXpert.TabBehavior',
@@ -629,30 +629,6 @@ function buildHeatmapCellTitle(
     date: formattedDate,
     Default: `${formattedDate}: 0 messages`
   })
-}
-
-function buildHeatmapStyles(level: number, isFuture: boolean) {
-  if (isFuture) {
-    return {
-      background: 'var(--color-components-toggle-bg-unchecked)',
-      borderColor: 'var(--color-components-toggle-bg-unchecked)',
-      opacity: 0.24
-    }
-  }
-
-  if (level <= 0) {
-    return {
-      background: 'var(--color-components-toggle-bg-unchecked)',
-      borderColor: 'var(--color-divider-regular)',
-      opacity: 0.14
-    }
-  }
-
-  return {
-    background: 'var(--color-state-success-solid)',
-    borderColor: 'var(--color-state-success-solid)',
-    opacity: Math.min(1, Math.max(0.24, Number((0.24 + level * 0.76).toFixed(3))))
-  }
 }
 
 function normalizeLocale(value?: string | null) {

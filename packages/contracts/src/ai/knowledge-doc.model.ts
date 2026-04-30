@@ -167,6 +167,7 @@ export type TKnowledgeDocument = {
   processBeginAt?: Date | null
 
   processDuation?: number | null
+  processDuration?: number | null
 
   /**
    * is it validate (0: wasted，1: validate)

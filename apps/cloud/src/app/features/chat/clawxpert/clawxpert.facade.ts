@@ -551,7 +551,7 @@ export class ClawXpertFacade {
     const currentXpert = this.currentXpert()
     const xpertId = currentXpert?.id
 
-    if (!xpertId) {
+    if (!currentXpert || !xpertId) {
       return null
     }
 
@@ -559,6 +559,14 @@ export class ClawXpertFacade {
     const previousTriggerDraftSource = this.triggerDraftSource()
     const previousTriggerDraft = this.triggerDraft()
     const nextCopilotModel = copilotModel ? { ...copilotModel } : null
+    const currentCopilotModel = this.triggerDraft()?.team?.copilotModel ?? currentXpert.copilotModel ?? null
+    const nextTriggerDraft = previousTriggerDraft
+      ? updateDraftCopilotModel(previousTriggerDraft, xpertId, nextCopilotModel)
+      : previousTriggerDraft
+
+    if (areCopilotModelSelectionsEqual(currentCopilotModel, nextCopilotModel)) {
+      return currentXpert
+    }
 
     this.savingCopilotModel.set(true)
     this.availableXperts.update((items) =>
@@ -567,24 +575,20 @@ export class ClawXpertFacade {
     this.triggerDraftSource.update((state) =>
       state?.id === xpertId ? ({ ...state, copilotModel: nextCopilotModel } as IXpert) : state
     )
-    this.triggerDraft.update((state) =>
-      state?.team?.id === xpertId
-        ? {
-            ...state,
-            team: {
-              ...state.team,
-              copilotModel: nextCopilotModel
-            }
-          }
-        : state
-    )
+    this.triggerDraft.set(nextTriggerDraft)
 
     try {
+      const updatePayload: Partial<IXpert> = {
+        copilotModelId: nextCopilotModel?.id ?? null,
+        copilotModel: nextCopilotModel
+      }
+
+      if (previousTriggerDraftSource?.draft && nextTriggerDraft) {
+        updatePayload.draft = nextTriggerDraft
+      }
+
       await firstValueFrom(
-        this.#xpertService.update(xpertId, {
-          copilotModelId: nextCopilotModel?.id ?? null,
-          copilotModel: nextCopilotModel
-        })
+        this.#xpertService.update(xpertId, updatePayload)
       )
 
       const refreshedXpert = (await firstValueFrom(
@@ -1343,6 +1347,58 @@ function normalizeClawXpertPath(url: string) {
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+}
+
+function areCopilotModelSelectionsEqual(
+  left: Partial<ICopilotModel> | null | undefined,
+  right: Partial<ICopilotModel> | null | undefined
+) {
+  if (!left && !right) {
+    return true
+  }
+
+  if (!left || !right) {
+    return false
+  }
+
+  return (
+    (left.copilotId ?? null) === (right.copilotId ?? null) &&
+    (left.model ?? null) === (right.model ?? null) &&
+    (left.modelType ?? null) === (right.modelType ?? null) &&
+    areCopilotModelOptionsEqual(left.options, right.options)
+  )
+}
+
+function areCopilotModelOptionsEqual(
+  left: ICopilotModel['options'] | undefined,
+  right: ICopilotModel['options'] | undefined
+) {
+  const leftKeys = Object.keys(left ?? {}).filter((key) => left?.[key] !== undefined)
+  const rightKeys = Object.keys(right ?? {}).filter((key) => right?.[key] !== undefined)
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false
+  }
+
+  return leftKeys.every((key) => rightKeys.includes(key) && Object.is(left?.[key], right?.[key]))
+}
+
+function updateDraftCopilotModel(
+  draft: TXpertTeamDraft,
+  xpertId: string,
+  copilotModel: Partial<ICopilotModel> | null
+): TXpertTeamDraft {
+  if (draft.team?.id !== xpertId) {
+    return draft
+  }
+
+  return {
+    ...draft,
+    team: {
+      ...draft.team,
+      copilotModel
+    }
+  }
 }
 
 function normalizeConversationPreferences(

@@ -1345,6 +1345,15 @@
       "New": "新建",
       "Files": "文件"
     },
+    "Knowledgebase": {
+      "ModelConfiguration": "模型配置",
+      "ChangeEmbeddingModelDraftNotice": "换模型要重建，保存后会创建待重建模型。",
+      "ModelConfigurationManagedInSettings": "嵌入模型、视觉模型和重排模型请在知识库配置页统一设置。",
+      "OpenConfiguration": "打开配置页",
+      "Status_RebuildRequired": "待重建向量",
+      "Status_Rebuilding": "向量重建中",
+      "Status_RebuildFailed": "向量重建失败"
+    },
     "Certification": {
       "Entry": "认证条目",
       "UpdateCertification": "更新认证",
@@ -1580,6 +1589,10 @@
         "FEATURE_BUSINESS_AREA": {
           "Name": "业务域",
           "Description": "启用业务域功能，创建和使用业务域"
+        },
+        "FEATURE_XPERT_CLAWXPERT": {
+          "Name": "ClawXpert",
+          "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
         }
       }
     },

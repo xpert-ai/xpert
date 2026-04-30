@@ -214,7 +214,7 @@ jest.mock('../../xpert/draft/index', () => {
 import { TestBed } from '@angular/core/testing'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
-import type { IAssistantBinding, IChatConversation, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
+import type { IAssistantBinding, IChatConversation, ICopilotModel, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
 import { of, Subject, throwError } from 'rxjs'
 import {
   AssistantBindingService,
@@ -407,6 +407,7 @@ describe('ClawXpertFacade', () => {
     getTeam: jest.Mock
     getTriggerProviders: jest.Mock
     saveDraft: jest.Mock
+    update: jest.Mock
   }
   let conversationService: {
     findAllByXpert: jest.Mock
@@ -450,7 +451,8 @@ describe('ClawXpertFacade', () => {
       publish: jest.fn(() => of(createXpert('xpert-1'))),
       getTeam: jest.fn((id: string) => of(createTeam(id))),
       getTriggerProviders: jest.fn(() => of([])),
-      saveDraft: jest.fn((id: string, draft: TXpertTeamDraft) => of({ ...draft, team: { ...draft.team, id } }))
+      saveDraft: jest.fn((id: string, draft: TXpertTeamDraft) => of({ ...draft, team: { ...draft.team, id } })),
+      update: jest.fn((id: string, input: Partial<IXpert>) => of({ ...createXpert(id), ...input }))
     }
     conversationService = {
       findAllByXpert: jest.fn(() => of({ items: [], total: 0 })),
@@ -621,6 +623,91 @@ describe('ClawXpertFacade', () => {
     expect(result).toEqual(savedDraft)
     expect(facade.triggerDraft()).toEqual(savedDraft)
     expect(toastr.success).toHaveBeenCalled()
+  })
+
+  it('does not save the copilot model when the selected value is unchanged', async () => {
+    const copilotModel: Partial<ICopilotModel> = {
+      copilotId: 'copilot-1',
+      model: 'qwen3.6-plus',
+      options: {
+        temperature: 0.7
+      }
+    }
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-model')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([createXpert('xpert-model', 'Model Xpert', { copilotModel })])
+    )
+    xpertService.getTeam.mockReturnValue(of(createTeam('xpert-model', 'Model Xpert', { copilotModel })))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+    xpertService.update.mockClear()
+    toastr.success.mockClear()
+
+    const result = await facade.updateCurrentXpertCopilotModel({
+      copilotId: 'copilot-1',
+      model: 'qwen3.6-plus',
+      options: {
+        temperature: 0.7
+      }
+    })
+
+    expect(result).toEqual(expect.objectContaining({ id: 'xpert-model' }))
+    expect(xpertService.update).not.toHaveBeenCalled()
+    expect(toastr.success).not.toHaveBeenCalled()
+  })
+
+  it('persists the copilot model into an existing draft so the selection is not overwritten', async () => {
+    const staleCopilotModel: Partial<ICopilotModel> = {
+      copilotId: 'copilot-1',
+      model: 'qwen3.6-plus'
+    }
+    const nextCopilotModel: Partial<ICopilotModel> = {
+      copilotId: 'copilot-1',
+      model: 'deepseek-chat',
+      modelType: 'llm'
+    }
+    let persistedCopilotModel = staleCopilotModel
+    let persistedDraft = createDraft('xpert-model', {
+      team: {
+        id: 'xpert-model',
+        copilotModel: staleCopilotModel
+      } as TXpertTeamDraft['team']
+    })
+    const createPersistedXpert = () =>
+      createXpert('xpert-model', 'Model Xpert', {
+        copilotModel: persistedCopilotModel,
+        draft: persistedDraft
+      })
+
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-model')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createPersistedXpert()]))
+    xpertService.getTeam.mockImplementation(() => of(createPersistedXpert()))
+    xpertService.update.mockImplementation((_id: string, input: Partial<IXpert>) => {
+      persistedCopilotModel = input.copilotModel ?? null
+      persistedDraft = input.draft ?? persistedDraft
+      return of(createPersistedXpert())
+    })
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.updateCurrentXpertCopilotModel(nextCopilotModel)
+    await flushPromises()
+
+    expect(result?.copilotModel?.model).toBe('deepseek-chat')
+    expect(xpertService.update).toHaveBeenCalledWith(
+      'xpert-model',
+      expect.objectContaining({
+        copilotModel: expect.objectContaining({ model: 'deepseek-chat' }),
+        draft: expect.objectContaining({
+          team: expect.objectContaining({
+            copilotModel: expect.objectContaining({ model: 'deepseek-chat' })
+          })
+        })
+      })
+    )
+    expect(facade.triggerDraft()?.team?.copilotModel?.model).toBe('deepseek-chat')
   })
 
   it('appends new trigger nodes and edge connections when saving trigger draft updates', async () => {

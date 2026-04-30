@@ -7,6 +7,7 @@ import {
 	KBMetadataFieldDef,
 	KnowledgebaseParserConfig,
 	KnowledgebasePermission,
+	KnowledgebaseStatusEnum,
 	KnowledgebaseTypeEnum,
 	KnowledgeStructureEnum,
 	TAvatar,
@@ -79,6 +80,81 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@IsString()
 	@Column({ nullable: true })
 	copilotModelId?: string
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	embeddingCollectionName?: string | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	embeddingModelFingerprint?: string | null
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ nullable: true })
+	embeddingDimensions?: number | null
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ nullable: true })
+	embeddingRevision?: number | null
+
+	@ApiPropertyOptional({ type: () => CopilotModel })
+	@OneToOne(() => CopilotModel, {
+		nullable: true,
+		cascade: true
+	})
+	@JoinColumn()
+	pendingCopilotModel?: ICopilotModel | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@RelationId((it: Knowledgebase) => it.pendingCopilotModel)
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	pendingCopilotModelId?: string | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	pendingEmbeddingCollectionName?: string | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	pendingEmbeddingModelFingerprint?: string | null
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ nullable: true })
+	pendingEmbeddingDimensions?: number | null
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ nullable: true })
+	pendingEmbeddingRevision?: number | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	rebuildTaskId?: string | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	embeddingRebuildError?: string | null
 
 	@ApiProperty({ type: () => CopilotModel })
 	@OneToOne(() => CopilotModel, {
@@ -159,11 +235,11 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@Column({ type: 'json', nullable: true })
 	parserConfig?: KnowledgebaseParserConfig
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
+	@ApiPropertyOptional({ enum: KnowledgebaseStatusEnum, enumName: 'KnowledgebaseStatusEnum' })
+	@IsEnum(KnowledgebaseStatusEnum)
 	@IsOptional()
-	@Column({ nullable: true })
-	status?: string
+	@Column({ type: 'varchar', nullable: true, default: KnowledgebaseStatusEnum.READY })
+	status?: KnowledgebaseStatusEnum
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

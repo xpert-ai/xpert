@@ -772,6 +772,31 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
   })
 
+  it('opens the preview panel when a sandbox service start tool log arrives', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
+
+    const runtimeInput = getRuntimeInput()
+    runtimeInput.onLog?.({
+      name: 'tool_log',
+      data: {
+        payload: {
+          item: {
+            tool: 'sandbox_service_start'
+          }
+        }
+      }
+    })
+    await settle(fixture)
+
+    const preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
+    expect(fixture.componentInstance.activePanel()).toBe('preview')
+    expect(preview).not.toBeNull()
+    expect((preview.componentInstance as ClawXpertConversationPreviewComponent).conversationId).toBe('conversation-1')
+  })
+
   it('debounces multiple relevant log events into a single file list refresh', async () => {
     jest.useFakeTimers()
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)

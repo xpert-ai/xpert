@@ -13,8 +13,13 @@ export type {
   TChatEventMessage,
   TInterruptCommand,
   TThreadContextUsageEvent,
+  ChatKitCodeReference,
+  ChatKitImageReference,
+  ChatKitQuoteReference,
+  ChatKitReference,
+  TFollowUpConsumedEvent
 } from '@xpert-ai/chatkit-types'
-export { STATE_VARIABLE_HUMAN, ChatMessageEventTypeEnum, ChatMessageTypeEnum, ChatMessageStepCategory } from '@xpert-ai/chatkit-types'
+export { STATE_VARIABLE_HUMAN, CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED, ChatMessageEventTypeEnum, ChatMessageTypeEnum, ChatMessageStepCategory } from '@xpert-ai/chatkit-types'
 export type { TChatRequest } from './xpert-chat.model'
 export * from './assistant-binding.model'
 export * from './ai-model.model'

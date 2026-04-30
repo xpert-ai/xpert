@@ -105,16 +105,16 @@ export interface IWFNKnowledgeBase extends IWorkflowNode {
    */
   inputs?: string[]
   /**
-   * Embedding model
+   * @deprecated Configure embedding model on the knowledgebase.
    */
   copilotModel?: ICopilotModel
   /**
-   * (optional) Rerank model
+   * @deprecated Configure rerank model on the knowledgebase.
    */
   rerankModel?: ICopilotModel
 
   /**
-   * (optional) Vision model
+   * @deprecated Configure vision model on the knowledgebase.
    */
   visionModel?: ICopilotModel
 

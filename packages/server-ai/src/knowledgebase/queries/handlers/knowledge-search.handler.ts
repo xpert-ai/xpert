@@ -116,7 +116,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		filter?: Record<string, any>,
 		filtering_conditions?: TWFCase
 	): Promise<Document[]> {
-		const vectorStore = await this.knowledgebaseService.getVectorStore(kb.id, true)
+		const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true)
 		this.logger.debug(
 			`SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`
 		)

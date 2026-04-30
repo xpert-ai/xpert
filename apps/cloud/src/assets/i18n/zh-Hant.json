@@ -2656,6 +2656,10 @@
           "Name": "數字專家",
           "Description": "數字專家模塊"
         },
+        "FEATURE_XPERT_CLAWXPERT": {
+          "Name": "ClawXpert",
+          "Description": "在聊天左側邊欄中顯示 ClawXpert 入口。"
+        },
         "FEATURE_XPERT_CHATBI": {
           "Name": "ChatBI",
           "Description": "在聊天左側邊欄中顯示 ChatBI 入口。"
@@ -2743,6 +2747,9 @@
       "NewFiles": "新增文件",
       "NewDocuments": "新增文檔",
       "EmbeddingModel": "嵌入模型",
+      "ChangeEmbeddingModelDraftNotice": "換模型要重建，保存後會創建待重建模型。",
+      "ModelConfigurationManagedInSettings": "嵌入模型、視覺模型和重排模型請在知識庫配置頁統一設置。",
+      "OpenConfiguration": "打開配置頁",
       "RerankModel": "重新排序模型",
       "VisionModel": "視覺模型",
       "Chunks": "分塊",
@@ -2773,6 +2780,9 @@
       "Status_Parsing": "解析中",
       "Status_Embedding": "嵌入中",
       "Status_Waiting": "排隊中",
+      "Status_RebuildRequired": "待重建向量",
+      "Status_Rebuilding": "向量重建中",
+      "Status_RebuildFailed": "向量重建失敗",
       "Input": "輸入",
       "Permission_Private": "私有",
       "Permission_Organization": "組織內",

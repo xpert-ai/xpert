@@ -9,7 +9,7 @@ export class KnowledgebaseClearHandler implements ICommandHandler<KnowledgebaseC
 	public async execute(command: KnowledgebaseClearCommand): Promise<void> {
 		const { entity } = command.input
 
-		const vectorStore = await this.knowledgebaseService.getVectorStore(entity, false)
+		const vectorStore = await this.knowledgebaseService.getActiveVectorStore(entity, false)
 
 		await vectorStore.clear()
 	}
