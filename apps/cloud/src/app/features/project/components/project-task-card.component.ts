@@ -4,7 +4,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { IProjectTask, ProjectTaskStatusEnum } from '@xpert-ai/contracts'
 import { TranslatePipe } from '@xpert-ai/core'
 import { ZardIconComponent } from '@xpert-ai/headless-ui'
-import { getLatestTaskConversationId, openProjectTaskConversationDialog } from './project-task-conversation-dialog.component'
+import {
+  getLatestTaskConversationId,
+  openProjectTaskConversationDialog
+} from './project-task-conversation-dialog.component'
 import { formatProjectLabel } from '../project-page.utils'
 
 @Component({
@@ -23,6 +26,7 @@ export class ProjectTaskCardComponent {
 
   readonly statusLabel = computed(() => formatProjectLabel(this.task().status))
   readonly latestConversationId = computed(() => getLatestTaskConversationId(this.task()))
+  readonly artifacts = computed(() => this.task().latestExecution?.artifacts ?? [])
   readonly failureMessage = computed(() => {
     const task = this.task()
     if (task.status !== ProjectTaskStatusEnum.Failed) {
@@ -33,7 +37,7 @@ export class ProjectTaskCardComponent {
   })
   readonly teamLabel = computed(() => {
     const teamId = this.task().teamId
-    return teamId ? this.teamNames().get(teamId) ?? '' : ''
+    return teamId ? (this.teamNames().get(teamId) ?? '') : ''
   })
   readonly statusDotClass = computed(() => {
     switch (this.task().status) {

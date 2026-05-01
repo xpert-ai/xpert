@@ -5,9 +5,11 @@ import {
 	createSprintId,
 	createTeamId,
 	createXpertId,
+	ProjectTaskExecutionArtifactTypeEnum,
 	ProjectTaskExecutionOutcomeEnum,
 	ProjectTaskExecutionStatusEnum,
 	ProjectTaskStatusEnum,
+	XPERT_EVENT_TYPES,
 	XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { CommandBus } from '@nestjs/cqrs'
@@ -15,6 +17,7 @@ import { HandoffMessage, ProcessContext } from '@xpert-ai/plugin-sdk'
 import { of } from 'rxjs'
 import { Repository } from 'typeorm'
 import { ProjectCoreService } from '../project-core/project-core.service'
+import { XpertEventPublisher } from '../event-system'
 import { ProjectTaskExecution } from '../project-task/project-task-execution.entity'
 import { ProjectTask } from '../project-task/project-task.entity'
 import { TeamDefinitionService } from '../team-definition/team-definition.service'
@@ -45,6 +48,9 @@ describe('ProjectTaskDispatchProcessor', () => {
 	}
 	let projectCoreService: {
 		findOne: jest.Mock
+	}
+	let eventPublisher: {
+		publish: jest.Mock
 	}
 	const projectId = createProjectId('project-1')
 	const sprintId = createSprintId('sprint-1')
@@ -92,13 +98,17 @@ describe('ProjectTaskDispatchProcessor', () => {
 				mainAssistantId: createXpertId('assistant-main')
 			})
 		}
+		eventPublisher = {
+			publish: jest.fn().mockResolvedValue(undefined)
+		}
 
 		processor = new ProjectTaskDispatchProcessor(
 			commandBus as unknown as CommandBus,
 			taskExecutionRepository as unknown as Repository<ProjectTaskExecution>,
 			taskRepository as unknown as Repository<ProjectTask>,
 			teamDefinitionService as unknown as TeamDefinitionService,
-			projectCoreService as unknown as ProjectCoreService
+			projectCoreService as unknown as ProjectCoreService,
+			eventPublisher as unknown as XpertEventPublisher
 		)
 	})
 
@@ -153,6 +163,54 @@ describe('ProjectTaskDispatchProcessor', () => {
 		expect(taskExecutionRepository.update).toHaveBeenCalledWith('execution-1', {
 			agentExecutionId: 'agent-execution-1'
 		})
+	})
+
+	it('records project workspace artifacts and publishes them with the latest execution', async () => {
+		const artifacts = [
+			{
+				type: ProjectTaskExecutionArtifactTypeEnum.ProjectFile,
+				name: 'Implementation notes',
+				path: 'deliverables/task-1/notes.md'
+			},
+			{
+				type: ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory,
+				name: 'Screenshots',
+				path: 'deliverables/task-1/screenshots'
+			}
+		]
+
+		commandBus.execute.mockImplementationOnce(async (command: XpertChatCommand) => {
+			const tool = command.options.tools?.[0]
+			if (!tool || typeof tool.invoke !== 'function') {
+				throw new Error('Missing task outcome tool')
+			}
+			await tool.invoke({
+				outcome: ProjectTaskExecutionOutcomeEnum.Success,
+				summary: 'Implemented feature',
+				artifacts
+			})
+			return of()
+		})
+
+		await processor.process(createMessage(), createContext())
+
+		expect(taskExecutionRepository.update).toHaveBeenCalledWith(
+			'execution-1',
+			expect.objectContaining({
+				status: ProjectTaskExecutionStatusEnum.Success,
+				artifacts
+			})
+		)
+		expect(eventPublisher.publish).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: XPERT_EVENT_TYPES.ProjectTaskExecutionSucceeded,
+				payload: expect.objectContaining({
+					latestExecution: expect.objectContaining({
+						artifacts
+					})
+				})
+			})
+		)
 	})
 
 	it('fails the task when the worker does not report an outcome', async () => {

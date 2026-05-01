@@ -1,5 +1,7 @@
-<div class="flex flex-col overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-xl">
-  <div class="border-b border-divider-regular px-6 py-5">
+<div
+  class="flex h-[min(90vh,56rem)] min-h-0 max-h-[90vh] flex-col overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-xl"
+>
+  <header class="sticky top-0 z-20 shrink-0 border-b border-divider-regular bg-components-card-bg px-6 py-5">
     <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div class="min-w-0">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
@@ -13,8 +15,7 @@
             'PAC.Project.TaskDialogDescription'
               | translate
                 : {
-                    Default:
-                      'Edit task scope, team routing, and dependencies inside the selected sprint.'
+                    Default: 'Edit task scope, team routing, and dependencies inside the selected sprint.'
                   }
           }}
         </p>
@@ -34,195 +35,272 @@
         </button>
       }
     </div>
-  </div>
+  </header>
 
-  <form class="flex flex-col gap-5 px-6 py-6" [formGroup]="form" (ngSubmit)="submit()">
-    <z-form-field>
-      <z-form-label for="project-task-title">
-        {{ 'PAC.Project.Title' | translate: { Default: 'Title' } }}
-      </z-form-label>
-      <input
-        z-input
-        id="project-task-title"
-        type="text"
-        formControlName="title"
-        [placeholder]="'PAC.Project.TaskTitlePlaceholder' | translate: { Default: 'Describe the task outcome.' }"
-      />
-      @if (form.controls.title.invalid && (form.controls.title.touched || form.controls.title.dirty)) {
-        <z-form-message zType="error">
-          {{ 'PAC.Project.TaskTitleRequired' | translate: { Default: 'Task title is required.' } }}
-        </z-form-message>
-      }
-    </z-form-field>
-
-    <z-form-field>
-      <z-form-label for="project-task-description">
-        {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
-      </z-form-label>
-      <textarea
-        z-input
-        id="project-task-description"
-        rows="4"
-        formControlName="description"
-        class="min-h-28 resize-y"
-        [placeholder]="'PAC.Project.TaskDescriptionPlaceholder' | translate: { Default: 'Optional implementation notes or context.' }"
-      ></textarea>
-    </z-form-field>
-
-    <div class="grid gap-4 md:grid-cols-2">
-      <z-form-field>
-        <z-form-label for="project-task-swimlane">
-          {{ 'PAC.Project.Swimlane' | translate: { Default: 'Swimlane' } }}
-        </z-form-label>
-        <z-select
-          id="project-task-swimlane"
-          formControlName="swimlaneId"
-          class="w-full"
-        >
-          @for (lane of swimlanes; track lane.id) {
-            <z-select-item [zValue]="lane.id">{{ lane.name }} · {{ formatProjectLabel(lane.agentRole) }}</z-select-item>
-          }
-        </z-select>
-      </z-form-field>
-
-      <z-form-field>
-        <z-form-label for="project-task-status">
-          {{ 'PAC.Project.Status' | translate: { Default: 'Status' } }}
-        </z-form-label>
-        <z-select
-          id="project-task-status"
-          formControlName="status"
-          class="w-full"
-          [zDisabled]="isBacklogLane()"
-        >
-          @for (status of availableStatusOptions(); track status) {
-            <z-select-item [zValue]="status">{{ formatProjectLabel(status) }}</z-select-item>
-          }
-        </z-select>
-      </z-form-field>
-    </div>
-
-    <section class="rounded-[24px] border border-divider-regular bg-background-default-subtle p-4">
-      <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-        @if (selectedSwimlane(); as lane) {
-          <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
-            {{ formatProjectLabel(lane.kind) }}
+  <form class="flex min-h-0 flex-1 flex-col" [formGroup]="form" (ngSubmit)="submit()">
+    <z-tab-group
+      class="min-h-0 flex-1 overflow-hidden [&_.z-tab-group__content]:overflow-hidden"
+      zSize="default"
+      zAlignTabs="start"
+      [disablePagination]="true"
+      preserveContent
+    >
+      <z-tab bodyClass="h-full min-h-0 overflow-y-auto">
+        <ng-template zTabLabel>
+          <span class="flex items-center gap-2">
+            <z-icon zType="file-text" class="text-sm"></z-icon>
+            {{ 'PAC.Project.TaskProperties' | translate: { Default: 'Properties' } }}
           </span>
-          <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
-            {{ formatProjectLabel(lane.agentRole) }}
-          </span>
-          <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
-            {{ formatProjectLabel(lane.environmentType) }}
-          </span>
-        }
-      </div>
+        </ng-template>
 
-      @if (isBacklogLane()) {
-        <p class="mt-3 text-sm leading-6 text-text-secondary">
-          {{
-            'PAC.Project.BacklogTaskRule'
-              | translate
-                : {
-                    Default:
-                      'Backlog tasks stay in Todo and cannot declare dependencies until they move into an execution swimlane.'
-                  }
-          }}
-        </p>
-      }
-    </section>
+        <div class="flex flex-col gap-5 px-6 py-6">
+          <z-form-field>
+            <z-form-label for="project-task-title">
+              {{ 'PAC.Project.Title' | translate: { Default: 'Title' } }}
+            </z-form-label>
+            <input
+              z-input
+              id="project-task-title"
+              type="text"
+              formControlName="title"
+              [placeholder]="'PAC.Project.TaskTitlePlaceholder' | translate: { Default: 'Describe the task outcome.' }"
+            />
+            @if (form.controls.title.invalid && (form.controls.title.touched || form.controls.title.dirty)) {
+              <z-form-message zType="error">
+                {{ 'PAC.Project.TaskTitleRequired' | translate: { Default: 'Task title is required.' } }}
+              </z-form-message>
+            }
+          </z-form-field>
 
-    <z-form-field>
-      <z-form-label for="project-task-team">
-        {{ 'PAC.Project.Team' | translate: { Default: 'Team' } }}
-      </z-form-label>
-      <z-select
-        id="project-task-team"
-        formControlName="teamId"
-        class="w-full"
-        [zDisabled]="!hasTeams()"
-        [zPlaceholder]="'PAC.Project.TeamOptional' | translate: { Default: 'No team binding' }"
-      >
-        <z-select-item zValue="">
-          {{ 'PAC.Project.TeamOptional' | translate: { Default: 'No team binding' } }}
-        </z-select-item>
-        @for (boundTeam of boundTeams; track boundTeam.team.id) {
-          <z-select-item [zValue]="boundTeam.team.id">{{ boundTeam.team.name }}</z-select-item>
-        }
-      </z-select>
-      @if (!hasTeams()) {
-        <z-form-message>
-          {{
-            'PAC.Project.TeamBindingRequired'
-              | translate
-                : {
-                    Default:
-                      'Bind at least one team to the project before routing tasks to a team.'
-                  }
-          }}
-        </z-form-message>
-      }
-    </z-form-field>
+          <z-form-field>
+            <z-form-label for="project-task-description">
+              {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
+            </z-form-label>
+            <textarea
+              z-input
+              id="project-task-description"
+              rows="4"
+              formControlName="description"
+              class="min-h-28 resize-y"
+              [placeholder]="
+                'PAC.Project.TaskDescriptionPlaceholder'
+                  | translate: { Default: 'Optional implementation notes or context.' }
+              "
+            ></textarea>
+          </z-form-field>
 
-    <section class="rounded-[24px] border border-divider-regular bg-background-default-subtle p-4">
-      <div class="text-sm font-semibold text-text-primary">
-        {{ 'PAC.Project.TaskDependencies' | translate: { Default: 'Dependencies' } }}
-      </div>
-      <p class="mt-1 text-sm text-text-secondary">
-        {{
-          'PAC.Project.TaskDependenciesDescription'
-            | translate
-              : {
-                  Default:
-                    'Dependencies can only target tasks in the same sprint and are disabled for backlog tasks.'
+          <div class="grid gap-4 md:grid-cols-2">
+            <z-form-field>
+              <z-form-label for="project-task-swimlane">
+                {{ 'PAC.Project.Swimlane' | translate: { Default: 'Swimlane' } }}
+              </z-form-label>
+              <z-select id="project-task-swimlane" formControlName="swimlaneId" class="w-full">
+                @for (lane of swimlanes; track lane.id) {
+                  <z-select-item [zValue]="lane.id"
+                    >{{ lane.name }} · {{ formatProjectLabel(lane.agentRole) }}</z-select-item
+                  >
                 }
-        }}
-      </p>
+              </z-select>
+            </z-form-field>
 
-      @if (availableDependencies().length) {
-        <div class="mt-4 grid gap-3">
-          @for (dependency of availableDependencies(); track dependency.id) {
-            <z-checkbox
-              class="w-full items-start gap-3 rounded-2xl border border-divider-regular bg-background-default px-4 py-3"
-              [zDisabled]="isBacklogLane()"
-              [ngModel]="form.controls.dependencies.value.includes(dependency.id ?? '')"
-              [ngModelOptions]="{ standalone: true }"
-              (checkChange)="toggleDependency(dependency.id ?? '')"
+            <z-form-field>
+              <z-form-label for="project-task-status">
+                {{ 'PAC.Project.Status' | translate: { Default: 'Status' } }}
+              </z-form-label>
+              <z-select id="project-task-status" formControlName="status" class="w-full" [zDisabled]="isBacklogLane()">
+                @for (status of availableStatusOptions(); track status) {
+                  <z-select-item [zValue]="status">{{ formatProjectLabel(status) }}</z-select-item>
+                }
+              </z-select>
+            </z-form-field>
+          </div>
+
+          <section class="rounded-[24px] border border-divider-regular bg-background-default-subtle p-4">
+            <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+              @if (selectedSwimlane(); as lane) {
+                <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
+                  {{ formatProjectLabel(lane.kind) }}
+                </span>
+                <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
+                  {{ formatProjectLabel(lane.agentRole) }}
+                </span>
+                <span class="rounded-full border border-divider-regular bg-background-default px-2.5 py-1">
+                  {{ formatProjectLabel(lane.environmentType) }}
+                </span>
+              }
+            </div>
+
+            @if (isBacklogLane()) {
+              <p class="mt-3 text-sm leading-6 text-text-secondary">
+                {{
+                  'PAC.Project.BacklogTaskRule'
+                    | translate
+                      : {
+                          Default:
+                            'Backlog tasks stay in Todo and cannot declare dependencies until they move into an execution swimlane.'
+                        }
+                }}
+              </p>
+            }
+          </section>
+
+          <z-form-field>
+            <z-form-label for="project-task-team">
+              {{ 'PAC.Project.Team' | translate: { Default: 'Team' } }}
+            </z-form-label>
+            <z-select
+              id="project-task-team"
+              formControlName="teamId"
+              class="w-full"
+              [zDisabled]="!hasTeams()"
+              [zPlaceholder]="'PAC.Project.TeamOptional' | translate: { Default: 'No team binding' }"
             >
-              <div class="min-w-0 flex-1">
-                <div class="truncate text-sm font-semibold text-text-primary">{{ dependency.title }}</div>
-                @if (dependency.description) {
-                  <p class="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">
-                    {{ dependency.description }}
-                  </p>
+              <z-select-item zValue="">
+                {{ 'PAC.Project.TeamOptional' | translate: { Default: 'No team binding' } }}
+              </z-select-item>
+              @for (boundTeam of boundTeams; track boundTeam.team.id) {
+                <z-select-item [zValue]="boundTeam.team.id">{{ boundTeam.team.name }}</z-select-item>
+              }
+            </z-select>
+            @if (!hasTeams()) {
+              <z-form-message>
+                {{
+                  'PAC.Project.TeamBindingRequired'
+                    | translate
+                      : {
+                          Default: 'Bind at least one team to the project before routing tasks to a team.'
+                        }
+                }}
+              </z-form-message>
+            }
+          </z-form-field>
+
+          <section class="rounded-[24px] border border-divider-regular bg-background-default-subtle p-4">
+            <div class="text-sm font-semibold text-text-primary">
+              {{ 'PAC.Project.TaskDependencies' | translate: { Default: 'Dependencies' } }}
+            </div>
+            <p class="mt-1 text-sm text-text-secondary">
+              {{
+                'PAC.Project.TaskDependenciesDescription'
+                  | translate
+                    : {
+                        Default:
+                          'Dependencies can only target tasks in the same sprint and are disabled for backlog tasks.'
+                      }
+              }}
+            </p>
+
+            @if (availableDependencies().length) {
+              <div class="mt-4 grid gap-3">
+                @for (dependency of availableDependencies(); track dependency.id) {
+                  <z-checkbox
+                    class="w-full items-start gap-3 rounded-2xl border border-divider-regular bg-background-default px-4 py-3"
+                    [zDisabled]="isBacklogLane()"
+                    [ngModel]="form.controls.dependencies.value.includes(dependency.id ?? '')"
+                    [ngModelOptions]="{ standalone: true }"
+                    (checkChange)="toggleDependency(dependency.id ?? '')"
+                  >
+                    <div class="min-w-0 flex-1">
+                      <div class="truncate text-sm font-semibold text-text-primary">{{ dependency.title }}</div>
+                      @if (dependency.description) {
+                        <p class="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">
+                          {{ dependency.description }}
+                        </p>
+                      }
+                    </div>
+                  </z-checkbox>
                 }
               </div>
-            </z-checkbox>
-          }
+            } @else {
+              <div
+                class="mt-4 rounded-2xl border border-dashed border-divider-regular bg-background-default px-4 py-5 text-sm text-text-secondary"
+              >
+                {{
+                  'PAC.Project.NoTaskDependenciesAvailable'
+                    | translate: { Default: 'No other tasks are available for dependencies in this sprint.' }
+                }}
+              </div>
+            }
+          </section>
         </div>
-      } @else {
-        <div class="mt-4 rounded-2xl border border-dashed border-divider-regular bg-background-default px-4 py-5 text-sm text-text-secondary">
-          {{ 'PAC.Project.NoTaskDependenciesAvailable' | translate: { Default: 'No other tasks are available for dependencies in this sprint.' } }}
-        </div>
-      }
-    </section>
+      </z-tab>
 
-    <div class="flex items-center justify-end gap-3 border-t border-divider-regular pt-5">
-      <button
-        z-button
-        zType="ghost"
-        type="button"
-        [zDisabled]="submitting()"
-        (click)="close()"
-      >
+      <z-tab bodyClass="h-full min-h-0 overflow-y-auto">
+        <ng-template zTabLabel>
+          <span class="flex items-center gap-2">
+            <z-icon zType="archive" class="text-sm"></z-icon>
+            {{ 'PAC.Project.Artifacts' | translate: { Default: 'Artifacts' } }}
+            @if (artifacts().length) {
+              <span class="rounded-full border border-divider-regular px-1.5 py-0.5 text-[10px] leading-none">
+                {{ artifacts().length }}
+              </span>
+            }
+          </span>
+        </ng-template>
+
+        <section class="flex flex-col gap-4 px-6 py-6">
+          @if (artifacts().length) {
+            <div class="grid gap-3">
+              @for (artifact of artifacts(); track artifactKey($index, artifact)) {
+                <button
+                  type="button"
+                  class="flex min-w-0 items-center gap-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-left transition-colors hover:border-divider-deep hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
+                  [disabled]="!isArtifactOpenable(artifact)"
+                  [attr.aria-label]="'PAC.Project.OpenTaskArtifact' | translate: { Default: 'Open task artifact' }"
+                  (click)="openArtifact($event, artifact)"
+                >
+                  <span
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-divider-regular bg-background-default text-text-secondary"
+                  >
+                    <z-icon [zType]="artifactIcon(artifact)" class="text-base"></z-icon>
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-semibold text-text-primary">{{ artifact.name }}</span>
+                    @if (artifactDetail(artifact); as detail) {
+                      <span class="mt-1 block truncate font-mono text-xs text-text-tertiary">{{ detail }}</span>
+                    }
+                  </span>
+                  @if (isArtifactOpenable(artifact)) {
+                    <z-icon zType="arrow-up-right" class="shrink-0 text-sm text-text-tertiary"></z-icon>
+                  }
+                </button>
+              }
+            </div>
+          } @else {
+            <div
+              class="rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-5 py-8 text-center"
+            >
+              <div
+                class="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-divider-regular bg-background-default text-text-tertiary"
+              >
+                <z-icon zType="archive" class="text-lg"></z-icon>
+              </div>
+              <div class="mt-3 text-sm font-semibold text-text-primary">
+                {{ 'PAC.Project.NoTaskArtifacts' | translate: { Default: 'No artifacts yet' } }}
+              </div>
+              <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-text-secondary">
+                {{
+                  'PAC.Project.NoTaskArtifactsDescription'
+                    | translate
+                      : {
+                          Default: 'Task deliverables reported by assistant executions will appear here.'
+                        }
+                }}
+              </p>
+            </div>
+          }
+        </section>
+      </z-tab>
+    </z-tab-group>
+
+    <footer
+      class="sticky bottom-0 z-20 flex shrink-0 items-center justify-end gap-3 border-t border-divider-regular bg-components-card-bg px-6 py-4"
+    >
+      <button z-button zType="ghost" type="button" [zDisabled]="submitting()" (click)="close()">
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
 
-      <button
-        z-button
-        zType="default"
-        type="submit"
-        [zDisabled]="form.invalid || submitting()"
-      >
+      <button z-button zType="default" type="submit" [zDisabled]="form.invalid || submitting()">
         @if (submitting()) {
           {{ 'PAC.Project.SavingTask' | translate: { Default: 'Saving task...' } }}
         } @else if (task) {
@@ -231,6 +309,6 @@
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         }
       </button>
-    </div>
+    </footer>
   </form>
 </div>

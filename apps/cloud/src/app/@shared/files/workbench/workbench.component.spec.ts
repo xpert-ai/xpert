@@ -138,6 +138,8 @@ async function setup(options?: {
   nestedFiles?: Record<string, TFileDirectory[]>
   fileContents?: Record<string, TFile>
   referenceable?: boolean
+  initialPath?: string
+  initialPathIsDirectory?: boolean
 }) {
   const rootFiles =
     options?.rootFiles ??
@@ -228,8 +230,12 @@ async function setup(options?: {
   fixture.componentRef.setInput('fileUploader', fileUploader)
   fixture.componentRef.setInput('fileDeleter', fileDeleter)
   fixture.componentRef.setInput('referenceable', options?.referenceable ?? false)
+  fixture.componentRef.setInput('initialPath', options?.initialPath ?? null)
+  fixture.componentRef.setInput('initialPathIsDirectory', options?.initialPathIsDirectory ?? false)
   fixture.detectChanges()
   await fixture.whenStable()
+  await Promise.resolve()
+  await Promise.resolve()
   await Promise.resolve()
   await Promise.resolve()
   fixture.detectChanges()
@@ -259,6 +265,35 @@ describe('FileWorkbenchComponent', () => {
     expect(fileLoader).toHaveBeenCalledWith('SKILL.md')
     expect(component.activeFilePath()).toBe('SKILL.md')
     expect(component.draftContent()).toContain('Analyze New Repo')
+  })
+
+  it('opens and selects an initial nested file path', async () => {
+    const { component, filesLoader, fileLoader } = await setup({
+      initialPath: 'docs/guide.md'
+    })
+
+    expect(filesLoader).toHaveBeenCalledWith()
+    expect(filesLoader).toHaveBeenCalledWith('docs')
+    expect(fileLoader).toHaveBeenCalledWith('docs/guide.md')
+    expect(component.activeFilePath()).toBe('docs/guide.md')
+    expect(component.treeActivePath()).toBe('docs/guide.md')
+    expect(component.mobilePane()).toBe('file')
+  })
+
+  it('opens and selects an initial directory path without previewing a file', async () => {
+    const { component, filesLoader, fileLoader } = await setup({
+      initialPath: 'docs',
+      initialPathIsDirectory: true
+    })
+
+    expect(filesLoader).toHaveBeenCalledWith('docs')
+    expect(fileLoader).not.toHaveBeenCalled()
+    expect(component.selectedTreeItem()).toEqual({
+      path: 'docs',
+      isDirectory: true
+    })
+    expect(component.activeFilePath()).toBeNull()
+    expect(component.mobilePane()).toBe('tree')
   })
 
   it('lazy loads nested folders when expanding the tree', async () => {

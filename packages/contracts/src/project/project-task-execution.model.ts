@@ -18,12 +18,36 @@ export enum ProjectTaskExecutionOutcomeEnum {
 	Failed = 'failed'
 }
 
-export interface IProjectTaskExecutionArtifact {
-	type: string
+export enum ProjectTaskExecutionArtifactTypeEnum {
+	ProjectFile = 'project_file',
+	ProjectDirectory = 'project_directory',
+	ExternalUrl = 'external_url'
+}
+
+interface IProjectTaskExecutionArtifactBase {
 	name: string
-	url?: string
 	metadata?: unknown
 }
+
+export interface IProjectTaskExecutionProjectFileArtifact extends IProjectTaskExecutionArtifactBase {
+	type: ProjectTaskExecutionArtifactTypeEnum.ProjectFile
+	path: string
+}
+
+export interface IProjectTaskExecutionProjectDirectoryArtifact extends IProjectTaskExecutionArtifactBase {
+	type: ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory
+	path: string
+}
+
+export interface IProjectTaskExecutionExternalUrlArtifact extends IProjectTaskExecutionArtifactBase {
+	type: ProjectTaskExecutionArtifactTypeEnum.ExternalUrl
+	url: string
+}
+
+export type IProjectTaskExecutionArtifact =
+	| IProjectTaskExecutionProjectFileArtifact
+	| IProjectTaskExecutionProjectDirectoryArtifact
+	| IProjectTaskExecutionExternalUrlArtifact
 
 export interface IProjectTaskExecution extends IBasePerTenantAndOrganizationEntityModel {
 	projectId: ProjectId

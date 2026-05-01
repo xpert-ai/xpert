@@ -1,6 +1,9 @@
 const mockEnvironment = {
     envName: 'dev',
     baseUrl: 'http://localhost:3000',
+    env: {
+        SANDBOX_FLATTENED_VOLUME_LAYOUT: undefined as string | undefined
+    },
     sandboxConfig: {
         volume: ''
     }
@@ -19,6 +22,7 @@ describe('resolveVolumeTarget', () => {
 
     beforeEach(() => {
         mockEnvironment.envName = 'dev'
+        delete mockEnvironment.env.SANDBOX_FLATTENED_VOLUME_LAYOUT
         mockEnvironment.sandboxConfig = {
             volume: ''
         }
@@ -31,7 +35,7 @@ describe('resolveVolumeTarget', () => {
         process.env.USERPROFILE = originalUserProfile
     })
 
-    it('writes to the flattened local root when sandbox volume is not configured', () => {
+    it('writes to the project-scoped local root when sandbox volume is not configured', () => {
         const volume = resolveVolumeTarget(
             {
                 kind: 'volume',
@@ -41,8 +45,10 @@ describe('resolveVolumeTarget', () => {
             { tenantId: 'tenant-1', userId: 'user-1' }
         )
 
-        expect(volume.serverRoot).toBe('/Users/tester/data')
-        expect(volume.publicBaseUrl).toBe('http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000')
+        expect(volume.serverRoot).toBe('/Users/tester/data/tenant-1/project/123e4567-e89b-12d3-a456-426614174000')
+        expect(volume.publicBaseUrl).toBe(
+            'http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000'
+        )
     })
 
     it('keeps the logical project subpath when sandbox volume is configured in development', () => {
@@ -60,7 +66,7 @@ describe('resolveVolumeTarget', () => {
         expect(volume.serverRoot).toBe('/tmp/sandbox/tenant-1/project/123e4567-e89b-12d3-a456-426614174000')
     })
 
-    it('falls back to the flattened local root when sandboxConfig is missing', () => {
+    it('falls back to the project-scoped local root when sandboxConfig is missing', () => {
         delete mockEnvironment.sandboxConfig
 
         const volume = resolveVolumeTarget(
@@ -72,8 +78,10 @@ describe('resolveVolumeTarget', () => {
             { tenantId: 'tenant-1', userId: 'user-1' }
         )
 
-        expect(volume.serverRoot).toBe('/Users/tester/data')
-        expect(volume.publicBaseUrl).toBe('http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000')
+        expect(volume.serverRoot).toBe('/Users/tester/data/tenant-1/project/123e4567-e89b-12d3-a456-426614174000')
+        expect(volume.publicBaseUrl).toBe(
+            'http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000'
+        )
     })
 
     it('resolves user-isolated xpert volumes under the shared xpert workspace root', () => {
@@ -86,9 +94,11 @@ describe('resolveVolumeTarget', () => {
             { tenantId: 'tenant-1', userId: '123e4567-e89b-12d3-a456-426614174002' }
         )
 
-        expect(volume.serverRoot).toBe('/Users/tester/data')
+        expect(volume.serverRoot).toBe(
+            '/Users/tester/data/tenant-1/xpert/123e4567-e89b-12d3-a456-426614174001/user/123e4567-e89b-12d3-a456-426614174002'
+        )
         expect(volume.publicBaseUrl).toBe(
-            'http://localhost:3000/api/sandbox/volume/user/123e4567-e89b-12d3-a456-426614174002'
+            'http://localhost:3000/api/sandbox/volume/xpert/123e4567-e89b-12d3-a456-426614174001/user/123e4567-e89b-12d3-a456-426614174002'
         )
     })
 
@@ -106,7 +116,9 @@ describe('resolveVolumeTarget', () => {
         )
 
         expect(volume.serverRoot).toBe('/tmp/sandbox/tenant-1/xpert/123e4567-e89b-12d3-a456-426614174001')
-        expect(volume.publicBaseUrl).toBe('http://localhost:3000/api/sandbox/volume/xpert/123e4567-e89b-12d3-a456-426614174001')
+        expect(volume.publicBaseUrl).toBe(
+            'http://localhost:3000/api/sandbox/volume/xpert/123e4567-e89b-12d3-a456-426614174001'
+        )
     })
 
     it('normalizes multipart mojibake file names to utf8', () => {

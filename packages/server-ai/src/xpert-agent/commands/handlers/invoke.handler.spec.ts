@@ -68,9 +68,10 @@ jest.mock('../../../knowledgebase', () => ({
 
 import { RequestContext } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
-import { Observable } from 'rxjs'
+import { Observable, Subscriber } from 'rxjs'
+import { BaseStore } from '@langchain/langgraph-checkpoint'
 import { Command } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum } from '@xpert-ai/contracts'
+import { ChatMessageEventTypeEnum, IXpertAgentExecution } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
@@ -491,6 +492,92 @@ describe('XpertAgentInvokeHandler', () => {
                     workFor: {
                         type: 'user',
                         id: 'user-1'
+                    }
+                })
+            })
+        )
+    })
+
+    it('uses the project workspace root as sandbox working directory when projectId is provided', async () => {
+        const graph = createGraph()
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof SandboxAcquireBackendCommand) {
+                return {
+                    provider: 'local-shell-sandbox',
+                    workingDirectory: '/tmp/xpert-workspace'
+                }
+            }
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Original prompt'
+                    }
+                },
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {
+                        opener: {
+                            enabled: false,
+                            message: '',
+                            questions: []
+                        },
+                        suggestion: {
+                            enabled: false,
+                            prompt: ''
+                        },
+                        textToSpeech: {
+                            enabled: false
+                        },
+                        speechToText: {
+                            enabled: false
+                        },
+                        sandbox: {
+                            enabled: true,
+                            provider: 'local-shell-sandbox'
+                        }
+                    }
+                },
+                {
+                    isDraft: true,
+                    projectId: 'project-1',
+                    thread_id: 'thread-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    } as IXpertAgentExecution,
+                    rootExecutionId: 'execution-1',
+                    subscriber: new Subscriber<MessageEvent>(),
+                    store: null as unknown as BaseStore
+                }
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(volumeClient.resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            catalog: 'projects',
+            projectId: 'project-1',
+            userId: 'user-1'
+        })
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    provider: 'local-shell-sandbox',
+                    tenantId: 'tenant-1',
+                    workingDirectory: '/tmp/xpert-workspace',
+                    workFor: {
+                        type: 'project',
+                        id: 'project-1'
                     }
                 })
             })

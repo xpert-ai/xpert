@@ -1,7 +1,8 @@
 const mockEnvironment = {
     envName: 'dev',
     env: {
-        IS_DOCKER: ''
+        IS_DOCKER: '',
+        SANDBOX_FLATTENED_VOLUME_LAYOUT: undefined as string | undefined
     },
     sandboxConfig: {
         volume: ''
@@ -27,6 +28,7 @@ describe('volume layout helpers', () => {
     beforeEach(() => {
         mockEnvironment.envName = 'dev'
         mockEnvironment.env.IS_DOCKER = ''
+        delete mockEnvironment.env.SANDBOX_FLATTENED_VOLUME_LAYOUT
         mockEnvironment.sandboxConfig = {
             volume: ''
         }
@@ -39,7 +41,18 @@ describe('volume layout helpers', () => {
         process.env.USERPROFILE = originalUserProfile
     })
 
-    it('uses the flattened local data layout in development when sandbox volume is not configured', () => {
+    it('uses tenant-scoped local data layout in development when sandbox volume is not configured', () => {
+        expect(usesFlattenedSandboxVolumeLayout()).toBe(false)
+        expect(getApiContainerSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data/tenant-1')
+        expect(getDockerHostSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data/tenant-1')
+        expect(normalizeSandboxPublicVolumeSubpath('project/123e4567-e89b-12d3-a456-426614174000/file.txt')).toBe(
+            'project/123e4567-e89b-12d3-a456-426614174000/file.txt'
+        )
+    })
+
+    it('can opt into the legacy flattened local data layout in development', () => {
+        mockEnvironment.env.SANDBOX_FLATTENED_VOLUME_LAYOUT = 'true'
+
         expect(usesFlattenedSandboxVolumeLayout()).toBe(true)
         expect(getApiContainerSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data')
         expect(getDockerHostSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data')
@@ -56,11 +69,11 @@ describe('volume layout helpers', () => {
         )
     })
 
-    it('falls back to the flattened local data layout when sandboxConfig is missing', () => {
+    it('falls back to tenant-scoped local data layout when sandboxConfig is missing', () => {
         delete mockEnvironment.sandboxConfig
 
-        expect(usesFlattenedSandboxVolumeLayout()).toBe(true)
-        expect(getSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data')
+        expect(usesFlattenedSandboxVolumeLayout()).toBe(false)
+        expect(getSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data/tenant-1')
     })
 
     it('keeps tenant and logical subpath when sandbox volume is configured in development', () => {

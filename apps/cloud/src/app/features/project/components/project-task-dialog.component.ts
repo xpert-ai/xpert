@@ -11,7 +11,9 @@ import {
   IProjectSprint,
   IProjectSwimlane,
   IProjectTask,
+  IProjectTaskExecutionArtifact,
   ProjectSwimlaneKindEnum,
+  ProjectTaskExecutionArtifactTypeEnum,
   ProjectTaskStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage, injectToastr, ProjectTaskService } from '../../../@core'
@@ -21,10 +23,20 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardSelectImports
+  ZardSelectImports,
+  ZardTabsImports
 } from '@xpert-ai/headless-ui'
 import { formatProjectLabel, getDefaultTaskSwimlane, ProjectBoundTeamViewModel } from '../project-page.utils'
-import { getLatestTaskConversationId, openProjectTaskConversationDialog } from './project-task-conversation-dialog.component'
+import {
+  isExternalUrlArtifact,
+  isProjectWorkspaceArtifact,
+  openProjectTaskArtifactDialog,
+  projectArtifactPath
+} from './project-task-artifact-dialog.component'
+import {
+  getLatestTaskConversationId,
+  openProjectTaskConversationDialog
+} from './project-task-conversation-dialog.component'
 
 type ProjectTaskDialogData = {
   project: IProjectCore
@@ -49,7 +61,8 @@ type ProjectTaskDialogData = {
     ZardIconComponent,
     ZardInputDirective,
     ...ZardFormImports,
-    ...ZardSelectImports
+    ...ZardSelectImports,
+    ...ZardTabsImports
   ],
   templateUrl: './project-task-dialog.component.html',
   styles: `
@@ -58,7 +71,7 @@ type ProjectTaskDialogData = {
       width: min(60rem, calc(100vw - 2rem));
       max-width: 100%;
       max-height: 90vh;
-      overflow: auto;
+      overflow: hidden;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -111,9 +124,7 @@ export class ProjectTaskDialogComponent {
   readonly swimlaneIdValue = toSignal(this.form.controls.swimlaneId.valueChanges, {
     initialValue: this.form.controls.swimlaneId.value
   })
-  readonly selectedSwimlane = computed(
-    () => this.swimlanes.find((lane) => lane.id === this.swimlaneIdValue()) ?? null
-  )
+  readonly selectedSwimlane = computed(() => this.swimlanes.find((lane) => lane.id === this.swimlaneIdValue()) ?? null)
   readonly isBacklogLane = computed(
     () => (this.selectedSwimlane()?.kind ?? ProjectSwimlaneKindEnum.Execution) === ProjectSwimlaneKindEnum.Backlog
   )
@@ -125,25 +136,20 @@ export class ProjectTaskDialogComponent {
   )
   readonly hasTeams = computed(() => this.boundTeams.length > 0)
   readonly dialogTitle = computed(() =>
-    this.task
-      ? 'PAC.Project.TaskDialogEditTitle'
-      : 'PAC.Project.TaskDialogCreateTitle'
+    this.task ? 'PAC.Project.TaskDialogEditTitle' : 'PAC.Project.TaskDialogCreateTitle'
   )
-  readonly dialogTitleDefault = computed(() =>
-    this.task ? 'Task details' : 'Create task'
-  )
+  readonly dialogTitleDefault = computed(() => (this.task ? 'Task details' : 'Create task'))
   readonly latestConversationId = computed(() => getLatestTaskConversationId(this.task))
+  readonly artifacts = computed(() => this.task?.latestExecution?.artifacts ?? [])
 
   constructor() {
     effect(() => {
       this.normalizeBacklogLane(this.isBacklogLane())
     })
 
-    this.form.controls.swimlaneId.valueChanges
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((swimlaneId) => {
-        this.normalizeBacklogLane(this.isBacklogSwimlaneId(swimlaneId))
-      })
+    this.form.controls.swimlaneId.valueChanges.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((swimlaneId) => {
+      this.normalizeBacklogLane(this.isBacklogSwimlaneId(swimlaneId))
+    })
   }
 
   close() {
@@ -161,6 +167,61 @@ export class ProjectTaskDialogComponent {
     }
 
     openProjectTaskConversationDialog(this.#dialog, this.task)
+  }
+
+  artifactKey(index: number, artifact: IProjectTaskExecutionArtifact) {
+    switch (artifact.type) {
+      case ProjectTaskExecutionArtifactTypeEnum.ProjectFile:
+      case ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory:
+        return `${artifact.type}:${artifact.path}:${artifact.name}`
+      case ProjectTaskExecutionArtifactTypeEnum.ExternalUrl:
+        return `${artifact.type}:${artifact.url}:${artifact.name}`
+      default:
+        return `artifact:${index}`
+    }
+  }
+
+  artifactIcon(artifact: IProjectTaskExecutionArtifact) {
+    switch (artifact.type) {
+      case ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory:
+        return 'folder'
+      case ProjectTaskExecutionArtifactTypeEnum.ExternalUrl:
+        return 'arrow-up-right'
+      default:
+        return 'file'
+    }
+  }
+
+  artifactDetail(artifact: IProjectTaskExecutionArtifact) {
+    switch (artifact.type) {
+      case ProjectTaskExecutionArtifactTypeEnum.ProjectFile:
+      case ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory:
+        return projectArtifactPath(artifact)
+      case ProjectTaskExecutionArtifactTypeEnum.ExternalUrl:
+        return artifact.url
+      default:
+        return ''
+    }
+  }
+
+  isArtifactOpenable(artifact: IProjectTaskExecutionArtifact) {
+    return isProjectWorkspaceArtifact(artifact) || isExternalUrlArtifact(artifact)
+  }
+
+  openArtifact(event: Event, artifact: IProjectTaskExecutionArtifact) {
+    event.stopPropagation()
+    if (!this.task) {
+      return
+    }
+
+    if (isProjectWorkspaceArtifact(artifact)) {
+      openProjectTaskArtifactDialog(this.#dialog, this.task, artifact)
+      return
+    }
+
+    if (isExternalUrlArtifact(artifact)) {
+      window.open(artifact.url.trim(), '_blank', 'noopener,noreferrer')
+    }
   }
 
   toggleDependency(taskId: string) {

@@ -34,7 +34,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import type { ClassValue } from 'clsx';
 import { debounceTime, distinctUntilChanged, fromEvent, map, merge } from 'rxjs';
 
-import { mergeClasses } from '../../utils/merge-classes';
+import { cx, mergeClasses } from '../../utils/merge-classes';
 import { ZardIconComponent } from '../icon/icon.component';
 import {
   tabButtonVariants,
@@ -336,7 +336,7 @@ export class ZardTabComponent {
     <ng-template #navigationBlock>
       @let horizontal = isHorizontal();
 
-      <div [class]="navGridClasses()">
+      <div [class]="cx(navGridClasses(), 'shrink-0')">
         @if (showArrow()) {
           @if (horizontal) {
             <button
@@ -450,6 +450,7 @@ export class ZardTabComponent {
   },
 })
 export class ZardTabGroupComponent implements AfterContentInit, AfterViewInit {
+  cx = cx
   private readonly tabComponents = contentChildren(ZardTabComponent, { descendants: true });
   private readonly tabsContainer = viewChild.required<ElementRef<HTMLElement>>('tabNav');
   private readonly triggerElements = viewChildren<ElementRef<HTMLElement>>('tabTrigger');

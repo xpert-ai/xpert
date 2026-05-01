@@ -96,7 +96,7 @@ z-dialog {
 .cdk-overlay-backdrop.xp-overlay-share-sheet {
   pointer-events: auto;
   backdrop-filter: blur(4px);
-  background-color: rgba(249, 249, 249, 0.8);
+  background-color: var(--color-overlay-backdrop-strong);
 }
 
 .cdk-overlay-pane.xp-overlay-pane-share-sheet {

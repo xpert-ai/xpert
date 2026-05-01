@@ -4,6 +4,7 @@ import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	IProjectTaskExecutionArtifact,
+	ProjectTaskExecutionArtifactTypeEnum,
 	ProjectTaskExecutionOutcomeEnum,
 	ProjectTaskExecutionStatusEnum,
 	ProjectTaskStatusEnum,
@@ -40,19 +41,63 @@ export interface ProjectTaskDispatchPayload extends Record<string, unknown> {
 
 const PROJECT_TASK_OUTCOME_TOOL_NAME = 'reportProjectTaskOutcome'
 
-const taskOutcomeArtifactSchema = z.object({
-	type: z.string().min(1),
-	name: z.string().min(1),
-	url: z.string().optional(),
-	metadata: z.unknown().optional()
-}).transform(
-	(artifact): IProjectTaskExecutionArtifact => ({
-		type: artifact.type,
-		name: artifact.name,
-		url: artifact.url,
-		metadata: artifact.metadata
+const taskArtifactPathSchema = z
+	.string()
+	.min(1)
+	.refine((path) => !isAbsoluteOrUrlPath(path), {
+		message: 'Project task artifact path must be relative to the project workspace.'
 	})
-)
+	.transform(normalizeProjectTaskArtifactPath)
+	.refine((path) => isProjectWorkspaceRelativePath(path), {
+		message: 'Project task artifact path cannot be empty, current-directory, or parent-directory relative.'
+	})
+
+const taskOutcomeArtifactSchema = z
+	.discriminatedUnion('type', [
+		z.object({
+			type: z.literal(ProjectTaskExecutionArtifactTypeEnum.ProjectFile),
+			name: z.string().min(1),
+			path: taskArtifactPathSchema,
+			metadata: z.unknown().optional()
+		}),
+		z.object({
+			type: z.literal(ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory),
+			name: z.string().min(1),
+			path: taskArtifactPathSchema,
+			metadata: z.unknown().optional()
+		}),
+		z.object({
+			type: z.literal(ProjectTaskExecutionArtifactTypeEnum.ExternalUrl),
+			name: z.string().min(1),
+			url: z.string().min(1),
+			metadata: z.unknown().optional()
+		})
+	])
+	.transform((artifact): IProjectTaskExecutionArtifact => {
+		switch (artifact.type) {
+			case ProjectTaskExecutionArtifactTypeEnum.ProjectFile:
+				return {
+					type: ProjectTaskExecutionArtifactTypeEnum.ProjectFile,
+					name: artifact.name,
+					path: artifact.path,
+					metadata: artifact.metadata
+				}
+			case ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory:
+				return {
+					type: ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory,
+					name: artifact.name,
+					path: artifact.path,
+					metadata: artifact.metadata
+				}
+			case ProjectTaskExecutionArtifactTypeEnum.ExternalUrl:
+				return {
+					type: ProjectTaskExecutionArtifactTypeEnum.ExternalUrl,
+					name: artifact.name,
+					url: artifact.url,
+					metadata: artifact.metadata
+				}
+		}
+	})
 
 const taskOutcomeSchema = z.object({
 	outcome: z.nativeEnum(ProjectTaskExecutionOutcomeEnum),
@@ -608,6 +653,11 @@ function buildProjectTaskWorkerPrompt(task: ProjectTask) {
 		`Sprint ID: ${task.sprintId}`,
 		`Title: ${task.title}`,
 		'Use your available tools to complete the work.',
+		'Use the project workspace as the working directory for task files and deliverables.',
+		`Write durable task deliverables under a project-relative folder such as deliverables/${task.id}/ unless the task requires another project-relative location.`,
+		`Report project workspace artifacts as { "type": "project_file", "name": "...", "path": "relative/path" } or { "type": "project_directory", "name": "...", "path": "relative/path" }.`,
+		'Artifact paths must be relative to the project workspace; do not report absolute paths, URLs, or metadata-only paths for project files/directories.',
+		`Report outside links as { "type": "external_url", "name": "...", "url": "https://..." }.`,
 		`The task is not complete until you call ${PROJECT_TASK_OUTCOME_TOOL_NAME}.`,
 		`When finished, call ${PROJECT_TASK_OUTCOME_TOOL_NAME} exactly once with outcome, summary, and any artifacts.`,
 		`If you cannot complete the work, call ${PROJECT_TASK_OUTCOME_TOOL_NAME} with outcome "failed" and an error.`
@@ -635,4 +685,18 @@ function readStringProperty(value: unknown, property: string): string | undefine
 function normalizeTaskSummary(value: string) {
 	const normalized = value.replace(/\s+/g, ' ').trim()
 	return normalized.length > 2000 ? `${normalized.slice(0, 1997)}...` : normalized
+}
+
+function normalizeProjectTaskArtifactPath(value: string) {
+	return value.trim().replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+/g, '/').replace(/\/+$/, '')
+}
+
+function isAbsoluteOrUrlPath(value: string) {
+	const path = value.trim()
+	return path.startsWith('/') || /^[a-z][a-z0-9+.-]*:\/\//i.test(path) || /^[a-z]:[\\/]/i.test(path)
+}
+
+function isProjectWorkspaceRelativePath(value: string) {
+	const segments = value.split('/').filter(Boolean)
+	return segments.length > 0 && segments.every((segment) => segment !== '.' && segment !== '..')
 }
