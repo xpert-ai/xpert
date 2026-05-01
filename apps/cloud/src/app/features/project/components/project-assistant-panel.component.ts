@@ -4,8 +4,9 @@ import { TranslatePipe } from '@xpert-ai/core'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
-import type { IProjectCore } from '@xpert-ai/contracts'
+import type { IProjectCore, IProjectTask } from '@xpert-ai/contracts'
 import { ProjectAssistantFacade } from '../project-assistant.facade'
+import { ProjectTaskAssistantFacade } from '../project-task-assistant.facade'
 import { ProjectEmptyStateComponent } from './project-empty-state.component'
 
 @Component({
@@ -29,17 +30,20 @@ import { ProjectEmptyStateComponent } from './project-empty-state.component'
   ],
   templateUrl: './project-assistant-panel.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [ProjectAssistantFacade]
+  providers: [ProjectAssistantFacade, ProjectTaskAssistantFacade]
 })
 export class ProjectAssistantPanelComponent {
   readonly #logPrefix = '[ProjectChatKit]'
 
   readonly project = input<IProjectCore | null>(null)
   readonly loading = input(false)
+  readonly taskConversation = input<IProjectTask | null>(null)
   readonly bindRequested = output<void>()
+  readonly taskConversationClosed = output<void>()
   readonly projectDataRefreshRequested = output<void>()
 
   readonly facade = inject(ProjectAssistantFacade)
+  readonly taskFacade = inject(ProjectTaskAssistantFacade)
 
   constructor() {
     this.facade.setProjectDataRefreshRequested(() => {
@@ -49,21 +53,26 @@ export class ProjectAssistantPanelComponent {
       this.projectDataRefreshRequested.emit()
     })
 
-    effect(
-      () => {
-        const loading = this.loading()
-        const project = this.project()
+    effect(() => {
+      const loading = this.loading()
+      const project = this.project()
+      const taskConversation = this.taskConversation()
 
-        untracked(() => {
-          this.facade.setPageLoading(loading)
-          this.facade.setProject(project)
-        })
-      },
-      { allowSignalWrites: true }
-    )
+      untracked(() => {
+        this.facade.setPageLoading(loading)
+        this.facade.setProject(project)
+        this.taskFacade.setProject(project)
+        this.taskFacade.setTaskConversation(taskConversation)
+      })
+    })
   }
 
   requestBind() {
     this.bindRequested.emit()
+  }
+
+  closeTaskConversation() {
+    this.taskFacade.setTaskConversation(null)
+    this.taskConversationClosed.emit()
   }
 }

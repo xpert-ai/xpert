@@ -62,6 +62,7 @@
           [task]="task"
           [teamNames]="teamNames()"
           (opened)="taskOpened.emit($event)"
+          (conversationRequested)="taskConversationRequested.emit($event)"
         />
       </div>
     } @empty {

@@ -57,7 +57,6 @@ const collectTransformPackages = (seedPackages: readonly string[]): string[] => 
 }
 
 const escapeRegex = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
-const escapeRegex = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
 const transformPackages = collectTransformPackages(transformSeedPackages)
 const transformAllowList = [...staticTransformAllowList, ...transformPackages]
 const transformIgnorePattern = transformAllowList.length

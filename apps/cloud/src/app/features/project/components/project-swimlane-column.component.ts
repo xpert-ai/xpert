@@ -28,6 +28,7 @@ export class ProjectSwimlaneColumnComponent {
   readonly createTaskRequested = output<string>()
   readonly taskDropped = output<ProjectBoardTaskDropEvent>()
   readonly taskOpened = output<IProjectTask>()
+  readonly taskConversationRequested = output<IProjectTask>()
   readonly taskStatusChanged = output<{ task: IProjectTask; status: ProjectTaskStatusEnum }>()
 
   readonly laneKeyLabel = computed(() => formatProjectLabel(this.column().lane.key))

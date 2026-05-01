@@ -1,8 +1,8 @@
 import { BreakpointObserver } from '@angular/cdk/layout'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { IProjectSprint } from '@xpert-ai/contracts'
+import { IProjectSprint, IProjectTask } from '@xpert-ai/contracts'
 import { TranslatePipe } from '@xpert-ai/core'
 import { ZardButtonComponent, ZardIconComponent, ZardSelectImports, type ZardSelectValue } from '@xpert-ai/headless-ui'
 import { NgmResizableDirective } from '@xpert-ai/ocap-angular/common'
@@ -53,9 +53,22 @@ export class ProjectKanbanPageComponent {
           : false
     }
   )
+  readonly selectedTaskConversation = signal<IProjectTask | null>(null)
 
   readonly sprintStatusLabel = computed(() => formatProjectLabel(this.facade.selectedSprint()?.status))
   readonly strategyLabel = computed(() => formatProjectLabel(this.facade.selectedSprint()?.strategyType))
+
+  constructor() {
+    effect(() => {
+      const projectId = this.facade.selectedProject()?.id ?? null
+      const task = this.selectedTaskConversation()
+      if (!task || task.projectId === projectId) {
+        return
+      }
+
+      untracked(() => this.selectedTaskConversation.set(null))
+    })
+  }
 
   sprintLabel(sprint: IProjectSprint) {
     return sprint.goal || sprint.id || ''
@@ -70,6 +83,14 @@ export class ProjectKanbanPageComponent {
     if (typeof value === 'number') {
       void this.facade.selectSprint(String(value))
     }
+  }
+
+  openTaskConversation(task: IProjectTask) {
+    this.selectedTaskConversation.set(task)
+  }
+
+  closeTaskConversation() {
+    this.selectedTaskConversation.set(null)
   }
 
   async handleAssistantProjectDataRefresh() {

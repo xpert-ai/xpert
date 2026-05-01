@@ -26,5 +26,6 @@ export class ProjectBoardComponent {
   readonly taskDropped = output<ProjectBoardTaskDropEvent>()
   readonly taskCreateRequested = output<string>()
   readonly taskOpened = output<IProjectTask>()
+  readonly taskConversationRequested = output<IProjectTask>()
   readonly taskStatusChanged = output<{ task: IProjectTask; status: ProjectTaskStatusEnum }>()
 }

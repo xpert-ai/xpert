@@ -1,6 +1,12 @@
 import { computed, inject, Injectable, signal } from '@angular/core'
 import type { ChatKitEventHandlers } from '@xpert-ai/chatkit-angular'
-import { AssistantBindingScope, AssistantCode, type IChatConversation, type IProjectCore, type IXpert } from '@xpert-ai/contracts'
+import {
+  AssistantBindingScope,
+  AssistantCode,
+  type IChatConversation,
+  type IProjectCore,
+  type IXpert
+} from '@xpert-ai/contracts'
 import { ChatConversationService } from '../../@core/services/chat-conversation.service'
 import { AssistantBindingService } from '../../@core/services/assistant-binding.service'
 import { getErrorMessage } from '../../@core/types'
@@ -226,7 +232,7 @@ export class ProjectAssistantFacade {
     return `${project.id}:${project.mainAssistantId}`
   }
 
-  private trackProjectMutationLog(event: ProjectAssistantLogEvent) {
+  trackProjectMutationLog(event: ProjectAssistantLogEvent) {
     const toolName = typeof event.data?.toolName === 'string' ? event.data.toolName.trim() : ''
     const matchesRefreshLog = event.name === PROJECT_MUTATION_LOG_NAME && PROJECT_MUTATION_TOOL_NAMES.has(toolName)
 
@@ -318,7 +324,7 @@ export class ProjectAssistantFacade {
     }
   }
 
-  private logChatkitEffect(event: ProjectAssistantEffectEvent) {
+  logChatkitEffect(event: ProjectAssistantEffectEvent) {
     this.debugLog('Received ChatKit effect event', {
       effectName: event.name,
       effectData: event.data ?? null

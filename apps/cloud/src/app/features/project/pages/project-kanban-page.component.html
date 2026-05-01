@@ -136,6 +136,7 @@
             [teamNames]="facade.teamNameById()"
             (taskCreateRequested)="shell.openTaskDialog(null, $event)"
             (taskDropped)="facade.moveTask($event)"
+            (taskConversationRequested)="openTaskConversation($event)"
             (taskOpened)="shell.openTaskDialog($event.id)"
             (taskStatusChanged)="facade.updateTaskStatus($event.task, $event.status)"
           />
@@ -164,7 +165,9 @@
     class="h-full min-h-0 w-full min-w-0"
     [project]="facade.selectedProject()"
     [loading]="facade.loading()"
+    [taskConversation]="selectedTaskConversation()"
     (bindRequested)="shell.openBindMainAgent(facade.selectedProject())"
+    (taskConversationClosed)="closeTaskConversation()"
     (projectDataRefreshRequested)="handleAssistantProjectDataRefresh()"
   />
 </ng-template>

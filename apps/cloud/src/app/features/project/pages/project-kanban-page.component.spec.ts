@@ -1,3 +1,7 @@
+jest.mock('../project-shell.component', () => ({
+  ProjectShellComponent: class ProjectShellComponent {}
+}))
+
 import { BreakpointObserver } from '@angular/cdk/layout'
 import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, Input, NO_ERRORS_SCHEMA, Output, Pipe, PipeTransform, computed, signal } from '@angular/core'
@@ -9,9 +13,11 @@ import {
   createSprintId,
   IProjectCore,
   IProjectSprint,
+  IProjectTask,
   ProjectCoreStatusEnum,
   ProjectSprintStatusEnum,
-  ProjectSprintStrategyEnum
+  ProjectSprintStrategyEnum,
+  ProjectTaskStatusEnum
 } from '@xpert-ai/contracts'
 import { ProjectPageFacade } from '../project-page.facade'
 import { ProjectShellComponent } from '../project-shell.component'
@@ -35,8 +41,27 @@ class TranslateStubPipe implements PipeTransform {
 class ProjectAssistantPanelStubComponent {
   @Input() project?: IProjectCore | null
   @Input() loading?: boolean
+  @Input() taskConversation?: IProjectTask | null
   @Output() bindRequested = new EventEmitter<void>()
+  @Output() taskConversationClosed = new EventEmitter<void>()
   @Output() projectDataRefreshRequested = new EventEmitter<void>()
+}
+
+@Component({
+  standalone: true,
+  selector: 'xp-project-board',
+  template: ''
+})
+class ProjectBoardStubComponent {
+  @Input() columns?: unknown[]
+  @Input() hasTasks?: boolean
+  @Input() loading?: boolean
+  @Input() teamNames?: Map<string, string>
+  @Output() taskCreateRequested = new EventEmitter<string>()
+  @Output() taskDropped = new EventEmitter<unknown>()
+  @Output() taskConversationRequested = new EventEmitter<IProjectTask>()
+  @Output() taskOpened = new EventEmitter<IProjectTask>()
+  @Output() taskStatusChanged = new EventEmitter<unknown>()
 }
 
 describe('ProjectKanbanPageComponent', () => {
@@ -117,7 +142,7 @@ describe('ProjectKanbanPageComponent', () => {
     })
     TestBed.overrideComponent(ProjectKanbanPageComponent, {
       set: {
-        imports: [CommonModule, TranslateStubPipe, ProjectAssistantPanelStubComponent],
+        imports: [CommonModule, TranslateStubPipe, ProjectAssistantPanelStubComponent, ProjectBoardStubComponent],
         schemas: [NO_ERRORS_SCHEMA]
       }
     })
@@ -146,5 +171,33 @@ describe('ProjectKanbanPageComponent', () => {
 
     assistant.projectDataRefreshRequested.emit()
     expect(facade.refresh).toHaveBeenCalled()
+  })
+
+  it('opens task card conversations in the assistant rail and closes them from the panel', () => {
+    const { fixture } = createComponent()
+    const task: IProjectTask = {
+      id: 'task-1',
+      projectId: createProjectId('project-1'),
+      sprintId: createSprintId('sprint-1'),
+      swimlaneId: 'lane-1',
+      title: 'Task conversation',
+      sortOrder: 0,
+      status: ProjectTaskStatusEnum.Done,
+      dependencies: []
+    }
+    const board = fixture.debugElement.query(By.directive(ProjectBoardStubComponent))
+      .componentInstance as ProjectBoardStubComponent
+    const assistant = fixture.debugElement.query(By.directive(ProjectAssistantPanelStubComponent))
+      .componentInstance as ProjectAssistantPanelStubComponent
+
+    board.taskConversationRequested.emit(task)
+    fixture.detectChanges()
+
+    expect(assistant.taskConversation).toBe(task)
+
+    assistant.taskConversationClosed.emit()
+    fixture.detectChanges()
+
+    expect(assistant.taskConversation).toBeNull()
   })
 })

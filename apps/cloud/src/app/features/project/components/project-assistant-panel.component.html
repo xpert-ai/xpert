@@ -98,8 +98,103 @@
       </div>
     }
     @default {
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-background-default">
+      <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-components-panel-bg">
         <xpert-chatkit class="h-full min-h-[28rem]" [control]="facade.control()!" />
+
+        @if (taskFacade.taskConversation()) {
+          <section class="absolute inset-0 z-10 flex min-h-0 flex-col overflow-hidden rounded-[24px] bg-components-panel-bg">
+            <header class="flex items-center gap-3 border-b border-divider-regular px-4 py-3">
+              <button
+                type="button"
+                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                [attr.aria-label]="'PAC.Project.BackToMainAssistant' | translate: { Default: 'Back to main assistant' }"
+                (click)="closeTaskConversation()"
+              >
+                <z-icon zType="arrow-left" class="text-lg"></z-icon>
+              </button>
+
+              <div class="min-w-0 flex-1">
+                <div class="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+                  {{ 'PAC.Project.TaskConversation' | translate: { Default: 'Task conversation' } }}
+                </div>
+                <div class="mt-1 truncate text-sm font-semibold text-text-primary">
+                  {{ taskFacade.title() }}
+                </div>
+              </div>
+            </header>
+
+            @switch (taskFacade.viewState()) {
+              @case ('ready') {
+                <xpert-chatkit class="h-full min-h-0 flex-1" [control]="taskFacade.control()!" />
+              }
+              @case ('loading') {
+                <div class="flex min-h-0 flex-1 items-center justify-center">
+                  <ngm-spin />
+                </div>
+              }
+              @case ('error') {
+                <div class="flex min-h-0 flex-1 items-center justify-center px-6">
+                  <xp-project-empty-state
+                    icon="ri-error-warning-line"
+                    [title]="'PAC.Project.TaskConversationErrorTitle' | translate: { Default: 'Failed to open task conversation' }"
+                    [description]="
+                      taskFacade.error() ||
+                      ('PAC.Project.TaskConversationErrorDescription' | translate: { Default: 'Try again in a moment.' })
+                    "
+                  >
+                    <button
+                      z-button
+                      zType="default"
+                      projectEmptyStateActions
+                      type="button"
+                      class="rounded-2xl"
+                      (click)="taskFacade.refresh()"
+                    >
+                      <z-icon zType="refresh"></z-icon>
+                      {{ 'PAC.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
+                    </button>
+                  </xp-project-empty-state>
+                </div>
+              }
+              @case ('missing-thread') {
+                <div class="flex min-h-0 flex-1 items-center justify-center px-6">
+                  <xp-project-empty-state
+                    icon="ri-chat-history-line"
+                    [title]="'PAC.Project.TaskConversationMissingThreadTitle' | translate: { Default: 'Conversation thread unavailable' }"
+                    [description]="
+                      'PAC.Project.TaskConversationMissingThreadDescription'
+                        | translate: { Default: 'This task conversation exists, but its thread is not available yet.' }
+                    "
+                  />
+                </div>
+              }
+              @case ('missing-assistant') {
+                <div class="flex min-h-0 flex-1 items-center justify-center px-6">
+                  <xp-project-empty-state
+                    icon="ri-robot-2-line"
+                    [title]="'PAC.Project.TaskConversationMissingAssistantTitle' | translate: { Default: 'Assistant unavailable' }"
+                    [description]="
+                      'PAC.Project.TaskConversationMissingAssistantDescription'
+                        | translate: { Default: 'This task conversation is missing its assistant reference.' }
+                    "
+                  />
+                </div>
+              }
+              @default {
+                <div class="flex min-h-0 flex-1 items-center justify-center px-6">
+                  <xp-project-empty-state
+                    icon="ri-chat-history-line"
+                    [title]="'PAC.Project.TaskConversationUnavailableTitle' | translate: { Default: 'Task conversation unavailable' }"
+                    [description]="
+                      'PAC.Project.TaskConversationUnavailableDescription'
+                        | translate: { Default: 'This task does not have an assistant conversation to open.' }
+                    "
+                  />
+                </div>
+              }
+            }
+          </section>
+        }
       </div>
     }
   }
