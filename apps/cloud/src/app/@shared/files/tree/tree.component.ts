@@ -126,7 +126,7 @@ export class FileTreeComponent {
   }
 
   showActions(item: FileTreeNode) {
-    return !item.hasChildren && (this.canDownload() || this.canDelete())
+    return this.canDelete() || (!item.hasChildren && this.canDownload())
   }
 
   onItemClick(item: FileTreeNode) {

@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { IOrganizationCreateInput, OrganizationDemoNetworkEnum } from '@xpert-ai/contracts'
+import { IFeatureOrganization, IOrganizationCreateInput, IUser, OrganizationDemoNetworkEnum } from '@xpert-ai/contracts'
 import { CURRENT_USER_FULL_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
 import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -640,7 +640,40 @@ export class OrganizationsComponent {
   }
 
   private async refreshCurrentUserContext() {
-    this.#store.user = await this.#usersService.getMe([...CURRENT_USER_FULL_RELATIONS])
-    this.#store.featureTenant = this.#store.user.tenant.featureOrganizations.filter((item) => !item.organizationId)
+    const user = await this.#usersService.getMe([...CURRENT_USER_FULL_RELATIONS])
+    this.#store.user = user
+    this.#store.featureTenant = (user.tenant?.featureOrganizations ?? []).filter((item) => !item.organizationId)
+    this.syncCurrentUserSelectedOrganization(user)
+  }
+
+  private syncCurrentUserSelectedOrganization(user: IUser) {
+    const memberships = (user.organizations ?? []).filter((membership) => !!membership.organization?.id)
+    const selectedOrganizationId = this.#store.selectedOrganization?.id ?? this.selectedOrganization()?.id ?? null
+    const selectedMembership =
+      (selectedOrganizationId
+        ? memberships.find((membership) => membership.organization?.id === selectedOrganizationId)
+        : null) ??
+      memberships.find((membership) => membership.isDefault) ??
+      memberships[0] ??
+      null
+    const selectedOrganization = selectedMembership?.organization ?? null
+    const featureOrganizations: IFeatureOrganization[] = selectedOrganization?.featureOrganizations ?? []
+    const componentOrganizationId = this.selectedOrganization()?.id ?? null
+    const componentOrganizationExists = componentOrganizationId
+      ? memberships.some((membership) => membership.organization?.id === componentOrganizationId)
+      : false
+
+    this.#store.selectedOrganization = selectedOrganization
+    this.#store.featureOrganizations = featureOrganizations
+
+    if (
+      selectedOrganization &&
+      (!componentOrganizationId || componentOrganizationId === selectedOrganization.id || !componentOrganizationExists)
+    ) {
+      this.selectedOrganization.set(selectedOrganization)
+      this.patchForm(selectedOrganization)
+    } else if (!selectedOrganization) {
+      this.selectedOrganization.set(null)
+    }
   }
 }

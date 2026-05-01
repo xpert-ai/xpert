@@ -55,6 +55,11 @@ import { hydrateHumanInput, hydrateSendRequestHumanInput, normalizeReferences } 
 import { hasExplicitPlanModeFlag, isPlanModeEnabledFromState } from '../../../shared/agent/plan-mode'
 import { collectPendingFollowUpsByClientMessageId } from '../../../shared/agent/persisted-follow-up'
 import { normalizeChatState } from '../../../shared/agent/utils'
+import {
+    getRuntimeCapabilitiesFromState,
+    hasExplicitRuntimeCapabilities,
+    TRuntimeCapabilitiesSelection
+} from '../../../shared/agent/runtime-capabilities'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
@@ -281,14 +286,20 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 throw new BadRequestException('Missing resume target execution')
             }
             state ??= normalizeChatState()
-            if (!hasExplicitPlanModeFlag(state)) {
+            if (!hasExplicitPlanModeFlag(state) || !hasExplicitRuntimeCapabilities(state)) {
                 const targetExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(executionId))
-                if (isPlanModeEnabledFromState(targetExecution?.inputs)) {
+                const inheritedRuntimeCapabilities = !hasExplicitRuntimeCapabilities(state)
+                    ? getRuntimeCapabilitiesFromState(targetExecution?.inputs)
+                    : null
+                if (isPlanModeEnabledFromState(targetExecution?.inputs) || inheritedRuntimeCapabilities) {
                     state = normalizeChatState({
                         ...state,
                         [STATE_VARIABLE_HUMAN]: {
                             ...(state[STATE_VARIABLE_HUMAN] ?? {}),
-                            planMode: true
+                            ...(isPlanModeEnabledFromState(targetExecution?.inputs) ? { planMode: true } : {}),
+                            ...(inheritedRuntimeCapabilities
+                                ? { runtimeCapabilities: inheritedRuntimeCapabilities }
+                                : {})
                         }
                     })
                     input = state[STATE_VARIABLE_HUMAN]
@@ -514,12 +525,25 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             )
         }
         state ??= normalizeChatState(undefined, input)
+        const conversationRuntimeCapabilities = conversation.options?.runtimeCapabilities
+        if (!hasExplicitRuntimeCapabilities(state) && conversationRuntimeCapabilities) {
+            state = normalizeChatState({
+                ...state,
+                [STATE_VARIABLE_HUMAN]: {
+                    ...(state[STATE_VARIABLE_HUMAN] ?? {}),
+                    runtimeCapabilities: conversationRuntimeCapabilities
+                }
+            })
+            input = state[STATE_VARIABLE_HUMAN] ?? input
+        }
         state = withPreferenceSystemState(state, userPreference)
+        const runtimeCapabilities = getRuntimeCapabilitiesFromState(state)
         state = withPreferenceSkillState(
             state,
             latestXpert?.workspaceId ?? xpert.workspaceId,
             userPreference?.toolPreferences,
-            forceWorkspaceSkillBlacklistMode
+            forceWorkspaceSkillBlacklistMode,
+            runtimeCapabilities
         )
 
         const chatEventContext: XpertChatEventBridgeContext = {
@@ -612,6 +636,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             conversationId: conversation.id,
                             isDraft: options?.isDraft,
                             toolPreferences: userPreference?.toolPreferences ?? null,
+                            runtimeCapabilities,
                             planMode: isPlanModeEnabledFromState(state),
                             execution: { id: executionId, category: 'agent' },
                             resume:
@@ -986,9 +1011,20 @@ function withPreferenceSkillState(
     state: Record<string, any>,
     workspaceId?: string | null,
     toolPreferences?: IAssistantBindingToolPreferences | null,
-    forceWorkspaceSkillBlacklistMode = false
+    forceWorkspaceSkillBlacklistMode = false,
+    runtimeCapabilities?: TRuntimeCapabilitiesSelection | null
 ) {
-    const normalizedWorkspaceId = workspaceId?.trim() || undefined
+    const normalizedWorkspaceId = runtimeCapabilities?.skills?.workspaceId?.trim() || workspaceId?.trim() || undefined
+
+    if (runtimeCapabilities?.mode === 'allowlist') {
+        return {
+            ...state,
+            selectedSkillWorkspaceId: normalizedWorkspaceId,
+            selectedSkillIds: runtimeCapabilities.skills?.ids ?? [],
+            disabledSkillIds: [],
+            skillSelectionMode: undefined
+        }
+    }
 
     return {
         ...state,

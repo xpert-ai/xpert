@@ -1,12 +1,15 @@
 import { IUser, IUserOrganization, IUserOrganizationPreferences, RolesEnum } from '@xpert-ai/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import type { Cache } from 'cache-manager';
 import { DeepPartial, DeleteResult, FindOneOptions, FindOptionsWhere, Repository } from 'typeorm';
 import { TenantAwareCrudService } from './../core/crud';
 import { UserOrganizationCreatedEvent, EVENT_USER_ORGANIZATION_CREATED } from '../user/events';
 import { Organization, UserOrganization } from './../core/entities/internal';
 import { RequestContext } from '../core/context';
+import { touchCurrentUserFeatureUserCacheVersion } from '../user/current-user-feature-cache';
 
 type DeleteMembershipOptions = FindOneOptions<UserOrganization> & {
 	allowDeletingLastMembership?: boolean
@@ -21,7 +24,10 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 
 		@InjectRepository(Organization)
 		private readonly organizationRepository: Repository<Organization>,
-		private readonly eventEmitter: EventEmitter2
+		private readonly eventEmitter: EventEmitter2,
+		@Optional()
+		@Inject(CACHE_MANAGER)
+		private readonly cacheManager?: Cache
 	) {
 		super(userOrganizationRepository);
 	}
@@ -312,7 +318,13 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 
 	override async create(entity: DeepPartial<UserOrganization>, ...options: any[]) {
 		const payload = await this.prepareCreateEntity(entity)
-		return super.create(payload, ...options)
+		const membership = await super.create(payload, ...options)
+		await touchCurrentUserFeatureUserCacheVersion(
+			this.cacheManager,
+			payload.tenantId,
+			payload.userId
+		)
+		return membership
 	}
 
 	override async update(
@@ -330,7 +342,13 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			await this.ensureUniqueDefault(membership.userId, membership.tenantId, membership.id)
 		}
 
-		return super.update(id, entity as Partial<UserOrganization>, ...options)
+		const result = await super.update(id, entity as Partial<UserOrganization>, ...options)
+		await touchCurrentUserFeatureUserCacheVersion(
+			this.cacheManager,
+			membership.tenantId,
+			membership.userId
+		)
+		return result
 	}
 
 	override async delete(
@@ -357,6 +375,11 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			}
 		}
 
+		await touchCurrentUserFeatureUserCacheVersion(
+			this.cacheManager,
+			membership.tenantId,
+			membership.userId
+		)
 		return result
 	}
 

@@ -5,7 +5,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { IsDirty } from '@xpert-ai/core'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
@@ -41,6 +41,8 @@ import { XpertService } from '../xpert.service'
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
+    ZardButtonComponent,
+    ZardIconComponent,
     ZardInputDirective,
     NgmDensityDirective,
     EmojiAvatarComponent,

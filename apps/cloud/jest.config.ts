@@ -4,8 +4,8 @@ const path = require('node:path')
 
 const workspaceRoot = path.resolve(__dirname, '../..')
 const nodeModulesRoot = path.join(workspaceRoot, 'node_modules')
-const transformSeedPackages = ['@xpert-ai/chatkit-types']
-const staticTransformAllowList = ['lodash-es', 'nanoid', 'marked', '@angular/common/locales']
+const transformSeedPackages: string[] = ['@xpert-ai/chatkit-types']
+const staticTransformAllowList: string[] = ['lodash-es', 'nanoid', 'marked', '@angular/common/locales']
 
 type DependencyMap = { [packageName: string]: string }
 
@@ -56,6 +56,7 @@ const collectTransformPackages = (seedPackages: readonly string[]): string[] => 
   return Array.from(seen)
 }
 
+const escapeRegex = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
 const escapeRegex = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
 const transformPackages = collectTransformPackages(transformSeedPackages)
 const transformAllowList = [...staticTransformAllowList, ...transformPackages]

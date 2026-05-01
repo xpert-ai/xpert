@@ -41,6 +41,7 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
   readonly middlewareEntity = computed(() => this.entity() as IWFNMiddleware)
   readonly description = computed(() => this.middlewareEntity()?.description)
   readonly provider = computed(() => this.middlewareEntity()?.provider)
+  readonly required = computed(() => this.middlewareEntity()?.required === true)
 
   readonly parentAgents = computed(
     () => {

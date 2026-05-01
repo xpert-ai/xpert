@@ -31,6 +31,8 @@ export class XpertStudioConnectionMenuComponent {
   // States
   readonly agentKey = computed(() => (this.connection().type === 'toolset' ? this.connection().from : null))
   readonly toolsetId = computed(() => (this.connection().type === 'toolset' ? this.connection().to : null))
+  readonly isSubAgentConnection = computed(() => ['agent', 'xpert'].includes(this.connection()?.type))
+  readonly requiredSubAgent = computed(() => !!this.connection()?.required)
 
   readonly agentNode = computed(
     () =>
@@ -91,6 +93,16 @@ export class XpertStudioConnectionMenuComponent {
         }
       }
     })
+  }
+
+  updateSubAgentRequired(required: boolean) {
+    const connection = this.connection()
+    if (!connection || connection.readonly) return
+
+    this.studioService.updateConnection(connection.key, (item) => ({
+      ...item,
+      required
+    }))
   }
 
   removeConnection() {

@@ -4,13 +4,35 @@ jest.mock('../../xpert.service', () => ({
     XpertService: class XpertService {}
 }))
 
+jest.mock('../../../xpert-template/xpert-template.service', () => ({
+    XpertTemplateService: class XpertTemplateService {}
+}))
+
 import { XpertService } from '../../xpert.service'
+import { XpertTemplateService } from '../../../xpert-template/xpert-template.service'
 import { XpertDeleteCommand } from '../delete.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 import { XpertDeleteHandler } from './delete.handler'
 
 describe('XpertDeleteHandler', () => {
-    function createHandler(xpertOverrides: Record<string, unknown> = {}) {
+    type TTestExportedTemplate = {
+        id: string
+        filePath: string
+    }
+
+    type TTestXpertOverrides = Partial<{
+        latest: boolean
+        publishAt: Date | null
+        graph: {
+            nodes: unknown[]
+            connections: unknown[]
+        }
+        exportedTemplate: TTestExportedTemplate
+        type: string
+        slug: string
+    }>
+
+    function createHandler(xpertOverrides: TTestXpertOverrides = {}) {
         const xpert = {
             id: 'xpert-1',
             latest: false,
@@ -33,11 +55,19 @@ describe('XpertDeleteHandler', () => {
         const commandBus = {
             execute: jest.fn().mockResolvedValue(undefined)
         }
+        const xpertTemplateService = {
+            deleteExportedXpertTemplate: jest.fn().mockResolvedValue(undefined)
+        }
 
         return {
-            handler: new XpertDeleteHandler(service as unknown as XpertService, commandBus as unknown as CommandBus),
+            handler: new XpertDeleteHandler(
+                service as unknown as XpertService,
+                commandBus as unknown as CommandBus,
+                xpertTemplateService as unknown as XpertTemplateService
+            ),
             service,
-            commandBus
+            commandBus,
+            xpertTemplateService
         }
     }
 
@@ -93,5 +123,53 @@ describe('XpertDeleteHandler', () => {
 
         expect(commandBus.execute).not.toHaveBeenCalled()
         expect(service.delete).toHaveBeenCalledWith('xpert-1')
+    })
+
+    it('deletes the exported template before deleting the xpert', async () => {
+        const exportedTemplate = {
+            id: 'xpert-xpert-1',
+            filePath: 'templates/xpert-xpert-1.yaml'
+        }
+        const { handler, service, xpertTemplateService } = createHandler({ exportedTemplate })
+
+        await handler.execute(new XpertDeleteCommand('xpert-1'))
+
+        expect(xpertTemplateService.deleteExportedXpertTemplate).toHaveBeenCalledWith(exportedTemplate)
+        expect(xpertTemplateService.deleteExportedXpertTemplate.mock.invocationCallOrder[0]).toBeLessThan(
+            service.delete.mock.invocationCallOrder[0]
+        )
+    })
+
+    it('cleans exported templates for all versions before removing old versions', async () => {
+        const latestTemplate = {
+            id: 'xpert-latest',
+            filePath: 'templates/xpert-latest.yaml'
+        }
+        const oldTemplate = {
+            id: 'xpert-old',
+            filePath: 'templates/xpert-old.yaml'
+        }
+        const { handler, service, xpertTemplateService } = createHandler({
+            latest: true,
+            type: 'agent',
+            slug: 'support',
+            exportedTemplate: latestTemplate
+        })
+        service.findAll.mockResolvedValue({
+            items: [
+                {
+                    id: 'xpert-old',
+                    exportedTemplate: oldTemplate
+                }
+            ]
+        })
+
+        await handler.execute(new XpertDeleteCommand('xpert-1'))
+
+        expect(xpertTemplateService.deleteExportedXpertTemplate).toHaveBeenCalledWith(latestTemplate)
+        expect(xpertTemplateService.deleteExportedXpertTemplate).toHaveBeenCalledWith(oldTemplate)
+        expect(xpertTemplateService.deleteExportedXpertTemplate.mock.invocationCallOrder[1]).toBeLessThan(
+            service.repository.remove.mock.invocationCallOrder[0]
+        )
     })
 })

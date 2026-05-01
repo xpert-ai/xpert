@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
-import { TChatElementReference } from '@xpert-ai/contracts'
+import type { ChatKitQuoteReference, TChatElementReference, TChatFileElementReference } from '@xpert-ai/contracts'
 import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
-import { FileWorkbenchReferenceRequest } from '../../../@shared/files'
+import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage, injectToastr } from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
@@ -25,6 +25,8 @@ import {
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_REFRESH_INTERVAL_MS = 1000
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
+const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
+  "Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked."
 
 type ChatKitCodeComposerReference = {
   type: 'code'
@@ -35,7 +37,7 @@ type ChatKitCodeComposerReference = {
   language?: string
 }
 
-type ChatKitComposerReference = ChatKitCodeComposerReference | TChatElementReference
+type ChatKitComposerReference = ChatKitCodeComposerReference | ChatKitQuoteReference
 type ClawXpertConversationPanel = 'files' | 'computer' | 'preview' | 'terminal'
 
 type ChatKitReferenceComposerControl = {
@@ -71,15 +73,6 @@ type ChatKitReferenceComposerControl = {
         @if (showDetailPanel()) {
           <div class="flex h-full min-h-0 flex-col overflow-hidden">
             <div class="flex flex-col items-stretch justify-start border-b border-divider-regular px-5 pt-4">
-              <div>
-                <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-                  {{ 'PAC.Chat.ClawXpert.Detail' | translate: { Default: 'ClawXpert Detail' } }}
-                </div>
-                <div class="mt-2 text-lg font-semibold text-text-primary">
-                  {{ facade.definition.titleKey | translate: { Default: facade.definition.defaultTitle } }}
-                </div>
-              </div>
-
               <nav
                 z-tab-nav-bar
                 [tabPanel]="tabPanel"
@@ -491,6 +484,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   async handleWorkspaceReference(request: FileWorkbenchReferenceRequest) {
+    if (isFileElementReferenceRequest(request)) {
+      await this.attachComposerReferences([toFileElementQuoteReference(request)])
+      return
+    }
+
+    if (isFilePathReferenceRequest(request)) {
+      await this.attachComposerReferences([toFilePathQuoteReference(request)])
+      return
+    }
+
     await this.attachComposerReferences([
       {
         type: 'code',
@@ -504,7 +507,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   async handleElementReference(request: TChatElementReference) {
-    await this.attachComposerReferences([request])
+    await this.attachComposerReferences([toPageElementQuoteReference(request)])
   }
 
   selectPanel(panel: ClawXpertConversationPanel) {
@@ -686,4 +689,107 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 function resolveConversationId(metadata?: { id?: string }) {
   const conversationId = metadata?.id
   return typeof conversationId === 'string' && conversationId.trim() ? conversationId : null
+}
+
+function toFileElementQuoteReference(reference: TChatFileElementReference): ChatKitQuoteReference {
+  const source = formatFileElementSource(reference)
+
+  return {
+    type: 'quote',
+    label: reference.label?.trim() || `${reference.tagName.toLowerCase()} ${reference.selector}`,
+    source,
+    text: [
+      'Reference type: Target inspected HTML file element',
+      'Scope: This reference is the currently inspected element only, not the entire file.',
+      INSPECTED_ELEMENT_ACTION_TARGET_TEXT,
+      `Source location: ${source}`,
+      reference.documentTitle?.trim() ? `Document title: ${reference.documentTitle.trim()}` : null,
+      'Inspected element:',
+      `- Selector: ${reference.selector}`,
+      `- DOM path: ${reference.domPath}`,
+      `- Tag: ${reference.tagName.toLowerCase()}`,
+      reference.role?.trim() ? `- Role: ${reference.role.trim()}` : null,
+      `- Attributes: ${formatElementAttributes(reference.attributes)}`,
+      'Inspected element visible text:',
+      reference.text,
+      'Inspected element outerHTML:',
+      '```html',
+      reference.outerHtml,
+      '```'
+    ]
+      .filter((line): line is string => line !== null)
+      .join('\n')
+  }
+}
+
+function toFilePathQuoteReference(reference: FileWorkbenchFilePathReferenceRequest): ChatKitQuoteReference {
+  return {
+    type: 'quote',
+    label: reference.path,
+    source: 'Workspace file',
+    text: reference.path
+  }
+}
+
+function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQuoteReference {
+  const source = reference.pageTitle?.trim() || reference.pageUrl.trim()
+
+  return {
+    type: 'quote',
+    label: reference.label?.trim() || `${reference.tagName.toLowerCase()} ${reference.selector}`,
+    source,
+    text: [
+      'Reference type: Target inspected page element',
+      'Scope: This reference is the currently inspected element only, not the entire page.',
+      INSPECTED_ELEMENT_ACTION_TARGET_TEXT,
+      source ? `Page: ${source}` : null,
+      `URL: ${reference.pageUrl}`,
+      `Service: ${reference.serviceId}`,
+      `Selector: ${reference.selector}`,
+      `Tag: ${reference.tagName.toLowerCase()}`,
+      reference.role?.trim() ? `Role: ${reference.role.trim()}` : null,
+      `Attributes: ${formatElementAttributes(reference.attributes)}`,
+      'Visible text:',
+      reference.text,
+      'HTML:',
+      '```html',
+      reference.outerHtml,
+      '```'
+    ]
+      .filter((line): line is string => line !== null)
+      .join('\n')
+  }
+}
+
+function formatFileElementSource(reference: TChatFileElementReference) {
+  if (typeof reference.sourceStartLine !== 'number') {
+    return reference.filePath
+  }
+
+  const lineRange =
+    reference.sourceStartLine === reference.sourceEndLine
+      ? `${reference.sourceStartLine}`
+      : `${reference.sourceStartLine}-${reference.sourceEndLine ?? reference.sourceStartLine}`
+
+  return `${reference.filePath}:${lineRange}`
+}
+
+function formatElementAttributes(attributes: Array<{ name: string; value: string }>) {
+  if (!attributes.length) {
+    return '(none)'
+  }
+
+  return attributes.map((attribute) => `${attribute.name}="${attribute.value}"`).join(' ')
+}
+
+function isFileElementReferenceRequest(
+  request: FileWorkbenchReferenceRequest
+): request is TChatFileElementReference {
+  return 'type' in request && request.type === 'file_element'
+}
+
+function isFilePathReferenceRequest(
+  request: FileWorkbenchReferenceRequest
+): request is FileWorkbenchFilePathReferenceRequest {
+  return 'type' in request && request.type === 'file_path'
 }

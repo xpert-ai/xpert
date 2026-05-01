@@ -4,12 +4,14 @@ import { XpertService } from '../../xpert.service'
 import { Xpert } from '../../xpert.entity'
 import { XpertDeleteCommand } from '../delete.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
+import { XpertTemplateService } from '../../../xpert-template/xpert-template.service'
 
 @CommandHandler(XpertDeleteCommand)
 export class XpertDeleteHandler implements ICommandHandler<XpertDeleteCommand> {
     constructor(
         private readonly service: XpertService,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        private readonly xpertTemplateService: XpertTemplateService
     ) {}
 
     public async execute(command: XpertDeleteCommand): Promise<DeleteResult> {
@@ -26,7 +28,10 @@ export class XpertDeleteHandler implements ICommandHandler<XpertDeleteCommand> {
                 }
             })
 
+            await this.cleanupExportedTemplates([xpert, ...others.items])
             await this.service.repository.remove(others.items)
+        } else {
+            await this.cleanupExportedTemplates([xpert])
         }
 
         return await this.service.delete(id)
@@ -52,5 +57,11 @@ export class XpertDeleteHandler implements ICommandHandler<XpertDeleteCommand> {
                 }
             )
         )
+    }
+
+    private async cleanupExportedTemplates(xperts: Xpert[]): Promise<void> {
+        for (const xpert of xperts) {
+            await this.xpertTemplateService.deleteExportedXpertTemplate(xpert.exportedTemplate)
+        }
     }
 }

@@ -9,6 +9,7 @@ import { IXpertTask } from './xpert-task.model'
 import { TToolCall } from '../agent'
 import { TInterrupt } from '../agent/interrupt'
 import { IUser } from '../user.model'
+import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 import type { IProjectCore } from '../project'
 
 export type TChatConversationOptions = {
@@ -22,6 +23,7 @@ export type TChatConversationOptions = {
   workspacePath?: string
   workspaceUrl?: string
   sandboxEnvironmentId?: string
+  runtimeCapabilities?: RuntimeCapabilitiesSelection
 }
 
 export type TChatConversationStatus = 'idle' | 'busy' | 'interrupted' | 'error'

@@ -4,3 +4,8 @@
   @apply h-full grid min-h-0 gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)];
 }
 
+@media (min-width: 1024px) {
+  :host(.xp-file-workbench--tree-hidden) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -9,6 +9,10 @@ export const CONTEXT_COMPRESSION_MIDDLEWARE_NAME = 'ContextCompressionMiddleware
 export interface IWFNMiddleware extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.MIDDLEWARE
   provider: string
+  /**
+   * Required middlewares are always loaded at runtime and hidden from user-facing runtime selectors.
+   */
+  required?: boolean
   options?: Record<string, any>
   tools?: Record<string, TMiddlewareToolConfig | boolean>
 }
@@ -22,6 +26,10 @@ export function isMiddlewareToolEnabled(config?: TMiddlewareToolConfig | boolean
     return config
   }
   return config?.enabled !== false
+}
+
+export function isRequiredMiddleware(entity?: Pick<IWFNMiddleware, 'required'> | null) {
+  return entity?.required === true
 }
 
 export function genXpertMiddlewareKey() {

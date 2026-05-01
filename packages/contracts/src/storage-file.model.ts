@@ -8,6 +8,7 @@ export type TFile = _TFile & {
   description?: string
   size?: number
   createdAt?: Date
+  updatedAt?: Date
 
   storageFileId?: string
 }

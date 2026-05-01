@@ -15,6 +15,23 @@
     >
       <div>{{ meta.label | i18n }}</div>
     </div>
+    @if (required()) {
+      <span
+        class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300"
+        [attr.aria-label]="'PAC.Xpert.SystemMiddleware' | translate: { Default: 'System middleware' }"
+        [zTooltip]="
+          'PAC.Xpert.SystemMiddlewareTooltip'
+            | translate
+              : {
+                  Default:
+                    'Always load this middleware at runtime and hide it from user-facing skills/plugins selection.'
+                }
+        "
+        zPosition="top"
+      >
+        <i class="ri-shield-check-line text-xs"></i>
+      </span>
+    }
   } @else if (notFound()) {
     <div class="grow mr-1 font-semibold text-sm text-text-primary truncate flex items-center">
       <i class="ri-error-warning-line text-text-warning"></i>

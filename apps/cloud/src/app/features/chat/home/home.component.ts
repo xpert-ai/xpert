@@ -123,6 +123,12 @@ export class ChatHomeComponent {
     ),
     { initialValue: normalizeChatRoute(this.#router.url) }
   )
+  readonly featureContextHydrated = toSignal(this.#store.featureContextHydrated$, {
+    initialValue: this.#store.featureContextHydrated
+  })
+  readonly featureContextHydrationLoading = toSignal(this.#store.featureContextHydrationLoading$, {
+    initialValue: this.#store.featureContextHydrationLoading
+  })
   readonly isCommonAssistantRoute = computed(() => {
     const url = this.currentUrl()
     return url === '/chat' || url === '/chat/x/common' || url.startsWith('/chat/x/common/')
@@ -268,6 +274,19 @@ export class ChatHomeComponent {
   readonly isComposing = signal(false)
 
   constructor() {
+    effect(() => {
+      if (
+        !this.featureContextHydrated() ||
+        this.featureContextHydrationLoading() ||
+        !isClawXpertRoute(this.currentUrl()) ||
+        this.clawxpertEnabled()
+      ) {
+        return
+      }
+
+      void this.#router.navigateByUrl('/chat/x/common')
+    })
+
     effect(() => {
       if (!this.isCommonAssistantRoute()) {
         return

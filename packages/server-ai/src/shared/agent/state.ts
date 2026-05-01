@@ -25,6 +25,7 @@ import { StructuredToolInterface } from '@langchain/core/tools'
 import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
 import { commonTimes } from './time'
 import { identifyAgent } from './utils'
+import { TRuntimeCapabilitiesSelection } from './runtime-capabilities'
 
 export type TAgentStateSystem = {
 	language: string
@@ -53,6 +54,7 @@ export type TStateChannel = {
 export type TXpertAgentRuntimeOptions = {
 	toolPreferences?: IAssistantBindingToolPreferences | null
 	planMode?: boolean
+	runtimeCapabilities?: TRuntimeCapabilitiesSelection | null
 }
 
 export const AgentStateAnnotation = Annotation.Root({

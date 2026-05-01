@@ -3,6 +3,7 @@ import {
   CONTEXT_COMPRESSION_MIDDLEWARE_NAME,
   IWFNMiddleware,
   LEGACY_SANDBOX_COMPRESSION_MIDDLEWARE_NAME,
+  isRequiredMiddleware,
   normalizeMiddlewareNode,
   normalizeMiddlewareNodes,
   normalizeMiddlewareProvider
@@ -40,5 +41,12 @@ describe('middleware model helpers', () => {
     expect(normalizedNode.entity.provider).toBe(CONTEXT_COMPRESSION_MIDDLEWARE_NAME)
     expect(normalizedNodes[0].entity.provider).toBe(CONTEXT_COMPRESSION_MIDDLEWARE_NAME)
     expect(normalizedNode).not.toBe(node)
+  })
+
+  it('detects required middleware nodes', () => {
+    expect(isRequiredMiddleware({ required: true })).toBe(true)
+    expect(isRequiredMiddleware({ required: false })).toBe(false)
+    expect(isRequiredMiddleware({})).toBe(false)
+    expect(isRequiredMiddleware(null)).toBe(false)
   })
 })

@@ -28,6 +28,7 @@ import {
   FCanvasChangeEvent,
   FCanvasComponent,
   FConnectionComponent,
+  FConnectionContent,
   FCreateConnectionEvent,
   FDropToGroupEvent,
   FFlowComponent,
@@ -105,6 +106,7 @@ import { calculateHash } from '../../../@shared/utils'
     RouterModule,
     TranslateModule,
     FFlowModule,
+    FConnectionContent,
     NgxFloatUiModule,
     ...ZardTooltipImports,
 
@@ -248,6 +250,10 @@ export class XpertStudioComponent {
     })
   })
 
+  isOptionalSubAgentConnection(connection: TXpertTeamConnection): boolean {
+    return (connection.type === 'agent' || connection.type === 'xpert') && !connection.required
+  }
+
   readonly groups = computed(() => {
     const draft = this.viewModel()
     if (!draft) return []
@@ -378,6 +384,16 @@ export class XpertStudioComponent {
     )
     // Clear insert connection when using right-click context menu
     this.insertConnection = null
+  }
+
+  public openConnectionMenu(event: MouseEvent, trigger: CdkContextMenuTrigger): void {
+    event.preventDefault()
+    event.stopPropagation()
+    this.insertConnection = null
+    trigger.open({
+      x: event.clientX,
+      y: event.clientY
+    })
   }
 
   /**

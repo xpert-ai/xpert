@@ -45,12 +45,15 @@
         "
         [class.f-hover]="connection.from.startsWith(hoverNode()) || connection.to.startsWith(hoverNode())"
         [class.autonomous]="connection.type !== 'edge'"
+        [class.optional-sub-agent]="isOptionalSubAgentConnection(connection)"
         [class.fail-branch]="connection.from.endsWith('/fail')"
         [class.connecting]="connection.running"
         fStartColor="var(--connection-gradient-1)"
         fEndColor="var(--connection-gradient-2)"
+        #connMenuTrigger="cdkContextMenuTriggerFor"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{ connection: connection, connectionComponent: connComp }"
+        (click)="openConnectionMenu($event, connMenuTrigger)"
       >
         @if (connection.type === 'edge') {
           <svg
@@ -83,11 +86,12 @@
           </svg>
         }
         <div
-          fConnectionCenter
+          fConnectionContent
+          [position]="0.5"
           class="flex flex-col items-center opacity-0 group-hover/connection:z-10 group-hover/connection:opacity-100"
         >
           <!-- Add node button centered on connection -->
-          @if (!connection.readonly) {
+          @if (!connection.readonly && connection.type === 'edge') {
             <button
               type="button"
               class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-500 hover:bg-primary-600 text-white shadow-md cursor-pointer transition-colors"

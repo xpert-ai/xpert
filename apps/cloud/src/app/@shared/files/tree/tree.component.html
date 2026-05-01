@@ -105,9 +105,9 @@
 
               @if (showActions(item)) {
                 <div
-                  class="absolute right-1 ml-auto flex shrink-0 items-center gap-1 p-0.5 rounded-lg opacity-100 transition-opacity bg-components-panel-bg md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"
+                  class="absolute right-1 ml-auto flex shrink-0 items-center gap-1 p-0.5 rounded-lg opacity-100 transition-opacity bg-components-panel-bg md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto "
                 >
-                  @if (canDownload()) {
+                  @if (!item.hasChildren && canDownload()) {
                     <button
                       type="button"
                       [class]="itemActionClasses()"

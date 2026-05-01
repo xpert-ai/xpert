@@ -19,15 +19,11 @@
       [indeterminate]="partialSelected()"
       (change)="toggleSelectAll($event)"
       aria-label="Select all skills"
-      [zTooltip]="'PAC.Skills.UseAllDefault' | translate: {Default: 'Use all skills default.'}"
+      [zTooltip]="'PAC.Skills.SelectAllDefault' | translate: {Default: 'Select all skills as default.'}"
       zPosition="top"
     />
     <span>
-      @if (allSelected()) {
-        {{ skillList()?.length || 0 }}
-      } @else {
-        {{ skills()?.length || 0 }}
-      }
+      {{ selectedSkillIds().length || 0 }}
       <span class="truncate">{{ 'PAC.Skills.Selected' | translate: {Default: 'selected'} }}</span>
       /
       {{ skillList()?.length || 0 }} <span class="truncate">{{ 'PAC.Skills.Available' | translate: {Default: 'available'} }}</span>

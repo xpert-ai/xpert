@@ -21,6 +21,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 export class XpertExportDslComponent {
   readonly #data = inject<{ xpertId: string; slug: string; isDraft: boolean }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
+  readonly #xpertAPI = inject(XpertAPIService)
   readonly exportXpertDsl = injectExportXpertDsl()
   readonly #toastr = injectToastr()
 
@@ -50,6 +51,26 @@ export class XpertExportDslComponent {
         this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
       }
     })
+  }
+
+  exportAsTemplate() {
+    this.loading.set(true)
+    this.#xpertAPI
+      .exportDSLAsTemplate(this.xpertId(), {
+        isDraft: this.isDraft(),
+        includeMemory: this.includeMemory()
+      })
+      .subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.#toastr.success('PAC.Xpert.ExportTemplateSuccess', { Default: 'Exported as template' })
+          this.close()
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.#toastr.error(`PAC.Xpert.ExportTemplateFailed`, getErrorMessage(err))
+        }
+      })
   }
 }
 

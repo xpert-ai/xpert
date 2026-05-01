@@ -33,8 +33,26 @@ export type TChatElementReferenceFields = {
   tagName: string
 }
 
+export type TChatFileElementReferenceFields = {
+  attributes: TChatElementAttribute[]
+  documentTitle?: string
+  domPath: string
+  filePath: string
+  outerHtml: string
+  role?: string
+  selector: string
+  sourceEndLine?: number
+  sourceStartLine?: number
+  tagName: string
+  text: string
+}
+
 export type TChatElementReferenceCandidateFields = {
   [Property in keyof TChatElementReferenceFields]?: unknown
+}
+
+export type TChatFileElementReferenceCandidateFields = {
+  [Property in keyof TChatFileElementReferenceFields]?: unknown
 }
 
 export type TChatElementReference = ChatKitReferenceBase &
@@ -42,7 +60,12 @@ export type TChatElementReference = ChatKitReferenceBase &
     type: 'element'
   }
 
-export type TChatReference = ChatKitReference | TChatElementReference
+export type TChatFileElementReference = ChatKitReferenceBase &
+  TChatFileElementReferenceFields & {
+    type: 'file_element'
+  }
+
+export type TChatReference = ChatKitReference | TChatElementReference | TChatFileElementReference
 
 /**
  * Chat message entity type

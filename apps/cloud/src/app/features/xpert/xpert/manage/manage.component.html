@@ -42,8 +42,35 @@
 
 <div class="flex flex-1">
   <div class="flex grow flex-col gap-2 overflow-auto px-2 py-1">
-    <xpert-app class="w-full max-w-full rounded-xl" small />
-    <xpert-api class="w-full max-w-full rounded-xl" small />
+    <xpert-app class="w-full max-w-full rounded-xl bg-components-card-bg" small />
+    <xpert-api class="w-full max-w-full rounded-xl bg-components-card-bg" small />
+
+    @if (exportedTemplate(); as template) {
+      <div class="flex w-full items-start gap-3 rounded-lg border border-components-panel-border bg-components-card-bg p-3">
+        <i class="ri-file-list-3-line mt-0.5 shrink-0 text-lg text-text-secondary"></i>
+        <div class="min-w-0 flex-1">
+          <div class="system-xs-semibold-uppercase text-text-tertiary">
+            {{ 'PAC.Xpert.ExportedTemplate' | translate: { Default: 'Exported template' } }}
+          </div>
+          <div class="mt-1 truncate text-sm font-medium text-text-primary" [title]="template.filePath">
+            {{ template.filePath }}
+          </div>
+          @if (exportedTemplateDate()) {
+            <div class="mt-1 text-xs text-text-tertiary">
+              {{ exportedTemplateDate() }}
+            </div>
+          }
+        </div>
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-ghost btn-small danger shrink-0"
+          [title]="'PAC.Xpert.DeleteExportedTemplate' | translate: { Default: 'Delete template' }"
+          (click)="deleteExportedTemplate()"
+        >
+          <i class="ri-delete-bin-line text-lg"></i>
+        </button>
+      </div>
+    }
   </div>
 </div>
 

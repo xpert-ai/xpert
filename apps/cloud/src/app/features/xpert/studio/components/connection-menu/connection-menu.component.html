@@ -15,6 +15,33 @@
   </ul>
 }
 
+@if (isSubAgentConnection()) {
+  <label class="flex items-start gap-3 rounded-lg px-2 py-2 text-sm">
+    <input
+      type="checkbox"
+      class="mt-1 h-4 w-4 shrink-0"
+      [ngModel]="requiredSubAgent()"
+      (ngModelChange)="updateSubAgentRequired($event)"
+      [disabled]="connection().readonly"
+    />
+    <span class="min-w-0 flex-1">
+      <span class="block font-medium">
+        {{ 'PAC.Xpert.RequiredSubAgent' | translate: { Default: 'Required sub-agent' } }}
+      </span>
+      <span class="mt-1 block text-xs leading-5 text-text-tertiary">
+        {{
+          'PAC.Xpert.RequiredSubAgentTooltip'
+            | translate
+              : {
+                  Default:
+                    'Always make this sub-agent available at runtime and hide it from ChatKit sub-agent selection.'
+                }
+        }}
+      </span>
+    </span>
+  </label>
+}
+
 @if (!connection().readonly) {
   <div class="w-full my-1 border-b border-solid border-divider-regular"></div>
   <div cdkMenuItem class="ngm-cdk-menu-item danger" (click)="removeConnection()">

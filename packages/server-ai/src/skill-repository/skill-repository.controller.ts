@@ -59,6 +59,21 @@ export class SkillRepositoryController extends CrudController<SkillRepository> {
 		})
 	}
 
+	@Get('select-options')
+	async getSelectOptions() {
+		const { items } = await this.service.findAllInOrganizationOrTenant({
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+
+		return items.map((item) => ({
+			value: item.id,
+			label: item.name,
+			description: item.provider
+		}))
+	}
+
 	@Post('workspace-public/ensure')
 	async ensureWorkspacePublicRepository() {
 		return this.skillPackageService.initializeWorkspacePublicRepository()

@@ -1,4 +1,4 @@
-import { IFeature, IFeatureCreateInput, ITenant } from '@xpert-ai/contracts'
+import { IFeature } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -22,7 +22,7 @@ export class FeatureBulkCreateHandler implements ICommandHandler<FeatureBulkCrea
 		const { tenants } = command
 
 		// Create default features
-		DEFAULT_FEATURES.forEach(async (item: IFeatureCreateInput) => {
+		for (const item of DEFAULT_FEATURES) {
 			let feature: IFeature = await this.featureRepository.findOne({
 				where: { code: item.code },
 			})
@@ -35,22 +35,22 @@ export class FeatureBulkCreateHandler implements ICommandHandler<FeatureBulkCrea
 			const { children = [] } = item
 			if (children.length > 0) {
 				const featureChildren: IFeature[] = []
-				for await(const child of children) {
+				for (const child of children) {
 					const childFeature: IFeature = await this.featureRepository.findOne({
 						where: { code: child.code },
 					})
 
 					// If child feature not exist, create it
 					if (!childFeature) {
-						const childFeature: IFeature = createFeature(child)
-						childFeature.parent = feature
-						featureChildren.push(childFeature)
+						const featureChild: IFeature = createFeature(child)
+						featureChild.parent = feature
+						featureChildren.push(featureChild)
 					}
 				}
 
 				await this.featureRepository.save(featureChildren)
 			}
-		})
+		}
 
 		// // Create feature toggle for every new tenant
 		// tenants.forEach((tenant: ITenant) => {

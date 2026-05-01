@@ -1,25 +1,62 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject, forwardRef, Optional } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult } from 'typeorm'
+import type { Cache } from 'cache-manager'
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult, IsNull } from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@xpert-ai/server-config'
 import { nanoid } from 'nanoid'
 import { User } from './user.entity'
 import { TenantAwareCrudService } from './../core/crud'
-import { ID, IUser, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@xpert-ai/contracts'
+import { ID, IFeatureOrganization, IUser, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from './events'
+import { FeatureOrganization } from '../feature/feature-organization.entity'
+import {
+	buildCurrentUserFeatureCacheKey,
+	CURRENT_USER_FEATURE_CACHE_TTL_MS,
+	getCurrentUserFeatureCacheVersion,
+	hashCurrentUserRelations
+} from './current-user-feature-cache'
 
 const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 const CURRENT_USER_CORE_RELATIONS = ['employee', 'role', 'role.rolePermissions', 'tenant'] as const
+const CURRENT_USER_BOOTSTRAP_RELATIONS = ['organizations', 'organizations.organization'] as const
+const CURRENT_USER_FEATURE_RELATIONS = [
+	'tenant.featureOrganizations',
+	'tenant.featureOrganizations.feature',
+	'organizations.organization.featureOrganizations',
+	'organizations.organization.featureOrganizations.feature'
+] as const
+const CURRENT_USER_FEATURE_HYDRATION_ALLOWED_RELATIONS: ReadonlySet<string> = new Set([
+	...CURRENT_USER_CORE_RELATIONS,
+	...CURRENT_USER_BOOTSTRAP_RELATIONS,
+	...CURRENT_USER_FEATURE_RELATIONS
+])
 const AUTHENTICATED_USER_RELATIONS = ['role', 'employee'] as const
+
+type CurrentUserFeatureContext = {
+	tenantFeatureOrganizations: IFeatureOrganization[]
+	organizationFeatureOrganizations: IFeatureOrganization[]
+}
 
 function resolveCurrentUserRelations(relations?: string[]) {
 	return Array.from(new Set([...CURRENT_USER_CORE_RELATIONS, ...(relations ?? [])]))
+}
+
+function isKnownCurrentUserFeatureHydrationRelations(relations?: string[]) {
+	const requestedRelations = new Set(relations ?? [])
+
+	return (
+		CURRENT_USER_FEATURE_RELATIONS.every((relation) => requestedRelations.has(relation)) &&
+		Array.from(requestedRelations).every((relation) =>
+			CURRENT_USER_FEATURE_HYDRATION_ALLOWED_RELATIONS.has(relation)
+		)
+	)
 }
 
 function normalizeEmail(email?: string | null) {
@@ -39,15 +76,133 @@ export class UserService extends TenantAwareCrudService<User> {
 		public emailVerificationRepository: Repository<EmailVerification>,
 		@Inject(forwardRef(() => UserOrganizationService))
 		private readonly userOrganizationService: UserOrganizationService,
-		private readonly eventEmitter: EventEmitter2
+		private readonly eventEmitter: EventEmitter2,
+		@Optional()
+		@InjectRepository(FeatureOrganization)
+		private readonly featureOrganizationRepository?: Repository<FeatureOrganization>,
+		@Optional()
+		@Inject(CACHE_MANAGER)
+		private readonly cacheManager?: Cache
 	) {
 		super(userRepository)
 	}
 
 	async findCurrentUser(id: string, relations?: string[]): Promise<User> {
+		if (isKnownCurrentUserFeatureHydrationRelations(relations) && this.featureOrganizationRepository) {
+			return this.findCurrentUserFeatureContext(id, relations ?? [])
+		}
+
 		return this.findOne(id, {
 			relations: resolveCurrentUserRelations(relations)
 		})
+	}
+
+	private async findCurrentUserFeatureContext(id: string, relations: string[]) {
+		const user = await this.findOne(id, {
+			relations: resolveCurrentUserRelations([...CURRENT_USER_BOOTSTRAP_RELATIONS])
+		})
+
+		const tenantId = RequestContext.currentTenantId() ?? user.tenantId ?? user.tenant?.id
+		if (!tenantId || !this.featureOrganizationRepository) {
+			return user
+		}
+
+		const cacheKey = await this.buildFeatureContextCacheKey(id, tenantId, relations)
+		const cachedContext = cacheKey ? await this.cacheManager?.get<CurrentUserFeatureContext>(cacheKey) : null
+
+		if (cachedContext) {
+			this.attachFeatureOrganizationsToCurrentUser(
+				user,
+				cachedContext.tenantFeatureOrganizations,
+				cachedContext.organizationFeatureOrganizations
+			)
+			return user
+		}
+
+		const featureContext = await this.loadCurrentUserFeatureContext(user)
+
+		if (featureContext) {
+			await this.cacheManager?.set(cacheKey, featureContext, CURRENT_USER_FEATURE_CACHE_TTL_MS)
+		}
+
+		return user
+	}
+
+	private async buildFeatureContextCacheKey(userId: string, tenantId: string, relations: string[]) {
+		const relationsHash = hashCurrentUserRelations(relations)
+		const version = await getCurrentUserFeatureCacheVersion(this.cacheManager, tenantId, userId)
+
+		return buildCurrentUserFeatureCacheKey({
+			tenantId,
+			userId,
+			relationsHash,
+			version
+		})
+	}
+
+	private async loadCurrentUserFeatureContext(user: User): Promise<CurrentUserFeatureContext | null> {
+		const tenantId = user.tenantId ?? user.tenant?.id ?? RequestContext.currentTenantId()
+		if (!tenantId || !this.featureOrganizationRepository) {
+			return null
+		}
+
+		const organizationIds = (user.organizations ?? [])
+			.map((membership) => membership.organizationId ?? membership.organization?.id)
+			.filter((organizationId): organizationId is string => !!organizationId)
+
+		const tenantFeatureOrganizations = await this.featureOrganizationRepository.find({
+			where: {
+				tenantId,
+				organizationId: IsNull()
+			},
+			relations: ['feature']
+		})
+		const organizationFeatureOrganizations = organizationIds.length
+			? await this.featureOrganizationRepository.find({
+					where: {
+						tenantId,
+						organizationId: In(organizationIds)
+					},
+					relations: ['feature']
+			  })
+			: []
+
+		this.attachFeatureOrganizationsToCurrentUser(user, tenantFeatureOrganizations, organizationFeatureOrganizations)
+		return {
+			tenantFeatureOrganizations,
+			organizationFeatureOrganizations
+		}
+	}
+
+	private attachFeatureOrganizationsToCurrentUser(
+		user: User,
+		tenantFeatureOrganizations: IFeatureOrganization[],
+		organizationFeatureOrganizations: IFeatureOrganization[]
+	) {
+		if (user.tenant) {
+			user.tenant.featureOrganizations = tenantFeatureOrganizations
+		}
+
+		const featureOrganizationsByOrganizationId = new Map<string, IFeatureOrganization[]>()
+		for (const featureOrganization of organizationFeatureOrganizations) {
+			if (!featureOrganization.organizationId) {
+				continue
+			}
+
+			const items = featureOrganizationsByOrganizationId.get(featureOrganization.organizationId) ?? []
+			items.push(featureOrganization)
+			featureOrganizationsByOrganizationId.set(featureOrganization.organizationId, items)
+		}
+
+		for (const membership of user.organizations ?? []) {
+			const organizationId = membership.organizationId ?? membership.organization?.id
+			if (!organizationId || !membership.organization) {
+				continue
+			}
+
+			membership.organization.featureOrganizations =
+				featureOrganizationsByOrganizationId.get(organizationId) ?? []
+		}
 	}
 
 	async getUserByEmail(email: string): Promise<User> {

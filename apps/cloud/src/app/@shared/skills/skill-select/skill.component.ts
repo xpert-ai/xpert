@@ -81,8 +81,13 @@ export class XpertSkillSelectComponent implements ControlValueAccessor {
     return items
   })
 
-  readonly allSelected = computed(() => this.skills() == null)
-  readonly partialSelected = computed(() => this.skills()?.length > 0 && this.skills()?.length < (this.skillList()?.length || 0))
+  readonly selectedSkillIds = computed(() => this.skills() ?? [])
+  readonly allSelected = computed(
+    () => this.skillList().length > 0 && this.selectedSkillIds().length === this.skillList().length
+  )
+  readonly partialSelected = computed(
+    () => this.selectedSkillIds().length > 0 && this.selectedSkillIds().length < (this.skillList()?.length || 0)
+  )
 
 
   onChange: any = () => {}
@@ -98,7 +103,7 @@ export class XpertSkillSelectComponent implements ControlValueAccessor {
   }
 
   writeValue(obj: any): void {
-    this.skills.set(obj)
+    this.skills.set(Array.isArray(obj) ? obj : [])
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -111,7 +116,7 @@ export class XpertSkillSelectComponent implements ControlValueAccessor {
   }
 
   enabledSkill(id: string) {
-    return this.skills()?.includes(id)
+    return this.selectedSkillIds().includes(id)
   }
 
   onChangeSkill(id: string, enabled: boolean) {
@@ -127,7 +132,7 @@ export class XpertSkillSelectComponent implements ControlValueAccessor {
   toggleSelectAll(event: Event) {
     const checkbox = event.target as HTMLInputElement
     if (checkbox.checked) {
-      this.skills.set(null)
+      this.skills.set(this.skillList().map((skill) => skill.id).filter((id): id is string => !!id))
     } else {
       this.skills.set([])
     }

@@ -1526,7 +1526,14 @@
       "PrivateWorkspace": "私有",
       "TenantSharedWorkspace": "租户共享工作空间",
       "TenantSharedWorkspaceDesc": "该租户下的组织用户可以读取并运行此工作空间中的资源，但不能编辑",
-      "TenantSharedTenantOnly": "只有租户级工作空间可以在租户内共享"
+      "TenantSharedTenantOnly": "只有租户级工作空间可以在租户内共享",
+      "ExportAsTemplate": "导出为模版",
+      "ExportTemplateSuccess": "已导出为模版",
+      "ExportTemplateFailed": "导出模版失败",
+      "ExportedTemplate": "已导出的模版",
+      "DeleteExportedTemplate": "删除模版",
+      "DeleteExportedTemplateConfirm": "删除已导出的模版‘{{value}}’？",
+      "ExportTemplateDeleted": "已删除导出的模版"
     },
     "Feature": {
       "Features": {

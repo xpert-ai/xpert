@@ -1,5 +1,7 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import type { Cache } from 'cache-manager';
 import { IsNull, Repository } from 'typeorm';
 import { IFeature, IFeatureOrganization, IFeatureOrganizationUpdateInput, ITenant } from '@xpert-ai/contracts';
 import { isNotEmpty } from '@xpert-ai/server-common';
@@ -7,6 +9,7 @@ import { TenantAwareCrudService } from './../core/crud';
 import { RequestContext } from './../core/context';
 import { FeatureOrganization } from './feature-organization.entity';
 import { FeatureService } from './feature.service';
+import { touchCurrentUserFeatureTenantCacheVersion } from '../user/current-user-feature-cache';
 
 @Injectable()
 export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOrganization> {
@@ -15,7 +18,10 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 		public readonly featureOrganizationRepository: Repository<FeatureOrganization>,
 
 		@Inject(forwardRef(() => FeatureService))
-		private readonly _featureService: FeatureService
+		private readonly _featureService: FeatureService,
+		@Optional()
+		@Inject(CACHE_MANAGER)
+		private readonly cacheManager?: Cache
 	) {
 		super(featureOrganizationRepository);
 	}
@@ -60,6 +66,7 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 			});
 			await this.featureOrganizationRepository.save(featureOrganizations);
 		}
+		await touchCurrentUserFeatureTenantCacheVersion(this.cacheManager, tenantId);
 		return featureOrganizations;
 	}
 
@@ -91,8 +98,14 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 				featureOrganizations.push(featureOrganization);
 			}
 		}
-		return await this.featureOrganizationRepository.save(
+		const saved = await this.featureOrganizationRepository.save(
 			featureOrganizations
 		);
+		await Promise.all(
+			tenants.map((tenant) =>
+				touchCurrentUserFeatureTenantCacheVersion(this.cacheManager, tenant.id)
+			)
+		);
+		return saved;
 	}
 }

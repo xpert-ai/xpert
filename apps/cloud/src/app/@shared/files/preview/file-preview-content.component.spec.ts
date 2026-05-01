@@ -1,6 +1,6 @@
-import { Component, Input, Pipe, PipeTransform } from '@angular/core'
+import { PipeTransform } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { DomSanitizer } from '@angular/platform-browser'
+import { By, DomSanitizer } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { FileEditorSelection } from '../editor/editor.component'
 import { FilePreviewContentComponent } from './file-preview-content.component'
@@ -83,6 +83,31 @@ jest.mock('@xpert-ai/core', () => {
   }
 })
 
+jest.mock('./file-html-preview.component', () => {
+  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'pac-file-html-preview',
+    template: '<div data-html-preview="true"></div>'
+  })
+  class FileHtmlPreviewComponent {
+    @Input() content?: string | null
+    @Input() filePath?: string | null
+    @Input() fileName?: string
+    @Input() inspectMode?: boolean
+    @Input() loading?: boolean
+    @Input() referenceable?: boolean
+    @Input() url?: string | null
+    @Output() fileElementReference = new EventEmitter()
+    @Output() inspectModeChange = new EventEmitter<boolean>()
+  }
+
+  return {
+    FileHtmlPreviewComponent
+  }
+})
+
 describe('FilePreviewContentComponent', () => {
   const originalCreateObjectURL = URL.createObjectURL
   const originalRevokeObjectURL = URL.revokeObjectURL
@@ -127,44 +152,43 @@ describe('FilePreviewContentComponent', () => {
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Executive summary')
   })
 
-  it('renders html previews through blob urls so webpage effects load in the iframe', () => {
-    const previewUrls = ['blob:html-preview-1', 'blob:html-preview-2']
-    const createObjectURL = jest.fn((_blob: Blob) => previewUrls.shift() ?? 'blob:html-preview-fallback')
-    const revokeObjectURL = jest.fn()
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: createObjectURL
-    })
-    Object.defineProperty(URL, 'revokeObjectURL', {
-      configurable: true,
-      value: revokeObjectURL
-    })
-
+  it('renders html previews through the dedicated html preview component and forwards events', () => {
     const fixture = TestBed.createComponent(FilePreviewContentComponent)
+    const elementReferences: unknown[] = []
+    const inspectModes: boolean[] = []
+    fixture.componentInstance.fileElementReference.subscribe((value) => elementReferences.push(value))
+    fixture.componentInstance.htmlInspectModeChange.subscribe((value) => inspectModes.push(value))
+    fixture.componentRef.setInput('filePath', 'src/index.html')
     fixture.componentRef.setInput('fileName', 'index.html')
     fixture.componentRef.setInput('previewKind', 'html')
-    fixture.componentRef.setInput(
-      'content',
-      '<!doctype html><html><body><script>document.body.dataset.ready = "true"</script></body></html>'
-    )
+    fixture.componentRef.setInput('referenceable', true)
+    fixture.componentRef.setInput('htmlInspectMode', true)
+    fixture.componentRef.setInput('content', '<html><body><button id="hero">Launch</button></body></html>')
     fixture.detectChanges()
 
-    const host: HTMLElement = fixture.nativeElement
-    const iframe = host.querySelector<HTMLIFrameElement>('iframe')
-    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
-    expect(iframe?.getAttribute('src')).toBe('blob:html-preview-1')
-    expect(iframe?.hasAttribute('srcdoc')).toBe(false)
-    expect(iframe?.getAttribute('sandbox')).toContain('allow-scripts')
+    const htmlPreview = fixture.debugElement.query(By.css('pac-file-html-preview'))
+    expect(htmlPreview).not.toBeNull()
+    expect(htmlPreview.componentInstance.content).toBe('<html><body><button id="hero">Launch</button></body></html>')
+    expect(htmlPreview.componentInstance.filePath).toBe('src/index.html')
+    expect(htmlPreview.componentInstance.fileName).toBe('index.html')
+    expect(htmlPreview.componentInstance.inspectMode).toBe(true)
+    expect(htmlPreview.componentInstance.referenceable).toBe(true)
 
-    fixture.componentRef.setInput('content', '<!doctype html><html><body>Updated</body></html>')
-    fixture.detectChanges()
+    const reference = {
+      type: 'file_element',
+      attributes: [{ name: 'id', value: 'hero' }],
+      domPath: 'html > body > button',
+      filePath: 'src/index.html',
+      outerHtml: '<button id="hero">Launch</button>',
+      selector: '#hero',
+      tagName: 'button',
+      text: 'Launch'
+    }
+    htmlPreview.componentInstance.fileElementReference.emit(reference)
+    htmlPreview.componentInstance.inspectModeChange.emit(false)
 
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:html-preview-1')
-    expect(host.querySelector<HTMLIFrameElement>('iframe')?.getAttribute('src')).toBe('blob:html-preview-2')
-
-    fixture.destroy()
-
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:html-preview-2')
+    expect(elementReferences).toEqual([reference])
+    expect(inspectModes).toEqual([false])
   })
 
   it('emits selection references from rich document previews', () => {

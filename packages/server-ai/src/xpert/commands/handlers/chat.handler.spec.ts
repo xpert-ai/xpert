@@ -25,6 +25,7 @@ import { ChatConversationUpsertCommand } from '../../../chat-conversation/comman
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
+import type { TRuntimeCapabilitiesSelection } from '../../../shared/agent/runtime-capabilities'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
@@ -246,6 +247,210 @@ describe('XpertChatHandler', () => {
                 }
             }
         })
+    })
+
+    it('inherits runtime capabilities saved on an existing conversation when the request omits them', async () => {
+        const commands: any[] = []
+        const persistedRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
+            mode: 'allowlist',
+            skills: {
+                workspaceId: 'workspace-1',
+                ids: ['skill-1']
+            },
+            plugins: {
+                nodeKeys: ['middleware-1']
+            },
+            subAgents: {
+                nodeKeys: ['researcher']
+            }
+        }
+
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [],
+                    status: command.entity.status,
+                    title: null,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: {
+                        runtimeCapabilities: persistedRuntimeCapabilities
+                    }
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return {
+                    id: 'execution-1',
+                    threadId: 'thread-1'
+                }
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            title: 'Generated title'
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    conversationId: 'conversation-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello world'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.state.human?.runtimeCapabilities).toEqual(persistedRuntimeCapabilities)
+        expect(agentCommand.state.selectedSkillIds).toEqual(['skill-1'])
+        expect(agentCommand.state.skillSelectionMode).toBeUndefined()
+        expect(agentCommand.options.runtimeCapabilities).toEqual(persistedRuntimeCapabilities)
+    })
+
+    it('does not override an explicit empty runtime capability allow-list with conversation defaults', async () => {
+        const commands: any[] = []
+        const persistedRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
+            mode: 'allowlist',
+            skills: {
+                workspaceId: 'workspace-1',
+                ids: ['skill-1']
+            },
+            plugins: {
+                nodeKeys: ['middleware-1']
+            },
+            subAgents: {
+                nodeKeys: ['researcher']
+            }
+        }
+        const explicitRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
+            mode: 'allowlist',
+            skills: {
+                workspaceId: 'workspace-1',
+                ids: []
+            },
+            plugins: {
+                nodeKeys: []
+            },
+            subAgents: {
+                nodeKeys: []
+            }
+        }
+
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [],
+                    status: command.entity.status,
+                    title: null,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: {
+                        runtimeCapabilities: persistedRuntimeCapabilities
+                    }
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return {
+                    id: 'execution-1',
+                    threadId: 'thread-1'
+                }
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            title: 'Generated title'
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    conversationId: 'conversation-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello world'
+                        }
+                    },
+                    state: {
+                        human: {
+                            input: 'Hello world',
+                            runtimeCapabilities: explicitRuntimeCapabilities
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.state.human?.runtimeCapabilities).toEqual(explicitRuntimeCapabilities)
+        expect(agentCommand.state.selectedSkillIds).toEqual([])
+        expect(agentCommand.options.runtimeCapabilities).toEqual(explicitRuntimeCapabilities)
     })
 
     it('forwards project scope to the agent sandbox options for project conversations', async () => {

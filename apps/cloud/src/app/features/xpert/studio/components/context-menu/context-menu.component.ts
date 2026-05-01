@@ -903,7 +903,8 @@ export class XpertStudioContextMenuComponent {
       title:
         this.#translate.instant('PAC.KEY_WORDS.Middleware', { Default: 'Middleware' }) +
         (length ? ` ${length + 1}` : ''),
-      provider
+      provider,
+      required: true
     } as IWFNMiddleware)
     this.reconnectAfterInsert(key)
   }

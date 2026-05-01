@@ -242,6 +242,10 @@ describe('ChatHomeComponent', () => {
   let store: {
     featureOrganizations$: Observable<unknown[]>
     featureTenant$: Observable<unknown[]>
+    featureContextHydrated$: Observable<boolean>
+    featureContextHydrated: boolean
+    featureContextHydrationLoading$: Observable<boolean>
+    featureContextHydrationLoading: boolean
     hasFeatureEnabled: jest.Mock
   }
   let dialog: {
@@ -277,6 +281,10 @@ describe('ChatHomeComponent', () => {
     store = {
       featureOrganizations$: of([]),
       featureTenant$: of([]),
+      featureContextHydrated$: of(true),
+      featureContextHydrated: true,
+      featureContextHydrationLoading$: of(false),
+      featureContextHydrationLoading: false,
       hasFeatureEnabled: jest.fn((feature: string) =>
         ['FEATURE_XPERT', 'FEATURE_XPERT_CLAWXPERT', 'FEATURE_XPERT_CHATBI'].includes(feature)
       )
@@ -350,6 +358,7 @@ describe('ChatHomeComponent', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule()
+    jest.restoreAllMocks()
     jest.clearAllMocks()
   })
 
@@ -445,6 +454,42 @@ describe('ChatHomeComponent', () => {
     fixture.nativeElement.querySelector('[data-clawxpert-open]').click()
 
     expect(navigateSpy).toHaveBeenCalledWith('/chat/clawxpert')
+  })
+
+  it('redirects away from ClawXpert when the feature is disabled after hydration', async () => {
+    store.hasFeatureEnabled.mockImplementation((feature: string) => feature === 'FEATURE_XPERT')
+
+    const router = TestBed.inject(Router)
+    Object.defineProperty(router, 'url', {
+      configurable: true,
+      get: () => '/chat/clawxpert/c'
+    })
+    const navigateSpy = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(navigateSpy).toHaveBeenCalledWith('/chat/x/common')
+  })
+
+  it('does not redirect away from ClawXpert while feature hydration is loading', async () => {
+    store.featureContextHydrationLoading$ = of(true)
+    store.featureContextHydrationLoading = true
+    store.hasFeatureEnabled.mockImplementation((feature: string) => feature === 'FEATURE_XPERT')
+
+    const router = TestBed.inject(Router)
+    Object.defineProperty(router, 'url', {
+      configurable: true,
+      get: () => '/chat/clawxpert/c'
+    })
+    const navigateSpy = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(navigateSpy).not.toHaveBeenCalled()
   })
 
   it('routes new chat to the common page', async () => {

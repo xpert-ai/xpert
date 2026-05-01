@@ -60,6 +60,11 @@ export class XpertBasicManageComponent {
 
   readonly avatar = computed(() => this.xpert()?.avatar)
   readonly xpertType = computed(() => this.xpert()?.type)
+  readonly exportedTemplate = computed(() => this.xpert()?.exportedTemplate)
+  readonly exportedTemplateDate = computed(() => {
+    const exportedAt = this.exportedTemplate()?.exportedAt
+    return exportedAt ? new Date(exportedAt).toLocaleString() : null
+  })
 
   readonly loading = signal(false)
 
@@ -107,7 +112,38 @@ export class XpertBasicManageComponent {
         }
       })
       .closed.subscribe({
-        next: () => {}
+        next: () => {
+          this.xpertComponent.xpertService.refresh()
+        }
+      })
+  }
+
+  deleteExportedTemplate() {
+    const xpert = this.xpert()
+    const exportedTemplate = this.exportedTemplate()
+    if (!xpert || !exportedTemplate) {
+      return
+    }
+
+    this.#dialog
+      .open(CdkConfirmDeleteComponent, {
+        data: {
+          value: exportedTemplate.filePath,
+          information: this.#translate.instant('PAC.Xpert.DeleteExportedTemplateConfirm', {
+            value: exportedTemplate.filePath,
+            Default: `Delete exported template '${exportedTemplate.filePath}'?`
+          })
+        }
+      })
+      .closed.pipe(switchMap((confirm) => (confirm ? this.#xpertService.deleteExportedTemplate(xpert.id) : EMPTY)))
+      .subscribe({
+        next: () => {
+          this.#toastr.success('PAC.Xpert.ExportTemplateDeleted', { Default: 'Exported template deleted' })
+          this.xpertComponent.xpertService.refresh()
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
       })
   }
 

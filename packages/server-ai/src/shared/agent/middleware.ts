@@ -2,6 +2,7 @@ import {
 	getAgentMiddlewareNodes,
 	isMiddlewareToolEnabled,
 	IWFNMiddleware,
+	isRequiredMiddleware,
 	IXpertAgent,
 	normalizeMiddlewareProvider,
 	TXpertGraph,
@@ -16,6 +17,7 @@ import {
 import { TXpertAgentRuntimeOptions } from './state'
 import { filterDisabledTools } from './tool-preference'
 import { orderNodesByKeyOrder } from './workflow'
+import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]
 
@@ -37,6 +39,38 @@ export const isSkillsConnectedToAgent = (graph: TXpertGraph, agent: IXpertAgent)
 	)
 }
 
+export function getRuntimeEnabledMiddlewareNodes(
+	graph: TXpertGraph,
+	agent: IXpertAgent,
+	options?: TXpertAgentRuntimeOptions
+) {
+	const middlewares = orderNodesByKeyOrder(
+		getAgentMiddlewareNodes(graph, agent.key),
+		agent.options?.middlewares?.order || []
+	)
+	const runtimeCapabilities = options?.runtimeCapabilities
+	if (runtimeCapabilities?.mode !== 'allowlist') {
+		return middlewares
+	}
+
+	const selectedMiddlewareNodeKeys = new Set(runtimeCapabilities.plugins?.nodeKeys ?? [])
+	const hasSelectedSkills = (runtimeCapabilities.skills?.ids ?? []).length > 0
+
+	return middlewares.filter((middlewareNode) => {
+		const entity = middlewareNode?.entity as unknown as IWFNMiddleware
+		if (isRequiredMiddleware(entity)) {
+			return true
+		}
+
+		if (selectedMiddlewareNodeKeys.has(middlewareNode.key)) {
+			return true
+		}
+
+		const provider = normalizeMiddlewareProvider(entity?.provider)
+		return hasSelectedSkills && provider === SKILLS_MIDDLEWARE_NAME
+	})
+}
+
 export async function getAgentMiddlewares(
 	graph: TXpertGraph,
 	agent: IXpertAgent,
@@ -44,10 +78,7 @@ export async function getAgentMiddlewares(
 	context: Omit<IAgentMiddlewareContext, 'node'>,
 	options?: TXpertAgentRuntimeOptions
 ): Promise<AgentMiddleware[]> {
-	const middlewares = orderNodesByKeyOrder(
-		getAgentMiddlewareNodes(graph, agent.key),
-		agent.options?.middlewares?.order || []
-	)
+	const middlewares = getRuntimeEnabledMiddlewareNodes(graph, agent, options)
 
 	const result: AgentMiddleware[] = []
 	for (const middlewareNode of middlewares) {

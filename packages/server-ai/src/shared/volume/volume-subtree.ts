@@ -72,6 +72,7 @@ export class VolumeSubtreeClient {
             previewText: isBinaryBuffer(buffer) ? await extractOfficePreviewText(relativePath, buffer) : undefined,
             size: stat.size,
             createdAt: stat.mtime,
+            updatedAt: stat.mtime,
             fileUrl: this.volume.publicUrl(publicPath),
             url: this.volume.publicUrl(publicPath)
         }
@@ -137,8 +138,13 @@ export class VolumeSubtreeClient {
 
         const absolutePath = resolve(subtreeRoot, relativePath)
         const stat = await fsPromises.stat(absolutePath).catch(() => null)
-        if (!stat?.isFile()) {
+        if (!stat) {
             throw new BadRequestException('Conversation file not found')
+        }
+
+        if (stat.isDirectory()) {
+            await fsPromises.rm(absolutePath, { recursive: true, force: true })
+            return
         }
 
         await fsPromises.unlink(absolutePath)

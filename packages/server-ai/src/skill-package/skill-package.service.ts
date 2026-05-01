@@ -945,7 +945,8 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			contents,
 			previewText: contents === undefined ? await extractOfficePreviewText(relativePath, buffer) : undefined,
 			size: stat.size,
-			createdAt: stat.mtime
+			createdAt: stat.mtime,
+			updatedAt: stat.mtime
 		}
 	}
 
@@ -1001,8 +1002,13 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		await this.assertWorkspaceWriteAccess(workspaceId)
 		const { absolutePath } = await this.resolveSkillPackageFilePath(workspaceId, id, filePath)
 		const stat = await fs.stat(absolutePath).catch(() => null)
-		if (!stat?.isFile()) {
+		if (!stat) {
 			throw new BadRequestException('Skill file not found')
+		}
+
+		if (stat.isDirectory()) {
+			await fs.rm(absolutePath, { recursive: true, force: true })
+			return
 		}
 
 		await fs.unlink(absolutePath)

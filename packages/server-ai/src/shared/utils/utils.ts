@@ -33,6 +33,7 @@ export async function listFiles(dir: string, depth: number, currentDepth = 0, pa
 					children,
 					size: 0,
 					createdAt: stat.mtime,
+					updatedAt: stat.mtime
 				} as TFileDirectory
 			} else {
 				const stat = await fsPromises.stat(path.join(root, fullPath))
@@ -44,6 +45,7 @@ export async function listFiles(dir: string, depth: number, currentDepth = 0, pa
 					hasChildren: false,
 					size: stat.size,
 					createdAt: stat.birthtime,
+					updatedAt: stat.mtime,
 					url: urlJoin(baseUrl, fullPath.replace(/\\/g, '/'))
 				} as TFileDirectory
 			}

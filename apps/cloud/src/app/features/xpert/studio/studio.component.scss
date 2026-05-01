@@ -95,6 +95,13 @@
     &.autonomous {
       stroke-dasharray: 4, 2;
     }
+
+    &.optional-sub-agent {
+      .f-connection-path {
+        stroke-dasharray: 1, 6;
+        stroke-linecap: round;
+      }
+    }
   }
   
   .f-node-input,

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@angular/core'
 import { Router } from '@angular/router'
 import { Ability, AbilityBuilder } from '@casl/ability'
 import { IUser } from '@xpert-ai/contracts'
-import { CURRENT_USER_BOOTSTRAP_RELATIONS, CURRENT_USER_FULL_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
+import { CurrentUserHydrationService, CURRENT_USER_BOOTSTRAP_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
 import * as Sentry from "@sentry/angular";
 import { NgxPermissionsService } from 'ngx-permissions'
 import { firstValueFrom } from 'rxjs'
@@ -23,6 +23,7 @@ export class AppInitService {
     private readonly router: Router,
     private readonly store: Store,
     private readonly scopeService: ScopeService,
+    private readonly currentUserHydrationService: CurrentUserHydrationService,
     private readonly ngxPermissionsService: NgxPermissionsService,
     @Inject(Ability) private readonly ability: Ability,
   ) {}
@@ -102,30 +103,12 @@ export class AppInitService {
   }
 
   private hydrateCurrentUserContextInBackground(userId: string) {
-    void this.usersService
-      .getMe([...CURRENT_USER_FULL_RELATIONS])
-      .then((fullUser) => {
-        if (this.store.userId !== userId || !this.store.user) {
+    void this.currentUserHydrationService
+      .getFeatureHydration()
+      .catch((error) => {
+        if (this.store.userId !== userId) {
           return
         }
-
-        const currentUser = this.store.user
-        this.store.user = {
-          ...fullUser,
-          ...currentUser,
-          employee: fullUser.employee ?? currentUser.employee,
-          role: fullUser.role ?? currentUser.role,
-          tenant: fullUser.tenant ?? currentUser.tenant,
-          organizations: fullUser.organizations ?? currentUser.organizations
-        }
-
-        const tenantFeatures = fullUser.tenant?.featureOrganizations ?? []
-        this.store.featureTenant = tenantFeatures.filter((item) => !item.organizationId)
-        this.store.featureContextHydrated = true
-        this.store.featureContextHydrationLoading = false
-        this.store.featureContextHydrationFailed = false
-      })
-      .catch((error) => {
         this.store.featureContextHydrationFailed = true
         this.store.featureContextHydrationLoading = false
         console.warn('Deferred current-user hydration failed', error)

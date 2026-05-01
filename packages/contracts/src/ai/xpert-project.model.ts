@@ -99,7 +99,7 @@ export interface IXpertProjectVCS extends IBasePerXpertProjectEntityModel {
 /**
  * @deprecated Use `attachments`
  */
-export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, Omit<TFile, 'createdAt'> {}
+export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, Omit<TFile, 'createdAt' | 'updatedAt'> {}
 
 export type TXpertProjectDSL = IXpertProject & {
   xperts?: TXpertTeamDraft[]

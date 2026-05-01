@@ -1,9 +1,10 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, EventEmitter, Input, Output } from '@angular/core'
+import { By } from '@angular/platform-browser'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
-import { FileTreeNode } from '../tree/tree.utils'
+import { collectExpandedDirectoryPaths, FileTreeNode } from '../tree/tree.utils'
 import { FileEditorSelection } from '../editor/editor.component'
 import { FileWorkbenchComponent } from './workbench.component'
 
@@ -11,9 +12,12 @@ type TFileDirectory = {
   filePath?: string
   fullPath?: string
   fileType?: string
+  mimeType?: string
   hasChildren?: boolean
   children?: TFileDirectory[] | null
   url?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 type TFile = {
@@ -24,6 +28,8 @@ type TFile = {
   fileUrl?: string
   url?: string
   mimeType?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 const mockToastr = {
@@ -102,6 +108,8 @@ jest.mock('../viewer/viewer.component', () => {
     @Input() downloadable?: boolean
     @Input() referenceable?: boolean
     @Input() previewUrl?: string | null
+    @Input() sideMenuToggleVisible?: boolean
+    @Input() sideMenuVisible?: boolean
     @Input() mode?: 'view' | 'edit'
     @Input() readOnlyHint?: string
     @Input() unsupportedPreviewTitle?: string
@@ -110,10 +118,13 @@ jest.mock('../viewer/viewer.component', () => {
     @Output() readonly contentChange = new EventEmitter<string>()
     @Output() readonly discard = new EventEmitter<void>()
     @Output() readonly save = new EventEmitter<void>()
+    @Output() readonly refresh = new EventEmitter<void>()
     @Output() readonly back = new EventEmitter<void>()
     @Output() readonly download = new EventEmitter<void>()
     @Output() readonly referenceFile = new EventEmitter<void>()
+    @Output() readonly referenceElement = new EventEmitter()
     @Output() readonly referenceSelection = new EventEmitter<FileEditorSelection>()
+    @Output() readonly sideMenuToggle = new EventEmitter<void>()
   }
 
   MockFileViewerComponent = MockFileViewerComponentImpl
@@ -327,6 +338,252 @@ describe('FileWorkbenchComponent', () => {
     expect(component.treeActivePath()).toBe('docs')
   })
 
+  it('toggles the desktop file tree from the viewer header control', async () => {
+    const { component, fixture } = await setup()
+    const tree = fixture.debugElement.query(By.directive(MockFileTreeComponent))
+    const viewer = fixture.debugElement.query(By.directive(MockFileViewerComponent)).componentInstance as any
+
+    expect(viewer.sideMenuToggleVisible).toBe(true)
+    expect(viewer.sideMenuVisible).toBe(true)
+    expect(tree.nativeElement.classList.contains('lg:block')).toBe(true)
+    expect(fixture.nativeElement.classList.contains('xp-file-workbench--tree-hidden')).toBe(false)
+
+    viewer.sideMenuToggle.emit()
+    fixture.detectChanges()
+
+    expect(component.fileTreeVisible()).toBe(false)
+    expect(viewer.sideMenuVisible).toBe(false)
+    expect(tree.nativeElement.classList.contains('lg:hidden')).toBe(true)
+    expect(fixture.nativeElement.classList.contains('xp-file-workbench--tree-hidden')).toBe(true)
+  })
+
+  it('refreshes the active file when the viewer refresh control is used', async () => {
+    const fileContents: Record<string, TFile> = {
+      'SKILL.md': {
+        filePath: 'SKILL.md',
+        fileType: 'md',
+        contents: '# Before\n',
+        updatedAt: '2026-04-30T00:00:00.000Z'
+      }
+    }
+    const { component, fixture, fileLoader } = await setup({
+      rootFiles: [
+        {
+          filePath: 'SKILL.md',
+          fullPath: 'SKILL.md',
+          fileType: 'md',
+          hasChildren: false,
+          updatedAt: '2026-04-30T00:00:00.000Z'
+        }
+      ],
+      fileContents
+    })
+    const viewer = fixture.debugElement.query(By.directive(MockFileViewerComponent)).componentInstance as any
+    const initialFileLoadCount = fileLoader.mock.calls.length
+
+    fileContents['SKILL.md'] = {
+      filePath: 'SKILL.md',
+      fileType: 'md',
+      contents: '# After\n',
+      updatedAt: '2026-04-30T00:01:00.000Z'
+    }
+
+    viewer.refresh.emit()
+    await fixture.whenStable()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(fileLoader).toHaveBeenCalledTimes(initialFileLoadCount + 1)
+    expect(component.draftContent()).toBe('# After\n')
+  })
+
+  it('incrementally refreshes the root tree without resetting the active draft', async () => {
+    const rootFiles: TFileDirectory[] = [
+      {
+        filePath: 'SKILL.md',
+        fullPath: 'SKILL.md',
+        fileType: 'md',
+        hasChildren: false
+      },
+      {
+        filePath: 'docs',
+        fullPath: 'docs',
+        fileType: 'directory',
+        hasChildren: true,
+        children: null
+      },
+      {
+        filePath: 'notes.txt',
+        fullPath: 'notes.txt',
+        fileType: 'txt',
+        hasChildren: false
+      }
+    ]
+    const { component, fixture } = await setup({ rootFiles })
+
+    await component.switchPanelMode('edit')
+    component.draftContent.set('# Unsaved change\n')
+    const skillNodeBefore = component.fileTree().find((item) => item.fullPath === 'SKILL.md')
+    const docsNodeBefore = component.fileTree().find((item) => item.fullPath === 'docs')
+
+    rootFiles.splice(2, 1, {
+      filePath: 'new.txt',
+      fullPath: 'new.txt',
+      fileType: 'txt',
+      hasChildren: false
+    })
+
+    fixture.componentRef.setInput('reloadKey', 1)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(component.activeFilePath()).toBe('SKILL.md')
+    expect(component.panelMode()).toBe('edit')
+    expect(component.draftContent()).toBe('# Unsaved change\n')
+    expect(component.fileTree().some((item) => item.fullPath === 'notes.txt')).toBe(false)
+    expect(component.fileTree().some((item) => item.fullPath === 'new.txt')).toBe(true)
+    expect(component.fileTree().find((item) => item.fullPath === 'SKILL.md')).toBe(skillNodeBefore)
+    expect(component.fileTree().find((item) => item.fullPath === 'docs')).toBe(docsNodeBefore)
+  })
+
+  it('reloads the active viewer when the refreshed file list has a newer modified time', async () => {
+    const rootFiles: TFileDirectory[] = [
+      {
+        filePath: 'SKILL.md',
+        fullPath: 'SKILL.md',
+        fileType: 'md',
+        hasChildren: false,
+        updatedAt: '2026-04-30T00:00:00.000Z'
+      }
+    ]
+    const fileContents: Record<string, TFile> = {
+      'SKILL.md': {
+        filePath: 'SKILL.md',
+        fileType: 'md',
+        contents: '# Before\n',
+        updatedAt: '2026-04-30T00:00:00.000Z'
+      }
+    }
+    const { component, fixture, fileLoader } = await setup({ rootFiles, fileContents })
+    const initialFileLoadCount = fileLoader.mock.calls.length
+
+    rootFiles[0] = {
+      ...rootFiles[0],
+      updatedAt: '2026-04-30T00:02:00.000Z'
+    }
+    fileContents['SKILL.md'] = {
+      filePath: 'SKILL.md',
+      fileType: 'md',
+      contents: '# After external edit\n',
+      updatedAt: '2026-04-30T00:02:00.000Z'
+    }
+
+    fixture.componentRef.setInput('reloadKey', 1)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await Promise.resolve()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(fileLoader).toHaveBeenCalledTimes(initialFileLoadCount + 1)
+    expect(component.activeFilePath()).toBe('SKILL.md')
+    expect(component.draftContent()).toBe('# After external edit\n')
+  })
+
+  it('refreshes already expanded directories after a root tree refresh', async () => {
+    const nestedFiles: Record<string, TFileDirectory[]> = {
+      docs: [
+        {
+          filePath: 'child',
+          fullPath: 'docs/child',
+          fileType: 'directory',
+          hasChildren: true,
+          children: null
+        },
+        {
+          filePath: 'guide.md',
+          fullPath: 'docs/guide.md',
+          fileType: 'md',
+          hasChildren: false
+        }
+      ],
+      'docs/child': [
+        {
+          filePath: 'old.txt',
+          fullPath: 'docs/child/old.txt',
+          fileType: 'txt',
+          hasChildren: false
+        }
+      ]
+    }
+    const { component, fixture, filesLoader } = await setup({ nestedFiles })
+
+    const docsNode = component.fileTree().find((item) => item.fullPath === 'docs')
+    expect(docsNode).toBeDefined()
+    if (!docsNode) {
+      throw new Error('Expected docs node to be present')
+    }
+    await component.toggleDirectory(docsNode)
+
+    const childNode = (component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.find(
+      (item) => item.fullPath === 'docs/child'
+    )
+    expect(childNode).toBeDefined()
+    if (!childNode) {
+      throw new Error('Expected child node to be present')
+    }
+    await component.toggleDirectory(childNode)
+    expect(
+      ((component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.find(
+        (item) => item.fullPath === 'docs/child'
+      ) as FileTreeNode | undefined)?.expanded
+    ).toBe(true)
+    expect(collectExpandedDirectoryPaths(component.fileTree())).toEqual(['docs', 'docs/child'])
+
+    nestedFiles.docs = [
+      ...nestedFiles.docs,
+      {
+        filePath: 'new-guide.md',
+        fullPath: 'docs/new-guide.md',
+        fileType: 'md',
+        hasChildren: false
+      }
+    ]
+    nestedFiles['docs/child'] = [
+      ...nestedFiles['docs/child'],
+      {
+        filePath: 'new.txt',
+        fullPath: 'docs/child/new.txt',
+        fileType: 'txt',
+        hasChildren: false
+      }
+    ]
+    const callCountBeforeRefresh = filesLoader.mock.calls.length
+
+    fixture.componentRef.setInput('reloadKey', 1)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(filesLoader.mock.calls.slice(callCountBeforeRefresh).map((call) => call[0])).toEqual([
+      undefined,
+      'docs',
+      'docs/child'
+    ])
+
+    const docsAfterRefresh = component.fileTree().find((item) => item.fullPath === 'docs')
+    const docsChildren = docsAfterRefresh?.children as FileTreeNode[]
+    const childAfterRefresh = docsChildren.find((item) => item.fullPath === 'docs/child')
+    const childChildren = childAfterRefresh?.children as FileTreeNode[]
+    expect(docsChildren.some((item) => item.fullPath === 'docs/new-guide.md')).toBe(true)
+    expect(childChildren.some((item) => item.fullPath === 'docs/child/new.txt')).toBe(true)
+  })
+
   it('uploads folder contents with their relative parent directories preserved', async () => {
     const { component, fileUploader, toastr } = await setup()
     const directoryFile = new File(['# Guide\n'], 'guide.md', { type: 'text/markdown' })
@@ -411,7 +668,32 @@ describe('FileWorkbenchComponent', () => {
     expect(toastr.success).toHaveBeenCalled()
   })
 
-  it('emits a full-file reference using the current draft content', async () => {
+  it('deletes a folder and clears the active preview when it contains the selected file', async () => {
+    const { component, fileDeleter, toastr } = await setup()
+    const docsNode = component.fileTree().find((item) => item.fullPath === 'docs')
+    expect(docsNode).toBeTruthy()
+
+    await component.toggleDirectory(docsNode as FileTreeNode)
+
+    const expandedDocsNode = component.fileTree().find((item) => item.fullPath === 'docs')
+    const guideNode = ((expandedDocsNode?.children as FileTreeNode[]) ?? []).find(
+      (item) => item.fullPath === 'docs/guide.md'
+    )
+    expect(guideNode).toBeTruthy()
+
+    await component.openFile(guideNode as FileTreeNode)
+    component.draftContent.set('# Unsaved guide\n')
+
+    await component.deleteTreeFile(expandedDocsNode as FileTreeNode)
+
+    expect(fileDeleter).toHaveBeenCalledWith('docs')
+    expect(component.fileTree().some((item) => item.fullPath === 'docs')).toBe(false)
+    expect(component.activeFilePath()).toBe('SKILL.md')
+    expect(component.treeActivePath()).toBe('SKILL.md')
+    expect(toastr.success).toHaveBeenCalled()
+  })
+
+  it('emits a file path reference for the active file', async () => {
     const { component, fixture } = await setup({ referenceable: true })
     const emitted: unknown[] = []
     component.referenceRequest.subscribe((value) => emitted.push(value))
@@ -422,11 +704,43 @@ describe('FileWorkbenchComponent', () => {
 
     expect(emitted).toEqual([
       {
-        path: 'SKILL.md',
-        text: '# Updated skill\nWith unsaved changes\n',
-        startLine: 1,
-        endLine: 3,
-        language: 'markdown'
+        type: 'file_path',
+        path: 'SKILL.md'
+      }
+    ])
+  })
+
+  it('emits a file path reference for non-readable files', async () => {
+    const { component } = await setup({
+      referenceable: true,
+      rootFiles: [
+        {
+          filePath: 'screenshots/home.png',
+          fullPath: 'screenshots/home.png',
+          fileType: 'png',
+          mimeType: 'image/png',
+          hasChildren: false
+        }
+      ],
+      fileContents: {
+        'screenshots/home.png': {
+          filePath: 'screenshots/home.png',
+          fileType: 'png',
+          mimeType: 'image/png',
+          url: 'https://example.com/home.png'
+        }
+      }
+    })
+    const emitted: unknown[] = []
+    component.referenceRequest.subscribe((value) => emitted.push(value))
+
+    component.referenceActiveFile()
+
+    expect(component.fileReadable()).toBe(false)
+    expect(emitted).toEqual([
+      {
+        type: 'file_path',
+        path: 'screenshots/home.png'
       }
     ])
   })
@@ -504,6 +818,36 @@ describe('FileWorkbenchComponent', () => {
         text: 'Executive summary',
         startLine: 1,
         endLine: 1
+      }
+    ])
+  })
+
+  it('forwards html file element references from the viewer', async () => {
+    const { component } = await setup({ referenceable: true })
+    const emitted: unknown[] = []
+    component.referenceRequest.subscribe((value) => emitted.push(value))
+
+    component.referenceFileElement({
+      type: 'file_element',
+      attributes: [{ name: 'id', value: 'hero' }],
+      domPath: 'html > body > button',
+      filePath: 'index.html',
+      outerHtml: '<button id="hero">Launch</button>',
+      selector: '#hero',
+      tagName: 'button',
+      text: 'Launch'
+    })
+
+    expect(emitted).toEqual([
+      {
+        type: 'file_element',
+        attributes: [{ name: 'id', value: 'hero' }],
+        domPath: 'html > body > button',
+        filePath: 'index.html',
+        outerHtml: '<button id="hero">Launch</button>',
+        selector: '#hero',
+        tagName: 'button',
+        text: 'Launch'
       }
     ])
   })

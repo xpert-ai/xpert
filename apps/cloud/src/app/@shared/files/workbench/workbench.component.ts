@@ -14,17 +14,21 @@ import {
   model,
   output,
   signal,
+  untracked,
   viewChild
 } from '@angular/core'
 import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Observable, defaultIfEmpty, finalize, firstValueFrom, from, isObservable } from 'rxjs'
+import type { TChatFileElementReference } from '@xpert-ai/contracts'
 import { getErrorMessage, injectToastr, TFile, TFileDirectory } from '../../../@core'
 import { FileEditorSelection, mapFileLanguageFromPath } from '../editor/editor.component'
 import { FileTreeComponent, type FileTreeUploadKind } from '../tree/tree.component'
 import {
+  collectExpandedDirectoryPaths,
   FileTreeNode,
   findPreferredFile,
+  mergeFileTreeState,
   prepareFileTree,
   removeFileTreeNode,
   updateFileTreeNode
@@ -51,17 +55,33 @@ export type FileWorkbenchDownloadPayload =
   | { kind: 'url'; url: string; fileName?: string }
   | { kind: 'blob'; blob: Blob; fileName?: string }
 export type FileWorkbenchFileDownloader = (path: string) => AsyncValue<FileWorkbenchDownloadPayload | null | undefined>
-export type FileWorkbenchReferenceRequest = {
+export type FileWorkbenchCodeReferenceRequest = {
   path: string
   text: string
   startLine: number
   endLine: number
   language?: string
 }
+export type FileWorkbenchFilePathReferenceRequest = {
+  type: 'file_path'
+  path: string
+}
+export type FileWorkbenchReferenceRequest =
+  | FileWorkbenchFilePathReferenceRequest
+  | FileWorkbenchCodeReferenceRequest
+  | TChatFileElementReference
 
 type FileWorkbenchPreviewResource = {
   objectUrl: string | null
   url: string | null
+}
+
+type FileModifiedTimestamp = NonNullable<TFile['createdAt'] | TFile['updatedAt']>
+type FileWithModifiedTimestamp = TFile & ({ readonly updatedAt: FileModifiedTimestamp } | { readonly createdAt: FileModifiedTimestamp })
+
+type LoadDirectoryChildrenOptions = {
+  merge?: boolean
+  requestToken?: number
 }
 
 const DEFAULT_EDITABLE_EXTENSIONS = [
@@ -91,7 +111,10 @@ const DEFAULT_MARKDOWN_EXTENSIONS = ['md', 'mdx']
   templateUrl: './workbench.component.html',
   styleUrls: ['./workbench.component.css'],
   imports: [CommonModule, TranslateModule, FileTreeComponent, FileViewerComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.xp-file-workbench--tree-hidden]': '!fileTreeVisible()'
+  }
 })
 export class FileWorkbenchComponent {
   readonly #destroyRef = inject(DestroyRef)
@@ -127,6 +150,7 @@ export class FileWorkbenchComponent {
   readonly downloadingPaths = signal<Set<string>>(new Set())
   readonly deletingPaths = signal<Set<string>>(new Set())
   readonly uploading = signal(false)
+  readonly fileTreeVisible = signal(true)
   readonly fileTree = signal<FileTreeNode[]>([])
   readonly activeFilePath = signal<string | null>(null)
   readonly activeFile = signal<TFile | null>(null)
@@ -191,18 +215,31 @@ export class FileWorkbenchComponent {
   #pendingNavigationAction: (() => Promise<void>) | null = null
   #treeRequestToken = 0
   #fileRequestToken = 0
+  #activeRootId: string | null = null
   #activePreviewObjectUrl: string | null = null
 
   readonly #reloadRootEffect = effect(() => {
-    const rootId = this.rootId()
+    const rootId = this.rootId() ?? null
     this.reloadKey()
+    this.filesLoader()
 
     if (!rootId) {
+      this.#activeRootId = null
       this.resetState()
       return
     }
 
-    void this.reloadRootTree(rootId)
+    if (this.#activeRootId !== rootId) {
+      this.#activeRootId = rootId
+      untracked(() => {
+        void Promise.resolve().then(() => this.reloadRootTree(rootId))
+      })
+      return
+    }
+
+    untracked(() => {
+      void Promise.resolve().then(() => this.refreshRootTree(rootId))
+    })
   })
 
   constructor() {
@@ -213,6 +250,10 @@ export class FileWorkbenchComponent {
 
   isEditableFile(filePath: string | null | undefined) {
     return !!filePath && this.#editableExtensionSet().has(fileExtension(filePath))
+  }
+
+  toggleFileTree() {
+    this.fileTreeVisible.update((visible) => !visible)
   }
 
   async guardDirtyBefore(action: () => Promise<void> | void) {
@@ -277,16 +318,14 @@ export class FileWorkbenchComponent {
 
   referenceActiveFile() {
     const filePath = normalizeReferencePath(this.activeFilePath())
-    const text = this.draftContent()
-    if (!this.referenceable() || !filePath || !this.fileReadable() || !text.trim().length) {
-      this.#toastr.warning('PAC.Files.ReferenceUnavailable', {
-        Default: 'This file does not have any text content to reference yet.'
-      })
+    if (!this.referenceable() || !filePath) {
       return
     }
 
-    const lineCount = countTextLines(text)
-    this.referenceRequest.emit(createReferenceRequest(filePath, text, 1, lineCount))
+    this.referenceRequest.emit({
+      type: 'file_path',
+      path: filePath
+    })
   }
 
   referenceSelectedRange(selection: FileEditorSelection) {
@@ -301,6 +340,14 @@ export class FileWorkbenchComponent {
     }
 
     this.referenceRequest.emit(createReferenceRequest(filePath, text, selection.startLine, selection.endLine))
+  }
+
+  referenceFileElement(reference: TChatFileElementReference) {
+    if (!this.referenceable()) {
+      return
+    }
+
+    this.referenceRequest.emit(reference)
   }
 
   discardActiveFileChanges() {
@@ -351,6 +398,17 @@ export class FileWorkbenchComponent {
     }
 
     await this.downloadFileByPath(filePath)
+  }
+
+  async refreshActiveFile() {
+    const filePath = this.activeFilePath()
+    if (!filePath || this.fileLoading()) {
+      return
+    }
+
+    await this.guardDirtyBefore(async () => {
+      await this.loadActiveFile(filePath)
+    })
   }
 
   requestUpload(kind: FileTreeUploadKind = 'file') {
@@ -416,26 +474,33 @@ export class FileWorkbenchComponent {
   async deleteTreeFile(item: FileTreeNode) {
     const fileDeleter = this.fileDeleter()
     const filePath = item.fullPath || item.filePath
-    if (!fileDeleter || !filePath || item.hasChildren) {
+    if (!fileDeleter || !filePath) {
       return
     }
 
+    const isDirectory = !!item.hasChildren
     const fileName = fileNameFromPath(filePath)
+    const activeFilePath = this.activeFilePath()
+    const deletesActiveFile = !!activeFilePath && isPathSameOrDescendant(filePath, activeFilePath)
     const information =
-      this.activeFilePath() === filePath && this.dirty()
-        ? this.#translate.instant('PAC.Files.DeleteDirtyFileInfo', {
-            Default: 'This file has unsaved changes. Deleting it will also discard those pending edits.'
+      deletesActiveFile && this.dirty()
+        ? this.#translate.instant(isDirectory ? 'PAC.Files.DeleteDirtyFolderInfo' : 'PAC.Files.DeleteDirtyFileInfo', {
+            Default: isDirectory
+              ? 'A file in this folder has unsaved changes. Deleting the folder will also discard those pending edits.'
+              : 'This file has unsaved changes. Deleting it will also discard those pending edits.'
           })
-        : this.#translate.instant('PAC.Files.DeleteFileInfo', {
-            Default: 'Are you sure you want to delete this file? This action cannot be undone.'
+        : this.#translate.instant(isDirectory ? 'PAC.Files.DeleteFolderInfo' : 'PAC.Files.DeleteFileInfo', {
+            Default: isDirectory
+              ? 'Are you sure you want to delete this folder and all of its contents? This action cannot be undone.'
+              : 'Are you sure you want to delete this file? This action cannot be undone.'
           })
 
     try {
       const deleted = await firstValueFrom(
         this.#confirmDelete(
           {
-            title: this.#translate.instant('PAC.Files.DeleteFileTitle', {
-              Default: 'Delete File'
+            title: this.#translate.instant(isDirectory ? 'PAC.Files.DeleteFolderTitle' : 'PAC.Files.DeleteFileTitle', {
+              Default: isDirectory ? 'Delete Folder' : 'Delete File'
             }),
             value: fileName,
             information
@@ -453,10 +518,10 @@ export class FileWorkbenchComponent {
       }
 
       this.fileTree.update((state) => removeFileTreeNode(state, filePath))
-      if (this.selectedTreeItem()?.path === filePath) {
+      if (isPathSameOrDescendant(filePath, this.selectedTreeItem()?.path)) {
         this.selectedTreeItem.set(null)
       }
-      if (this.activeFilePath() === filePath) {
+      if (deletesActiveFile) {
         this.activeFilePath.set(null)
         this.activeFile.set(null)
         this.setActivePreviewResource({ objectUrl: null, url: null })
@@ -470,15 +535,15 @@ export class FileWorkbenchComponent {
       }
 
       this.#toastr.success(
-        this.#translate.instant('PAC.Files.FileDeleted', {
-          Default: 'File deleted'
+        this.#translate.instant(isDirectory ? 'PAC.Files.FolderDeleted' : 'PAC.Files.FileDeleted', {
+          Default: isDirectory ? 'Folder deleted' : 'File deleted'
         })
       )
     } catch (error) {
       this.#toastr.danger(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Files.DeleteFileFailed', {
-            Default: 'Failed to delete file'
+          this.#translate.instant(isDirectory ? 'PAC.Files.DeleteFolderFailed' : 'PAC.Files.DeleteFileFailed', {
+            Default: isDirectory ? 'Failed to delete folder' : 'Failed to delete file'
           })
       )
     }
@@ -566,7 +631,61 @@ export class FileWorkbenchComponent {
     }
   }
 
-  private async loadDirectoryChildren(filePath: string) {
+  private async refreshRootTree(rootId: string) {
+    const filesLoader = this.filesLoader()
+    if (!filesLoader) {
+      this.resetState()
+      return
+    }
+
+    const requestToken = ++this.#treeRequestToken
+    const expandedDirectoryPaths = collectExpandedDirectoryPaths(this.fileTree())
+    const activeFilePath = this.activeFilePath()
+    const knownActiveFileModifiedAt =
+      fileModifiedFingerprint(this.activeFile()) ??
+      fileModifiedFingerprint(findFileTreeNode(this.fileTree(), activeFilePath))
+    this.treeLoading.set(true)
+
+    try {
+      const files = await resolveAsyncValue(filesLoader())
+      if (requestToken !== this.#treeRequestToken || this.rootId() !== rootId) {
+        return
+      }
+
+      this.fileTree.update((state) => mergeFileTreeState(state, prepareFileTree(files ?? [])))
+
+      for (const filePath of expandedDirectoryPaths) {
+        if (requestToken !== this.#treeRequestToken || this.rootId() !== rootId) {
+          return
+        }
+
+        await this.loadDirectoryChildren(filePath, {
+          merge: true,
+          requestToken
+        })
+      }
+
+      await this.refreshActiveFileIfModified(activeFilePath, knownActiveFileModifiedAt, rootId, requestToken)
+
+      if (!this.activeFilePath()) {
+        const preferredFile = findPreferredFile(this.fileTree(), (filePath) => this.isEditableFile(filePath))
+        if (preferredFile?.fullPath) {
+          await this.loadActiveFile(preferredFile.fullPath)
+        }
+      }
+    } catch (error) {
+      this.#toastr.danger(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Files.LoadFilesFailed', { Default: 'Failed to load files' })
+      )
+    } finally {
+      if (requestToken === this.#treeRequestToken) {
+        this.treeLoading.set(false)
+      }
+    }
+  }
+
+  private async loadDirectoryChildren(filePath: string, options: LoadDirectoryChildrenOptions = {}) {
     const filesLoader = this.filesLoader()
     const rootId = this.rootId()
     if (!filesLoader || !rootId) {
@@ -576,16 +695,30 @@ export class FileWorkbenchComponent {
     this.fileTreeLoadingPaths.update((paths) => new Set(paths).add(filePath))
     try {
       const files = await resolveAsyncValue(filesLoader(filePath))
-      if (this.rootId() !== rootId) {
+      if (this.rootId() !== rootId || (options.requestToken != null && options.requestToken !== this.#treeRequestToken)) {
         return
       }
 
       this.fileTree.update((state) =>
-        updateFileTreeNode(state, filePath, (node) => ({
-          ...node,
-          expanded: true,
-          children: prepareFileTree(files ?? [])
-        }))
+        updateFileTreeNode(state, filePath, (node) => {
+          const nextChildren = prepareFileTree(files ?? [])
+          const children = options.merge
+            ? mergeFileTreeState(
+                Array.isArray(node.children) ? (node.children as FileTreeNode[]) : [],
+                nextChildren
+              )
+            : nextChildren
+
+          if (node.expanded && node.children === children) {
+            return node
+          }
+
+          return {
+            ...node,
+            expanded: true,
+            children
+          }
+        })
       )
     } catch (error) {
       this.#toastr.danger(
@@ -599,6 +732,28 @@ export class FileWorkbenchComponent {
         return next
       })
     }
+  }
+
+  private async refreshActiveFileIfModified(
+    filePath: string | null,
+    knownModifiedAt: string | null,
+    rootId: string,
+    requestToken: number
+  ) {
+    if (!filePath || this.activeFilePath() !== filePath || this.dirty()) {
+      return
+    }
+
+    const latestModifiedAt = fileModifiedFingerprint(findFileTreeNode(this.fileTree(), filePath))
+    if (!knownModifiedAt || !latestModifiedAt || knownModifiedAt === latestModifiedAt) {
+      return
+    }
+
+    if (requestToken !== this.#treeRequestToken || this.rootId() !== rootId) {
+      return
+    }
+
+    await this.loadActiveFile(filePath)
   }
 
   private async loadActiveFile(filePath: string) {
@@ -756,7 +911,9 @@ export class FileWorkbenchComponent {
       return
     }
 
-    this.fileTree.update((state) => updateFileTreeNode(state, targetPath, (node) => ({ ...node, expanded: true })))
+    this.fileTree.update((state) =>
+      updateFileTreeNode(state, targetPath, (node) => (node.expanded ? node : { ...node, expanded: true }))
+    )
     await this.loadDirectoryChildren(targetPath)
   }
 
@@ -822,6 +979,80 @@ export class FileWorkbenchComponent {
 
 function fileExtension(filePath: string) {
   return filePath.split('.').pop()?.toLowerCase() ?? ''
+}
+
+function findFileTreeNode(items: FileTreeNode[], filePath?: string | null): FileTreeNode | null {
+  const targetPath = normalizeComparableFilePath(filePath)
+  if (!targetPath) {
+    return null
+  }
+
+  for (const item of items ?? []) {
+    if (normalizeComparableFilePath(item.fullPath || item.filePath) === targetPath) {
+      return item
+    }
+
+    if (Array.isArray(item.children)) {
+      const child = findFileTreeNode(item.children as FileTreeNode[], targetPath)
+      if (child) {
+        return child
+      }
+    }
+  }
+
+  return null
+}
+
+function fileModifiedFingerprint(file: TFile | null | undefined): string | null {
+  if (!hasFileModifiedTimestamp(file)) {
+    return null
+  }
+
+  return normalizeFileTimestamp(file.updatedAt ?? file.createdAt)
+}
+
+function hasFileModifiedTimestamp(file: TFile | null | undefined): file is FileWithModifiedTimestamp {
+  return isFileModifiedTimestamp(file?.updatedAt) || isFileModifiedTimestamp(file?.createdAt)
+}
+
+function isFileModifiedTimestamp(value: FileModifiedTimestamp | number | string | null | undefined): value is FileModifiedTimestamp {
+  if (value instanceof Date) {
+    return !Number.isNaN(value.getTime())
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value)
+  }
+
+  if (typeof value === 'string') {
+    return value.trim().length > 0
+  }
+
+  return false
+}
+
+function normalizeFileTimestamp(value: FileModifiedTimestamp | number | string): string {
+  if (value instanceof Date) {
+    return String(value.getTime())
+  }
+
+  if (typeof value === 'number') {
+    return String(value)
+  }
+
+  const timestamp = value.trim()
+  const time = Date.parse(timestamp)
+  return Number.isNaN(time) ? timestamp : String(time)
+}
+
+function normalizeComparableFilePath(filePath?: string | null) {
+  return (filePath ?? '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '')
+}
+
+function isPathSameOrDescendant(parentPath?: string | null, childPath?: string | null) {
+  const parent = normalizeComparableFilePath(parentPath)
+  const child = normalizeComparableFilePath(childPath)
+  return !!parent && !!child && (child === parent || child.startsWith(`${parent}/`))
 }
 
 function normalizeReferencePath(filePath?: string | null) {
@@ -945,10 +1176,6 @@ function appendDownloadQuery(url: string) {
   return normalizedUrl.toString()
 }
 
-function countTextLines(content: string) {
-  return content.split(/\r?\n/).length
-}
-
 function createReferenceRequest(
   path: string,
   text: string,
@@ -989,29 +1216,6 @@ function resolveUploadDestinationPath(targetPath: string, relativePath?: string 
   const normalizedRelativePath = normalizeUploadRelativePath(relativePath)
   const relativeDirectoryPath = normalizedRelativePath ? parentDirectoryPath(normalizedRelativePath) : ''
   return [normalizedTargetPath, relativeDirectoryPath].filter(Boolean).join('/')
-}
-
-function mergeFileTreeState(previous: FileTreeNode[], next: FileTreeNode[]) {
-  const previousMap = new Map(previous.map((item) => [item.fullPath || item.filePath, item] as const))
-
-  return next.map((item) => {
-    const currentPath = item.fullPath || item.filePath
-    const previousItem = currentPath ? previousMap.get(currentPath) : undefined
-    const nextChildren = Array.isArray(item.children)
-      ? mergeFileTreeState(
-          Array.isArray(previousItem?.children) ? (previousItem.children as FileTreeNode[]) : [],
-          item.children
-        )
-      : previousItem?.expanded && Array.isArray(previousItem.children)
-        ? (previousItem.children as FileTreeNode[])
-        : item.children
-
-    return {
-      ...item,
-      expanded: previousItem?.expanded ?? item.expanded,
-      children: nextChildren
-    }
-  })
 }
 
 async function resolveAsyncValue<T>(value: AsyncValue<T>): Promise<T> {

@@ -1,4 +1,4 @@
-import { ITag, IUser, IXpert, IXpertAgent, TAvatar, XpertTypeEnum } from '@xpert-ai/contracts'
+import { ITag, IUser, IXpert, IXpertAgent, TAvatar, TXpertExportedTemplate, XpertTypeEnum } from '@xpert-ai/contracts'
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentIdentiDto } from '../../xpert-agent/dto'
@@ -37,6 +37,9 @@ export class XpertIdentiDto implements Partial<IXpert> {
 
 	@Expose()
 	publishAt?: Date
+
+	@Expose()
+	exportedTemplate?: TXpertExportedTemplate | null
 
 	@Expose()
 	tags?: ITag[]

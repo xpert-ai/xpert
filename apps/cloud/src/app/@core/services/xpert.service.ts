@@ -35,6 +35,7 @@ import {
   TChatOptions,
   TChatRequest,
   TDeleteResult,
+  TXpertExportedTemplate,
   TWorkflowVarGroup,
   TXpertTeamDraft,
   XpertTypeEnum
@@ -183,6 +184,16 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   exportDSL(id: string, params: { isDraft: boolean; includeMemory?: boolean }) {
     return this.httpClient.get<{ data: string }>(this.apiBaseUrl + `/${id}/export`, { params })
+  }
+
+  exportDSLAsTemplate(id: string, params: { isDraft: boolean; includeMemory?: boolean }) {
+    return this.httpClient
+      .post<TXpertExportedTemplate>(this.apiBaseUrl + `/${id}/export/template`, {}, { params })
+      .pipe(tap(() => this.refresh()))
+  }
+
+  deleteExportedTemplate(id: string) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/export/template`).pipe(tap(() => this.refresh()))
   }
 
   importDSL(dslObject: Record<string, any>) {

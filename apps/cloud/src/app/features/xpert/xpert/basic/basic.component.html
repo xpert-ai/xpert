@@ -13,7 +13,7 @@
     <div class="py-2 font-medium leading-[20px] text-text-primary">{{ 'PAC.Xpert.Icon' | translate: {Default: 'Icon'} }} &amp; {{ 'PAC.Xpert.Name' | translate: {Default: 'Name'} }}</div>
     <div class="flex items-center justify-between space-x-2">
   
-      <emoji-avatar editable formControlName="avatar" class="rounded-lg overflow-hidden shadow-sm" />
+      <emoji-avatar editable formControlName="avatar" class="shrink-0 rounded-lg overflow-hidden shadow-sm" />
   
       <input z-input
         class="grow h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-components-input-text-placeholder hover:bg-hover-bg hover:border hover:border-divider-deep focus:bg-components-input-bg-active focus:border focus:border-components-input-border-active focus:shadow-xs"
@@ -70,10 +70,13 @@
 </form>
 
 <div class="flex justify-end items-center mt-4 px-4 pb-4">
-  <button class="mt-2 no-underline group cursor-pointer relative shadow-2xl rounded-xl px-3 py-2 items-center text-base font-semibold leading-6 inline-block
-    bg-primary-500 shadow-zinc-900 text-white
-    disabled:bg-primary-100 disabled:shadow-none disabled:cursor-not-allowed"
-    [disabled]="form.invalid || form.pristine || loading()"
+  <button
+    type="button"
+    z-button
+    zType="default"
+    zSize="lg"
+    [zDisabled]="form.invalid || form.pristine || loading()"
+    [zLoading]="loading()"
     (click)="saveDraft()"
   >
     @if (type() === eXpertTypeEnum.Agent) {
@@ -86,9 +89,7 @@
       </span>
     }
 
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="inline-block w-4 h-4 ml-0.5">
-      <path d="M20 2C20.5523 2 21 2.44772 21 3V6.757L19 8.757V4H5V20H19V17.242L21 15.242V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V3C3 2.44772 3.44772 2 4 2H20ZM21.7782 8.80761L23.1924 10.2218L15.4142 18L13.9979 17.9979L14 16.5858L21.7782 8.80761ZM13 12V14H8V12H13ZM16 8V10H8V8H16Z"></path>
-    </svg>
+    <z-icon zType="save" zSize="sm"></z-icon>
   </button>
 </div>
 

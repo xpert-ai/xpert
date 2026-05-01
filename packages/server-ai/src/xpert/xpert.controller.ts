@@ -73,8 +73,10 @@ import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
 import {
     XpertChatCommand,
     XpertDelIntegrationCommand,
+    XpertDeleteExportedTemplateCommand,
     XpertExportCommand,
     XpertExportDiagramCommand,
+    XpertExportTemplateCommand,
     XpertImportCommand,
     XpertPublishIntegrationCommand
 } from './commands'
@@ -229,6 +231,32 @@ export class XpertController extends CrudController<Xpert> {
             return {
                 data: yaml.stringify(instanceToPlain(xpert))
             }
+        } catch (err) {
+            throw new InternalServerErrorException(err.message)
+        }
+    }
+
+    @UseGuards(XpertGuard)
+    @Post(':id/export/template')
+    async exportDSLAsTemplate(
+        @Param('id') xpertId: string,
+        @Query('isDraft') isDraft: string,
+        @Query('includeMemory') includeMemory: string
+    ) {
+        try {
+            return await this.commandBus.execute(
+                new XpertExportTemplateCommand(xpertId, isDraft === 'true', includeMemory === 'true')
+            )
+        } catch (err) {
+            throw new InternalServerErrorException(err.message)
+        }
+    }
+
+    @UseGuards(XpertGuard)
+    @Delete(':id/export/template')
+    async deleteExportedTemplate(@Param('id') xpertId: string) {
+        try {
+            await this.commandBus.execute(new XpertDeleteExportedTemplateCommand(xpertId))
         } catch (err) {
             throw new InternalServerErrorException(err.message)
         }

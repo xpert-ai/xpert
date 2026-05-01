@@ -1,7 +1,8 @@
 import { inject } from '@angular/core'
 import { Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
-import { of, race, timer } from 'rxjs'
-import { filter, map, switchMap, take, catchError } from 'rxjs/operators'
+import { CurrentUserHydrationService } from '@xpert-ai/cloud/state'
+import { from, of, race, timer } from 'rxjs'
+import { catchError, map, switchMap } from 'rxjs/operators'
 import { AiFeatureEnum, AssistantBindingScope, AssistantBindingService, AssistantCode, Store } from '../../@core'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
@@ -14,19 +15,15 @@ import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.compo
 
 const FEATURE_HYDRATION_TIMEOUT_MS = 3000
 
-function waitForFeatureHydration(store: Store) {
+function hydrateFeatureContext(options: { skipSessionCache?: boolean } = {}) {
+  const currentUserHydrationService = inject(CurrentUserHydrationService)
+  const hydration = currentUserHydrationService.getFeatureHydration(options)
+
   return race(
-    store.featureContextHydrated$.pipe(
-      filter(Boolean),
-      take(1),
-      map(() => true)
+    from(hydration).pipe(
+      map((user) => !!user),
+      catchError(() => of(false))
     ),
-    store.featureContextHydrationFailed$.pipe(
-      filter(Boolean),
-      take(1),
-      map(() => false)
-    ),
-    // Avoid leaving the navigation promise pending forever when feature hydration is delayed.
     timer(FEATURE_HYDRATION_TIMEOUT_MS).pipe(map(() => false))
   )
 }
@@ -36,9 +33,9 @@ function featureGate(featureKeys: AiFeatureEnum[]) {
     const store = inject(Store)
     const router = inject(Router)
 
-    return waitForFeatureHydration(store).pipe(
-      map(() =>
-        featureKeys.every((featureKey) => store.hasFeatureEnabled(featureKey))
+    return hydrateFeatureContext({ skipSessionCache: true }).pipe(
+      map((hydrated) =>
+        hydrated && featureKeys.every((featureKey) => store.hasFeatureEnabled(featureKey))
           ? true
           : router.createUrlTree(['/chat'])
       )
@@ -52,9 +49,10 @@ function redirectToDefaultChatEntry() {
     const router = inject(Router)
     const assistantBindingService = inject(AssistantBindingService)
 
-    return waitForFeatureHydration(store).pipe(
-      switchMap(() => {
+    return hydrateFeatureContext({ skipSessionCache: true }).pipe(
+      switchMap((hydrated) => {
         if (
+          !hydrated ||
           !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) ||
           !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
         ) {
@@ -140,7 +138,7 @@ export const routes: Routes = [
       {
         path: 'clawxpert',
         component: ClawXpertComponent,
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
+        canActivateChild: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
         data: {
           title: 'ClawXpert',
         },

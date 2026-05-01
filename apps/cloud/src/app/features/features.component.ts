@@ -21,7 +21,7 @@ import {
   RouterOutlet
 } from '@angular/router'
 import { PacMenuItem } from '@xpert-ai/cloud/auth'
-import { CURRENT_USER_BOOTSTRAP_RELATIONS, CURRENT_USER_FULL_RELATIONS, injectUserPreferences, UsersService } from '@xpert-ai/cloud/state'
+import { CurrentUserHydrationService, CURRENT_USER_BOOTSTRAP_RELATIONS, injectUserPreferences, UsersService } from '@xpert-ai/cloud/state'
 import { isNotEmpty, nonNullable } from '@xpert-ai/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -64,6 +64,7 @@ export class FeaturesComponent implements OnInit {
   readonly #rolesService = inject(NgxRolesService)
   readonly #ngxPermissionsService = inject(NgxPermissionsService)
   readonly #usersService = inject(UsersService)
+  readonly #currentUserHydrationService = inject(CurrentUserHydrationService)
   readonly #translateService = inject(TranslateService)
   readonly #renderer = inject(Renderer2)
   readonly #router = inject(Router)
@@ -256,28 +257,12 @@ export class FeaturesComponent implements OnInit {
 
   private async hydrateCurrentUserContextInBackground(userId: string) {
     try {
-      const fullUser = await this.#usersService.getMe([...CURRENT_USER_FULL_RELATIONS])
-
-      if (this.#store.userId !== userId || !this.#store.user) {
-        return
-      }
-
-      const currentUser = this.#store.user
-      this.#store.user = {
-        ...fullUser,
-        ...currentUser,
-        employee: fullUser.employee ?? currentUser.employee,
-        role: fullUser.role ?? currentUser.role,
-        tenant: fullUser.tenant ?? currentUser.tenant,
-        organizations: fullUser.organizations ?? currentUser.organizations
-      }
-
-      const tenantFeatures = fullUser.tenant?.featureOrganizations ?? []
-      this.#store.featureTenant = tenantFeatures.filter((item) => !item.organizationId)
-      this.#store.featureContextHydrated = true
-      this.#store.featureContextHydrationFailed = false
+      await this.#currentUserHydrationService.getFeatureHydration()
     } catch (error) {
       this.#logger?.error(error)
+      if (this.#store.userId !== userId) {
+        return
+      }
       this.#store.featureContextHydrationFailed = true
     } finally {
       this.#store.featureContextHydrationLoading = false

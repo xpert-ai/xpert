@@ -42,7 +42,17 @@
     </div>
   </div>
 </div>
-<div class="w-full flex justify-end">
+<div class="w-full flex flex-wrap justify-end gap-2">
+  <button
+    type="button"
+    class="btn disabled:btn-disabled btn-secondary btn-large flex flex-shrink-0 mt-4"
+    (click)="exportAsTemplate()"
+  >
+    <i class="ri-save-3-line mr-1"></i>
+    <div class="text-sm font-medium">
+      {{ 'PAC.Xpert.ExportAsTemplate' | translate: { Default: 'Export as template' } }}
+    </div>
+  </button>
   <button
     type="button"
     class="btn disabled:btn-disabled btn-primary btn-large flex flex-shrink-0 mt-4"

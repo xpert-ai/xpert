@@ -52,6 +52,14 @@ const readStringArrayFilter = (where: unknown, key: string) => {
 		return undefined
 	}
 
+	const findOperatorValue = Reflect.get(value, '_value')
+	if (Array.isArray(findOperatorValue)) {
+		const items = findOperatorValue.filter(
+			(item): item is string => typeof item === 'string' && item.trim().length > 0
+		)
+		return items.length ? items : undefined
+	}
+
 	const inValue = Reflect.get(value, '$in')
 	if (!Array.isArray(inValue)) {
 		return undefined

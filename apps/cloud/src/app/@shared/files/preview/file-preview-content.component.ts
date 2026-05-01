@@ -13,9 +13,11 @@ import {
 } from '@angular/core'
 import { SafePipe } from '@xpert-ai/core'
 import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import type { TChatFileElementReference } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { FileEditorSelection } from '../editor/editor.component'
+import { FileHtmlPreviewComponent } from './file-html-preview.component'
 import { FilePreviewKind, SpreadsheetPreview } from './file-preview.utils'
 import { clamp, inferTextPreviewSelection, toSelectionElement } from './preview-selection.utils'
 
@@ -29,7 +31,7 @@ type FilePreviewReferenceSelection = {
   standalone: true,
   selector: 'pac-file-preview-content',
   templateUrl: './file-preview-content.component.html',
-  imports: [TranslateModule, MarkdownModule, SafePipe, NgmSpinComponent, NgmTableComponent],
+  imports: [TranslateModule, MarkdownModule, SafePipe, NgmSpinComponent, NgmTableComponent, FileHtmlPreviewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FilePreviewContentComponent {
@@ -40,16 +42,19 @@ export class FilePreviewContentComponent {
   readonly documentHtml = input<string | null>(null)
   readonly downloadable = input(false)
   readonly error = input<string | null>(null)
+  readonly filePath = input<string | null>(null)
   readonly fileName = input<string>('')
   readonly loading = input(false)
   readonly referenceable = input(false)
   readonly spreadsheet = input<SpreadsheetPreview | null>(null)
   readonly url = input<string | null>(null)
+  readonly htmlInspectMode = input(false)
 
   readonly download = output<void>()
+  readonly fileElementReference = output<TChatFileElementReference>()
+  readonly htmlInspectModeChange = output<boolean>()
   readonly referenceSelection = output<FileEditorSelection>()
 
-  readonly htmlPreviewUrl = signal<string | null>(null)
   readonly hasDocumentHtml = computed(() => this.previewKind() === 'document' && !!this.documentHtml())
   readonly documentPreviewReferenceable = computed(
     () => this.referenceable() && this.previewKind() === 'document' && !this.loading()
@@ -77,22 +82,6 @@ export class FilePreviewContentComponent {
     this.loading()
     this.referenceable()
     this.documentPreviewSelection.set(null)
-  })
-
-  readonly #htmlPreviewUrlEffect = effect((onCleanup) => {
-    const previewKind = this.previewKind()
-    const url = this.url()
-    const content = this.content()
-    const objectUrl =
-      previewKind === 'html' && !url && typeof content === 'string' ? createHtmlPreviewObjectUrl(content) : null
-
-    this.htmlPreviewUrl.set(previewKind === 'html' ? url || objectUrl : null)
-
-    onCleanup(() => {
-      if (objectUrl) {
-        revokePreviewObjectUrl(objectUrl)
-      }
-    })
   })
 
   private readonly documentPreviewHost = viewChild<ElementRef<HTMLElement>>('documentPreviewHost')
@@ -207,24 +196,4 @@ export class FilePreviewContentComponent {
       selection.removeAllRanges()
     }
   }
-}
-
-function createHtmlPreviewObjectUrl(content: string) {
-  if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
-    return `data:text/html;charset=utf-8,${encodeURIComponent(content)}`
-  }
-
-  return URL.createObjectURL(
-    new Blob([content], {
-      type: 'text/html;charset=utf-8'
-    })
-  )
-}
-
-function revokePreviewObjectUrl(url: string) {
-  if (typeof URL === 'undefined' || typeof URL.revokeObjectURL !== 'function' || !url.startsWith('blob:')) {
-    return
-  }
-
-  URL.revokeObjectURL(url)
 }

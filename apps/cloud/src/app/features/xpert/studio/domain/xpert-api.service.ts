@@ -39,6 +39,7 @@ import {
   OrderTypeEnum,
   TXpertAgentConfig,
   TXpertOptions,
+  TXpertTeamConnection,
   TXpertTeamDraft,
   TXpertTeamNode,
 } from '../../../../@core/types'
@@ -440,6 +441,17 @@ export class XpertStudioApiService {
   }
   public removeConnection(sourceId: string, targetId: string): void {
     new RemoveConnectionHandler(this.store).handle(new RemoveConnectionRequest(sourceId, targetId))
+    this.#reload.next(EReloadReason.CONNECTION_CHANGED)
+  }
+  public updateConnection(key: string, updater: (connection: TXpertTeamConnection) => TXpertTeamConnection): void {
+    this.store.update((state) => {
+      const draft = structuredClone(state.draft)
+      const index = draft.connections.findIndex((connection) => connection.key === key)
+      if (index > -1) {
+        draft.connections[index] = updater(draft.connections[index])
+      }
+      return { draft }
+    })
     this.#reload.next(EReloadReason.CONNECTION_CHANGED)
   }
 

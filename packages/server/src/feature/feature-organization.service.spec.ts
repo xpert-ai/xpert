@@ -42,13 +42,16 @@ describe('FeatureOrganizationService', () => {
 	const repo = {
 		save: jest.fn()
 	}
+	const cacheManager = {
+		set: jest.fn()
+	}
 
 	let service: InstanceType<typeof FeatureOrganizationService>
 
 	beforeEach(() => {
 		jest.clearAllMocks()
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
-		service = new FeatureOrganizationService(repo as any, {} as any)
+		service = new FeatureOrganizationService(repo as any, {} as any, cacheManager)
 	})
 
 	it('queries tenant-scoped toggles with organizationId IsNull when no organizationId is provided', async () => {
@@ -80,6 +83,11 @@ describe('FeatureOrganizationService', () => {
 				tenantId: 'tenant-1',
 				isEnabled: true
 			})
+		)
+		expect(cacheManager.set).toHaveBeenCalledWith(
+			expect.stringContaining('user:me:feature-context:tenant-version:tenant-1'),
+			expect.any(String),
+			86400000
 		)
 	})
 

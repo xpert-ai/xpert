@@ -32,6 +32,10 @@ jest.mock('./email-verification/email-verification.entity', () => ({
 	EmailVerification: class EmailVerification {}
 }))
 
+jest.mock('../feature/feature-organization.entity', () => ({
+	FeatureOrganization: class FeatureOrganization {}
+}))
+
 jest.mock('./dto', () => ({
 	UserPublicDTO: class UserPublicDTO {
 		constructor(input?: Record<string, unknown>) {
@@ -76,6 +80,19 @@ describe('UserService', () => {
 	const eventEmitter = {
 		emit: jest.fn()
 	}
+	const featureOrganizationRepository = {
+		find: jest.fn()
+	}
+	const cacheManager = {
+		get: jest.fn(),
+		set: jest.fn()
+	}
+	const featureHydrationRelations = [
+		'tenant.featureOrganizations',
+		'tenant.featureOrganizations.feature',
+		'organizations.organization.featureOrganizations',
+		'organizations.organization.featureOrganizations.feature'
+	]
 
 	beforeEach(() => {
 		jest.clearAllMocks()
@@ -87,7 +104,9 @@ describe('UserService', () => {
 			userRepository as any,
 			emailVerificationRepository as any,
 			userOrganizationService as any,
-			eventEmitter as any
+			eventEmitter as any,
+			featureOrganizationRepository,
+			cacheManager
 		)
 	})
 
@@ -115,6 +134,179 @@ describe('UserService', () => {
 			relations: ['employee', 'role', 'role.rolePermissions', 'tenant', 'organizations', 'organizations.organization']
 		})
 		expect(result).toBe(user)
+	})
+
+	it('keeps unknown current-user relations on the original findOne path', async () => {
+		const user = { id: 'user-1' }
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+
+		const result = await service.findCurrentUser('user-1', [
+			...featureHydrationRelations,
+			'profile'
+		])
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: [
+				'employee',
+				'role',
+				'role.rolePermissions',
+				'tenant',
+				...featureHydrationRelations,
+				'profile'
+			]
+		})
+		expect(featureOrganizationRepository.find).not.toHaveBeenCalled()
+		expect(result).toBe(user)
+	})
+
+	it('loads known feature hydration relations with split feature queries and preserves response shape', async () => {
+		const tenantFeature = {
+			id: 'tenant-feature',
+			tenantId: 'tenant-1',
+			organizationId: null,
+			featureId: 'feature-tenant',
+			feature: { id: 'feature-tenant', code: 'tenant-feature' },
+			isEnabled: true
+		}
+		const organizationFeature = {
+			id: 'organization-feature',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			featureId: 'feature-org',
+			feature: { id: 'feature-org', code: 'org-feature' },
+			isEnabled: true
+		}
+		const coreUser = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			tenant: { id: 'tenant-1' },
+			organizations: [
+				{
+					id: 'membership-1',
+					organizationId: 'org-1',
+					organization: { id: 'org-1', name: 'Org' }
+				}
+			]
+		}
+
+		cacheManager.get.mockResolvedValue(undefined)
+		service.findOne = jest.fn().mockResolvedValue(coreUser)
+		featureOrganizationRepository.find
+			.mockResolvedValueOnce([tenantFeature])
+			.mockResolvedValueOnce([organizationFeature])
+
+		const result = await service.findCurrentUser('user-1', featureHydrationRelations)
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: [
+				'employee',
+				'role',
+				'role.rolePermissions',
+				'tenant',
+				'organizations',
+				'organizations.organization'
+			]
+		})
+		expect(result.tenant.featureOrganizations).toEqual([tenantFeature])
+		expect(result.organizations[0].organization.featureOrganizations).toEqual([organizationFeature])
+		expect(cacheManager.set).toHaveBeenCalledWith(
+			expect.stringContaining('user:me:feature-context:v1:tenant-1:user-1:'),
+			{
+				tenantFeatureOrganizations: [tenantFeature],
+				organizationFeatureOrganizations: [organizationFeature]
+			},
+			180000
+		)
+	})
+
+	it('uses cached feature context while still loading a fresh current user shape', async () => {
+		const cachedTenantFeature = {
+			id: 'tenant-feature',
+			tenantId: 'tenant-1',
+			organizationId: null,
+			featureId: 'feature-tenant',
+			feature: { id: 'feature-tenant', code: 'tenant-feature' },
+			isEnabled: true
+		}
+		const cachedOrganizationFeature = {
+			id: 'organization-feature',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			featureId: 'feature-org',
+			feature: { id: 'feature-org', code: 'org-feature' },
+			isEnabled: true
+		}
+		const freshUser = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			tenant: { id: 'tenant-1', name: 'Updated tenant' },
+			role: { rolePermissions: [{ permission: 'updated' }] },
+			employee: { id: 'employee-1', name: 'Updated employee' },
+			organizations: [
+				{
+					id: 'membership-1',
+					organizationId: 'org-1',
+					organization: { id: 'org-1', name: 'Updated org' }
+				}
+			]
+		}
+
+		cacheManager.get.mockImplementation(async (key: string) => {
+			if (key.includes(':tenant-version:') || key.includes(':user-version:')) {
+				return 'cached-version'
+			}
+			return {
+				tenantFeatureOrganizations: [cachedTenantFeature],
+				organizationFeatureOrganizations: [cachedOrganizationFeature]
+			}
+		})
+		service.findOne = jest.fn().mockResolvedValue(freshUser)
+
+		const result = await service.findCurrentUser('user-1', featureHydrationRelations)
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: [
+				'employee',
+				'role',
+				'role.rolePermissions',
+				'tenant',
+				'organizations',
+				'organizations.organization'
+			]
+		})
+		expect(result.tenant.name).toBe('Updated tenant')
+		expect(result.role.rolePermissions).toEqual([{ permission: 'updated' }])
+		expect(result.employee.name).toBe('Updated employee')
+		expect(result.organizations[0].organization.name).toBe('Updated org')
+		expect(result.tenant.featureOrganizations).toEqual([cachedTenantFeature])
+		expect(result.organizations[0].organization.featureOrganizations).toEqual([cachedOrganizationFeature])
+		expect(featureOrganizationRepository.find).not.toHaveBeenCalled()
+	})
+
+	it('includes tenant and user cache versions in the feature hydration cache key', async () => {
+		const coreUser = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			tenant: { id: 'tenant-1' },
+			organizations: []
+		}
+
+		cacheManager.get.mockImplementation(async (key: string) => {
+			if (key.includes(':tenant-version:')) {
+				return 'tenant-version-2'
+			}
+			if (key.includes(':user-version:')) {
+				return 'user-version-7'
+			}
+			return undefined
+		})
+		service.findOne = jest.fn().mockResolvedValue(coreUser)
+		featureOrganizationRepository.find.mockResolvedValue([])
+
+		await service.findCurrentUser('user-1', featureHydrationRelations)
+
+		expect(cacheManager.set.mock.calls[0][0]).toContain(':tenant-version-2.user-version-7')
 	})
 
 	it('removes user organizations through the service and emits deletion events before soft deleting the user', async () => {

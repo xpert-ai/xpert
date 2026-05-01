@@ -10,12 +10,16 @@ export const CURRENT_USER_BOOTSTRAP_RELATIONS = [
   'organizations.organization'
 ] as const
 
-export const CURRENT_USER_FULL_RELATIONS = [
-  ...CURRENT_USER_BOOTSTRAP_RELATIONS,
+export const CURRENT_USER_FEATURE_RELATIONS = [
   'tenant.featureOrganizations',
   'tenant.featureOrganizations.feature',
   'organizations.organization.featureOrganizations',
   'organizations.organization.featureOrganizations.feature'
+] as const
+
+export const CURRENT_USER_FULL_RELATIONS = [
+  ...CURRENT_USER_BOOTSTRAP_RELATIONS,
+  ...CURRENT_USER_FEATURE_RELATIONS
 ] as const
 
 @Injectable({

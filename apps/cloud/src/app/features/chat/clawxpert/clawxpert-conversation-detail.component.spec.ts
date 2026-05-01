@@ -514,7 +514,45 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
   })
 
-  it('appends workspace file references to the chatkit composer without sending a message', async () => {
+  it('appends workspace file path references to the chatkit composer without sending a message', async () => {
+    const setComposerValue = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue,
+        focusComposer
+      })
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+
+    ;(filesPanel.componentInstance as ClawXpertConversationFilesComponent).referenceRequest.emit({
+      type: 'file_path',
+      path: 'screenshots/home.png'
+    })
+    await settle(fixture)
+
+    expect(setComposerValue).toHaveBeenCalledWith({
+      references: [
+        {
+          type: 'quote',
+          label: 'screenshots/home.png',
+          source: 'Workspace file',
+          text: 'screenshots/home.png'
+        }
+      ],
+      appendReferences: true
+    })
+    expect(focusComposer).toHaveBeenCalled()
+  })
+
+  it('appends selected workspace text references to the chatkit composer without sending a message', async () => {
     const setComposerValue = jest.fn().mockResolvedValue(undefined)
     const focusComposer = jest.fn().mockResolvedValue(undefined)
     runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
@@ -554,6 +592,62 @@ describe('ClawXpertConversationDetailComponent', () => {
       ],
       appendReferences: true
     })
+    expect(focusComposer).toHaveBeenCalled()
+  })
+
+  it('appends html file element references to the chatkit composer', async () => {
+    const setComposerValue = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId: jest.fn().mockResolvedValue(undefined),
+        setComposerValue,
+        focusComposer
+      })
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(filesPanel).not.toBeNull()
+
+    ;(filesPanel.componentInstance as ClawXpertConversationFilesComponent).referenceRequest.emit({
+      type: 'file_element',
+      attributes: [{ name: 'id', value: 'hero' }],
+      domPath: 'html > body > button',
+      filePath: 'index.html',
+      outerHtml: '<button id="hero">Launch</button>',
+      selector: '#hero',
+      tagName: 'button',
+      text: 'Launch'
+    })
+    await settle(fixture)
+
+    expect(setComposerValue).toHaveBeenCalledWith({
+      references: [
+        expect.objectContaining({
+          type: 'quote',
+          label: 'button #hero',
+          source: 'index.html'
+        })
+      ],
+      appendReferences: true
+    })
+    const reference = setComposerValue.mock.calls.at(-1)?.[0].references[0] as { text: string }
+    expect(reference.text).toContain('Reference type: Target inspected HTML file element')
+    expect(reference.text).toContain(
+      'Scope: This reference is the currently inspected element only, not the entire file.'
+    )
+    expect(reference.text).toContain(
+      'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
+    )
+    expect(reference.text).toContain('Source location: index.html')
+    expect(reference.text).toContain('- Selector: #hero')
+    expect(reference.text).toContain('- DOM path: html > body > button')
+    expect(reference.text).toContain('Inspected element outerHTML:')
+    expect(reference.text).toContain('<button id="hero">Launch</button>')
     expect(focusComposer).toHaveBeenCalled()
   })
 
@@ -598,25 +692,22 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(setComposerValue).toHaveBeenCalledWith({
       references: [
-        {
-          attributes: [
-            {
-              name: 'data-testid',
-              value: 'hero-title'
-            }
-          ],
-          outerHtml: '<h1 data-testid="hero-title">Hello</h1>',
-          pageTitle: 'Preview Page',
-          pageUrl: 'http://localhost:4173/',
-          selector: 'main > h1',
-          serviceId: 'service-1',
-          tagName: 'h1',
-          text: 'Hello',
-          type: 'element'
-        }
+        expect.objectContaining({
+          type: 'quote',
+          label: 'h1 main > h1',
+          source: 'Preview Page'
+        })
       ],
       appendReferences: true
     })
+    const reference = setComposerValue.mock.calls.at(-1)?.[0].references[0] as { text: string }
+    expect(reference.text).toContain('Reference type: Target inspected page element')
+    expect(reference.text).toContain(
+      'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
+    )
+    expect(reference.text).toContain('URL: http://localhost:4173/')
+    expect(reference.text).toContain('Selector: main > h1')
+    expect(reference.text).toContain('<h1 data-testid="hero-title">Hello</h1>')
     expect(focusComposer).toHaveBeenCalled()
   })
 

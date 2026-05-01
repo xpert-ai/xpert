@@ -16,6 +16,31 @@
   <div class="font-bold mb-2">
     {{ 'PAC.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' } }}
   </div>
+
+  <label class="flex items-start gap-3 rounded-lg border border-divider-subtle p-3 text-sm">
+    <input
+      type="checkbox"
+      class="mt-1 h-4 w-4 shrink-0"
+      [ngModel]="required() === true"
+      (ngModelChange)="required.set($event ? true : undefined)"
+    />
+    <span class="min-w-0 flex-1">
+      <span class="block font-medium text-text-primary">
+        {{ 'PAC.Xpert.SystemMiddleware' | translate: { Default: 'System middleware' } }}
+      </span>
+      <span class="mt-1 block text-xs leading-5 text-text-tertiary">
+        {{
+          'PAC.Xpert.SystemMiddlewareTooltip'
+            | translate
+              : {
+                  Default:
+                    'Always load this middleware at runtime and hide it from user-facing skills/plugins selection.'
+                }
+        }}
+      </span>
+    </span>
+  </label>
+
   @if (configSchema(); as configSchema) {
     <json-schema-form
       class="mt-2 grid grid-cols-2 gap-2"

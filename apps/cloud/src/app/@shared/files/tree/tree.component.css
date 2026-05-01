@@ -1,7 +1,7 @@
 @reference "../../../../styles/tailwind-reference.css";
 
 :host {
-  @apply block min-h-0;
+  @apply min-h-0;
 }
 
 .xp-file-pane {

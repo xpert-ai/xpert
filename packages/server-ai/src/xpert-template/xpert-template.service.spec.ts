@@ -1,7 +1,7 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { LanguagesEnum } from '@xpert-ai/contracts'
+import { LanguagesEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 
 jest.mock('../skill-repository/skill-repository.service', () => ({
@@ -73,6 +73,35 @@ describe('XpertTemplateService', () => {
 		})
 
 		expect((service as any).getExternalTemplateRoot()).toBe('/tmp/custom-xpert-template')
+	})
+
+	it('resolves relative XPERT_TEMPLATE_DIR from the server root', () => {
+		const workspaceRoot = createTempDir()
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: '/var/lib/xpert/data/',
+			env: {
+				XPERT_TEMPLATE_DIR: './runtime/xpert-template'
+			}
+		})
+
+		expect((service as any).getExternalTemplateRoot()).toBe(join(workspaceRoot, 'runtime', 'xpert-template'))
+	})
+
+	it('falls back to the data template directory when XPERT_TEMPLATE_DIR points at built-in templates', () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const loggerSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: dataRoot,
+			env: {
+				XPERT_TEMPLATE_DIR: './packages/server-ai/src/xpert-template'
+			}
+		})
+
+		expect((service as any).getExternalTemplateRoot()).toBe(join(dataRoot, 'xpert-template'))
+		expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Ignoring XPERT_TEMPLATE_DIR'))
 	})
 
 	it('initializes the external template directory without overwriting existing files', async () => {
@@ -246,6 +275,109 @@ describe('XpertTemplateService', () => {
 		expect(skillsMarket.filters.roles.label).toBe('Roles')
 		expect(skillsMarket.featured).toEqual([])
 		expect(workspaceDefaults.userDefault.skills).toEqual([])
+	})
+
+	it('saves an exported xpert template file and registers it in the template catalog', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+		const dslYaml = 'team:\n  name: Support Expert\n'
+
+		seedBuiltinTemplates(workspaceRoot, {
+			templatesJson: {
+				templates: {
+					'en-US': {
+						categories: ['builtin'],
+						recommendedApps: [{ id: 'template-1', name: 'Built-in Template' }]
+					},
+					'zh-Hans': {
+						categories: ['builtin'],
+						recommendedApps: [{ id: 'template-1', name: 'Built-in Template' }]
+					}
+				},
+				details: {}
+			}
+		})
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+		const exportedTemplate = await service.saveExportedXpertTemplate({
+			xpert: {
+				id: 'xpert-1',
+				name: 'Support Expert',
+				title: 'Support',
+				description: 'Handles support tickets',
+				type: XpertTypeEnum.Agent
+			},
+			dslYaml,
+			isDraft: true,
+			includeMemory: false
+		})
+		const catalog = readTemplatesCatalog(join(externalRoot, 'templates.json'))
+		const detail = await service.getTemplateDetail(exportedTemplate.id, LanguagesEnum.English)
+
+		expect(exportedTemplate).toMatchObject({
+			id: 'xpert-xpert-1',
+			filePath: 'templates/xpert-xpert-1.yaml',
+			isDraft: true,
+			includeMemory: false
+		})
+		expect(readFileSync(join(externalRoot, exportedTemplate.filePath), 'utf8')).toBe(dslYaml)
+		expect(catalog.templates['en-US'].categories).toEqual(expect.arrayContaining(['Xpert']))
+		expect(catalog.templates['en-US'].recommendedApps[0]).toMatchObject({
+			id: exportedTemplate.id,
+			name: 'Support Expert',
+			title: 'Support',
+			type: XpertTypeEnum.Agent,
+			category: 'Xpert'
+		})
+		expect(catalog.templates['zh-Hans'].categories).toEqual(expect.arrayContaining(['Xpert']))
+		expect(catalog.templates['zh-Hans'].recommendedApps[0].id).toBe(exportedTemplate.id)
+		expect(catalog.details[exportedTemplate.id]).not.toHaveProperty('export_data')
+		expect(detail.export_data).toBe(dslYaml)
+	})
+
+	it('deletes an exported xpert template file and removes its catalog records', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot)
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+		const exportedTemplate = await service.saveExportedXpertTemplate({
+			xpert: {
+				id: 'xpert-1',
+				name: 'Support Expert',
+				title: 'Support',
+				description: 'Handles support tickets',
+				type: XpertTypeEnum.Agent
+			},
+			dslYaml: 'team:\n  name: Support Expert\n',
+			isDraft: false,
+			includeMemory: true
+		})
+
+		await service.deleteExportedXpertTemplate(exportedTemplate)
+		await expect(service.deleteExportedXpertTemplate(exportedTemplate)).resolves.toBeUndefined()
+
+		const catalog = readTemplatesCatalog(join(externalRoot, 'templates.json'))
+		expect(existsSync(join(externalRoot, exportedTemplate.filePath))).toBe(false)
+		expect(catalog.templates['en-US'].recommendedApps.some((item) => item.id === exportedTemplate.id)).toBe(false)
+		expect(catalog.details).not.toHaveProperty(exportedTemplate.id)
 	})
 
 	it('throws a clear error when an external template file is missing after initialization', async () => {
@@ -1134,5 +1266,12 @@ describe('XpertTemplateService', () => {
 
 	function readJson(filePath: string) {
 		return JSON.parse(readFileSync(filePath, 'utf8')) as Record<string, unknown>
+	}
+
+	function readTemplatesCatalog(filePath: string): {
+		templates: Record<string, { categories?: string[]; recommendedApps: Array<{ id: string }> }>
+		details: Record<string, { export_data?: string }>
+	} {
+		return JSON.parse(readFileSync(filePath, 'utf8'))
 	}
 })

@@ -112,6 +112,18 @@ jest.mock('../xpert-workspace', () => ({
 		async update() {
 			return null
 		}
+
+		async assertWorkspaceAccess() {
+			return undefined
+		}
+
+		async assertWorkspaceReadAccess() {
+			return undefined
+		}
+
+		async assertWorkspaceWriteAccess() {
+			return undefined
+		}
 	}
 }))
 
@@ -232,6 +244,7 @@ describe('SkillPackageService', () => {
 
 		service = new SkillPackageService(
 			repository as any,
+			{} as any,
 			skillRepositoryService as any,
 			skillIndexService as any,
 			workspaceRepository as any,
@@ -1043,6 +1056,29 @@ describe('SkillPackageService', () => {
 		const saveResult = await service.saveSkillPackageFile('workspace-1', 'skill-1', 'SKILL.md', '# After\n')
 		expect(saveResult.contents).toBe('# After\n')
 		await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# After\n')
+	})
+
+	it('deletes workspace skill folders recursively', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-delete-folder-'))
+		const skillRoot = join(tempRoot, 'weather')
+		await mkdir(join(skillRoot, 'docs', 'nested'), { recursive: true })
+		await writeFile(join(skillRoot, 'SKILL.md'), '# Weather\n', 'utf8')
+		await writeFile(join(skillRoot, 'docs', 'nested', 'readme.md'), 'hello', 'utf8')
+
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		;(service as any).findOne = jest.fn().mockResolvedValue({
+			id: 'skill-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			packagePath: 'weather'
+		})
+
+		await service.deleteSkillPackageFile('workspace-1', 'skill-1', 'docs')
+
+		await expect(readFile(join(skillRoot, 'docs', 'nested', 'readme.md'), 'utf8')).rejects.toMatchObject({
+			code: 'ENOENT'
+		})
+		await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# Weather\n')
 	})
 
 	it('allows editing .env files from the supported text whitelist', async () => {
