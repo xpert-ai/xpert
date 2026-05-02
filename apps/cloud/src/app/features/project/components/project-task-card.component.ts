@@ -21,6 +21,7 @@ export class ProjectTaskCardComponent {
 
   readonly statusLabel = computed(() => formatProjectLabel(this.task().status))
   readonly latestConversationId = computed(() => this.task().latestExecution?.conversationId?.trim() || '')
+  readonly artifacts = computed(() => this.task().latestExecution?.artifacts ?? [])
   readonly failureMessage = computed(() => {
     const task = this.task()
     if (task.status !== ProjectTaskStatusEnum.Failed) {
@@ -31,7 +32,7 @@ export class ProjectTaskCardComponent {
   })
   readonly teamLabel = computed(() => {
     const teamId = this.task().teamId
-    return teamId ? this.teamNames().get(teamId) ?? '' : ''
+    return teamId ? (this.teamNames().get(teamId) ?? '') : ''
   })
   readonly statusDotClass = computed(() => {
     switch (this.task().status) {

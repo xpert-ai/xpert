@@ -4,6 +4,9 @@ import path from 'path'
 const LEGACY_PUBLIC_VOLUME_PREFIX =
     /^(?:(user|project|knowledges|skills)\/[0-9a-fA-F-]{36}\/|xpert\/[0-9a-fA-F-]{36}\/(?:user\/[0-9a-fA-F-]{36}\/)?)/
 
+/**
+ * In development, if no sandbox volume is configured, we use a local folder in the user's home directory to store sandbox data.
+ */
 export function getLocalSandboxDataRoot() {
     const homeDir = process.env.HOME || process.env.USERPROFILE || ''
     return path.join(homeDir, 'data')
@@ -22,8 +25,23 @@ export function hasConfiguredSandboxVolume() {
     return Boolean(environment.sandboxConfig?.volume?.trim())
 }
 
+/**
+ * @deprecated This function checks for the legacy flattened volume layout which was used by default in development before the introduction of the tenant-scoped layout.
+ */
+function usesLegacyFlattenedSandboxVolumeLayout() {
+    return (
+        `${environment.env?.SANDBOX_FLATTENED_VOLUME_LAYOUT ?? process.env.SANDBOX_FLATTENED_VOLUME_LAYOUT ?? ''}`
+            .trim()
+            .toLowerCase() === 'true'
+    )
+}
+
+function getLocalTenantSandboxDataRoot(tenantId?: string) {
+    return tenantId ? path.join(getLocalSandboxDataRoot(), tenantId) : getLocalSandboxDataRoot()
+}
+
 export function usesFlattenedSandboxVolumeLayout() {
-    return environment.envName === 'dev' && !hasConfiguredSandboxVolume()
+    return environment.envName === 'dev' && !hasConfiguredSandboxVolume() && usesLegacyFlattenedSandboxVolumeLayout()
 }
 
 export function runsInsideDockerApiContainer() {
@@ -40,7 +58,7 @@ export function getApiContainerSandboxVolumeRootPath(tenantId?: string) {
     }
 
     if (environment.envName === 'dev') {
-        return getConfiguredDockerHostSandboxVolumeRootPath(tenantId)!
+        return getConfiguredDockerHostSandboxVolumeRootPath(tenantId) ?? getLocalTenantSandboxDataRoot(tenantId)
     }
 
     return tenantId ? `/sandbox/${tenantId}` : '/sandbox'

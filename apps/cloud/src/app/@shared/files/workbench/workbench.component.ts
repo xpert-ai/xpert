@@ -135,6 +135,8 @@ export class FileWorkbenchComponent {
   readonly markdownExtensions = input<string[]>(DEFAULT_MARKDOWN_EXTENSIONS)
   readonly treeSize = input<FileTreeSizeVariants>('default')
   readonly reloadKey = input<unknown>(null)
+  readonly initialPath = input<string | null | undefined>(null)
+  readonly initialPathIsDirectory = input(false)
   readonly referenceable = input(false)
   readonly mobilePane = model<'tree' | 'file'>('tree')
   readonly referenceRequest = output<FileWorkbenchReferenceRequest>()
@@ -222,6 +224,8 @@ export class FileWorkbenchComponent {
     const rootId = this.rootId() ?? null
     this.reloadKey()
     this.filesLoader()
+    this.initialPath()
+    this.initialPathIsDirectory()
 
     if (!rootId) {
       this.#activeRootId = null
@@ -615,9 +619,12 @@ export class FileWorkbenchComponent {
 
       const tree = prepareFileTree(files ?? [])
       this.fileTree.set(tree)
-      const preferredFile = findPreferredFile(tree, (filePath) => this.isEditableFile(filePath))
-      if (preferredFile?.fullPath) {
-        await this.loadActiveFile(preferredFile.fullPath)
+      const initialPathApplied = await this.applyInitialPath(rootId, requestToken)
+      if (!initialPathApplied) {
+        const preferredFile = findPreferredFile(tree, (filePath) => this.isEditableFile(filePath))
+        if (preferredFile?.fullPath) {
+          await this.loadActiveFile(preferredFile.fullPath)
+        }
       }
     } catch (error) {
       this.#toastr.danger(
@@ -663,6 +670,11 @@ export class FileWorkbenchComponent {
           merge: true,
           requestToken
         })
+      }
+
+      const initialPathApplied = await this.applyInitialPath(rootId, requestToken)
+      if (initialPathApplied) {
+        return
       }
 
       await this.refreshActiveFileIfModified(activeFilePath, knownActiveFileModifiedAt, rootId, requestToken)
@@ -732,6 +744,54 @@ export class FileWorkbenchComponent {
         return next
       })
     }
+  }
+
+  private async applyInitialPath(rootId: string, requestToken: number) {
+    const targetPath = normalizeComparableFilePath(this.initialPath())
+    if (!targetPath) {
+      return false
+    }
+
+    const targetIsDirectory = this.initialPathIsDirectory()
+    const parentPath = targetIsDirectory ? targetPath : parentDirectoryPath(targetPath)
+    for (const directoryPath of ancestorDirectoryPaths(parentPath, targetIsDirectory)) {
+      if (requestToken !== this.#treeRequestToken || this.rootId() !== rootId) {
+        return true
+      }
+
+      this.fileTree.update((state) =>
+        updateFileTreeNode(state, directoryPath, (node) => (node.expanded ? node : { ...node, expanded: true }))
+      )
+      await this.loadDirectoryChildren(directoryPath, {
+        merge: true,
+        requestToken
+      })
+    }
+
+    if (targetIsDirectory) {
+      this.selectedTreeItem.set({
+        path: targetPath,
+        isDirectory: true
+      })
+      this.clearActiveFileState()
+      this.mobilePane.set('tree')
+      this.fileTree.update((state) =>
+        updateFileTreeNode(state, targetPath, (node) => (node.expanded ? node : { ...node, expanded: true }))
+      )
+      await this.loadDirectoryChildren(targetPath, {
+        merge: true,
+        requestToken
+      })
+      return true
+    }
+
+    this.selectedTreeItem.set({
+      path: targetPath,
+      isDirectory: false
+    })
+    await this.loadActiveFile(targetPath)
+    this.mobilePane.set('file')
+    return true
   }
 
   private async refreshActiveFileIfModified(
@@ -975,6 +1035,16 @@ export class FileWorkbenchComponent {
     this.#activePreviewObjectUrl = resource.objectUrl
     this.activePreviewUrl.set(resource.url)
   }
+
+  private clearActiveFileState() {
+    this.#fileRequestToken++
+    this.activeFilePath.set(null)
+    this.activeFile.set(null)
+    this.setActivePreviewResource({ objectUrl: null, url: null })
+    this.draftContent.set('')
+    this.panelMode.set('view')
+    this.fileLoading.set(false)
+  }
 }
 
 function fileExtension(filePath: string) {
@@ -1067,6 +1137,17 @@ function parentDirectoryPath(filePath: string) {
   const normalized = filePath.replace(/\\/g, '/').replace(/^\/+/, '')
   const index = normalized.lastIndexOf('/')
   return index >= 0 ? normalized.slice(0, index) : ''
+}
+
+function ancestorDirectoryPaths(path: string, excludeTarget = false) {
+  const normalizedPath = normalizeComparableFilePath(path)
+  if (!normalizedPath) {
+    return []
+  }
+
+  const parts = normalizedPath.split('/').filter(Boolean)
+  const limit = excludeTarget ? parts.length - 1 : parts.length
+  return parts.slice(0, Math.max(0, limit)).map((_, index) => parts.slice(0, index + 1).join('/'))
 }
 
 /**

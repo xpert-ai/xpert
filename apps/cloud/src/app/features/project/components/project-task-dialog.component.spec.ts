@@ -6,15 +6,52 @@ import {
   createTeamId,
   createXpertId,
   IProjectTask,
+  IProjectTaskExecutionArtifact,
   ProjectAgentRole,
   ProjectExecutionEnvironmentType,
   ProjectSprintStrategyEnum,
   ProjectSwimlaneKindEnum,
+  ProjectTaskExecutionArtifactTypeEnum,
   ProjectTaskExecutionStatusEnum,
   ProjectTaskStatusEnum
 } from '@xpert-ai/contracts'
 import { ToastrService } from '../../../@core/services/toastr.service'
 import { ProjectTaskService } from '../../../@core/services/project-task.service'
+import { ProjectTaskArtifactDialogComponent } from './project-task-artifact-dialog.component'
+
+jest.mock('./project-task-conversation-dialog.component', () => {
+  class ProjectTaskConversationDialogComponent {}
+
+  const getLatestTaskConversationId = (task?: { latestExecution?: { conversationId?: string | null } } | null) =>
+    task?.latestExecution?.conversationId?.trim() || ''
+
+  return {
+    ProjectTaskConversationDialogComponent,
+    getLatestTaskConversationId,
+    openProjectTaskConversationDialog: jest.fn(
+      (
+        dialog: { open: (component: unknown, options: unknown) => unknown },
+        task?: { latestExecution?: { conversationId?: string | null }; organizationId?: string | null; title?: string }
+      ) => {
+        const conversationId = getLatestTaskConversationId(task)
+        if (!conversationId) {
+          return null
+        }
+
+        return dialog.open(ProjectTaskConversationDialogComponent, {
+          backdropClass: 'xp-overlay-share-sheet',
+          panelClass: 'xp-overlay-pane-share-sheet',
+          data: {
+            conversationId,
+            organizationId: task?.organizationId ?? null,
+            taskTitle: task?.title ?? null
+          }
+        })
+      }
+    )
+  }
+})
+
 import { ProjectTaskConversationDialogComponent } from './project-task-conversation-dialog.component'
 import { ProjectTaskDialogComponent } from './project-task-dialog.component'
 
@@ -194,6 +231,53 @@ describe('ProjectTaskDialogComponent', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           conversationId: 'conversation-1',
+          taskTitle: 'Existing task'
+        })
+      })
+    )
+  })
+
+  it('opens task artifacts from the artifacts tab content', () => {
+    const artifact = {
+      type: ProjectTaskExecutionArtifactTypeEnum.ProjectFile,
+      name: 'Result brief',
+      path: 'deliverables/task-1/result.md'
+    } satisfies IProjectTaskExecutionArtifact
+    const task: IProjectTask = {
+      id: 'task-1',
+      projectId: createProjectId('project-1'),
+      sprintId: createSprintId('sprint-1'),
+      swimlaneId: 'lane-coding',
+      title: 'Existing task',
+      sortOrder: 0,
+      status: ProjectTaskStatusEnum.Done,
+      dependencies: [],
+      latestExecution: {
+        id: 'execution-1',
+        projectId: createProjectId('project-1'),
+        sprintId: createSprintId('sprint-1'),
+        taskId: 'task-1',
+        teamId: createTeamId('team-1'),
+        xpertId: createXpertId('xpert-1'),
+        dispatchId: 'dispatch-1',
+        status: ProjectTaskExecutionStatusEnum.Success,
+        artifacts: [artifact]
+      }
+    }
+    const { component, dialog } = createComponent({ task })
+    const event = { stopPropagation: jest.fn() } as unknown as Event
+
+    expect(component.artifacts()).toEqual([artifact])
+
+    component.openArtifact(event, artifact)
+
+    expect(event.stopPropagation).toHaveBeenCalled()
+    expect(dialog.open).toHaveBeenCalledWith(
+      ProjectTaskArtifactDialogComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          projectId: createProjectId('project-1'),
+          artifact,
           taskTitle: 'Existing task'
         })
       })

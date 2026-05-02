@@ -15,26 +15,27 @@
       }
     </div>
 
-    <span class="inline-flex shrink-0 items-center gap-2 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+    <span
+      class="inline-flex shrink-0 items-center gap-2 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary"
+    >
       <span class="h-2.5 w-2.5 rounded-full" [class]="statusDotClass()"></span>
       {{ statusLabel() }}
     </span>
   </div>
 
   <div class="mt-4 flex flex-wrap gap-2 text-xs text-text-secondary">
-    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+    <span
+      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1"
+    >
       {{ task().dependencies.length }}
       {{ 'PAC.Project.TaskDependencies' | translate: { Default: 'dependencies' } }}
     </span>
     @if (teamLabel()) {
-      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+      <span
+        class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1"
+      >
         <z-icon zType="group" class="mr-1 text-sm"></z-icon>
         {{ teamLabel() }}
-      </span>
-    }
-    @if (task().assignedAgentId) {
-      <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
-        {{ task().assignedAgentId }}
       </span>
     }
     @if (latestConversationId()) {
@@ -49,10 +50,23 @@
         {{ 'PAC.Project.Conversation' | translate: { Default: 'Conversation' } }}
       </button>
     }
+
+    @if (artifacts().length) {
+      <span
+        class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1"
+        data-testid="project-task-artifacts"
+      >
+        <z-icon zType="archive" class="mr-1 text-sm"></z-icon>
+        {{ 'PAC.Project.Artifacts' | translate: { Default: 'Artifacts' } }}
+        <span class="ml-1 font-medium text-text-primary">{{ artifacts().length }}</span>
+      </span>
+    }
   </div>
 
   @if (failureMessage(); as message) {
-    <div class="mt-3 rounded-lg border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs leading-5 text-text-destructive">
+    <div
+      class="mt-3 rounded-lg border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs leading-5 text-text-destructive"
+    >
       <div class="font-semibold">
         {{ 'PAC.Project.TaskFailureReason' | translate: { Default: 'Failure reason' } }}
       </div>

@@ -10,16 +10,25 @@ import { ProjectTaskCardComponent } from './project-task-card.component'
 @Component({
   standalone: true,
   selector: 'xp-project-swimlane-column',
-  imports: [CommonModule, TranslatePipe, DragDropModule, ZardButtonComponent, ZardIconComponent, ProjectTaskCardComponent],
+  imports: [
+    CommonModule,
+    TranslatePipe,
+    DragDropModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ProjectTaskCardComponent
+  ],
   templateUrl: './project-swimlane-column.component.html',
-  styles: `:host {
-    display: flex;
-    width: 20rem;
-    min-width: 20rem;
-    min-height: 0;
-    height: 100%;
-    flex: 0 0 20rem;
-  }`,
+  styles: `
+    :host {
+      display: flex;
+      width: 20rem;
+      min-width: 20rem;
+      min-height: 0;
+      height: 100%;
+      flex: 0 0 20rem;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProjectSwimlaneColumnComponent {
@@ -31,7 +40,6 @@ export class ProjectSwimlaneColumnComponent {
   readonly taskConversationRequested = output<IProjectTask>()
   readonly taskStatusChanged = output<{ task: IProjectTask; status: ProjectTaskStatusEnum }>()
 
-  readonly laneKeyLabel = computed(() => formatProjectLabel(this.column().lane.key))
   readonly laneKindLabel = computed(() => formatProjectLabel(this.column().lane.kind))
   readonly agentRoleLabel = computed(() => formatProjectLabel(this.column().lane.agentRole))
   readonly environmentLabel = computed(() => formatProjectLabel(this.column().lane.environmentType))
@@ -70,8 +78,7 @@ export class ProjectSwimlaneColumnComponent {
     }
 
     const sourceTasks = [...event.previousContainer.data]
-    const targetTasks =
-      event.previousContainer === event.container ? sourceTasks : [...event.container.data]
+    const targetTasks = event.previousContainer === event.container ? sourceTasks : [...event.container.data]
 
     if (event.previousContainer === event.container) {
       moveItemInArray(targetTasks, event.previousIndex, event.currentIndex)

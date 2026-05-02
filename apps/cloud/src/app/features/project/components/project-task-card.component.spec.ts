@@ -1,95 +1,120 @@
-import { CommonModule } from '@angular/common'
-import { NO_ERRORS_SCHEMA, Pipe, PipeTransform } from '@angular/core'
-import { TestBed } from '@angular/core/testing'
+import { Dialog } from '@angular/cdk/dialog'
 import { By } from '@angular/platform-browser'
+import { TestBed } from '@angular/core/testing'
+import { TranslateModule } from '@ngx-translate/core'
 import {
-  IProjectTask,
-  ProjectTaskExecutionStatusEnum,
-  ProjectTaskStatusEnum,
   createProjectId,
   createSprintId,
   createTeamId,
-  createXpertId
+  createXpertId,
+  IProjectTask,
+  IProjectTaskExecutionArtifact,
+  ProjectTaskExecutionArtifactTypeEnum,
+  ProjectTaskExecutionStatusEnum,
+  ProjectTaskStatusEnum
 } from '@xpert-ai/contracts'
+
+jest.mock('./project-task-conversation-dialog.component', () => ({
+  getLatestTaskConversationId: (task?: { latestExecution?: { conversationId?: string | null } } | null) =>
+    task?.latestExecution?.conversationId?.trim() || '',
+  openProjectTaskConversationDialog: jest.fn()
+}))
+
 import { ProjectTaskCardComponent } from './project-task-card.component'
 
-@Pipe({
-  standalone: true,
-  name: 'translate'
-})
-class TranslateStubPipe implements PipeTransform {
-  transform(value: string, options?: { Default?: string }) {
-    return options?.Default ?? value
-  }
-}
-
 describe('ProjectTaskCardComponent', () => {
-  function createTask(conversationId: string | null): IProjectTask {
-    const projectId = createProjectId('project-1')
-    const sprintId = createSprintId('sprint-1')
-
-    return {
-      id: 'task-1',
-      projectId,
-      sprintId,
-      swimlaneId: 'lane-1',
-      title: 'Review side panel',
-      description: 'Open task chat in the assistant rail.',
-      sortOrder: 0,
-      status: ProjectTaskStatusEnum.Done,
-      dependencies: [],
-      latestExecution: {
-        id: 'execution-1',
-        projectId,
-        sprintId,
-        taskId: 'task-1',
-        teamId: createTeamId('team-1'),
-        xpertId: createXpertId('xpert-1'),
-        dispatchId: 'dispatch-1',
-        status: ProjectTaskExecutionStatusEnum.Success,
-        conversationId
-      }
+  async function setup(task: IProjectTask) {
+    const dialog = {
+      open: jest.fn()
     }
-  }
 
-  function createComponent(task: IProjectTask) {
     TestBed.resetTestingModule()
-    TestBed.configureTestingModule({
-      imports: [ProjectTaskCardComponent]
-    })
-    TestBed.overrideComponent(ProjectTaskCardComponent, {
-      set: {
-        imports: [CommonModule, TranslateStubPipe],
-        schemas: [NO_ERRORS_SCHEMA]
-      }
-    })
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ProjectTaskCardComponent],
+      providers: [
+        {
+          provide: Dialog,
+          useValue: dialog
+        }
+      ]
+    }).compileComponents()
 
     const fixture = TestBed.createComponent(ProjectTaskCardComponent)
     fixture.componentRef.setInput('task', task)
     fixture.detectChanges()
 
-    return fixture
+    return {
+      fixture,
+      component: fixture.componentInstance,
+      dialog
+    }
   }
 
-  it('emits conversationRequested from the conversation button without opening the card', () => {
-    const task = createTask('conversation-1')
-    const fixture = createComponent(task)
-    const component = fixture.componentInstance
-    const opened = jest.fn()
-    const conversationRequested = jest.fn()
-    component.opened.subscribe(opened)
-    component.conversationRequested.subscribe(conversationRequested)
+  it('renders a single artifact count chip without listing artifact names', async () => {
+    const firstArtifact = {
+      type: ProjectTaskExecutionArtifactTypeEnum.ProjectFile,
+      name: 'Implementation notes',
+      path: 'deliverables/task-1/notes.md'
+    } satisfies IProjectTaskExecutionArtifact
+    const secondArtifact = {
+      type: ProjectTaskExecutionArtifactTypeEnum.ProjectDirectory,
+      name: 'Build output',
+      path: 'deliverables/task-1/dist'
+    } satisfies IProjectTaskExecutionArtifact
+    const { fixture } = await setup(
+      createTask({
+        latestExecution: {
+          id: 'execution-1',
+          projectId: createProjectId('project-1'),
+          sprintId: createSprintId('sprint-1'),
+          taskId: 'task-1',
+          teamId: createTeamId('team-1'),
+          xpertId: createXpertId('xpert-1'),
+          dispatchId: 'dispatch-1',
+          status: ProjectTaskExecutionStatusEnum.Success,
+          artifacts: [firstArtifact, secondArtifact]
+        }
+      })
+    )
 
-    const button = fixture.debugElement.query(By.css('button'))
-    button.nativeElement.click()
+    const artifactChip = fixture.debugElement.query(By.css('[data-testid="project-task-artifacts"]'))
+      .nativeElement as HTMLElement
+    const content = fixture.nativeElement.textContent
 
-    expect(conversationRequested).toHaveBeenCalledWith(task)
-    expect(opened).not.toHaveBeenCalled()
+    expect(artifactChip.textContent).toContain('Artifacts')
+    expect(artifactChip.textContent).toContain('2')
+    expect(fixture.debugElement.query(By.css('[data-testid="project-task-artifact"]'))).toBeNull()
+    expect(content).not.toContain('Implementation notes')
+    expect(content).not.toContain('Build output')
   })
 
-  it('does not render a conversation button without a latest conversation', () => {
-    const fixture = createComponent(createTask(null))
+  it('does not render the assigned agent id on the card', async () => {
+    const { fixture } = await setup(
+      createTask({
+        assignedAgentId: createXpertId('86ecb1d3-571c-44d5-9168-9cc7709ceaea')
+      })
+    )
 
-    expect(fixture.debugElement.query(By.css('button'))).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('86ecb1d3-571c-44d5-9168-9cc7709ceaea')
+  })
+
+  it('hides the artifact area when the task has no artifacts', async () => {
+    const { fixture } = await setup(createTask())
+
+    expect(fixture.debugElement.query(By.css('[data-testid="project-task-artifacts"]'))).toBeNull()
   })
 })
+
+function createTask(patch: Partial<IProjectTask> = {}): IProjectTask {
+  return {
+    id: 'task-1',
+    projectId: createProjectId('project-1'),
+    sprintId: createSprintId('sprint-1'),
+    swimlaneId: 'lane-coding',
+    title: 'Implement feature',
+    sortOrder: 0,
+    status: ProjectTaskStatusEnum.Done,
+    dependencies: [],
+    ...patch
+  }
+}

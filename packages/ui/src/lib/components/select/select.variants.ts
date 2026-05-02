@@ -4,7 +4,7 @@ import { mergeClasses } from '@/shared/utils/merge-classes';
 
 export const selectVariants = cva(
   mergeClasses(
-    'relative inline-block w-full rounded-md group data-active:border data-active:border-ring data-active:ring-ring/50 data-active:ring-[3px]',
+    'relative inline-block w-full rounded-md group data-active:[&_button]:border-ring data-active:[&_button]:ring-ring/50 data-active:[&_button]:ring-[3px]',
     '[&_button]:focus-visible:border [&_button]:focus-visible:border-ring [&_button]:focus-visible:ring-ring/50 [&_button]:focus-visible:ring-[3px]',
   ),
 );
