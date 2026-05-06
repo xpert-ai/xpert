@@ -3,7 +3,6 @@ import { CqrsModule } from '@nestjs/cqrs';
 import chalk from 'chalk';
 import { TodoListMiddleware } from './todoListMiddleware';
 import { SummarizationMiddleware } from './summarization';
-import { ClientToolMiddleware } from './clientTool';
 import { ClientEffectMiddleware } from './clientEffect';
 import { LLMToolSelectorNameMiddleware } from './llmToolSelector';
 import { LocalShellSandboxProvider } from './localShellSandbox.provider';
@@ -21,7 +20,6 @@ import { ContextCompressionMiddleware } from './contextCompression';
 		SummarizationMiddleware,
         TodoListMiddleware,
 		LLMToolSelectorNameMiddleware,
-		ClientToolMiddleware,
 		ClientEffectMiddleware,
 		SandboxFileMiddleware,
 		LocalShellSandboxProvider,

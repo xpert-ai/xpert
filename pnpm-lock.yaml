@@ -1195,9 +1195,6 @@ importers:
       '@nestjs/core':
         specifier: '>=10'
         version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
-      '@xpert-ai/chatkit-types':
-        specifier: 0.3.1
-        version: 0.3.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/contracts':
         specifier: workspace:*
         version: link:../../contracts/dist
@@ -1721,6 +1718,9 @@ importers:
       '@sap_oss/odata-library':
         specifier: 2.4.0
         version: 2.4.0
+      '@xpert-ai/chatkit-types':
+        specifier: 0.3.1
+        version: 0.3.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       cronstrue:
         specifier: 2.53.0
         version: 2.53.0
