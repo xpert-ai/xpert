@@ -68,6 +68,7 @@
     "changeset:version": "changeset version && pnpm install --lockfile-only --ignore-scripts",
     "lockfile:update": "pnpm install --lockfile-only --ignore-scripts",
     "lockfile:check": "pnpm install --lockfile-only --frozen-lockfile --ignore-scripts",
+    "check:typeorm-columns": "node tools/scripts/check-typeorm-column-types.cjs",
     "release:publish": "node tools/release/publish-npm-packages.mjs",
     "b:docs": "concurrently \"pnpm -C ./packages/store docs\" \"pnpm -C ./packages/core docs\" \"pnpm -C ./packages/xmla docs\" \"pnpm -C ./packages/sql docs\" \"pnpm -C ./packages/echarts docs\" \"pnpm -C ./packages/duckdb docs\" \"pnpm -C ./legacies/copilot docs\"",
     "b:stats": "pnpm nx build cloud --stats-json",

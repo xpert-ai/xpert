@@ -49,7 +49,7 @@ export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements I
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Optional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
 
 	@Column({ type: 'jsonb', nullable: true })

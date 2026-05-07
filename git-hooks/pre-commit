@@ -4,6 +4,7 @@ FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g')
 echo "$FILES" | xargs yarn format:fix
 echo "$FILES" | xargs git add
 node tools/scripts/update-pnpm-lock-if-needed.cjs || exit 1
-node tools/scripts/check-hardcoded-colors.cjs --staged
+node tools/scripts/check-hardcoded-colors.cjs --staged || exit 1
+node tools/scripts/check-typeorm-column-types.cjs --staged || exit 1
 
 exit 0
