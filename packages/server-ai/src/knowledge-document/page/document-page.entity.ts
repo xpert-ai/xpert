@@ -62,6 +62,6 @@ export class KnowledgeDocumentPage
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Optional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status?: 'wasted' | 'validate' | 'running' | 'cancel' | 'finish' | 'error'
 }

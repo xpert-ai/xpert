@@ -16,7 +16,7 @@ export class SkillPackage extends WorkspaceBaseEntity implements ISkillPackage {
 	@Column({ type: 'json', nullable: true })
 	name?: any
 
-	@Column({ default: 'private' })
+	@Column({ type: 'varchar', default: 'private' })
 	visibility: 'private' | 'team' | 'tenant'
 
 	@Column({ nullable: true })
