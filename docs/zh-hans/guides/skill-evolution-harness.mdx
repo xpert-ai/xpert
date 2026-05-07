@@ -1,0 +1,508 @@
+# Skill Evolution Harness 调研设计
+
+本文描述一个新的 Xpert Agent Middleware：让主智能体在真实任务中显式打开任务边界，保存任务素材，后台分析是否值得沉淀 skill，生成候选 `SKILL.md`，评估通过后自动安装到当前用户的私有 skill 层。
+
+这个设计借鉴 OpenSpace 的任务级 skill evolution 思路，但落地时要结合 Xpert 当前的 middleware 生命周期、`skill_package` 数据模型、`SkillPackageService` 和 `skills-middleware` 加载方式。
+
+## 目标
+
+目标不是让每轮对话都写 skill，而是给主智能体一个可控 harness：
+
+1. 用 `beginSkillTask` 标记一个有边界的任务。
+2. 主智能体照常调用模型和工具完成任务。
+3. 当它发现有可复用经验时，用 `requestSkillIteration` 标记沉淀意图。
+4. 用 `endSkillTask` 关闭任务，并写入成功证据、失败证据或吸取的教训。
+5. 后台异步运行 Analyst、Writer、Evaluator，最后自动安装到用户私有 skill。
+
+v1 先锁定这些原则：
+
+- 一个 skill-evolution task 必须在同一个 `rootExecutionId` 内完成。
+- 任务边界由主智能体通过工具显式声明。
+- 用户不输入、不管理 recording id。
+- 自动安装只支持当前用户 private。
+- shared/public 暂不设计自动发布，只预留字段。
+
+## 当前 Xpert 代码锚点
+
+这个能力不应该另起一套 skill 系统，而是复用 Xpert 现有能力。
+
+| 领域 | 现有代码位置 | 可复用能力 |
+| --- | --- | --- |
+| Middleware 合同 | `packages/plugin-sdk/src/lib/agent/middleware/strategy.interface.ts` | `IAgentMiddlewareContext` 已有 `tenantId`、`userId`、`workspaceId`、`conversationId`、`xpertId`、`tools`、`runtime`。 |
+| Middleware 生命周期 | `packages/plugin-sdk/src/lib/agent/middleware/types.ts` | `afterAgent` 在模型和工具执行完成后调用一次；`wrapModelCall`、`wrapToolCall` 可选拦截执行。 |
+| Runtime 标识 | `packages/server-ai/src/xpert-agent/commands/handlers/invoke.handler.ts` | runtime configurable 已写入 `executionId`、`rootExecutionId`、`xpertId`、`agentKey`、sandbox。 |
+| LangGraph 状态 | `packages/server-ai/src/shared/agent/state.ts` | `AgentStateAnnotation` 累积 `messages`、`input`、系统状态、title、summary、channel state。 |
+| Tool call 状态 | `packages/server-ai/src/xpert-agent/commands/handlers/tool_node.ts` | 工具调用在 `AIMessage.tool_calls` 中，执行结果写回 `ToolMessage(name, content, tool_call_id)`。 |
+| Chat 持久化 | `packages/server-ai/src/chat-message/chat-message.entity.ts` | `chat_message` 有 `conversationId`、`executionId`、`content`、`events`、status。 |
+| Skill 编写工具 | `packages/server-ai/src/xpert/middlewares/xpert-authoring.middleware.ts` | 现有 `newSkill` 工具可以从 `SKILL.md` 创建 workspace skill。 |
+| Skill package 服务 | `packages/server-ai/src/skill-package/skill-package.service.ts` | `createWorkspaceSkillPackage` 写 `SKILL.md` 并创建 `skill_package`；`saveSkillPackageFile` 可更新 skill 文件。 |
+| Skill 存储根目录 | `packages/server-ai/src/skill-repository/types.ts` | workspace skills 存在 `<workspaceRoot>/skills`。 |
+| Skill 加载 | `packages/server-ai/src/skill-package/plugins/skills-middleware/index.ts` | `skills-middleware` 读取 skill package，解析 `SKILL.md`，把 skill 路径和摘要注入系统提示词。 |
+| File-memory 分层 | `xpertplugins/xpertai/middlewares/file-memory/src/lib/layer-resolver.ts` | file-memory 已有 `xperts/<xpertId>/private` 和 `xperts/<xpertId>/shared` 分层。 |
+| File-memory 后台任务 | `xpertplugins/xpertai/middlewares/file-memory/src/lib/file-memory.writeback-runner.ts` | 提供可参考的进程内后台 runner 模式。 |
+
+最关键的缺口是用户私有 skill 隔离。当前 `skill_package.visibility = private` 更像 workspace 内的私有 package 概念；`skills-middleware` 主要按 `workspaceId` 加载 skill package，并没有把 `ownerUserId` 作为 runtime 可见性边界。因此 skill evolution harness 需要自己的 owner 元数据和加载过滤逻辑。
+
+## 需要保留的 OpenSpace 模式
+
+OpenSpace 值得借鉴的核心工程形态是：
+
+```text
+一个有边界的 task
+  -> 一个 recording package
+  -> 一次任务后分析
+  -> 零个或多个 evolution suggestions
+  -> FIX / DERIVED / CAPTURED skill 变更
+```
+
+Xpert 应该保留这个形状，但任务边界不通过一个阻塞的 `execute_task` 函数表达，而是由 middleware 工具显式表达。
+
+在 Xpert 中：
+
+```text
+rootExecutionId
+  包含一个或多个显式 skill-evolution task
+
+taskId
+  等于 <rootExecutionId>__<sequence>
+  由 beginSkillTask 生成
+  对用户隐藏，对主智能体可见
+```
+
+v1 建议严格限制：skill-evolution task 不跨 `rootExecutionId`。跨多轮、跨 conversation 的长期学习可以后续再做；v1 先保证 recording 完整、证据可归因。
+
+## Middleware 工具设计
+
+对主智能体暴露三个工具。
+
+### `beginSkillTask`
+
+用途：打开一个任务记录窗口。
+
+输入：
+
+```json
+{
+  "goal": "string",
+  "expectedSuccessEvidence": "string",
+  "relatedSkillIds": ["optional-skill-id"]
+}
+```
+
+行为：
+
+- 计算 `rootExecutionId = runtime.configurable.rootExecutionId ?? runtime.configurable.executionId`。
+- 分配 `taskId = <rootExecutionId>__<sequence>`。
+- 在 middleware state 中记录 active task。
+- 写入初始 task 行和 `metadata.json`。
+- 返回生成的 `taskId`。
+
+约束：
+
+- 同一个 root execution 内不允许嵌套 active task。
+- 缺少 `xpertId`、`workspaceId` 或 `userId` 时拒绝。
+- 不运行分析，不写 skill。
+
+### `requestSkillIteration`
+
+用途：记录主智能体认为“这次任务值得沉淀”的意图。
+
+输入：
+
+```json
+{
+  "taskId": "string",
+  "reason": "string",
+  "suggestedEvolutionType": "CAPTURED | FIX | DERIVED | unknown",
+  "targetSkillIds": ["optional-skill-id"],
+  "evidencePointers": ["optional-short-pointer"]
+}
+```
+
+行为：
+
+- 校验 `taskId` 是当前 active task。
+- 给 task 追加一条沉淀意图。
+- 不调用 LLM 分析。
+- 不安装任何 skill。
+
+保留这个独立工具，是为了让主智能体明确表达“这里有学习价值”。v1 的正常用法是：主智能体在准备 `endSkillTask` 前调用它。
+
+### `endSkillTask`
+
+用途：关闭任务记录窗口，并让任务具备后台分析资格。
+
+输入：
+
+```json
+{
+  "taskId": "string",
+  "outcome": "success | failure | partial",
+  "evidence": "string",
+  "lessonsLearned": "string",
+  "finalSummary": "string"
+}
+```
+
+行为：
+
+- 关闭 active task。
+- 持久化 outcome、证据和教训。
+- 标记 `recordingStatus = closed`。
+- 如果调用过 `requestSkillIteration`，标记 `readyForAnalysis = true`。
+- 如果没有请求沉淀，只保存 recording，不启动 skill 迭代。
+
+成功和失败都必须写证据。失败任务也有价值，但必须明确“哪里失败、证据是什么、吸取了什么教训”，否则不能自动安装 skill。
+
+## 任务素材记录
+
+素材来源以 LangGraph state 为主，DB 为补充。
+
+### 主来源：state-derived recording
+
+`afterAgent` 可以拿到完整 state。由于 `AgentStateAnnotation` 累积 `messages`，并且 Xpert 的 ToolNode 会写入 `AIMessage.tool_calls` 和 `ToolMessage`，中间件可以从 state 中派生：
+
+- 模型消息，写入 `conversations.jsonl`；
+- 工具请求，从 `AIMessage.tool_calls` 读取；
+- 工具输出，从匹配的 `ToolMessage.tool_call_id` 读取；
+- 工具错误，从错误 `ToolMessage` 内容读取；
+- active skill 线索，可从系统提示或 skills-middleware 注入内容中解析。
+
+v1 不需要额外写 `wrapToolCall` recorder。只有当后续需要精确开始时间、结束时间、耗时、流式工具状态或中间输出时，再加 wrapper。
+
+### 补充来源：DB snapshot
+
+`afterAgent` 同时从 Xpert DB 补一份快照：
+
+- 同 `conversationId` 和 `executionId/rootExecutionId` 相关的 `chat_message`；
+- AI message 的 `events`，因为 UI tool component 里可能有 input、output、status、artifact；
+- 可用时补 `xpert_agent_execution` 的状态和父子 execution 树。
+
+DB 快照不作为唯一 recording。它更偏 UI 和持久化视角，但对用户可见 transcript、执行状态和审计非常有价值。
+
+### 文件路径
+
+参考 file-memory 的 `.xpert` 约定，但对 skill-evolution recording 做更强用户隔离：
+
+```text
+.xpert/skill-evolution/
+  xperts/<xpertId>/
+    private/
+      users/<userId>/
+        tasks/<taskId>/
+          metadata.json
+          conversations.jsonl
+          traj.jsonl
+          db-messages.jsonl
+          recording-status.json
+          analysis.json
+          candidates/<candidateId>/SKILL.md
+          candidates/<candidateId>/evaluation.json
+```
+
+原因：
+
+- file-memory 主要靠 frontmatter 里的 `ownerUserId` 做读取过滤。
+- skill-evolution 保存的是原始任务录像，比普通记忆摘要更敏感。
+- 路径里显式包含 `userId`，可以做到文件层面隔离，也方便调试和清理。
+
+## 后台 pipeline
+
+`endSkillTask` 不应该同步运行重型 LLM。它只关闭任务和记录状态。真正的处理在 `afterAgent` 收口后入队。
+
+```text
+afterAgent
+  -> 找到当前 rootExecution 内已经关闭的 task
+  -> 写 recording 文件
+  -> 补 DB snapshot
+  -> 对 ready task 入队
+
+runner
+  -> Analyst
+  -> Writer
+  -> Evaluator
+  -> Promote
+```
+
+后台 runner 可以参考 file-memory writeback：
+
+- key 使用 `sandbox/cacheKey + tenantId + workspaceId + xpertId + userId`；
+- 同一用户私有 scope 内串行；
+- 不合并不同 task recording；
+- 不同用户或不同 xpert 可以并行。
+
+v1 不需要 Bull/Redis。等需要服务重启后继续跑、失败重试和运维面板时，再加持久化队列。
+
+## Analyst、Writer、Evaluator
+
+### Analyst
+
+Analyst 读取完整 recording package，输出有证据支撑的 learning spec。
+
+要求输出：
+
+```json
+{
+  "taskCompleted": true,
+  "candidateForEvolution": true,
+  "evolutionSuggestions": [
+    {
+      "type": "CAPTURED | FIX | DERIVED",
+      "targetSkillIds": [],
+      "rationale": "string",
+      "evidence": ["string"],
+      "failureToSuccessChain": [
+        {
+          "failedStep": "string",
+          "errorEvidence": "string",
+          "wrongAssumption": "string",
+          "turningPoint": "string",
+          "successfulStep": "string",
+          "successEvidence": "string"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Analyst 不能脑补证据。如果 `recording-status.json` 不完整，只能生成 unverified note，不能生成 verified skill candidate。
+
+### Writer
+
+Writer 只读取 Analyst learning spec 和必要的 parent skill 内容，输出候选 `SKILL.md`。
+
+规则：
+
+- `SKILL.md` 必须有合法 frontmatter，至少包含 `name` 和 `description`。
+- 内容必须是可复用流程，不是任务总结。
+- 所有关键步骤必须能追溯到 Analyst evidence。
+- `FIX` 必须产出针对 parent `SKILL.md` 的替换候选或 diff。
+- `DERIVED` 必须保留 parent lineage，但创建新的 skill package。
+
+### Evaluator
+
+Evaluator 决定候选能不能 promote。
+
+v1 评估：
+
+- frontmatter 和 `SKILL.md` 结构；
+- 是否覆盖 learning spec 中的证据；
+- 是否泄漏 token、密钥、用户隐私；
+- 是否有未被 recording 支撑的断言；
+- 是否足够可执行；
+- 是否和当前用户已有 active private skills 冲突。
+
+v1 不自动 replay 原任务。Xpert 任务可能有真实副作用，replay 需要后续作为可选评估模式单独设计。
+
+## 和现有 Skill Package 的结合
+
+这个 harness 不应该发明平行 skill 加载系统，而应该接入现有 `skill_package`。
+
+### CAPTURED
+
+Evaluator 通过后创建新的 workspace skill package：
+
+- 调用 `SkillPackageService.createWorkspaceSkillPackage`；
+- 写入 candidate `SKILL.md`；
+- 在 `skill_package.metadata` 里写 evolution 元数据，例如：
+
+```json
+{
+  "source": "skill-evolution",
+  "ownerUserId": "user-id",
+  "xpertId": "xpert-id",
+  "taskId": "rootExecutionId__0001",
+  "versionId": "skill-version-id",
+  "evolutionType": "CAPTURED"
+}
+```
+
+因为当前 workspace skill 加载不是 owner-aware，所以 `skills-middleware` 必须新增过滤：只有 `metadata.ownerUserId === context.userId` 时，才加载 evolution-managed private skill。
+
+### FIX
+
+只允许自动修复 evolution-owned user-private skill。
+
+流程：
+
+- 根据 `skillPackageId` 和 `ownerUserId` 找 active skill version；
+- 写候选替换版 `SKILL.md`；
+- Evaluator 通过；
+- 调用 `saveSkillPackageFile(workspaceId, skillPackageId, 'SKILL.md', content)`；
+- evolution ledger 中把旧版本标记 inactive，新版本 active。
+
+不要自动修改人工创建的普通 workspace skill，也不要自动修改 repository/shared skill。后续如果需要，可以增加显式审批工具。
+
+### DERIVED
+
+创建新 package，但记录父版本：
+
+- parent skill version 保持 active；
+- 新 skill package 有自己的 `skillPackageId`；
+- ledger 记录 `parentVersionId -> childVersionId`。
+
+这样可以保留 OpenSpace 的 DAG 语义，同时避免直接污染共享 skill。
+
+### Loader 改造重点
+
+`skills-middleware` 当前按 workspace 和 selected ids 加载 skill package。skill evolution 需要增加一层 owner-aware 过滤：
+
+- 非 evolution 的现有 workspace skill 保持当前行为；
+- evolution-managed private skill 必须满足 `metadata.ownerUserId === context.userId`；
+- 将来 shared/public evolution skill 走单独的 `targetAudience` 和审批流程。
+
+这是整个设计最关键的 runtime 结合点。否则“private 自动安装”会在 workspace 内泄漏。
+
+## 建议新增数据表
+
+DB 保存身份、状态、lineage 和 UI/debug 信息；大体量 recording 和候选 skill 内容保存在文件中。
+
+```text
+skill_evolution_task
+  id
+  taskId
+  tenantId
+  workspaceId
+  xpertId
+  userId
+  conversationId
+  rootExecutionId
+  beginExecutionId
+  endExecutionId
+  status
+  outcome
+  artifactPath
+  readyForAnalysis
+  createdAt
+  closedAt
+
+skill_evolution_request
+  id
+  taskId
+  suggestedEvolutionType
+  targetSkillIds
+  reason
+  evidencePointers
+
+skill_evolution_analysis
+  id
+  taskId
+  model
+  candidateForEvolution
+  analysisJson
+  recordingComplete
+
+skill_evolution_candidate
+  id
+  taskId
+  analysisId
+  evolutionType
+  targetSkillPackageId
+  candidatePath
+  status
+
+skill_evolution_skill_version
+  id
+  skillPackageId
+  ownerUserId
+  xpertId
+  taskId
+  evolutionType
+  versionNumber
+  active
+  skillMdHash
+  candidateId
+
+skill_evolution_version_parent
+  childVersionId
+  parentVersionId
+
+skill_evolution_judgment
+  id
+  candidateId
+  evaluatorModel
+  passed
+  score
+  reasons
+```
+
+## Middleware 配置
+
+建议配置：
+
+```json
+{
+  "enabled": true,
+  "autoInstallPrivate": true,
+  "analystModel": {},
+  "writerModel": {},
+  "evaluatorModel": {},
+  "maxRecordingMessages": 200,
+  "maxToolOutputChars": 12000,
+  "enableDbSnapshot": true,
+  "enableLogging": false
+}
+```
+
+Analyst、Writer、Evaluator 的模型要独立配置：
+
+- Analyst 需要长上下文证据阅读能力。
+- Writer 需要稳定写 instruction 的能力。
+- Evaluator 需要严格判断和安全检查能力。
+
+## 给主智能体的提示词契约
+
+中间件应注入简短提示：
+
+```text
+当用户请求是一个有边界、可能产生可复用经验的任务时，使用 beginSkillTask。
+只有当任务产生了可复用教训、修复方法或可重复流程时，才使用 requestSkillIteration。
+当任务完成、失败但有教训、或无法继续时，使用 endSkillTask。
+不要为一次性事实、隐私密钥、不稳定偏好请求 skill iteration。
+```
+
+主智能体负责判断“是否值得学习”；后台 pipeline 负责判断“能不能变成 skill”。
+
+## 失败模式
+
+- 忘记 `endSkillTask`：`afterAgent` 自动关闭为 incomplete，不自动安装。
+- 缺少证据：保存 recording，candidate rejected。
+- Analyst 输出不受证据支撑：candidate rejected。
+- Writer 生成非法 `SKILL.md`：candidate rejected。
+- Evaluator 通过但 promote 失败：candidate 保留，可重试。
+- 服务重启导致进程内 job 丢失：DB task 仍是 `readyForAnalysis`，后续 recovery pass 可重新入队。
+- promote 时 owner 不匹配：拒绝，不修改 `skill_package`。
+
+## 测试计划
+
+Middleware state：
+
+- `beginSkillTask` 能生成 task id 和 active task state。
+- 嵌套 begin 被拒绝。
+- 没有 active task 时 `requestSkillIteration` 被拒绝。
+- `endSkillTask` 必须有 outcome、evidence、lessons。
+
+Recording：
+
+- `afterAgent` 写出 `metadata.json`、`conversations.jsonl`、`traj.jsonl`、`recording-status.json`。
+- 能从 `AIMessage.tool_calls` 和匹配的 `ToolMessage.tool_call_id` 还原工具调用。
+- 存在 `conversationId` 时写出 DB snapshot。
+
+Pipeline：
+
+- 请求沉淀的成功任务会入队分析。
+- 失败但有教训的任务可以分析，但必须有证据才能 promote。
+- 不完整 recording 不能生成 verified skill。
+- CAPTURED 会创建 user-private skill package。
+- FIX 只会更新 evolution-owned user-private skill package。
+- DERIVED 会创建新 package 并记录 parent links。
+
+隔离：
+
+- 同 workspace 内，用户 A 不能加载用户 B 的 evolution-managed private skill。
+- 非 evolution 的 workspace skill 维持原有加载行为。
+
+回归：
+
+- 现有 `newSkill`、`deleteSkill`、skill install、shared skill publish 行为不变。
