@@ -21,7 +21,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
     }
 })
 
-import { ToolMessage } from '@langchain/core/messages'
+import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { ChatMessageEventTypeEnum, IWFNMiddleware, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { AgentMiddleware, AgentMiddlewareRuntimeApi, IAgentMiddlewareContext, JsonSchemaValidator } from '@xpert-ai/plugin-sdk'
 import {
@@ -131,6 +131,52 @@ describe('BrowserAutomationMiddleware', () => {
         }
     })
 
+    it('exposes rich browser automation targeting schemas', () => {
+        const clickTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_click')
+        const screenshotTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_screenshot')
+        const pointerTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_pointer')
+        const waitForTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_wait_for')
+
+        expect(clickTool).toBeDefined()
+        expect(screenshotTool).toBeDefined()
+        expect(pointerTool).toBeDefined()
+        expect(waitForTool).toBeDefined()
+
+        const clickSchema = JSON.parse(clickTool?.schema ?? '{}')
+        expect(clickSchema.properties).toEqual(
+            expect.objectContaining({
+                axRef: expect.any(Object),
+                role: expect.any(Object),
+                name: expect.any(Object),
+                testId: expect.any(Object),
+                strategy: expect.any(Object),
+                message: expect.objectContaining({
+                    type: 'string'
+                })
+            })
+        )
+        expect(clickSchema.required).toContain('message')
+        const pointerSchema = JSON.parse(pointerTool?.schema ?? '{}')
+        expect(pointerSchema.properties.button).toEqual(
+            expect.objectContaining({
+                type: 'string',
+                enum: ['left', 'middle', 'right']
+            })
+        )
+        expect(pointerSchema.properties.clickCount).toEqual(
+            expect.objectContaining({
+                minimum: 1,
+                maximum: 3
+            })
+        )
+        expect(pointerSchema.properties.message).toEqual(
+            expect.objectContaining({
+                type: 'string'
+            })
+        )
+        expect(pointerSchema.required).toContain('message')
+    })
+
     it('emits browser automation display metadata for host page tool calls', async () => {
         mockInterrupt.mockResolvedValue({
             toolMessages: [
@@ -152,8 +198,13 @@ describe('BrowserAutomationMiddleware', () => {
                 toolCall: {
                     type: 'tool_call',
                     id: 'host-call-1',
-                    name: 'host_page_snapshot',
-                    args: {}
+                    name: 'host_page_pointer',
+                    args: {
+                        x: 820,
+                        y: 720,
+                        action: 'click',
+                        message: 'Click the bottom Execute button'
+                    }
                 },
                 tool: getFirstTool(middleware),
                 state: {
@@ -164,7 +215,7 @@ describe('BrowserAutomationMiddleware', () => {
             async () =>
                 new ToolMessage({
                     content: 'unused',
-                    name: 'host_page_snapshot',
+                    name: 'host_page_pointer',
                     tool_call_id: 'host-call-1'
                 })
         )
@@ -176,10 +227,16 @@ describe('BrowserAutomationMiddleware', () => {
                 id: 'host-call-1',
                 category: 'Tool',
                 toolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
-                tool: 'host_page_snapshot',
-                title: 'host_page_snapshot',
+                tool: 'host_page_pointer',
+                title: 'host_page_pointer',
+                message: 'Click the bottom Execute button',
                 status: 'running',
-                input: {}
+                input: {
+                    x: 820,
+                    y: 720,
+                    action: 'click',
+                    message: 'Click the bottom Execute button'
+                }
             })
         )
     })
@@ -250,5 +307,153 @@ describe('BrowserAutomationMiddleware', () => {
 
         await expect(waitTool.invoke({ seconds: 2 })).rejects.toThrow()
         await expect(waitTool.invoke({ seconds: 61 })).rejects.toThrow()
+    })
+
+    it('injects host_page_screenshot results as image content for the next model call', async () => {
+        const screenshotData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB'
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const handler = jest.fn().mockResolvedValue(new AIMessage('ok'))
+        const toolMessage = new ToolMessage({
+            content: JSON.stringify({
+                ok: true,
+                result: {
+                    mimeType: 'image/png',
+                    data: screenshotData,
+                    viewport: {
+                        width: 1440,
+                        height: 900
+                    },
+                    imageSize: {
+                        width: 720,
+                        height: 450
+                    },
+                    coordinateSpace: 'viewport-css-px'
+                }
+            }),
+            name: 'host_page_screenshot',
+            tool_call_id: 'screenshot-call-1',
+            status: 'success'
+        })
+
+        await middleware.wrapModelCall?.(
+            {
+                model: {} as any,
+                messages: [
+                    new AIMessage({
+                        content: '',
+                        tool_calls: [
+                            {
+                                id: 'screenshot-call-1',
+                                name: 'host_page_screenshot',
+                                args: {}
+                            }
+                        ]
+                    }),
+                    toolMessage
+                ],
+                tools: [],
+                state: {},
+                runtime: {}
+            } as any,
+            handler
+        )
+
+        const forwardedRequest = handler.mock.calls[0][0]
+        expect(forwardedRequest.messages).toHaveLength(3)
+        expect(forwardedRequest.messages[1]).toBeInstanceOf(ToolMessage)
+        expect(forwardedRequest.messages[1].content).toContain('Captured host page screenshot')
+        expect(forwardedRequest.messages[1].content).toContain('image 720x450')
+        expect(forwardedRequest.messages[1].content).toContain('viewport 1440x900')
+        expect(forwardedRequest.messages[1].content).not.toContain(screenshotData)
+        expect(forwardedRequest.messages[2]).toBeInstanceOf(HumanMessage)
+        expect(forwardedRequest.messages[2].content).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    type: 'text',
+                    text: expect.stringContaining('cssX = imageX / imageWidth * viewportWidth')
+                }),
+                expect.objectContaining({
+                    type: 'image_url',
+                    image_url: expect.objectContaining({
+                        url: `data:image/png;base64,${screenshotData}`,
+                        detail: 'high'
+                    })
+                })
+            ])
+        )
+    })
+
+    it('injects host_page_screenshot artifacts without requiring base64 in tool content', async () => {
+        const screenshotData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB'
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const handler = jest.fn().mockResolvedValue(new AIMessage('ok'))
+        const toolMessage = new ToolMessage({
+            content: JSON.stringify({
+                ok: true,
+                result: {
+                    mimeType: 'image/png',
+                    dataLength: screenshotData.length
+                }
+            }),
+            name: 'host_page_screenshot',
+            tool_call_id: 'screenshot-call-1',
+            status: 'success',
+            artifact: {
+                type: 'host_page_screenshot',
+                mimeType: 'image/png',
+                data: screenshotData,
+                viewport: {
+                    width: 1440,
+                    height: 900
+                },
+                imageSize: {
+                    width: 720,
+                    height: 450
+                },
+                coordinateSpace: 'viewport-css-px'
+            }
+        })
+
+        await middleware.wrapModelCall?.(
+            {
+                model: {} as any,
+                messages: [
+                    new AIMessage({
+                        content: '',
+                        tool_calls: [
+                            {
+                                id: 'screenshot-call-1',
+                                name: 'host_page_screenshot',
+                                args: {}
+                            }
+                        ]
+                    }),
+                    toolMessage
+                ],
+                tools: [],
+                state: {},
+                runtime: {}
+            } as any,
+            handler
+        )
+
+        const forwardedRequest = handler.mock.calls[0][0]
+        expect(forwardedRequest.messages[2]).toBeInstanceOf(HumanMessage)
+        expect(forwardedRequest.messages[2].content).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    type: 'text',
+                    text: expect.stringContaining('host_page_pointer')
+                }),
+                expect.objectContaining({
+                    type: 'image_url',
+                    image_url: expect.objectContaining({
+                        url: `data:image/png;base64,${screenshotData}`
+                    })
+                })
+            ])
+        )
     })
 })

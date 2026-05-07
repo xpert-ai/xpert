@@ -224,6 +224,16 @@ function getToolCallDisplayId(toolCall: ToolCall): string {
     return `${toolCall.name}:${stringifyValue(toolCall.args)}`
 }
 
+function getToolCallDisplayMessage(toolCall: ToolCall): string | undefined {
+    const args = toolCall.args
+    if (!args || typeof args !== 'object' || Array.isArray(args)) {
+        return undefined
+    }
+
+    const message = Reflect.get(args, 'message')
+    return typeof message === 'string' && message.trim() ? message.trim() : undefined
+}
+
 function mapClientToolStatus(status: ClientToolMessageInput['status'] | ToolMessage['status']): ClientToolStepStatus {
     return status === 'error' ? 'fail' : 'success'
 }
@@ -244,6 +254,7 @@ async function dispatchClientToolStepEvent({
     const toolset = displayConfig.displayToolset ?? readStringField(runtimeMetadata, ['toolset']) ?? CLIENT_TOOL_MIDDLEWARE_NAME
     const toolsetId = displayConfig.displayToolsetId ?? readStringField(runtimeMetadata, ['toolsetId'])
     const title = readStringField(runtimeMetadata, ['toolName', toolName]) ?? toolName
+    const message = getToolCallDisplayMessage(toolCall)
 
     const payload = {
         id: toolCallId,
@@ -254,6 +265,7 @@ async function dispatchClientToolStepEvent({
         ...(toolsetId ? { toolset_id: toolsetId } : {}),
         tool: toolName,
         title,
+        ...(message ? { message } : {}),
         status,
         created_date: createdAt,
         input: toolCall.args,

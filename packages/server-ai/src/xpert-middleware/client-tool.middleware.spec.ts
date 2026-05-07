@@ -296,6 +296,55 @@ describe('ClientToolMiddleware', () => {
         )
     })
 
+    it('emits tool call message labels from tool args', async () => {
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'client-call-1',
+                    name: 'client_tool',
+                    content: {
+                        ok: true
+                    },
+                    status: 'success'
+                }
+            ]
+        })
+        const middleware = await createClientToolAgentMiddleware({
+            emitToolMessages: true
+        })
+        const request = createToolCallRequest(middleware, {
+            type: 'tool_call',
+            id: 'client-call-1',
+            name: 'client_tool',
+            args: {
+                text: 'hello',
+                message: 'Click the bottom Execute button'
+            }
+        })
+        const handler: ToolCallHandler = async () => {
+            throw new Error('Client tool calls should not reach the original handler.')
+        }
+
+        await getWrapToolCall(middleware)(request, handler)
+
+        expect(mockDispatchCustomEvent).toHaveBeenNthCalledWith(
+            1,
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            expect.objectContaining({
+                message: 'Click the bottom Execute button',
+                status: 'running'
+            })
+        )
+        expect(mockDispatchCustomEvent).toHaveBeenNthCalledWith(
+            2,
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            expect.objectContaining({
+                message: 'Click the bottom Execute button',
+                status: 'success'
+            })
+        )
+    })
+
     it('rejects client responses without exactly one tool message', async () => {
         mockInterrupt.mockResolvedValue({
             toolMessages: []

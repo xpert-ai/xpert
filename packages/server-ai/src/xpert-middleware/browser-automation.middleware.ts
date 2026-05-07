@@ -1,4 +1,5 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { AIMessage, BaseMessage, HumanMessage, ToolMessage, isAIMessage, isToolMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { Injectable } from '@nestjs/common'
@@ -15,8 +16,10 @@ import { ClientToolMiddleware, ClientToolMiddlewareConfig } from './client-tool.
 
 export const BROWSER_AUTOMATION_MIDDLEWARE_NAME = 'browser-automation'
 export const HOST_PAGE_WAIT_TOOL_NAME = 'host_page_wait'
+const HOST_PAGE_SCREENSHOT_TOOL_NAME = 'host_page_screenshot'
 const HOST_PAGE_WAIT_MIN_SECONDS = 3
 const HOST_PAGE_WAIT_MAX_SECONDS = 60
+const HOST_PAGE_SCREENSHOT_ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg'] as const
 
 const HOST_PAGE_AUTOMATION_TOOL_NAMES = [
     'host_page_snapshot',
@@ -25,7 +28,12 @@ const HOST_PAGE_AUTOMATION_TOOL_NAMES = [
     'host_page_press',
     'host_page_select',
     'host_page_scroll',
-    'host_page_navigate'
+    'host_page_navigate',
+    'host_page_hover',
+    'host_page_focus',
+    'host_page_pointer',
+    'host_page_screenshot',
+    'host_page_wait_for'
 ] as const
 
 const configSchema = z.object({
@@ -36,11 +44,37 @@ export type BrowserAutomationMiddlewareConfig = InferInteropZodInput<typeof conf
 
 type ClientToolDefinition = NonNullable<ClientToolMiddlewareConfig['clientTools']>[number]
 
-const EMPTY_OBJECT_SCHEMA = JSON.stringify({
-    type: 'object',
-    additionalProperties: false,
-    properties: {}
-})
+type ReadyToolCallSet = {
+    toolCalls: NonNullable<AIMessage['tool_calls']>
+    toolMessagesById: Map<string, ToolMessage>
+}
+
+type HostPageScreenshotMimeType = (typeof HOST_PAGE_SCREENSHOT_ALLOWED_MIME_TYPES)[number]
+
+type HostPageViewportSize = {
+    width: number
+    height: number
+}
+
+type HostPageScrollOffset = {
+    x: number
+    y: number
+}
+
+type HostPageScreenshotAttachment = {
+    toolCallId: string
+    mimeType: HostPageScreenshotMimeType
+    dataUrl: string
+    dataLength: number
+    viewport?: HostPageViewportSize
+    imageSize?: HostPageViewportSize
+    devicePixelRatio?: number
+    scroll?: HostPageScrollOffset
+    coordinateSpace?: 'viewport-css-px'
+}
+
+const BROWSER_AUTOMATION_USAGE_GUIDANCE =
+    'For complex enterprise/SAP/Fiori/iframe pages, avoid looping host_page_snapshot and host_page_click. First inspect one rich snapshot, then fill known form fields with host_page_fill, press F8/Enter or click the Execute/Search button once, and wait with host_page_wait_for or host_page_wait. If one DOM/ref click does not change the page, switch to host_page_screenshot and then host_page_pointer coordinates instead of repeating the same click.'
 
 const hostPageWaitToolSchema = z.object({
     seconds: z
@@ -59,17 +93,37 @@ const TARGET_PROPERTIES = {
         type: 'string',
         description: 'Element ref from the latest host_page_snapshot result.'
     },
+    axRef: {
+        type: 'string',
+        description: 'Accessibility-tree ref from the latest host_page_snapshot result.'
+    },
     selector: {
         type: 'string',
         description: 'CSS selector fallback when no ref is available.'
     },
+    role: {
+        type: 'string',
+        description: 'Accessible role fallback, such as button, link, textbox, checkbox, or combobox.'
+    },
+    name: {
+        type: 'string',
+        description: 'Accessible name fallback. Prefer exact user-visible labels from host_page_snapshot.'
+    },
+    text: {
+        type: 'string',
+        description: 'Visible text fallback when role/name is not enough.'
+    },
+    testId: {
+        type: 'string',
+        description: 'data-testid, data-test-id, or data-qa fallback.'
+    },
     x: {
         type: 'number',
-        description: 'Viewport x coordinate fallback.'
+        description: 'Target tab page viewport CSS x coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
     },
     y: {
         type: 'number',
-        description: 'Viewport y coordinate fallback.'
+        description: 'Target tab page viewport CSS y coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
     }
 }
 
@@ -93,17 +147,69 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_snapshot',
         description:
-            'Capture the current host page URL, title, viewport, scroll position, and visible actionable elements. Use element refs from this result for later actions.',
-        schema: EMPTY_OBJECT_SCHEMA
+            `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, nearbyText, or coordinates from this result for later actions. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        schema: stringifySchema({
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+                mode: {
+                    type: 'string',
+                    enum: ['fast', 'rich', 'vision'],
+                    description: 'Snapshot detail level. Use rich by default; use vision only when a screenshot is needed.'
+                },
+                maxElements: {
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 300,
+                    description: 'Maximum actionable elements to return.'
+                },
+                includeScreenshot: {
+                    type: 'boolean',
+                    description: 'Include visual screenshot data when the client supports screenshots.'
+                },
+                includeNetwork: {
+                    type: 'boolean',
+                    description: 'Include recent network/lifecycle state when available.'
+                },
+                includeConsole: {
+                    type: 'boolean',
+                    description: 'Include recent console/runtime errors when available.'
+                }
+            }
+        })
     },
     {
         name: 'host_page_click',
-        description: 'Click an element on the host page by ref, selector, or viewport coordinates.',
-        schema: createTargetSchema()
+        description:
+            `Click the host page using Playwright-style targeting. Prefer ref or axRef from host_page_snapshot, then role/name, nearbyText-derived target choice, testId, selector, or coordinates. The browser extension uses real CDP mouse input when available. Do not repeatedly click the same target if the next snapshot does not change; use fill, press, wait_for, pointer, or screenshot instead. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        schema: createTargetSchema({
+            strategy: {
+                type: 'string',
+                enum: ['auto', 'dom', 'cdp_mouse', 'deepest_point', 'ancestor_actionable', 'label_control'],
+                description: 'Click strategy. Use auto unless a specific fallback is needed.'
+            },
+            button: {
+                type: 'string',
+                enum: ['left', 'middle', 'right'],
+                description: 'Mouse button to click.'
+            },
+            clickCount: {
+                type: 'number',
+                minimum: 1,
+                maximum: 3,
+                description: 'Number of clicks.'
+            },
+            message: {
+                type: 'string',
+                description:
+                    'Concise natural-language description of the intended click target, shown as the ChatKit tool-call row label. For example: "Click the top Execute toolbar button".'
+            }
+        }, ['message'])
     },
     {
         name: 'host_page_fill',
-        description: 'Fill a text input, textarea, or contenteditable element on the host page.',
+        description:
+            'Fill a text input, textarea, or contenteditable element on the host page. Prefer this over clicking when the task is to enter filter/query values in forms, including SAP/Fiori selection screens.',
         schema: createTargetSchema(
             {
                 value: {
@@ -116,7 +222,8 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     },
     {
         name: 'host_page_press',
-        description: 'Press a keyboard key on the host page, optionally focused on a target element.',
+        description:
+            'Press a keyboard key on the host page, optionally focused on a target element. Use Enter to submit SAP/search forms after filling fields when the page supports keyboard execution. The browser extension uses CDP keyboard input when available.',
         schema: createTargetSchema(
             {
                 key: {
@@ -153,7 +260,7 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_scroll',
         description:
-            'Scroll the host page or a scrollable target element. Use deltaX/deltaY for relative scroll, or x/y for absolute scroll positions.',
+            'Scroll the host page or a scrollable target element. Use deltaX/deltaY for relative scroll, or x/y for absolute scroll positions. The browser extension uses CDP mouse wheel for page-level relative scroll when available.',
         schema: stringifySchema({
             type: 'object',
             additionalProperties: false,
@@ -184,6 +291,92 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
             },
             required: ['url']
         })
+    },
+    {
+        name: 'host_page_hover',
+        description: 'Move the pointer over a host page target by ref, axRef, semantic target, selector, or coordinates.',
+        schema: createTargetSchema()
+    },
+    {
+        name: 'host_page_focus',
+        description: 'Focus a host page target by ref, axRef, semantic target, selector, or coordinates.',
+        schema: createTargetSchema()
+    },
+    {
+        name: 'host_page_pointer',
+        description:
+            'Dispatch low-level pointer movement or button actions against the host page using viewport CSS coordinates. Use this after host_page_screenshot for SAP/Fiori/iframe pages when DOM/ref click did not change the page. Coordinates are relative to the captured page viewport, not the OS screen.',
+        schema: createTargetSchema({
+            action: {
+                type: 'string',
+                enum: ['move', 'down', 'up', 'click'],
+                description: 'Pointer action to perform.'
+            },
+            toX: {
+                type: 'number',
+                description: 'Destination viewport x coordinate for future drag-style clients.'
+            },
+            toY: {
+                type: 'number',
+                description: 'Destination viewport y coordinate for future drag-style clients.'
+            },
+            button: {
+                type: 'string',
+                enum: ['left', 'middle', 'right'],
+                description: 'Mouse button to use.'
+            },
+            clickCount: {
+                type: 'number',
+                minimum: 1,
+                maximum: 3,
+                description: 'Number of clicks for action=click.'
+            },
+            message: {
+                type: 'string',
+                description:
+                    'Concise natural-language description of the intended visual target, shown as the ChatKit tool-call row label. For example: "Click the bottom Execute button".'
+            }
+        }, ['message'])
+    },
+    {
+        name: 'host_page_screenshot',
+        description:
+            'Capture a screenshot of the current host page when the browser client supports screenshots. Use when DOM/accessibility snapshot is insufficient, fields have weak labels, the page is inside SAP/Fiori/iframe UI, or one DOM/ref click did not change the page. The screenshot is attached as image content in the next model step; use its coordinate metadata to call host_page_pointer.',
+        schema: stringifySchema({
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+                format: {
+                    type: 'string',
+                    enum: ['jpeg', 'png'],
+                    description: 'Screenshot image format.'
+                },
+                quality: {
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 100,
+                    description: 'JPEG quality from 1 to 100.'
+                }
+            }
+        })
+    },
+    {
+        name: 'host_page_wait_for',
+        description:
+            'Wait on the client until a host page target becomes attached, visible, hidden, or detached. Use after navigation, animation, or SPA updates.',
+        schema: createTargetSchema({
+            state: {
+                type: 'string',
+                enum: ['attached', 'visible', 'hidden', 'detached'],
+                description: 'Target state to wait for.'
+            },
+            timeoutSeconds: {
+                type: 'number',
+                minimum: 0,
+                maximum: 60,
+                description: 'Maximum client-side wait duration in seconds.'
+            }
+        })
     }
 ]
 
@@ -213,6 +406,233 @@ function getToolCallId(config: unknown): string {
 
 function formatSeconds(seconds: number): string {
     return Number.isInteger(seconds) ? String(seconds) : String(Number(seconds.toFixed(3)))
+}
+
+function findReadyToolCallSet(messages: BaseMessage[]): ReadyToolCallSet | null {
+    if (!messages.length) {
+        return null
+    }
+
+    const trailingToolMessages: ToolMessage[] = []
+
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index]
+        if (!message || !isToolMessage(message)) {
+            if (trailingToolMessages.length === 0 || !isAIMessage(message)) {
+                return null
+            }
+
+            const aiMessage = message as AIMessage
+            const toolCalls = aiMessage.tool_calls ?? []
+            if (toolCalls.length === 0) {
+                return null
+            }
+
+            const expectedToolCallIds = new Set(toolCalls.map((toolCall) => toolCall.id).filter(Boolean))
+            const toolMessagesById = trailingToolMessages.reduce<Map<string, ToolMessage>>((map, toolMessage) => {
+                if (toolMessage.tool_call_id && expectedToolCallIds.has(toolMessage.tool_call_id) && !map.has(toolMessage.tool_call_id)) {
+                    map.set(toolMessage.tool_call_id, toolMessage)
+                }
+                return map
+            }, new Map())
+
+            if (
+                toolMessagesById.size !== expectedToolCallIds.size ||
+                trailingToolMessages.some((toolMessage) => !expectedToolCallIds.has(toolMessage.tool_call_id))
+            ) {
+                return null
+            }
+
+            return {
+                toolCalls,
+                toolMessagesById
+            }
+        }
+
+        trailingToolMessages.unshift(message as ToolMessage)
+    }
+
+    return null
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
+}
+
+function parseToolMessageContent(content: ToolMessage['content']): unknown {
+    if (typeof content !== 'string') {
+        return null
+    }
+
+    try {
+        return JSON.parse(content)
+    } catch {
+        return null
+    }
+}
+
+function readScreenshotMimeType(value: unknown): HostPageScreenshotMimeType | null {
+    return typeof value === 'string' && (HOST_PAGE_SCREENSHOT_ALLOWED_MIME_TYPES as readonly string[]).includes(value)
+        ? (value as HostPageScreenshotMimeType)
+        : null
+}
+
+function readFiniteNumber(value: unknown): number | null {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function readViewportSize(value: unknown): HostPageViewportSize | undefined {
+    const record = readRecord(value)
+    if (!record) {
+        return undefined
+    }
+
+    const width = readFiniteNumber(record.width)
+    const height = readFiniteNumber(record.height)
+    return width !== null && height !== null ? { width, height } : undefined
+}
+
+function readScrollOffset(value: unknown): HostPageScrollOffset | undefined {
+    const record = readRecord(value)
+    if (!record) {
+        return undefined
+    }
+
+    const x = readFiniteNumber(record.x)
+    const y = readFiniteNumber(record.y)
+    return x !== null && y !== null ? { x, y } : undefined
+}
+
+function readScreenshotPayload(value: unknown): Omit<HostPageScreenshotAttachment, 'toolCallId'> | null {
+    const record = readRecord(value)
+    if (!record || record.ok === false) {
+        return null
+    }
+
+    const payload = readRecord(record.result) ?? record
+    const mimeType = readScreenshotMimeType(payload.mimeType)
+    const rawData = typeof payload.data === 'string' ? payload.data.trim() : ''
+    if (!mimeType || !rawData) {
+        return null
+    }
+
+    const dataUrl = rawData.startsWith('data:') ? rawData : `data:${mimeType};base64,${rawData}`
+
+    return {
+        mimeType,
+        dataUrl,
+        dataLength: rawData.length,
+        viewport: readViewportSize(payload.viewport),
+        imageSize: readViewportSize(payload.imageSize),
+        devicePixelRatio: readFiniteNumber(payload.devicePixelRatio) ?? undefined,
+        scroll: readScrollOffset(payload.scroll),
+        coordinateSpace: payload.coordinateSpace === 'viewport-css-px' ? 'viewport-css-px' : undefined
+    }
+}
+
+function getScreenshotAttachment(toolCallId: string, toolMessage: ToolMessage): HostPageScreenshotAttachment | null {
+    const artifactPayload = readScreenshotPayload(toolMessage.artifact)
+    const contentPayload = artifactPayload ?? readScreenshotPayload(parseToolMessageContent(toolMessage.content))
+    if (!contentPayload) {
+        return null
+    }
+
+    return {
+        toolCallId,
+        ...contentPayload
+    }
+}
+
+function formatSize(size: HostPageViewportSize | undefined): string {
+    return size ? `${size.width}x${size.height}` : 'unknown'
+}
+
+function buildScreenshotToolMessageContent(attachment: HostPageScreenshotAttachment): string {
+    return `Captured host page screenshot (${attachment.mimeType}, image ${formatSize(attachment.imageSize)}, viewport ${formatSize(attachment.viewport)}, ${attachment.dataLength} base64 characters). The screenshot is attached as image content in the next model step.`
+}
+
+function buildScreenshotAttachmentText(attachments: HostPageScreenshotAttachment[]): string {
+    const ids = attachments.map((attachment) => attachment.toolCallId).join(', ')
+    const coordinateHints = attachments
+        .filter((attachment) => attachment.viewport && attachment.imageSize)
+        .map(
+            (attachment) =>
+                `${attachment.toolCallId}: image ${formatSize(attachment.imageSize)}, viewport ${formatSize(attachment.viewport)}`
+        )
+        .join('; ')
+    const mapping =
+        coordinateHints.length > 0
+            ? ` Coordinate mapping for host_page_pointer: cssX = imageX / imageWidth * viewportWidth, cssY = imageY / imageHeight * viewportHeight. Metadata: ${coordinateHints}.`
+            : ' Use viewport CSS pixel coordinates for host_page_pointer; these coordinates are relative to the page viewport, not the OS screen or browser chrome.'
+    return `The host page screenshot result from \`${HOST_PAGE_SCREENSHOT_TOOL_NAME}\` is attached below as image content. Use the visual content to continue browser automation. For SAP/Fiori/iframe pages, if one DOM/ref click did not change the page, choose the visual target in this screenshot and call host_page_pointer once with the converted viewport coordinates.${mapping} Tool call id(s): ${ids}.`
+}
+
+function compactScreenshotToolMessage(message: ToolMessage, attachment: HostPageScreenshotAttachment): ToolMessage {
+    return new ToolMessage({
+        content: buildScreenshotToolMessageContent(attachment),
+        name: message.name ?? HOST_PAGE_SCREENSHOT_TOOL_NAME,
+        tool_call_id: message.tool_call_id,
+        status: message.status,
+        artifact: message.artifact,
+        metadata: message.metadata,
+        additional_kwargs: message.additional_kwargs,
+        response_metadata: message.response_metadata,
+        id: message.id
+    })
+}
+
+function prepareHostPageScreenshotModelRequest<TRequest extends { messages: BaseMessage[] }>(request: TRequest): TRequest {
+    const readyToolCallSet = findReadyToolCallSet(request.messages)
+    if (!readyToolCallSet) {
+        return request
+    }
+
+    const attachments = readyToolCallSet.toolCalls
+        .filter((toolCall) => toolCall.name === HOST_PAGE_SCREENSHOT_TOOL_NAME && !!toolCall.id)
+        .map((toolCall) => {
+            const toolCallId = toolCall.id as string
+            const toolMessage = readyToolCallSet.toolMessagesById.get(toolCallId)
+            return toolMessage ? getScreenshotAttachment(toolCallId, toolMessage) : null
+        })
+        .filter((attachment): attachment is HostPageScreenshotAttachment => Boolean(attachment))
+
+    if (attachments.length === 0) {
+        return request
+    }
+
+    const attachmentsByToolCallId = attachments.reduce<Map<string, HostPageScreenshotAttachment>>((map, attachment) => {
+        map.set(attachment.toolCallId, attachment)
+        return map
+    }, new Map())
+    const messages = request.messages.map((message) => {
+        if (!isToolMessage(message)) {
+            return message
+        }
+
+        const attachment = attachmentsByToolCallId.get(message.tool_call_id)
+        return attachment ? compactScreenshotToolMessage(message as ToolMessage, attachment) : message
+    })
+
+    const attachmentMessage = new HumanMessage({
+        content: [
+            {
+                type: 'text',
+                text: buildScreenshotAttachmentText(attachments)
+            },
+            ...attachments.map((attachment) => ({
+                type: 'image_url',
+                image_url: {
+                    url: attachment.dataUrl,
+                    detail: 'high'
+                }
+            }))
+        ]
+    })
+
+    return {
+        ...request,
+        messages: [...messages, attachmentMessage]
+    }
 }
 
 async function dispatchHostPageWaitToolMessage(
@@ -332,7 +752,11 @@ export class BrowserAutomationMiddleware extends ClientToolMiddleware {
         return {
             ...middleware,
             name: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
-            tools: [...(middleware.tools ?? []), createHostPageWaitTool()]
+            tools: [...(middleware.tools ?? []), createHostPageWaitTool()],
+            wrapModelCall: async (request, handler) => {
+                const preparedRequest = prepareHostPageScreenshotModelRequest(request)
+                return middleware.wrapModelCall ? middleware.wrapModelCall(preparedRequest, handler) : handler(preparedRequest)
+            }
         }
     }
 }
