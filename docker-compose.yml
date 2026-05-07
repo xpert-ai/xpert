@@ -5,6 +5,8 @@ services:
 
   api:
     image: xpert-api:latest
+    deploy:
+      replicas: ${API_REPLICAS:-1}
     build:
       context: .
       dockerfile: .deploy/api/Dockerfile
@@ -44,8 +46,8 @@ services:
       - redis
     links:
       - db:${DB_HOST:-db}
-    ports:
-      - '${API_PORT:-3000}:3000'
+    expose:
+      - '3000'
     volumes:
       - ${DOCKER_SOCKET_SOURCE:-/var/run/docker.sock}:/var/run/docker.sock
       - ./docker/volumes/api/public:/srv/xpert/public
@@ -87,8 +89,10 @@ services:
       - api
     ports:
       - ${WEB_PORT:-80}:80
+      - ${API_PORT:-3000}:3000
       # - 443:443
     volumes:
+      - ./.deploy/webapp/nginx.compose.conf:/etc/nginx/conf.d/compose.conf.template:ro
       - ./docker/volumes/webapp/:/webapp/
     networks:
       - overlay

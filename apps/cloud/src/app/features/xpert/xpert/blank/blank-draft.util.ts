@@ -785,6 +785,7 @@ function createMiddlewareNodes(
         key,
         title: provider,
         provider,
+        required: true,
         ...(middlewareOptions ? { options: middlewareOptions } : {})
       } as IWFNMiddleware
     }
@@ -889,15 +890,11 @@ function collectBlankMiddlewareRequiredFeatures(
   const definitions = new Map(middlewareDefinitions.map((definition) => [definition.name, definition]))
 
   return Array.from(
-    new Set(
-      uniqueStrings(middlewares).flatMap((provider) => definitions.get(provider)?.features ?? [])
-    )
+    new Set(uniqueStrings(middlewares).flatMap((provider) => definitions.get(provider)?.features ?? []))
   )
 }
 
-function getBlankRequiredFeatureDefaults(
-  feature: TXpertFeatureKey
-): NonNullable<TXpertFeatures[TXpertFeatureKey]> {
+function getBlankRequiredFeatureDefaults(feature: TXpertFeatureKey): NonNullable<TXpertFeatures[TXpertFeatureKey]> {
   switch (feature) {
     case 'opener':
       return {
@@ -932,9 +929,7 @@ function normalizeBlankRepositoryDefaultSelection(
   }
 }
 
-function cloneRepositoryDefaultSelection(
-  selection: BlankRepositoryDefaultSelection
-): BlankRepositoryDefaultSelection {
+function cloneRepositoryDefaultSelection(selection: BlankRepositoryDefaultSelection): BlankRepositoryDefaultSelection {
   return {
     repositoryId: selection.repositoryId,
     disabledSkillIds: [...selection.disabledSkillIds]

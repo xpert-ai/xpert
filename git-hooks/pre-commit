@@ -1,9 +1,10 @@
 #!/bin/sh
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g')
 [ -z "$FILES" ] && exit 0
-echo "$FILES" | xargs yarn format:fix
-echo "$FILES" | xargs git add
+echo "$FILES" | xargs pnpm format:fix || exit 1
+echo "$FILES" | xargs git add || exit 1
 node tools/scripts/update-pnpm-lock-if-needed.cjs || exit 1
-node tools/scripts/check-hardcoded-colors.cjs --staged
+node tools/scripts/check-hardcoded-colors.cjs --staged || exit 1
+node tools/scripts/check-typeorm-column-types.cjs --staged || exit 1
 
 exit 0

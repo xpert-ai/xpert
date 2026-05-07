@@ -180,6 +180,7 @@ describe('blank draft util', () => {
     expect(triggerNodes).toHaveLength(1)
     expect(workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.SKILL)).toHaveLength(0)
     expect(middlewareNodes).toHaveLength(3)
+    expect(middlewareNodes.every((node) => (node.entity as any).required === true)).toBe(true)
     expect(skillsMiddlewareNode).toBeDefined()
     expect((triggerNodes[0].entity as any).config).toEqual({ enabled: true, cron: '0 * * * *', task: 'Ping' })
     expect((skillsMiddlewareNode!.entity as any).options).toEqual({

@@ -62,7 +62,7 @@ export class PromptWorkflow extends WorkspaceBaseEntity implements IPromptWorkfl
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ default: 'private', length: 20 })
+	@Column({ type: 'varchar', default: 'private', length: 20 })
 	visibility?: PromptWorkflowVisibility
 
 	@ApiPropertyOptional({ type: () => Object })
