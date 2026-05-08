@@ -522,7 +522,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             input = state[STATE_VARIABLE_HUMAN] ?? input
         }
         state = withPreferenceSystemState(state, userPreference)
-        const runtimeCapabilities = getRuntimeCapabilitiesFromState(state)
+        const requestedRuntimeCapabilities = getRuntimeCapabilitiesFromState(state)
+        const runtimeCapabilities = filterRuntimeCapabilitiesBySkillPreference(
+            requestedRuntimeCapabilities,
+            latestXpert?.workspaceId ?? xpert.workspaceId,
+            userPreference?.toolPreferences
+        )
+        if (runtimeCapabilities && runtimeCapabilities !== requestedRuntimeCapabilities) {
+            state = withRuntimeCapabilitiesState(state, runtimeCapabilities)
+            input = state[STATE_VARIABLE_HUMAN] ?? input
+        }
         state = withPreferenceSkillState(
             state,
             latestXpert?.workspaceId ?? xpert.workspaceId,
@@ -964,6 +973,52 @@ function withPreferenceSystemState(
     }
 }
 
+function withRuntimeCapabilitiesState(
+    state: Record<string, any>,
+    runtimeCapabilities: TRuntimeCapabilitiesSelection
+) {
+    return {
+        ...state,
+        [STATE_VARIABLE_HUMAN]: {
+            ...(state?.[STATE_VARIABLE_HUMAN] ?? {}),
+            runtimeCapabilities
+        }
+    }
+}
+
+function filterRuntimeCapabilitiesBySkillPreference(
+    runtimeCapabilities: TRuntimeCapabilitiesSelection | null,
+    workspaceId?: string | null,
+    toolPreferences?: IAssistantBindingToolPreferences | null
+) {
+    if (runtimeCapabilities?.mode !== 'allowlist') {
+        return runtimeCapabilities
+    }
+
+    const normalizedWorkspaceId = runtimeCapabilities.skills?.workspaceId?.trim() || workspaceId?.trim() || undefined
+    const disabledSkillIds = normalizedWorkspaceId
+        ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences)
+        : []
+
+    if (!disabledSkillIds.length) {
+        return runtimeCapabilities
+    }
+
+    const disabledSkillIdSet = new Set(disabledSkillIds)
+    const skillIds = runtimeCapabilities.skills.ids.filter((skillId) => !disabledSkillIdSet.has(skillId))
+    if (skillIds.length === runtimeCapabilities.skills.ids.length) {
+        return runtimeCapabilities
+    }
+
+    return {
+        ...runtimeCapabilities,
+        skills: {
+            ...runtimeCapabilities.skills,
+            ids: skillIds
+        }
+    }
+}
+
 function withPreferenceSkillState(
     state: Record<string, any>,
     workspaceId?: string | null,
@@ -974,11 +1029,17 @@ function withPreferenceSkillState(
     const normalizedWorkspaceId = runtimeCapabilities?.skills?.workspaceId?.trim() || workspaceId?.trim() || undefined
 
     if (runtimeCapabilities?.mode === 'allowlist') {
+        const disabledSkillIds = normalizedWorkspaceId
+            ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences)
+            : []
+        const disabledSkillIdSet = new Set(disabledSkillIds)
         return {
             ...state,
             selectedSkillWorkspaceId: normalizedWorkspaceId,
-            selectedSkillIds: runtimeCapabilities.skills?.ids ?? [],
-            disabledSkillIds: [],
+            selectedSkillIds: (runtimeCapabilities.skills?.ids ?? []).filter(
+                (skillId) => !disabledSkillIdSet.has(skillId)
+            ),
+            disabledSkillIds,
             skillSelectionMode: undefined
         }
     }

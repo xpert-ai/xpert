@@ -185,7 +185,8 @@ describe('AssistantsController', () => {
             }))
         }
         const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn(async () => false)
+            isEffectiveSystemAssistantId: jest.fn(async () => false),
+            getUserPreferenceByAssistantId: jest.fn(async () => null)
         }
         const agentMiddlewareRegistry = {
             get: jest.fn((provider: string) => ({
@@ -457,5 +458,169 @@ describe('AssistantsController', () => {
         })
         expect(agentMiddlewareRegistry.get).toHaveBeenCalledTimes(1)
         expect(agentMiddlewareRegistry.get).toHaveBeenCalledWith('provider-b')
+    })
+
+    it('filters user-disabled skills from runtime capabilities', async () => {
+        const runtimeCapabilities = {
+            mode: 'allowlist',
+            skills: {
+                workspaceId: 'workspace-1',
+                ids: ['skill-enabled', 'skill-disabled']
+            },
+            plugins: {
+                nodeKeys: []
+            },
+            subAgents: {
+                nodeKeys: []
+            }
+        }
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn(async () => ({
+                id: 'assistant-1',
+                workspaceId: 'workspace-1',
+                title: 'Assistant 1',
+                agent: {
+                    key: 'agent-1'
+                },
+                graph: {
+                    nodes: [
+                        {
+                            key: 'skills-middleware',
+                            type: 'workflow',
+                            entity: {
+                                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                provider: 'skillsMiddleware',
+                                options: {
+                                    skills: ['skill-enabled', 'skill-disabled']
+                                }
+                            }
+                        }
+                    ],
+                    connections: [{ type: 'workflow', from: 'agent-1', to: 'skills-middleware' }]
+                }
+            }))
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn(async () => false),
+            getUserPreferenceByAssistantId: jest.fn(async () => ({
+                toolPreferences: {
+                    version: 1,
+                    skills: {
+                        'workspace-1': {
+                            workspaceId: 'workspace-1',
+                            disabledSkillIds: ['skill-disabled']
+                        }
+                    }
+                }
+            }))
+        }
+        const skillPackageService = {
+            getAllByWorkspace: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'skill-enabled',
+                        workspaceId: 'workspace-1',
+                        name: 'Enabled Skill',
+                        metadata: {
+                            commands: [
+                                {
+                                    name: 'enabled-command',
+                                    action: {
+                                        type: 'submit_prompt',
+                                        template: 'Use enabled skill'
+                                    }
+                                }
+                            ]
+                        },
+                        skillIndex: {
+                            name: 'Enabled Skill'
+                        }
+                    },
+                    {
+                        id: 'skill-disabled',
+                        workspaceId: 'workspace-1',
+                        name: 'Disabled Skill',
+                        metadata: {
+                            commands: [
+                                {
+                                    name: 'disabled-command',
+                                    action: {
+                                        type: 'submit_prompt',
+                                        template: 'Use disabled skill'
+                                    }
+                                }
+                            ]
+                        },
+                        skillIndex: {
+                            name: 'Disabled Skill'
+                        }
+                    }
+                ]
+            }))
+        }
+        const promptWorkflowService = {
+            resolveRuntimeCommandProfile: jest.fn(async () => ({
+                hasProfile: false,
+                xpertCommands: [
+                    {
+                        name: 'workflow-command',
+                        template: 'Workflow command',
+                        runtimeCapabilities
+                    }
+                ],
+                workspaceCommands: [],
+                preferredSkillEntries: [],
+                skillEntries: []
+            }))
+        }
+        const controller = new AssistantsController(
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
+            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+            {
+                get: jest.fn()
+            } as unknown as ConstructorParameters<typeof AssistantsController>[2],
+            skillPackageService as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            new RuntimeCommandService(),
+            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+        )
+
+        const result = await controller.getRuntimeCapabilities('assistant-1')
+
+        expect(result.skills).toEqual([
+            {
+                id: 'skill-enabled',
+                workspaceId: 'workspace-1',
+                label: 'Enabled Skill',
+                description: undefined,
+                repositoryName: undefined,
+                provider: undefined,
+                default: true
+            }
+        ])
+        expect(result.commands).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'workflow-command',
+                    action: expect.objectContaining({
+                        runtimeCapabilities: expect.objectContaining({
+                            skills: {
+                                workspaceId: 'workspace-1',
+                                ids: ['skill-enabled']
+                            }
+                        })
+                    })
+                }),
+                expect.objectContaining({
+                    name: 'enabled-command'
+                })
+            ])
+        )
+        expect(result.commands).not.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'disabled-command'
+                })
+            ])
+        )
     })
 })
