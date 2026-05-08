@@ -11,6 +11,8 @@ import { XpertWorkspaceModule } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { Strategies } from './plugins'
+import { CommandHandlers } from './commands/handlers'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
@@ -23,7 +25,7 @@ import { Strategies } from './plugins'
 		forwardRef(() => XpertTemplateModule)
 	],
 	controllers: [SkillPackageController],
-	providers: [SkillPackageService, ...Strategies],
+	providers: [SkillPackageService, ...Strategies, ...CommandHandlers, ...QueryHandlers],
 	exports: [SkillPackageService]
 })
 export class SkillPackageModule {}
