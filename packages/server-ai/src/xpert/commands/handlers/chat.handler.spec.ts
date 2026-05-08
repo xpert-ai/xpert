@@ -540,6 +540,174 @@ describe('XpertChatHandler', () => {
         expect(agentCommand.options.sandboxEnvironmentId).toBeUndefined()
     })
 
+    it('persists steer follow-ups while an interrupted conversation has a waiting operation', async () => {
+        const commands: any[] = []
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            status: 'interrupted',
+            operation: {
+                tasks: [
+                    {
+                        name: 'client_tool',
+                        interrupts: []
+                    }
+                ]
+            },
+            messages: [
+                {
+                    id: 'ai-1',
+                    role: 'ai',
+                    content: 'Waiting on client tool',
+                    executionId: 'execution-1'
+                }
+            ]
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+            if (command instanceof ChatMessageUpsertCommand) {
+                return command.entity
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'follow_up',
+                    conversationId: 'conversation-1',
+                    mode: 'steer',
+                    target: {
+                        aiMessageId: 'ai-1',
+                        executionId: 'execution-1'
+                    },
+                    message: {
+                        clientMessageId: 'client-follow-up-1',
+                        input: {
+                            input: 'Use this extra constraint after the tool finishes'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const followUpCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand
+        ) as ChatMessageUpsertCommand
+        expect(followUpCommand.entity).toEqual(
+            expect.objectContaining({
+                parent: expect.objectContaining({ id: 'ai-1' }),
+                role: 'human',
+                content: 'Use this extra constraint after the tool finishes',
+                conversationId: 'conversation-1',
+                executionId: 'execution-1',
+                followUpMode: 'steer',
+                followUpStatus: 'pending',
+                targetExecutionId: 'execution-1',
+                visibleAt: null,
+                thirdPartyMessage: expect.objectContaining({
+                    followUpClientMessageId: 'client-follow-up-1'
+                })
+            })
+        )
+    })
+
+    it('rejects interrupted follow-ups when there is no waiting operation', async () => {
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            status: 'interrupted',
+            operation: null,
+            messages: [
+                {
+                    id: 'ai-1',
+                    role: 'ai',
+                    executionId: 'execution-1'
+                }
+            ]
+        })
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'follow_up',
+                        conversationId: 'conversation-1',
+                        mode: 'steer',
+                        target: {
+                            aiMessageId: 'ai-1',
+                            executionId: 'execution-1'
+                        },
+                        message: {
+                            clientMessageId: 'client-follow-up-1',
+                            input: {
+                                input: 'Please continue'
+                            }
+                        }
+                    },
+                    {
+                        xpertId: 'xpert-1'
+                    } as any
+                )
+            )
+        ).rejects.toThrow(new BadRequestException('Follow-up is not available while the conversation is interrupted'))
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('rejects queue follow-ups while interrupted even when an operation is waiting', async () => {
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            status: 'interrupted',
+            operation: {
+                tasks: [
+                    {
+                        name: 'client_tool',
+                        interrupts: []
+                    }
+                ]
+            },
+            messages: [
+                {
+                    id: 'ai-1',
+                    role: 'ai',
+                    executionId: 'execution-1'
+                }
+            ]
+        })
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'follow_up',
+                        conversationId: 'conversation-1',
+                        mode: 'queue',
+                        target: {
+                            aiMessageId: 'ai-1',
+                            executionId: 'execution-1'
+                        },
+                        message: {
+                            clientMessageId: 'client-follow-up-1',
+                            input: {
+                                input: 'Please continue later'
+                            }
+                        }
+                    },
+                    {
+                        xpertId: 'xpert-1'
+                    } as any
+                )
+            )
+        ).rejects.toThrow(new BadRequestException('Follow-up is not available while the conversation is interrupted'))
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
     it('reuses a persisted pending follow-up instead of creating a duplicate human message on fallback send', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {

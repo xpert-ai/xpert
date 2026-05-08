@@ -164,7 +164,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             if (!conversation) {
                 throw new BadRequestException(`Conversation "${request.conversationId}" not found`)
             }
-            if (conversation.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+            const hasInterruptedWaitList =
+                Array.isArray(conversation.operation?.tasks) && conversation.operation.tasks.length > 0
+            const canPersistInterruptedSteerFollowUp =
+                conversation.status === XpertAgentExecutionStatusEnum.INTERRUPTED &&
+                request.mode === 'steer' &&
+                hasInterruptedWaitList
+            if (
+                conversation.status === XpertAgentExecutionStatusEnum.INTERRUPTED &&
+                !canPersistInterruptedSteerFollowUp
+            ) {
                 throw new BadRequestException('Follow-up is not available while the conversation is interrupted')
             }
 
@@ -903,7 +912,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
         })
     }
-
 }
 
 function appendMessageSteps(aiMessage: IChatMessage, steps: TChatMessageStep[]) {
