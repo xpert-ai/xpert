@@ -67,6 +67,10 @@ const WORKSPACE_PUBLIC_SOURCE_PACKAGE_PREFIX = 'workspace-public'
 const WORKSPACE_PUBLIC_SOURCE_SKILL_PREFIX = 'workspace-public-upload'
 const DEFAULT_TENANT_SKILL_WORKSPACE_NAME = 'Tenant Skills Workspace'
 const GITHUB_SKILL_SOURCE_PROVIDER = 'github'
+const MAX_WORKSPACE_SKILL_PACKAGE_FILES = 50
+const MAX_WORKSPACE_SKILL_TEXT_FILE_BYTES = 1024 * 1024
+const MAX_WORKSPACE_SKILL_BINARY_FILE_BYTES = 5 * 1024 * 1024
+const MAX_WORKSPACE_SKILL_PACKAGE_BYTES = 20 * 1024 * 1024
 
 const isObjectValue = (value: unknown): value is object =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -115,12 +119,32 @@ type CreateWorkspaceSkillPackageInput = {
 	userIntent: string
 	skillName?: string
 	skillMarkdown: string
+	files?: WorkspaceSkillPackageFileInput[]
+	strictFrontmatter?: boolean
+}
+
+type WorkspaceSkillPackageFileInput = {
+	path: string
+	content?: string
+	contentBase64?: string
+	executable?: boolean
+}
+
+type WorkspaceSkillPackageFileResult = {
+	path: string
+	size: number
+}
+
+type PreparedWorkspaceSkillPackageFile = WorkspaceSkillPackageFileResult & {
+	buffer: Buffer
+	executable: boolean
 }
 
 type CreateWorkspaceSkillPackageResult = {
 	skillPackage: SkillPackage
 	packagePath: string
 	skillMdPath: string
+	files: WorkspaceSkillPackageFileResult[]
 }
 
 export type InstallGithubSkillPackagesInput = {
@@ -536,19 +560,40 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new BadRequestException('skillMarkdown is required')
 		}
 
-		const frontmatter = parseWorkspaceSkillFrontmatter(rawSkillMarkdown)
+		const frontmatter = parseWorkspaceSkillFrontmatter(rawSkillMarkdown, {
+			allowedKeys: input.strictFrontmatter ? ['name', 'description'] : undefined
+		})
 		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
 		const skillBaseName = input.skillName?.trim() || frontmatter.name || input.userIntent?.trim() || 'skill'
 		const packagePath = await this.allocateWorkspaceSkillPackagePath(installDir, skillBaseName)
 		const absolutePackagePath = join(installDir, packagePath)
+		const stagingPackagePath = `.tmp-skill-create-${uuid()}`
+		const stagingPackageRoot = join(installDir, stagingPackagePath)
 		const skillMdPath = join(absolutePackagePath, 'SKILL.md')
+		const stagingSkillMdPath = join(stagingPackageRoot, 'SKILL.md')
 		const normalizedSkillMarkdown = ensureTrailingNewline(rawSkillMarkdown)
 		const metadata = this.buildMetadataForWorkspaceSkill(frontmatter, packagePath, skillMdPath, skillBaseName)
+		const preparedFiles = prepareWorkspaceSkillPackageFiles(input.files)
+		const createdFiles: WorkspaceSkillPackageFileResult[] = [
+			{
+				path: 'SKILL.md',
+				size: Buffer.byteLength(normalizedSkillMarkdown, 'utf8')
+			},
+			...preparedFiles.map(({ path, size }) => ({ path, size }))
+		]
 
-		await fs.mkdir(absolutePackagePath, { recursive: true })
-		await fs.writeFile(skillMdPath, normalizedSkillMarkdown, 'utf8')
+		let movedToPackagePath = false
 
 		try {
+			await fs.mkdir(stagingPackageRoot, { recursive: true })
+			await fs.writeFile(stagingSkillMdPath, normalizedSkillMarkdown, 'utf8')
+			await writePreparedWorkspaceSkillPackageFiles(stagingPackageRoot, preparedFiles)
+			if (await pathExists(absolutePackagePath)) {
+				throw new BadRequestException('Skill package path already exists')
+			}
+			await fs.rename(stagingPackageRoot, absolutePackagePath)
+			movedToPackagePath = true
+
 			const skillPackage = await this.create({
 				workspaceId,
 				name: metadata.name ?? skillBaseName,
@@ -561,10 +606,11 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			return {
 				skillPackage,
 				packagePath,
-				skillMdPath
+				skillMdPath,
+				files: createdFiles
 			}
 		} catch (error) {
-			await fs.rm(absolutePackagePath, { recursive: true, force: true })
+			await fs.rm(movedToPackagePath ? absolutePackagePath : stagingPackageRoot, { recursive: true, force: true })
 			throw error
 		}
 	}
@@ -996,6 +1042,55 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 
 		await fs.writeFile(absolutePath, content ?? '', 'utf8')
 		return this.readSkillPackageFile(workspaceId, id, normalizedPath)
+	}
+
+	async saveWorkspaceSkillMarkdown(
+		workspaceId: string,
+		id: string,
+		content: string,
+		options?: { strictFrontmatter?: boolean }
+	): Promise<{ skillPackage: SkillPackage; file: TFile }> {
+		await this.assertWorkspaceWriteAccess(workspaceId)
+		const rawSkillMarkdown = typeof content === 'string' ? content : ''
+		if (!rawSkillMarkdown.trim()) {
+			throw new BadRequestException('skillMarkdown is required')
+		}
+
+		const frontmatter = parseWorkspaceSkillFrontmatter(rawSkillMarkdown, {
+			allowedKeys: options?.strictFrontmatter ? ['name', 'description'] : undefined
+		})
+		const { skillPackage, rootPath } = await this.resolveSkillPackageRoot(workspaceId, id)
+		if (skillPackage.skillIndexId) {
+			throw new BadRequestException('Only workspace-authored skills can be edited')
+		}
+
+		const skillMdPath = resolve(rootPath, 'SKILL.md')
+		const stat = await fs.stat(skillMdPath).catch(() => null)
+		if (!stat?.isFile()) {
+			throw new BadRequestException('Skill file not found')
+		}
+
+		const normalizedSkillMarkdown = ensureTrailingNewline(rawSkillMarkdown)
+		await fs.writeFile(skillMdPath, normalizedSkillMarkdown, 'utf8')
+
+		const packagePath = skillPackage.packagePath ?? ''
+		const metadata = this.buildMetadataForWorkspaceSkill(frontmatter, packagePath, skillMdPath, frontmatter.name)
+		await this.update(skillPackage.id, {
+			workspaceId,
+			name: metadata.name as any,
+			metadata
+		})
+
+		const updatedSkillPackage = await this.findOne(skillPackage.id, {
+			where: { workspaceId },
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		const file = await this.readSkillPackageFile(workspaceId, id, 'SKILL.md')
+
+		return {
+			skillPackage: updatedSkillPackage,
+			file
+		}
 	}
 
 	async deleteSkillPackageFile(workspaceId: string, id: string, filePath: string): Promise<void> {
@@ -1920,7 +2015,10 @@ function isSameDirectGithubSkillSource(
 	)
 }
 
-function parseWorkspaceSkillFrontmatter(skillMarkdown: string): WorkspaceSkillFrontmatter {
+function parseWorkspaceSkillFrontmatter(
+	skillMarkdown: string,
+	options?: { allowedKeys?: string[] }
+): WorkspaceSkillFrontmatter {
 	const frontmatterMatch = /^---\s*\r?\n([\s\S]*?)\r?\n---(?:\s*\r?\n|$)/.exec(skillMarkdown)
 	if (!frontmatterMatch) {
 		throw new BadRequestException('SKILL.md frontmatter is required')
@@ -1935,6 +2033,13 @@ function parseWorkspaceSkillFrontmatter(skillMarkdown: string): WorkspaceSkillFr
 
 	if (!parsedFrontmatter || typeof parsedFrontmatter !== 'object' || Array.isArray(parsedFrontmatter)) {
 		throw new BadRequestException('SKILL.md frontmatter is invalid')
+	}
+	if (options?.allowedKeys?.length) {
+		const allowedKeys = new Set(options.allowedKeys)
+		const unexpectedKeys = Object.keys(parsedFrontmatter as Record<string, unknown>).filter((key) => !allowedKeys.has(key))
+		if (unexpectedKeys.length) {
+			throw new BadRequestException(`SKILL.md frontmatter may only include ${options.allowedKeys.join(', ')}`)
+		}
 	}
 
 	const candidate = parsedFrontmatter as {
@@ -1974,6 +2079,135 @@ async function pathExists(path: string) {
 
 function ensureTrailingNewline(value: string) {
 	return value.endsWith('\n') ? value : `${value}\n`
+}
+
+function prepareWorkspaceSkillPackageFiles(files?: WorkspaceSkillPackageFileInput[]): PreparedWorkspaceSkillPackageFile[] {
+	const inputs = files ?? []
+	if (inputs.length > MAX_WORKSPACE_SKILL_PACKAGE_FILES) {
+		throw new BadRequestException(`Workspace skill packages can include at most ${MAX_WORKSPACE_SKILL_PACKAGE_FILES} bundled files`)
+	}
+
+	const seen = new Set<string>()
+	let totalSize = 0
+
+	return inputs.map((input) => {
+		const path = normalizeWorkspaceSkillPackageFilePath(input?.path)
+		const duplicateKey = path.toLowerCase()
+		if (seen.has(duplicateKey)) {
+			throw new BadRequestException(`Duplicate skill file path: ${path}`)
+		}
+		seen.add(duplicateKey)
+
+		const hasTextContent = input.content !== undefined
+		const hasBase64Content = input.contentBase64 !== undefined
+		if (hasTextContent === hasBase64Content) {
+			throw new BadRequestException(`Skill file "${path}" must provide exactly one of content or contentBase64`)
+		}
+		if (hasBase64Content && !path.startsWith('assets/')) {
+			throw new BadRequestException('Base64 skill files are only supported under assets/')
+		}
+		if (input.executable && !path.startsWith('scripts/')) {
+			throw new BadRequestException('Only scripts/ files can be marked executable')
+		}
+		if (path === 'agents/openai.yaml') {
+			if (!hasTextContent) {
+				throw new BadRequestException('agents/openai.yaml must be written as UTF-8 text content')
+			}
+			try {
+				yaml.parse(input.content ?? '')
+			} catch (error) {
+				throw new BadRequestException(`Invalid agents/openai.yaml: ${getErrorMessage(error)}`)
+			}
+		}
+
+		const buffer = hasTextContent
+			? Buffer.from(input.content ?? '', 'utf8')
+			: decodeWorkspaceSkillPackageBase64(input.contentBase64, path)
+		const maxFileSize = hasTextContent ? MAX_WORKSPACE_SKILL_TEXT_FILE_BYTES : MAX_WORKSPACE_SKILL_BINARY_FILE_BYTES
+		if (buffer.byteLength > maxFileSize) {
+			throw new BadRequestException(`Skill file "${path}" exceeds the allowed file size`)
+		}
+
+		totalSize += buffer.byteLength
+		if (totalSize > MAX_WORKSPACE_SKILL_PACKAGE_BYTES) {
+			throw new BadRequestException('Workspace skill package files exceed the allowed total size')
+		}
+
+		return {
+			path,
+			size: buffer.byteLength,
+			buffer,
+			executable: Boolean(input.executable)
+		}
+	})
+}
+
+async function writePreparedWorkspaceSkillPackageFiles(
+	packageRoot: string,
+	files: PreparedWorkspaceSkillPackageFile[]
+) {
+	for (const file of files) {
+		const absolutePath = resolve(packageRoot, file.path)
+		const relativePath = relative(packageRoot, absolutePath)
+		if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
+			throw new BadRequestException('Invalid skill file path')
+		}
+
+		await fs.mkdir(dirname(absolutePath), { recursive: true })
+		await fs.writeFile(absolutePath, file.buffer)
+		if (file.executable) {
+			await fs.chmod(absolutePath, 0o755)
+		}
+	}
+}
+
+function normalizeWorkspaceSkillPackageFilePath(filePath?: string | null) {
+	const raw = (filePath ?? '').trim().replace(/\\/g, '/')
+	if (!raw) {
+		throw new BadRequestException('Skill file path is required')
+	}
+	if (raw.startsWith('/')) {
+		throw new BadRequestException('Skill file path must be relative')
+	}
+
+	const normalized = raw.replace(/^\.\/+/, '')
+	if (!normalized || normalized.endsWith('/')) {
+		throw new BadRequestException('Skill file path must point to a file')
+	}
+
+	const segments = normalized.split('/')
+	if (segments.some((segment) => !segment || segment === '.' || segment === '..')) {
+		throw new BadRequestException('Invalid skill file path')
+	}
+
+	const path = segments.join('/')
+	if (path.toLowerCase() === 'skill.md') {
+		throw new BadRequestException('SKILL.md must be provided with skillMarkdown, not files')
+	}
+
+	const [topLevel] = segments
+	if (topLevel === 'agents') {
+		if (path !== 'agents/openai.yaml') {
+			throw new BadRequestException('Only agents/openai.yaml is supported under agents/')
+		}
+		return path
+	}
+	if (topLevel === 'scripts' || topLevel === 'references' || topLevel === 'assets') {
+		if (segments.length < 2) {
+			throw new BadRequestException(`Skill file path under ${topLevel}/ must include a file name`)
+		}
+		return path
+	}
+
+	throw new BadRequestException('Skill files must be under agents/openai.yaml, scripts/, references/, or assets/')
+}
+
+function decodeWorkspaceSkillPackageBase64(value: string | undefined, filePath: string) {
+	const compact = (value ?? '').replace(/\s/g, '')
+	if (compact && !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(compact)) {
+		throw new BadRequestException(`Skill file "${filePath}" has invalid base64 content`)
+	}
+	return Buffer.from(compact, 'base64')
 }
 
 async function calculateTemplateSkillBundleHash(bundleRootPath: string) {

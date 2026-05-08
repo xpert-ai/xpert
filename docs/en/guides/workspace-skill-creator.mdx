@@ -1,0 +1,56 @@
+# Workspace Skill Creator
+
+Workspace Skill Creator helps workspace users turn repeatable work patterns into reusable skills. Use it when a team wants an agent to remember a specialized workflow, domain procedure, prompt pattern, or tool usage guide for the current workspace.
+
+## What you can create
+
+A workspace skill always includes a `SKILL.md` entry file. The skill description tells the agent when to use the skill, while the body tells the agent how to perform the work.
+
+For simple skills, only `SKILL.md` is needed. For more advanced skills, the creator can also include supporting package files at creation time:
+
+| File area | Use it for |
+| --- | --- |
+| `agents/openai.yaml` | Display metadata for the skill experience |
+| `scripts/` | Reusable executable logic, such as Python, shell, JavaScript, or TypeScript scripts |
+| `references/` | Longer guides, schemas, examples, checklists, or domain material |
+| `assets/` | Templates, images, icons, fonts, or other binary resources |
+
+## How to ask for a skill
+
+Ask the agent to create a workspace skill and describe the repeatable job you want to capture. Good requests include the skill purpose, example user asks, and the situations that should trigger it.
+
+Examples:
+
+- "Create a workspace skill for editing product images. It should handle rotate, crop, resizing, and red-eye cleanup."
+- "Create a skill that helps support agents write escalation summaries from customer conversations."
+- "Create a SQL review skill for our analytics workspace. It should check naming, joins, filters, and dashboard safety."
+- "Create a skill with a short guide and a helper script for validating uploaded CSV files."
+
+The creator may ask one or two clarification questions if the skill is still unclear. If the goal, examples, and trigger phrases are already clear, it should create the skill directly.
+
+## What happens after creation
+
+After the creator tool runs, Xpert saves the skill package into the current workspace. The created skill is private to that workspace and is indexed as a workspace-authored skill package.
+
+On the next applicable runtime selection or refresh, Skills Middleware can discover and sync the complete skill package for agent use. When a user later asks for a task that matches the skill description, the runtime skill flow can expose the skill and let the agent read the full `SKILL.md` instructions.
+
+## Editing existing skills
+
+You can ask the agent to inspect, update, or delete a workspace-authored skill. Use natural references such as the skill name, display name, or package path.
+
+Examples:
+
+- "Update the image-editor skill so it also handles watermark removal guidance."
+- "Show me the current SKILL.md for the SQL review skill before changing it."
+- "Delete the old CSV validation skill."
+
+If more than one skill matches the reference, Xpert returns candidates and asks you to choose one before applying changes.
+
+## Current boundaries
+
+- The creator is for authoring workspace skill packages, not for running skills.
+- It does not install marketplace skills or search external repositories.
+- It does not read runtime `.xpert/skills` or `.agents/skills` folders.
+- Updating an existing skill currently replaces `SKILL.md`; bundled support files are created during initial skill creation.
+- `SKILL.md` frontmatter must include only `name` and `description`.
+

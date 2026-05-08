@@ -403,6 +403,8 @@ describe('SkillsMiddleware', () => {
     expect(nextResult.systemMessage.content).toContain('Skill Discovery')
     expect(nextResult.systemMessage.content).toContain('npx skills add')
     expect(nextResult.systemMessage.content).toContain('.agents/skills')
+    expect(nextResult.systemMessage.content).toContain('This is a runtime skill flow')
+    expect(nextResult.systemMessage.content).toContain('dedicated workspace skill authoring tools')
   })
 
   it('rejects auto discovery installs over the configured per-call limit', async () => {
