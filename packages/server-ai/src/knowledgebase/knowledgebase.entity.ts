@@ -45,7 +45,7 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 20 })
+	@Column({ type: 'varchar', nullable: true, length: 20 })
 	language?: 'Chinese' | 'English'
 
 	@ApiPropertyOptional({ type: () => Object })

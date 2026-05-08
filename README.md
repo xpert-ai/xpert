@@ -149,6 +149,13 @@ For Production, we recommend:
 - [x] **Widgets** – UI widgets that let large-model responses drive richer interface experiences.
 - [x] **Agent Middlewares** Plugin-based Agent Middleware.
 - [x] **Agent Skills** – lightweight agent skills for rapid custom capability integration, offering a quicker alternative to MCP tools.
+- [ ] **Project Management** – AI-driven project execution workspace for planning, coordinating, and running multi-agent work.
+  - [ ] Project workspaces with overview, Kanban board, files, teams, and tabbed project layout.
+  - [ ] Project, sprint, task, backlog, and swimlane models with APIs for planning and execution strategy.
+  - [ ] Bind published Xperts as project assistants and project teams, with team role and environment settings.
+  - [ ] Project assistant tools for backlog management, sprint planning, task updates, team binding, and runnable task dispatch.
+  - [ ] Task assistant ChatKit conversations with execution artifacts and project-context handoff.
+  - [ ] Project event stream for real-time board updates and agent execution feedback.
 - [ ] **Audit, Security, Compliance** – Enterprise-grade features to ensure data privacy and compliance.
   - [ ] Audit logs
   - [ ] Role-based access control
