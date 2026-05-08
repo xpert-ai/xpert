@@ -3,6 +3,7 @@ import {
     agentLabel,
     agentUniqueName,
     getAgentMiddlewareNodes,
+    getAssistantBindingDisabledSkillIds,
     getEnabledTools,
     ICopilotModel,
     IWFNMiddleware,
@@ -103,6 +104,16 @@ export class AssistantsController {
             return normalizeMiddlewareProvider(entity?.provider) === SKILLS_MIDDLEWARE_NAME
         })
         const defaultSkillSelection = collectDefaultSkillSelection(middlewareNodes)
+        const disabledSkillIds =
+            hasSkillsMiddleware && xpert.workspaceId
+                ? new Set(
+                      getAssistantBindingDisabledSkillIds(
+                          (await this.assistantBindingService.getUserPreferenceByAssistantId(xpert.id ?? id))
+                              ?.toolPreferences,
+                          xpert.workspaceId
+                      )
+                  )
+                : new Set<string>()
 
         const plugins = middlewareNodes
             .map((node) => {
@@ -135,7 +146,7 @@ export class AssistantsController {
 
         const runtimeSkills =
             hasSkillsMiddleware && xpert.workspaceId
-                ? await this.getRuntimeSkills(xpert.workspaceId, defaultSkillSelection)
+                ? await this.getRuntimeSkills(xpert.workspaceId, defaultSkillSelection, disabledSkillIds)
                 : { skills: [], commands: [] }
         const subAgents = agentKey && graph ? collectRuntimeSubAgents(graph, agentKey) : []
         const commandAllowList = {
@@ -189,7 +200,11 @@ export class AssistantsController {
         }
     }
 
-    private async getRuntimeSkills(workspaceId: string, defaultSelection: RuntimeSkillDefaultSelection) {
+    private async getRuntimeSkills(
+        workspaceId: string,
+        defaultSelection: RuntimeSkillDefaultSelection,
+        disabledSkillIds: Set<string>
+    ) {
         const result = await this.skillPackageService.getAllByWorkspace(
             workspaceId,
             {
@@ -199,7 +214,8 @@ export class AssistantsController {
             RequestContext.currentUser()
         )
 
-        const skills = (result.items ?? []).map((skill) => {
+        const enabledItems = (result.items ?? []).filter((skill) => !disabledSkillIds.has(skill.id))
+        const skills = enabledItems.map((skill) => {
             const skillIndex = skill.skillIndex
             const repositoryId = skillIndex?.repositoryId ?? skillIndex?.repository?.id
             const runtimeMeta = omitBy(
@@ -227,7 +243,7 @@ export class AssistantsController {
                 ...(isDefault ? { default: true } : {})
             }
         })
-        const commands = (result.items ?? []).flatMap((skill) =>
+        const commands = enabledItems.flatMap((skill) =>
             this.runtimeCommandService.normalizeSkillRuntimeSlashCommands(skill, {
                 workspaceId,
                 label: resolveI18nText(skill.name, skill.skillIndex?.name ?? skill.skillIndex?.skillId ?? skill.id)

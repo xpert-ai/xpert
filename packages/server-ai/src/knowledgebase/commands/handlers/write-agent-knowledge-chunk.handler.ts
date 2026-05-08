@@ -41,8 +41,18 @@ export class WriteAgentKnowledgeChunkHandler implements ICommandHandler<WriteAge
         documentId: string
         writeKey: string
     }> {
-        const { knowledgebaseIds, knowledgebaseId, xpertId, agentKey, text, title, metadata, writeKey, executionId, threadId } =
-            command.input
+        const {
+            knowledgebaseIds,
+            knowledgebaseId,
+            xpertId,
+            agentKey,
+            text,
+            title,
+            metadata,
+            writeKey,
+            executionId,
+            threadId
+        } = command.input
 
         if (!knowledgebaseIds.includes(knowledgebaseId)) {
             throw new BadRequestException(`Knowledgebase '${knowledgebaseId}' is not connected to agent '${agentKey}'`)
@@ -54,7 +64,10 @@ export class WriteAgentKnowledgeChunkHandler implements ICommandHandler<WriteAge
                 name: true,
                 type: true,
                 structure: true,
-                copilotModelId: true
+                copilotModelId: true,
+                workspaceId: true,
+                tenantId: true,
+                organizationId: true
             }
         })
 
@@ -141,10 +154,7 @@ export class WriteAgentKnowledgeChunkHandler implements ICommandHandler<WriteAge
             return await this.chunkService.findOneByOptions({
                 where: {
                     documentId,
-                    metadata: Raw(
-                        (alias) => `COALESCE((${alias})::jsonb ->> 'writeKey', '') = :writeKey`,
-                        { writeKey }
-                    )
+                    metadata: Raw((alias) => `COALESCE((${alias})::jsonb ->> 'writeKey', '') = :writeKey`, { writeKey })
                 }
             })
         } catch (error) {
