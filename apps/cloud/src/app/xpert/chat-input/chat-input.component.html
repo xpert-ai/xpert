@@ -1,6 +1,6 @@
-<div class="relative z-40 flex flex-col items-center w-full pb-3 sm:pb-4">
-  <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10">
-    <div class="flex flex-col justify-start w-full relative">
+<div class="relative z-40 flex w-full flex-col items-center pb-3 sm:pb-4">
+  <form class="relative z-10 flex w-full flex-col items-center justify-center gap-2 text-base">
+    <div class="relative flex w-full flex-col justify-start">
       <input
         id="dropzone-file"
         #fileDropRef
@@ -30,8 +30,21 @@
           />
         </div>
       }
+
+      @if (showSlashPalette()) {
+        <div class="px-8 pb-2 @[480px]/input:px-3">
+          <xp-chat-slash-palette
+            [options]="visiblePaletteOptions()"
+            [activeIndex]="slashActiveIndex()"
+            [loading]="false"
+            (activeIndexChange)="setSlashActiveIndex($event)"
+            (optionSelect)="choosePaletteOption($event)"
+          />
+        </div>
+      }
+
       <div
-        class="query-bar group bg-components-card-bg duration-100 relative w-full shadow-sm sm:shadow-md rounded-[28px] border border-divider-regular overflow-hidden hover:border-components-input-border-hover hover:bg-input-background-hover focus-within:border-components-input-border-active hover:focus-within:border-components-input-border-active pb-12 px-2 @[480px]/input:px-3"
+        class="query-bar group relative w-full overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg px-2 pb-12 shadow-sm duration-100 hover:border-components-input-border-hover hover:bg-input-background-hover focus-within:border-components-input-border-active hover:focus-within:border-components-input-border-active sm:shadow-md @[480px]/input:px-3"
       >
         @if (attachments()?.length) {
           <chat-attachments
@@ -40,6 +53,46 @@
             [(attachments)]="attachments"
             (onCreated)="onAttachCreated($event)"
           />
+        }
+
+        @if (planModeEnabled() || selectedRuntimeCapabilityOptions().length) {
+          <div class="composer-chip-row">
+            @if (planModeEnabled()) {
+              <button
+                z-button
+                type="button"
+                zType="secondary"
+                zSize="sm"
+                class="composer-chip"
+                [attr.aria-label]="'PAC.Chat.DisablePlanMode' | translate: { Default: 'Turn off plan mode' }"
+                (click)="setPlanMode(false)"
+              >
+                <z-icon zType="list-filter-plus"></z-icon>
+                <span>{{ 'PAC.Chat.PlanModeActive' | translate: { Default: 'Plan' } }}</span>
+                <z-icon zType="x"></z-icon>
+              </button>
+            }
+
+            @for (option of selectedRuntimeCapabilityOptions(); track option.type + ':' + option.id) {
+              <button
+                z-button
+                type="button"
+                zType="secondary"
+                zSize="sm"
+                class="composer-chip"
+                [attr.aria-label]="
+                  'PAC.Chat.RemoveRuntimeCapability' | translate: { Default: 'Remove runtime capability' }
+                "
+                (click)="removeRuntimeCapability(option)"
+              >
+                <z-icon
+                  [zType]="option.type === 'skill' ? 'hammer' : option.type === 'plugin' ? 'puzzle' : 'users'"
+                ></z-icon>
+                <span class="max-w-[11rem] truncate">{{ option.label }}</span>
+                <z-icon zType="x"></z-icon>
+              </button>
+            }
+          </div>
         }
 
         @if (hasReferences()) {
@@ -56,12 +109,15 @@
                 </div>
 
                 <button
+                  z-button
                   type="button"
-                  class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                  zType="ghost"
+                  zSize="icon-sm"
+                  zShape="circle"
                   [attr.aria-label]="'PAC.Chat.RemoveReference' | translate: { Default: 'Remove reference' }"
                   (click)="removeReference(reference)"
                 >
-                  <i class="ri-close-line"></i>
+                  <z-icon zType="x"></z-icon>
                 </button>
               </div>
             }
@@ -69,36 +125,36 @@
         }
 
         <div class="relative z-10">
-          @if (!isComposing() && !prompt() && !hasReferences()) {
-            <span class="absolute px-2 pt-3 py-5 text-text-secondary pointer-events-none">
+          @if (!isComposing() && !promptText() && !hasReferences()) {
+            <span class="pointer-events-none absolute px-2 py-5 pt-3 text-text-secondary">
               {{ 'PAC.Chat.HowCanHelp' | translate: { Default: 'How can Xpert help?' } }}
             </span>
           }
-          <textarea
-            z-input
-            zBorderless
+
+          <div
             #userInput
+            class="composer-input"
+            role="textbox"
             dir="auto"
+            aria-multiline="true"
+            [attr.contenteditable]="disabled() ? 'false' : 'true'"
             [attr.aria-label]="'PAC.Chat.AskAnything' | translate: { Default: 'Ask Xpert anything' }"
-            class="w-full px-2 @[480px]/input:px-3 mt-2 pt-3 mb-5 bg-transparent focus:outline-none text-text-primary align-bottom resize-none overflow-auto"
-            [formControl]="promptControl"
-            cdkTextareaAutosize
-            cdkAutosizeMinRows="2"
-            cdkAutosizeMaxRows="10"
-            (keydown)="triggerFun($event)"
+            (input)="onComposerInput()"
+            (keydown)="onComposerKeydown($event)"
+            (paste)="onComposerPaste($event)"
             (compositionstart)="onCompositionStart()"
             (compositionupdate)="onCompositionUpdate($event)"
             (compositionend)="onCompositionEnd($event)"
-          ></textarea>
+          ></div>
 
           <div
-            class="absolute left-0 bottom-0 w-full h-full z-10 p-2 overflow-hidden bg-components-card-bg"
+            class="absolute bottom-0 left-0 z-10 h-full w-full overflow-hidden bg-components-card-bg p-2"
             [ngClass]="{
               hidden: !speeching(),
               block: speeching()
             }"
           >
-            <canvas #waveCanvas class="absolute left-0 top-0 w-full h-full z-0"></canvas>
+            <canvas #waveCanvas class="absolute left-0 top-0 z-0 h-full w-full"></canvas>
             @if (isConverting()) {
               <div class="flex items-center">
                 {{ 'PAC.Xpert.ConvertingSpeechToText' | translate: { Default: 'Converting speech to text' } }}...
@@ -106,35 +162,28 @@
             }
           </div>
         </div>
-        <div
-          class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full"
-        >
-          @if (attachment_enabled()) {
-            <button
-              #attachTrigger
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-divider-deep text-text-secondary hover:text-text-primary hover:bg-button-ghost-hover"
-              type="button"
-              [attr.aria-label]="'PAC.Chat.Attach' | translate: { Default: 'Attach' }"
-              tabindex="0"
-              [cdkMenuTriggerFor]="attachMenu"
-              [cdkMenuPosition]="[
-                {
-                  originX: 'center',
-                  originY: 'top',
-                  overlayX: 'center',
-                  overlayY: 'bottom',
-                  offsetY: -6
-                }
-              ]"
-            >
-              <i class="ri-attachment-line text-lg"></i>
-            </button>
-          }
 
-          <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
-            <div class="grow flex gap-1.5 max-w-full">
+        <div
+          class="absolute inset-x-0 bottom-0 flex max-w-full gap-1.5 border-2 border-transparent p-2 @[480px]/input:p-3"
+        >
+          <xp-chat-composer-menu
+            [attachmentEnabled]="attachment_enabled()"
+            [recentAttachments]="recentAttachments() ?? []"
+            [planMode]="planModeEnabled()"
+            [runtimeCapabilities]="runtimeCapabilities()"
+            [runtimeSelection]="runtimeSelection()"
+            [runtimeLoading]="runtimeCapabilitiesLoading()"
+            (upload)="fileDropRef.click()"
+            (recentAttachment)="addAttachment($event)"
+            (deleteRecentAttachment)="onAttachDeleted($event)"
+            (planModeChange)="setPlanMode($event)"
+            (runtimeSelectionChange)="setRuntimeSelection($event)"
+          />
+
+          <div class="flex max-w-full grow gap-1.5" style="transform: none; opacity: 1">
+            <div class="flex max-w-full grow gap-1.5">
               <button
-                class="btn-canvas inline-flex gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-text-primary h-9 rounded-full px-3.5 py-2 border border-toggle-border overflow-hidden items-center justify-center bg-transparent transition-all hover:bg-lime-50/50"
+                class="btn-canvas inline-flex h-9 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-full border border-toggle-border bg-transparent px-3.5 py-2 text-sm font-medium leading-[normal] text-text-primary transition-all hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
                 [class.active]="canvasOpened()"
                 type="button"
                 tabindex="0"
@@ -146,33 +195,17 @@
                 zPosition="top"
                 (click)="toggleCanvas()"
               >
-                <svg
-                  class="shrink-0 w-4 h-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3" />
-                  <path d="M8 21h8" />
-                  <path d="M12 17v4" />
-                  <path d="m17 8 5-5" />
-                  <path d="M17 3h5v5" />
-                </svg>
+                <z-icon zType="panel-top-open"></z-icon>
                 <span>{{ 'PAC.Chat.Canvas' | translate: { Default: 'Canvas' } }}</span>
               </button>
             </div>
           </div>
+
           <div class="ml-auto flex flex-row items-end gap-2">
             @if (showContextUsage()) {
               <button
                 type="button"
-                class="context-usage-trigger mb-1 inline-flex h-7 w-7 items-center justify-center rounded-full overflow-hidden text-text-tertiary transition-colors hover:text-text-primary"
+                class="context-usage-trigger mb-1 inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-text-tertiary transition-colors hover:text-text-primary"
                 [zTooltip]="contextUsageTooltip()"
                 zTooltipClass="context-usage-tooltip"
                 zPosition="top"
@@ -188,7 +221,7 @@
             }
 
             @if (speechToText_enabled()) {
-              <div class="flex items-center px-2 z-10">
+              <div class="z-10 flex items-center px-2">
                 <div class="grow">
                   @if (isRecording()) {
                     <span>{{ 'PAC.Xpert.Speaking' | translate: { Default: 'Speaking' } }}...</span>
@@ -199,7 +232,7 @@
                 @if (speeching()) {
                   <button
                     type="button"
-                    class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
+                    class="action-btn action-btn-l flex h-10 w-10 items-center justify-center rounded-full text-lg"
                     (click)="stopRecording()"
                   >
                     <i class="ri-stop-circle-line text-primary-500"></i>
@@ -212,7 +245,7 @@
                 } @else if (!isConverting()) {
                   <button
                     type="button"
-                    class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
+                    class="action-btn action-btn-l flex h-10 w-10 items-center justify-center rounded-full text-lg"
                     (click)="startRecording()"
                   >
                     <i class="ri-mic-ai-fill text-lg"></i>
@@ -224,7 +257,8 @@
             @if (answering() && !draftPrompt() && !hasReferences()) {
               <button
                 type="button"
-                class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border border-divider-regular p-1 text-text-primary bg-components-card-bg transition-transform origin-center enabled:hover:scale-110 enabled:hover:bg-hover-bg"
+                class="flex h-10 w-10 origin-center items-center justify-center rounded-full border border-divider-regular bg-components-card-bg p-1 text-text-primary transition-transform enabled:hover:scale-110 enabled:hover:bg-hover-bg md:bottom-3 md:right-3"
+                [attr.aria-label]="'PAC.Chat.StopGenerate' | translate: { Default: 'Stop generating' }"
                 (click)="stopGenerating()"
               >
                 <svg
@@ -241,8 +275,9 @@
             } @else {
               <button
                 type="button"
-                class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border border-divider-regular p-1 bg-components-card-bg disabled:opacity-10 disabled:text-text-quaternary text-text-primary bottom-1.5 transition-transform origin-center enabled:hover:scale-110 enabled:hover:bg-hover-bg"
+                class="bottom-1.5 flex h-10 w-10 origin-center items-center justify-center rounded-full border border-divider-regular bg-components-card-bg p-1 text-text-primary transition-transform disabled:text-text-quaternary disabled:opacity-10 enabled:hover:scale-110 enabled:hover:bg-hover-bg md:bottom-3 md:right-3"
                 [disabled]="!canSend()"
+                [attr.aria-label]="'PAC.Chat.Send' | translate: { Default: 'Send' }"
                 (click)="send()"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-text-primary">
@@ -264,48 +299,8 @@
 
   @if (showCopilotEnableModel) {
     <copilot-enable-model
-      class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-black/5 dark:bg-white/5 hidden"
+      class="absolute left-0 top-0 z-10 hidden h-full w-full items-center justify-center overflow-hidden rounded-3xl bg-background-default-subtle/40 backdrop-blur-md"
       [enableModel]="!xpert()"
     />
   }
 </div>
-
-<ng-template #attachMenu>
-  <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="fileDropRef.click()">
-      <i class="ri-folder-line text-lg mr-2"></i>
-      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</div>
-    </div>
-
-    @if (recentAttachments()?.length) {
-      <div cdkMenuItem [cdkMenuTriggerFor]="recentMenu">
-        <i class="ri-file-history-line text-lg mr-2"></i>
-        <div class="grow text-sm font-medium">{{ 'PAC.XProject.Recent' | translate: { Default: 'Recent' } }}</div>
-        <i class="ri-arrow-right-s-line"></i>
-      </div>
-    }
-  </div>
-</ng-template>
-
-<ng-template #recentMenu>
-  <div cdkMenu class="cdk-menu__medium">
-    @for (file of recentAttachments(); track file.id) {
-      <div cdkMenuItem class="flex items-center gap-2" (click)="addAttachment(file)">
-        <pac-file-icon [fileType]="file.originalName | fileType" />
-        <div class="flex-1 text-left max-w-sm truncate">
-          <div class="text-base truncate">{{ file.originalName }}</div>
-          <div class="text-xs font-mono text-secondary">
-            {{ file.size / 1024 | number: '0.0-0' }}KB · {{ file.createdAt | relative }}
-          </div>
-        </div>
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm flex justify-center items-center rounded-full w-6 h-6 hover:text-text-destructive hover:border-text-destructive"
-          (click)="onAttachDeleted(file.id)"
-        >
-          <i class="ri-close-line"></i>
-        </button>
-      </div>
-    }
-  </div>
-</ng-template>

@@ -47,6 +47,7 @@ import { XpertHomeService } from './home.service'
 import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/chat/context/thread-context-usage'
 import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../@shared/chat/context/follow-up-consumed'
 import { TCopilotChatMessage } from './types'
+import type { ChatKitCommandSource, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
   return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
@@ -67,6 +68,9 @@ export type PendingFollowUp = {
   files?: Partial<IStorageFile>[]
   references?: XpertChatReference[]
   mode: 'queue' | 'steer'
+  planMode?: boolean
+  runtimeCapabilities?: RuntimeCapabilitiesSelection
+  commandSource?: ChatKitCommandSource
 }
 
 /**
@@ -303,6 +307,9 @@ export abstract class ChatService {
     files?: Partial<IStorageFile>[]
     references?: XpertChatReference[]
     followUpMode?: 'queue' | 'steer'
+    planMode?: boolean
+    runtimeCapabilities?: RuntimeCapabilitiesSelection
+    commandSource?: ChatKitCommandSource
   }) {
     const content = options.content?.trim() ?? ''
     const references = options.references ?? []
@@ -331,6 +338,13 @@ export abstract class ChatService {
     if (options.files?.length) {
       humanMessage.attachments = options.files as IStorageFile[]
     }
+    if (options.planMode || options.runtimeCapabilities || options.commandSource) {
+      humanMessage.thirdPartyMessage = {
+        ...(options.planMode ? { planMode: true } : {}),
+        ...(options.runtimeCapabilities ? { runtimeCapabilities: options.runtimeCapabilities } : {}),
+        ...(options.commandSource ? { commandSource: options.commandSource } : {})
+      }
+    }
     this.appendMessage(humanMessage)
 
     const request: TChatRequest = {
@@ -345,7 +359,10 @@ export abstract class ChatService {
             content: content ?? '',
             files: options.files,
             references
-          })
+          }),
+          ...(options.planMode ? { planMode: true } : {}),
+          ...(options.runtimeCapabilities ? { runtimeCapabilities: options.runtimeCapabilities } : {}),
+          ...(options.commandSource ? { commandSource: options.commandSource } : {})
         }
       }
     }
@@ -864,7 +881,10 @@ export abstract class ChatService {
             content: item.content,
             files: item.files,
             references: item.references
-          })
+          }),
+          ...(item.planMode ? { planMode: true } : {}),
+          ...(item.runtimeCapabilities ? { runtimeCapabilities: item.runtimeCapabilities } : {}),
+          ...(item.commandSource ? { commandSource: item.commandSource } : {})
         }
       }
     }
@@ -918,6 +938,13 @@ export abstract class ChatService {
       }
       if (item.files?.length) {
         message.attachments = item.files as IStorageFile[]
+      }
+      if (item.planMode || item.runtimeCapabilities || item.commandSource) {
+        message.thirdPartyMessage = {
+          ...(item.planMode ? { planMode: true } : {}),
+          ...(item.runtimeCapabilities ? { runtimeCapabilities: item.runtimeCapabilities } : {}),
+          ...(item.commandSource ? { commandSource: item.commandSource } : {})
+        }
       }
       this.appendMessage(message)
     })

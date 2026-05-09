@@ -1,0 +1,101 @@
+<div class="slash-palette" role="listbox">
+  @if (title()) {
+    <div class="slash-palette-title">{{ title() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="slash-palette-empty">{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</div>
+  } @else if (options().length) {
+    @for (option of options(); track optionKey(option)) {
+      <button
+        z-button
+        type="button"
+        zType="ghost"
+        class="slash-palette-row"
+        role="option"
+        [class.slash-palette-row--active]="flatIndexFor(option) === activeIndex()"
+        [class.slash-palette-row--disabled]="option.disabledReason"
+        [attr.aria-expanded]="option.childCount !== undefined ? option.expanded : null"
+        [attr.aria-selected]="flatIndexFor(option) === activeIndex()"
+        (mouseenter)="activeIndexChange.emit(flatIndexFor(option))"
+        (click)="choose(option)"
+      >
+        <span class="slash-palette-icon">
+          <z-icon [zType]="iconFor(option)"></z-icon>
+        </span>
+        <span class="min-w-0 flex-1 text-left">
+          <span class="flex min-w-0 items-center gap-2">
+            <span class="truncate text-sm font-medium text-text-primary">
+              @if (option.type === 'command') {
+                /{{ option.name }}
+              } @else {
+                {{ option.label }}
+              }
+            </span>
+            @if (option.childCount !== undefined) {
+              <z-badge zType="secondary" class="shrink-0 text-[11px]">
+                {{ option.childCount }}
+              </z-badge>
+            }
+            @if (option.kind === 'prompt_workflow') {
+              <z-badge zType="secondary" class="shrink-0 text-[11px]">
+                {{ 'PAC.PromptWorkflow.ShortTitle' | translate: { Default: 'Prompt Workflows' } }}
+              </z-badge>
+            }
+          </span>
+          @if (option.description || option.disabledReason) {
+            <span class="block truncate text-xs text-text-tertiary">
+              {{ option.disabledReason || option.description }}
+            </span>
+          }
+        </span>
+        @if (option.aliases?.length) {
+          <span class="slash-palette-alias">{{ option.aliases[0] }}</span>
+        }
+        @if (option.childCount !== undefined) {
+          <z-icon class="text-text-tertiary" [zType]="option.expanded ? 'chevron-down' : 'chevron-right'"></z-icon>
+        }
+      </button>
+
+      @if (option.expanded && option.children?.length) {
+        <div class="slash-palette-children" role="group">
+          @for (child of option.children; track optionKey(child)) {
+            <button
+              z-button
+              type="button"
+              zType="ghost"
+              class="slash-palette-row slash-palette-child-row"
+              role="option"
+              [class.slash-palette-row--active]="flatIndexFor(child) === activeIndex()"
+              [attr.aria-selected]="flatIndexFor(child) === activeIndex()"
+              (mouseenter)="activeIndexChange.emit(flatIndexFor(child))"
+              (click)="choose(child)"
+            >
+              <span class="slash-palette-branch" aria-hidden="true"></span>
+              <span class="slash-palette-icon slash-palette-child-icon">
+                <z-icon [zType]="iconFor(child)"></z-icon>
+              </span>
+              <span class="min-w-0 flex-1 text-left">
+                <span class="flex min-w-0 items-center gap-2">
+                  <span class="truncate text-sm font-medium text-text-primary">{{ child.label }}</span>
+                </span>
+                @if (child.description) {
+                  <span class="block truncate text-xs text-text-tertiary">{{ child.description }}</span>
+                }
+              </span>
+              @if (child.selected) {
+                <z-icon class="text-primary" zType="check"></z-icon>
+              }
+            </button>
+          }
+        </div>
+      }
+    }
+  } @else {
+    <z-empty
+      class="slash-palette-empty-state"
+      zIcon="search"
+      [zTitle]="'PAC.Chat.NoCommandsFound' | translate: { Default: 'No commands found.' }"
+    />
+  }
+</div>

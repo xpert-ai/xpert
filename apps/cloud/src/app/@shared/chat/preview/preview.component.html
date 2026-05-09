@@ -395,7 +395,19 @@
           (turnOffQueueing)="turnOffFollowUpQueueing()"
         />
 
-        <div class="relative bg-components-panel-bg border border-divider-deep rounded-xl mb-2">
+        @if (showSlashPalette()) {
+          <div class="pb-2">
+            <xp-chat-slash-palette
+              [options]="visiblePaletteOptions()"
+              [activeIndex]="slashActiveIndex()"
+              [loading]="false"
+              (activeIndexChange)="setSlashActiveIndex($event)"
+              (optionSelect)="choosePaletteOption($event)"
+            />
+          </div>
+        }
+
+        <div class="relative mb-2 rounded-xl border border-divider-deep bg-components-panel-bg pb-12">
           @if (attachments()?.length) {
             <chat-attachments
               class="w-full p-1"
@@ -403,6 +415,45 @@
               [(attachments)]="attachments"
               (onCreated)="onAttachCreated($event)"
             />
+          }
+          @if (planModeEnabled() || selectedRuntimeCapabilityOptions().length) {
+            <div class="composer-chip-row">
+              @if (planModeEnabled()) {
+                <button
+                  z-button
+                  type="button"
+                  zType="secondary"
+                  zSize="sm"
+                  class="composer-chip"
+                  [attr.aria-label]="'PAC.Chat.DisablePlanMode' | translate: { Default: 'Turn off plan mode' }"
+                  (click)="setPlanMode(false)"
+                >
+                  <z-icon zType="list-filter-plus"></z-icon>
+                  <span>{{ 'PAC.Chat.PlanModeActive' | translate: { Default: 'Plan' } }}</span>
+                  <z-icon zType="x"></z-icon>
+                </button>
+              }
+
+              @for (option of selectedRuntimeCapabilityOptions(); track option.type + ':' + option.id) {
+                <button
+                  z-button
+                  type="button"
+                  zType="secondary"
+                  zSize="sm"
+                  class="composer-chip"
+                  [attr.aria-label]="
+                    'PAC.Chat.RemoveRuntimeCapability' | translate: { Default: 'Remove runtime capability' }
+                  "
+                  (click)="removeRuntimeCapability(option)"
+                >
+                  <z-icon
+                    [zType]="option.type === 'skill' ? 'hammer' : option.type === 'plugin' ? 'puzzle' : 'users'"
+                  ></z-icon>
+                  <span class="max-w-[11rem] truncate">{{ option.label }}</span>
+                  <z-icon zType="x"></z-icon>
+                </button>
+              }
+            </div>
           }
           @if (hasReferences()) {
             <div class="flex flex-wrap gap-2 px-2 pt-2">
@@ -418,12 +469,15 @@
                   </div>
 
                   <button
+                    z-button
                     type="button"
-                    class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                    zType="ghost"
+                    zSize="icon-sm"
+                    zShape="circle"
                     [attr.aria-label]="'PAC.Chat.RemoveReference' | translate: { Default: 'Remove reference' }"
                     (click)="removeReference(reference)"
                   >
-                    <i class="ri-close-line"></i>
+                    <z-icon zType="x"></z-icon>
                   </button>
                 </div>
               }
@@ -437,71 +491,81 @@
               cdkAutosizeMinRows="1"
               cdkAutosizeMaxRows="8"
               [(ngModel)]="input"
+              (input)="onInputChange($event)"
               (keydown)="onKeydown($event)"
+              (paste)="onInputPaste($event)"
+              (click)="onInputSelectionChange()"
+              (select)="onInputSelectionChange()"
             ></textarea>
 
-            <div class="absolute bottom-[7px] flex items-center h-8 right-2 z-10">
-              <div
-                class="flex items-center px-1 h-5 rounded-md bg-components-input-bg-normal text-xs font-medium text-text-tertiary"
-              >
-                {{ inputLength() }}
-              </div>
-              <div class="mx-2 w-[1px] h-4 bg-divider-deep"></div>
+            <div class="absolute inset-x-0 bottom-0 z-10 flex max-w-full items-center gap-1.5 p-2">
+              <xp-chat-composer-menu
+                [attachmentEnabled]="attachment_enabled()"
+                [recentAttachments]="[]"
+                [planMode]="planModeEnabled()"
+                [runtimeCapabilities]="runtimeCapabilities()"
+                [runtimeSelection]="runtimeSelection()"
+                [runtimeLoading]="runtimeCapabilitiesLoading()"
+                (upload)="fileDropRef.click()"
+                (recentAttachment)="addAttachment($event)"
+                (deleteRecentAttachment)="onAttachDeleted($event)"
+                (planModeChange)="setPlanMode($event)"
+                (runtimeSelectionChange)="setRuntimeSelection($event)"
+              />
 
-              @if (attachment_enabled()) {
-                <button
-                  type="button"
-                  class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg"
-                  [cdkMenuTriggerFor]="attachMenu"
+              <div class="ml-auto flex h-8 items-center">
+                <div
+                  class="flex h-5 items-center rounded-md bg-components-input-bg-normal px-1 text-xs font-medium text-text-tertiary"
                 >
-                  <i class="ri-attachment-line text-lg"></i>
-                </button>
-              }
+                  {{ inputLength() }}
+                </div>
+                <div class="mx-2 h-4 w-[1px] bg-divider-deep"></div>
 
-              @if (speechToText_enabled()) {
-                @if (speeching()) {
+                @if (speechToText_enabled()) {
+                  @if (speeching()) {
+                  } @else {
+                    <button
+                      type="button"
+                      class="action-btn action-btn-l flex h-8 w-8 items-center justify-center rounded-lg"
+                      (click)="startRecording()"
+                    >
+                      <i class="ri-mic-ai-fill text-lg"></i>
+                    </button>
+                  }
+                }
+
+                @if (loading() && !input() && !hasReferences()) {
+                  <button
+                    class="flex h-8 w-8 items-center justify-center rounded-full border-light hover:shadow-md"
+                    (click)="onStop()"
+                  >
+                    <i class="ri-stop-fill"></i>
+                  </button>
                 } @else {
                   <button
-                    type="button"
-                    class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg"
-                    (click)="startRecording()"
+                    class="group action-btn action-btn-md primary"
+                    [disabled]="!canSend()"
+                    (click)="sendMessage(input(), { references: references() })"
                   >
-                    <i class="ri-mic-ai-fill text-lg"></i>
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                    >
+                      <g id="send-03">
+                        <path
+                          id="Solid"
+                          d="M18.4385 10.5535C18.6111 10.2043 18.6111 9.79465 18.4385 9.44548C18.2865 9.13803 18.0197 8.97682 17.8815 8.89905C17.7327 8.81532 17.542 8.72955 17.3519 8.64403L3.36539 2.35014C3.17087 2.26257 2.97694 2.17526 2.81335 2.11859C2.66315 2.06656 2.36076 1.97151 2.02596 2.06467C1.64761 2.16994 1.34073 2.4469 1.19734 2.81251C1.07045 3.13604 1.13411 3.44656 1.17051 3.60129C1.21017 3.76983 1.27721 3.9717 1.34445 4.17418L2.69818 8.25278C2.80718 8.58118 2.86168 8.74537 2.96302 8.86678C3.05252 8.97399 3.16752 9.05699 3.29746 9.10816C3.44462 9.1661 3.61762 9.1661 3.96363 9.1661H10.0001C10.4603 9.1661 10.8334 9.53919 10.8334 9.99943C10.8334 10.4597 10.4603 10.8328 10.0001 10.8328H3.97939C3.63425 10.8328 3.46168 10.8328 3.3148 10.8905C3.18508 10.9414 3.07022 11.0241 2.98072 11.1309C2.87937 11.2519 2.82459 11.4155 2.71502 11.7428L1.3504 15.8191C1.28243 16.0221 1.21472 16.2242 1.17455 16.3929C1.13773 16.5476 1.07301 16.8587 1.19956 17.1831C1.34245 17.5493 1.64936 17.827 2.02806 17.9327C2.36342 18.0263 2.6665 17.9309 2.81674 17.8789C2.98066 17.8221 3.17507 17.7346 3.37023 17.6467L17.3518 11.355C17.542 11.2695 17.7327 11.1837 17.8815 11.0999C18.0197 11.0222 18.2865 10.861 18.4385 10.5535Z"
+                          fill="currentColor"
+                        ></path>
+                      </g>
+                    </svg>
                   </button>
                 }
-              }
-
-              @if (loading() && !input() && !hasReferences()) {
-                <button
-                  class="w-8 h-8 flex justify-center items-center rounded-full border-light hover:shadow-md"
-                  (click)="onStop()"
-                >
-                  <i class="ri-stop-fill"></i>
-                </button>
-              } @else {
-                <button
-                  class="group action-btn action-btn-md primary"
-                  [disabled]="!canSend()"
-                  (click)="sendMessage(input(), { references: references() })"
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="w-5 h-5"
-                  >
-                    <g id="send-03">
-                      <path
-                        id="Solid"
-                        d="M18.4385 10.5535C18.6111 10.2043 18.6111 9.79465 18.4385 9.44548C18.2865 9.13803 18.0197 8.97682 17.8815 8.89905C17.7327 8.81532 17.542 8.72955 17.3519 8.64403L3.36539 2.35014C3.17087 2.26257 2.97694 2.17526 2.81335 2.11859C2.66315 2.06656 2.36076 1.97151 2.02596 2.06467C1.64761 2.16994 1.34073 2.4469 1.19734 2.81251C1.07045 3.13604 1.13411 3.44656 1.17051 3.60129C1.21017 3.76983 1.27721 3.9717 1.34445 4.17418L2.69818 8.25278C2.80718 8.58118 2.86168 8.74537 2.96302 8.86678C3.05252 8.97399 3.16752 9.05699 3.29746 9.10816C3.44462 9.1661 3.61762 9.1661 3.96363 9.1661H10.0001C10.4603 9.1661 10.8334 9.53919 10.8334 9.99943C10.8334 10.4597 10.4603 10.8328 10.0001 10.8328H3.97939C3.63425 10.8328 3.46168 10.8328 3.3148 10.8905C3.18508 10.9414 3.07022 11.0241 2.98072 11.1309C2.87937 11.2519 2.82459 11.4155 2.71502 11.7428L1.3504 15.8191C1.28243 16.0221 1.21472 16.2242 1.17455 16.3929C1.13773 16.5476 1.07301 16.8587 1.19956 17.1831C1.34245 17.5493 1.64936 17.827 2.02806 17.9327C2.36342 18.0263 2.6665 17.9309 2.81674 17.8789C2.98066 17.8221 3.17507 17.7346 3.37023 17.6467L17.3518 11.355C17.542 11.2695 17.7327 11.1837 17.8815 11.0999C18.0197 11.0222 18.2865 10.861 18.4385 10.5535Z"
-                        fill="currentColor"
-                      ></path>
-                    </g>
-                  </svg>
-                </button>
-              }
+              </div>
             </div>
 
             <div
@@ -540,12 +604,3 @@
     </div>
   }
 </div>
-
-<ng-template #attachMenu>
-  <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="fileDropRef.click()">
-      <i class="ri-folder-line text-lg mr-2"></i>
-      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</div>
-    </div>
-  </div>
-</ng-template>

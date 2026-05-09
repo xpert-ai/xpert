@@ -1,0 +1,137 @@
+<button
+  z-button
+  type="button"
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  z-menu
+  class="composer-menu-trigger"
+  [attr.aria-label]="'PAC.Chat.ComposerMenu' | translate: { Default: 'Composer menu' }"
+  [zMenuTriggerFor]="composerMenu"
+  zPlacement="topLeft"
+>
+  <i class="ri-add-line text-lg leading-none"></i>
+</button>
+
+<ng-template #composerMenu>
+  <div class="composer-menu-panel">
+    @if (attachmentEnabled()) {
+      <button z-menu-item type="button" class="composer-menu-row" (click)="upload.emit()">
+        <z-icon zType="paperclip"></z-icon>
+        <span>{{ 'PAC.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</span>
+      </button>
+
+      @if (recentAttachments()?.length) {
+        <div class="composer-menu-section">
+          <div class="composer-menu-section-title">
+            {{ 'PAC.XProject.Recent' | translate: { Default: 'Recent' } }}
+          </div>
+          @for (file of recentAttachments(); track trackFile($index, file)) {
+            <div
+              class="composer-menu-row"
+              role="button"
+              tabindex="0"
+              (click)="recentAttachment.emit(file)"
+              (keydown.enter)="recentAttachment.emit(file)"
+              (keydown.space)="$event.preventDefault(); recentAttachment.emit(file)"
+            >
+              <pac-file-icon class="shrink-0" [fileType]="file.originalName | fileType" />
+              <span class="min-w-0 flex-1 text-left">
+                <span class="block truncate text-sm">{{ file.originalName }}</span>
+                <span class="block truncate text-xs text-text-tertiary">
+                  {{ file.size / 1024 | number: '0.0-0' }}KB · {{ file.createdAt | relative }}
+                </span>
+              </span>
+              <button
+                z-button
+                type="button"
+                zType="ghost"
+                zSize="icon-sm"
+                zShape="circle"
+                [attr.aria-label]="'PAC.Chat.RemoveAttachment' | translate: { Default: 'Remove attachment' }"
+                (click)="$event.stopPropagation(); deleteRecentAttachment.emit(file.id)"
+              >
+                <z-icon zType="x"></z-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <div
+      class="composer-menu-row"
+      role="button"
+      tabindex="0"
+      (click)="togglePlanMode()"
+      (keydown.enter)="togglePlanMode()"
+      (keydown.space)="$event.preventDefault(); togglePlanMode()"
+    >
+      <z-icon zType="list-filter-plus"></z-icon>
+      <span class="min-w-0 flex-1 text-left">
+        <span class="block text-sm font-medium">{{ 'PAC.Chat.PlanMode' | translate: { Default: 'Plan mode' } }}</span>
+        <span class="block truncate text-xs text-text-tertiary">
+          {{ 'PAC.Chat.PlanModeDesc' | translate: { Default: 'Plan first, then execute after confirmation.' } }}
+        </span>
+      </span>
+      <z-switch
+        class="shrink-0"
+        [checked]="planMode()"
+        [attr.aria-label]="'PAC.Chat.PlanMode' | translate: { Default: 'Plan mode' }"
+        (click)="$event.stopPropagation()"
+        (change)="planModeChange.emit($event.checked)"
+      />
+    </div>
+
+    <div class="composer-menu-section">
+      <div class="composer-menu-section-title">
+        {{ 'PAC.Chat.RuntimeCapabilities' | translate: { Default: 'Run with' } }}
+        @if (selectedCount()) {
+          <z-badge zType="secondary">{{ selectedCount() }}</z-badge>
+        }
+      </div>
+
+      @if (runtimeLoading()) {
+        <div class="composer-menu-empty">{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</div>
+      } @else if (groups().length) {
+        @for (group of groups(); track trackGroup($index, group)) {
+          <button z-menu-item type="button" class="composer-menu-row" (click)="selectGroup(group.kind)">
+            <z-icon [zType]="group.kind === 'skill' ? 'hammer' : group.kind === 'plugin' ? 'puzzle' : 'users'"></z-icon>
+            <span class="min-w-0 flex-1 text-left">{{ group.label }}</span>
+            <z-badge zType="secondary">
+              {{ group.options.length }}
+            </z-badge>
+            <z-icon [zType]="activeGroup() === group.kind ? 'chevron-down' : 'chevron-right'"></z-icon>
+          </button>
+
+          @if (activeGroup() === group.kind) {
+            <div class="composer-capability-list">
+              @for (option of group.options; track trackCapability($index, option)) {
+                <z-checkbox
+                  class="composer-capability-option"
+                  labelClass="min-w-0 flex-1"
+                  [ngModel]="isSelected(option)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setCapability(option, $event)"
+                >
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-medium text-text-primary">{{ option.label }}</span>
+                    @if (option.description) {
+                      <span class="block truncate text-xs text-text-tertiary">{{ option.description }}</span>
+                    }
+                  </span>
+                </z-checkbox>
+              }
+            </div>
+          }
+        }
+      } @else {
+        <z-empty
+          class="composer-menu-empty-state"
+          zIcon="box"
+          [zTitle]="'PAC.Chat.NoRuntimeCapabilities' | translate: { Default: 'No runtime capabilities available.' }"
+        />
+      }
+    </div>
+  </div>
+</ng-template>

@@ -5,7 +5,23 @@
 }
 
 .btn-canvas.active {
-  @apply bg-lime-50 text-lime-800;
+  @apply bg-background-default-subtle text-text-primary;
+}
+
+.composer-input {
+  @apply mb-5 mt-2 max-h-60 min-h-[4.75rem] w-full overflow-auto whitespace-pre-wrap break-words bg-transparent px-2 pt-3 text-text-primary outline-none @[480px]/input:px-3;
+}
+
+.composer-input[contenteditable='false'] {
+  @apply cursor-default opacity-60;
+}
+
+.composer-chip-row {
+  @apply flex flex-wrap gap-2 px-2 pt-2 @[480px]/input:px-3;
+}
+
+.composer-chip {
+  @apply max-w-full gap-1.5 rounded-full border border-divider-regular;
 }
 
 .context-usage-ring {
