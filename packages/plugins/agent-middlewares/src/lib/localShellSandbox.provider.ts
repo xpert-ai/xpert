@@ -228,7 +228,7 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 function normalizeHeaderValue(value: number | string | string[] | undefined): string {
-  return Array.isArray(value) ? value.join(', ') : value?.toString() ?? ''
+  return Array.isArray(value) ? value.join(', ') : (value?.toString() ?? '')
 }
 
 function shouldRewritePreviewResponse(headers: http.IncomingHttpHeaders, method: string | undefined): boolean {
@@ -294,11 +294,10 @@ function rewritePreviewTextResponse(content: string, proxyBasePath: string): str
     .replace(/(["'`])\/(?!\/)([^"'`\s<>)]*)/g, (_match, quote: string, pathname: string) => {
       return `${quote}${rewritePreviewRootPath(`/${pathname}`, proxyBasePath)}`
     })
-    .replace(/(\b(?:src|href|action|poster|data|xlink:href)\s*=\s*)(\/(?!\/)[^\s"'<>]*)/gi, (
-      _match,
-      prefix: string,
-      pathname: string
-    ) => `${prefix}${rewritePreviewRootPath(pathname, proxyBasePath)}`)
+    .replace(
+      /(\b(?:src|href|action|poster|data|xlink:href)\s*=\s*)(\/(?!\/)[^\s"'<>]*)/gi,
+      (_match, prefix: string, pathname: string) => `${prefix}${rewritePreviewRootPath(pathname, proxyBasePath)}`
+    )
     .replace(/(url\(\s*)(\/(?!\/)[^"')\s]+)(\s*\))/gi, (_match, prefix: string, pathname: string, suffix: string) => {
       return `${prefix}${rewritePreviewRootPath(pathname, proxyBasePath)}${suffix}`
     })
@@ -375,7 +374,10 @@ function readLogTail(filePath: string, maxLines: number): string {
 
   const content = fs.readFileSync(filePath, 'utf8')
   const lines = content.split(/\r?\n/)
-  return lines.slice(Math.max(0, lines.length - maxLines)).join('\n').trim()
+  return lines
+    .slice(Math.max(0, lines.length - maxLines))
+    .join('\n')
+    .trim()
 }
 
 function doesServiceLogMatch(logPaths: ManagedServiceLogPaths, readyPattern: RegExp): boolean {
@@ -1097,7 +1099,7 @@ export class LocalShellSandbox
 
     for (const [filePath, content] of files) {
       try {
-        const fullPath = path.join(this.workingDirectory, filePath)
+        const fullPath = this.resolveSandboxFilePath(filePath)
         const parentDir = path.dirname(fullPath)
 
         // Ensure parent directory exists
@@ -1132,7 +1134,7 @@ export class LocalShellSandbox
 
     for (const filePath of paths) {
       try {
-        const fullPath = path.join(this.workingDirectory, filePath)
+        const fullPath = this.resolveSandboxFilePath(filePath)
 
         if (!fs.existsSync(fullPath)) {
           results.push({
@@ -1167,6 +1169,12 @@ export class LocalShellSandbox
             content: null,
             error: 'permission_denied'
           })
+        } else if (error.code === 'EINVAL') {
+          results.push({
+            path: filePath,
+            content: null,
+            error: 'invalid_path'
+          })
         } else {
           results.push({
             path: filePath,
@@ -1178,6 +1186,17 @@ export class LocalShellSandbox
     }
 
     return results
+  }
+
+  private resolveSandboxFilePath(filePath: string): string {
+    const resolvedPath = path.resolve(this.workingDirectory, filePath)
+    const relativePath = path.relative(this.workingDirectory, resolvedPath)
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      const error = new Error(`Path is outside of the sandbox working directory: ${filePath}`) as NodeJS.ErrnoException
+      error.code = 'EINVAL'
+      throw error
+    }
+    return resolvedPath
   }
 }
 
