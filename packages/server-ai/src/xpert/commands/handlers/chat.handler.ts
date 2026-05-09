@@ -56,6 +56,7 @@ import { normalizeChatState } from '../../../shared/agent/utils'
 import {
     getRuntimeCapabilitiesFromState,
     hasExplicitRuntimeCapabilities,
+    normalizeRuntimeCapabilitiesSelection,
     TRuntimeCapabilitiesSelection
 } from '../../../shared/agent/runtime-capabilities'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
@@ -487,6 +488,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 } else {
                     const persistedInput = rawSendInput ?? input
                     const references = normalizeReferences(persistedInput?.references)
+                    const persistedRuntimeCapabilities =
+                        getRuntimeCapabilitiesFromState(state) ??
+                        normalizeRuntimeCapabilitiesSelection(persistedInput?.runtimeCapabilities)
                     const _humanMessage: Partial<IChatMessage> = {
                         parent: conversation.messages[conversation.messages.length - 1],
                         role: 'human',
@@ -500,6 +504,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         ...(persistedInput?.files
                             ? {
                                   attachments: persistedInput.files as IStorageFile[]
+                              }
+                            : {}),
+                        ...(persistedRuntimeCapabilities
+                            ? {
+                                  thirdPartyMessage: {
+                                      runtimeCapabilities: persistedRuntimeCapabilities
+                                  }
                               }
                             : {})
                     }
@@ -532,6 +543,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         }
         state = withPreferenceSystemState(state, userPreference)
         const runtimeCapabilities = getRuntimeCapabilitiesFromState(state)
+        if (runtimeCapabilities) {
+            state = normalizeChatState({
+                ...state,
+                [STATE_VARIABLE_HUMAN]: {
+                    ...(state[STATE_VARIABLE_HUMAN] ?? {}),
+                    runtimeCapabilities
+                }
+            })
+        }
         state = withPreferenceSkillState(
             state,
             latestXpert?.workspaceId ?? xpert.workspaceId,

@@ -453,6 +453,146 @@ describe('XpertChatHandler', () => {
         expect(agentCommand.options.runtimeCapabilities).toEqual(explicitRuntimeCapabilities)
     })
 
+    it('normalizes recommended runtime capabilities for the agent and persisted human message metadata', async () => {
+        const commands: unknown[] = []
+        const explicitRuntimeCapabilities = {
+            mode: 'allowlist' as const,
+            skills: {
+                workspaceId: 'workspace-1',
+                ids: []
+            },
+            plugins: {
+                nodeKeys: []
+            },
+            subAgents: {
+                nodeKeys: []
+            },
+            recommended: {
+                skills: {
+                    ids: ['skill-1']
+                },
+                plugins: {
+                    nodeKeys: ['middleware-1']
+                },
+                subAgents: {
+                    nodeKeys: ['researcher']
+                }
+            }
+        }
+        const normalizedRuntimeCapabilities = {
+            mode: 'allowlist',
+            skills: {
+                workspaceId: 'workspace-1',
+                ids: ['skill-1']
+            },
+            plugins: {
+                nodeKeys: ['middleware-1']
+            },
+            subAgents: {
+                nodeKeys: ['researcher']
+            },
+            recommended: {
+                skills: {
+                    workspaceId: 'workspace-1',
+                    ids: ['skill-1']
+                },
+                plugins: {
+                    nodeKeys: ['middleware-1']
+                },
+                subAgents: {
+                    nodeKeys: ['researcher']
+                }
+            }
+        }
+
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [],
+                    status: command.entity.status,
+                    title: null,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: {}
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return {
+                    id: 'execution-1',
+                    threadId: 'thread-1'
+                }
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            title: 'Generated title'
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    conversationId: 'conversation-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello world',
+                            runtimeCapabilities: explicitRuntimeCapabilities
+                        }
+                    },
+                    state: {
+                        human: {
+                            input: 'Hello world',
+                            runtimeCapabilities: explicitRuntimeCapabilities
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                }
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const humanMessageCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+        ) as ChatMessageUpsertCommand
+        expect(humanMessageCommand.entity.thirdPartyMessage).toEqual({
+            runtimeCapabilities: normalizedRuntimeCapabilities
+        })
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.state.human?.runtimeCapabilities).toEqual(normalizedRuntimeCapabilities)
+        expect(agentCommand.state.selectedSkillIds).toEqual(['skill-1'])
+        expect(agentCommand.options.runtimeCapabilities).toEqual(normalizedRuntimeCapabilities)
+    })
+
     it('forwards project scope to the agent sandbox options for project conversations', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
