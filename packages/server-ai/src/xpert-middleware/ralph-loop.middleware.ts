@@ -271,8 +271,8 @@ export class RalphLoopMiddleware implements IAgentMiddlewareStrategy {
 </svg>`
         },
         label: {
-            en_US: 'Ralph Loop Middleware',
-            zh_Hans: 'Ralph 循环中间件'
+            en_US: 'Ralph Loop',
+            zh_Hans: 'Ralph 循环'
         },
         description: {
             en_US: 'Automatically retries an agent from a clean message context until it emits the Ralph Loop completion promise.',
