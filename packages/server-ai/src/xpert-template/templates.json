@@ -1,15 +1,7 @@
 {
     "templates": {
         "en-US": {
-            "categories": [
-                "Agent",
-                "Workflow",
-                "HR",
-                "Programming",
-                "Writing",
-                "Assistant",
-                "Analysis"
-            ],
+            "categories": ["Agent", "Workflow", "HR", "Programming", "Writing", "Assistant", "Analysis"],
             "recommendedApps": [
                 {
                     "name": "Smart HR Assistant",
@@ -268,16 +260,7 @@
             ]
         },
         "zh-Hans": {
-            "categories": [
-                "Agent",
-                "Workflow",
-                "Claw",
-                "HR",
-                "Programming",
-                "Writing",
-                "Assistant",
-                "Analysis"
-            ],
+            "categories": ["Agent", "Workflow", "Claw", "HR", "Programming", "Writing", "Assistant", "Analysis"],
             "recommendedApps": [
                 {
                     "name": "Claw Xpert",
@@ -292,6 +275,26 @@
                     },
                     "id": "xpert-my-claw-xpert",
                     "category": "claw",
+                    "copyright": null,
+                    "privacyPolicy": null,
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    }
+                },
+                {
+                    "name": "客户端浏览器自动化智能体",
+                    "type": "agent",
+                    "title": "客户端浏览器自动化智能体",
+                    "description": "一个智能体，能够自动化客户端浏览器操作，执行任务如数据抓取、表单提交和用户交互模拟。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "spider_web"
+                        },
+                        "background": "rgba(230, 244, 215, 0.8)"
+                    },
+                    "id": "xpert--client-browser-automation-tools",
+                    "category": "agent",
                     "copyright": null,
                     "privacyPolicy": null,
                     "copilotModel": {
