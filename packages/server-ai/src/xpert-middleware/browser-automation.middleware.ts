@@ -1,5 +1,6 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { AIMessage, BaseMessage, HumanMessage, ToolMessage, isAIMessage, isToolMessage } from '@langchain/core/messages'
+import type { ToolCall } from '@langchain/core/messages/tool'
 import { tool } from '@langchain/core/tools'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { Injectable } from '@nestjs/common'
@@ -16,13 +17,18 @@ import { ClientToolMiddleware, ClientToolMiddlewareConfig } from './client-tool.
 
 export const BROWSER_AUTOMATION_MIDDLEWARE_NAME = 'browser-automation'
 export const HOST_PAGE_WAIT_TOOL_NAME = 'host_page_wait'
+const HOST_PAGE_SNAPSHOT_TOOL_NAME = 'host_page_snapshot'
 const HOST_PAGE_SCREENSHOT_TOOL_NAME = 'host_page_screenshot'
 const HOST_PAGE_WAIT_MIN_SECONDS = 3
 const HOST_PAGE_WAIT_MAX_SECONDS = 60
 const HOST_PAGE_SCREENSHOT_ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg'] as const
+const HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT = 20
+const HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS = 24_000
+const HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS = 240
+const HOST_PAGE_SNAPSHOT_MAX_ARRAY_ITEMS = 4
 
 const HOST_PAGE_AUTOMATION_TOOL_NAMES = [
-    'host_page_snapshot',
+    HOST_PAGE_SNAPSHOT_TOOL_NAME,
     'host_page_click',
     'host_page_fill',
     'host_page_press',
@@ -114,6 +120,10 @@ type HostPageViewportSize = {
 type HostPageScrollOffset = {
     x: number
     y: number
+}
+
+type JsonObject = {
+    [key: string]: unknown
 }
 
 type HostPageScreenshotAttachment = {
@@ -556,6 +566,269 @@ function readFiniteNumber(value: unknown): number | null {
     return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function truncateText(value: string, maxChars = HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS): string {
+    return value.length > maxChars
+        ? `${value.slice(0, maxChars)}... [truncated ${value.length - maxChars} chars]`
+        : value
+}
+
+function compactSnapshotValue(value: unknown, depth = 0): unknown {
+    if (typeof value === 'string') {
+        return truncateText(value)
+    }
+
+    if (value == null || typeof value === 'number' || typeof value === 'boolean') {
+        return value
+    }
+
+    if (Array.isArray(value)) {
+        const maxItems = depth === 0 ? HOST_PAGE_SNAPSHOT_MAX_ARRAY_ITEMS : 2
+        const items = value.slice(0, maxItems).map((item) => compactSnapshotValue(item, depth + 1))
+        if (value.length > maxItems) {
+            items.push(`[truncated ${value.length - maxItems} items]`)
+        }
+        return items
+    }
+
+    const record = readRecord(value)
+    if (!record) {
+        return String(value)
+    }
+
+    const compacted: JsonObject = {}
+    const entries = Object.entries(record)
+    for (const [key, entry] of entries.slice(0, 12)) {
+        compacted[key] = compactSnapshotValue(entry, depth + 1)
+    }
+    if (entries.length > 12) {
+        compacted._truncatedKeys = entries.length - 12
+    }
+    return compacted
+}
+
+const HOST_PAGE_SNAPSHOT_RESULT_KEYS = [
+    'url',
+    'title',
+    'viewport',
+    'scroll',
+    'pageState',
+    'capabilities',
+    'networkState',
+    'console',
+    'errors'
+] as const
+
+const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
+    'ref',
+    'axRef',
+    'role',
+    'name',
+    'label',
+    'groupLabel',
+    'tag',
+    'text',
+    'selector',
+    'value',
+    'options',
+    'selectedLabel',
+    'placeholder',
+    'enabled',
+    'visible',
+    'actionable',
+    'checked',
+    'rect',
+    'center',
+    'nearbyText'
+] as const
+
+function compactSnapshotElement(element: unknown): unknown {
+    const record = readRecord(element)
+    if (!record) {
+        return compactSnapshotValue(element, 1)
+    }
+
+    const compacted: JsonObject = {}
+    for (const key of HOST_PAGE_SNAPSHOT_ELEMENT_KEYS) {
+        if (key in record) {
+            compacted[key] = compactSnapshotValue(record[key], 1)
+        }
+    }
+    return compacted
+}
+
+function buildCompactedSnapshotPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number,
+    keptElementCount: number
+): JsonObject {
+    const elements = Array.isArray(result.elements) ? result.elements : []
+    const compactedResult: JsonObject = {}
+
+    for (const key of HOST_PAGE_SNAPSHOT_RESULT_KEYS) {
+        if (key in result) {
+            compactedResult[key] = compactSnapshotValue(result[key])
+        }
+    }
+
+    compactedResult.elements = elements.slice(0, keptElementCount).map((element) => compactSnapshotElement(element))
+    compactedResult._xpertCompaction = {
+        compacted: true,
+        reason: 'host_page_snapshot output compacted before model continuation and message persistence',
+        originalContentLength,
+        originalElementCount: elements.length,
+        keptElementCount
+    }
+
+    const compactedPayload: JsonObject = {
+        ok: typeof payload.ok === 'boolean' ? payload.ok : true,
+        result: compactedResult
+    }
+
+    if (typeof payload.error === 'string') {
+        compactedPayload.error = truncateText(payload.error)
+    }
+
+    return compactedPayload
+}
+
+function getSerializedLength(value: unknown): number {
+    if (value == null) {
+        return 0
+    }
+
+    if (typeof value === 'string') {
+        return value.length
+    }
+
+    try {
+        const serialized = JSON.stringify(value)
+        return typeof serialized === 'string' ? serialized.length : 0
+    } catch {
+        return String(value).length
+    }
+}
+
+function getSnapshotElementCount(result: Record<string, unknown>): number {
+    return Array.isArray(result.elements) ? result.elements.length : 0
+}
+
+function shouldCompactSnapshot(result: Record<string, unknown>, serializedLength: number): boolean {
+    return (
+        serializedLength > HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS ||
+        getSnapshotElementCount(result) > HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT
+    )
+}
+
+function stringifyCompactedSnapshotPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number
+): string {
+    const elements = Array.isArray(result.elements) ? result.elements : []
+    let keptElementCount = Math.min(HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT, elements.length)
+
+    while (keptElementCount >= 0) {
+        const compacted = JSON.stringify(
+            buildCompactedSnapshotPayload(payload, result, originalContentLength, keptElementCount)
+        )
+        if (compacted.length <= HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS || keptElementCount === 0) {
+            return compacted
+        }
+        keptElementCount = Math.floor(keptElementCount / 2)
+    }
+
+    return JSON.stringify(buildCompactedSnapshotPayload(payload, result, originalContentLength, 0))
+}
+
+function parseCompactedSnapshotPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number
+): JsonObject {
+    try {
+        const compacted = JSON.parse(stringifyCompactedSnapshotPayload(payload, result, originalContentLength))
+        const record = readRecord(compacted)
+        return record ?? buildCompactedSnapshotPayload(payload, result, originalContentLength, 0)
+    } catch {
+        return buildCompactedSnapshotPayload(payload, result, originalContentLength, 0)
+    }
+}
+
+function readSnapshotPayload(
+    value: unknown
+): { payload: Record<string, unknown>; result: Record<string, unknown> } | null {
+    const parsed = typeof value === 'string' ? parseToolMessageContent(value) : value
+    const payload = readRecord(parsed)
+    const result = payload ? readRecord(payload.result) : null
+    return payload && result ? { payload, result } : null
+}
+
+function compactHostPageSnapshotArtifact(artifact: unknown, artifactLength: number): unknown {
+    const snapshot = readSnapshotPayload(artifact)
+    if (!snapshot) {
+        return {
+            type: HOST_PAGE_SNAPSHOT_TOOL_NAME,
+            _xpertCompaction: {
+                compacted: true,
+                reason: 'host_page_snapshot artifact replaced before model continuation and message persistence',
+                originalArtifactLength: artifactLength
+            }
+        }
+    }
+
+    return parseCompactedSnapshotPayload(snapshot.payload, snapshot.result, artifactLength)
+}
+
+function compactHostPageSnapshotToolMessage(message: ToolMessage): ToolMessage {
+    if (typeof message.content !== 'string') {
+        return message
+    }
+
+    const snapshot = readSnapshotPayload(message.content)
+    if (!snapshot) {
+        return message
+    }
+
+    const artifactLength = getSerializedLength(message.artifact)
+    const artifactSnapshot = message.artifact ? readSnapshotPayload(message.artifact) : null
+    const shouldCompactContent = shouldCompactSnapshot(snapshot.result, message.content.length)
+    const shouldCompactArtifact =
+        artifactLength > HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS ||
+        (artifactSnapshot ? shouldCompactSnapshot(artifactSnapshot.result, artifactLength) : false)
+
+    if (!shouldCompactContent && !shouldCompactArtifact) {
+        return message
+    }
+
+    const content = shouldCompactContent
+        ? stringifyCompactedSnapshotPayload(snapshot.payload, snapshot.result, message.content.length)
+        : message.content
+    const artifact = shouldCompactArtifact
+        ? compactHostPageSnapshotArtifact(message.artifact, artifactLength)
+        : message.artifact
+
+    return new ToolMessage({
+        content,
+        name: message.name ?? HOST_PAGE_SNAPSHOT_TOOL_NAME,
+        tool_call_id: message.tool_call_id,
+        status: message.status,
+        artifact,
+        metadata: message.metadata,
+        additional_kwargs: message.additional_kwargs,
+        response_metadata: message.response_metadata,
+        id: message.id
+    })
+}
+
+function compactBrowserAutomationToolMessage(message: ToolMessage, toolCall: ToolCall): ToolMessage {
+    if (toolCall.name !== HOST_PAGE_SNAPSHOT_TOOL_NAME && message.name !== HOST_PAGE_SNAPSHOT_TOOL_NAME) {
+        return message
+    }
+
+    return compactHostPageSnapshotToolMessage(message)
+}
+
 function readViewportSize(value: unknown): HostPageViewportSize | undefined {
     const record = readRecord(value)
     if (!record) {
@@ -825,7 +1098,8 @@ export class BrowserAutomationMiddleware extends ClientToolMiddleware {
                     clientTools: createClientTools(options),
                     displayToolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
                     displayMessages: HOST_PAGE_TOOL_DISPLAY_MESSAGES,
-                    emitToolMessages: true
+                    emitToolMessages: true,
+                    transformToolMessage: compactBrowserAutomationToolMessage
                 },
                 context
             )
