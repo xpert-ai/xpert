@@ -1,5 +1,6 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { AIMessage, BaseMessage, HumanMessage, ToolMessage, isAIMessage, isToolMessage } from '@langchain/core/messages'
+import type { ToolCall } from '@langchain/core/messages/tool'
 import { tool } from '@langchain/core/tools'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { Injectable } from '@nestjs/common'
@@ -16,13 +17,18 @@ import { ClientToolMiddleware, ClientToolMiddlewareConfig } from './client-tool.
 
 export const BROWSER_AUTOMATION_MIDDLEWARE_NAME = 'browser-automation'
 export const HOST_PAGE_WAIT_TOOL_NAME = 'host_page_wait'
+const HOST_PAGE_SNAPSHOT_TOOL_NAME = 'host_page_snapshot'
 const HOST_PAGE_SCREENSHOT_TOOL_NAME = 'host_page_screenshot'
 const HOST_PAGE_WAIT_MIN_SECONDS = 3
 const HOST_PAGE_WAIT_MAX_SECONDS = 60
 const HOST_PAGE_SCREENSHOT_ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg'] as const
+const HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT = 20
+const HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS = 24_000
+const HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS = 240
+const HOST_PAGE_SNAPSHOT_MAX_ARRAY_ITEMS = 4
 
 const HOST_PAGE_AUTOMATION_TOOL_NAMES = [
-    'host_page_snapshot',
+    HOST_PAGE_SNAPSHOT_TOOL_NAME,
     'host_page_click',
     'host_page_fill',
     'host_page_press',
@@ -59,6 +65,10 @@ type HostPageViewportSize = {
 type HostPageScrollOffset = {
     x: number
     y: number
+}
+
+type JsonObject = {
+    [key: string]: unknown
 }
 
 type HostPageScreenshotAttachment = {
@@ -119,11 +129,13 @@ const TARGET_PROPERTIES = {
     },
     x: {
         type: 'number',
-        description: 'Target tab page viewport CSS x coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
+        description:
+            'Target tab page viewport CSS x coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
     },
     y: {
         type: 'number',
-        description: 'Target tab page viewport CSS y coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
+        description:
+            'Target tab page viewport CSS y coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
     }
 }
 
@@ -146,8 +158,7 @@ function createTargetSchema(properties: object = {}, required: string[] = []) {
 const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_snapshot',
-        description:
-            `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, nearbyText, or coordinates from this result for later actions. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, nearbyText, or coordinates from this result for later actions. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
         schema: stringifySchema({
             type: 'object',
             additionalProperties: false,
@@ -155,7 +166,8 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
                 mode: {
                     type: 'string',
                     enum: ['fast', 'rich', 'vision'],
-                    description: 'Snapshot detail level. Use rich by default; use vision only when a screenshot is needed.'
+                    description:
+                        'Snapshot detail level. Use rich by default; use vision only when a screenshot is needed.'
                 },
                 maxElements: {
                     type: 'number',
@@ -180,31 +192,33 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     },
     {
         name: 'host_page_click',
-        description:
-            `Click the host page using Playwright-style targeting. Prefer ref or axRef from host_page_snapshot, then role/name, nearbyText-derived target choice, testId, selector, or coordinates. The browser extension uses real CDP mouse input when available. Do not repeatedly click the same target if the next snapshot does not change; use fill, press, wait_for, pointer, or screenshot instead. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
-        schema: createTargetSchema({
-            strategy: {
-                type: 'string',
-                enum: ['auto', 'dom', 'cdp_mouse', 'deepest_point', 'ancestor_actionable', 'label_control'],
-                description: 'Click strategy. Use auto unless a specific fallback is needed.'
+        description: `Click the host page using Playwright-style targeting. Prefer ref or axRef from host_page_snapshot, then role/name, nearbyText-derived target choice, testId, selector, or coordinates. The browser extension uses real CDP mouse input when available. Do not repeatedly click the same target if the next snapshot does not change; use fill, press, wait_for, pointer, or screenshot instead. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        schema: createTargetSchema(
+            {
+                strategy: {
+                    type: 'string',
+                    enum: ['auto', 'dom', 'cdp_mouse', 'deepest_point', 'ancestor_actionable', 'label_control'],
+                    description: 'Click strategy. Use auto unless a specific fallback is needed.'
+                },
+                button: {
+                    type: 'string',
+                    enum: ['left', 'middle', 'right'],
+                    description: 'Mouse button to click.'
+                },
+                clickCount: {
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 3,
+                    description: 'Number of clicks.'
+                },
+                message: {
+                    type: 'string',
+                    description:
+                        'Concise natural-language description of the intended click target, shown as the ChatKit tool-call row label. For example: "Click the top Execute toolbar button".'
+                }
             },
-            button: {
-                type: 'string',
-                enum: ['left', 'middle', 'right'],
-                description: 'Mouse button to click.'
-            },
-            clickCount: {
-                type: 'number',
-                minimum: 1,
-                maximum: 3,
-                description: 'Number of clicks.'
-            },
-            message: {
-                type: 'string',
-                description:
-                    'Concise natural-language description of the intended click target, shown as the ChatKit tool-call row label. For example: "Click the top Execute toolbar button".'
-            }
-        }, ['message'])
+            ['message']
+        )
     },
     {
         name: 'host_page_fill',
@@ -294,7 +308,8 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     },
     {
         name: 'host_page_hover',
-        description: 'Move the pointer over a host page target by ref, axRef, semantic target, selector, or coordinates.',
+        description:
+            'Move the pointer over a host page target by ref, axRef, semantic target, selector, or coordinates.',
         schema: createTargetSchema()
     },
     {
@@ -306,37 +321,40 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
         name: 'host_page_pointer',
         description:
             'Dispatch low-level pointer movement or button actions against the host page using viewport CSS coordinates. Use this after host_page_screenshot for SAP/Fiori/iframe pages when DOM/ref click did not change the page. Coordinates are relative to the captured page viewport, not the OS screen.',
-        schema: createTargetSchema({
-            action: {
-                type: 'string',
-                enum: ['move', 'down', 'up', 'click'],
-                description: 'Pointer action to perform.'
+        schema: createTargetSchema(
+            {
+                action: {
+                    type: 'string',
+                    enum: ['move', 'down', 'up', 'click'],
+                    description: 'Pointer action to perform.'
+                },
+                toX: {
+                    type: 'number',
+                    description: 'Destination viewport x coordinate for future drag-style clients.'
+                },
+                toY: {
+                    type: 'number',
+                    description: 'Destination viewport y coordinate for future drag-style clients.'
+                },
+                button: {
+                    type: 'string',
+                    enum: ['left', 'middle', 'right'],
+                    description: 'Mouse button to use.'
+                },
+                clickCount: {
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 3,
+                    description: 'Number of clicks for action=click.'
+                },
+                message: {
+                    type: 'string',
+                    description:
+                        'Concise natural-language description of the intended visual target, shown as the ChatKit tool-call row label. For example: "Click the bottom Execute button".'
+                }
             },
-            toX: {
-                type: 'number',
-                description: 'Destination viewport x coordinate for future drag-style clients.'
-            },
-            toY: {
-                type: 'number',
-                description: 'Destination viewport y coordinate for future drag-style clients.'
-            },
-            button: {
-                type: 'string',
-                enum: ['left', 'middle', 'right'],
-                description: 'Mouse button to use.'
-            },
-            clickCount: {
-                type: 'number',
-                minimum: 1,
-                maximum: 3,
-                description: 'Number of clicks for action=click.'
-            },
-            message: {
-                type: 'string',
-                description:
-                    'Concise natural-language description of the intended visual target, shown as the ChatKit tool-call row label. For example: "Click the bottom Execute button".'
-            }
-        }, ['message'])
+            ['message']
+        )
     },
     {
         name: 'host_page_screenshot',
@@ -383,7 +401,10 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
 export const BROWSER_AUTOMATION_CLIENT_TOOLS = CLIENT_TOOLS
 
 export const HOST_PAGE_AUTOMATION_CLIENT_TOOL_NAMES = HOST_PAGE_AUTOMATION_TOOL_NAMES
-export const BROWSER_AUTOMATION_TOOL_NAMES = [...HOST_PAGE_AUTOMATION_CLIENT_TOOL_NAMES, HOST_PAGE_WAIT_TOOL_NAME] as const
+export const BROWSER_AUTOMATION_TOOL_NAMES = [
+    ...HOST_PAGE_AUTOMATION_CLIENT_TOOL_NAMES,
+    HOST_PAGE_WAIT_TOOL_NAME
+] as const
 
 function createClientTools(options?: unknown): ClientToolDefinition[] {
     const allowNavigation = options && typeof options === 'object' ? Reflect.get(options, 'allowNavigation') : undefined
@@ -430,7 +451,11 @@ function findReadyToolCallSet(messages: BaseMessage[]): ReadyToolCallSet | null 
 
             const expectedToolCallIds = new Set(toolCalls.map((toolCall) => toolCall.id).filter(Boolean))
             const toolMessagesById = trailingToolMessages.reduce<Map<string, ToolMessage>>((map, toolMessage) => {
-                if (toolMessage.tool_call_id && expectedToolCallIds.has(toolMessage.tool_call_id) && !map.has(toolMessage.tool_call_id)) {
+                if (
+                    toolMessage.tool_call_id &&
+                    expectedToolCallIds.has(toolMessage.tool_call_id) &&
+                    !map.has(toolMessage.tool_call_id)
+                ) {
                     map.set(toolMessage.tool_call_id, toolMessage)
                 }
                 return map
@@ -479,6 +504,265 @@ function readScreenshotMimeType(value: unknown): HostPageScreenshotMimeType | nu
 
 function readFiniteNumber(value: unknown): number | null {
     return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function truncateText(value: string, maxChars = HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS): string {
+    return value.length > maxChars
+        ? `${value.slice(0, maxChars)}... [truncated ${value.length - maxChars} chars]`
+        : value
+}
+
+function compactSnapshotValue(value: unknown, depth = 0): unknown {
+    if (typeof value === 'string') {
+        return truncateText(value)
+    }
+
+    if (value == null || typeof value === 'number' || typeof value === 'boolean') {
+        return value
+    }
+
+    if (Array.isArray(value)) {
+        const maxItems = depth === 0 ? HOST_PAGE_SNAPSHOT_MAX_ARRAY_ITEMS : 2
+        const items = value.slice(0, maxItems).map((item) => compactSnapshotValue(item, depth + 1))
+        if (value.length > maxItems) {
+            items.push(`[truncated ${value.length - maxItems} items]`)
+        }
+        return items
+    }
+
+    const record = readRecord(value)
+    if (!record) {
+        return String(value)
+    }
+
+    const compacted: JsonObject = {}
+    const entries = Object.entries(record)
+    for (const [key, entry] of entries.slice(0, 12)) {
+        compacted[key] = compactSnapshotValue(entry, depth + 1)
+    }
+    if (entries.length > 12) {
+        compacted._truncatedKeys = entries.length - 12
+    }
+    return compacted
+}
+
+const HOST_PAGE_SNAPSHOT_RESULT_KEYS = [
+    'url',
+    'title',
+    'viewport',
+    'scroll',
+    'pageState',
+    'capabilities',
+    'networkState',
+    'console',
+    'errors'
+] as const
+
+const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
+    'ref',
+    'axRef',
+    'role',
+    'name',
+    'tag',
+    'text',
+    'selector',
+    'value',
+    'placeholder',
+    'enabled',
+    'visible',
+    'actionable',
+    'checked',
+    'rect',
+    'center',
+    'nearbyText'
+] as const
+
+function compactSnapshotElement(element: unknown): unknown {
+    const record = readRecord(element)
+    if (!record) {
+        return compactSnapshotValue(element, 1)
+    }
+
+    const compacted: JsonObject = {}
+    for (const key of HOST_PAGE_SNAPSHOT_ELEMENT_KEYS) {
+        if (key in record) {
+            compacted[key] = compactSnapshotValue(record[key], 1)
+        }
+    }
+    return compacted
+}
+
+function buildCompactedSnapshotPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number,
+    keptElementCount: number
+): JsonObject {
+    const elements = Array.isArray(result.elements) ? result.elements : []
+    const compactedResult: JsonObject = {}
+
+    for (const key of HOST_PAGE_SNAPSHOT_RESULT_KEYS) {
+        if (key in result) {
+            compactedResult[key] = compactSnapshotValue(result[key])
+        }
+    }
+
+    compactedResult.elements = elements.slice(0, keptElementCount).map((element) => compactSnapshotElement(element))
+    compactedResult._xpertCompaction = {
+        compacted: true,
+        reason: 'host_page_snapshot output compacted before model continuation and message persistence',
+        originalContentLength,
+        originalElementCount: elements.length,
+        keptElementCount
+    }
+
+    const compactedPayload: JsonObject = {
+        ok: typeof payload.ok === 'boolean' ? payload.ok : true,
+        result: compactedResult
+    }
+
+    if (typeof payload.error === 'string') {
+        compactedPayload.error = truncateText(payload.error)
+    }
+
+    return compactedPayload
+}
+
+function getSerializedLength(value: unknown): number {
+    if (value == null) {
+        return 0
+    }
+
+    if (typeof value === 'string') {
+        return value.length
+    }
+
+    try {
+        const serialized = JSON.stringify(value)
+        return typeof serialized === 'string' ? serialized.length : 0
+    } catch {
+        return String(value).length
+    }
+}
+
+function getSnapshotElementCount(result: Record<string, unknown>): number {
+    return Array.isArray(result.elements) ? result.elements.length : 0
+}
+
+function shouldCompactSnapshot(result: Record<string, unknown>, serializedLength: number): boolean {
+    return (
+        serializedLength > HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS ||
+        getSnapshotElementCount(result) > HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT
+    )
+}
+
+function stringifyCompactedSnapshotPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number
+): string {
+    const elements = Array.isArray(result.elements) ? result.elements : []
+    let keptElementCount = Math.min(HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT, elements.length)
+
+    while (keptElementCount >= 0) {
+        const compacted = JSON.stringify(
+            buildCompactedSnapshotPayload(payload, result, originalContentLength, keptElementCount)
+        )
+        if (compacted.length <= HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS || keptElementCount === 0) {
+            return compacted
+        }
+        keptElementCount = Math.floor(keptElementCount / 2)
+    }
+
+    return JSON.stringify(buildCompactedSnapshotPayload(payload, result, originalContentLength, 0))
+}
+
+function parseCompactedSnapshotPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number
+): JsonObject {
+    try {
+        const compacted = JSON.parse(stringifyCompactedSnapshotPayload(payload, result, originalContentLength))
+        const record = readRecord(compacted)
+        return record ?? buildCompactedSnapshotPayload(payload, result, originalContentLength, 0)
+    } catch {
+        return buildCompactedSnapshotPayload(payload, result, originalContentLength, 0)
+    }
+}
+
+function readSnapshotPayload(
+    value: unknown
+): { payload: Record<string, unknown>; result: Record<string, unknown> } | null {
+    const parsed = typeof value === 'string' ? parseToolMessageContent(value) : value
+    const payload = readRecord(parsed)
+    const result = payload ? readRecord(payload.result) : null
+    return payload && result ? { payload, result } : null
+}
+
+function compactHostPageSnapshotArtifact(artifact: unknown, artifactLength: number): unknown {
+    const snapshot = readSnapshotPayload(artifact)
+    if (!snapshot) {
+        return {
+            type: HOST_PAGE_SNAPSHOT_TOOL_NAME,
+            _xpertCompaction: {
+                compacted: true,
+                reason: 'host_page_snapshot artifact replaced before model continuation and message persistence',
+                originalArtifactLength: artifactLength
+            }
+        }
+    }
+
+    return parseCompactedSnapshotPayload(snapshot.payload, snapshot.result, artifactLength)
+}
+
+function compactHostPageSnapshotToolMessage(message: ToolMessage): ToolMessage {
+    if (typeof message.content !== 'string') {
+        return message
+    }
+
+    const snapshot = readSnapshotPayload(message.content)
+    if (!snapshot) {
+        return message
+    }
+
+    const artifactLength = getSerializedLength(message.artifact)
+    const artifactSnapshot = message.artifact ? readSnapshotPayload(message.artifact) : null
+    const shouldCompactContent = shouldCompactSnapshot(snapshot.result, message.content.length)
+    const shouldCompactArtifact =
+        artifactLength > HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS ||
+        (artifactSnapshot ? shouldCompactSnapshot(artifactSnapshot.result, artifactLength) : false)
+
+    if (!shouldCompactContent && !shouldCompactArtifact) {
+        return message
+    }
+
+    const content = shouldCompactContent
+        ? stringifyCompactedSnapshotPayload(snapshot.payload, snapshot.result, message.content.length)
+        : message.content
+    const artifact = shouldCompactArtifact
+        ? compactHostPageSnapshotArtifact(message.artifact, artifactLength)
+        : message.artifact
+
+    return new ToolMessage({
+        content,
+        name: message.name ?? HOST_PAGE_SNAPSHOT_TOOL_NAME,
+        tool_call_id: message.tool_call_id,
+        status: message.status,
+        artifact,
+        metadata: message.metadata,
+        additional_kwargs: message.additional_kwargs,
+        response_metadata: message.response_metadata,
+        id: message.id
+    })
+}
+
+function compactBrowserAutomationToolMessage(message: ToolMessage, toolCall: ToolCall): ToolMessage {
+    if (toolCall.name !== HOST_PAGE_SNAPSHOT_TOOL_NAME && message.name !== HOST_PAGE_SNAPSHOT_TOOL_NAME) {
+        return message
+    }
+
+    return compactHostPageSnapshotToolMessage(message)
 }
 
 function readViewportSize(value: unknown): HostPageViewportSize | undefined {
@@ -581,7 +865,9 @@ function compactScreenshotToolMessage(message: ToolMessage, attachment: HostPage
     })
 }
 
-function prepareHostPageScreenshotModelRequest<TRequest extends { messages: BaseMessage[] }>(request: TRequest): TRequest {
+function prepareHostPageScreenshotModelRequest<TRequest extends { messages: BaseMessage[] }>(
+    request: TRequest
+): TRequest {
     const readyToolCallSet = findReadyToolCallSet(request.messages)
     if (!readyToolCallSet) {
         return request
@@ -657,7 +943,10 @@ async function dispatchHostPageWaitToolMessage(
         input,
         ...overrides
     }).catch((error) => {
-        console.warn('[BrowserAutomationMiddleware] dispatch wait tool message failed:', error instanceof Error ? error.message : String(error))
+        console.warn(
+            '[BrowserAutomationMiddleware] dispatch wait tool message failed:',
+            error instanceof Error ? error.message : String(error)
+        )
     })
 }
 
@@ -743,7 +1032,8 @@ export class BrowserAutomationMiddleware extends ClientToolMiddleware {
                 {
                     clientTools: createClientTools(options),
                     displayToolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
-                    emitToolMessages: true
+                    emitToolMessages: true,
+                    transformToolMessage: compactBrowserAutomationToolMessage
                 },
                 context
             )
@@ -755,7 +1045,9 @@ export class BrowserAutomationMiddleware extends ClientToolMiddleware {
             tools: [...(middleware.tools ?? []), createHostPageWaitTool()],
             wrapModelCall: async (request, handler) => {
                 const preparedRequest = prepareHostPageScreenshotModelRequest(request)
-                return middleware.wrapModelCall ? middleware.wrapModelCall(preparedRequest, handler) : handler(preparedRequest)
+                return middleware.wrapModelCall
+                    ? middleware.wrapModelCall(preparedRequest, handler)
+                    : handler(preparedRequest)
             }
         }
     }

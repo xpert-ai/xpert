@@ -23,7 +23,12 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
 
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { ChatMessageEventTypeEnum, IWFNMiddleware, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { AgentMiddleware, AgentMiddlewareRuntimeApi, IAgentMiddlewareContext, JsonSchemaValidator } from '@xpert-ai/plugin-sdk'
+import {
+    AgentMiddleware,
+    AgentMiddlewareRuntimeApi,
+    IAgentMiddlewareContext,
+    JsonSchemaValidator
+} from '@xpert-ai/plugin-sdk'
 import {
     BrowserAutomationMiddleware,
     BROWSER_AUTOMATION_TOOL_NAMES,
@@ -85,6 +90,32 @@ function getWrapToolCall(middleware: AgentMiddleware): NonNullable<AgentMiddlewa
     }
 
     return middleware.wrapToolCall
+}
+
+function readStringField(value: unknown, field: string): string {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error(`Expected payload object with string field ${field}.`)
+    }
+
+    const fieldValue = Reflect.get(value, field)
+    if (typeof fieldValue !== 'string') {
+        throw new Error(`Expected string field ${field}.`)
+    }
+
+    return fieldValue
+}
+
+function readObjectField(value: unknown, field: string): object {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error(`Expected payload object with object field ${field}.`)
+    }
+
+    const fieldValue = Reflect.get(value, field)
+    if (!fieldValue || typeof fieldValue !== 'object' || Array.isArray(fieldValue)) {
+        throw new Error(`Expected object field ${field}.`)
+    }
+
+    return fieldValue
 }
 
 async function flushPromises() {
@@ -239,6 +270,246 @@ describe('BrowserAutomationMiddleware', () => {
                 }
             })
         )
+    })
+
+    it('compacts host_page_snapshot results before returning tool messages and emitting display output', async () => {
+        const elements = Array.from({ length: 60 }, (_, index) => ({
+            ref: `e${index}`,
+            role: 'textbox',
+            name: `Field ${index} ${'label '.repeat(60)}`,
+            nearbyText: Array.from(
+                { length: 12 },
+                (__, textIndex) => `Nearby ${index}.${textIndex} ${'text '.repeat(40)}`
+            ),
+            selector: `#field-${index}`,
+            rect: {
+                x: index,
+                y: index * 2,
+                width: 320,
+                height: 32
+            },
+            center: {
+                x: index + 160,
+                y: index * 2 + 16
+            },
+            hitStack: Array.from({ length: 8 }, (__, stackIndex) => ({
+                selector: `.stack-${index}-${stackIndex}`,
+                text: 'stack '.repeat(80)
+            }))
+        }))
+        const rawSnapshot = {
+            ok: true,
+            result: {
+                url: 'https://www.fnbank.net/get-in-touch/careers',
+                title: 'Careers',
+                capabilities: {
+                    accessibility: true,
+                    cdp: true,
+                    networkState: true
+                },
+                viewport: {
+                    width: 1440,
+                    height: 900
+                },
+                elements
+            }
+        }
+        const rawContent = JSON.stringify(rawSnapshot)
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'snapshot-call-1',
+                    content: rawSnapshot,
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'snapshot-call-1',
+                    name: 'host_page_snapshot',
+                    args: {
+                        mode: 'rich',
+                        maxElements: 250
+                    }
+                },
+                tool: getTool(middleware, 'host_page_snapshot'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_snapshot',
+                    tool_call_id: 'snapshot-call-1'
+                })
+        )
+
+        expect(result).toBeInstanceOf(ToolMessage)
+        const compactedContent = readStringField(result, 'content')
+        expect(compactedContent.length).toBeLessThan(rawContent.length)
+        expect(compactedContent.length).toBeLessThanOrEqual(24_000)
+        expect(compactedContent).toContain('_xpertCompaction')
+        expect(compactedContent).not.toContain('stack stack stack stack stack')
+
+        const successPayload = mockDispatchCustomEvent.mock.calls[1]?.[1]
+        const emittedOutput = readStringField(successPayload, 'output')
+        expect(emittedOutput).toBe(compactedContent)
+    })
+
+    it('leaves small host_page_snapshot results unchanged', async () => {
+        const rawSnapshot = {
+            ok: true,
+            result: {
+                url: 'https://example.com/form',
+                title: 'Small form',
+                viewport: {
+                    width: 1440,
+                    height: 900
+                },
+                elements: [
+                    {
+                        ref: 'e1',
+                        role: 'textbox',
+                        name: 'First name',
+                        selector: '#first-name'
+                    }
+                ]
+            }
+        }
+        const rawContent = JSON.stringify(rawSnapshot)
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'snapshot-call-1',
+                    content: rawSnapshot,
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'snapshot-call-1',
+                    name: 'host_page_snapshot',
+                    args: {
+                        mode: 'rich',
+                        maxElements: 50
+                    }
+                },
+                tool: getTool(middleware, 'host_page_snapshot'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_snapshot',
+                    tool_call_id: 'snapshot-call-1'
+                })
+        )
+
+        expect(readStringField(result, 'content')).toBe(rawContent)
+
+        const successPayload = mockDispatchCustomEvent.mock.calls[1]?.[1]
+        expect(readStringField(successPayload, 'output')).toBe(rawContent)
+    })
+
+    it('compacts large host_page_snapshot artifacts before emitting display output', async () => {
+        const largeArtifact = {
+            ok: true,
+            result: {
+                url: 'https://example.com/form',
+                title: 'Large artifact form',
+                elements: Array.from({ length: 70 }, (_, index) => ({
+                    ref: `e${index}`,
+                    role: 'textbox',
+                    name: `Field ${index}`,
+                    hitStack: Array.from({ length: 10 }, (__, stackIndex) => ({
+                        selector: `.stack-${index}-${stackIndex}`,
+                        text: 'artifact '.repeat(120)
+                    }))
+                }))
+            }
+        }
+        const rawSnapshot = {
+            ok: true,
+            result: {
+                url: 'https://example.com/form',
+                title: 'Small content',
+                elements: [
+                    {
+                        ref: 'e1',
+                        role: 'textbox',
+                        name: 'First name'
+                    }
+                ]
+            }
+        }
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'snapshot-call-1',
+                    content: rawSnapshot,
+                    status: 'success',
+                    artifact: largeArtifact
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'snapshot-call-1',
+                    name: 'host_page_snapshot',
+                    args: {
+                        mode: 'rich',
+                        maxElements: 50
+                    }
+                },
+                tool: getTool(middleware, 'host_page_snapshot'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_snapshot',
+                    tool_call_id: 'snapshot-call-1'
+                })
+        )
+
+        const compactedArtifact = readObjectField(result, 'artifact')
+        const compactedArtifactText = JSON.stringify(compactedArtifact)
+        expect(compactedArtifactText.length).toBeLessThan(JSON.stringify(largeArtifact).length)
+        expect(compactedArtifactText.length).toBeLessThanOrEqual(24_000)
+        expect(compactedArtifactText).toContain('_xpertCompaction')
+        expect(compactedArtifactText).not.toContain('artifact artifact artifact artifact')
+
+        const successPayload = mockDispatchCustomEvent.mock.calls[1]?.[1]
+        const emittedArtifact = readObjectField(successPayload, 'artifact')
+        expect(JSON.stringify(emittedArtifact)).toBe(compactedArtifactText)
     })
 
     it('runs host_page_wait on the server and emits tool message metadata', async () => {

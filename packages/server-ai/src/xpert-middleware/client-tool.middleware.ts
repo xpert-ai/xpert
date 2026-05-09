@@ -19,6 +19,8 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 
+export type ClientToolMessageTransformer = (message: ToolMessage, toolCall: ToolCall) => PromiseOrValue<ToolMessage>
+
 const contextSchema = z.object({
     /**
      * Client-side tool names.
@@ -42,7 +44,9 @@ const contextSchema = z.object({
     emitToolMessages: z.boolean().optional()
 })
 
-export type ClientToolMiddlewareConfig = InferInteropZodInput<typeof contextSchema>
+export type ClientToolMiddlewareConfig = InferInteropZodInput<typeof contextSchema> & {
+    transformToolMessage?: ClientToolMessageTransformer
+}
 
 export const CLIENT_TOOL_MIDDLEWARE_NAME = 'ClientToolMiddleware'
 
@@ -251,7 +255,8 @@ async function dispatchClientToolStepEvent({
 }: ClientToolStepEventOptions) {
     const toolName = toolCall.name
     const toolCallId = getToolCallDisplayId(toolCall)
-    const toolset = displayConfig.displayToolset ?? readStringField(runtimeMetadata, ['toolset']) ?? CLIENT_TOOL_MIDDLEWARE_NAME
+    const toolset =
+        displayConfig.displayToolset ?? readStringField(runtimeMetadata, ['toolset']) ?? CLIENT_TOOL_MIDDLEWARE_NAME
     const toolsetId = displayConfig.displayToolsetId ?? readStringField(runtimeMetadata, ['toolsetId'])
     const title = readStringField(runtimeMetadata, ['toolName', toolName]) ?? toolName
     const message = getToolCallDisplayMessage(toolCall)
@@ -460,7 +465,9 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                     const toolMessages = response?.toolMessages
 
                     if (!Array.isArray(toolMessages) || toolMessages.length !== 1) {
-                        throw new Error('Invalid ClientToolResponse: toolMessages must be an array with exactly one item')
+                        throw new Error(
+                            'Invalid ClientToolResponse: toolMessages must be an array with exactly one item'
+                        )
                     }
 
                     const message = toolMessages[0]
@@ -471,20 +478,23 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                     }
 
                     const toolMessage = toToolMessage(message, request.toolCall)
-                    await runManager?.handleToolEnd(toolMessage)
+                    const preparedToolMessage = options.transformToolMessage
+                        ? await options.transformToolMessage(toolMessage, request.toolCall)
+                        : toolMessage
+                    await runManager?.handleToolEnd(preparedToolMessage)
                     if (shouldEmitToolMessages) {
                         await dispatchClientToolStepEvent({
                             toolCall: request.toolCall,
                             runtimeMetadata: runtimeConfig.metadata,
                             displayConfig,
-                            status: mapClientToolStatus(message.status ?? toolMessage.status),
+                            status: mapClientToolStatus(message.status ?? preparedToolMessage.status),
                             createdAt,
                             endAt: new Date(),
-                            output: stringifyValue(toolMessage.content),
-                            artifact: toolMessage.artifact
+                            output: stringifyValue(preparedToolMessage.content),
+                            artifact: preparedToolMessage.artifact
                         })
                     }
-                    return toolMessage
+                    return preparedToolMessage
                 } catch (error) {
                     if (isGraphInterrupt(error)) {
                         throw error
