@@ -3,116 +3,221 @@ import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 export const RUNTIME_CAPABILITIES_HUMAN_INPUT_KEY = 'runtimeCapabilities'
 
 export type TRuntimeCapabilitiesSelection = {
-	mode: 'allowlist'
-	skills: {
-		workspaceId?: string
-		ids: string[]
-	}
-	plugins: {
-		nodeKeys: string[]
-	}
-	subAgents: {
-		nodeKeys: string[]
-	}
+    mode: 'allowlist'
+} & TRuntimeCapabilitiesSelectionSet
+
+export type TRuntimeCapabilitiesSelectionSet = {
+    skills: {
+        workspaceId?: string
+        ids: string[]
+    }
+    plugins: {
+        nodeKeys: string[]
+    }
+    subAgents: {
+        nodeKeys: string[]
+    }
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-	return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
+export type TRuntimeCapabilitiesSelectionWithRecommended = TRuntimeCapabilitiesSelection & {
+    recommended?: TRuntimeCapabilitiesSelectionSet
 }
 
 function normalizeStringArray(value: unknown): string[] {
-	if (!Array.isArray(value)) {
-		return []
-	}
+    if (!Array.isArray(value)) {
+        return []
+    }
 
-	const seen = new Set<string>()
-	const result: string[] = []
-	for (const item of value) {
-		if (typeof item !== 'string') {
-			continue
-		}
-		const normalized = item.trim()
-		if (!normalized || seen.has(normalized)) {
-			continue
-		}
-		seen.add(normalized)
-		result.push(normalized)
-	}
-	return result
+    const seen = new Set<string>()
+    const result: string[] = []
+    for (const item of value) {
+        if (typeof item !== 'string') {
+            continue
+        }
+        const normalized = item.trim()
+        if (!normalized || seen.has(normalized)) {
+            continue
+        }
+        seen.add(normalized)
+        result.push(normalized)
+    }
+    return result
 }
 
-export function normalizeRuntimeCapabilitiesSelection(value: unknown): TRuntimeCapabilitiesSelection | null {
-	const record = asRecord(value)
-	if (!record || record.mode !== 'allowlist') {
-		return null
-	}
+type RuntimeCapabilitiesSelectionCandidate = {
+    mode?: unknown
+    skills?: unknown
+    plugins?: unknown
+    subAgents?: unknown
+    recommended?: unknown
+}
 
-	const skills = asRecord(record.skills)
-	const plugins = asRecord(record.plugins)
-	const subAgents = asRecord(record.subAgents)
-	const workspaceId = typeof skills?.workspaceId === 'string' ? skills.workspaceId.trim() : ''
+type RuntimeCapabilitiesSelectionSetCandidate = {
+    skills?: unknown
+    plugins?: unknown
+    subAgents?: unknown
+}
 
-	return {
-		mode: 'allowlist',
-		skills: {
-			...(workspaceId ? { workspaceId } : {}),
-			ids: normalizeStringArray(skills?.ids)
-		},
-		plugins: {
-			nodeKeys: normalizeStringArray(plugins?.nodeKeys)
-		},
-		subAgents: {
-			nodeKeys: normalizeStringArray(subAgents?.nodeKeys)
-		}
-	}
+type SkillSelectionCandidate = {
+    workspaceId?: unknown
+    ids?: unknown
+}
+
+type NodeKeySelectionCandidate = {
+    nodeKeys?: unknown
+}
+
+type ChatStateCandidate = {
+    [STATE_VARIABLE_HUMAN]?: unknown
+}
+
+type HumanStateCandidate = {
+    [RUNTIME_CAPABILITIES_HUMAN_INPUT_KEY]?: unknown
+}
+
+function isObjectValue(value: unknown): value is object {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function toSelectionCandidate(value: unknown): RuntimeCapabilitiesSelectionCandidate | null {
+    return isObjectValue(value) ? (value as RuntimeCapabilitiesSelectionCandidate) : null
+}
+
+function toSelectionSetCandidate(value: unknown): RuntimeCapabilitiesSelectionSetCandidate | null {
+    return isObjectValue(value) ? (value as RuntimeCapabilitiesSelectionSetCandidate) : null
+}
+
+function toSkillSelectionCandidate(value: unknown): SkillSelectionCandidate | null {
+    return isObjectValue(value) ? (value as SkillSelectionCandidate) : null
+}
+
+function toNodeKeySelectionCandidate(value: unknown): NodeKeySelectionCandidate | null {
+    return isObjectValue(value) ? (value as NodeKeySelectionCandidate) : null
+}
+
+function normalizeSelectionSet(
+    value: RuntimeCapabilitiesSelectionSetCandidate,
+    fallbackWorkspaceId?: string
+): TRuntimeCapabilitiesSelectionSet {
+    const skills = toSkillSelectionCandidate(value.skills)
+    const plugins = toNodeKeySelectionCandidate(value.plugins)
+    const subAgents = toNodeKeySelectionCandidate(value.subAgents)
+    const workspaceId =
+        typeof skills?.workspaceId === 'string' && skills.workspaceId.trim()
+            ? skills.workspaceId.trim()
+            : fallbackWorkspaceId
+
+    return {
+        skills: {
+            ...(workspaceId ? { workspaceId } : {}),
+            ids: normalizeStringArray(skills?.ids)
+        },
+        plugins: {
+            nodeKeys: normalizeStringArray(plugins?.nodeKeys)
+        },
+        subAgents: {
+            nodeKeys: normalizeStringArray(subAgents?.nodeKeys)
+        }
+    }
+}
+
+function hasSelectionSet(selection?: TRuntimeCapabilitiesSelectionSet | null): boolean {
+    return Boolean(
+        selection &&
+        (selection.skills.ids.length > 0 ||
+            selection.plugins.nodeKeys.length > 0 ||
+            selection.subAgents.nodeKeys.length > 0)
+    )
+}
+
+function mergeSelectionSets(
+    ...selections: Array<TRuntimeCapabilitiesSelectionSet | null | undefined>
+): TRuntimeCapabilitiesSelectionSet {
+    const workspaceId = selections.find((selection) => selection?.skills.workspaceId)?.skills.workspaceId
+
+    return {
+        skills: {
+            ...(workspaceId ? { workspaceId } : {}),
+            ids: mergeStringLists(...selections.map((selection) => selection?.skills.ids))
+        },
+        plugins: {
+            nodeKeys: mergeStringLists(...selections.map((selection) => selection?.plugins.nodeKeys))
+        },
+        subAgents: {
+            nodeKeys: mergeStringLists(...selections.map((selection) => selection?.subAgents.nodeKeys))
+        }
+    }
+}
+
+export function normalizeRuntimeCapabilitiesSelection(
+    value: unknown
+): TRuntimeCapabilitiesSelectionWithRecommended | null {
+    const candidate = toSelectionCandidate(value)
+    if (!candidate || candidate.mode !== 'allowlist') {
+        return null
+    }
+
+    const available = normalizeSelectionSet(candidate)
+    const recommendedCandidate = toSelectionSetCandidate(candidate.recommended)
+    const recommended = recommendedCandidate
+        ? normalizeSelectionSet(recommendedCandidate, available.skills.workspaceId)
+        : null
+    const merged = mergeSelectionSets(available, recommended)
+
+    return {
+        mode: 'allowlist',
+        ...merged,
+        ...(hasSelectionSet(recommended) ? { recommended } : {})
+    }
 }
 
 export function mergeRuntimeCapabilitiesSelection(
-	current: TRuntimeCapabilitiesSelection | null | undefined,
-	next: TRuntimeCapabilitiesSelection | null | undefined
-): TRuntimeCapabilitiesSelection | null {
-	if (!current && !next) {
-		return null
-	}
+    current: TRuntimeCapabilitiesSelectionWithRecommended | null | undefined,
+    next: TRuntimeCapabilitiesSelectionWithRecommended | null | undefined
+): TRuntimeCapabilitiesSelectionWithRecommended | null {
+    if (!current && !next) {
+        return null
+    }
 
-	return {
-		mode: 'allowlist',
-		skills: {
-			...(current?.skills.workspaceId || next?.skills.workspaceId
-				? { workspaceId: current?.skills.workspaceId ?? next?.skills.workspaceId }
-				: {}),
-			ids: mergeStringLists(current?.skills.ids, next?.skills.ids)
-		},
-		plugins: {
-			nodeKeys: mergeStringLists(current?.plugins.nodeKeys, next?.plugins.nodeKeys)
-		},
-		subAgents: {
-			nodeKeys: mergeStringLists(current?.subAgents.nodeKeys, next?.subAgents.nodeKeys)
-		}
-	}
+    const recommended = mergeSelectionSets(current?.recommended, next?.recommended)
+    const merged = mergeSelectionSets(current, next, recommended)
+
+    return {
+        mode: 'allowlist',
+        ...merged,
+        ...(hasSelectionSet(recommended) ? { recommended } : {})
+    }
 }
 
-export function getRuntimeCapabilitiesFromState(value: unknown): TRuntimeCapabilitiesSelection | null {
-	const state = asRecord(value)
-	const human = asRecord(state?.[STATE_VARIABLE_HUMAN])
-	return normalizeRuntimeCapabilitiesSelection(human?.[RUNTIME_CAPABILITIES_HUMAN_INPUT_KEY])
+function getRuntimeCapabilitiesCandidateFromState(value: unknown): unknown {
+    if (!isObjectValue(value)) {
+        return null
+    }
+    const state = value as ChatStateCandidate
+    const human = state[STATE_VARIABLE_HUMAN]
+    if (!isObjectValue(human)) {
+        return null
+    }
+    return (human as HumanStateCandidate)[RUNTIME_CAPABILITIES_HUMAN_INPUT_KEY]
+}
+
+export function getRuntimeCapabilitiesFromState(value: unknown): TRuntimeCapabilitiesSelectionWithRecommended | null {
+    return normalizeRuntimeCapabilitiesSelection(getRuntimeCapabilitiesCandidateFromState(value))
 }
 
 export function hasExplicitRuntimeCapabilities(value: unknown): boolean {
-	const state = asRecord(value)
-	const human = asRecord(state?.[STATE_VARIABLE_HUMAN])
-	return normalizeRuntimeCapabilitiesSelection(human?.[RUNTIME_CAPABILITIES_HUMAN_INPUT_KEY]) !== null
+    return normalizeRuntimeCapabilitiesSelection(getRuntimeCapabilitiesCandidateFromState(value)) !== null
 }
 
-function mergeStringLists(left: string[] | undefined, right: string[] | undefined): string[] {
-	const seen = new Set<string>()
-	const result: string[] = []
-	for (const value of [...(left ?? []), ...(right ?? [])]) {
-		if (!value || seen.has(value)) {
-			continue
-		}
-		seen.add(value)
-		result.push(value)
-	}
-	return result
+function mergeStringLists(...lists: Array<string[] | undefined>): string[] {
+    const seen = new Set<string>()
+    const result: string[] = []
+    for (const value of lists.flatMap((list) => list ?? [])) {
+        if (!value || seen.has(value)) {
+            continue
+        }
+        seen.add(value)
+        result.push(value)
+    }
+    return result
 }

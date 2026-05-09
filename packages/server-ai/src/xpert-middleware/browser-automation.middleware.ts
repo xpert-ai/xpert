@@ -42,6 +42,61 @@ const HOST_PAGE_AUTOMATION_TOOL_NAMES = [
     'host_page_wait_for'
 ] as const
 
+const HOST_PAGE_TOOL_DISPLAY_MESSAGES = {
+    host_page_snapshot: {
+        en_US: 'Inspect the page',
+        zh_Hans: '查看页面'
+    },
+    host_page_click: {
+        en_US: 'Click the page',
+        zh_Hans: '点击页面'
+    },
+    host_page_fill: {
+        en_US: 'Fill a field',
+        zh_Hans: '填写字段'
+    },
+    host_page_press: {
+        en_US: 'Press a key',
+        zh_Hans: '按下按键'
+    },
+    host_page_select: {
+        en_US: 'Select an option',
+        zh_Hans: '选择选项'
+    },
+    host_page_scroll: {
+        en_US: 'Scroll the page',
+        zh_Hans: '滚动页面'
+    },
+    host_page_navigate: {
+        en_US: 'Navigate the page',
+        zh_Hans: '跳转页面'
+    },
+    host_page_hover: {
+        en_US: 'Hover over an element',
+        zh_Hans: '悬停到元素'
+    },
+    host_page_focus: {
+        en_US: 'Focus an element',
+        zh_Hans: '聚焦元素'
+    },
+    host_page_pointer: {
+        en_US: 'Operate the page by coordinates',
+        zh_Hans: '通过坐标操作页面'
+    },
+    host_page_screenshot: {
+        en_US: 'Capture a page screenshot',
+        zh_Hans: '截取页面截图'
+    },
+    host_page_wait_for: {
+        en_US: 'Wait for a page state',
+        zh_Hans: '等待页面状态'
+    },
+    [HOST_PAGE_WAIT_TOOL_NAME]: {
+        en_US: 'Wait for the page',
+        zh_Hans: '等待页面'
+    }
+} as const
+
 const configSchema = z.object({
     allowNavigation: z.boolean().default(true)
 })
@@ -158,7 +213,7 @@ function createTargetSchema(properties: object = {}, required: string[] = []) {
 const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_snapshot',
-        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, nearbyText, or coordinates from this result for later actions. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, structured form labels/group labels/select options, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, label, groupLabel, options, selectedLabel, nearbyText, or coordinates from this result for later actions. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
         schema: stringifySchema({
             type: 'object',
             additionalProperties: false,
@@ -229,9 +284,14 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
                 value: {
                     type: 'string',
                     description: 'Text to fill into the target element.'
+                },
+                message: {
+                    type: 'string',
+                    description:
+                        'Concise natural-language description of the intended fill target and value, shown as the ChatKit tool-call row label. For example: "Fill the Material field with 100000".'
                 }
             },
-            ['value']
+            ['value', 'message']
         )
     },
     {
@@ -563,10 +623,14 @@ const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
     'axRef',
     'role',
     'name',
+    'label',
+    'groupLabel',
     'tag',
     'text',
     'selector',
     'value',
+    'options',
+    'selectedLabel',
     'placeholder',
     'enabled',
     'visible',
@@ -940,6 +1004,7 @@ async function dispatchHostPageWaitToolMessage(
         toolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
         tool: HOST_PAGE_WAIT_TOOL_NAME,
         title: HOST_PAGE_WAIT_TOOL_NAME,
+        message: HOST_PAGE_TOOL_DISPLAY_MESSAGES[HOST_PAGE_WAIT_TOOL_NAME],
         input,
         ...overrides
     }).catch((error) => {
@@ -1032,6 +1097,7 @@ export class BrowserAutomationMiddleware extends ClientToolMiddleware {
                 {
                     clientTools: createClientTools(options),
                     displayToolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
+                    displayMessages: HOST_PAGE_TOOL_DISPLAY_MESSAGES,
                     emitToolMessages: true,
                     transformToolMessage: compactBrowserAutomationToolMessage
                 },

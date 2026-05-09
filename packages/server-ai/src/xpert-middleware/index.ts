@@ -1,4 +1,5 @@
 export * from './browser-automation.middleware'
 export * from './client-tool.middleware'
 export * from './human-in-the-loop.middleware'
+export * from './ralph-loop.middleware'
 export * from './xpert-middleware.module'

@@ -41,6 +41,7 @@ const contextSchema = z.object({
      */
     displayToolset: z.string().optional(),
     displayToolsetId: z.string().optional(),
+    displayMessages: z.record(z.unknown()).optional(),
     emitToolMessages: z.boolean().optional()
 })
 
@@ -201,9 +202,12 @@ function toToolMessage(message: ClientToolMessageInput | ToolMessage, toolCall: 
     })
 }
 
+type ClientToolDisplayMessage = string | Record<string, string>
+
 type ClientToolDisplayConfig = {
     displayToolset?: string
     displayToolsetId?: string
+    displayMessages?: Record<string, ClientToolDisplayMessage>
 }
 
 type ClientToolStepStatus = 'running' | 'success' | 'fail'
@@ -228,14 +232,43 @@ function getToolCallDisplayId(toolCall: ToolCall): string {
     return `${toolCall.name}:${stringifyValue(toolCall.args)}`
 }
 
-function getToolCallDisplayMessage(toolCall: ToolCall): string | undefined {
+function readDisplayMessage(value: unknown): ClientToolDisplayMessage | undefined {
+    if (typeof value === 'string' && value.trim()) {
+        return value.trim()
+    }
+
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined
+    }
+
+    const entries = Object.entries(value)
+        .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0)
+        .map(([key, message]) => [key, message.trim()] as const)
+
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined
+}
+
+function normalizeDisplayMessages(
+    value: Record<string, unknown> | undefined
+): Record<string, ClientToolDisplayMessage> | undefined {
+    if (!value) {
+        return undefined
+    }
+
+    const entries = Object.entries(value)
+        .map(([toolName, message]) => [toolName, readDisplayMessage(message)] as const)
+        .filter((entry): entry is [string, ClientToolDisplayMessage] => entry[1] !== undefined)
+
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined
+}
+
+function getToolCallDisplayMessage(toolCall: ToolCall): ClientToolDisplayMessage | undefined {
     const args = toolCall.args
     if (!args || typeof args !== 'object' || Array.isArray(args)) {
         return undefined
     }
 
-    const message = Reflect.get(args, 'message')
-    return typeof message === 'string' && message.trim() ? message.trim() : undefined
+    return readDisplayMessage(Reflect.get(args, 'message'))
 }
 
 function mapClientToolStatus(status: ClientToolMessageInput['status'] | ToolMessage['status']): ClientToolStepStatus {
@@ -259,7 +292,7 @@ async function dispatchClientToolStepEvent({
         displayConfig.displayToolset ?? readStringField(runtimeMetadata, ['toolset']) ?? CLIENT_TOOL_MIDDLEWARE_NAME
     const toolsetId = displayConfig.displayToolsetId ?? readStringField(runtimeMetadata, ['toolsetId'])
     const title = readStringField(runtimeMetadata, ['toolName', toolName]) ?? toolName
-    const message = getToolCallDisplayMessage(toolCall)
+    const message = getToolCallDisplayMessage(toolCall) ?? displayConfig.displayMessages?.[toolName]
 
     const payload = {
         id: toolCallId,
@@ -444,7 +477,8 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                 const createdAt = new Date()
                 const displayConfig: ClientToolDisplayConfig = {
                     displayToolset: config.displayToolset,
-                    displayToolsetId: config.displayToolsetId
+                    displayToolsetId: config.displayToolsetId,
+                    displayMessages: normalizeDisplayMessages(config.displayMessages)
                 }
                 if (shouldEmitToolMessages) {
                     await dispatchClientToolStepEvent({
