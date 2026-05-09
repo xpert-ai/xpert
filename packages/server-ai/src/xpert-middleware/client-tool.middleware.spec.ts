@@ -408,7 +408,53 @@ describe('ClientToolMiddleware', () => {
         )
     })
 
-    it('rejects client responses without exactly one tool message', async () => {
+    it('selects the matching tool message from a batched client response', async () => {
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'other-call',
+                    name: 'client_tool',
+                    content: {
+                        ok: false
+                    },
+                    status: 'success'
+                },
+                {
+                    tool_call_id: 'client-call-1',
+                    name: 'client_tool',
+                    content: {
+                        ok: true
+                    },
+                    status: 'success'
+                }
+            ]
+        })
+
+        const middleware = await createClientToolAgentMiddleware()
+        const request = createToolCallRequest(middleware, {
+            type: 'tool_call',
+            id: 'client-call-1',
+            name: 'client_tool',
+            args: {}
+        })
+        const handler: ToolCallHandler = async () =>
+            new ToolMessage({
+                content: 'unused',
+                name: 'client_tool',
+                tool_call_id: 'client-call-1'
+            })
+
+        const result = await getWrapToolCall(middleware)(request, handler)
+
+        if (!(result instanceof ToolMessage)) {
+            throw new Error('Expected a ToolMessage result.')
+        }
+        expect(result.tool_call_id).toBe('client-call-1')
+        expect(result.content).toBe(JSON.stringify({ ok: true }))
+        expect(result.status).toBe('success')
+    })
+
+    it('rejects client responses without any tool messages', async () => {
         mockInterrupt.mockResolvedValue({
             toolMessages: []
         })
@@ -427,7 +473,7 @@ describe('ClientToolMiddleware', () => {
                 tool_call_id: 'client-call-1'
             })
 
-        await expect(getWrapToolCall(middleware)(request, handler)).rejects.toThrow('exactly one item')
+        await expect(getWrapToolCall(middleware)(request, handler)).rejects.toThrow('non-empty array')
     })
 
     it('rejects client responses with a mismatched tool_call_id', async () => {

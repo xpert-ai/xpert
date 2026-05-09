@@ -198,6 +198,39 @@ function toToolMessage(message: ClientToolMessageInput | ToolMessage, toolCall: 
     })
 }
 
+function getClientToolMessageToolCallId(message: ClientToolMessageInput | ToolMessage | undefined): string | undefined {
+    if (!message) {
+        return undefined
+    }
+
+    const toolCallId = Reflect.get(message, 'tool_call_id')
+    return typeof toolCallId === 'string' && toolCallId ? toolCallId : undefined
+}
+
+function selectClientToolMessage(toolMessages: unknown, toolCall: ToolCall): ClientToolMessageInput | ToolMessage {
+    if (!Array.isArray(toolMessages) || toolMessages.length === 0) {
+        throw new Error('Invalid ClientToolResponse: toolMessages must be a non-empty array')
+    }
+
+    const messages = toolMessages as Array<ClientToolMessageInput | ToolMessage>
+    if (toolMessages.length === 1) {
+        return messages[0]
+    }
+
+    if (!toolCall.id) {
+        throw new Error('Invalid ClientToolResponse: multiple toolMessages returned but the tool call has no id.')
+    }
+
+    const matches = messages.filter((message) => getClientToolMessageToolCallId(message) === toolCall.id)
+    if (matches.length !== 1) {
+        throw new Error(
+            `Invalid ClientToolResponse: expected exactly one toolMessage for tool_call_id "${toolCall.id}", received ${matches.length}.`
+        )
+    }
+
+    return matches[0]
+}
+
 type ClientToolDisplayMessage = string | Record<string, string>
 
 type ClientToolDisplayConfig = {
@@ -494,13 +527,7 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                     const response = (await interrupt(clientRequest)) as ClientToolResponse
                     const toolMessages = response?.toolMessages
 
-                    if (!Array.isArray(toolMessages) || toolMessages.length !== 1) {
-                        throw new Error(
-                            'Invalid ClientToolResponse: toolMessages must be an array with exactly one item'
-                        )
-                    }
-
-                    const message = toolMessages[0]
+                    const message = selectClientToolMessage(toolMessages, request.toolCall)
                     if (message?.tool_call_id && request.toolCall.id && message.tool_call_id !== request.toolCall.id) {
                         throw new Error(
                             `Invalid ClientToolResponse: tool_call_id "${message.tool_call_id}" does not match "${request.toolCall.id}".`
