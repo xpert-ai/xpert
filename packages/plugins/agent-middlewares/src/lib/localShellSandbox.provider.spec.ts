@@ -65,6 +65,55 @@ describe('LocalShellSandbox', () => {
     mockSpawnPty.mockReset()
   })
 
+  it('uploads and downloads absolute file paths without nesting them under the working directory', async () => {
+    const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-sandbox-'))
+    const absoluteFilePath = path.join(workingDirectory, '.xpert', 'skills', 'skill-a', 'SKILL.md')
+    const wronglyNestedPath = path.join(workingDirectory, absoluteFilePath)
+    const sandbox = new LocalShellSandbox({ workingDirectory })
+
+    try {
+      const uploadResult = await sandbox.uploadFiles([[absoluteFilePath, Buffer.from('skill body', 'utf8')]])
+
+      expect(uploadResult).toEqual([{ path: absoluteFilePath, error: null }])
+      expect(fs.readFileSync(absoluteFilePath, 'utf8')).toBe('skill body')
+      expect(fs.existsSync(wronglyNestedPath)).toBe(false)
+
+      const downloadResult = await sandbox.downloadFiles([absoluteFilePath])
+      expect(Buffer.from(downloadResult[0].content ?? []).toString('utf8')).toBe('skill body')
+      expect(downloadResult[0].error).toBeNull()
+    } finally {
+      fs.rmSync(workingDirectory, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects upload and download paths outside the working directory', async () => {
+    const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-sandbox-'))
+    const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-outside-'))
+    const outsidePath = path.join(outsideRoot, 'SKILL.md')
+    const sandbox = new LocalShellSandbox({ workingDirectory })
+
+    try {
+      const uploadResult = await sandbox.uploadFiles([
+        [outsidePath, Buffer.from('outside', 'utf8')],
+        ['../outside-relative.txt', Buffer.from('outside', 'utf8')]
+      ])
+      expect(uploadResult).toEqual([
+        { path: outsidePath, error: 'invalid_path' },
+        { path: '../outside-relative.txt', error: 'invalid_path' }
+      ])
+      expect(fs.existsSync(outsidePath)).toBe(false)
+
+      const downloadResult = await sandbox.downloadFiles([outsidePath, '../outside-relative.txt'])
+      expect(downloadResult).toEqual([
+        { path: outsidePath, content: null, error: 'invalid_path' },
+        { path: '../outside-relative.txt', content: null, error: 'invalid_path' }
+      ])
+    } finally {
+      fs.rmSync(workingDirectory, { recursive: true, force: true })
+      fs.rmSync(outsideRoot, { recursive: true, force: true })
+    }
+  })
+
   it('terminates timed out commands and prevents detached children from continuing', async () => {
     const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-sandbox-'))
     const markerPath = path.join(workingDirectory, 'still-running.txt')
@@ -362,7 +411,7 @@ describe('LocalShellSandbox', () => {
         this.headers.set(name.toLowerCase(), value)
       },
       end(chunk?: string | Buffer) {
-        this.body = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk ?? ''
+        this.body = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : (chunk ?? '')
         this.headersSent = true
       },
       statusCode: 200
