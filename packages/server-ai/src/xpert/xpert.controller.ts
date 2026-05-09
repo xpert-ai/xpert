@@ -118,9 +118,9 @@ import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { EnvironmentService } from '../environment'
 import { XpertDeleteCommand } from './commands/delete.command'
-import { EnqueueAgentChatMessageCommand } from '../handoff/commands'
-import { XPERT_HANDOFF_QUEUE } from '../handoff/constants'
-import { AGENT_CHAT_MESSAGE_TYPE } from '../handoff/local-sync-task.service'
+import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE, AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
+import { HandoffQueueService } from '../handoff/message-queue.service'
+import { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service'
 import { PromptWorkflowService } from '../prompt-workflow'
 
 @ApiTags('Xpert')
@@ -137,6 +137,8 @@ export class XpertController extends CrudController<Xpert> {
         private readonly secretTokenService: SecretTokenService,
         private readonly i18n: I18nService,
         private readonly promptWorkflowService: PromptWorkflowService,
+        private readonly handoffQueue: HandoffQueueService,
+        private readonly agentChatRealtime: AgentChatRealtimeService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {
@@ -497,10 +499,7 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Get(':id/memory/file')
-    async getMemoryFile(
-        @Param('id', UUIDValidationPipe) id: string,
-        @Query('path') path: string
-    ) {
+    async getMemoryFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return await this.service.getMemoryFile(id, path)
     }
 
@@ -530,10 +529,7 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Delete(':id/memory/file')
-    async deleteMemoryFile(
-        @Param('id', UUIDValidationPipe) id: string,
-        @Query('path') path: string
-    ) {
+    async deleteMemoryFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return await this.service.deleteMemoryFile(id, path)
     }
 
@@ -1141,26 +1137,46 @@ export class XpertController extends CrudController<Xpert> {
     ) {
         const queueTaskId = `xpert-chat-${uuidv4()}`
         const sessionKey = request.conversationId ?? options.messageId ?? queueTaskId
+        const tenantId = RequestContext.currentTenantId()
+        if (!tenantId) {
+            throw new Error(`Missing tenantId for xpert chat handoff task "${queueTaskId}"`)
+        }
 
-        return this.commandBus.execute(
-            new EnqueueAgentChatMessageCommand(
-                {
-                    id: queueTaskId,
-                    messageType: AGENT_CHAT_MESSAGE_TYPE,
-                    tenantId: RequestContext.currentTenantId(),
-                    organizationId: RequestContext.getOrganizationId(),
-                    userId: RequestContext.currentUserId(),
-                    sessionKey,
-                    conversationId: request.conversationId,
-                    executionId: options.execution?.id,
-                    source: 'chat',
-                    queueName: XPERT_HANDOFF_QUEUE,
-                    businessKey: sessionKey,
-                    traceId: options.messageId ?? queueTaskId
+        const organizationId = RequestContext.getOrganizationId()
+        const userId = RequestContext.currentUserId()
+        const language = RequestContext.getLanguageCode() ?? options.language
+        const now = Date.now()
+        const message: HandoffMessage<AgentChatDispatchPayload> = {
+            id: queueTaskId,
+            type: AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
+            version: 1,
+            tenantId,
+            sessionKey,
+            businessKey: sessionKey,
+            attempt: 1,
+            maxAttempts: 1,
+            enqueuedAt: now,
+            traceId: options.messageId ?? queueTaskId,
+            payload: {
+                request,
+                options,
+                callback: {
+                    transport: 'redis-pubsub'
                 },
-                async () => this.commandBus.execute(new XpertChatCommand(request, options))
-            )
-        )
+                ...(options.execution?.id ? { executionId: options.execution.id } : {})
+            },
+            headers: {
+                ...(organizationId ? { organizationId } : {}),
+                ...(userId ? { userId } : {}),
+                ...(language ? { language } : {}),
+                ...(request.conversationId ? { conversationId: request.conversationId } : {}),
+                source: 'chat'
+            }
+        }
+
+        return this.agentChatRealtime.createStream(queueTaskId, async () => {
+            await this.handoffQueue.enqueue(message)
+        })
     }
 
     // Statistics

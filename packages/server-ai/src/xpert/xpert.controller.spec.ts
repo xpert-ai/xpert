@@ -31,8 +31,10 @@ jest.mock('@xpert-ai/server-core', () => ({
         currentTenantId: jest.fn(),
         currentUser: jest.fn(),
         currentUserId: jest.fn(),
+        getLanguageCode: jest.fn(),
         getOrganizationId: jest.fn()
     },
+    SecretTokenService: class {},
     TenantBaseEntity: class {},
     TenantOrganizationAwareCrudService: class {},
     TenantOrganizationBaseEntity: class {},
@@ -133,6 +135,18 @@ describe('XpertController', () => {
     let environmentService: {
         findOne: jest.Mock
     }
+    let handoffQueue: {
+        enqueue: jest.Mock
+    }
+    let agentChatRealtime: {
+        createStream: jest.Mock
+    }
+    let commandBus: {
+        execute: jest.Mock
+    }
+    let queryBus: {
+        execute: jest.Mock
+    }
 
     beforeEach(() => {
         xpertService = {
@@ -141,22 +155,41 @@ describe('XpertController', () => {
         environmentService = {
             findOne: jest.fn()
         }
+        handoffQueue = {
+            enqueue: jest.fn()
+        }
+        agentChatRealtime = {
+            createStream: jest.fn()
+        }
+        commandBus = {
+            execute: jest.fn()
+        }
+        queryBus = {
+            execute: jest.fn()
+        }
 
         controller = new XpertController(
             xpertService as unknown as XpertService,
             {} as unknown as CopilotStoreService,
             environmentService as unknown as EnvironmentService,
             {} as unknown as UserService,
+            {} as any,
             {} as unknown as I18nService,
             {} as any,
-            { execute: jest.fn() } as unknown as CommandBus,
-            { execute: jest.fn() } as unknown as QueryBus
+            handoffQueue as any,
+            agentChatRealtime as any,
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus
         )
         ;(RequestContext.currentRequest as jest.Mock).mockReturnValue({
             cookies: {
                 'anonymous.id': 'anonymous-user-1'
             }
         })
+        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        ;(RequestContext.getLanguageCode as jest.Mock).mockReturnValue(LanguagesEnum.English)
     })
 
     afterEach(() => {
@@ -209,6 +242,73 @@ describe('XpertController', () => {
                 messageId: 'message-1',
                 timeZone: 'Asia/Shanghai',
                 xpertId: 'xpert-1'
+            })
+        )
+    })
+
+    it('enqueues xpert chat through distributed handoff dispatch and realtime stream', async () => {
+        const request: TChatRequest = {
+            action: 'send',
+            conversationId: 'conversation-1',
+            message: {
+                input: {
+                    input: 'Hello through handoff'
+                }
+            }
+        }
+        const realtime$ = new Observable<unknown>()
+        const controllerAccess = controller as unknown as ControllerPrivateAccess
+
+        handoffQueue.enqueue.mockResolvedValue(undefined)
+        agentChatRealtime.createStream.mockImplementation((_runId: string, start: () => Promise<void>) => {
+            void start()
+            return realtime$
+        })
+
+        const result = await controllerAccess.enqueueXpertChatTask(request, {
+            messageId: 'message-1',
+            xpertId: 'xpert-1',
+            language: LanguagesEnum.English,
+            execution: { id: 'execution-1' }
+        })
+
+        expect(result).toBe(realtime$)
+        expect(agentChatRealtime.createStream).toHaveBeenCalledWith(
+            expect.stringMatching(/^xpert-chat-/),
+            expect.any(Function)
+        )
+        expect(handoffQueue.enqueue).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+
+        const message = handoffQueue.enqueue.mock.calls[0][0]
+        expect(message).toEqual(
+            expect.objectContaining({
+                id: expect.stringMatching(/^xpert-chat-/),
+                type: 'agent.chat_dispatch.v1',
+                version: 1,
+                tenantId: 'tenant-1',
+                sessionKey: 'conversation-1',
+                businessKey: 'conversation-1',
+                maxAttempts: 1,
+                traceId: 'message-1',
+                payload: expect.objectContaining({
+                    request,
+                    options: expect.objectContaining({
+                        messageId: 'message-1',
+                        xpertId: 'xpert-1'
+                    }),
+                    callback: {
+                        transport: 'redis-pubsub'
+                    },
+                    executionId: 'execution-1'
+                }),
+                headers: expect.objectContaining({
+                    organizationId: 'org-1',
+                    userId: 'user-1',
+                    language: LanguagesEnum.English,
+                    conversationId: 'conversation-1',
+                    source: 'chat'
+                })
             })
         )
     })
