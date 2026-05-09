@@ -1,127 +1,156 @@
 import {
-	IChatConversation,
-	IChatMessage,
-	IChatMessageFeedback,
-	TChatConversationOptions,
-	TChatConversationStatus,
-	TChatFrom,
-	TSensitiveOperation
+    IChatConversation,
+    IChatMessage,
+    IChatMessageFeedback,
+    TChatConversationOptions,
+    TChatConversationStatus,
+    TChatFrom,
+    TSensitiveOperation
 } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
+import {
+    normalizeRuntimeCapabilitiesSelection,
+    type TRuntimeCapabilitiesSelectionWithRecommended
+} from '../../shared/agent/runtime-capabilities'
+
+type ChatMessageThirdPartyMetadata = {
+    runtimeCapabilities?: unknown
+}
+
+function isObjectValue(value: unknown): value is object {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function readRuntimeCapabilitiesMetadata(value: unknown): unknown {
+    if (!isObjectValue(value) || !('runtimeCapabilities' in value)) {
+        return undefined
+    }
+
+    return (value as ChatMessageThirdPartyMetadata).runtimeCapabilities
+}
 
 @Exclude()
 export class ConversationDTO {
-	@Expose()
-	id: string
+    @Expose()
+    id: string
 
-	@Expose()
-	threadId: string
+    @Expose()
+    threadId: string
 
-	@Expose()
-	title?: string
+    @Expose()
+    title?: string
 
-	@Expose()
-	status?: TChatConversationStatus
+    @Expose()
+    status?: TChatConversationStatus
 
-	@Expose()
-	from?: TChatFrom
+    @Expose()
+    from?: TChatFrom
 
-	@Expose()
-	fromEndUserId?: string
+    @Expose()
+    fromEndUserId?: string
 
-	@Expose()
-	options?: TChatConversationOptions
+    @Expose()
+    options?: TChatConversationOptions
 
-	@Expose()
-	error?: string
+    @Expose()
+    error?: string
 
-	@Expose()
-	operation?: TSensitiveOperation
+    @Expose()
+    operation?: TSensitiveOperation
 
-	@Expose()
-	xpertId?: string
+    @Expose()
+    xpertId?: string
 
-	@Expose()
-	projectId?: string
+    @Expose()
+    projectId?: string
 
-	@Expose()
-	taskId?: string
+    @Expose()
+    taskId?: string
 
-	@Expose()
-	createdAt?: Date
+    @Expose()
+    createdAt?: Date
 
-	@Expose()
-	updatedAt?: Date
+    @Expose()
+    updatedAt?: Date
 
-	constructor(partial: Partial<IChatConversation>) {
-		Object.assign(this, partial)
-	}
+    constructor(partial: Partial<IChatConversation>) {
+        Object.assign(this, partial)
+    }
 }
 
 @Exclude()
 export class ChatMessageDTO {
-	@Expose()
-	id: string
+    @Expose()
+    id: string
 
-	@Expose()
-	conversationId?: string
+    @Expose()
+    conversationId?: string
 
-	@Expose()
-	role?: IChatMessage['role']
+    @Expose()
+    role?: IChatMessage['role']
 
-	@Expose()
-	content?: IChatMessage['content']
+    @Expose()
+    content?: IChatMessage['content']
 
-	@Expose()
-	reasoning?: IChatMessage['reasoning']
+    @Expose()
+    reasoning?: IChatMessage['reasoning']
 
-	@Expose()
-	references?: IChatMessage['references']
+    @Expose()
+    references?: IChatMessage['references']
 
-	@Expose()
-	status?: IChatMessage['status']
+    @Expose()
+    status?: IChatMessage['status']
 
-	@Expose()
-	error?: string
+    @Expose()
+    error?: string
 
-	@Expose()
-	executionId?: string
+    @Expose()
+    executionId?: string
 
-	@Expose()
-	createdAt?: Date
+    @Expose()
+    createdAt?: Date
 
-	@Expose()
-	updatedAt?: Date
+    @Expose()
+    updatedAt?: Date
 
-	constructor(partial: Partial<IChatMessage>) {
-		Object.assign(this, partial)
-	}
+    @Expose()
+    runtimeCapabilities?: TRuntimeCapabilitiesSelectionWithRecommended
+
+    constructor(partial: Partial<IChatMessage>) {
+        Object.assign(this, partial)
+        const runtimeCapabilities = normalizeRuntimeCapabilitiesSelection(
+            readRuntimeCapabilitiesMetadata(partial.thirdPartyMessage)
+        )
+        if (runtimeCapabilities) {
+            this.runtimeCapabilities = runtimeCapabilities
+        }
+    }
 }
 
 @Exclude()
 export class ChatMessageFeedbackDTO {
-	@Expose()
-	id: string
+    @Expose()
+    id: string
 
-	@Expose()
-	conversationId?: string
+    @Expose()
+    conversationId?: string
 
-	@Expose()
-	messageId?: string
+    @Expose()
+    messageId?: string
 
-	@Expose()
-	rating?: IChatMessageFeedback['rating']
+    @Expose()
+    rating?: IChatMessageFeedback['rating']
 
-	@Expose()
-	content?: string
+    @Expose()
+    content?: string
 
-	@Expose()
-	createdAt?: Date
+    @Expose()
+    createdAt?: Date
 
-	@Expose()
-	updatedAt?: Date
+    @Expose()
+    updatedAt?: Date
 
-	constructor(partial: Partial<IChatMessageFeedback>) {
-		Object.assign(this, partial)
-	}
+    constructor(partial: Partial<IChatMessageFeedback>) {
+        Object.assign(this, partial)
+    }
 }

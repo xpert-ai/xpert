@@ -36,6 +36,61 @@ const HOST_PAGE_AUTOMATION_TOOL_NAMES = [
     'host_page_wait_for'
 ] as const
 
+const HOST_PAGE_TOOL_DISPLAY_MESSAGES = {
+    host_page_snapshot: {
+        en_US: 'Inspect the page',
+        zh_Hans: '查看页面'
+    },
+    host_page_click: {
+        en_US: 'Click the page',
+        zh_Hans: '点击页面'
+    },
+    host_page_fill: {
+        en_US: 'Fill a field',
+        zh_Hans: '填写字段'
+    },
+    host_page_press: {
+        en_US: 'Press a key',
+        zh_Hans: '按下按键'
+    },
+    host_page_select: {
+        en_US: 'Select an option',
+        zh_Hans: '选择选项'
+    },
+    host_page_scroll: {
+        en_US: 'Scroll the page',
+        zh_Hans: '滚动页面'
+    },
+    host_page_navigate: {
+        en_US: 'Navigate the page',
+        zh_Hans: '跳转页面'
+    },
+    host_page_hover: {
+        en_US: 'Hover over an element',
+        zh_Hans: '悬停到元素'
+    },
+    host_page_focus: {
+        en_US: 'Focus an element',
+        zh_Hans: '聚焦元素'
+    },
+    host_page_pointer: {
+        en_US: 'Operate the page by coordinates',
+        zh_Hans: '通过坐标操作页面'
+    },
+    host_page_screenshot: {
+        en_US: 'Capture a page screenshot',
+        zh_Hans: '截取页面截图'
+    },
+    host_page_wait_for: {
+        en_US: 'Wait for a page state',
+        zh_Hans: '等待页面状态'
+    },
+    [HOST_PAGE_WAIT_TOOL_NAME]: {
+        en_US: 'Wait for the page',
+        zh_Hans: '等待页面'
+    }
+} as const
+
 const configSchema = z.object({
     allowNavigation: z.boolean().default(true)
 })
@@ -119,11 +174,13 @@ const TARGET_PROPERTIES = {
     },
     x: {
         type: 'number',
-        description: 'Target tab page viewport CSS x coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
+        description:
+            'Target tab page viewport CSS x coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
     },
     y: {
         type: 'number',
-        description: 'Target tab page viewport CSS y coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
+        description:
+            'Target tab page viewport CSS y coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
     }
 }
 
@@ -146,8 +203,7 @@ function createTargetSchema(properties: object = {}, required: string[] = []) {
 const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_snapshot',
-        description:
-            `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, nearbyText, or coordinates from this result for later actions. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, structured form labels/group labels/select options, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, label, groupLabel, options, selectedLabel, nearbyText, or coordinates from this result for later actions. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
         schema: stringifySchema({
             type: 'object',
             additionalProperties: false,
@@ -155,7 +211,8 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
                 mode: {
                     type: 'string',
                     enum: ['fast', 'rich', 'vision'],
-                    description: 'Snapshot detail level. Use rich by default; use vision only when a screenshot is needed.'
+                    description:
+                        'Snapshot detail level. Use rich by default; use vision only when a screenshot is needed.'
                 },
                 maxElements: {
                     type: 'number',
@@ -180,31 +237,33 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     },
     {
         name: 'host_page_click',
-        description:
-            `Click the host page using Playwright-style targeting. Prefer ref or axRef from host_page_snapshot, then role/name, nearbyText-derived target choice, testId, selector, or coordinates. The browser extension uses real CDP mouse input when available. Do not repeatedly click the same target if the next snapshot does not change; use fill, press, wait_for, pointer, or screenshot instead. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
-        schema: createTargetSchema({
-            strategy: {
-                type: 'string',
-                enum: ['auto', 'dom', 'cdp_mouse', 'deepest_point', 'ancestor_actionable', 'label_control'],
-                description: 'Click strategy. Use auto unless a specific fallback is needed.'
+        description: `Click the host page using Playwright-style targeting. Prefer ref or axRef from host_page_snapshot, then role/name, nearbyText-derived target choice, testId, selector, or coordinates. The browser extension uses real CDP mouse input when available. Do not repeatedly click the same target if the next snapshot does not change; use fill, press, wait_for, pointer, or screenshot instead. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        schema: createTargetSchema(
+            {
+                strategy: {
+                    type: 'string',
+                    enum: ['auto', 'dom', 'cdp_mouse', 'deepest_point', 'ancestor_actionable', 'label_control'],
+                    description: 'Click strategy. Use auto unless a specific fallback is needed.'
+                },
+                button: {
+                    type: 'string',
+                    enum: ['left', 'middle', 'right'],
+                    description: 'Mouse button to click.'
+                },
+                clickCount: {
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 3,
+                    description: 'Number of clicks.'
+                },
+                message: {
+                    type: 'string',
+                    description:
+                        'Concise natural-language description of the intended click target, shown as the ChatKit tool-call row label. For example: "Click the top Execute toolbar button".'
+                }
             },
-            button: {
-                type: 'string',
-                enum: ['left', 'middle', 'right'],
-                description: 'Mouse button to click.'
-            },
-            clickCount: {
-                type: 'number',
-                minimum: 1,
-                maximum: 3,
-                description: 'Number of clicks.'
-            },
-            message: {
-                type: 'string',
-                description:
-                    'Concise natural-language description of the intended click target, shown as the ChatKit tool-call row label. For example: "Click the top Execute toolbar button".'
-            }
-        }, ['message'])
+            ['message']
+        )
     },
     {
         name: 'host_page_fill',
@@ -215,9 +274,14 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
                 value: {
                     type: 'string',
                     description: 'Text to fill into the target element.'
+                },
+                message: {
+                    type: 'string',
+                    description:
+                        'Concise natural-language description of the intended fill target and value, shown as the ChatKit tool-call row label. For example: "Fill the Material field with 100000".'
                 }
             },
-            ['value']
+            ['value', 'message']
         )
     },
     {
@@ -294,7 +358,8 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     },
     {
         name: 'host_page_hover',
-        description: 'Move the pointer over a host page target by ref, axRef, semantic target, selector, or coordinates.',
+        description:
+            'Move the pointer over a host page target by ref, axRef, semantic target, selector, or coordinates.',
         schema: createTargetSchema()
     },
     {
@@ -306,37 +371,40 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
         name: 'host_page_pointer',
         description:
             'Dispatch low-level pointer movement or button actions against the host page using viewport CSS coordinates. Use this after host_page_screenshot for SAP/Fiori/iframe pages when DOM/ref click did not change the page. Coordinates are relative to the captured page viewport, not the OS screen.',
-        schema: createTargetSchema({
-            action: {
-                type: 'string',
-                enum: ['move', 'down', 'up', 'click'],
-                description: 'Pointer action to perform.'
+        schema: createTargetSchema(
+            {
+                action: {
+                    type: 'string',
+                    enum: ['move', 'down', 'up', 'click'],
+                    description: 'Pointer action to perform.'
+                },
+                toX: {
+                    type: 'number',
+                    description: 'Destination viewport x coordinate for future drag-style clients.'
+                },
+                toY: {
+                    type: 'number',
+                    description: 'Destination viewport y coordinate for future drag-style clients.'
+                },
+                button: {
+                    type: 'string',
+                    enum: ['left', 'middle', 'right'],
+                    description: 'Mouse button to use.'
+                },
+                clickCount: {
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 3,
+                    description: 'Number of clicks for action=click.'
+                },
+                message: {
+                    type: 'string',
+                    description:
+                        'Concise natural-language description of the intended visual target, shown as the ChatKit tool-call row label. For example: "Click the bottom Execute button".'
+                }
             },
-            toX: {
-                type: 'number',
-                description: 'Destination viewport x coordinate for future drag-style clients.'
-            },
-            toY: {
-                type: 'number',
-                description: 'Destination viewport y coordinate for future drag-style clients.'
-            },
-            button: {
-                type: 'string',
-                enum: ['left', 'middle', 'right'],
-                description: 'Mouse button to use.'
-            },
-            clickCount: {
-                type: 'number',
-                minimum: 1,
-                maximum: 3,
-                description: 'Number of clicks for action=click.'
-            },
-            message: {
-                type: 'string',
-                description:
-                    'Concise natural-language description of the intended visual target, shown as the ChatKit tool-call row label. For example: "Click the bottom Execute button".'
-            }
-        }, ['message'])
+            ['message']
+        )
     },
     {
         name: 'host_page_screenshot',
@@ -383,7 +451,10 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
 export const BROWSER_AUTOMATION_CLIENT_TOOLS = CLIENT_TOOLS
 
 export const HOST_PAGE_AUTOMATION_CLIENT_TOOL_NAMES = HOST_PAGE_AUTOMATION_TOOL_NAMES
-export const BROWSER_AUTOMATION_TOOL_NAMES = [...HOST_PAGE_AUTOMATION_CLIENT_TOOL_NAMES, HOST_PAGE_WAIT_TOOL_NAME] as const
+export const BROWSER_AUTOMATION_TOOL_NAMES = [
+    ...HOST_PAGE_AUTOMATION_CLIENT_TOOL_NAMES,
+    HOST_PAGE_WAIT_TOOL_NAME
+] as const
 
 function createClientTools(options?: unknown): ClientToolDefinition[] {
     const allowNavigation = options && typeof options === 'object' ? Reflect.get(options, 'allowNavigation') : undefined
@@ -430,7 +501,11 @@ function findReadyToolCallSet(messages: BaseMessage[]): ReadyToolCallSet | null 
 
             const expectedToolCallIds = new Set(toolCalls.map((toolCall) => toolCall.id).filter(Boolean))
             const toolMessagesById = trailingToolMessages.reduce<Map<string, ToolMessage>>((map, toolMessage) => {
-                if (toolMessage.tool_call_id && expectedToolCallIds.has(toolMessage.tool_call_id) && !map.has(toolMessage.tool_call_id)) {
+                if (
+                    toolMessage.tool_call_id &&
+                    expectedToolCallIds.has(toolMessage.tool_call_id) &&
+                    !map.has(toolMessage.tool_call_id)
+                ) {
                     map.set(toolMessage.tool_call_id, toolMessage)
                 }
                 return map
@@ -581,7 +656,9 @@ function compactScreenshotToolMessage(message: ToolMessage, attachment: HostPage
     })
 }
 
-function prepareHostPageScreenshotModelRequest<TRequest extends { messages: BaseMessage[] }>(request: TRequest): TRequest {
+function prepareHostPageScreenshotModelRequest<TRequest extends { messages: BaseMessage[] }>(
+    request: TRequest
+): TRequest {
     const readyToolCallSet = findReadyToolCallSet(request.messages)
     if (!readyToolCallSet) {
         return request
@@ -654,10 +731,14 @@ async function dispatchHostPageWaitToolMessage(
         toolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
         tool: HOST_PAGE_WAIT_TOOL_NAME,
         title: HOST_PAGE_WAIT_TOOL_NAME,
+        message: HOST_PAGE_TOOL_DISPLAY_MESSAGES[HOST_PAGE_WAIT_TOOL_NAME],
         input,
         ...overrides
     }).catch((error) => {
-        console.warn('[BrowserAutomationMiddleware] dispatch wait tool message failed:', error instanceof Error ? error.message : String(error))
+        console.warn(
+            '[BrowserAutomationMiddleware] dispatch wait tool message failed:',
+            error instanceof Error ? error.message : String(error)
+        )
     })
 }
 
@@ -743,6 +824,7 @@ export class BrowserAutomationMiddleware extends ClientToolMiddleware {
                 {
                     clientTools: createClientTools(options),
                     displayToolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
+                    displayMessages: HOST_PAGE_TOOL_DISPLAY_MESSAGES,
                     emitToolMessages: true
                 },
                 context
@@ -755,7 +837,9 @@ export class BrowserAutomationMiddleware extends ClientToolMiddleware {
             tools: [...(middleware.tools ?? []), createHostPageWaitTool()],
             wrapModelCall: async (request, handler) => {
                 const preparedRequest = prepareHostPageScreenshotModelRequest(request)
-                return middleware.wrapModelCall ? middleware.wrapModelCall(preparedRequest, handler) : handler(preparedRequest)
+                return middleware.wrapModelCall
+                    ? middleware.wrapModelCall(preparedRequest, handler)
+                    : handler(preparedRequest)
             }
         }
     }

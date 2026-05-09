@@ -5,12 +5,12 @@ import { BaseRetriever } from '@langchain/core/retrievers'
 import { ensureConfig, RunnableConfig } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import {
-	ChatMessageEventTypeEnum,
-	DocumentMetadata,
-	STANDARD_METADATA_FIELDS,
-	TKBRecallParams,
-	TKBRetrievalSettings,
-	TWFCase
+    ChatMessageEventTypeEnum,
+    DocumentMetadata,
+    STANDARD_METADATA_FIELDS,
+    TKBRecallParams,
+    TKBRetrievalSettings,
+    TWFCase
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
@@ -25,100 +25,100 @@ import { KnowledgebaseGetOneQuery, KnowledgeSearchQuery } from './queries'
  * Docs Retriever for signle Knowledgebase
  */
 export class KnowledgeRetriever extends BaseRetriever {
-	lc_namespace = ['xpert', 'knowledgenase']
+    lc_namespace = ['xpert', 'knowledgenase']
 
-	readonly #logger = new Logger(KnowledgeRetriever.name)
+    readonly #logger = new Logger(KnowledgeRetriever.name)
 
-	tenantId: string
-	organizationId: string
+    tenantId: string
+    organizationId: string
 
-	constructor(
-		private readonly queryBus: QueryBus,
-		private readonly knowledgebaseId: string,
-		private readonly options?: {
-			recall: TKBRecallParams
-			retrieval?: TKBRetrievalSettings
-		}
-	) {
-		super()
-	}
+    constructor(
+        private readonly queryBus: QueryBus,
+        private readonly knowledgebaseId: string,
+        private readonly options?: {
+            recall: TKBRecallParams
+            retrieval?: TKBRetrievalSettings
+        }
+    ) {
+        super()
+    }
 
-	async invoke(
-		query: string,
-		config?: RunnableConfig<{
-			filter?: Record<string, any>
-		}>
-	): Promise<DocumentInterface[]> {
-		const parsedConfig = ensureConfig(parseCallbackConfigArg(config))
-		this.#logger.debug(`Retrieving knowledge documents for query: ${query}`)
-		const callbackManager_ = await CallbackManager.configure(
-			parsedConfig.callbacks,
-			this.callbacks,
-			parsedConfig.tags,
-			this.tags,
-			parsedConfig.metadata,
-			this.metadata,
-			{ verbose: this.verbose }
-		)
-		const runManager = await callbackManager_?.handleRetrieverStart(
-			this.toJSON(),
-			query,
-			parsedConfig.runId,
-			undefined,
-			undefined,
-			undefined,
-			parsedConfig.runName
-		)
-		try {
-			let results = null
-			if (this.options?.retrieval?.metadata?.filtering_mode === 'manual') {
-				results = await this.retrieve(query, null, this.options.retrieval.metadata.filtering_conditions)
-			}
-			results = await this.retrieve(query, config?.configurable?.filter)
+    async invoke(
+        query: string,
+        config?: RunnableConfig<{
+            filter?: Record<string, any>
+        }>
+    ): Promise<DocumentInterface[]> {
+        const parsedConfig = ensureConfig(parseCallbackConfigArg(config))
+        this.#logger.debug(`Retrieving knowledge documents for query: ${query}`)
+        const callbackManager_ = await CallbackManager.configure(
+            parsedConfig.callbacks,
+            this.callbacks,
+            parsedConfig.tags,
+            this.tags,
+            parsedConfig.metadata,
+            this.metadata,
+            { verbose: this.verbose }
+        )
+        const runManager = await callbackManager_?.handleRetrieverStart(
+            this.toJSON(),
+            query,
+            parsedConfig.runId,
+            undefined,
+            undefined,
+            undefined,
+            parsedConfig.runName
+        )
+        try {
+            let results = null
+            if (this.options?.retrieval?.metadata?.filtering_mode === 'manual') {
+                results = await this.retrieve(query, null, this.options.retrieval.metadata.filtering_conditions)
+            }
+            results = await this.retrieve(query, config?.configurable?.filter)
 
-			await runManager?.handleRetrieverEnd(results)
-			return results
-		} catch (error) {
-			await runManager?.handleRetrieverError(error)
-			throw error
-		}
-	}
+            await runManager?.handleRetrieverEnd(results)
+            return results
+        } catch (error) {
+            await runManager?.handleRetrieverError(error)
+            throw error
+        }
+    }
 
-	async retrieve(query: string, filter?: Record<string, any>, filtering_conditions?: TWFCase): Promise<Document[]> {
-		this.metadata.knowledgebaseId = this.knowledgebaseId
+    async retrieve(query: string, filter?: Record<string, any>, filtering_conditions?: TWFCase): Promise<Document[]> {
+        this.metadata.knowledgebaseId = this.knowledgebaseId
 
-		try {
-			const results = await this.queryBus.execute<KnowledgeSearchQuery, DocumentInterface<DocumentMetadata>[]>(
-				new KnowledgeSearchQuery({
-					tenantId: this.tenantId,
-					organizationId: this.organizationId,
-					knowledgebases: this.knowledgebaseId ? [this.knowledgebaseId] : [],
-					query,
-					score: this.options?.recall.score,
-					k: this.options?.recall.topK,
-					source: 'retriever',
-					filter,
-					filtering_conditions
-				})
-			)
-			return results.map(
-				(doc) =>
-					instanceToPlain(
-						new DocumentChunkDTO({ ...doc, metadata: omit(doc.metadata, 'children') })
-					) as Document
-			)
-		} catch (error) {
-			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR, {
-				knowledgebaseId: this.knowledgebaseId,
-				error: getErrorMessage(error)
-			})
-			throw error
-		}
-	}
+        try {
+            const results = await this.queryBus.execute<KnowledgeSearchQuery, DocumentInterface<DocumentMetadata>[]>(
+                new KnowledgeSearchQuery({
+                    tenantId: this.tenantId,
+                    organizationId: this.organizationId,
+                    knowledgebases: this.knowledgebaseId ? [this.knowledgebaseId] : [],
+                    query,
+                    score: this.options?.recall.score,
+                    k: this.options?.recall.topK,
+                    source: 'retriever',
+                    filter,
+                    filtering_conditions
+                })
+            )
+            return results.map(
+                (doc) =>
+                    instanceToPlain(
+                        new DocumentChunkDTO({ ...doc, metadata: omit(doc.metadata, 'children') })
+                    ) as Document
+            )
+        } catch (error) {
+            await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR, {
+                knowledgebaseId: this.knowledgebaseId,
+                error: getErrorMessage(error)
+            })
+            throw error
+        }
+    }
 
-	async toTool(toolOptions?: { name?: string; description?: string }) {
-		const retrieval = this.options?.retrieval
-		/**
+    async toTool(toolOptions?: { name?: string; description?: string }) {
+        const retrieval = this.options?.retrieval
+        /**
 		 * retrieval is:
 		 * {
 			  metadata: {
@@ -127,106 +127,109 @@ export class KnowledgeRetriever extends BaseRetriever {
 			  }
 			}
 		 */
-		const knowledgebase = await this.queryBus.execute(
-			new KnowledgebaseGetOneQuery({
-				id: this.knowledgebaseId,
-				options: {
-					select: {
-						id: true,
-						name: true,
-						description: true,
-						metadataSchema: true
-					}
-				}
-			})
-		)
-		const schema: Record<string, z.ZodOptional<z.ZodTypeAny>> = {}
-		if (retrieval?.metadata?.filtering_mode === 'automatic') {
-			const filteringMetadataFields = retrieval.metadata?.fields
-			const filteringFields = Object.keys(filteringMetadataFields).map(
-				(field) =>
-					knowledgebase.metadataSchema?.find((_) => _.key === field) ??
-					STANDARD_METADATA_FIELDS.flatMap((group) => group.fields).find((_) => _.key === field)
-			)
-			for (const field of filteringFields) {
-				if (field) {
-					switch (field.type) {
-						case 'string':
-							schema[field.key] = z
-								.string()
-								.optional()
-								.describe(field.description || `Metadata field: ${field.key}`)
-							break
-						case 'number':
-							schema[field.key] = z
-								.number()
-								.optional()
-								.describe(field.description || `Metadata field: ${field.key}`)
-							break
-						case 'boolean':
-							schema[field.key] = z
-								.boolean()
-								.optional()
-								.describe(field.description || `Metadata field: ${field.key}`)
-							break
-						default:
-							schema[field.key] = z
-								.any()
-								.optional()
-								.describe(field.description || `Metadata field: ${field.key}`)
-					}
-				}
-			}
-		}
+        const knowledgebase = await this.queryBus.execute(
+            new KnowledgebaseGetOneQuery({
+                id: this.knowledgebaseId,
+                options: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        metadataSchema: true,
+                        workspaceId: true,
+                        tenantId: true,
+                        organizationId: true
+                    }
+                }
+            })
+        )
+        const schema: Record<string, z.ZodOptional<z.ZodTypeAny>> = {}
+        if (retrieval?.metadata?.filtering_mode === 'automatic') {
+            const filteringMetadataFields = retrieval.metadata?.fields
+            const filteringFields = Object.keys(filteringMetadataFields).map(
+                (field) =>
+                    knowledgebase.metadataSchema?.find((_) => _.key === field) ??
+                    STANDARD_METADATA_FIELDS.flatMap((group) => group.fields).find((_) => _.key === field)
+            )
+            for (const field of filteringFields) {
+                if (field) {
+                    switch (field.type) {
+                        case 'string':
+                            schema[field.key] = z
+                                .string()
+                                .optional()
+                                .describe(field.description || `Metadata field: ${field.key}`)
+                            break
+                        case 'number':
+                            schema[field.key] = z
+                                .number()
+                                .optional()
+                                .describe(field.description || `Metadata field: ${field.key}`)
+                            break
+                        case 'boolean':
+                            schema[field.key] = z
+                                .boolean()
+                                .optional()
+                                .describe(field.description || `Metadata field: ${field.key}`)
+                            break
+                        default:
+                            schema[field.key] = z
+                                .any()
+                                .optional()
+                                .describe(field.description || `Metadata field: ${field.key}`)
+                    }
+                }
+            }
+        }
 
-		return tool(
-			async (params) => {
-				const chunks = await this.invoke(params.input, {
-					configurable: {
-						filter: omit(params, 'input')
-					}
-				})
+        return tool(
+            async (params) => {
+                const chunks = await this.invoke(params.input, {
+                    configurable: {
+                        filter: omit(params, 'input')
+                    }
+                })
 
-				return chunks.map((chunk) => chunk.pageContent)
-			},
-			{
-				...toolOptions,
-				name: toolOptions?.name ?? `retriever-${this.knowledgebaseId}`,
-				description:
-					`Get knowledges from knowledgebase '${knowledgebase.name}', it be described by ` +
-					knowledgebase.description,
-				schema: z.object({
-					...schema,
-					input: z.string().describe(`key information of question`)
-				})
-			}
-		)
-	}
+                return chunks.map((chunk) => chunk.pageContent)
+            },
+            {
+                ...toolOptions,
+                name: toolOptions?.name ?? `retriever-${this.knowledgebaseId}`,
+                description:
+                    `Get knowledges from knowledgebase '${knowledgebase.name}', it be described by ` +
+                    knowledgebase.description,
+                schema: z.object({
+                    ...schema,
+                    input: z.string().describe(`key information of question`)
+                })
+            }
+        )
+    }
 }
 
 export function createKnowledgeRetriever(
-	queryBus: QueryBus,
-	knowledgebaseId: string,
-	options?: {
-		recall: TKBRecallParams
-		retrieval?: TKBRetrievalSettings
-	}
+    queryBus: QueryBus,
+    knowledgebaseId: string,
+    options?: {
+        recall: TKBRecallParams
+        retrieval?: TKBRetrievalSettings
+    }
 ) {
-	class DynamicKnowledgeRetriever extends KnowledgeRetriever {
-		// To enable langchain to obtain the actual knowledgebaseId of the Retriever as the event name
-		static lc_name(): string {
-			return knowledgebaseId
-		}
-		constructor(
-			queryBus: QueryBus,
-			knowledgebaseId: string,
-			options?: {
-				recall: TKBRecallParams
-				retrieval?: TKBRetrievalSettings
-			}
-		) {
-			super(queryBus, knowledgebaseId, options)
-		}
-	}
-	return new DynamicKnowledgeRetriever(queryBus, knowledgebaseId, options) as KnowledgeRetriever
+    class DynamicKnowledgeRetriever extends KnowledgeRetriever {
+        // To enable langchain to obtain the actual knowledgebaseId of the Retriever as the event name
+        static lc_name(): string {
+            return knowledgebaseId
+        }
+        constructor(
+            queryBus: QueryBus,
+            knowledgebaseId: string,
+            options?: {
+                recall: TKBRecallParams
+                retrieval?: TKBRetrievalSettings
+            }
+        ) {
+            super(queryBus, knowledgebaseId, options)
+        }
+    }
+    return new DynamicKnowledgeRetriever(queryBus, knowledgebaseId, options) as KnowledgeRetriever
 }

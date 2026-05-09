@@ -23,7 +23,12 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
 
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { ChatMessageEventTypeEnum, IWFNMiddleware, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { AgentMiddleware, AgentMiddlewareRuntimeApi, IAgentMiddlewareContext, JsonSchemaValidator } from '@xpert-ai/plugin-sdk'
+import {
+    AgentMiddleware,
+    AgentMiddlewareRuntimeApi,
+    IAgentMiddlewareContext,
+    JsonSchemaValidator
+} from '@xpert-ai/plugin-sdk'
 import {
     BrowserAutomationMiddleware,
     BROWSER_AUTOMATION_TOOL_NAMES,
@@ -133,11 +138,13 @@ describe('BrowserAutomationMiddleware', () => {
 
     it('exposes rich browser automation targeting schemas', () => {
         const clickTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_click')
+        const fillTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_fill')
         const screenshotTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_screenshot')
         const pointerTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_pointer')
         const waitForTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_wait_for')
 
         expect(clickTool).toBeDefined()
+        expect(fillTool).toBeDefined()
         expect(screenshotTool).toBeDefined()
         expect(pointerTool).toBeDefined()
         expect(waitForTool).toBeDefined()
@@ -156,6 +163,13 @@ describe('BrowserAutomationMiddleware', () => {
             })
         )
         expect(clickSchema.required).toContain('message')
+        const fillSchema = JSON.parse(fillTool?.schema ?? '{}')
+        expect(fillSchema.properties.message).toEqual(
+            expect.objectContaining({
+                type: 'string'
+            })
+        )
+        expect(fillSchema.required).toEqual(expect.arrayContaining(['value', 'message']))
         const pointerSchema = JSON.parse(pointerTool?.schema ?? '{}')
         expect(pointerSchema.properties.button).toEqual(
             expect.objectContaining({
@@ -175,6 +189,72 @@ describe('BrowserAutomationMiddleware', () => {
             })
         )
         expect(pointerSchema.required).toContain('message')
+    })
+
+    it('emits default localized display messages for host page tools without model messages', async () => {
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'host-call-1',
+                    content: {
+                        ok: true
+                    },
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'host-call-1',
+                    name: 'host_page_screenshot',
+                    args: {
+                        format: 'png'
+                    }
+                },
+                tool: getFirstTool(middleware),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_screenshot',
+                    tool_call_id: 'host-call-1'
+                })
+        )
+
+        expect(mockDispatchCustomEvent).toHaveBeenNthCalledWith(
+            1,
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            expect.objectContaining({
+                tool: 'host_page_screenshot',
+                message: {
+                    en_US: 'Capture a page screenshot',
+                    zh_Hans: '截取页面截图'
+                },
+                status: 'running'
+            })
+        )
+        expect(mockDispatchCustomEvent).toHaveBeenNthCalledWith(
+            2,
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            expect.objectContaining({
+                tool: 'host_page_screenshot',
+                message: {
+                    en_US: 'Capture a page screenshot',
+                    zh_Hans: '截取页面截图'
+                },
+                status: 'success'
+            })
+        )
     })
 
     it('emits browser automation display metadata for host page tool calls', async () => {
@@ -270,6 +350,10 @@ describe('BrowserAutomationMiddleware', () => {
                     toolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
                     tool: HOST_PAGE_WAIT_TOOL_NAME,
                     title: HOST_PAGE_WAIT_TOOL_NAME,
+                    message: {
+                        en_US: 'Wait for the page',
+                        zh_Hans: '等待页面'
+                    },
                     status: 'running',
                     input: {
                         seconds: 3
@@ -288,6 +372,10 @@ describe('BrowserAutomationMiddleware', () => {
                     toolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
                     tool: HOST_PAGE_WAIT_TOOL_NAME,
                     title: HOST_PAGE_WAIT_TOOL_NAME,
+                    message: {
+                        en_US: 'Wait for the page',
+                        zh_Hans: '等待页面'
+                    },
                     status: 'success',
                     input: {
                         seconds: 3

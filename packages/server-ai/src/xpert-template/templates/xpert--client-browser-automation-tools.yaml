@@ -1,0 +1,204 @@
+team:
+    name: Client browser automation tools
+    type: agent
+    title: 客户端浏览器自动化工具
+    description: 自主操作客户端浏览器自动化工具
+    avatar: null
+    options:
+        position:
+            x: 698
+            y: 120
+        scale: 1
+        agent:
+            Agent_vCo6Ic4mHR:
+                position:
+                    x: -300
+                    y: 40
+            Agent_search:
+                position:
+                    x: -280
+                    y: 240
+        workflow:
+            Middleware_w46FnyICiD:
+                position:
+                    x: -300
+                    y: 280
+            Middleware_wkzdxcHTYU:
+                position:
+                    x: -580
+                    y: 280
+            Middleware_g1hZi8kL6o:
+                position:
+                    x: -20
+                    y: 280
+            Middleware_8wO9DRU5Fm:
+                position:
+                    x: 300
+                    y: 300
+            Middleware_iQyrC9eDiT:
+                position:
+                    x: -580
+                    y: 420
+            Middleware_vUhMB7sXTo:
+                position:
+                    x: -560
+                    y: 440
+            Middleware_XM9JqDN9Cx:
+                position:
+                    x: -560
+                    y: 440
+    agentConfig:
+        recursionLimit: 1000
+    memory: null
+    summarize: null
+    features:
+        attachment:
+            enabled: false
+        sandbox:
+            enabled: true
+            provider: local-shell-sandbox
+    version: '1'
+    agent:
+        key: Agent_vCo6Ic4mHR
+    copilotModel:
+        copilotId: 6cf9e2ec-e402-42cf-af80-e0b6e5a0fe18
+        referencedId: null
+        modelType: llm
+        model: qwen3.6-plus
+        options:
+            context_size: 1000000
+            temperature: 0.2
+            maxRetries: 6
+            max_tokens: 8192
+            top_p: 0.8
+            seed: 1234
+            repetition_penalty: 1.1
+            enable_search: false
+            enable_thinking: false
+            thinking_budget: 2048
+    knowledgebases: []
+    toolsets: []
+    tags: []
+nodes:
+    - type: agent
+      key: Agent_vCo6Ic4mHR
+      position:
+          x: -300
+          y: 40
+      entity:
+          key: Agent_vCo6Ic4mHR
+          name: ''
+          title: 主智能体
+          description: ''
+          avatar: null
+          prompt: |-
+              你可以帮助用户操作他的浏览器完成他给的任务。
+              如果一个动作尝试多次失败后可以使用截图+点击功能实现。
+          promptTemplates: null
+          parameters: null
+          outputVariables: null
+          options:
+              vision:
+                  enabled: true
+              attachment:
+                  enabled: false
+                  variable: null
+          copilotModel: null
+          leaderKey: null
+          collaboratorNames: []
+          toolsetIds: []
+          knowledgebaseIds: []
+      hash: 2b50c505b27c181eeb52be7b167457e7e22b83682f40335d1cb0f89c30cc0dd6
+    - type: workflow
+      key: Middleware_w46FnyICiD
+      position:
+          x: -300
+          y: 280
+      entity:
+          type: middleware
+          key: Middleware_w46FnyICiD
+          title: 中间件
+          provider: browser-automation
+          required: true
+          options:
+              allowNavigation: true
+      hash: 653e0fe6a9a09eac61030fd3e922785fd3cade6b2d7a795439da4e01ace39aee
+    - type: workflow
+      key: Middleware_wkzdxcHTYU
+      position:
+          x: -620
+          y: 280
+      entity:
+          type: middleware
+          key: Middleware_wkzdxcHTYU
+          title: 中间件 2
+          provider: LoopGuardMiddleware
+          options:
+              warnThreshold: 5
+              hardLimit: 15
+              windowSize: 20
+              onLoop: error
+          required: true
+      hash: 2867ba480d6c8d00f9a7cb9fe6f371fd278e4311c359328c000aaac462b804e9
+    - type: workflow
+      key: Middleware_g1hZi8kL6o
+      position:
+          x: 0
+          y: 280
+      entity:
+          type: middleware
+          key: Middleware_g1hZi8kL6o
+          title: 中间件 3
+          provider: FileMemorySystemMiddleware
+          required: true
+          options:
+              recall:
+                  mode: hybrid_async
+                  timeoutMs: 1500
+                  model:
+                      options:
+                          context_size: 1000000
+                          temperature: 0.2
+                          maxRetries: 6
+                          max_tokens: 8192
+                          top_p: 0.8
+                          seed: 1234
+                          repetition_penalty: 1.1
+                          enable_search: false
+                          enable_thinking: false
+                          thinking_budget: 2048
+                      model: qwen3.6-plus
+                      copilotId: 6cf9e2ec-e402-42cf-af80-e0b6e5a0fe18
+                      modelType: llm
+              writeback:
+                  waitPolicy: never_wait
+      hash: 18d58510933b347800db579f9347d61273e41d5e905ce36fffeefc9425919e0a
+    - type: workflow
+      key: Middleware_8wO9DRU5Fm
+      position:
+          x: 300
+          y: 280
+      entity:
+          type: middleware
+          key: Middleware_8wO9DRU5Fm
+          title: 中间件 4
+          provider: skillsMiddleware
+          required: true
+      hash: 0b6aba359dbb955269aa62a2ba6e87d8f65c08ac612bbd254cbf63d474a46ea7
+connections:
+    - type: workflow
+      key: Agent_vCo6Ic4mHR/Middleware_w46FnyICiD
+      from: Agent_vCo6Ic4mHR
+      to: Middleware_w46FnyICiD
+    - type: workflow
+      key: Agent_vCo6Ic4mHR/Middleware_wkzdxcHTYU
+      from: Agent_vCo6Ic4mHR
+      to: Middleware_wkzdxcHTYU
+    - type: workflow
+      key: Agent_vCo6Ic4mHR/Middleware_g1hZi8kL6o
+      from: Agent_vCo6Ic4mHR
+      to: Middleware_g1hZi8kL6o
+    - type: workflow
+      key: Agent_vCo6Ic4mHR/Middleware_8wO9DRU5Fm
+      from: Agent_vCo6Ic4mHR
+      to: Middleware_8wO9DRU5Fm

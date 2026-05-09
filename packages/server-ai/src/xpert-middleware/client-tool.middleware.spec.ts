@@ -24,7 +24,12 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
 import { ToolMessage } from '@langchain/core/messages'
 import type { ToolCall } from '@langchain/core/messages/tool'
 import { GraphInterrupt } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, IWFNMiddleware, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import {
+    ChatMessageEventTypeEnum,
+    ChatMessageStepCategory,
+    IWFNMiddleware,
+    WorkflowNodeTypeEnum
+} from '@xpert-ai/contracts'
 import {
     AgentMiddleware,
     AgentMiddlewareRuntimeApi,
@@ -74,12 +79,15 @@ function createContext(): IAgentMiddlewareContext {
     }
 }
 
-async function createClientToolAgentMiddleware(options: { emitToolMessages?: boolean } = {}) {
+async function createClientToolAgentMiddleware(
+    options: { emitToolMessages?: boolean; displayMessages?: Record<string, unknown> } = {}
+) {
     const strategy = new ClientToolMiddleware()
     return Promise.resolve(
         strategy.createMiddleware(
             {
                 ...(options.emitToolMessages ? { emitToolMessages: true } : {}),
+                ...(options.displayMessages ? { displayMessages: options.displayMessages } : {}),
                 clientTools: [
                     {
                         name: 'client_tool',
@@ -292,6 +300,61 @@ describe('ClientToolMiddleware', () => {
                 },
                 created_date: expect.any(Date),
                 end_date: null
+            })
+        )
+    })
+
+    it('emits configured localized message labels when tool args omit message', async () => {
+        const localizedMessage = {
+            en_US: 'Run client action',
+            zh_Hans: '执行客户端操作'
+        }
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'client-call-1',
+                    name: 'client_tool',
+                    content: {
+                        ok: true
+                    },
+                    status: 'success'
+                }
+            ]
+        })
+        const middleware = await createClientToolAgentMiddleware({
+            emitToolMessages: true,
+            displayMessages: {
+                client_tool: localizedMessage
+            }
+        })
+        const request = createToolCallRequest(middleware, {
+            type: 'tool_call',
+            id: 'client-call-1',
+            name: 'client_tool',
+            args: {
+                text: 'hello'
+            }
+        })
+        const handler: ToolCallHandler = async () => {
+            throw new Error('Client tool calls should not reach the original handler.')
+        }
+
+        await getWrapToolCall(middleware)(request, handler)
+
+        expect(mockDispatchCustomEvent).toHaveBeenNthCalledWith(
+            1,
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            expect.objectContaining({
+                message: localizedMessage,
+                status: 'running'
+            })
+        )
+        expect(mockDispatchCustomEvent).toHaveBeenNthCalledWith(
+            2,
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            expect.objectContaining({
+                message: localizedMessage,
+                status: 'success'
             })
         )
     })
