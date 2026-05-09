@@ -1375,7 +1375,7 @@ describe('RunCreateStreamHandler execute', () => {
             } as any
         )
 
-        const { stream } = await handler.execute({
+        const { stream, streamTransport } = await handler.execute({
             threadId: 'thread-1',
             runCreate: {
                 assistant_id: 'xpert-1',
@@ -1396,6 +1396,7 @@ describe('RunCreateStreamHandler execute', () => {
             }
         } as any)
 
+        expect(streamTransport).toBe('direct')
         await new Promise<void>((resolve, reject) => {
             stream.subscribe({
                 complete: () => resolve(),

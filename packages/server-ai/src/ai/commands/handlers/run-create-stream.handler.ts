@@ -517,7 +517,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         if (chatRequest.action === 'follow_up') {
             return {
                 execution,
-                stream: normalizedStream
+                stream: normalizedStream,
+                streamTransport: 'direct' as const
             }
         }
 
@@ -534,7 +535,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                         this.#logger.warn(`Failed to persist SSE complete event: ${error}`)
                     })
                 })
-            )
+            ),
+            streamTransport: 'redis' as const
         }
     }
 }
