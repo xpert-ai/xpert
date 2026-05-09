@@ -13,100 +13,21 @@
         (click)="fileDropRef.value = null"
       />
 
-      @if (showFollowUpTray()) {
+      @if (pendingFollowUps().length) {
         <div class="px-8 pt-2 @[480px]/input:px-3">
-          <div class="follow-up-tray rounded-t-3xl border border-divider-regular bg-components-card-bg px-3 py-2.5 sm:px-4">
-            <div class="mb-2.5 flex items-center justify-between gap-2">
-              <div class="text-base font-semibold tracking-[-0.02em] text-text-primary">
-                {{ 'PAC.Chat.PendingFollowUp' | translate: { Default: 'Pending Follow-up' } }}
-              </div>
-
-              <button
-                type="button"
-                class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-divider-regular text-text-tertiary transition-colors hover:border-components-input-border-hover hover:bg-hover-bg hover:text-text-primary"
-                [cdkMenuTriggerFor]="followUpMenu"
-                [attr.aria-label]="'PAC.Chat.FollowUpSettings' | translate: { Default: 'Follow-up settings' }"
-              >
-                <i class="ri-equalizer-line"></i>
-              </button>
-            </div>
-
-            <div class="space-y-2.5">
-              @for (item of pendingFollowUps(); track item.id ?? $index) {
-                <div class="follow-up-item rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 py-1.5">
-                  <div class="flex items-start gap-2.5">
-                    <div class="pt-0.5 text-lg leading-none text-text-tertiary">
-                      <i class="ri-corner-down-left-line"></i>
-                    </div>
-
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-start gap-1.5">
-                        <div class="min-w-0 flex-1 text-sm font-medium truncate text-text-primary" [title]="item.content">
-                          {{ item.content }}
-                        </div>
-           
-                        @if (item.mode === 'queue') {
-                          <button
-                            type="button"
-                            class="inline-flex h-7 px-2 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary"
-                            (click)="steerPendingFollowUp(item.id)"
-                            [attr.aria-label]="'PAC.Chat.SteerPendingFollowUp' | translate: { Default: 'Steer pending follow-up' }"
-                          >
-                            {{ 'PAC.Chat.FollowUpSteer' | translate: { Default: 'Steer' } }}
-                          </button>
-                        }
-
-                        <button
-                          type="button"
-                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary"
-                          (click)="removePendingFollowUp(item.id)"
-                          [attr.aria-label]="
-                            'PAC.Chat.RemovePendingFollowUp' | translate: { Default: 'Remove pending follow-up' }
-                          "
-                        >
-                          <i class="ri-delete-bin-line"></i>
-                        </button>
-
-                        <button
-                          type="button"
-                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary"
-                          [cdkMenuTriggerFor]="followUpItemMenu"
-                          [cdkMenuTriggerData]="{ item: item }"
-                          [attr.aria-label]="'PAC.Chat.MoreActions' | translate: { Default: 'More actions' }"
-                        >
-                          <i class="ri-more-2-fill"></i>
-                        </button>
-                      </div>
-
-                      <div class="flex items-center gap-1.5 text-[11px] text-text-tertiary">
-                        <i class="ri-information-line text-sm"></i>
-                        <span>
-                          @if (item.mode === 'queue') {
-                            {{ 'PAC.Chat.FollowUpQueueHint' | translate: { Default: 'Queued for the next run' } }}
-                          } @else {
-                            {{ 'PAC.Chat.FollowUpSteerHint' | translate: { Default: 'Will steer after the current tool call' } }}
-                          }
-                        </span>
-                      </div>
-
-                      @if (item.references?.length) {
-                        <div class="mt-2 flex flex-wrap gap-1.5">
-                          @for (reference of item.references; track referenceKey(reference)) {
-                            <div
-                              class="inline-flex max-w-full items-center rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1 text-[11px] text-text-secondary"
-                              [title]="referenceLabel(reference)"
-                            >
-                              <span class="truncate">{{ referenceLabel(reference) }}</span>
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
+          <xp-chat-follow-ups
+            class="block"
+            [items]="pendingFollowUps()"
+            [loading]="answering()"
+            [behavior]="followUpBehavior()"
+            [attachToComposer]="true"
+            (behaviorChange)="setFollowUpBehavior($event)"
+            (promoteToSteer)="steerPendingFollowUp($event)"
+            (sendNow)="chatService.sendPendingFollowUpNow($event)"
+            (edit)="editPendingFollowUp($event)"
+            (remove)="removePendingFollowUp($event)"
+            (turnOffQueueing)="turnOffFollowUpQueueing()"
+          />
         </div>
       }
       <div
@@ -386,56 +307,5 @@
         </button>
       </div>
     }
-  </div>
-</ng-template>
-
-<ng-template #followUpMenu>
-  <div cdkMenu class="cdk-menu__large follow-up-menu">
-    <div class="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
-      {{ 'PAC.Chat.FollowUpBehavior' | translate: { Default: 'Follow-up behavior' } }}
-    </div>
-
-    <button type="button" cdkMenuItem (click)="setFollowUpBehavior('queue')">
-      <i
-        class="mr-2"
-        [ngClass]="
-          followUpBehavior() === 'queue' ? 'ri-checkbox-circle-fill text-primary-500' : 'ri-list-check-3 text-text-tertiary'
-        "
-      ></i>
-      <span>{{ 'PAC.Chat.FollowUpQueue' | translate: { Default: 'Queue' } }}</span>
-    </button>
-    <button type="button" cdkMenuItem (click)="setFollowUpBehavior('steer')">
-      <i
-        class="mr-2"
-        [ngClass]="
-          followUpBehavior() === 'steer' ? 'ri-checkbox-circle-fill text-primary-500' : 'ri-direction-line text-text-tertiary'
-        "
-      ></i>
-      <span>{{ 'PAC.Chat.FollowUpSteer' | translate: { Default: 'Steer' } }}</span>
-    </button>
-    @if (pendingFollowUps().length) {
-      <div class="mx-2 my-1 h-px bg-divider-regular"></div>
-      <button type="button" cdkMenuItem (click)="clearPendingFollowUps()">
-        <i class="ri-delete-bin-6-line mr-2"></i>
-        <span>{{ 'PAC.KEY_WORDS.ClearAll' | translate: { Default: 'Clear all' } }}</span>
-      </button>
-    }
-  </div>
-</ng-template>
-
-<ng-template #followUpItemMenu let-item="item">
-  <div cdkMenu class="cdk-menu__large follow-up-item-menu">
-    <button type="button" cdkMenuItem (click)="editPendingFollowUp(item)">
-      <i class="ri-edit-line mr-2"></i>
-      <span>{{ 'PAC.Chat.EditMessage' | translate: { Default: 'Edit message' } }}</span>
-    </button>
-    <button type="button" cdkMenuItem (click)="item.mode === 'queue' ? closeQueue() : removePendingFollowUp(item.id)">
-      <i class="ri-corner-down-left-line mr-2"></i>
-      @if (item.mode === 'queue') {
-        <span>{{ 'PAC.Chat.CloseQueue' | translate: { Default: 'Close queue' } }}</span>
-      } @else {
-        <span>{{ 'PAC.Chat.RemoveFollowUp' | translate: { Default: 'Remove follow-up' } }}</span>
-      }
-    </button>
   </div>
 </ng-template>

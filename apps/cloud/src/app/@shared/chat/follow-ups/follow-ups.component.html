@@ -1,0 +1,205 @@
+@if (hasItems()) {
+  <div
+    class="chat-follow-ups mx-2 space-y-2 border border-divider-regular bg-components-card-bg p-2"
+    [ngClass]="{
+      'rounded-t-2xl border-b-0': attachToComposer(),
+      'rounded-xl': !attachToComposer()
+    }"
+  >
+    <div class="space-y-1">
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-xs font-medium text-text-primary">
+          {{ 'PAC.Chat.PendingFollowUps' | translate: { Default: 'Pending follow-ups' } }}
+        </div>
+
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          zSize="icon-xs"
+          class="text-text-tertiary"
+          [ngClass]="{ 'bg-hover-bg text-text-primary': settingsOpen() }"
+          [attr.aria-label]="'PAC.Chat.FollowUpSettings' | translate: { Default: 'Follow-up settings' }"
+          [attr.aria-expanded]="settingsOpen()"
+          aria-controls="follow-ups-settings-panel"
+          (click)="toggleSettings()"
+        >
+          <i class="ri-equalizer-line text-sm"></i>
+        </button>
+      </div>
+
+      @if (settingsOpen()) {
+        <div
+          id="follow-ups-settings-panel"
+          class="follow-up-settings-panel rounded-lg border border-divider-regular/70 bg-components-input-bg-normal/30 px-2.5 py-1.5"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs font-medium text-text-primary">
+                {{ 'PAC.Chat.FollowUpBehavior' | translate: { Default: 'Follow-up behavior' } }}
+              </div>
+              <div class="text-[11px] leading-4 text-text-tertiary">
+                @if (loading()) {
+                  {{
+                    'PAC.Chat.FollowUpActiveHint'
+                      | translate: { Default: 'New messages use the selected busy behavior.' }
+                  }}
+                } @else {
+                  {{
+                    'PAC.Chat.FollowUpIdleHint' | translate: { Default: 'Applies when you send while a run is active.' }
+                  }}
+                }
+              </div>
+            </div>
+
+            <div class="follow-up-behavior-toggle-shell shrink-0">
+              <z-segmented
+                zSize="sm"
+                class="follow-up-behavior-toggle"
+                [ngModel]="behavior()"
+                (ngModelChange)="setBehavior($event)"
+                [zAriaLabel]="'PAC.Chat.FollowUpBehavior' | translate: { Default: 'Follow-up behavior' }"
+              >
+                <z-segmented-item value="queue" [label]="'PAC.Chat.FollowUpQueue' | translate: { Default: 'Queue' }" />
+                <z-segmented-item value="steer" [label]="'PAC.Chat.FollowUpSteer' | translate: { Default: 'Steer' }" />
+              </z-segmented>
+            </div>
+          </div>
+        </div>
+      }
+
+      @for (item of items(); track item.id ?? $index) {
+        <div class="rounded-lg border border-divider-regular/70 bg-components-input-bg-normal/50 px-2 py-1">
+          <div class="flex items-start gap-2.5">
+            <i class="ri-corner-down-left-line mt-0.5 shrink-0 text-sm leading-5 text-text-tertiary"></i>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start gap-2">
+                <div class="min-w-0 flex-1">
+                  <div
+                    class="truncate text-[13px] leading-5 text-text-primary"
+                    [title]="
+                      text(item, 'PAC.Chat.ReferencedContentOnly' | translate: { Default: 'Referenced content' })
+                    "
+                  >
+                    {{ text(item, 'PAC.Chat.ReferencedContentOnly' | translate: { Default: 'Referenced content' }) }}
+                  </div>
+                </div>
+
+                @if (item.mode === 'queue') {
+                  <div class="flex shrink-0 items-center gap-1">
+                    @if (loading()) {
+                      <button
+                        type="button"
+                        z-button
+                        zType="ghost"
+                        zSize="xs"
+                        class="follow-up-primary-action border border-primary-500/20 bg-primary-500/5 text-primary-500 hover:bg-primary-500/10"
+                        [attr.aria-label]="
+                          'PAC.Chat.SteerPendingFollowUp' | translate: { Default: 'Steer pending follow-up' }
+                        "
+                        [title]="'PAC.Chat.SteerPendingFollowUp' | translate: { Default: 'Steer pending follow-up' }"
+                        (click)="onPromoteToSteer(item)"
+                      >
+                        {{ 'PAC.Chat.FollowUpSteer' | translate: { Default: 'Steer' } }}
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        z-button
+                        zType="ghost"
+                        zSize="xs"
+                        class="follow-up-primary-action border border-primary-500/20 bg-primary-500/5 text-primary-500 hover:bg-primary-500/10"
+                        [attr.aria-label]="'PAC.Chat.FollowUpSendNow' | translate: { Default: 'Send now' }"
+                        [title]="'PAC.Chat.FollowUpSendNow' | translate: { Default: 'Send now' }"
+                        (click)="onSendNow(item)"
+                      >
+                        {{ 'PAC.Chat.FollowUpSendNow' | translate: { Default: 'Send now' } }}
+                      </button>
+                    }
+
+                    <button
+                      type="button"
+                      z-button
+                      zType="ghost"
+                      zSize="icon-xs"
+                      class="text-text-tertiary"
+                      [attr.aria-label]="
+                        'PAC.Chat.RemovePendingFollowUp' | translate: { Default: 'Remove pending follow-up' }
+                      "
+                      [title]="'PAC.Chat.RemovePendingFollowUp' | translate: { Default: 'Remove pending follow-up' }"
+                      (click)="onRemove(item)"
+                    >
+                      <i class="ri-delete-bin-line text-[13px]"></i>
+                    </button>
+
+                    <button
+                      type="button"
+                      z-button
+                      zType="ghost"
+                      zSize="icon-xs"
+                      class="text-text-tertiary"
+                      z-menu
+                      [zMenuTriggerFor]="followUpItemMenu"
+                      [zMenuTriggerData]="{ item: item }"
+                      zPlacement="bottomRight"
+                      [attr.aria-label]="'PAC.Chat.MoreActions' | translate: { Default: 'More actions' }"
+                      [title]="'PAC.Chat.MoreActions' | translate: { Default: 'More actions' }"
+                    >
+                      <i class="ri-more-2-fill text-[13px]"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <div class="flex min-w-0 items-center gap-1.5 text-[10px] leading-4 text-text-tertiary">
+                <i class="ri-information-line shrink-0 text-xs"></i>
+                <span class="truncate">
+                  @if (item.mode === 'queue') {
+                    @if (loading()) {
+                      {{ 'PAC.Chat.FollowUpQueueHint' | translate: { Default: 'Queued for the next run' } }}
+                    } @else {
+                      {{
+                        'PAC.Chat.FollowUpManualQueueHint' | translate: { Default: 'Kept pending until you send it.' }
+                      }}
+                    }
+                  } @else {
+                    {{
+                      'PAC.Chat.FollowUpSteerHint' | translate: { Default: 'Will steer after the current tool call' }
+                    }}
+                  }
+                </span>
+              </div>
+
+              @if (item.references?.length) {
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                  @for (reference of item.references; track referenceKey(reference)) {
+                    <div
+                      class="inline-flex max-w-full items-center rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1 text-[11px] text-text-secondary"
+                      [title]="referenceLabel(reference)"
+                    >
+                      <span class="truncate">{{ referenceLabel(reference) }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<ng-template #followUpItemMenu let-item="item">
+  <div z-menu-content class="chat-follow-ups-menu">
+    <button type="button" z-menu-item (click)="onEdit(item)">
+      <i class="ri-edit-line mr-2"></i>
+      <span>{{ 'PAC.Chat.EditMessage' | translate: { Default: 'Edit message' } }}</span>
+    </button>
+    <button type="button" z-menu-item (click)="onTurnOffQueueing()">
+      <i class="ri-corner-down-left-line mr-2"></i>
+      <span>{{ 'PAC.Chat.FollowUpTurnOffQueueing' | translate: { Default: 'Turn off queueing' } }}</span>
+    </button>
+  </div>
+</ng-template>

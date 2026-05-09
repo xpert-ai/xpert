@@ -62,6 +62,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { ChatAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatHumanMessageComponent } from './human-message/message.component'
+import { ChatFollowUpsComponent } from '../follow-ups/follow-ups.component'
 import { XpertAgentOperationComponent } from '../../agent'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { filterLatestMessages } from '../filter-latest-messages'
@@ -77,6 +78,8 @@ import {
   XpertQuoteReference
 } from '../references'
 import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../context/follow-up-consumed'
+import { getBusyComposerFollowUpMode, readFollowUpBehaviorStorageValue } from '../follow-ups/follow-ups'
+import type { ChatFollowUpRailItem } from '../follow-ups/follow-ups'
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
   return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
@@ -99,7 +102,10 @@ function sortPendingFollowUps(items: PendingFollowUp[]): PendingFollowUp[] {
   return [...items]
 }
 
-function getQueuedFollowUpGroup(items: PendingFollowUp[], target: PendingFollowUp | null | undefined): PendingFollowUp[] {
+function getQueuedFollowUpGroup(
+  items: PendingFollowUp[],
+  target: PendingFollowUp | null | undefined
+): PendingFollowUp[] {
   if (!target || target.mode !== 'queue') {
     return []
   }
@@ -177,6 +183,7 @@ type QuoteSelectionState = {
     XpertPreviewAiMessageComponent,
     XpertAgentOperationComponent,
     ChatAttachmentsComponent,
+    ChatFollowUpsComponent,
     ChatHumanMessageComponent
   ],
   selector: 'xp-chat-conversation-preview',
@@ -229,6 +236,7 @@ export class ChatConversationPreviewComponent {
 
   // Children
   readonly canvasRef = viewChild('waveCanvas', { read: ElementRef })
+  readonly userInputRef = viewChild('userInput', { read: ElementRef })
 
   // States
   readonly conversation = signal<Partial<IChatConversation>>(null)
@@ -320,9 +328,13 @@ export class ChatConversationPreviewComponent {
     .pipe(
       switchMap((id) =>
         id
-          ? this.conversationService.getOneById(this.conversationId(), {
-              relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents']
-            }, this.organizationId() ?? undefined)
+          ? this.conversationService.getOneById(
+              this.conversationId(),
+              {
+                relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents']
+              },
+              this.organizationId() ?? undefined
+            )
           : of(null)
       )
     )
@@ -365,18 +377,16 @@ export class ChatConversationPreviewComponent {
   readonly files = computed(() => this.attachments()?.map(({ storageFile }) => storageFile))
 
   constructor() {
-    effect(
-      () => {
-        if (this.#feedbacks()) {
-          this.feedbacks.set(
-            this.#feedbacks().reduce((acc, curr) => {
-              acc[curr.messageId] = curr
-              return acc
-            }, {})
-          )
-        }
+    effect(() => {
+      if (this.#feedbacks()) {
+        this.feedbacks.set(
+          this.#feedbacks().reduce((acc, curr) => {
+            acc[curr.messageId] = curr
+            return acc
+          }, {})
+        )
       }
-    )
+    })
 
     effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()))
     effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert))
@@ -422,7 +432,10 @@ export class ChatConversationPreviewComponent {
     })
   }
 
-  sendMessage(input: string | null | undefined, options?: { references?: XpertChatReference[]; followUpBehavior?: 'queue' | 'steer' }) {
+  sendMessage(
+    input: string | null | undefined,
+    options?: { references?: XpertChatReference[]; followUpBehavior?: 'queue' | 'steer' }
+  ) {
     const content = input?.trim() ?? ''
     const references = options?.references ?? []
     if (!content && !references.length) {
@@ -453,7 +466,10 @@ export class ChatConversationPreviewComponent {
     followUpBehavior?: 'queue' | 'steer'
   }) {
     if (this.loading()) {
-      if ((!options?.input && !options?.references?.length) || this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+      if (
+        (!options?.input && !options?.references?.length) ||
+        this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED
+      ) {
         return
       }
 
@@ -809,46 +825,86 @@ export class ChatConversationPreviewComponent {
   )
 
   onKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      if (event.isComposing) {
-        return
-      }
-
-      if (event.shiftKey && (event.metaKey || event.ctrlKey)) {
-        if (!this.input() && !this.hasReferences()) {
-          return
-        }
-        this.sendMessage(this.input(), {
-          references: this.references(),
-          followUpBehavior: this.followUpBehavior() === 'queue' ? 'steer' : 'queue'
-        })
-        event.preventDefault()
-        return
-      }
-
-      if (event.shiftKey) {
-        return
-      }
-
-      this.sendMessage(this.input(), { references: this.references() })
-      event.preventDefault()
+    if (event.key !== 'Enter' || event.isComposing || event.shiftKey) {
+      return
     }
+
+    event.preventDefault()
+    if (!this.input() && !this.hasReferences()) {
+      return
+    }
+
+    this.sendMessage(this.input(), {
+      references: this.references(),
+      followUpBehavior: this.loading() ? getBusyComposerFollowUpMode(event) : this.followUpBehavior()
+    })
   }
 
   setFollowUpBehavior(behavior: 'queue' | 'steer') {
     this.followUpBehavior.set(behavior)
   }
 
-  private async enqueueFollowUp(item: PendingFollowUp) {
+  removePendingFollowUp(id: string) {
+    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => item.id !== id))
+  }
+
+  sendPendingFollowUpNow(id: string) {
+    this.drainQueuedFollowUps(id)
+  }
+
+  promotePendingFollowUpToSteer(id: string) {
+    const item = this.pendingFollowUps().find((entry) => entry.id === id)
+    if (!item || item.mode === 'steer') {
+      return
+    }
+
+    const steerItem: PendingFollowUp = {
+      ...item,
+      mode: 'steer'
+    }
+    this.pendingFollowUps.update((state) => (state ?? []).map((entry) => (entry.id === id ? steerItem : entry)))
+
+    if (this.loading() && this.conversation()?.id) {
+      this.requestSteerFollowUp(steerItem)
+    }
+  }
+
+  editPendingFollowUp(item?: ChatFollowUpRailItem) {
+    const content = (item?.input ?? item?.content ?? '').trim()
+    if (!item || (!content && !item.references?.length)) {
+      return
+    }
+
+    this.followUpBehavior.set(item.mode)
+    this.input.set(content)
+    this.references.set(item.references ?? [])
+    if (item.id) {
+      this.pendingFollowUps.update((state) => (state ?? []).filter((entry) => entry.id !== item.id))
+    }
+
+    queueMicrotask(() => {
+      const textarea = this.userInputRef()?.nativeElement as HTMLTextAreaElement | undefined
+      textarea?.focus()
+      textarea?.setSelectionRange(textarea.value.length, textarea.value.length)
+    })
+  }
+
+  turnOffFollowUpQueueing() {
+    this.setFollowUpBehavior('steer')
+  }
+
+  private enqueueFollowUp(item: PendingFollowUp) {
     this.pendingFollowUps.update((state) => [...(state ?? []).filter((entry) => entry.id !== item.id), item])
     this.input.set('')
     this.attachments.set([])
     this.references.set([])
 
-    if (item.mode !== 'steer') {
-      return
+    if (item.mode === 'steer') {
+      this.requestSteerFollowUp(item)
     }
+  }
 
+  private requestSteerFollowUp(item: PendingFollowUp) {
     const request: TChatRequest = {
       action: 'follow_up',
       conversationId: this.conversation()?.id,
@@ -900,9 +956,7 @@ export class ChatConversationPreviewComponent {
     }
 
     const idSet = new Set(ids)
-    const steerItems = this.pendingFollowUps().filter(
-      (item) => item.mode === 'steer' && idSet.has(item.id)
-    )
+    const steerItems = this.pendingFollowUps().filter((item) => item.mode === 'steer' && idSet.has(item.id))
 
     if (!steerItems.length) {
       return
@@ -940,12 +994,14 @@ export class ChatConversationPreviewComponent {
     )
   }
 
-  private drainQueuedFollowUps() {
+  private drainQueuedFollowUps(leadItemId?: string) {
     if (this.loading()) {
       return
     }
 
-    const next = this.pendingFollowUps().find((item) => item.mode === 'queue')
+    const next = leadItemId
+      ? this.pendingFollowUps().find((item) => item.id === leadItemId && item.mode === 'queue')
+      : this.pendingFollowUps().find((item) => item.mode === 'queue')
     if (!next) {
       return
     }
@@ -976,7 +1032,7 @@ export class ChatConversationPreviewComponent {
       return 'queue'
     }
 
-    return localStorage.getItem(this.getFollowUpStorageKey()) === 'steer' ? 'steer' : 'queue'
+    return readFollowUpBehaviorStorageValue(localStorage.getItem(this.getFollowUpStorageKey()))
   }
 
   private persistFollowUpBehavior(behavior: 'queue' | 'steer') {

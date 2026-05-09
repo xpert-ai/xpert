@@ -48,157 +48,157 @@
               <emoji-avatar [avatar]="avatar()" class="rounded-lg overflow-hidden shadow-sm" />
               <div class="chat-answer-container group grow w-0 ml-4">
                 <div class="group relative pr-2 flex">
-                <svg
-                  width="8"
-                  height="12"
-                  viewBox="0 0 8 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="absolute -left-2 top-0 w-2 h-3 text-components-input-bg-normal"
-                  data-icon="AnswerTriangle"
-                  aria-hidden="true"
-                >
-                  <path
-                    id="Rectangle 1"
-                    d="M1.03647 1.5547C0.59343 0.890144 1.06982 0 1.86852 0H8V12L1.03647 1.5547Z"
-                    fill="currentColor"
-                  ></path>
-                </svg>
-                <div
-                  class="grow-0 relative inline-block px-2 py-3 max-w-full bg-components-input-bg-normal rounded-b-2xl rounded-tr-2xl text-base text-text-primary"
-                >
-                  <xpert-preview-ai-message [message]="message" [conversation]="conversation()" class="w-full grow" />
-                </div>
-
-                <div class="absolute flex justify-end items-center gap-1 right-0 -top-4">
-                  <div
-                    class="group-hover:flex justify-center items-center p-1 rounded-lg bg-components-panel-bg border-[0.5px] border-divider-regular shadow-sm shrink-0"
-                    [ngClass]="{
-                      hidden: !(synthesizeLoading() || isPlaying()),
-                      flex: synthesizeLoading() || isPlaying()
-                    }"
+                  <svg
+                    width="8"
+                    height="12"
+                    viewBox="0 0 8 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="absolute -left-2 top-0 w-2 h-3 text-components-input-bg-normal"
+                    data-icon="AnswerTriangle"
+                    aria-hidden="true"
                   >
-                    @if (!readonly()) {
-                      <!-- Retry button for this message -->
-                      <div
-                        class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
-                        [zTooltip]="'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' }"
-                        zPosition="top"
-                        (click)="onRetryMessage(message)"
-                      >
-                        <i class="ri-repeat-2-line"></i>
-                      </div>
-                    }
-                    <div
-                      class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
-                      [zTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
-                      zPosition="top"
-                      (click)="copy(message)"
-                    >
-                      @if (copiedMessages()[message.id]) {
-                        <i class="ri-clipboard-fill"></i>
-                      } @else {
-                        <i class="ri-clipboard-line"></i>
-                      }
-                    </div>
-
-                    @if (textToSpeech_enabled()) {
-                      <div
-                        class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
-                        [zTooltip]="'PAC.Xpert.ReadAloud' | translate: { Default: 'Read aloud' }"
-                        zPosition="top"
-                        (click)="readAloud(message)"
-                      >
-                        @if (synthesizeLoading() || isPlaying()) {
-                          <i class="ri-stop-circle-line text-primary-500"></i>
-                        } @else {
-                          <i class="ri-speak-ai-line"></i>
-                        }
-                      </div>
-                    }
+                    <path
+                      id="Rectangle 1"
+                      d="M1.03647 1.5547C0.59343 0.890144 1.06982 0 1.86852 0H8V12L1.03647 1.5547Z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                  <div
+                    class="grow-0 relative inline-block px-2 py-3 max-w-full bg-components-input-bg-normal rounded-b-2xl rounded-tr-2xl text-base text-text-primary"
+                  >
+                    <xpert-preview-ai-message [message]="message" [conversation]="conversation()" class="w-full grow" />
                   </div>
 
-                  @if (message.executionId) {
+                  <div class="absolute flex justify-end items-center gap-1 right-0 -top-4">
                     <div
-                      class="hidden group-hover:flex items-center w-max h-[28px] p-1 rounded-lg bg-components-panel-bg border-[0.5px] border-divider-regular shadow-sm shrink-0"
+                      class="group-hover:flex justify-center items-center p-1 rounded-lg bg-components-panel-bg border-[0.5px] border-divider-regular shadow-sm shrink-0"
+                      [ngClass]="{
+                        hidden: !(synthesizeLoading() || isPlaying()),
+                        flex: synthesizeLoading() || isPlaying()
+                      }"
                     >
-                      <div
-                        class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
-                        (click)="openExecution(message)"
-                      >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="mr-1 w-4 h-4"
-                        >
-                          <g id="Icon">
-                            <path
-                              id="Icon_2"
-                              d="M9.33366 7.3335H5.33366M6.66699 10.0002H5.33366M10.667 4.66683H5.33366M13.3337 4.5335V11.4668C13.3337 12.5869 13.3337 13.147 13.1157 13.5748C12.9239 13.9511 12.618 14.2571 12.2416 14.4488C11.8138 14.6668 11.2538 14.6668 10.1337 14.6668H5.86699C4.74689 14.6668 4.18683 14.6668 3.75901 14.4488C3.38269 14.2571 3.07673 13.9511 2.88498 13.5748C2.66699 13.147 2.66699 12.5869 2.66699 11.4668V4.5335C2.66699 3.41339 2.66699 2.85334 2.88498 2.42552C3.07673 2.04919 3.38269 1.74323 3.75901 1.55148C4.18683 1.3335 4.74689 1.3335 5.86699 1.3335H10.1337C11.2538 1.3335 11.8138 1.3335 12.2416 1.55148C12.618 1.74323 12.9239 2.04919 13.1157 2.42552C13.3337 2.85334 13.3337 3.41339 13.3337 4.5335Z"
-                              stroke="currentColor"
-                              stroke-width="1.5"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            ></path>
-                          </g>
-                        </svg>
-                        <div class="text-sm leading-4">
-                          {{ 'PAC.Xpert.ExecutionLog' | translate: { Default: 'Execution Log' } }}
-                        </div>
-                      </div>
-                      <div class="mx-1 w-[1px] h-[14px] bg-components-list-option-active-bg"></div>
-                    </div>
-                  }
-
-                  @if (feedbackReady(message)) {
-                    @if (getFeedback(message.id); as feedback) {
-                      @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
+                      @if (!readonly()) {
+                        <!-- Retry button for this message -->
                         <div
-                          class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
-                          [zTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: { Default: 'Cancel like' }"
+                          class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
+                          [zTooltip]="'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' }"
                           zPosition="top"
-                          (click)="cancelFeedback(message, feedback.id)"
+                          (click)="onRetryMessage(message)"
                         >
-                          <i class="ri-thumb-up-line"></i>
-                        </div>
-                      } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
-                        <div
-                          class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
-                          [zTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
-                          zPosition="top"
-                          (click)="cancelFeedback(message, feedback.id)"
-                        >
-                          <i class="ri-thumb-down-line"></i>
+                          <i class="ri-repeat-2-line"></i>
                         </div>
                       }
-                    } @else {
                       <div
-                        class="hidden group-hover:flex shrink-0 items-center p-1 bg-components-card-bg border-[0.5px] border-divider-regular shadow-md text-text-tertiary rounded-lg"
+                        class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
+                        [zTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
+                        zPosition="top"
+                        (click)="copy(message)"
+                      >
+                        @if (copiedMessages()[message.id]) {
+                          <i class="ri-clipboard-fill"></i>
+                        } @else {
+                          <i class="ri-clipboard-line"></i>
+                        }
+                      </div>
+
+                      @if (textToSpeech_enabled()) {
+                        <div
+                          class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
+                          [zTooltip]="'PAC.Xpert.ReadAloud' | translate: { Default: 'Read aloud' }"
+                          zPosition="top"
+                          (click)="readAloud(message)"
+                        >
+                          @if (synthesizeLoading() || isPlaying()) {
+                            <i class="ri-stop-circle-line text-primary-500"></i>
+                          } @else {
+                            <i class="ri-speak-ai-line"></i>
+                          }
+                        </div>
+                      }
+                    </div>
+
+                    @if (message.executionId) {
+                      <div
+                        class="hidden group-hover:flex items-center w-max h-[28px] p-1 rounded-lg bg-components-panel-bg border-[0.5px] border-divider-regular shadow-sm shrink-0"
                       >
                         <div
-                          class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
-                          [zTooltip]="'PAC.KEY_WORDS.Like' | translate: { Default: 'Like' }"
-                          zPosition="top"
-                          (click)="feedback(message, eFeedbackRatingEnum.LIKE)"
+                          class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
+                          (click)="openExecution(message)"
                         >
-                          <i class="ri-thumb-up-line"></i>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="mr-1 w-4 h-4"
+                          >
+                            <g id="Icon">
+                              <path
+                                id="Icon_2"
+                                d="M9.33366 7.3335H5.33366M6.66699 10.0002H5.33366M10.667 4.66683H5.33366M13.3337 4.5335V11.4668C13.3337 12.5869 13.3337 13.147 13.1157 13.5748C12.9239 13.9511 12.618 14.2571 12.2416 14.4488C11.8138 14.6668 11.2538 14.6668 10.1337 14.6668H5.86699C4.74689 14.6668 4.18683 14.6668 3.75901 14.4488C3.38269 14.2571 3.07673 13.9511 2.88498 13.5748C2.66699 13.147 2.66699 12.5869 2.66699 11.4668V4.5335C2.66699 3.41339 2.66699 2.85334 2.88498 2.42552C3.07673 2.04919 3.38269 1.74323 3.75901 1.55148C4.18683 1.3335 4.74689 1.3335 5.86699 1.3335H10.1337C11.2538 1.3335 11.8138 1.3335 12.2416 1.55148C12.618 1.74323 12.9239 2.04919 13.1157 2.42552C13.3337 2.85334 13.3337 3.41339 13.3337 4.5335Z"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              ></path>
+                            </g>
+                          </svg>
+                          <div class="text-sm leading-4">
+                            {{ 'PAC.Xpert.ExecutionLog' | translate: { Default: 'Execution Log' } }}
+                          </div>
                         </div>
-                        <div
-                          class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
-                          [zTooltip]="'PAC.KEY_WORDS.Dislike' | translate: { Default: 'Dislike' }"
-                          zPosition="top"
-                          (click)="feedback(message, eFeedbackRatingEnum.DISLIKE)"
-                        >
-                          <i class="ri-thumb-down-line"></i>
-                        </div>
+                        <div class="mx-1 w-[1px] h-[14px] bg-components-list-option-active-bg"></div>
                       </div>
                     }
-                  }
+
+                    @if (feedbackReady(message)) {
+                      @if (getFeedback(message.id); as feedback) {
+                        @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
+                          <div
+                            class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
+                            [zTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: { Default: 'Cancel like' }"
+                            zPosition="top"
+                            (click)="cancelFeedback(message, feedback.id)"
+                          >
+                            <i class="ri-thumb-up-line"></i>
+                          </div>
+                        } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
+                          <div
+                            class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-state-destructive-hover text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+                            [zTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
+                            zPosition="top"
+                            (click)="cancelFeedback(message, feedback.id)"
+                          >
+                            <i class="ri-thumb-down-line"></i>
+                          </div>
+                        }
+                      } @else {
+                        <div
+                          class="hidden group-hover:flex shrink-0 items-center p-1 bg-components-card-bg border-[0.5px] border-divider-regular shadow-md text-text-tertiary rounded-lg"
+                        >
+                          <div
+                            class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
+                            [zTooltip]="'PAC.KEY_WORDS.Like' | translate: { Default: 'Like' }"
+                            zPosition="top"
+                            (click)="feedback(message, eFeedbackRatingEnum.LIKE)"
+                          >
+                            <i class="ri-thumb-up-line"></i>
+                          </div>
+                          <div
+                            class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
+                            [zTooltip]="'PAC.KEY_WORDS.Dislike' | translate: { Default: 'Dislike' }"
+                            zPosition="top"
+                            (click)="feedback(message, eFeedbackRatingEnum.DISLIKE)"
+                          >
+                            <i class="ri-thumb-down-line"></i>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
                 </div>
-              </div>
                 <div
                   class="flex items-center mt-1 h-[18px] text-xs text-text-quaternary opacity-0 group-hover:opacity-100"
                 ></div>
@@ -372,70 +372,28 @@
   @if (!readonly()) {
     <div
       class="sticky bottom-0 px-4 rounded-bl-2xl"
-      style="background: linear-gradient(0deg, color-mix(in oklab, var(--background) 94%, transparent) 40%, color-mix(in oklab, var(--background) 0%, transparent) 100%)"
+      style="
+        background: linear-gradient(
+          0deg,
+          color-mix(in oklab, var(--background) 94%, transparent) 40%,
+          color-mix(in oklab, var(--background) 0%, transparent) 100%
+        );
+      "
     >
       <div class="pb-4 w-full max-w-full mx-auto">
-        <div class="mb-2 flex items-center justify-between gap-2 rounded-xl border border-divider-deep bg-components-panel-bg px-3 py-2">
-          <div class="text-xs text-text-tertiary">
-            {{ 'PAC.Chat.FollowUpBehavior' | translate: { Default: 'Follow-up behavior' } }}
-          </div>
-          <div class="flex items-center gap-1 rounded-full bg-components-input-bg-normal p-1">
-            <button
-              type="button"
-              class="px-3 py-1 text-xs rounded-full"
-              [ngClass]="{
-                'bg-primary-500 text-text-anti': followUpBehavior() === 'queue',
-                'text-text-tertiary': followUpBehavior() !== 'queue'
-              }"
-              (click)="setFollowUpBehavior('queue')"
-            >
-              {{ 'PAC.Chat.FollowUpQueue' | translate: { Default: 'Queue' } }}
-            </button>
-            <button
-              type="button"
-              class="px-3 py-1 text-xs rounded-full"
-              [ngClass]="{
-                'bg-primary-500 text-text-anti': followUpBehavior() === 'steer',
-                'text-text-tertiary': followUpBehavior() !== 'steer'
-              }"
-              (click)="setFollowUpBehavior('steer')"
-            >
-              {{ 'PAC.Chat.FollowUpSteer' | translate: { Default: 'Steer' } }}
-            </button>
-          </div>
-        </div>
-
-        @if (pendingFollowUps()?.length) {
-          <div class="mb-2 space-y-2 rounded-xl border border-divider-deep bg-components-panel-bg px-3 py-3">
-            <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Chat.PendingFollowUps' | translate: { Default: 'Pending follow-ups' } }}
-            </div>
-            @for (item of pendingFollowUps(); track item.id) {
-              <div class="rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 py-2">
-                <div class="mb-1 text-[11px] text-primary-500">
-                  @if (item.mode === 'queue') {
-                    {{ 'PAC.Chat.FollowUpQueueHint' | translate: { Default: 'Queued for the next run' } }}
-                  } @else {
-                    {{ 'PAC.Chat.FollowUpSteerHint' | translate: { Default: 'Will steer after the current tool call' } }}
-                  }
-                </div>
-                <div class="text-sm text-text-primary break-words">{{ item.input }}</div>
-                @if (item.references?.length) {
-                  <div class="mt-2 flex flex-wrap gap-1.5">
-                    @for (reference of item.references; track referenceKey(reference)) {
-                      <div
-                        class="inline-flex max-w-full items-center rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1 text-[11px] text-text-secondary"
-                        [title]="referenceLabel(reference)"
-                      >
-                        <span class="truncate">{{ referenceLabel(reference) }}</span>
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        }
+        <xp-chat-follow-ups
+          class="block"
+          [items]="pendingFollowUps()"
+          [loading]="loading()"
+          [behavior]="followUpBehavior()"
+          [attachToComposer]="true"
+          (behaviorChange)="setFollowUpBehavior($event)"
+          (promoteToSteer)="promotePendingFollowUpToSteer($event)"
+          (sendNow)="sendPendingFollowUpNow($event)"
+          (edit)="editPendingFollowUp($event)"
+          (remove)="removePendingFollowUp($event)"
+          (turnOffQueueing)="turnOffFollowUpQueueing()"
+        />
 
         <div class="relative bg-components-panel-bg border border-divider-deep rounded-xl mb-2">
           @if (attachments()?.length) {
@@ -473,6 +431,7 @@
           }
           <div class="p-[5.5px] min-h-[46px]">
             <textarea
+              #userInput
               class="outline-none w-full pl-2 pr-16 disabled:cursor-not-allowed"
               cdkTextareaAutosize
               cdkAutosizeMinRows="1"
@@ -482,7 +441,9 @@
             ></textarea>
 
             <div class="absolute bottom-[7px] flex items-center h-8 right-2 z-10">
-              <div class="flex items-center px-1 h-5 rounded-md bg-components-input-bg-normal text-xs font-medium text-text-tertiary">
+              <div
+                class="flex items-center px-1 h-5 rounded-md bg-components-input-bg-normal text-xs font-medium text-text-tertiary"
+              >
                 {{ inputLength() }}
               </div>
               <div class="mx-2 w-[1px] h-4 bg-divider-deep"></div>
@@ -520,7 +481,7 @@
               } @else {
                 <button
                   class="group action-btn action-btn-md primary"
-                  [disabled]="loading() || !canSend()"
+                  [disabled]="!canSend()"
                   (click)="sendMessage(input(), { references: references() })"
                 >
                   <svg

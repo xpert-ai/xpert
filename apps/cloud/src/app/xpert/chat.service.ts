@@ -45,10 +45,7 @@ import { buildResumeDecision, extractInterruptPatch } from '../@shared/chat/inte
 import { createReferenceHumanInput, XpertChatReference } from '../@shared/chat/references'
 import { XpertHomeService } from './home.service'
 import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/chat/context/thread-context-usage'
-import {
-  parseFollowUpConsumedEvent,
-  resolveFollowUpConsumedIds
-} from '../@shared/chat/context/follow-up-consumed'
+import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../@shared/chat/context/follow-up-consumed'
 import { TCopilotChatMessage } from './types'
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
@@ -226,44 +223,36 @@ export abstract class ChatService {
       }
     })
 
-    effect(
-      () => {
-        if (this.conversation()?.xpert && !this.xpert()) {
-          this.xpert.set(this.conversation().xpert)
-        }
+    effect(() => {
+      if (this.conversation()?.xpert && !this.xpert()) {
+        this.xpert.set(this.conversation().xpert)
       }
-    )
+    })
 
-    effect(
-      () => {
-        // Update local data when remote conversation loaded
-        const conversation = this.#conversation()?.conversation
-        if (conversation) {
-          if (!this.conversation() || (this.conversation()?.id && this.conversation().id !== conversation.id)) {
-            this.conversation.set(conversation)
-          }
+    effect(() => {
+      // Update local data when remote conversation loaded
+      const conversation = this.#conversation()?.conversation
+      if (conversation) {
+        if (!this.conversation() || (this.conversation()?.id && this.conversation().id !== conversation.id)) {
+          this.conversation.set(conversation)
         }
       }
-    )
+    })
 
-    effect(
-      () => {
-        // Sync feedbacks from remote conversation to local signal
-        const feedbacks = this.#conversation()?.feedbacks
-        if (feedbacks !== undefined) {
-          this.feedbacks.set(feedbacks ?? null)
-        }
+    effect(() => {
+      // Sync feedbacks from remote conversation to local signal
+      const feedbacks = this.#conversation()?.feedbacks
+      if (feedbacks !== undefined) {
+        this.feedbacks.set(feedbacks ?? null)
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (!this.conversationId()) {
-          this.suggestionQuestions.set([])
-          this.contextUsageByAgentKey.set({})
-        }
+    effect(() => {
+      if (!this.conversationId()) {
+        this.suggestionQuestions.set([])
+        this.contextUsageByAgentKey.set({})
       }
-    )
+    })
 
     // effect(() => {
     //   console.log('ChatService: conversation changed', this.conversation(), this.#messages())
@@ -326,7 +315,7 @@ export abstract class ChatService {
         ...options,
         content,
         references,
-        mode: options.followUpMode ?? 'steer'
+        mode: options.followUpMode ?? 'queue'
       })
       return
     }
@@ -826,9 +815,7 @@ export abstract class ChatService {
       mode: 'steer'
     }
 
-    this.pendingFollowUps.update((state) =>
-      (state ?? []).map((entry) => (entry.id === id ? steerItem : entry))
-    )
+    this.pendingFollowUps.update((state) => (state ?? []).map((entry) => (entry.id === id ? steerItem : entry)))
 
     if (!this.answering() || !this.conversation()?.id) {
       return
@@ -904,15 +891,17 @@ export abstract class ChatService {
     this.pendingFollowUps.set([])
   }
 
+  sendPendingFollowUpNow(id: string) {
+    this.drainQueuedFollowUps(id)
+  }
+
   private flushPendingSteerFollowUps(ids: string[]) {
     if (!ids.length) {
       return
     }
 
     const idSet = new Set(ids)
-    const steerItems = this.pendingFollowUps().filter(
-      (item) => item.mode === 'steer' && idSet.has(item.id ?? '')
-    )
+    const steerItems = this.pendingFollowUps().filter((item) => item.mode === 'steer' && idSet.has(item.id ?? ''))
 
     if (!steerItems.length) {
       return
@@ -953,12 +942,14 @@ export abstract class ChatService {
     })
   }
 
-  private drainQueuedFollowUps() {
+  private drainQueuedFollowUps(leadItemId?: string) {
     if (this.answering()) {
       return
     }
 
-    const next = this.pendingFollowUps().find((item) => item.mode === 'queue')
+    const next = leadItemId
+      ? this.pendingFollowUps().find((item) => item.id === leadItemId && item.mode === 'queue')
+      : this.pendingFollowUps().find((item) => item.mode === 'queue')
     if (!next) {
       return
     }

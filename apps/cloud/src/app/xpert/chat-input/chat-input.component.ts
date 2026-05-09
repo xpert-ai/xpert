@@ -33,7 +33,7 @@ import { FileTypePipe, OverlayAnimations } from '@xpert-ai/core'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { startWith } from 'rxjs'
-import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
+import { ChatAttachmentsComponent, ChatFollowUpsComponent } from '@cloud/app/@shared/chat'
 import { ChatService, PendingFollowUp } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { FileIconComponent } from '@cloud/app/@shared/files'
@@ -50,6 +50,8 @@ import {
   resolveContextUsage,
   toPositiveNumber
 } from '../../@shared/chat/context/context-usage'
+import { getBusyComposerFollowUpMode, readFollowUpBehaviorStorageValue } from '../../@shared/chat/follow-ups/follow-ups'
+import type { ChatFollowUpRailItem } from '../../@shared/chat/follow-ups/follow-ups'
 
 @Component({
   standalone: true,
@@ -67,6 +69,7 @@ import {
     DateRelativePipe,
     CopilotEnableModelComponent,
     ChatAttachmentsComponent,
+    ChatFollowUpsComponent,
     FileIconComponent,
     FileTypePipe
   ],
@@ -106,7 +109,6 @@ export class ChatInputComponent {
   readonly answering = this.chatService.answering
   readonly pendingFollowUps = this.chatService.pendingFollowUps
   readonly followUpBehavior = signal<'queue' | 'steer'>(this.readPersistedFollowUpBehavior())
-  readonly showFollowUpTray = computed(() => this.pendingFollowUps().length > 0)
   readonly xpert = this.chatService.xpert
   readonly conversation = this.chatService.conversation
   readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
@@ -229,7 +231,7 @@ export class ChatInputComponent {
   //   this.promptControl.setValue('')
   // }
 
-  ask(content: string) {
+  ask(content: string, followUpBehavior: 'queue' | 'steer' = this.followUpBehavior()) {
     const references = this.references()
     if (!content && !references.length) {
       return
@@ -240,7 +242,7 @@ export class ChatInputComponent {
       id,
       content,
       references,
-      followUpMode: this.followUpBehavior(),
+      followUpMode: followUpBehavior,
       files: this.files()?.map((file) => ({
         id: file.id,
         originalName: file.originalName,
@@ -267,19 +269,16 @@ export class ChatInputComponent {
   }
 
   triggerFun(event: KeyboardEvent) {
-    if ((event.isComposing || event.shiftKey) && event.key === 'Enter') {
+    if (event.key !== 'Enter' || event.isComposing || event.shiftKey) {
       return
     }
 
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      const text = this.draftPrompt()
-      if (text || this.hasReferences()) {
-        setTimeout(() => {
-          this.ask(text ?? '')
-        })
-      }
-      return
+    event.preventDefault()
+    const text = this.draftPrompt()
+    if (text || this.hasReferences()) {
+      setTimeout(() => {
+        this.ask(text ?? '', this.answering() ? getBusyComposerFollowUpMode(event) : this.followUpBehavior())
+      })
     }
   }
 
@@ -319,6 +318,10 @@ export class ChatInputComponent {
     this.chatService.closeQueue()
   }
 
+  turnOffFollowUpQueueing() {
+    this.followUpBehavior.set('steer')
+  }
+
   removePendingFollowUp(id?: string) {
     if (!id) {
       return
@@ -339,18 +342,14 @@ export class ChatInputComponent {
     this.chatService.updatePendingFollowUp(item)
   }
 
-  editPendingFollowUp(item?: {
-    id?: string
-    content: string
-    references?: XpertChatReference[]
-    mode: 'queue' | 'steer'
-  }) {
-    if (!item || (!item.content && !item.references?.length)) {
+  editPendingFollowUp(item?: ChatFollowUpRailItem) {
+    const content = (item?.content ?? item?.input ?? '').trim()
+    if (!item || (!content && !item.references?.length)) {
       return
     }
 
     this.followUpBehavior.set(item.mode)
-    this.promptControl.setValue(item.content)
+    this.promptControl.setValue(content)
     this.references.set(item.references ?? [])
     this.removePendingFollowUp(item.id)
 
@@ -441,10 +440,10 @@ export class ChatInputComponent {
 
   private readPersistedFollowUpBehavior(): 'queue' | 'steer' {
     if (typeof localStorage === 'undefined') {
-      return 'steer'
+      return 'queue'
     }
 
-    return localStorage.getItem(this.getFollowUpStorageKey()) === 'queue' ? 'queue' : 'steer'
+    return readFollowUpBehaviorStorageValue(localStorage.getItem(this.getFollowUpStorageKey()))
   }
 
   private persistFollowUpBehavior(behavior: 'queue' | 'steer') {
