@@ -28,6 +28,7 @@ import {
     TFollowUpConsumedEvent,
     TChatRequestHuman,
     TSensitiveOperation,
+    TXpertChatState,
     TXpertChatResumeRequest,
     TXpertChatRetryRequest,
     XpertAgentExecutionStatusEnum
@@ -529,36 +530,17 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 })
             )
         }
-        state ??= normalizeChatState(undefined, input)
-        const conversationRuntimeCapabilities = conversation.options?.runtimeCapabilities
-        if (!hasExplicitRuntimeCapabilities(state) && conversationRuntimeCapabilities) {
-            state = normalizeChatState({
-                ...state,
-                [STATE_VARIABLE_HUMAN]: {
-                    ...(state[STATE_VARIABLE_HUMAN] ?? {}),
-                    runtimeCapabilities: conversationRuntimeCapabilities
-                }
-            })
-            input = state[STATE_VARIABLE_HUMAN] ?? input
-        }
-        state = withPreferenceSystemState(state, userPreference)
-        const runtimeCapabilities = getRuntimeCapabilitiesFromState(state)
-        if (runtimeCapabilities) {
-            state = normalizeChatState({
-                ...state,
-                [STATE_VARIABLE_HUMAN]: {
-                    ...(state[STATE_VARIABLE_HUMAN] ?? {}),
-                    runtimeCapabilities
-                }
-            })
-        }
-        state = withPreferenceSkillState(
+        const preparedAgentChatState = prepareAgentChatState({
             state,
-            latestXpert?.workspaceId ?? xpert.workspaceId,
-            userPreference?.toolPreferences,
-            forceWorkspaceSkillBlacklistMode,
-            runtimeCapabilities
-        )
+            input,
+            conversationRuntimeCapabilities: conversation.options?.runtimeCapabilities,
+            workspaceId: latestXpert?.workspaceId ?? xpert.workspaceId,
+            userPreference,
+            forceWorkspaceSkillBlacklistMode
+        })
+        state = preparedAgentChatState.state
+        input = preparedAgentChatState.input
+        const runtimeCapabilities = preparedAgentChatState.runtimeCapabilities
 
         return new Observable<MessageEvent>((subscriber) => {
             // New conversation
@@ -975,13 +957,78 @@ function shouldStartAssistantMessageAfterSteer(event: MessageEvent) {
     )
 }
 
+/**
+ * Normalizes the chat state before invoking the agent, including inherited
+ * runtime capabilities, user preference context, and skill selection metadata.
+ */
+function prepareAgentChatState({
+    state,
+    input,
+    conversationRuntimeCapabilities,
+    workspaceId,
+    userPreference,
+    forceWorkspaceSkillBlacklistMode = false
+}: {
+    state: TXpertChatState | null
+    input: TChatRequestHuman | null
+    conversationRuntimeCapabilities?: unknown
+    workspaceId?: string | null
+    userPreference?: {
+        soul?: string | null
+        profile?: string | null
+        toolPreferences?: IAssistantBindingToolPreferences | null
+    } | null
+    forceWorkspaceSkillBlacklistMode?: boolean
+}): {
+    state: TXpertChatState
+    input: TChatRequestHuman | null
+    runtimeCapabilities: TRuntimeCapabilitiesSelection | null
+} {
+    let preparedState = state ?? normalizeChatState(undefined, input)
+    let preparedInput = input
+
+    if (!hasExplicitRuntimeCapabilities(preparedState) && conversationRuntimeCapabilities) {
+        preparedState = withRuntimeCapabilitiesState(preparedState, conversationRuntimeCapabilities)
+        preparedInput = preparedState[STATE_VARIABLE_HUMAN] ?? preparedInput
+    }
+
+    preparedState = withPreferenceSystemState(preparedState, userPreference)
+
+    const requestedRuntimeCapabilities = getRuntimeCapabilitiesFromState(preparedState)
+    const runtimeCapabilities = filterRuntimeCapabilitiesBySkillPreference(
+        requestedRuntimeCapabilities,
+        workspaceId,
+        userPreference?.toolPreferences
+    )
+    if (runtimeCapabilities) {
+        preparedState = withRuntimeCapabilitiesState(preparedState, runtimeCapabilities)
+        if (runtimeCapabilities !== requestedRuntimeCapabilities) {
+            preparedInput = preparedState[STATE_VARIABLE_HUMAN] ?? preparedInput
+        }
+    }
+
+    preparedState = withPreferenceSkillState(
+        preparedState,
+        workspaceId,
+        userPreference?.toolPreferences,
+        forceWorkspaceSkillBlacklistMode,
+        runtimeCapabilities
+    )
+
+    return {
+        state: preparedState,
+        input: preparedInput,
+        runtimeCapabilities
+    }
+}
+
 function withPreferenceSystemState(
-    state: Record<string, any>,
+    state: TXpertChatState,
     preference?: {
         soul?: string | null
         profile?: string | null
     } | null
-) {
+): TXpertChatState {
     return {
         ...state,
         [STATE_VARIABLE_SYS]: {
@@ -992,21 +1039,68 @@ function withPreferenceSystemState(
     }
 }
 
+function withRuntimeCapabilitiesState(state: TXpertChatState, runtimeCapabilities: unknown): TXpertChatState {
+    return normalizeChatState({
+        ...state,
+        [STATE_VARIABLE_HUMAN]: {
+            ...(state?.[STATE_VARIABLE_HUMAN] ?? {}),
+            runtimeCapabilities
+        }
+    })
+}
+
+function filterRuntimeCapabilitiesBySkillPreference(
+    runtimeCapabilities: TRuntimeCapabilitiesSelection | null,
+    workspaceId?: string | null,
+    toolPreferences?: IAssistantBindingToolPreferences | null
+) {
+    if (runtimeCapabilities?.mode !== 'allowlist') {
+        return runtimeCapabilities
+    }
+
+    const normalizedWorkspaceId = runtimeCapabilities.skills?.workspaceId?.trim() || workspaceId?.trim() || undefined
+    const disabledSkillIds = normalizedWorkspaceId ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences) : []
+
+    if (!disabledSkillIds.length) {
+        return runtimeCapabilities
+    }
+
+    const disabledSkillIdSet = new Set(disabledSkillIds)
+    const skillIds = runtimeCapabilities.skills.ids.filter((skillId) => !disabledSkillIdSet.has(skillId))
+    if (skillIds.length === runtimeCapabilities.skills.ids.length) {
+        return runtimeCapabilities
+    }
+
+    return {
+        ...runtimeCapabilities,
+        skills: {
+            ...runtimeCapabilities.skills,
+            ids: skillIds
+        }
+    }
+}
+
 function withPreferenceSkillState(
-    state: Record<string, any>,
+    state: TXpertChatState,
     workspaceId?: string | null,
     toolPreferences?: IAssistantBindingToolPreferences | null,
     forceWorkspaceSkillBlacklistMode = false,
     runtimeCapabilities?: TRuntimeCapabilitiesSelection | null
-) {
+): TXpertChatState {
     const normalizedWorkspaceId = runtimeCapabilities?.skills?.workspaceId?.trim() || workspaceId?.trim() || undefined
 
     if (runtimeCapabilities?.mode === 'allowlist') {
+        const disabledSkillIds = normalizedWorkspaceId
+            ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences)
+            : []
+        const disabledSkillIdSet = new Set(disabledSkillIds)
         return {
             ...state,
             selectedSkillWorkspaceId: normalizedWorkspaceId,
-            selectedSkillIds: runtimeCapabilities.skills?.ids ?? [],
-            disabledSkillIds: [],
+            selectedSkillIds: (runtimeCapabilities.skills?.ids ?? []).filter(
+                (skillId) => !disabledSkillIdSet.has(skillId)
+            ),
+            disabledSkillIds,
             skillSelectionMode: undefined
         }
     }

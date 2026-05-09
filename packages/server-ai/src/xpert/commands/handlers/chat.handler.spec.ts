@@ -453,6 +453,137 @@ describe('XpertChatHandler', () => {
         expect(agentCommand.options.runtimeCapabilities).toEqual(explicitRuntimeCapabilities)
     })
 
+    it('filters user-disabled skills from explicit runtime capability allow-lists', async () => {
+        const runWithRuntimeCapabilities = async (runtimeCapabilities: TRuntimeCapabilitiesSelection) => {
+            const commands: unknown[] = []
+            commandBus.execute.mockImplementation(async (command) => {
+                commands.push(command)
+
+                if (command instanceof CreateMemoryStoreCommand) {
+                    return null
+                }
+                if (command instanceof ChatConversationUpsertCommand) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        error: command.entity.error,
+                        operation: command.entity.operation,
+                        options: {
+                            runtimeCapabilities
+                        }
+                    }
+                }
+                if (command instanceof XpertAgentExecutionUpsertCommand) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                if (command instanceof ChatMessageUpsertCommand) {
+                    return {
+                        id: `${command.entity.role}-1`,
+                        ...command.entity
+                    }
+                }
+                if (command instanceof XpertAgentChatCommand) {
+                    return of({
+                        data: {
+                            type: ChatMessageTypeEnum.EVENT,
+                            event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                            data: {
+                                id: 'execution-1',
+                                status: XpertAgentExecutionStatusEnum.SUCCESS,
+                                title: 'Generated title'
+                            }
+                        }
+                    } as MessageEvent)
+                }
+                return null
+            })
+
+            const stream = await handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'send',
+                        conversationId: 'conversation-1',
+                        message: {
+                            clientMessageId: 'client-1',
+                            input: {
+                                input: 'Hello world'
+                            }
+                        },
+                        state: {
+                            human: {
+                                input: 'Hello world',
+                                runtimeCapabilities
+                            }
+                        }
+                    },
+                    {
+                        xpertId: 'xpert-1'
+                    }
+                )
+            )
+
+            await lastValueFrom(stream.pipe(toArray()))
+
+            return commands.find((command) => command instanceof XpertAgentChatCommand) as XpertAgentChatCommand
+        }
+
+        const mixedRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
+            mode: 'allowlist',
+            skills: {
+                workspaceId: 'workspace-1',
+                ids: ['skill-1', 'skill-2']
+            },
+            plugins: {
+                nodeKeys: []
+            },
+            subAgents: {
+                nodeKeys: []
+            }
+        }
+        const mixedExpectedRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
+            ...mixedRuntimeCapabilities,
+            skills: {
+                ...mixedRuntimeCapabilities.skills,
+                ids: ['skill-1']
+            }
+        }
+
+        const mixedAgentCommand = await runWithRuntimeCapabilities(mixedRuntimeCapabilities)
+        expect(mixedAgentCommand.state.human?.runtimeCapabilities).toEqual(mixedExpectedRuntimeCapabilities)
+        expect(mixedAgentCommand.state.selectedSkillIds).toEqual(['skill-1'])
+        expect(mixedAgentCommand.state.disabledSkillIds).toEqual(['skill-2'])
+        expect(mixedAgentCommand.options.runtimeCapabilities).toEqual(mixedExpectedRuntimeCapabilities)
+
+        const disabledOnlyRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
+            ...mixedRuntimeCapabilities,
+            skills: {
+                ...mixedRuntimeCapabilities.skills,
+                ids: ['skill-2']
+            }
+        }
+        const disabledOnlyExpectedRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
+            ...mixedRuntimeCapabilities,
+            skills: {
+                ...mixedRuntimeCapabilities.skills,
+                ids: []
+            }
+        }
+
+        const disabledOnlyAgentCommand = await runWithRuntimeCapabilities(disabledOnlyRuntimeCapabilities)
+        expect(disabledOnlyAgentCommand.state.human?.runtimeCapabilities).toEqual(
+            disabledOnlyExpectedRuntimeCapabilities
+        )
+        expect(disabledOnlyAgentCommand.state.selectedSkillIds).toEqual([])
+        expect(disabledOnlyAgentCommand.state.disabledSkillIds).toEqual(['skill-2'])
+        expect(disabledOnlyAgentCommand.options.runtimeCapabilities).toEqual(disabledOnlyExpectedRuntimeCapabilities)
+    })
+
     it('normalizes recommended runtime capabilities for the agent and persisted human message metadata', async () => {
         const commands: unknown[] = []
         const explicitRuntimeCapabilities = {
