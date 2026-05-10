@@ -3916,6 +3916,7 @@
       "Total": "总数"
     },
     "Xpert": {
+      "AgentRunStatusReplied": "已回复",
       "DefaultWorkspace": "默认",
       "SetDefaultWorkspace": "设为默认",
       "ActionToReview": "需要您审核的操作",

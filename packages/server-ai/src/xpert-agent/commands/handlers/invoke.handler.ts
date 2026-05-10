@@ -351,6 +351,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
 
         const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
+        const rootExecutionId = options.rootExecutionId ?? execution.id
         const contentStream = from(
             graph.streamEvents(graphInput, {
                 version: 'v2',
@@ -361,7 +362,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     language: languageCode,
                     userId,
                     executionId: execution.id,
-                    rootExecutionId: options.rootExecutionId ?? execution.id,
+                    rootExecutionId,
                     xpertId: xpert.id,
                     agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
                     rootAgentKey: agent.key,
@@ -375,6 +376,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 },
                 recursionLimit,
                 maxConcurrency: team.agentConfig?.maxConcurrency,
+                metadata: {
+                    agentKey: agent.key,
+                    executionId: execution.id,
+                    rootExecutionId
+                },
                 signal: abortController.signal
                 // debug: true
             })

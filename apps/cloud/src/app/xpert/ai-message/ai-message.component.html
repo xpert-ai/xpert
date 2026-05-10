@@ -50,26 +50,33 @@
     />
   }
 
-  @for (submessage of contents(); track submessage.id; let i = $index; let last = $last) {
-    <chat-message-avatar
-      #avatar
-      class="group sticky top-14 z-10 bg-surface-container"
-      [prevContent]="contents()[i - 1]"
-      [message]="message()"
-      [content]="submessage"
-      [collapse]="submessage.id && collapseMessages()[submessage.id]"
-      (collapseChange)="updateCollapse(submessage.id, $event)"
+  @if (renderTree().hasAgentRuns) {
+    <ng-container
+      [ngTemplateOutlet]="agentRunUnitsTemplate"
+      [ngTemplateOutletContext]="{ units: renderTree().units, depth: 0 }"
     />
-    <chat-message-content
-      class="px-2 z-0"
-      [message]="message()"
-      [content]="submessage"
-      [last]="last"
-      [collapse]="submessage.id && collapseMessages()[submessage.id]"
-    />
+  } @else {
+    @for (submessage of contents(); track submessage.id; let i = $index; let last = $last) {
+      <chat-message-avatar
+        #avatar
+        class="group sticky top-14 z-10 bg-surface-container"
+        [prevContent]="contents()[i - 1]"
+        [message]="message()"
+        [content]="submessage"
+        [collapse]="submessage.id && collapseMessages()[submessage.id]"
+        (collapseChange)="updateCollapse(submessage.id, $event)"
+      />
+      <chat-message-content
+        class="px-2 z-0"
+        [message]="message()"
+        [content]="submessage"
+        [last]="last"
+        [collapse]="submessage.id && collapseMessages()[submessage.id]"
+      />
+    }
   }
 
-  @if (contentStr()) {
+  @if (!renderTree().hasAgentRuns && contentStr()) {
     <markdown
       clipboard
       class="ngm-copilot-markdown flex-1"
@@ -80,6 +87,140 @@
       [data]="contentStr()"
     />
   }
+
+  <ng-template #agentRunUnitsTemplate let-units="units" let-depth="depth">
+    @for (unit of units; track trackAgentRenderUnit($index, unit); let i = $index; let last = $last) {
+      @if (unit.type === 'entry') {
+        @let entry = $any(unit).entry;
+        @if (entry.source === 'content') {
+          @let contentValue = entryContent(entry);
+          @let entryId = entryContentId(entry);
+          @if (depth === 0) {
+            <chat-message-avatar
+              #avatar
+              class="group sticky top-14 z-10 bg-surface-container"
+              [prevContent]="previousEntryContent(units, i)"
+              [message]="message()"
+              [content]="contentValue"
+              [collapse]="entryId && collapseMessages()[entryId]"
+              (collapseChange)="entryId && updateCollapse(entryId, $event)"
+            />
+          }
+          <chat-message-content
+            class="z-0"
+            [class.px-2]="depth === 0"
+            [message]="message()"
+            [content]="contentValue"
+            [last]="last"
+            [collapse]="entryId && collapseMessages()[entryId]"
+            [agentOutput]="depth > 0"
+          />
+        } @else if (entry.source === 'reasoning') {
+          <chat-thought
+            [message]="message()"
+            [content]="reasoningEntry(entry)"
+            class="block overflow-clip rounded-2xl border border-divider-subtle bg-surface-container"
+          />
+        } @else {
+          @let event = agentEvent(entry);
+          <div
+            class="flex items-start gap-2 rounded-md px-2 py-1.5 text-xs leading-5"
+            [class.bg-state-destructive-hover]="isAgentEventError(event)"
+            [class.text-text-destructive]="isAgentEventError(event)"
+            [class.bg-components-card-bg]="!isAgentEventError(event)"
+            [class.text-text-secondary]="!isAgentEventError(event)"
+          >
+            <i class="ri-information-line mt-0.5 shrink-0"></i>
+            <div class="min-w-0 flex-1">
+              <div class="truncate font-medium">{{ agentEventLabel(event) }}</div>
+              @if (agentEventDetail(event); as detail) {
+                <div class="break-words">{{ detail }}</div>
+              }
+              @if (event.error) {
+                <pre class="mt-1 whitespace-pre-wrap break-words">{{ event.error }}</pre>
+              }
+            </div>
+          </div>
+        }
+      } @else {
+        @let node = $any(unit).node;
+        @let expanded = isAgentRunExpanded(node, !last);
+        <div class="border-l border-divider-subtle pl-2" [class.ml-1]="depth > 0">
+          <button
+            type="button"
+            class="group/agent group-agent flex w-full items-start justify-between gap-2 rounded-md px-0 py-1.5 text-left"
+            [attr.aria-expanded]="expanded"
+            (click)="toggleAgentRun(node, !last)"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+                <i
+                  class="ri-robot-2-line shrink-0 text-base text-text-tertiary transition-colors group-hover/agent:text-text-secondary"
+                ></i>
+                <span
+                  class="min-w-0 max-w-64 truncate text-sm font-medium text-text-secondary transition-colors group-hover/agent:text-text-primary"
+                >
+                  {{ agentRunTitle(node) }}
+                </span>
+                <span
+                  class="inline-flex shrink-0 items-center gap-1 text-xs text-text-tertiary transition-colors group-hover/agent:text-text-secondary"
+                >
+                  <i [class]="agentRunStatusIcon(node)"></i>
+                  {{ agentRunStatusLabel(node) }}
+                </span>
+                @if (agentRunDuration(node); as duration) {
+                  <span
+                    class="inline-flex shrink-0 items-center gap-1 text-xs tabular-nums text-text-tertiary transition-colors group-hover/agent:text-text-secondary"
+                  >
+                    <i class="ri-time-line"></i>
+                    {{ duration }}
+                  </span>
+                }
+                @if (agentRunInputTooltip(node); as inputTooltip) {
+                  <span
+                    class="inline-flex shrink-0 items-center gap-1 text-xs text-text-tertiary transition-colors group-hover/agent:text-text-secondary"
+                    [zTooltip]="inputTooltip"
+                    zPosition="top"
+                  >
+                    <i class="ri-braces-line"></i>
+                  </span>
+                }
+                @for (item of agentRunCountItems(node); track item.key) {
+                  <span
+                    class="inline-flex shrink-0 items-center gap-1 text-xs text-text-tertiary transition-colors group-hover/agent:text-text-secondary"
+                    [zTooltip]="item.label"
+                    zPosition="top"
+                  >
+                    <i [class]="item.icon"></i>
+                    {{ item.count }}
+                  </span>
+                }
+              </div>
+            </div>
+            <i
+              class="ri-arrow-right-s-line mt-0.5 shrink-0 text-base text-text-tertiary transition-all group-hover/agent:text-text-secondary"
+              [class.rotate-90]="expanded"
+            ></i>
+          </button>
+
+          @if (expanded) {
+            <div class="mt-2 space-y-3">
+              @if (agentRunError(node); as error) {
+                <pre
+                  class="rounded-md bg-state-destructive-hover px-2 py-2 text-xs text-text-destructive whitespace-pre-wrap break-words"
+                  >{{ error }}</pre
+                >
+              }
+              <ng-container
+                [ngTemplateOutlet]="agentRunUnitsTemplate"
+                [ngTemplateOutletContext]="{ units: agentNodeUnits(node), depth: depth + 1 }"
+              />
+            </div>
+          }
+        </div>
+      }
+    }
+  </ng-template>
 
   <div class="flex justify-start items-center gap-2">
     @if (answering()) {

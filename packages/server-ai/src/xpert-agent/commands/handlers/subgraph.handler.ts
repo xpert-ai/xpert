@@ -290,32 +290,30 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 toolset.getId(),
                 options.toolPreferences
             )
-            filteredItems
-                .forEach((tool) => {
-                    const lc_name =
-                        tool instanceof DynamicStructuredTool
-                            ? tool.name
-                            : get_lc_unique_name(tool.constructor as typeof Serializable)
-                    if (team.agentConfig?.tools?.[lc_name]?.description) {
-                        tool.description = team.agentConfig.tools[lc_name].description
-                    }
-                    tools.push({
-                        toolset: {
-                            provider: toolset.providerName,
-                            id: toolset.getId(),
-                            title: translate(toolset.getToolTitle(tool.name))
-                        },
-                        caller: agent.key,
-                        tool,
-                        variables:
-                            team.agentConfig?.tools?.[lc_name]?.memories || team.agentConfig?.toolsMemory?.[lc_name]
-                    })
-
-                    // Add sensitive tools into interruptBefore
-                    if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
-                        interruptBefore.push(tool.name)
-                    }
+            filteredItems.forEach((tool) => {
+                const lc_name =
+                    tool instanceof DynamicStructuredTool
+                        ? tool.name
+                        : get_lc_unique_name(tool.constructor as typeof Serializable)
+                if (team.agentConfig?.tools?.[lc_name]?.description) {
+                    tool.description = team.agentConfig.tools[lc_name].description
+                }
+                tools.push({
+                    toolset: {
+                        provider: toolset.providerName,
+                        id: toolset.getId(),
+                        title: translate(toolset.getToolTitle(tool.name))
+                    },
+                    caller: agent.key,
+                    tool,
+                    variables: team.agentConfig?.tools?.[lc_name]?.memories || team.agentConfig?.toolsMemory?.[lc_name]
                 })
+
+                // Add sensitive tools into interruptBefore
+                if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
+                    interruptBefore.push(tool.name)
+                }
+            })
         }
 
         // Workflow Task tool
@@ -402,7 +400,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     .filter((connection) => connection.type === 'xpert')
                     .map((connection) => getSubAgentConnectionTargetKey(connection))
             )
-            runtimeEnabledFollowers = runtimeEnabledFollowers.filter((follower) => enabledFollowerKeys.has(follower.key))
+            runtimeEnabledFollowers = runtimeEnabledFollowers.filter((follower) =>
+                enabledFollowerKeys.has(follower.key)
+            )
             runtimeEnabledCollaborators = runtimeEnabledCollaborators.filter(
                 (collaborator) => collaborator.id && enabledCollaboratorIds.has(collaborator.id)
             )
@@ -748,10 +748,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const runtimeAgentMiddlewares = runtimeMiddlewareEntries.map(({ middleware }) => middleware)
         const shouldEnableTitleMiddleware = Boolean(
             xpert.features?.title?.enabled &&
-                isStart &&
-                !hiddenAgent &&
-                !leaderKey &&
-                (!xpert.agent || xpert.agent.key === agent.key)
+            isStart &&
+            !hiddenAgent &&
+            !leaderKey &&
+            (!xpert.agent || xpert.agent.key === agent.key)
         )
         const titleMiddleware = shouldEnableTitleMiddleware
             ? this.xpertTitleMiddlewareService.createMiddleware({
@@ -768,13 +768,16 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                       }
                   ]
                 : []),
-            ...visibleMiddlewareNodes.reduce<Array<{ key: string; middleware: AgentMiddleware }>>((acc, node, index) => {
-                const middleware = visibleAgentMiddlewares[index]
-                if (middleware) {
-                    acc.push({ key: node.key, middleware })
-                }
-                return acc
-            }, []),
+            ...visibleMiddlewareNodes.reduce<Array<{ key: string; middleware: AgentMiddleware }>>(
+                (acc, node, index) => {
+                    const middleware = visibleAgentMiddlewares[index]
+                    if (middleware) {
+                        acc.push({ key: node.key, middleware })
+                    }
+                    return acc
+                },
+                []
+            ),
             ...runtimeMiddlewareEntries
         ]
         // Middleware tools
@@ -807,38 +810,37 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...(variables ?? []).map((variable) => variable.name),
             ...stateVariables.map((variable) => variable.name)
         ])
-        const middlewareStateAnnotations = visibleAgentMiddlewares.reduce<Record<string, ReturnType<typeof Annotation>>>(
-            (acc, middleware) => {
-                const shape = (middleware.stateSchema as any)?.shape
-                if (!shape) {
-                    return acc
-                }
-                Object.keys(shape).forEach((key) => {
-                    if (key.startsWith('_') || existedStateVariables.has(key) || acc[key]) {
-                        return
-                    }
-                    acc[key] = Annotation({
-                        reducer: (a, b) => (b === undefined ? a : b),
-                        default: () => {
-                            try {
-                                const def = (shape as any)[key]?._def?.defaultValue
-                                if (typeof def === 'function') {
-                                    return def()
-                                }
-                                if (def !== undefined) {
-                                    return def
-                                }
-                            } catch (error) {
-                                // ignore default parse errors
-                            }
-                            return null
-                        }
-                    })
-                })
+        const middlewareStateAnnotations = visibleAgentMiddlewares.reduce<
+            Record<string, ReturnType<typeof Annotation>>
+        >((acc, middleware) => {
+            const shape = (middleware.stateSchema as any)?.shape
+            if (!shape) {
                 return acc
-            },
-            {}
-        )
+            }
+            Object.keys(shape).forEach((key) => {
+                if (key.startsWith('_') || existedStateVariables.has(key) || acc[key]) {
+                    return
+                }
+                acc[key] = Annotation({
+                    reducer: (a, b) => (b === undefined ? a : b),
+                    default: () => {
+                        try {
+                            const def = (shape as any)[key]?._def?.defaultValue
+                            if (typeof def === 'function') {
+                                return def()
+                            }
+                            if (def !== undefined) {
+                                return def
+                            }
+                        } catch (error) {
+                            // ignore default parse errors
+                        }
+                        return null
+                    }
+                })
+            })
+            return acc
+        }, {})
 
         const {
             beforeAgentHooks,
@@ -1182,7 +1184,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const hasSteerPreTurnNodes = !hiddenAgent
         const agentLoopEntryNode = hasSteerPreTurnNodes
             ? stagePendingFollowUpsNodeKey
-            : beforeModelHooks[0]?.key ?? agentKey
+            : (beforeModelHooks[0]?.key ?? agentKey)
         const modelLoopEntryNode = beforeModelHooks[0]?.key ?? agentKey
         const agentStartNode = beforeAgentHooks[0]?.key ?? agentLoopEntryNode
         const agentDecisionNode = afterModelExecutionOrder[afterModelExecutionOrder.length - 1]?.key ?? agentKey
@@ -1217,26 +1219,30 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             subgraphBuilder
                 .addNode(
                     stagePendingFollowUpsNodeKey,
-                    (await this.commandBus.execute(
-                        new CreateNodeStagePendingSteerFollowUpsCommand({
-                            conversationId: options.conversationId
-                        })
-                    )).withConfig({
+                    (
+                        await this.commandBus.execute(
+                            new CreateNodeStagePendingSteerFollowUpsCommand({
+                                conversationId: options.conversationId
+                            })
+                        )
+                    ).withConfig({
                         runName: stagePendingFollowUpsNodeKey,
                         tags: [thread_id, xpert.id, stagePendingFollowUpsNodeKey]
                     })
                 )
                 .addNode(
                     consumePendingFollowUpsNodeKey,
-                    (await this.commandBus.execute(
-                        new CreateNodeConsumePendingSteerFollowUpsCommand({
-                            agentKey,
-                            agentChannel,
-                            xpert: promptWorkflowXpert,
-                            subscriber,
-                            attachmentOptions: agent.options?.attachment ?? agent.options?.vision
-                        })
-                    )).withConfig({
+                    (
+                        await this.commandBus.execute(
+                            new CreateNodeConsumePendingSteerFollowUpsCommand({
+                                agentKey,
+                                agentChannel,
+                                xpert: promptWorkflowXpert,
+                                subscriber,
+                                attachmentOptions: agent.options?.attachment ?? agent.options?.vision
+                            })
+                        )
+                    ).withConfig({
                         runName: consumePendingFollowUpsNodeKey,
                         tags: [thread_id, xpert.id, consumePendingFollowUpsNodeKey]
                     })
@@ -1476,14 +1482,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     name,
                     shouldRerouteAgentEntry
                         ? async (state, config) =>
-                              rerouteAgentEntryTarget(
-                                  await (navigator as any)(state, config),
-                                  agentKey,
-                                  agentStartNode
-                              )
+                              rerouteAgentEntryTarget(await (navigator as any)(state, config), agentKey, agentStartNode)
                         : (navigator as any),
                     shouldRerouteAgentEntry
-                        ? destinations.map((destination) => rerouteAgentEntryTarget(destination, agentKey, agentStartNode))
+                        ? destinations.map((destination) =>
+                              rerouteAgentEntryTarget(destination, agentKey, agentStartNode)
+                          )
                         : destinations
                 )
             })
@@ -1683,7 +1687,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                             executionId: _execution.id
                         },
                         metadata: {
-                            agentKey: agent.key
+                            agentKey: agent.key,
+                            executionId: _execution.id,
+                            parentExecutionId: executionId
                         }
                     })
 

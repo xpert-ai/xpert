@@ -17,6 +17,7 @@ import {
   IKnowledgebase,
   IStorageFile,
   IXpert,
+  IXpertAgentExecution,
   IXpertProject,
   IXpertToolset,
   shortTitle,
@@ -589,14 +590,7 @@ export abstract class ChatService {
                   break
                 case ChatMessageEventTypeEnum.ON_AGENT_START:
                 case ChatMessageEventTypeEnum.ON_AGENT_END: {
-                  const execution = event.data
-                  this.updateLatestMessage((message) => {
-                    const executions = (message.executions ?? []).filter((_) => _.id !== execution.id)
-                    return {
-                      ...message,
-                      executions: executions.concat(execution)
-                    }
-                  })
+                  this.upsertAgentExecution(event.data as IXpertAgentExecution)
                   break
                 }
                 case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
@@ -775,6 +769,40 @@ export abstract class ChatService {
       return {
         ...lastM
       }
+    })
+  }
+
+  upsertAgentExecution(execution: IXpertAgentExecution) {
+    this.#messages.update((messages) => {
+      const nextMessages = [...(messages ?? [])]
+      let lastMessageIndex = -1
+      for (let i = nextMessages.length - 1; i >= 0; i--) {
+        if (nextMessages[i]?.role === 'ai') {
+          lastMessageIndex = i
+          break
+        }
+      }
+
+      if (lastMessageIndex < 0) {
+        return [
+          ...nextMessages,
+          {
+            id: uuid(),
+            role: 'ai',
+            content: '',
+            status: 'thinking',
+            executions: [execution]
+          }
+        ]
+      }
+
+      const lastMessage = nextMessages[lastMessageIndex] as TCopilotChatMessage
+      const executions = (lastMessage.executions ?? []).filter((item) => item.id !== execution.id)
+      nextMessages[lastMessageIndex] = {
+        ...lastMessage,
+        executions: executions.concat(execution)
+      }
+      return nextMessages
     })
   }
 

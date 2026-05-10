@@ -488,6 +488,7 @@
     },
     "Xpert": {
       "Assistant": "Assistant",
+      "AgentRunStatusReplied": "Replied",
       "StartFrom": "Start from",
       "BlankStart": "Blank",
       "TemplateStart": "Template",
