@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http'
+import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { map, Observable } from 'rxjs'
 import { injectApiBaseUrl } from '../providers'
@@ -46,9 +46,14 @@ export class AiAssistantService {
     )
   }
 
-  getRuntimeCapabilities(id: string): Observable<IAiAssistantRuntimeCapabilities> {
+  getRuntimeCapabilities(id: string, options?: { isDraft?: boolean }): Observable<IAiAssistantRuntimeCapabilities> {
+    const params = options?.isDraft == null ? undefined : new HttpParams().set('isDraft', String(options.isDraft))
+
     return this.#httpClient.get<IAiAssistantRuntimeCapabilities>(
-      `${this.#apiBaseUrl}/api/ai/assistants/${id}/runtime-capabilities`
+      `${this.#apiBaseUrl}/api/ai/assistants/${id}/runtime-capabilities`,
+      {
+        params
+      }
     )
   }
 }

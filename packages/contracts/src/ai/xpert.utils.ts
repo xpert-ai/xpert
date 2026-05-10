@@ -1,6 +1,6 @@
 import { IPoint } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
-import { IXpert, TXpertTeamConnection, TXpertTeamDraft, TXpertTeamNode } from './xpert.model'
+import { IXpert, TXpertGraph, TXpertTeamConnection, TXpertTeamDraft, TXpertTeamNode } from './xpert.model'
 
 // Helpers
 export function omitXpertRelations(xpert: Partial<IXpert>) {
@@ -31,6 +31,56 @@ export function omitXpertRelations(xpert: Partial<IXpert>) {
  */
 export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
   return (isDraft ? xpert.draft?.team : xpert) ?? xpert
+}
+
+export function resolveRuntimeXpert(xpert: IXpert, isDraft: boolean): IXpert {
+  if (!isDraft || !xpert.draft) {
+    return xpert
+  }
+
+  const draft = xpert.draft
+  const graph = resolveDraftRuntimeGraph(xpert, draft)
+  const agent = resolveDraftPrimaryAgent(xpert, draft, graph)
+
+  return {
+    ...xpert,
+    ...(draft.team ?? {}),
+    id: xpert.id,
+    tenantId: xpert.tenantId,
+    organizationId: xpert.organizationId,
+    workspaceId: draft.team?.workspaceId ?? xpert.workspaceId,
+    draft: xpert.draft,
+    graph,
+    agent,
+    agentConfig: draft.team?.agentConfig ?? xpert.agentConfig,
+    commandProfile: draft.team?.commandProfile ?? xpert.commandProfile,
+    features: draft.team?.features ?? xpert.features,
+    options: draft.team?.options ?? xpert.options
+  } as IXpert
+}
+
+export function resolveDraftRuntimeGraph(xpert: IXpert, draft: TXpertTeamDraft): TXpertGraph {
+  return {
+    nodes: draft.nodes ?? xpert.graph?.nodes ?? [],
+    connections: draft.connections ?? xpert.graph?.connections ?? []
+  }
+}
+
+export function resolveDraftPrimaryAgent(
+  xpert: IXpert,
+  draft: TXpertTeamDraft,
+  graph: TXpertGraph
+): IXpertAgent | undefined {
+  const draftAgent = draft.team?.agent
+  const targetKey = draftAgent?.key ?? xpert.agent?.key
+  const agentNode = targetKey
+    ? graph.nodes.find(
+        (node): node is TXpertTeamNode<'agent'> =>
+          node.type === 'agent' && (node.key === targetKey || node.entity?.key === targetKey)
+      )
+    : null
+
+  return agentNode?.entity ?? draftAgent ?? xpert.agent
 }
 
 export function xpertLabel(agent: Partial<IXpert>) {

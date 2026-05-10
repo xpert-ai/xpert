@@ -15,7 +15,7 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   Attachment_Type_Options,
   AudioRecorderService,
@@ -33,6 +33,7 @@ import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { catchError, finalize, map, of, switchMap } from 'rxjs'
 import {
   buildSlashOptions,
+  buildTriggerOptions,
   ChatAttachmentsComponent,
   ChatComposerMenuComponent,
   ChatComposerSlashOption,
@@ -118,6 +119,7 @@ export class ChatInputComponent {
   readonly appService = inject(AppService)
   readonly #assistantService = inject(AiAssistantService)
   readonly #router = inject(Router)
+  readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #audioRecorder = inject(AudioRecorderService)
   readonly #store = inject(Store)
@@ -179,9 +181,9 @@ export class ChatInputComponent {
   )
   readonly hasRuntimeCapabilitySelection = computed(() => hasRuntimeCapabilitiesSelection(this.runtimeSelection()))
   readonly slashOptions = computed(() =>
-    buildSlashOptions(
+    buildTriggerOptions(
       this.runtimeCapabilities()?.commands,
-      this.slashRange()?.query ?? '',
+      this.slashRange(),
       this.runtimeCapabilities(),
       this.expandedSlashGroups(),
       this.runtimeSelection()
@@ -427,7 +429,7 @@ export class ChatInputComponent {
       this.addReferences([
         {
           type: 'quote',
-          source: 'Pasted text',
+          source: this.#translate.instant('PAC.Chat.PastedText', { Default: 'Pasted text' }),
           text: pastedText
         }
       ])
@@ -696,6 +698,7 @@ export class ChatInputComponent {
     }
 
     return this.executeSlashOption(option, invocation.args, {
+      trigger: '/',
       start: 0,
       end: this.promptText().length,
       query: invocation.name
@@ -707,7 +710,7 @@ export class ChatInputComponent {
     args: string,
     range: ReturnType<typeof resolveSlashTrigger>
   ) {
-    if (option.disabledReason) {
+    if (option.disabled || option.disabledReason || option.disabledReasonKey) {
       return true
     }
 
@@ -782,7 +785,7 @@ export class ChatInputComponent {
     const nextRange = resolveSlashTrigger(this.promptText(), selection?.start ?? this.promptText().length)
     const previousRange = this.slashRange()
     this.slashRange.set(nextRange)
-    if (previousRange?.query !== nextRange?.query) {
+    if (previousRange?.trigger !== nextRange?.trigger || previousRange?.query !== nextRange?.query) {
       this.slashActiveIndex.set(0)
       this.expandedSlashGroups.set([])
     }

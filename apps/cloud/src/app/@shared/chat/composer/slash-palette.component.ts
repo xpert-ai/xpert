@@ -58,10 +58,14 @@ export class ChatSlashPaletteComponent {
   }
 
   choose(option: ChatComposerSlashOption) {
-    if (option.disabledReason) {
+    if (this.isDisabled(option)) {
       return
     }
     this.optionSelect.emit(option)
+  }
+
+  isDisabled(option: ChatComposerSlashOption) {
+    return !!(option.disabled || option.disabledReason || option.disabledReasonKey)
   }
 
   flatIndexFor(option: ChatComposerSlashOption) {

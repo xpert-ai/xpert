@@ -12,14 +12,16 @@ import {
     IXpert,
     ModelPropertyKey,
     normalizeMiddlewareProvider,
+    resolveRuntimeXpert,
     TXpertGraph,
     TXpertTeamConnection,
     TXpertTeamNode
 } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@xpert-ai/server-core'
-import { Body, Controller, Get, Logger, Param, Post, UseGuards, UseInterceptors } from '@nestjs/common'
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { Body, Controller, Get, Logger, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { AgentMiddlewareRegistry, normalizeContextSize, RequestContext } from '@xpert-ai/plugin-sdk'
+import { parseQueryBoolean } from '@xpert-ai/server-common'
 import { isNil, omitBy, pick } from 'lodash-es'
 import { AssistantBindingService } from '../assistant-binding'
 import { PublishedXpertAccessService } from '../xpert'
@@ -88,14 +90,16 @@ export class AssistantsController {
     }
 
     @Get(':id/runtime-capabilities')
-    async getRuntimeCapabilities(@Param('id') id: string) {
-        const xpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(id))
+    @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
+    async getRuntimeCapabilities(@Param('id') id: string, @Query('isDraft') isDraft?: string | boolean | string[]) {
+        const sourceXpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(id))
             ? await this.publishedXpertAccessService.getPublishedXpertInTenant(id, {
                   relations: ASSISTANT_RELATIONS
               })
             : await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
                   relations: ASSISTANT_RELATIONS
               })
+        const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
         const agentKey = getAssistantPrimaryAgentKey(xpert)
         const graph = xpert.graph
         const middlewareNodes = agentKey && graph ? getAgentMiddlewareNodes(graph, agentKey) : []

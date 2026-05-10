@@ -19,6 +19,7 @@ import {
   ChatRuntimeCapabilities,
   ChatRuntimeCapabilityKind,
   ChatRuntimeCapabilityOption,
+  getCapabilityKindLabelKey,
   getCapabilityKindLabel,
   getRuntimeCapabilityOptions,
   isRuntimeCapabilitySelected,
@@ -29,6 +30,7 @@ import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 type ComposerCapabilityGroup = {
   kind: ChatRuntimeCapabilityKind
   label: string
+  labelKey: string
   options: ChatRuntimeCapabilityOption[]
 }
 
@@ -76,6 +78,7 @@ export class ChatComposerMenuComponent {
       .map((kind) => ({
         kind,
         label: getCapabilityKindLabel(kind),
+        labelKey: getCapabilityKindLabelKey(kind),
         options: getRuntimeCapabilityOptions(capabilities, kind)
       }))
       .filter((group) => group.options.length)

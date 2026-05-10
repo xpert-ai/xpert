@@ -84,6 +84,7 @@ import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../conte
 import { getBusyComposerFollowUpMode, readFollowUpBehaviorStorageValue } from '../follow-ups/follow-ups'
 import {
   buildSlashOptions,
+  buildTriggerOptions,
   ChatComposerSlashOption,
   ChatRuntimeCapabilityKind,
   ChatRuntimeCapabilityOption,
@@ -339,7 +340,7 @@ export class ChatConversationPreviewComponent {
         }
 
         this.runtimeCapabilitiesLoading.set(true)
-        return this.#assistantService.getRuntimeCapabilities(xpertId).pipe(
+        return this.#assistantService.getRuntimeCapabilities(xpertId, { isDraft: true }).pipe(
           map((capabilities) => normalizeChatRuntimeCapabilities(capabilities)),
           catchError((error) => {
             this.#toastr.error(getErrorMessage(error))
@@ -357,9 +358,9 @@ export class ChatConversationPreviewComponent {
     getSelectedRuntimeCapabilityOptions(this.runtimeCapabilities(), this.runtimeSelection())
   )
   readonly slashOptions = computed(() =>
-    buildSlashOptions(
+    buildTriggerOptions(
       this.runtimeCapabilities()?.commands,
-      this.slashRange()?.query ?? '',
+      this.slashRange(),
       this.runtimeCapabilities(),
       this.expandedSlashGroups(),
       this.runtimeSelection()
@@ -1091,7 +1092,7 @@ export class ChatConversationPreviewComponent {
     this.addReferences([
       {
         type: 'quote',
-        source: 'Pasted text',
+        source: this.#translate.instant('PAC.Chat.PastedText', { Default: 'Pasted text' }),
         text: pastedText
       }
     ])
@@ -1390,6 +1391,7 @@ export class ChatConversationPreviewComponent {
     }
 
     return this.executeSlashOption(option, invocation.args, {
+      trigger: '/',
       start: 0,
       end: this.input()?.length ?? 0,
       query: invocation.name
@@ -1401,7 +1403,7 @@ export class ChatConversationPreviewComponent {
     args: string,
     range: ReturnType<typeof resolveSlashTrigger>
   ) {
-    if (option.disabledReason) {
+    if (option.disabled || option.disabledReason || option.disabledReasonKey) {
       return true
     }
 
@@ -1483,7 +1485,7 @@ export class ChatConversationPreviewComponent {
     const nextRange = resolveSlashTrigger(text, selection?.start ?? text.length)
     const previousRange = this.slashRange()
     this.slashRange.set(nextRange)
-    if (previousRange?.query !== nextRange?.query) {
+    if (previousRange?.trigger !== nextRange?.trigger || previousRange?.query !== nextRange?.query) {
       this.slashActiveIndex.set(0)
       this.expandedSlashGroups.set([])
     }

@@ -1,5 +1,6 @@
 import {
   buildSlashOptions,
+  buildTriggerOptions,
   createChatCommandSource,
   createEmptyRuntimeCapabilitiesSelection,
   findSlashOptionByInvocation,
@@ -54,11 +55,34 @@ describe('chat composer helpers', () => {
   })
 
   it('parses slash triggers and aliases', () => {
-    expect(resolveSlashTrigger('hello\n/pla', 10)).toEqual({ start: 6, end: 10, query: 'pla' })
+    expect(resolveSlashTrigger('hello\n/pla', 10)).toEqual({ trigger: '/', start: 6, end: 10, query: 'pla' })
     expect(parseSlashInvocation('/tools please')).toEqual({ name: 'tools', args: 'please' })
 
     const option = findSlashOptionByInvocation(buildSlashOptions([], 'tools'), { name: 'tools', args: '' })
     expect(option?.name).toBe('plugins')
+  })
+
+  it('uses dollar trigger for skill capability selection only', () => {
+    const capabilities = {
+      skills: [
+        { type: 'skill' as const, id: 'skill-1', label: 'Planner' },
+        { type: 'skill' as const, id: '$audit', label: '$Audit' }
+      ],
+      plugins: [{ type: 'plugin' as const, id: 'plugin-1', label: 'Plugin' }],
+      subAgents: [{ type: 'subAgent' as const, id: 'agent-1', label: 'Agent' }],
+      commands: []
+    }
+
+    const range = resolveSlashTrigger('run $', 5)
+    expect(range).toEqual({ trigger: '$', start: 4, end: 5, query: '' })
+
+    const options = buildTriggerOptions([], range, capabilities)
+    expect(options.map((option) => option.type)).toEqual(['capability', 'capability'])
+    expect(options.map((option) => option.capability?.type)).toEqual(['skill', 'skill'])
+    expect(options.map((option) => option.name)).toEqual(['skill-1', '$audit'])
+    expect(
+      buildTriggerOptions([], resolveSlashTrigger('$audit', 6), capabilities).map((option) => option.name)
+    ).toEqual(['$audit'])
   })
 
   it('renders slash command args into templates', () => {

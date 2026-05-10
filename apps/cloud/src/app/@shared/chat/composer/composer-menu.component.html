@@ -97,7 +97,9 @@
         @for (group of groups(); track trackGroup($index, group)) {
           <button z-menu-item type="button" class="composer-menu-row" (click)="selectGroup(group.kind)">
             <z-icon [zType]="group.kind === 'skill' ? 'hammer' : group.kind === 'plugin' ? 'puzzle' : 'users'"></z-icon>
-            <span class="min-w-0 flex-1 text-left">{{ group.label }}</span>
+            <span class="min-w-0 flex-1 text-left">
+              {{ group.labelKey | translate: { Default: group.label } }}
+            </span>
             <z-badge zType="secondary">
               {{ group.options.length }}
             </z-badge>

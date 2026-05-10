@@ -14,8 +14,9 @@
         class="slash-palette-row"
         role="option"
         [class.slash-palette-row--active]="flatIndexFor(option) === activeIndex()"
-        [class.slash-palette-row--disabled]="option.disabledReason"
+        [class.slash-palette-row--disabled]="isDisabled(option)"
         [attr.aria-expanded]="option.childCount !== undefined ? option.expanded : null"
+        [attr.aria-disabled]="isDisabled(option) ? true : null"
         [attr.aria-selected]="flatIndexFor(option) === activeIndex()"
         (mouseenter)="activeIndexChange.emit(flatIndexFor(option))"
         (click)="choose(option)"
@@ -29,7 +30,11 @@
               @if (option.type === 'command') {
                 /{{ option.name }}
               } @else {
-                {{ option.label }}
+                @if (option.labelKey) {
+                  {{ option.labelKey | translate: { Default: option.label } }}
+                } @else {
+                  {{ option.label }}
+                }
               }
             </span>
             @if (option.childCount !== undefined) {
@@ -43,9 +48,17 @@
               </z-badge>
             }
           </span>
-          @if (option.description || option.disabledReason) {
+          @if (option.description || option.descriptionKey || option.disabledReason || option.disabledReasonKey) {
             <span class="block truncate text-xs text-text-tertiary">
-              {{ option.disabledReason || option.description }}
+              @if (option.disabledReason) {
+                {{ option.disabledReason }}
+              } @else if (option.disabledReasonKey) {
+                {{ option.disabledReasonKey | translate: { Default: 'Unavailable' } }}
+              } @else if (option.descriptionKey) {
+                {{ option.descriptionKey | translate: { Default: option.description } }}
+              } @else {
+                {{ option.description }}
+              }
             </span>
           }
         </span>

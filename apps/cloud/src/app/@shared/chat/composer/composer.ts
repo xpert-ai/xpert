@@ -35,13 +35,17 @@ export type ChatComposerSlashOption = {
   type: 'command' | 'capability'
   name: string
   label: string
+  labelKey?: string
   description?: string
+  descriptionKey?: string
   aliases?: string[]
   icon?: string | Record<string, unknown>
   category?: string
   kind?: ChatKitSlashCommand['kind']
   executionType: ChatKitSlashCommandExecutionType
+  disabled?: boolean
   disabledReason?: string
+  disabledReasonKey?: string
   command?: ChatKitSlashCommand
   capability?: ChatRuntimeCapabilityOption
   childCount?: number
@@ -56,6 +60,7 @@ export type ChatComposerSlashOption = {
 }
 
 export type ChatComposerSlashRange = {
+  trigger: '/' | '$'
   start: number
   end: number
   query: string
@@ -73,7 +78,9 @@ const BUILTIN_OPTIONS: ChatComposerSlashOption[] = [
     type: 'command',
     name: 'plan',
     label: 'Plan mode',
+    labelKey: 'PAC.Chat.PlanMode',
     description: 'Plan first, then execute after confirmation.',
+    descriptionKey: 'PAC.Chat.PlanModeDesc',
     executionType: 'submit_prompt',
     builtin: { command: 'plan' },
     source: 'builtin'
@@ -82,7 +89,9 @@ const BUILTIN_OPTIONS: ChatComposerSlashOption[] = [
     type: 'command',
     name: 'skills',
     label: 'Skills',
+    labelKey: 'PAC.Chat.Skills',
     description: 'Choose skills for this run.',
+    descriptionKey: 'PAC.Chat.SkillsDesc',
     executionType: 'select_capability',
     builtin: { command: 'skills', group: 'skill' },
     source: 'builtin'
@@ -91,7 +100,9 @@ const BUILTIN_OPTIONS: ChatComposerSlashOption[] = [
     type: 'command',
     name: 'plugins',
     label: 'Plugins',
+    labelKey: 'PAC.Chat.Plugins',
     description: 'Choose plugins for this run.',
+    descriptionKey: 'PAC.Chat.PluginsDesc',
     aliases: ['tools'],
     executionType: 'select_capability',
     builtin: { command: 'plugins', group: 'plugin' },
@@ -101,7 +112,9 @@ const BUILTIN_OPTIONS: ChatComposerSlashOption[] = [
     type: 'command',
     name: 'subagents',
     label: 'Subagents',
+    labelKey: 'PAC.Chat.Subagents',
     description: 'Choose subagents for this run.',
+    descriptionKey: 'PAC.Chat.SubagentsDesc',
     aliases: ['agents'],
     executionType: 'select_capability',
     builtin: { command: 'subagents', group: 'subAgent' },
@@ -293,16 +306,17 @@ export function resolveSlashTrigger(text: string, caretOffset: number): ChatComp
   const beforeCaret = text.slice(0, Math.max(0, caretOffset))
   const lineStart = Math.max(beforeCaret.lastIndexOf('\n'), beforeCaret.lastIndexOf('\r')) + 1
   const linePrefix = beforeCaret.slice(lineStart)
-  const match = /(^|\s)\/([a-zA-Z0-9_-]*)$/.exec(linePrefix)
+  const match = /(^|\s)([/$])([^\s/]*)$/.exec(linePrefix)
   if (!match) {
     return null
   }
 
   const start = lineStart + (match.index ?? 0) + match[1].length
   return {
+    trigger: match[2] as '/' | '$',
     start,
     end: caretOffset,
-    query: match[2].toLowerCase()
+    query: match[3].toLowerCase()
   }
 }
 
@@ -337,6 +351,24 @@ export function buildSlashOptions(
     .map(commandToSlashOption)
 
   return [...builtinOptions, ...runtimeOptions].filter((option) => matchesSlashQuery(option, normalizedQuery))
+}
+
+export function buildTriggerOptions(
+  runtimeCommands: ChatKitSlashCommand[] | null | undefined,
+  range: ChatComposerSlashRange | null | undefined,
+  capabilities?: ChatRuntimeCapabilities | null,
+  expandedGroups: readonly ChatRuntimeCapabilityKind[] = [],
+  selection?: RuntimeCapabilitiesSelection | null
+): ChatComposerSlashOption[] {
+  if (!range) {
+    return []
+  }
+
+  if (range.trigger === '$') {
+    return buildCapabilitySlashOptions(capabilities, 'skill', range.query, selection)
+  }
+
+  return buildSlashOptions(runtimeCommands, range.query, capabilities, expandedGroups, selection)
 }
 
 export function buildCapabilitySlashOptions(
@@ -421,8 +453,20 @@ export function getCapabilityKindLabel(kind: ChatRuntimeCapabilityKind) {
   return 'Subagents'
 }
 
+export function getCapabilityKindLabelKey(kind: ChatRuntimeCapabilityKind) {
+  if (kind === 'skill') {
+    return 'PAC.Chat.Skills'
+  }
+  if (kind === 'plugin') {
+    return 'PAC.Chat.Plugins'
+  }
+  return 'PAC.Chat.Subagents'
+}
+
 function commandToSlashOption(command: ChatKitSlashCommand): ChatComposerSlashOption {
   const action = command.action
+  const disabled = command.availability?.disabled
+  const disabledReason = disabled ? command.availability?.reason : undefined
   return {
     type: 'command',
     name: command.name,
@@ -433,7 +477,9 @@ function commandToSlashOption(command: ChatKitSlashCommand): ChatComposerSlashOp
     category: command.category,
     kind: command.kind,
     executionType: action.type,
-    disabledReason: command.availability?.disabled ? command.availability.reason || 'Unavailable' : undefined,
+    disabled,
+    disabledReason,
+    disabledReasonKey: disabled && !disabledReason ? 'PAC.Chat.CommandUnavailable' : undefined,
     command,
     source: 'runtime'
   }
@@ -452,7 +498,14 @@ function matchesSlashQuery(option: ChatComposerSlashOption, query: string) {
     return true
   }
 
-  const values = [option.name, option.label, option.description, ...(option.aliases ?? [])]
+  const values = [
+    option.name,
+    option.label,
+    option.description,
+    option.type === 'capability' && option.capability?.type === 'skill' ? `$${option.name}` : undefined,
+    option.type === 'capability' && option.capability?.type === 'skill' ? `$${option.label}` : undefined,
+    ...(option.aliases ?? [])
+  ]
   return values.some((value) => value?.toLowerCase().includes(query))
 }
 
