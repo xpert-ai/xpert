@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { compactObject, nonEmptyArray } from '@xpert-ai/server-common'
-import type { SkillPromptWorkflow, SkillSlashCommand, SkillSlashCommandAction, TXpertCommandProfileEntry } from '@xpert-ai/contracts'
+import type {
+    SkillPromptWorkflow,
+    SkillSlashCommand,
+    SkillSlashCommandAction,
+    TXpertCommandProfileEntry
+} from '@xpert-ai/contracts'
 import type { RuntimePromptWorkflowCommandSource } from '../prompt-workflow'
 import type { TRuntimeCapabilitiesSelection } from '../shared/agent/runtime-capabilities'
 import {
@@ -8,7 +13,9 @@ import {
     isRuntimeSlashCommandName,
     parseRuntimeCommandSkill,
     parseRuntimePromptWorkflowCommandSource,
+    parseSkillSlashCommands,
     RuntimeCommandAllowList,
+    RuntimeMiddlewareCommandOptions,
     RuntimeCommandOptions,
     RuntimeCommandSkill,
     RuntimeCommandSkillInput,
@@ -21,7 +28,10 @@ import {
 
 @Injectable()
 export class RuntimeCommandService {
-    normalizeSkillRuntimeSlashCommands(skill: RuntimeCommandSkill, options: RuntimeCommandOptions): RuntimeSlashCommand[] {
+    normalizeSkillRuntimeSlashCommands(
+        skill: RuntimeCommandSkill,
+        options: RuntimeCommandOptions
+    ): RuntimeSlashCommand[] {
         const parsedSkill = parseRuntimeCommandSkill(skill)
         if (!parsedSkill) {
             return []
@@ -40,6 +50,15 @@ export class RuntimeCommandService {
             .map(parseRuntimePromptWorkflowCommandSource)
             .filter((source): source is RuntimePromptWorkflowCommandInput => !!source)
             .map((source) => this.createPromptWorkflowRuntimeSlashCommand(source, options))
+            .filter((command): command is RuntimeSlashCommand => !!command)
+    }
+
+    normalizeMiddlewareRuntimeSlashCommands(
+        commands: unknown,
+        options: RuntimeMiddlewareCommandOptions
+    ): RuntimeSlashCommand[] {
+        return parseSkillSlashCommands(commands)
+            .map((command) => this.createMiddlewareRuntimeSlashCommand(command, options))
             .filter((command): command is RuntimeSlashCommand => !!command)
     }
 
@@ -66,7 +85,11 @@ export class RuntimeCommandService {
 
         for (const group of commandGroups) {
             for (const command of group) {
-                if (!isRuntimeSlashCommandName(command.name) || BUILTIN_SLASH_COMMAND_NAMES.has(command.name) || seen.has(command.name)) {
+                if (
+                    !isRuntimeSlashCommandName(command.name) ||
+                    isBlockedBuiltinCommand(command) ||
+                    seen.has(command.name)
+                ) {
                     continue
                 }
                 seen.add(command.name)
@@ -164,6 +187,70 @@ export class RuntimeCommandService {
         return null
     }
 
+    private createMiddlewareRuntimeSlashCommand(
+        command: SkillSlashCommand,
+        options: RuntimeMiddlewareCommandOptions
+    ): RuntimeSlashCommand | null {
+        const action = this.createMiddlewareRuntimeSlashCommandAction(
+            command.name,
+            command.action,
+            createMiddlewareRuntimeCapabilities(options.nodeKey)
+        )
+        if (!action) {
+            return null
+        }
+
+        const label = command.label ?? command.name
+        const kind = command.kind ?? (action.type === 'insert_invocation' ? 'prompt_workflow' : 'command')
+        const workflow = this.createSkillPromptWorkflow(command.workflow, {
+            kind,
+            name: command.name,
+            label,
+            description: command.description,
+            tags: []
+        })
+        const meta = createCommandMeta(command.meta, command.icon)
+        const category = command.category ?? (kind === 'prompt_workflow' ? 'prompt_workflow' : undefined)
+        const argsHint = command.argsHint ?? inferArgsHint(action)
+
+        return compactObject<RuntimeSlashCommand>({
+            name: command.name,
+            label,
+            description: command.description,
+            icon: command.icon,
+            category,
+            aliases: nonEmptyArray(command.aliases),
+            argsHint,
+            availability: command.availability,
+            kind: kind === 'prompt_workflow' ? kind : undefined,
+            workflow,
+            meta,
+            action,
+            source: {
+                type: 'middleware',
+                provider: options.provider,
+                nodeKey: options.nodeKey,
+                label: options.label
+            }
+        })
+    }
+
+    private createMiddlewareRuntimeSlashCommandAction(
+        commandName: string,
+        action: SkillSlashCommandAction,
+        runtimeCapabilities: TRuntimeCapabilitiesSelection
+    ): RuntimeSlashCommandAction | null {
+        if (action.type === 'insert_text' || action.type === 'insert_invocation' || action.type === 'submit_prompt') {
+            return {
+                type: 'insert_invocation',
+                template: `/${commandName} `,
+                runtimeCapabilities
+            }
+        }
+
+        return null
+    }
+
     private createPromptWorkflowRuntimeSlashCommand(
         source: RuntimePromptWorkflowCommandInput,
         options: RuntimePromptWorkflowCommandOptions
@@ -244,6 +331,21 @@ export class RuntimeCommandService {
     }
 }
 
+function createMiddlewareRuntimeCapabilities(nodeKey: string): TRuntimeCapabilitiesSelection {
+    return {
+        mode: 'allowlist',
+        skills: {
+            ids: []
+        },
+        plugins: {
+            nodeKeys: [nodeKey]
+        },
+        subAgents: {
+            nodeKeys: []
+        }
+    }
+}
+
 function createSkillRuntimeCapabilities(workspaceId: string, skillId: string): TRuntimeCapabilitiesSelection {
     return {
         mode: 'allowlist',
@@ -299,13 +401,17 @@ function createCommandMeta(
 }
 
 function inferArgsHint(action: RuntimeSlashCommandAction): string | undefined {
-    return (action.type === 'insert_text' || action.type === 'insert_invocation' || action.type === 'submit_prompt')
+    return action.type === 'insert_text' || action.type === 'insert_invocation' || action.type === 'submit_prompt'
         ? inferArgsHintFromTemplate(action.template)
         : undefined
 }
 
 function inferArgsHintFromTemplate(template: string): string | undefined {
     return /\{\{\s*args\s*\}\}/.test(template) ? '<args>' : undefined
+}
+
+function isBlockedBuiltinCommand(command: RuntimeSlashCommand): boolean {
+    return BUILTIN_SLASH_COMMAND_NAMES.has(command.name) && command.source.type !== 'middleware'
 }
 
 function filterRuntimeCapabilitiesByAllowList(

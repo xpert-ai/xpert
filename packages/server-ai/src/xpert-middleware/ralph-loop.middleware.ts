@@ -7,8 +7,10 @@ import {
     RemoveMessage,
     SystemMessage,
     isAIMessage,
-    isHumanMessage
+    isHumanMessage,
+    isToolMessage
 } from '@langchain/core/messages'
+import type { ToolCall } from '@langchain/core/messages/tool'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { REMOVE_ALL_MESSAGES } from '@langchain/langgraph'
 import { Injectable } from '@nestjs/common'
@@ -20,24 +22,70 @@ import {
     IAgentMiddlewareStrategy,
     PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod/v3'
 
 export const RALPH_LOOP_MIDDLEWARE_NAME = 'ralph-loop'
 
 const DEFAULT_MAX_ITERATIONS = 20
+const DEFAULT_MAX_RUNTIME_SUMMARY_CHARS = 4000
+const DEFAULT_VERIFIER_TOOL_NAMES = ['sandbox_shell']
 const COMPLETION_PROMISE = '<promise>DONE</promise>'
 const COMPLETION_PROMISE_TEST_PATTERN = /<promise>\s*DONE\s*<\/promise>/i
 const COMPLETION_PROMISE_PATTERN = /<promise>\s*DONE\s*<\/promise>/gi
 const RALPH_RETRY_PREFIX = '[RALPH LOOP - ITERATION '
+const RALPH_LOOP_SYSTEM_RULE_MARKER = 'Ralph Loop verifier-first mode is enabled.'
+
+export const RALPH_LOOP_GOAL_SLASH_COMMAND_TEMPLATE = `Goal:
+{{args}}
+
+Run this as a verifier-first Ralph Loop goal.
+- Follow Plan -> Act -> Verify -> Reflect -> Retry until the goal is complete.
+- Use the strongest applicable trusted verifier before finalizing. If UI screens or visual parity are part of the goal, use Playwright Interactive to inspect and compare the result.
+- If verification fails, fix the root cause and verify again.
+- Only when the goal is complete and verifier evidence has passed, end the final answer with ${COMPLETION_PROMISE}.`
+
+type RalphLoopStatus = 'active' | 'completed' | 'blocked' | 'budget_exhausted'
+type RalphLoopVerifierStatus = 'pass' | 'fail'
+
+type RalphLoopVerifierEvidence = {
+    toolName: string
+    toolCallId?: string
+    command?: string
+    status: RalphLoopVerifierStatus
+    content: string
+    observedAt: string
+}
+
+const ralphLoopStatusValues = ['active', 'completed', 'blocked', 'budget_exhausted'] as const
+const ralphLoopTerminalStatuses = new Set<RalphLoopStatus>(['completed', 'blocked', 'budget_exhausted'])
 
 const configSchema = z.object({
-    maxIterations: z.number().int().min(1).default(DEFAULT_MAX_ITERATIONS)
+    maxIterations: z.number().int().min(1).default(DEFAULT_MAX_ITERATIONS),
+    requireVerifier: z.boolean().default(true),
+    verifierToolNames: z.array(z.string().trim().min(1)).default(DEFAULT_VERIFIER_TOOL_NAMES),
+    verifierInstructions: z.string().optional(),
+    maxRuntimeSummaryChars: z.number().int().min(256).default(DEFAULT_MAX_RUNTIME_SUMMARY_CHARS)
+})
+
+const ralphLoopVerifierEvidenceSchema = z.object({
+    toolName: z.string(),
+    toolCallId: z.string().optional(),
+    command: z.string().optional(),
+    status: z.enum(['pass', 'fail']),
+    content: z.string(),
+    observedAt: z.string()
 })
 
 const ralphLoopStateSchema = z.object({
     ralphLoopIteration: z.number().int().min(0).default(0),
     ralphLoopOriginalHumanContent: z.any().optional(),
-    ralphLoopOriginalTaskText: z.string().optional()
+    ralphLoopOriginalTaskText: z.string().optional(),
+    ralphLoopStatus: z.enum(ralphLoopStatusValues).optional(),
+    ralphLoopRunId: z.string().optional(),
+    ralphLoopRuntimeSummary: z.string().optional(),
+    ralphLoopLastVerifier: ralphLoopVerifierEvidenceSchema.optional(),
+    ralphLoopStopReason: z.string().optional()
 })
 
 export type RalphLoopMiddlewareConfig = InferInteropZodInput<typeof configSchema>
@@ -96,6 +144,38 @@ function replaceCompletionPromise(content: MessageContent): MessageContent {
 
 function containsCompletionPromise(message: AIMessage): boolean {
     return COMPLETION_PROMISE_TEST_PATTERN.test(getMessageText(message.content))
+}
+
+function compactText(value: string | undefined, maxChars: number): string {
+    const text = value?.trim() ?? ''
+    if (!text || text.length <= maxChars) {
+        return text
+    }
+
+    const marker = '\n...[truncated]...\n'
+    const headLength = Math.max(0, Math.floor((maxChars - marker.length) * 0.35))
+    const tailLength = Math.max(0, maxChars - marker.length - headLength)
+    return `${text.slice(0, headLength)}${marker}${text.slice(text.length - tailLength)}`
+}
+
+function compactOptionalSection(value: string | undefined, fallback: string, maxChars: number): string {
+    const compacted = compactText(value, maxChars)
+    return compacted || fallback
+}
+
+function readTrimmedString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function readRalphLoopStatus(value: unknown): RalphLoopStatus | undefined {
+    return typeof value === 'string' && ralphLoopStatusValues.includes(value as RalphLoopStatus)
+        ? (value as RalphLoopStatus)
+        : undefined
+}
+
+function isTerminalRalphLoopStatus(value: unknown): boolean {
+    const status = readRalphLoopStatus(value)
+    return !!status && ralphLoopTerminalStatuses.has(status)
 }
 
 function isRalphRetryText(text: string): boolean {
@@ -184,46 +264,115 @@ function normalizeOriginalTaskText(taskText: string | undefined, humanContent: M
     return resolved || '(original task is provided in the attached message parts below)'
 }
 
-function buildRetryPrompt(iteration: number, maxIterations: number, originalTask: string): string {
-    return `[RALPH LOOP - ITERATION ${iteration}/${maxIterations}]
+function formatVerifierEvidence(verifier: RalphLoopVerifierEvidence | undefined): string {
+    if (!verifier) {
+        return 'No trusted verifier evidence has been recorded yet.'
+    }
 
-Your previous attempt did not output the completion promise, so this is a fresh retry with a clean message history.
-
-IMPORTANT:
-- Work from scratch on the original task below.
-- Do not rely on previous conversation context; only use this message and the system instructions.
-- Complete the task fully.
-- When FULLY complete, output: ${COMPLETION_PROMISE}
-- Do not stop until the task is truly done.
-
-Original task:
-${originalTask}`
+    return [
+        `Status: ${verifier.status.toUpperCase()}`,
+        `Tool: ${verifier.toolName}`,
+        verifier.command ? `Command: ${verifier.command}` : undefined,
+        verifier.toolCallId ? `Tool call id: ${verifier.toolCallId}` : undefined,
+        'Output:',
+        verifier.content
+    ]
+        .filter((line): line is string => typeof line === 'string')
+        .join('\n')
 }
 
-function createRetryHumanMessage(
-    iteration: number,
-    maxIterations: number,
-    originalTaskText: string | undefined,
-    originalHumanContent: MessageContent | undefined
-): HumanMessage {
-    const originalTask = normalizeOriginalTaskText(originalTaskText, originalHumanContent)
-    const prompt = buildRetryPrompt(iteration, maxIterations, originalTask)
+function buildContinuationPrompt(input: {
+    iteration: number
+    maxIterations: number
+    originalTask: string
+    runtimeSummary: string | undefined
+    maxRuntimeSummaryChars: number
+    lastVerifier: RalphLoopVerifierEvidence | undefined
+    requireVerifier: boolean
+    verifierToolNames: string[]
+    verifierInstructions: string | undefined
+    continuationReason: string
+}): string {
+    const verifierTools = input.verifierToolNames.length
+        ? input.verifierToolNames.join(', ')
+        : 'configured verifier tools'
+    const verifierRequirement = input.requireVerifier
+        ? `Trusted verifier evidence is required before finalizing. Use one of these verifier tools when applicable: ${verifierTools}.`
+        : `Verifier evidence is preferred but not required. Use one of these verifier tools when applicable: ${verifierTools}.`
+    const customVerifierInstructions = input.verifierInstructions?.trim()
+        ? `\nVerifier instructions:\n${input.verifierInstructions.trim()}\n`
+        : ''
 
-    if (Array.isArray(originalHumanContent)) {
+    return `[RALPH LOOP - ITERATION ${input.iteration}/${input.maxIterations}]
+
+Continue the active Ralph Loop goal. The previous model turn did not satisfy the verifier-first completion contract.
+
+Continuation reason:
+${input.continuationReason}
+
+Original objective:
+${input.originalTask}
+
+Runtime summary:
+${compactOptionalSection(input.runtimeSummary, 'No prior runtime summary is available.', input.maxRuntimeSummaryChars)}
+
+Last verifier evidence:
+${formatVerifierEvidence(input.lastVerifier)}
+
+IMPORTANT:
+- Follow Plan -> Act -> Verify -> Reflect -> Retry.
+- Use this continuation message as the compact runtime state; the previous chat history has been cleaned.
+- ${verifierRequirement}
+- If verifier evidence failed, fix the root cause and verify again.
+- If no verifier evidence exists, run a verifier before claiming completion.
+- When the objective is fully complete and the verifier contract is satisfied, include exactly ${COMPLETION_PROMISE} at the end of the final answer.
+${customVerifierInstructions}`
+}
+
+function createContinuationHumanMessage(input: {
+    iteration: number
+    maxIterations: number
+    originalTaskText: string | undefined
+    originalHumanContent: MessageContent | undefined
+    runtimeSummary: string | undefined
+    maxRuntimeSummaryChars: number
+    lastVerifier: RalphLoopVerifierEvidence | undefined
+    requireVerifier: boolean
+    verifierToolNames: string[]
+    verifierInstructions: string | undefined
+    continuationReason: string
+}): HumanMessage {
+    const originalTask = normalizeOriginalTaskText(input.originalTaskText, input.originalHumanContent)
+    const prompt = buildContinuationPrompt({
+        iteration: input.iteration,
+        maxIterations: input.maxIterations,
+        originalTask,
+        runtimeSummary: input.runtimeSummary,
+        maxRuntimeSummaryChars: input.maxRuntimeSummaryChars,
+        lastVerifier: input.lastVerifier,
+        requireVerifier: input.requireVerifier,
+        verifierToolNames: input.verifierToolNames,
+        verifierInstructions: input.verifierInstructions,
+        continuationReason: input.continuationReason
+    })
+
+    if (Array.isArray(input.originalHumanContent)) {
         return new HumanMessage({
-            content: [{ type: 'text', text: prompt }, ...(originalHumanContent as MessageContentComplex[])]
+            content: [{ type: 'text', text: prompt }, ...(input.originalHumanContent as MessageContentComplex[])]
         })
     }
 
     return new HumanMessage(prompt)
 }
 
-function appendSystemRule(systemMessage: SystemMessage | undefined): SystemMessage {
+function appendSystemRule(systemMessage: SystemMessage | undefined, requireVerifier: boolean): SystemMessage {
     const currentContent =
         typeof systemMessage?.content === 'string' ? systemMessage.content : getMessageText(systemMessage?.content)
-    const rule = `Ralph Loop is enabled. When the task is fully complete, include exactly ${COMPLETION_PROMISE} at the end of the final answer.`
+    const rule = `${RALPH_LOOP_SYSTEM_RULE_MARKER} When the task is fully complete${
+        requireVerifier ? ' and trusted verifier evidence has passed' : ''
+    }, include exactly ${COMPLETION_PROMISE} at the end of the final answer.`
 
-    if (currentContent.includes(COMPLETION_PROMISE)) {
+    if (currentContent.includes(RALPH_LOOP_SYSTEM_RULE_MARKER)) {
         return new SystemMessage({
             content: currentContent,
             id: systemMessage?.id,
@@ -242,8 +391,17 @@ function appendSystemRule(systemMessage: SystemMessage | undefined): SystemMessa
     })
 }
 
-function appendMaxIterationNotice(message: AIMessage, maxIterations: number) {
-    const notice = `Ralph Loop stopped after reaching ${maxIterations} automatic retries without receiving the completion promise.`
+function appendMaxIterationNotice(
+    message: AIMessage,
+    maxIterations: number,
+    lastVerifier: RalphLoopVerifierEvidence | undefined
+) {
+    const notice = [
+        `Ralph Loop stopped after reaching ${maxIterations} automatic retries before the verifier-first completion contract was satisfied.`,
+        '',
+        'Last verifier evidence:',
+        formatVerifierEvidence(lastVerifier)
+    ].join('\n')
 
     if (typeof message.content === 'string') {
         message.content = `${message.content.trimEnd()}\n\n${notice}`.trim()
@@ -257,6 +415,168 @@ function appendMaxIterationNotice(message: AIMessage, maxIterations: number) {
             text: notice
         }
     ]
+}
+
+function collectToolCallsById(messages: BaseMessage[]): Map<string, ToolCall> {
+    const toolCallsById = new Map<string, ToolCall>()
+
+    for (const message of messages) {
+        if (!isAIMessage(message) || !Array.isArray(message.tool_calls)) {
+            continue
+        }
+
+        for (const toolCall of message.tool_calls) {
+            if (toolCall.id) {
+                toolCallsById.set(toolCall.id, toolCall)
+            }
+        }
+    }
+
+    return toolCallsById
+}
+
+function readToolMessageCallId(message: BaseMessage): string | undefined {
+    return readTrimmedString(Reflect.get(message, 'tool_call_id'))
+}
+
+function readToolMessageName(message: BaseMessage): string | undefined {
+    return readTrimmedString(Reflect.get(message, 'name'))
+}
+
+function readToolCallCommand(toolCall: ToolCall | undefined): string | undefined {
+    const args = toolCall?.args
+    if (!args || typeof args !== 'object') {
+        return undefined
+    }
+
+    return readTrimmedString(Reflect.get(args, 'command'))
+}
+
+function inferVerifierStatus(message: BaseMessage, content: string): RalphLoopVerifierStatus {
+    if (Reflect.get(message, 'status') === 'error') {
+        return 'fail'
+    }
+
+    if (
+        /^exit code\s+(?!0\b)\d+/im.test(content) ||
+        /\bexited with code\s+(?!0\b)\d+/i.test(content) ||
+        /\bexit status\s+(?!0\b)\d+/i.test(content) ||
+        /\bcommand failed\b/i.test(content) ||
+        /\btimed out\b/i.test(content) ||
+        /\btimeout\b/i.test(content) ||
+        /^error:/im.test(content) ||
+        /(^|\s)[1-9]\d*\s+failed\b/i.test(content)
+    ) {
+        return 'fail'
+    }
+
+    return 'pass'
+}
+
+function extractLatestVerifierEvidence(
+    messages: BaseMessage[],
+    verifierToolNames: string[],
+    maxContentChars: number
+): RalphLoopVerifierEvidence | undefined {
+    const verifierTools = new Set(verifierToolNames.map((name) => name.trim()).filter(Boolean))
+    if (!verifierTools.size) {
+        return undefined
+    }
+
+    const toolCallsById = collectToolCallsById(messages)
+
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index]
+        if (!isToolMessage(message)) {
+            continue
+        }
+
+        const toolCallId = readToolMessageCallId(message)
+        const matchedToolCall = toolCallId ? toolCallsById.get(toolCallId) : undefined
+        const toolName = matchedToolCall?.name || readToolMessageName(message)
+        if (!toolName || !verifierTools.has(toolName)) {
+            continue
+        }
+
+        const content = compactText(getMessageText(message.content), maxContentChars)
+        return {
+            toolName,
+            toolCallId,
+            command: readToolCallCommand(matchedToolCall),
+            status: inferVerifierStatus(message, content),
+            content,
+            observedAt: new Date().toISOString()
+        }
+    }
+
+    return undefined
+}
+
+function readStoredVerifier(value: unknown): RalphLoopVerifierEvidence | undefined {
+    if (!value || typeof value !== 'object') {
+        return undefined
+    }
+
+    const toolName = readTrimmedString(Reflect.get(value, 'toolName'))
+    const status = Reflect.get(value, 'status')
+    const rawContent = Reflect.get(value, 'content')
+    const content = typeof rawContent === 'string' ? rawContent : undefined
+    const observedAt = readTrimmedString(Reflect.get(value, 'observedAt'))
+    if (!toolName || (status !== 'pass' && status !== 'fail') || content === undefined || !observedAt) {
+        return undefined
+    }
+
+    return {
+        toolName,
+        status,
+        content,
+        observedAt,
+        toolCallId: readTrimmedString(Reflect.get(value, 'toolCallId')),
+        command: readTrimmedString(Reflect.get(value, 'command'))
+    }
+}
+
+function updateRuntimeSummary(input: {
+    previousSummary: string | undefined
+    lastAiMessage: AIMessage
+    verifier: RalphLoopVerifierEvidence | undefined
+    maxChars: number
+}): string {
+    const sections = [
+        input.previousSummary?.trim(),
+        compactText(
+            getMessageText(replaceCompletionPromise(input.lastAiMessage.content)),
+            Math.min(1200, input.maxChars)
+        )
+            ? `Latest model note:\n${compactText(
+                  getMessageText(replaceCompletionPromise(input.lastAiMessage.content)),
+                  Math.min(1200, input.maxChars)
+              )}`
+            : undefined,
+        input.verifier ? `Latest verifier:\n${formatVerifierEvidence(input.verifier)}` : undefined
+    ].filter((section): section is string => !!section)
+
+    return compactText(sections.join('\n\n'), input.maxChars)
+}
+
+function buildContinuationReason(input: {
+    hasCompletionPromise: boolean
+    requireVerifier: boolean
+    lastVerifier: RalphLoopVerifierEvidence | undefined
+}): string {
+    if (!input.hasCompletionPromise) {
+        return 'The previous answer did not include the completion promise.'
+    }
+
+    if (!input.requireVerifier) {
+        return 'The previous answer requested completion, but the loop decided to continue.'
+    }
+
+    if (!input.lastVerifier) {
+        return 'The previous answer claimed completion, but no trusted verifier evidence was available.'
+    }
+
+    return `The previous answer claimed completion, but the latest trusted verifier status was ${input.lastVerifier.status.toUpperCase()}.`
 }
 
 @Injectable()
@@ -275,9 +595,29 @@ export class RalphLoopMiddleware implements IAgentMiddlewareStrategy {
             zh_Hans: 'Ralph 循环'
         },
         description: {
-            en_US: 'Automatically retries an agent from a clean message context until it emits the Ralph Loop completion promise.',
-            zh_Hans: '从干净的消息上下文中自动重试智能体，直到它发出 Ralph Loop 完成承诺。'
+            en_US: 'Runs a verifier-first goal loop that keeps an agent working until trusted evidence and the completion marker agree.',
+            zh_Hans: '运行验证优先的目标循环，直到可信验证证据和完成标记共同确认任务完成。'
         },
+        slashCommands: [
+            {
+                name: 'goal',
+                label: 'Goal',
+                description: 'Run a verifier-first Ralph Loop goal until the objective is complete.',
+                argsHint: '<objective>',
+                category: 'prompt_workflow',
+                kind: 'prompt_workflow',
+                workflow: {
+                    type: 'prompt_workflow',
+                    name: 'goal',
+                    label: 'Goal',
+                    description: 'Run a verifier-first Ralph Loop goal until the objective is complete.'
+                },
+                action: {
+                    type: 'insert_invocation',
+                    template: RALPH_LOOP_GOAL_SLASH_COMMAND_TEMPLATE
+                }
+            }
+        ],
         configSchema: {
             type: 'object',
             properties: {
@@ -290,8 +630,64 @@ export class RalphLoopMiddleware implements IAgentMiddlewareStrategy {
                         zh_Hans: '最大迭代次数'
                     },
                     description: {
-                        en_US: 'Maximum number of automatic clean-context retries.',
-                        zh_Hans: '自动干净上下文重试的最大次数。'
+                        en_US: 'Maximum number of automatic verifier-first continuation turns.',
+                        zh_Hans: '验证优先自动续跑的最大次数。'
+                    }
+                },
+                requireVerifier: {
+                    type: 'boolean',
+                    default: true,
+                    title: {
+                        en_US: 'Require Verifier',
+                        zh_Hans: '要求验证器'
+                    },
+                    description: {
+                        en_US: 'Require trusted verifier evidence before accepting the completion marker.',
+                        zh_Hans: '接受完成标记前必须存在可信验证证据。'
+                    }
+                },
+                verifierToolNames: {
+                    type: 'array',
+                    default: DEFAULT_VERIFIER_TOOL_NAMES,
+                    items: {
+                        type: 'string'
+                    },
+                    title: {
+                        en_US: 'Verifier Tools',
+                        zh_Hans: '验证工具'
+                    },
+                    description: {
+                        en_US: 'Tool names whose ToolMessages count as trusted verifier evidence.',
+                        zh_Hans: '这些工具名对应的 ToolMessage 会被视为可信验证证据。'
+                    }
+                },
+                verifierInstructions: {
+                    type: 'string',
+                    default: '',
+                    title: {
+                        en_US: 'Verifier Instructions',
+                        zh_Hans: '验证说明'
+                    },
+                    description: {
+                        en_US: 'Additional instructions for how the agent should verify the goal.',
+                        zh_Hans: '指导智能体如何验证目标的附加说明。'
+                    },
+                    'x-ui': {
+                        component: 'textarea',
+                        span: 2
+                    }
+                },
+                maxRuntimeSummaryChars: {
+                    type: 'number',
+                    default: DEFAULT_MAX_RUNTIME_SUMMARY_CHARS,
+                    minimum: 256,
+                    title: {
+                        en_US: 'Runtime Summary Characters',
+                        zh_Hans: '运行摘要字符数'
+                    },
+                    description: {
+                        en_US: 'Maximum compact runtime summary length carried into continuation prompts.',
+                        zh_Hans: '续跑提示中携带的紧凑运行摘要最大长度。'
                     }
                 }
             }
@@ -302,18 +698,46 @@ export class RalphLoopMiddleware implements IAgentMiddlewareStrategy {
         options: RalphLoopMiddlewareConfig = {},
         context: IAgentMiddlewareContext
     ): PromiseOrValue<AgentMiddleware> {
-        const config = interopParse(configSchema, options) ?? { maxIterations: DEFAULT_MAX_ITERATIONS }
+        const config = interopParse(configSchema, options) ?? {
+            maxIterations: DEFAULT_MAX_ITERATIONS,
+            requireVerifier: true,
+            verifierToolNames: DEFAULT_VERIFIER_TOOL_NAMES,
+            maxRuntimeSummaryChars: DEFAULT_MAX_RUNTIME_SUMMARY_CHARS
+        }
 
         return {
             name: RALPH_LOOP_MIDDLEWARE_NAME,
             stateSchema: ralphLoopStateSchema,
-            beforeAgent: async (_state, runtime) => {
+            beforeAgent: async (state, runtime) => {
                 const originalTaskText = readRuntimeOriginalTask(runtime)
+                const existingTaskText = readTrimmedString(Reflect.get(state, 'ralphLoopOriginalTaskText'))
+                const existingIteration = Reflect.get(state, 'ralphLoopIteration')
+                const existingStatus =
+                    readRalphLoopStatus(Reflect.get(state, 'ralphLoopStatus')) ??
+                    (typeof existingIteration === 'number' && existingIteration > 0 ? 'active' : undefined)
+                const hasActiveRun = existingStatus === 'active' && !!existingTaskText
+                const objectiveChanged =
+                    !!originalTaskText && !!existingTaskText && originalTaskText !== existingTaskText
+
+                if (hasActiveRun && !objectiveChanged && !isTerminalRalphLoopStatus(existingStatus)) {
+                    return {
+                        ralphLoopStatus: 'active' as const,
+                        ralphLoopRunId: readTrimmedString(Reflect.get(state, 'ralphLoopRunId')) ?? randomUUID(),
+                        ralphLoopOriginalTaskText: existingTaskText ?? originalTaskText,
+                        ralphLoopOriginalHumanContent:
+                            Reflect.get(state, 'ralphLoopOriginalHumanContent') ?? existingTaskText ?? originalTaskText
+                    }
+                }
 
                 return {
                     ralphLoopIteration: 0,
+                    ralphLoopStatus: 'active' as const,
+                    ralphLoopRunId: randomUUID(),
                     ralphLoopOriginalTaskText: originalTaskText,
-                    ralphLoopOriginalHumanContent: originalTaskText
+                    ralphLoopOriginalHumanContent: originalTaskText,
+                    ralphLoopRuntimeSummary: undefined,
+                    ralphLoopLastVerifier: undefined,
+                    ralphLoopStopReason: undefined
                 }
             },
             wrapModelCall: async (request, handler) => {
@@ -326,7 +750,7 @@ export class RalphLoopMiddleware implements IAgentMiddlewareStrategy {
                 return handler({
                     ...request,
                     messages: retryOnlyMessages,
-                    systemMessage: appendSystemRule(request.systemMessage)
+                    systemMessage: appendSystemRule(request.systemMessage, config.requireVerifier)
                 })
             },
             afterModel: {
@@ -348,20 +772,45 @@ export class RalphLoopMiddleware implements IAgentMiddlewareStrategy {
                     )
                     const originalTaskText =
                         state.ralphLoopOriginalTaskText ?? normalizeOriginalTaskText(undefined, originalHumanContent)
+                    const latestVerifier = extractLatestVerifierEvidence(
+                        messages,
+                        config.verifierToolNames,
+                        config.maxRuntimeSummaryChars
+                    )
+                    const lastVerifier = latestVerifier ?? readStoredVerifier(state.ralphLoopLastVerifier)
+                    const runtimeSummary = updateRuntimeSummary({
+                        previousSummary: readTrimmedString(state.ralphLoopRuntimeSummary),
+                        lastAiMessage,
+                        verifier: latestVerifier,
+                        maxChars: config.maxRuntimeSummaryChars
+                    })
 
                     if (lastAiMessage.tool_calls?.length) {
                         return {
+                            ralphLoopStatus: 'active' as const,
                             ralphLoopOriginalHumanContent: originalHumanContent,
-                            ralphLoopOriginalTaskText: originalTaskText
+                            ralphLoopOriginalTaskText: originalTaskText,
+                            ralphLoopRuntimeSummary: runtimeSummary,
+                            ralphLoopLastVerifier: lastVerifier,
+                            ralphLoopStopReason: undefined
                         }
                     }
 
-                    if (containsCompletionPromise(lastAiMessage)) {
+                    const hasCompletionPromise = containsCompletionPromise(lastAiMessage)
+                    const verifierSatisfied = !config.requireVerifier || lastVerifier?.status === 'pass'
+
+                    if (hasCompletionPromise && verifierSatisfied) {
                         lastAiMessage.content = replaceCompletionPromise(lastAiMessage.content)
                         return {
                             ralphLoopIteration: 0,
-                            ralphLoopOriginalHumanContent: undefined,
-                            ralphLoopOriginalTaskText: undefined
+                            ralphLoopStatus: 'completed' as const,
+                            ralphLoopOriginalHumanContent: originalHumanContent,
+                            ralphLoopOriginalTaskText: originalTaskText,
+                            ralphLoopRuntimeSummary: runtimeSummary,
+                            ralphLoopLastVerifier: lastVerifier,
+                            ralphLoopStopReason: config.requireVerifier
+                                ? 'verifier_passed'
+                                : 'completion_promise_received'
                         }
                     }
 
@@ -371,28 +820,49 @@ export class RalphLoopMiddleware implements IAgentMiddlewareStrategy {
                             : 0
 
                     if (currentIteration >= config.maxIterations) {
-                        appendMaxIterationNotice(lastAiMessage, config.maxIterations)
+                        appendMaxIterationNotice(lastAiMessage, config.maxIterations, lastVerifier)
                         return {
-                            ralphLoopIteration: 0,
-                            ralphLoopOriginalHumanContent: undefined,
-                            ralphLoopOriginalTaskText: undefined
+                            ralphLoopIteration: currentIteration,
+                            ralphLoopStatus: 'budget_exhausted' as const,
+                            ralphLoopOriginalHumanContent: originalHumanContent,
+                            ralphLoopOriginalTaskText: originalTaskText,
+                            ralphLoopRuntimeSummary: runtimeSummary,
+                            ralphLoopLastVerifier: lastVerifier,
+                            ralphLoopStopReason: 'max_iterations'
                         }
                     }
 
                     const nextIteration = currentIteration + 1
+                    const continuationReason = buildContinuationReason({
+                        hasCompletionPromise,
+                        requireVerifier: config.requireVerifier,
+                        lastVerifier
+                    })
+
                     return {
                         messages: [
                             new RemoveMessage({ id: REMOVE_ALL_MESSAGES }),
-                            createRetryHumanMessage(
-                                nextIteration,
-                                config.maxIterations,
+                            createContinuationHumanMessage({
+                                iteration: nextIteration,
+                                maxIterations: config.maxIterations,
                                 originalTaskText,
-                                originalHumanContent
-                            )
+                                originalHumanContent,
+                                runtimeSummary,
+                                maxRuntimeSummaryChars: config.maxRuntimeSummaryChars,
+                                lastVerifier,
+                                requireVerifier: config.requireVerifier,
+                                verifierToolNames: config.verifierToolNames,
+                                verifierInstructions: config.verifierInstructions,
+                                continuationReason
+                            })
                         ],
                         ralphLoopIteration: nextIteration,
+                        ralphLoopStatus: 'active' as const,
                         ralphLoopOriginalHumanContent: originalHumanContent,
                         ralphLoopOriginalTaskText: originalTaskText,
+                        ralphLoopRuntimeSummary: runtimeSummary,
+                        ralphLoopLastVerifier: lastVerifier,
+                        ralphLoopStopReason: undefined,
                         jumpTo: 'model'
                     }
                 }

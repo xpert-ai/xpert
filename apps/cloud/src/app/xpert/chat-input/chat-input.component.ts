@@ -55,7 +55,8 @@ import {
   renderSlashCommandTemplate,
   resolveSlashTrigger,
   runtimeCapabilityOptionFromCapability,
-  setRuntimeCapabilitySelected
+  setRuntimeCapabilitySelected,
+  shouldSubmitRawSlashInvocation
 } from '@cloud/app/@shared/chat'
 import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ChatService, PendingFollowUp } from '../chat.service'
@@ -694,6 +695,10 @@ export class ChatInputComponent {
       invocation
     )
     if (!option) {
+      return false
+    }
+
+    if (shouldSubmitRawSlashInvocation(option)) {
       return false
     }
 

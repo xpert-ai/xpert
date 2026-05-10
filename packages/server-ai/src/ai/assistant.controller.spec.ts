@@ -462,7 +462,8 @@ describe('AssistantsController', () => {
                 }
             ]
         })
-        expect(agentMiddlewareRegistry.get).toHaveBeenCalledTimes(1)
+        expect(agentMiddlewareRegistry.get).toHaveBeenCalledTimes(2)
+        expect(agentMiddlewareRegistry.get).toHaveBeenCalledWith('provider-a')
         expect(agentMiddlewareRegistry.get).toHaveBeenCalledWith('provider-b')
     })
 
@@ -782,6 +783,156 @@ describe('AssistantsController', () => {
             expect.arrayContaining([
                 expect.objectContaining({
                     name: 'disabled-command'
+                })
+            ])
+        )
+    })
+
+    it('includes slash commands from middleware connected to the current agent', async () => {
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn(async () => ({
+                id: 'assistant-1',
+                workspaceId: 'workspace-1',
+                title: 'Assistant 1',
+                agent: {
+                    key: 'agent-1'
+                },
+                graph: {
+                    nodes: [
+                        {
+                            key: 'middleware-ralph',
+                            type: 'workflow',
+                            entity: {
+                                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                provider: 'ralph-loop'
+                            }
+                        }
+                    ],
+                    connections: [{ type: 'workflow', from: 'agent-1', to: 'middleware-ralph' }]
+                }
+            }))
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn(async () => false),
+            getUserPreferenceByAssistantId: jest.fn(async () => null)
+        }
+        const agentMiddlewareRegistry = {
+            get: jest.fn(() => ({
+                meta: {
+                    label: {
+                        en_US: 'Ralph Loop'
+                    },
+                    slashCommands: [
+                        {
+                            name: 'goal',
+                            label: 'Goal',
+                            action: {
+                                type: 'insert_invocation',
+                                template: 'Goal: {{args}}'
+                            }
+                        }
+                    ]
+                }
+            }))
+        }
+        const promptWorkflowService = {
+            resolveRuntimeCommandProfile: jest.fn(async () => ({
+                hasProfile: false,
+                xpertCommands: [],
+                workspaceCommands: [],
+                preferredSkillEntries: [],
+                skillEntries: []
+            }))
+        }
+        const controller = new AssistantsController(
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
+            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+            agentMiddlewareRegistry as unknown as ConstructorParameters<typeof AssistantsController>[2],
+            {
+                getAllByWorkspace: jest.fn()
+            } as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            new RuntimeCommandService(),
+            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+        )
+
+        const result = await controller.getRuntimeCapabilities('assistant-1')
+
+        expect(result.commands).toEqual([
+            expect.objectContaining({
+                name: 'goal',
+                action: {
+                    type: 'insert_invocation',
+                    template: '/goal ',
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: {
+                            ids: []
+                        },
+                        plugins: {
+                            nodeKeys: ['middleware-ralph']
+                        },
+                        subAgents: {
+                            nodeKeys: []
+                        }
+                    }
+                },
+                source: {
+                    type: 'middleware',
+                    provider: 'ralph-loop',
+                    nodeKey: 'middleware-ralph',
+                    label: 'Ralph Loop'
+                }
+            })
+        ])
+    })
+
+    it('does not include Ralph goal command when the middleware is not connected', async () => {
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn(async () => ({
+                id: 'assistant-1',
+                workspaceId: 'workspace-1',
+                title: 'Assistant 1',
+                agent: {
+                    key: 'agent-1'
+                },
+                graph: {
+                    nodes: [],
+                    connections: []
+                }
+            }))
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn(async () => false),
+            getUserPreferenceByAssistantId: jest.fn(async () => null)
+        }
+        const promptWorkflowService = {
+            resolveRuntimeCommandProfile: jest.fn(async () => ({
+                hasProfile: false,
+                xpertCommands: [],
+                workspaceCommands: [],
+                preferredSkillEntries: [],
+                skillEntries: []
+            }))
+        }
+        const controller = new AssistantsController(
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
+            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+            {
+                get: jest.fn()
+            } as unknown as ConstructorParameters<typeof AssistantsController>[2],
+            {
+                getAllByWorkspace: jest.fn()
+            } as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            new RuntimeCommandService(),
+            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+        )
+
+        const result = await controller.getRuntimeCapabilities('assistant-1')
+
+        expect(result.commands).not.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'goal'
                 })
             ])
         )

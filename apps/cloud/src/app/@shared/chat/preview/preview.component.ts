@@ -99,7 +99,8 @@ import {
   renderSlashCommandTemplate,
   resolveSlashTrigger,
   runtimeCapabilityOptionFromCapability,
-  setRuntimeCapabilitySelected
+  setRuntimeCapabilitySelected,
+  shouldSubmitRawSlashInvocation
 } from '../composer/composer'
 import type { ChatFollowUpRailItem } from '../follow-ups/follow-ups'
 import type { ChatKitCommandSource, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
@@ -1387,6 +1388,10 @@ export class ChatConversationPreviewComponent {
       invocation
     )
     if (!option) {
+      return false
+    }
+
+    if (shouldSubmitRawSlashInvocation(option)) {
       return false
     }
 

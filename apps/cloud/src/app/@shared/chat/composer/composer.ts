@@ -435,6 +435,15 @@ export function createChatCommandSource(option: ChatComposerSlashOption): ChatKi
   }
 }
 
+export function shouldSubmitRawSlashInvocation(option: ChatComposerSlashOption) {
+  if (option.command?.action?.type !== 'insert_invocation') {
+    return false
+  }
+
+  const sourceType = (option.command as { source?: { type?: unknown } }).source?.type
+  return sourceType === 'workspace_prompt_workflow' || sourceType === 'middleware'
+}
+
 export function getSlashOptionKey(option: ChatComposerSlashOption) {
   return `${option.type}:${option.source}:${option.name}`
 }

@@ -119,16 +119,17 @@ export class AssistantsController {
                   )
                 : new Set<string>()
 
-        const plugins = middlewareNodes
+        const middlewareCapabilities = middlewareNodes
             .map((node) => {
                 const entity = node.entity as unknown as IWFNMiddleware
                 const provider = normalizeMiddlewareProvider(entity?.provider)
-                if (!provider || provider === SKILLS_MIDDLEWARE_NAME || isRequiredMiddleware(entity)) {
+                if (!provider || provider === SKILLS_MIDDLEWARE_NAME) {
                     return null
                 }
 
                 const strategy = tryGetMiddlewareStrategy(this.agentMiddlewareRegistry, provider)
                 const meta = strategy?.meta
+                const label = resolveI18nText(meta?.label, provider)
                 const runtimeMeta = omitBy(
                     {
                         icon: meta?.icon
@@ -136,18 +137,34 @@ export class AssistantsController {
                     isNil
                 )
                 return {
-                    nodeKey: node.key,
-                    provider,
-                    label: resolveI18nText(meta?.label, provider),
-                    description: resolveI18nText(meta?.description),
-                    ...(Object.keys(runtimeMeta).length ? { meta: runtimeMeta } : {}),
-                    toolNames: Object.entries(entity?.tools ?? {})
-                        .filter(([, enabled]) => enabled !== false)
-                        .map(([name]) => name)
+                    plugin: isRequiredMiddleware(entity)
+                        ? null
+                        : {
+                              nodeKey: node.key,
+                              provider,
+                              label,
+                              description: resolveI18nText(meta?.description),
+                              ...(Object.keys(runtimeMeta).length ? { meta: runtimeMeta } : {}),
+                              toolNames: Object.entries(entity?.tools ?? {})
+                                  .filter(([, enabled]) => enabled !== false)
+                                  .map(([name]) => name)
+                          },
+                    commands: this.runtimeCommandService.normalizeMiddlewareRuntimeSlashCommands(
+                        meta?.slashCommands ?? [],
+                        {
+                            provider,
+                            nodeKey: node.key,
+                            label
+                        }
+                    )
                 }
             })
             .filter((item): item is NonNullable<typeof item> => !!item)
-
+        const plugins = middlewareCapabilities
+            .map((item) => item.plugin)
+            .filter((item): item is NonNullable<typeof item> => !!item)
+        const middlewareCommands = middlewareCapabilities.flatMap((item) => item.commands)
+        console.log('Runtime Capabilities:', middlewareCommands)
         const runtimeSkills =
             hasSkillsMiddleware && xpert.workspaceId
                 ? await this.getRuntimeSkills(xpert.workspaceId, defaultSkillSelection, disabledSkillIds)
@@ -196,6 +213,7 @@ export class AssistantsController {
             plugins,
             subAgents,
             commands: this.runtimeCommandService.mergeRuntimeSlashCommands([
+                middlewareCommands,
                 xpertCommands,
                 preferredSkillCommands,
                 workspaceCommands,

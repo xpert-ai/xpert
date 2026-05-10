@@ -11,7 +11,8 @@ import {
   parseSlashInvocation,
   renderSlashCommandTemplate,
   resolveSlashTrigger,
-  setRuntimeCapabilitySelected
+  setRuntimeCapabilitySelected,
+  shouldSubmitRawSlashInvocation
 } from './composer'
 
 describe('chat composer helpers', () => {
@@ -90,6 +91,71 @@ describe('chat composer helpers', () => {
     expect(renderSlashCommandTemplate('/review ', 'src/app.ts')).toBe('/review src/app.ts')
   })
 
+  it('exposes a runtime goal command that inserts a raw invocation', () => {
+    const goalInvocationTemplate = '/goal '
+    expect(buildSlashOptions([], 'goal').some((item) => item.name === 'goal')).toBe(false)
+
+    const option = buildSlashOptions(
+      [
+        {
+          name: 'goal',
+          label: 'Goal',
+          kind: 'prompt_workflow',
+          workflow: {
+            type: 'prompt_workflow',
+            name: 'goal',
+            label: 'Goal',
+            description: 'Run a verifier-first Ralph Loop goal until the objective is complete.'
+          },
+          action: {
+            type: 'insert_invocation',
+            template: goalInvocationTemplate
+          },
+          source: {
+            type: 'middleware',
+            provider: 'ralph-loop',
+            nodeKey: 'middleware-ralph'
+          }
+        }
+      ],
+      'goal'
+    ).find((item) => item.name === 'goal')
+
+    if (!option) {
+      throw new Error('Expected runtime goal command option.')
+    }
+
+    expect(option).toMatchObject({
+      source: 'runtime',
+      executionType: 'insert_invocation',
+      kind: 'prompt_workflow',
+      command: {
+        action: {
+          type: 'insert_invocation',
+          template: goalInvocationTemplate
+        }
+      }
+    })
+
+    expect(renderSlashCommandTemplate(goalInvocationTemplate, 'Migrate the app to Next.js')).toBe(
+      '/goal Migrate the app to Next.js'
+    )
+    expect(shouldSubmitRawSlashInvocation(option)).toBe(true)
+    expect(createChatCommandSource(option)).toEqual({
+      type: 'slash_command',
+      name: 'goal',
+      source: 'runtime',
+      executionType: 'insert_invocation',
+      kind: 'prompt_workflow',
+      workflow: {
+        type: 'prompt_workflow',
+        name: 'goal',
+        label: 'Goal',
+        description: 'Run a verifier-first Ralph Loop goal until the objective is complete.'
+      }
+    })
+  })
+
   it('keeps plan builtin and hides unsupported client actions', () => {
     const options = buildSlashOptions(
       [
@@ -141,7 +207,11 @@ describe('chat composer helpers', () => {
       'review'
     ).find((item) => item.name === 'review')
 
-    expect(createChatCommandSource(option!)).toEqual({
+    if (!option) {
+      throw new Error('Expected review command option.')
+    }
+
+    expect(createChatCommandSource(option)).toEqual({
       type: 'slash_command',
       name: 'review',
       source: 'runtime',
