@@ -215,6 +215,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // The xpert (agent team)
         const team = agent.team
         const agentKey = agent.key
+        const agentTitle = agent.title?.trim() || agent.name?.trim()
+        const isRootExecution = Boolean(
+            execution.id && options.rootExecutionId && execution.id === options.rootExecutionId
+        )
+        if (!isRootExecution && !execution.title && agentTitle) {
+            execution.title = agentTitle
+        }
         // const agentChannel = channelName(agent.key)
         const thread_id = command.options.thread_id
 
