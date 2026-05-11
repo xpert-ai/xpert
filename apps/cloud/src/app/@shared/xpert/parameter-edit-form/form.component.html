@@ -245,11 +245,59 @@
           <div>{{ 'PAC.Xpert.Item' | translate: { Default: 'Item' } }}</div>
           <div
             class="flex items-center rounded-md h-7 px-3 space-x-1 cursor-pointer select-none text-text-secondary hover:bg-state-base-hover"
-            [cdkMenuTriggerFor]="parameterTypeMenu"
+            cdkOverlayOrigin
+            #parameterTypeTrigger="cdkOverlayOrigin"
+            (click)="parameterTypeMenuOpen.set(!parameterTypeMenuOpen())"
           >
             <i class="ri-add-line"></i>
             <div class="text-xs font-medium">{{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}</div>
           </div>
+
+          <ng-template
+            cdkConnectedOverlay
+            [cdkConnectedOverlayOrigin]="parameterTypeTrigger"
+            [cdkConnectedOverlayOpen]="parameterTypeMenuOpen()"
+            [cdkConnectedOverlayPositions]="parameterTypeMenuPositions"
+            [cdkConnectedOverlayPush]="true"
+            (overlayOutsideClick)="parameterTypeMenuOpen.set(false)"
+            (detach)="parameterTypeMenuOpen.set(false)"
+          >
+            <div class="cdk-menu ngm-cdk-menu p-2">
+              <xpert-parameter-menu-item
+                class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
+                [type]="eXpertParameterTypeEnum.TEXT"
+                (click)="addItemParameter({ type: eXpertParameterTypeEnum.TEXT, optional: true })"
+              />
+
+              <xpert-parameter-menu-item
+                class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
+                [type]="eXpertParameterTypeEnum.PARAGRAPH"
+                (click)="addItemParameter({ type: eXpertParameterTypeEnum.PARAGRAPH, optional: true })"
+              />
+
+              <xpert-parameter-menu-item
+                class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
+                [type]="eXpertParameterTypeEnum.SELECT"
+                (click)="addItemParameter({ type: eXpertParameterTypeEnum.SELECT, optional: true })"
+              />
+
+              <xpert-parameter-menu-item
+                class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
+                [type]="eXpertParameterTypeEnum.NUMBER"
+                (click)="addItemParameter({ type: eXpertParameterTypeEnum.NUMBER, optional: true })"
+              />
+              <xpert-parameter-menu-item
+                class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
+                [type]="eXpertParameterTypeEnum.ARRAY_STRING"
+                (click)="addItemParameter({ type: eXpertParameterTypeEnum.ARRAY_STRING, optional: true })"
+              />
+              <xpert-parameter-menu-item
+                class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
+                [type]="eXpertParameterTypeEnum.ARRAY"
+                (click)="addItemParameter({ type: eXpertParameterTypeEnum.ARRAY, optional: true })"
+              />
+            </div>
+          </ng-template>
         </div>
 
         <div class="space-y-1">
@@ -270,12 +318,44 @@
                 <div
                   tabindex="0"
                   class="p-1 rounded-md hover:bg-hover-bg w-6 h-6 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
-                  #parammt="cdkMenuTriggerFor"
-                  [cdkMenuTriggerFor]="paramConfigMenu"
-                  [cdkMenuTriggerData]="{ index: i, param: param, trigger: parammt }"
+                  cdkOverlayOrigin
+                  #itemParameterTrigger="cdkOverlayOrigin"
+                  (click)="toggleItemParameterMenu(i)"
                 >
                   <i class="ri-settings-4-line"></i>
                 </div>
+                <ng-template
+                  cdkConnectedOverlay
+                  [cdkConnectedOverlayOrigin]="itemParameterTrigger"
+                  [cdkConnectedOverlayOpen]="itemParameterMenuIndex() === i"
+                  [cdkConnectedOverlayPositions]="itemParameterMenuPositions"
+                  [cdkConnectedOverlayPush]="true"
+                  (overlayOutsideClick)="closeItemParameterMenu()"
+                  (detach)="closeItemParameterMenu()"
+                >
+                  <div
+                    class="parameter-config-menu p-4 rounded-xl border-[0.5px] border-solid border-divider-deep shadow-lg bg-components-card-bg"
+                  >
+                    <div class="w-full flex justify-between items-center">
+                      <h3 class="text-lg font-semibold leading-6">
+                        {{ 'PAC.Xpert.EditParameter' | translate: { Default: 'Edit parameter' } }}
+                      </h3>
+                      <button
+                        type="button"
+                        class="btn rounded-xl justify-center w-7 h-7"
+                        (click)="closeItemParameterMenu()"
+                      >
+                        <i class="ri-close-line"></i>
+                      </button>
+                    </div>
+
+                    <xpert-parameter-form
+                      [ngModel]="param"
+                      (ngModelChange)="updateItem(i, $event)"
+                      [ngModelOptions]="{ standalone: true }"
+                    />
+                  </div>
+                </ng-template>
               </div>
               <div class="flex flex-col justify-start items-center px-2">
                 <button
@@ -329,68 +409,3 @@
     </div>
   </div>
 </div>
-
-<ng-template #parameterTypeMenu>
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu p-2">
-    <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
-      cdkMenuItem
-      [type]="eXpertParameterTypeEnum.TEXT"
-      (click)="addParameter({ type: eXpertParameterTypeEnum.TEXT, optional: true })"
-    />
-
-    <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
-      cdkMenuItem
-      [type]="eXpertParameterTypeEnum.PARAGRAPH"
-      (click)="addParameter({ type: eXpertParameterTypeEnum.PARAGRAPH, optional: true })"
-    />
-
-    <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
-      cdkMenuItem
-      [type]="eXpertParameterTypeEnum.SELECT"
-      (click)="addParameter({ type: eXpertParameterTypeEnum.SELECT, optional: true })"
-    />
-
-    <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
-      cdkMenuItem
-      [type]="eXpertParameterTypeEnum.NUMBER"
-      (click)="addParameter({ type: eXpertParameterTypeEnum.NUMBER, optional: true })"
-    />
-    <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
-      cdkMenuItem
-      [type]="eXpertParameterTypeEnum.ARRAY_STRING"
-      (click)="addParameter({ type: eXpertParameterTypeEnum.ARRAY_STRING, optional: true })"
-    />
-    <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
-      cdkMenuItem
-      [type]="eXpertParameterTypeEnum.ARRAY"
-      (click)="addParameter({ type: eXpertParameterTypeEnum.ARRAY, optional: true })"
-    />
-  </div>
-</ng-template>
-
-<ng-template #paramConfigMenu let-index="index" let-param="param" let-trigger="trigger">
-  <div
-    class="parameter-config-menu p-4 rounded-xl border-[0.5px] border-solid border-divider-deep shadow-lg bg-components-card-bg"
-  >
-    <div class="w-full flex justify-between items-center">
-      <h3 class="text-lg font-semibold leading-6">
-        {{ 'PAC.Xpert.EditParameter' | translate: { Default: 'Edit parameter' } }}
-      </h3>
-      <button type="button" class="btn rounded-xl justify-center w-7 h-7" (click)="trigger.close()">
-        <i class="ri-close-line"></i>
-      </button>
-    </div>
-
-    <xpert-parameter-form
-      [ngModel]="param"
-      (ngModelChange)="updateItem(index, $event)"
-      [ngModelOptions]="{ standalone: true }"
-    />
-  </div>
-</ng-template>
