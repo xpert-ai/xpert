@@ -43,7 +43,7 @@ import { z } from 'zod/v3'
 import { SkillPackage } from '../../skill-package.entity'
 import { SkillPackageService } from '../../skill-package.service'
 import { SKILLS_MIDDLEWARE_NAME } from '../../types'
-import { SandboxAcquireBackendCommand, SandboxCopyFileCommand } from '../../../sandbox'
+import { SandboxAcquireBackendCommand, SandboxCopyTreeCommand } from '../../../sandbox'
 import { SkillRepositoryIndexService } from '../../../skill-repository/repository-index/skill-repository-index.service'
 import { getWorkspaceRoot } from '../../../xpert-workspace'
 import { XpertWorkspace } from '../../../xpert-workspace/workspace.entity'
@@ -116,6 +116,14 @@ type SkillPromptMetadata = {
 	repositoryId?: string
 	workspaceId: string
 	version: string
+}
+
+type SkillSyncRecord = {
+	containerPath: string
+	error?: Error
+	key: string
+	promise: Promise<void>
+	skill: SkillPromptMetadata
 }
 
 type SkillPackageInstallMetadata = Partial<SkillPackage['metadata']> & {
@@ -639,6 +647,134 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 		let runtimeWorkingDirectory = ''
 		let lastEffectiveWorkspaceId = normalizedContextWorkspaceId
 		const autoInstalledSkillSelections = new Map<string, Set<string>>()
+		const inflightSyncs = new Map<string, SkillSyncRecord>()
+		const skillSyncsByContainerPath = new Map<string, SkillSyncRecord>()
+
+		const buildSkillSyncKey = (sandbox: unknown, containerPath: string, version: string) => {
+			const backendId = resolveSandboxBackend(sandbox)?.id ?? 'unknown'
+			return `${backendId}:${containerPath}:${version}`
+		}
+
+		const clearSkillSyncRecord = (record: SkillSyncRecord) => {
+			if (inflightSyncs.get(record.key) === record) {
+				inflightSyncs.delete(record.key)
+			}
+			if (skillSyncsByContainerPath.get(record.containerPath) === record) {
+				skillSyncsByContainerPath.delete(record.containerPath)
+			}
+		}
+
+		const syncSkillToSandbox = async (
+			sandbox: unknown,
+			runtimeSkillsRoot: string,
+			skill: SkillPromptMetadata
+		): Promise<void> => {
+			const packagePath = skill.packagePath?.trim()
+			if (!packagePath) {
+				return
+			}
+
+			const workspaceRoot = getWorkspaceRoot(tenantId, skill.workspaceId)
+			const localSkillPath = await this.resolveLocalPackagePath(workspaceRoot, packagePath)
+			if (!localSkillPath) {
+				this.#logger.warn(
+					`Skip syncing skill "${skill.name}" because package path "${packagePath}" is missing in workspace "${skill.workspaceId}".`
+				)
+				return
+			}
+			await this.commandBus.execute(
+				new SandboxCopyTreeCommand(sandbox, {
+					version: skill.version,
+					localPath: localSkillPath,
+					containerPath: join(runtimeSkillsRoot, packagePath),
+					overwrite: true
+				})
+			)
+		}
+
+		const scheduleSkillSync = (
+			sandbox: unknown,
+			runtimeSkillsRoot: string,
+			skill: SkillPromptMetadata
+		): SkillSyncRecord | null => {
+			const packagePath = skill.packagePath?.trim()
+			if (!packagePath) {
+				return null
+			}
+
+			const containerPath = join(runtimeSkillsRoot, packagePath)
+			const key = buildSkillSyncKey(sandbox, containerPath, String(skill.version))
+			const existing = inflightSyncs.get(key)
+			if (existing) {
+				skillSyncsByContainerPath.set(containerPath, existing)
+				this.#logger.log(`Reuse inflight skill sync skill=${skill.name} containerPath=${containerPath} key=${key}`)
+				return existing
+			}
+
+			const start = Date.now()
+			let record: SkillSyncRecord
+			const promise = syncSkillToSandbox(sandbox, runtimeSkillsRoot, skill)
+				.then(() => {
+					this.#logger.log(
+						`Finished async skill sync skill=${skill.name} containerPath=${containerPath} key=${key} totalMs=${Date.now() - start}`
+					)
+				})
+				.catch((error) => {
+					record.error = error as Error
+					this.#logger.error(
+						`Failed async skill sync skill=${skill.name} containerPath=${containerPath} key=${key}: ${(error as Error).message}`
+					)
+				})
+				.finally(() => clearSkillSyncRecord(record))
+			record = {
+				containerPath,
+				key,
+				promise,
+				skill
+			}
+
+			inflightSyncs.set(key, record)
+			skillSyncsByContainerPath.set(containerPath, record)
+			this.#logger.log(`Scheduled skill sync skill=${skill.name} containerPath=${containerPath} key=${key}`)
+			return record
+		}
+
+		const scheduleSkillsToSandbox = (
+			sandbox: unknown,
+			runtimeSkillsRoot: string,
+			skills: SkillPromptMetadata[]
+		) => {
+			for (const skill of skills) {
+				scheduleSkillSync(sandbox, runtimeSkillsRoot, skill)
+			}
+		}
+
+		const findSkillSyncForPath = (fullPath: string): SkillSyncRecord | null => {
+			let matched: SkillSyncRecord | null = null
+			for (const record of skillSyncsByContainerPath.values()) {
+				const relativePath = relative(record.containerPath, fullPath)
+				const isInside = relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
+				if (!isInside) {
+					continue
+				}
+				if (!matched || record.containerPath.length > matched.containerPath.length) {
+					matched = record
+				}
+			}
+			return matched
+		}
+
+		const waitForSkillSyncIfNeeded = async (fullPath: string) => {
+			const record = findSkillSyncForPath(fullPath)
+			if (!record) {
+				return
+			}
+			this.#logger.log(`Waiting for skill sync before reading file skill=${record.skill.name} path=${fullPath}`)
+			await record.promise
+			if (record.error) {
+				throw record.error
+			}
+		}
 
 		/**
 		 * Read skill's file tool
@@ -651,6 +787,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				if (!fullPath) {
 					throw new Error(`Access to path "${path}" is denied.`)
 				}
+
+				await waitForSkillSyncIfNeeded(fullPath)
 
 				const sandboxBackend = resolveSandboxBackend(sandbox)
 				if (sandboxBackend) {
@@ -845,7 +983,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 					installedPackageIds,
 					lastEffectiveWorkspaceId
 				)
-				await this.syncSkillsToSandbox(tenantId, runtimeSandbox, runtimeSkillsRootInContainer, installedSkills)
+				scheduleSkillsToSandbox(runtimeSandbox, runtimeSkillsRootInContainer, installedSkills)
 
 				return {
 					workspaceId: lastEffectiveWorkspaceId,
@@ -972,7 +1110,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				const syncKey = this.buildSyncKey(effectiveSkills)
 				if (!skillsSynced || syncKey !== lastSyncedKey) {
 					const sandbox = request.runtime.configurable.sandbox
-					await this.syncSkillsToSandbox(tenantId, sandbox, runtimeSkillsRootInContainer, effectiveSkills)
+					scheduleSkillsToSandbox(sandbox, runtimeSkillsRootInContainer, effectiveSkills)
 					skillsSynced = true
 					lastSyncedKey = syncKey
 				}
@@ -1019,43 +1157,6 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			.map((skill) => `${skill.workspaceId}:${skill.id}:${skill.version}`)
 			.sort()
 			.join('|')
-	}
-
-	private async syncSkillsToSandbox(
-		tenantId: string,
-		sandbox: unknown,
-		runtimeSkillsRootInContainer: string,
-		skills: SkillPromptMetadata[]
-	) {
-		for await (const skill of skills) {
-			const packagePath = skill.packagePath?.trim()
-			if (!packagePath) {
-				continue
-			}
-
-			try {
-				const workspaceRoot = getWorkspaceRoot(tenantId, skill.workspaceId)
-				const localSkillPath = await this.resolveLocalPackagePath(workspaceRoot, packagePath)
-				if (!localSkillPath) {
-					this.#logger.warn(
-						`Skip syncing skill "${skill.name}" because package path "${packagePath}" is missing in workspace "${skill.workspaceId}".`
-					)
-					continue
-				}
-				await this.commandBus.execute(
-					new SandboxCopyFileCommand(sandbox, {
-						version: skill.version,
-						localPath: localSkillPath,
-						containerPath: join(runtimeSkillsRootInContainer, packagePath),
-						overwrite: true
-					})
-				)
-			} catch (error) {
-				this.#logger.error(
-					`Failed to copy skill package files for skill ${skill.name}: ${(error as Error).message}`
-				)
-			}
-		}
 	}
 
 	private async pathExists(path: string): Promise<boolean> {

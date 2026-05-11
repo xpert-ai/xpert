@@ -22,8 +22,8 @@ jest.mock('../../../sandbox', () => ({
   SandboxAcquireBackendCommand: class SandboxAcquireBackendCommand {
     constructor(public readonly payload: unknown) {}
   },
-  SandboxCopyFileCommand: class SandboxCopyFileCommand {
-    constructor(public readonly sandbox: unknown, public readonly copyFile: unknown) {}
+  SandboxCopyTreeCommand: class SandboxCopyTreeCommand {
+    constructor(public readonly sandbox: unknown, public readonly copyTree: unknown) {}
   }
 }))
 
@@ -49,12 +49,7 @@ describe('SkillsMiddleware', () => {
   }
   type MiddlewareInternals = {
     loadSkillMetadata: (workspaceRoot: string, skillIds: string[], workspaceId: string) => Promise<unknown[]>
-    syncSkillsToSandbox: (
-      tenantId: string,
-      sandbox: unknown,
-      runtimeSkillsRootInContainer: string,
-      skills: unknown[]
-    ) => Promise<void>
+    resolveLocalPackagePath: (workspaceRoot: string, packagePath: string) => Promise<string | null>
   }
 
   function createMiddleware() {
@@ -112,6 +107,16 @@ describe('SkillsMiddleware', () => {
       throw new Error(`Tool ${name} not found`)
     }
     return found
+  }
+
+  function deferred<T>() {
+    let resolve!: (value: T | PromiseLike<T>) => void
+    let reject!: (reason?: unknown) => void
+    const promise = new Promise<T>((innerResolve, innerReject) => {
+      resolve = innerResolve
+      reject = innerReject
+    })
+    return { promise, resolve, reject }
   }
 
   it('keeps auto discovery disabled by default and exposes only read_skill_file', async () => {
@@ -332,7 +337,9 @@ describe('SkillsMiddleware', () => {
         version: '1'
       }
     ])
-    const syncSkillsToSandbox = jest.spyOn(internals, 'syncSkillsToSandbox').mockResolvedValue(undefined)
+    const execute = jest.fn().mockResolvedValue({ ok: true })
+    ;(middleware as any).commandBus = { execute }
+    jest.spyOn(internals, 'resolveLocalPackagePath').mockResolvedValue('/workspace-root/skills/weather')
 
     const instance = await middleware.createMiddleware(
       {
@@ -374,7 +381,7 @@ describe('SkillsMiddleware', () => {
       'workspace-1',
       'index-calendar'
     )
-    expect(syncSkillsToSandbox).toHaveBeenCalled()
+    expect(execute).toHaveBeenCalled()
     expect(installResult.workspaceId).toBe('workspace-1')
     expect(installResult.installed).toHaveLength(2)
 
@@ -941,10 +948,187 @@ describe('SkillsMiddleware', () => {
 
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({
-        copyFile: expect.objectContaining({
+        copyTree: expect.objectContaining({
           containerPath: `${runtimeSkillsRoot}/skill-a`
         })
       })
     )
+  })
+
+  it('does not block model calls while scheduling skill sync', async () => {
+    const middleware = createMiddleware()
+    const copy = deferred<{ ok: true }>()
+    const execute = jest.fn(() => copy.promise)
+    ;(middleware as any).commandBus = { execute }
+    jest.spyOn(middleware as any, 'loadSkillMetadata').mockResolvedValue([
+      {
+        id: 'skill-a',
+        name: 'skill-a',
+        description: 'skill-a description',
+        path: `${runtimeSkillsRoot}/skill-a/SKILL.md`,
+        packagePath: 'skill-a',
+        workspaceId: 'workspace-1',
+        version: '2026-04-17T00:00:00.000Z'
+      }
+    ])
+    jest.spyOn(middleware as any, 'resolveLocalPackagePath').mockResolvedValue('/workspace-root/skills/skill-a')
+
+    const instance = await middleware.createMiddleware(
+      {
+        skills: ['skill-a']
+      },
+      createContext()
+    )
+
+    const handler = jest.fn(async (request) => request)
+    await instance.wrapModelCall(
+      {
+        runtime: {
+          configurable: {
+            sandbox: {
+              workingDirectory: runtimeWorkingDirectory
+            }
+          }
+        },
+        state: {},
+        systemMessage: new SystemMessage('base')
+      } as any,
+      handler
+    )
+
+    expect(execute).toHaveBeenCalledTimes(1)
+    expect(handler).toHaveBeenCalledTimes(1)
+    copy.resolve({ ok: true })
+    await Promise.resolve()
+  })
+
+  it('reuses an inflight skill sync for duplicate schedules', async () => {
+    const middleware = createMiddleware()
+    const copy = deferred<{ ok: true }>()
+    const execute = jest.fn(() => copy.promise)
+    ;(middleware as any).commandBus = { execute }
+    const skillPackageService = Reflect.get(middleware, 'skillPackageService') as {
+      ensureInstalledSkillPackage: jest.Mock
+    }
+    skillPackageService.ensureInstalledSkillPackage.mockResolvedValue({
+      id: 'skill-a'
+    })
+    jest.spyOn(middleware as any, 'loadSkillMetadata').mockResolvedValue([
+      {
+        id: 'skill-a',
+        name: 'skill-a',
+        description: 'skill-a description',
+        path: `${runtimeSkillsRoot}/skill-a/SKILL.md`,
+        packagePath: 'skill-a',
+        workspaceId: 'workspace-1',
+        version: '2026-04-17T00:00:00.000Z'
+      }
+    ])
+    jest.spyOn(middleware as any, 'resolveLocalPackagePath').mockResolvedValue('/workspace-root/skills/skill-a')
+
+    const instance = await middleware.createMiddleware(
+      {
+        autoDiscovery: {
+          enabled: true
+        },
+        skills: ['skill-a']
+      },
+      createContext()
+    )
+    const handler = jest.fn(async (request) => request)
+    const request = {
+      runtime: {
+        configurable: {
+          sandbox: {
+            backend: {
+              id: 'sandbox-1'
+            },
+            workingDirectory: runtimeWorkingDirectory
+          }
+        }
+      },
+      state: {},
+      systemMessage: new SystemMessage('base')
+    } as any
+
+    await instance.wrapModelCall(request, handler)
+    const installTool = getTool(instance, 'install_workspace_skills')
+    await installTool.invoke({
+      indexIds: ['index-skill-a']
+    })
+
+    expect(execute).toHaveBeenCalledTimes(1)
+    copy.resolve({ ok: true })
+    await Promise.resolve()
+  })
+
+  it('waits for an inflight skill sync before reading a synced skill file', async () => {
+    const middleware = createMiddleware()
+    const copy = deferred<{ ok: true }>()
+    const execute = jest.fn(() => copy.promise)
+    const readExecute = jest.fn().mockResolvedValue({
+      exitCode: 0,
+      output: 'skill instructions'
+    })
+    ;(middleware as any).commandBus = { execute }
+    jest.spyOn(middleware as any, 'loadSkillMetadata').mockResolvedValue([
+      {
+        id: 'skill-a',
+        name: 'skill-a',
+        description: 'skill-a description',
+        path: `${runtimeSkillsRoot}/skill-a/SKILL.md`,
+        packagePath: 'skill-a',
+        workspaceId: 'workspace-1',
+        version: '2026-04-17T00:00:00.000Z'
+      }
+    ])
+    jest.spyOn(middleware as any, 'resolveLocalPackagePath').mockResolvedValue('/workspace-root/skills/skill-a')
+
+    const instance = await middleware.createMiddleware(
+      {
+        skills: ['skill-a']
+      },
+      createContext()
+    )
+    const handler = jest.fn(async (request) => request)
+    await instance.wrapModelCall(
+      {
+        runtime: {
+          configurable: {
+            sandbox: {
+              backend: {
+                id: 'sandbox-1',
+                execute: readExecute
+              },
+              workingDirectory: runtimeWorkingDirectory
+            }
+          }
+        },
+        state: {},
+        systemMessage: new SystemMessage('base')
+      } as any,
+      handler
+    )
+
+    const readTool = getTool(instance, 'read_skill_file')
+    let readResolved = false
+    const readPromise = readTool
+      .invoke({
+        path: `${runtimeSkillsRoot}/skill-a/SKILL.md`
+      })
+      .then((value) => {
+        readResolved = true
+        return value
+      })
+
+    await Promise.resolve()
+    expect(readResolved).toBe(false)
+    expect(execute).toHaveBeenCalledTimes(1)
+    expect(readExecute).not.toHaveBeenCalled()
+
+    copy.resolve({ ok: true })
+    await expect(readPromise).resolves.toBe('skill instructions')
+    expect(execute).toHaveBeenCalledTimes(1)
+    expect(readExecute).toHaveBeenCalledTimes(1)
   })
 })
