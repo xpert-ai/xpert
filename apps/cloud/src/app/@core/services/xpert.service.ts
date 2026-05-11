@@ -54,6 +54,7 @@ export type TXpertVariablesOptions = {
   isDraft?: boolean
   connections: string[]
   inputs?: string[]
+  revision?: number
 }
 
 export type TSandboxProvider = {
