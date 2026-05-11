@@ -164,7 +164,6 @@ export class AssistantsController {
             .map((item) => item.plugin)
             .filter((item): item is NonNullable<typeof item> => !!item)
         const middlewareCommands = middlewareCapabilities.flatMap((item) => item.commands)
-        console.log('Runtime Capabilities:', middlewareCommands)
         const runtimeSkills =
             hasSkillsMiddleware && xpert.workspaceId
                 ? await this.getRuntimeSkills(xpert.workspaceId, defaultSkillSelection, disabledSkillIds)
