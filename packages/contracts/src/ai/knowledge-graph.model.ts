@@ -23,6 +23,10 @@ export type KnowledgeGraphIndexJobType = 'document' | 'rebuild'
 
 export type GraphRagRetrievalMode = 'vector' | 'graph' | 'hybrid'
 
+export type KnowledgeGraphItemOrigin = 'extracted' | 'manual' | 'curated'
+
+export type KnowledgeGraphVisibility = 'active' | 'hidden'
+
 export type GraphRagConfig = {
   enabled?: boolean
   entityTopK?: number
@@ -45,6 +49,8 @@ export interface IKnowledgeGraphEntity extends IBasePerTenantAndOrganizationEnti
   type: string
   name: string
   normalizedName: string
+  origin?: KnowledgeGraphItemOrigin
+  visibility?: KnowledgeGraphVisibility
   aliases?: string[] | null
   description?: string | null
   summary?: string | null
@@ -65,6 +71,8 @@ export interface IKnowledgeGraphRelation extends IBasePerTenantAndOrganizationEn
   targetEntity?: IKnowledgeGraphEntity
   type: string
   normalizedType?: string | null
+  origin?: KnowledgeGraphItemOrigin
+  visibility?: KnowledgeGraphVisibility
   description?: string | null
   confidence?: number | null
   weight?: number | null
@@ -137,3 +145,75 @@ export type KnowledgeGraphStatusResponse = {
   failedJobCount: number
   jobs?: IKnowledgeGraphIndexJob[]
 }
+
+export type KnowledgeGraphViewNode = {
+  id: string
+  name: string
+  type: string
+  origin: KnowledgeGraphItemOrigin
+  visibility: KnowledgeGraphVisibility
+  mentionCount?: number | null
+  confidence?: number | null
+  symbolSize?: number
+  value?: number
+}
+
+export type KnowledgeGraphViewEdge = {
+  id: string
+  source: string
+  target: string
+  type: string
+  origin: KnowledgeGraphItemOrigin
+  visibility: KnowledgeGraphVisibility
+  weight?: number | null
+  evidenceCount?: number | null
+}
+
+export type KnowledgeGraphViewResponse = {
+  nodes: KnowledgeGraphViewNode[]
+  edges: KnowledgeGraphViewEdge[]
+  entityTypes: string[]
+  relationTypes: string[]
+  totalNodes: number
+  totalEdges: number
+}
+
+export type KnowledgeGraphVisualizationQuery = {
+  search?: string | null
+  entityType?: string | null
+  relationType?: string | null
+  origin?: KnowledgeGraphItemOrigin | null
+  visibility?: KnowledgeGraphVisibility | null
+  focusEntityId?: string | null
+  depth?: number | null
+  take?: number | null
+}
+
+export type KnowledgeGraphMentionListQuery = {
+  entityId?: string | null
+  relationId?: string | null
+  documentId?: string | null
+  chunkId?: string | null
+  take?: number | null
+}
+
+export type KnowledgeGraphEntityCreateInput = {
+  name: string
+  type: string
+  aliases?: string[] | null
+  description?: string | null
+  visibility?: KnowledgeGraphVisibility
+}
+
+export type KnowledgeGraphEntityUpdateInput = Partial<KnowledgeGraphEntityCreateInput>
+
+export type KnowledgeGraphRelationCreateInput = {
+  sourceEntityId: string
+  targetEntityId: string
+  type: string
+  description?: string | null
+  weight?: number | null
+  visibility?: KnowledgeGraphVisibility
+}
+
+export type KnowledgeGraphRelationUpdateInput = Partial<KnowledgeGraphRelationCreateInput>

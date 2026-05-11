@@ -10,9 +10,18 @@ import {
     IKnowledgeDocumentChunk,
     KDocumentSourceType,
     KnowledgeDocumentMetadata,
+    KnowledgeGraphEntityCreateInput,
+    KnowledgeGraphEntityUpdateInput,
     KnowledgeGraphIndexJobStatus,
+    KnowledgeGraphItemOrigin,
+    KnowledgeGraphMentionListQuery,
+    KnowledgeGraphRelationCreateInput,
+    KnowledgeGraphRelationUpdateInput,
     KnowledgeGraphStatus,
     KnowledgeGraphStatusResponse,
+    KnowledgeGraphViewResponse,
+    KnowledgeGraphVisibility,
+    KnowledgeGraphVisualizationQuery,
     TWFCase
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -23,7 +32,7 @@ import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
 import { compact, uniq } from 'lodash'
-import { FindOptionsWhere, In, IsNull, Not, Raw, Repository } from 'typeorm'
+import { Brackets, FindOptionsWhere, In, IsNull, Not, Raw, Repository, SelectQueryBuilder } from 'typeorm'
 import { z } from 'zod'
 import { CopilotModelGetChatModelQuery } from '../copilot-model'
 import { CopilotOneByRoleQuery } from '../copilot/queries'
@@ -60,6 +69,40 @@ const DEFAULT_GRAPH_RAG_CONFIG: Required<GraphRagConfig> = {
     extractionBatchSize: 8,
     extractionMaxCharacters: 12000
 }
+
+const GRAPH_ORIGIN_EXTRACTED: KnowledgeGraphItemOrigin = 'extracted'
+const GRAPH_ORIGIN_MANUAL: KnowledgeGraphItemOrigin = 'manual'
+const GRAPH_ORIGIN_CURATED: KnowledgeGraphItemOrigin = 'curated'
+const GRAPH_VISIBILITY_ACTIVE: KnowledgeGraphVisibility = 'active'
+const GRAPH_VISIBILITY_HIDDEN: KnowledgeGraphVisibility = 'hidden'
+
+const graphOriginSchema = z.enum(['extracted', 'manual', 'curated'])
+const graphVisibilitySchema = z.enum(['active', 'hidden'])
+
+const graphEntityCreateSchema = z
+    .object({
+        name: z.string().trim().min(1),
+        type: z.string().trim().min(1),
+        aliases: z.array(z.string().trim().min(1)).optional().nullable(),
+        description: z.string().optional().nullable(),
+        visibility: graphVisibilitySchema.optional()
+    })
+    .strict()
+
+const graphEntityUpdateSchema = graphEntityCreateSchema.partial().strict()
+
+const graphRelationCreateSchema = z
+    .object({
+        sourceEntityId: z.string().min(1),
+        targetEntityId: z.string().min(1),
+        type: z.string().trim().min(1),
+        description: z.string().optional().nullable(),
+        weight: z.number().min(0).max(1).optional().nullable(),
+        visibility: graphVisibilitySchema.optional()
+    })
+    .strict()
+
+const graphRelationUpdateSchema = graphRelationCreateSchema.partial().strict()
 
 const graphExtractionSchema = z.object({
     entities: z
@@ -129,6 +172,40 @@ export function normalizeKnowledgeGraphName(value: string) {
 
 export function normalizeKnowledgeGraphType(value: string) {
     return value.trim().replace(/\s+/g, '_').toLowerCase()
+}
+
+function isGraphOrigin(value: unknown): value is KnowledgeGraphItemOrigin {
+    return graphOriginSchema.safeParse(value).success
+}
+
+function isGraphVisibility(value: unknown): value is KnowledgeGraphVisibility {
+    return graphVisibilitySchema.safeParse(value).success
+}
+
+function resolveGraphVisibility(value?: KnowledgeGraphVisibility | null) {
+    return value ?? GRAPH_VISIBILITY_ACTIVE
+}
+
+function isExtractedOrigin(value?: KnowledgeGraphItemOrigin | null) {
+    return !value || value === GRAPH_ORIGIN_EXTRACTED
+}
+
+function isActiveVisibility(value?: KnowledgeGraphVisibility | null) {
+    return !value || value === GRAPH_VISIBILITY_ACTIVE
+}
+
+function clampGraphTake(value?: number | null) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return 80
+    }
+    return Math.min(250, Math.max(1, Math.floor(value)))
+}
+
+function clampGraphDepth(value?: number | null) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return 1
+    }
+    return Math.min(2, Math.max(0, Math.floor(value)))
 }
 
 @Injectable()
@@ -225,7 +302,12 @@ export class GraphragService {
         for (const relationId of affectedRelationIds) {
             const mentionCount = await this.mentionRepository.count({ where: { relationId } })
             if (!mentionCount) {
-                await this.relationRepository.delete({ id: relationId })
+                const relation = await this.relationRepository.findOne({ where: { id: relationId, knowledgebaseId } })
+                if (relation && isExtractedOrigin(relation.origin) && isActiveVisibility(relation.visibility)) {
+                    await this.relationRepository.delete({ id: relationId })
+                } else if (relation) {
+                    await this.relationRepository.update(relation.id, { evidenceCount: 0 })
+                }
             }
         }
 
@@ -257,6 +339,15 @@ export class GraphragService {
             }
         })
 
+        if (!items.length) {
+            await this.syncEntityVectors(knowledgebaseId)
+            await this.knowledgebaseRepository.update(knowledgebaseId, {
+                graphStatus: KnowledgeGraphStatus.READY,
+                graphIndexError: null
+            })
+            return []
+        }
+
         return this.enqueueDocuments({
             userId: RequestContext.currentUserId(),
             tenantId: knowledgebase.tenantId,
@@ -269,10 +360,38 @@ export class GraphragService {
 
     async clearKnowledgebase(knowledgebaseId: string) {
         await this.mentionRepository.delete({ knowledgebaseId })
-        await this.relationRepository.delete({ knowledgebaseId })
-        await this.entityRepository.delete({ knowledgebaseId })
+        await this.relationRepository
+            .createQueryBuilder()
+            .delete()
+            .where('knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+            .andWhere('(origin = :origin OR origin IS NULL)', { origin: GRAPH_ORIGIN_EXTRACTED })
+            .andWhere('(visibility = :visibility OR visibility IS NULL)', { visibility: GRAPH_VISIBILITY_ACTIVE })
+            .execute()
+
+        const preservedRelations = await this.relationRepository.find({
+            where: { knowledgebaseId },
+            select: {
+                sourceEntityId: true,
+                targetEntityId: true
+            }
+        })
+        const preservedEndpointIds = uniq(
+            compact(preservedRelations.flatMap((relation) => [relation.sourceEntityId, relation.targetEntityId]))
+        )
+        const deleteEntityQuery = this.entityRepository
+            .createQueryBuilder()
+            .delete()
+            .where('knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+            .andWhere('(origin = :origin OR origin IS NULL)', { origin: GRAPH_ORIGIN_EXTRACTED })
+            .andWhere('(visibility = :visibility OR visibility IS NULL)', { visibility: GRAPH_VISIBILITY_ACTIVE })
+        if (preservedEndpointIds.length) {
+            deleteEntityQuery.andWhere('id NOT IN (:...preservedEndpointIds)', { preservedEndpointIds })
+        }
+        await deleteEntityQuery.execute()
         await this.communityRepository.delete({ knowledgebaseId })
         await this.jobRepository.delete({ knowledgebaseId })
+        await this.relationRepository.update({ knowledgebaseId }, { evidenceCount: 0 })
+        await this.entityRepository.update({ knowledgebaseId }, { mentionCount: 0 })
         try {
             const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebaseId, false)
             await vectorStore.clear()
@@ -318,28 +437,51 @@ export class GraphragService {
 
     async listEntities(knowledgebaseId: string, params?: PaginationParams<KnowledgeGraphEntity>) {
         const search = typeof params?.where?.['search'] === 'string' ? params.where['search'] : null
-        const where = search
-            ? [
-                  {
-                      knowledgebaseId,
-                      name: Raw((alias) => `${alias} ILIKE :search`, { search: `%${search}%` })
-                  },
-                  {
-                      knowledgebaseId,
-                      type: Raw((alias) => `${alias} ILIKE :search`, { search: `%${search}%` })
-                  }
-              ]
-            : { knowledgebaseId }
+        const entityType = typeof params?.where?.['type'] === 'string' ? params.where['type'] : null
+        const origin = isGraphOrigin(params?.where?.['origin']) ? params.where['origin'] : null
+        const visibility = isGraphVisibility(params?.where?.['visibility']) ? params.where['visibility'] : null
 
-        const [items, total] = await this.entityRepository.findAndCount({
-            where,
-            order: params?.order ?? {
-                mentionCount: 'DESC',
-                updatedAt: 'DESC'
-            },
-            skip: params?.skip,
-            take: params?.take
-        })
+        const query = this.entityRepository
+            .createQueryBuilder('entity')
+            .where('entity.knowledgebaseId = :knowledgebaseId', {
+                knowledgebaseId
+            })
+        if (search) {
+            query.andWhere(
+                new Brackets((qb) => {
+                    qb.where('entity.name ILIKE :search', { search: `%${search}%` }).orWhere(
+                        'entity.type ILIKE :search',
+                        {
+                            search: `%${search}%`
+                        }
+                    )
+                })
+            )
+        }
+        if (entityType) {
+            query.andWhere('entity.type = :entityType', { entityType })
+        }
+        if (origin) {
+            if (origin === GRAPH_ORIGIN_EXTRACTED) {
+                query.andWhere('(entity.origin = :origin OR entity.origin IS NULL)', { origin })
+            } else {
+                query.andWhere('entity.origin = :origin', { origin })
+            }
+        }
+        if (visibility) {
+            if (visibility === GRAPH_VISIBILITY_ACTIVE) {
+                query.andWhere('(entity.visibility = :visibility OR entity.visibility IS NULL)', { visibility })
+            } else {
+                query.andWhere('entity.visibility = :visibility', { visibility })
+            }
+        }
+
+        const [items, total] = await query
+            .orderBy('entity.mentionCount', 'DESC')
+            .addOrderBy('entity.updatedAt', 'DESC')
+            .skip(params?.skip)
+            .take(params?.take)
+            .getManyAndCount()
 
         return { items, total }
     }
@@ -380,6 +522,299 @@ export class GraphragService {
             connectedEntities,
             mentions
         }
+    }
+
+    async getVisualization(
+        knowledgebaseId: string,
+        query?: KnowledgeGraphVisualizationQuery
+    ): Promise<KnowledgeGraphViewResponse> {
+        const visibility = resolveGraphVisibility(query?.visibility)
+        const take = clampGraphTake(query?.take)
+        const depth = clampGraphDepth(query?.depth)
+        const focusEntityIds = query?.focusEntityId
+            ? await this.expandVisibleEntityIds(knowledgebaseId, query.focusEntityId, depth, visibility)
+            : null
+
+        const entityQuery = this.entityRepository
+            .createQueryBuilder('entity')
+            .where('entity.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+
+        this.applyVisibilityCondition(entityQuery, 'entity', visibility)
+        if (query?.search) {
+            entityQuery.andWhere(
+                new Brackets((qb) => {
+                    qb.where('entity.name ILIKE :search', { search: `%${query.search}%` }).orWhere(
+                        'entity.type ILIKE :search',
+                        {
+                            search: `%${query.search}%`
+                        }
+                    )
+                })
+            )
+        }
+        if (query?.entityType) {
+            entityQuery.andWhere('entity.type = :entityType', { entityType: query.entityType })
+        }
+        if (query?.origin) {
+            this.applyOriginCondition(entityQuery, 'entity', query.origin)
+        }
+        if (focusEntityIds) {
+            if (!focusEntityIds.length) {
+                return {
+                    nodes: [],
+                    edges: [],
+                    entityTypes: [],
+                    relationTypes: [],
+                    totalNodes: 0,
+                    totalEdges: 0
+                }
+            }
+            entityQuery.andWhere('entity.id IN (:...focusEntityIds)', { focusEntityIds })
+        }
+
+        const entities = await entityQuery
+            .orderBy('entity.mentionCount', 'DESC')
+            .addOrderBy('entity.updatedAt', 'DESC')
+            .take(take)
+            .getMany()
+        const entityIds = entities.map((entity) => entity.id)
+        const entityIdSet = new Set(entityIds)
+
+        const relations = entityIds.length
+            ? await this.createRelationQuery(knowledgebaseId, query, visibility)
+                  .andWhere('relation.sourceEntityId IN (:...entityIds)', { entityIds })
+                  .andWhere('relation.targetEntityId IN (:...entityIds)', { entityIds })
+                  .getMany()
+            : []
+        const filteredRelations = relations.filter(
+            (relation): relation is KnowledgeGraphRelation & { sourceEntityId: string; targetEntityId: string } =>
+                !!relation.sourceEntityId &&
+                !!relation.targetEntityId &&
+                entityIdSet.has(relation.sourceEntityId) &&
+                entityIdSet.has(relation.targetEntityId)
+        )
+        const entityTypes = uniq(entities.map((entity) => entity.type).filter(Boolean)).sort()
+        const relationTypes = uniq(filteredRelations.map((relation) => relation.type).filter(Boolean)).sort()
+
+        return {
+            nodes: entities.map((entity) => {
+                const value = entity.mentionCount ?? 0
+                return {
+                    id: entity.id,
+                    name: entity.name,
+                    type: entity.type,
+                    origin: entity.origin ?? GRAPH_ORIGIN_EXTRACTED,
+                    visibility: entity.visibility ?? GRAPH_VISIBILITY_ACTIVE,
+                    mentionCount: entity.mentionCount ?? 0,
+                    confidence: entity.confidence ?? null,
+                    value,
+                    symbolSize: Math.min(54, Math.max(22, 22 + value * 2))
+                }
+            }),
+            edges: filteredRelations.map((relation) => ({
+                id: relation.id,
+                source: relation.sourceEntityId,
+                target: relation.targetEntityId,
+                type: relation.type,
+                origin: relation.origin ?? GRAPH_ORIGIN_EXTRACTED,
+                visibility: relation.visibility ?? GRAPH_VISIBILITY_ACTIVE,
+                weight: relation.weight ?? null,
+                evidenceCount: relation.evidenceCount ?? 0
+            })),
+            entityTypes,
+            relationTypes,
+            totalNodes: entities.length,
+            totalEdges: filteredRelations.length
+        }
+    }
+
+    async listRelations(knowledgebaseId: string, query?: KnowledgeGraphVisualizationQuery) {
+        const visibility = resolveGraphVisibility(query?.visibility)
+        const relations = await this.createRelationQuery(knowledgebaseId, query, visibility)
+            .orderBy('relation.evidenceCount', 'DESC')
+            .addOrderBy('relation.updatedAt', 'DESC')
+            .take(clampGraphTake(query?.take))
+            .getMany()
+        return {
+            items: relations,
+            total: relations.length
+        }
+    }
+
+    async listMentions(knowledgebaseId: string, query?: KnowledgeGraphMentionListQuery) {
+        const mentionQuery = this.mentionRepository
+            .createQueryBuilder('mention')
+            .leftJoinAndSelect('mention.document', 'document')
+            .where('mention.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+        if (query?.entityId) {
+            mentionQuery.andWhere('mention.entityId = :entityId', { entityId: query.entityId })
+        }
+        if (query?.relationId) {
+            mentionQuery.andWhere('mention.relationId = :relationId', { relationId: query.relationId })
+        }
+        if (query?.documentId) {
+            mentionQuery.andWhere('mention.documentId = :documentId', { documentId: query.documentId })
+        }
+        if (query?.chunkId) {
+            mentionQuery.andWhere('mention.chunkId = :chunkId', { chunkId: query.chunkId })
+        }
+
+        const [items, total] = await mentionQuery
+            .orderBy('mention.confidence', 'DESC')
+            .addOrderBy('mention.createdAt', 'DESC')
+            .take(Math.min(100, Math.max(1, query?.take ?? 30)))
+            .getManyAndCount()
+
+        return { items, total }
+    }
+
+    async createEntity(knowledgebaseId: string, body: unknown) {
+        const knowledgebase = await this.ensureGraphEnabled(knowledgebaseId)
+        const input = graphEntityCreateSchema.parse(body) as KnowledgeGraphEntityCreateInput
+        const type = normalizeKnowledgeGraphType(input.type)
+        const normalizedName = normalizeKnowledgeGraphName(input.name)
+        await this.assertNoEntityConflict(knowledgebase, normalizedName, type)
+
+        const entity = await this.entityRepository.save(
+            this.entityRepository.create({
+                tenantId: knowledgebase.tenantId,
+                organizationId: knowledgebase.organizationId,
+                knowledgebaseId,
+                type,
+                name: input.name.trim(),
+                normalizedName,
+                origin: GRAPH_ORIGIN_MANUAL,
+                visibility: input.visibility ?? GRAPH_VISIBILITY_ACTIVE,
+                aliases: input.aliases ?? [],
+                description: input.description ?? null,
+                confidence: 1,
+                mentionCount: 0,
+                revision: knowledgebase.graphRevision ?? 0
+            })
+        )
+        entity.summary = this.buildEntitySummary(entity)
+        const saved = await this.entityRepository.save(entity)
+        await this.syncEntityVectors(knowledgebaseId)
+        return saved
+    }
+
+    async updateEntity(knowledgebaseId: string, entityId: string, body: unknown) {
+        const knowledgebase = await this.ensureGraphEnabled(knowledgebaseId)
+        const input: KnowledgeGraphEntityUpdateInput = graphEntityUpdateSchema.parse(body)
+        const entity = await this.findGraphEntity(knowledgebaseId, entityId)
+        const nextType = input.type ? normalizeKnowledgeGraphType(input.type) : entity.type
+        const nextName = input.name ? input.name.trim() : entity.name
+        const nextNormalizedName = input.name ? normalizeKnowledgeGraphName(input.name) : entity.normalizedName
+        if (nextType !== entity.type || nextNormalizedName !== entity.normalizedName) {
+            await this.assertNoEntityConflict(knowledgebase, nextNormalizedName, nextType, entity.id)
+        }
+
+        entity.type = nextType
+        entity.name = nextName
+        entity.normalizedName = nextNormalizedName
+        if ('aliases' in input) {
+            entity.aliases = input.aliases ?? []
+        }
+        if ('description' in input) {
+            entity.description = input.description ?? null
+        }
+        if (input.visibility) {
+            entity.visibility = input.visibility
+        }
+        entity.origin = entity.origin === GRAPH_ORIGIN_MANUAL ? GRAPH_ORIGIN_MANUAL : GRAPH_ORIGIN_CURATED
+        entity.summary = this.buildEntitySummary(entity)
+        const saved = await this.entityRepository.save(entity)
+
+        if (input.visibility === GRAPH_VISIBILITY_HIDDEN) {
+            await this.relationRepository
+                .createQueryBuilder()
+                .update()
+                .set({ visibility: GRAPH_VISIBILITY_HIDDEN })
+                .where('knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+                .andWhere('(sourceEntityId = :entityId OR targetEntityId = :entityId)', { entityId: entity.id })
+                .execute()
+        }
+        await this.syncEntityVectors(knowledgebaseId)
+        return saved
+    }
+
+    async hideEntity(knowledgebaseId: string, entityId: string) {
+        return this.updateEntity(knowledgebaseId, entityId, { visibility: GRAPH_VISIBILITY_HIDDEN })
+    }
+
+    async createRelation(knowledgebaseId: string, body: unknown) {
+        const knowledgebase = await this.ensureGraphEnabled(knowledgebaseId)
+        const input = graphRelationCreateSchema.parse(body) as KnowledgeGraphRelationCreateInput
+        const { source, target } = await this.resolveRelationEndpoints(knowledgebaseId, input)
+        const type = normalizeKnowledgeGraphType(input.type)
+        await this.assertNoRelationConflict(knowledgebaseId, source.id, target.id, type)
+
+        const relation = await this.relationRepository.save(
+            this.relationRepository.create({
+                tenantId: knowledgebase.tenantId,
+                organizationId: knowledgebase.organizationId,
+                knowledgebaseId,
+                sourceEntityId: source.id,
+                targetEntityId: target.id,
+                type,
+                normalizedType: type,
+                origin: GRAPH_ORIGIN_MANUAL,
+                visibility: input.visibility ?? GRAPH_VISIBILITY_ACTIVE,
+                description: input.description ?? null,
+                confidence: 1,
+                weight: input.weight ?? 1,
+                evidenceCount: 0,
+                revision: knowledgebase.graphRevision ?? 0
+            })
+        )
+        await this.syncEntityVectors(knowledgebaseId)
+        return relation
+    }
+
+    async updateRelation(knowledgebaseId: string, relationId: string, body: unknown) {
+        await this.ensureGraphEnabled(knowledgebaseId)
+        const input: KnowledgeGraphRelationUpdateInput = graphRelationUpdateSchema.parse(body)
+        const relation = await this.findGraphRelation(knowledgebaseId, relationId)
+        const { source, target } = await this.resolveRelationEndpoints(
+            knowledgebaseId,
+            {
+                sourceEntityId: input.sourceEntityId ?? relation.sourceEntityId,
+                targetEntityId: input.targetEntityId ?? relation.targetEntityId
+            },
+            input.visibility !== GRAPH_VISIBILITY_ACTIVE
+        )
+        const type = input.type ? normalizeKnowledgeGraphType(input.type) : relation.type
+        if (source.id !== relation.sourceEntityId || target.id !== relation.targetEntityId || type !== relation.type) {
+            await this.assertNoRelationConflict(knowledgebaseId, source.id, target.id, type, relation.id)
+        }
+        if (
+            input.visibility === GRAPH_VISIBILITY_ACTIVE &&
+            (!isActiveVisibility(source.visibility) || !isActiveVisibility(target.visibility))
+        ) {
+            throw new BadRequestException('Cannot activate a relation with hidden endpoint entities')
+        }
+
+        relation.sourceEntityId = source.id
+        relation.targetEntityId = target.id
+        relation.type = type
+        relation.normalizedType = type
+        if ('description' in input) {
+            relation.description = input.description ?? null
+        }
+        if ('weight' in input) {
+            relation.weight = input.weight ?? null
+        }
+        if (input.visibility) {
+            relation.visibility = input.visibility
+        }
+        relation.origin = relation.origin === GRAPH_ORIGIN_MANUAL ? GRAPH_ORIGIN_MANUAL : GRAPH_ORIGIN_CURATED
+        const saved = await this.relationRepository.save(relation)
+        await this.syncEntityVectors(knowledgebaseId)
+        return saved
+    }
+
+    async hideRelation(knowledgebaseId: string, relationId: string) {
+        return this.updateRelation(knowledgebaseId, relationId, { visibility: GRAPH_VISIBILITY_HIDDEN })
     }
 
     async processIndexJob(graphIndexJobId: string) {
@@ -497,6 +932,196 @@ export class GraphragService {
                 error: getErrorMessage(error)
             }
         }
+    }
+
+    private async ensureGraphEnabled(knowledgebaseId: string) {
+        const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId)
+        if (!this.isEnabled(knowledgebase)) {
+            throw new BadRequestException('GraphRAG is disabled for this knowledgebase')
+        }
+        return knowledgebase
+    }
+
+    private async findGraphEntity(knowledgebaseId: string, entityId: string) {
+        const entity = await this.entityRepository.findOne({ where: { id: entityId, knowledgebaseId } })
+        if (!entity) {
+            throw new NotFoundException(`Knowledge graph entity '${entityId}' not found`)
+        }
+        return entity
+    }
+
+    private async findGraphRelation(knowledgebaseId: string, relationId: string) {
+        const relation = await this.relationRepository.findOne({
+            where: { id: relationId, knowledgebaseId },
+            relations: ['sourceEntity', 'targetEntity']
+        })
+        if (!relation) {
+            throw new NotFoundException(`Knowledge graph relation '${relationId}' not found`)
+        }
+        return relation
+    }
+
+    private applyVisibilityCondition<T>(
+        query: SelectQueryBuilder<T>,
+        alias: string,
+        visibility?: KnowledgeGraphVisibility | null
+    ) {
+        if (!visibility) {
+            return query
+        }
+        if (visibility === GRAPH_VISIBILITY_ACTIVE) {
+            return query.andWhere(`(${alias}.visibility = :visibility OR ${alias}.visibility IS NULL)`, { visibility })
+        }
+        return query.andWhere(`${alias}.visibility = :visibility`, { visibility })
+    }
+
+    private applyOriginCondition<T>(
+        query: SelectQueryBuilder<T>,
+        alias: string,
+        origin?: KnowledgeGraphItemOrigin | null
+    ) {
+        if (!origin) {
+            return query
+        }
+        if (origin === GRAPH_ORIGIN_EXTRACTED) {
+            return query.andWhere(`(${alias}.origin = :origin OR ${alias}.origin IS NULL)`, { origin })
+        }
+        return query.andWhere(`${alias}.origin = :origin`, { origin })
+    }
+
+    private createRelationQuery(
+        knowledgebaseId: string,
+        query?: KnowledgeGraphVisualizationQuery,
+        visibility?: KnowledgeGraphVisibility | null
+    ) {
+        const relationQuery = this.relationRepository
+            .createQueryBuilder('relation')
+            .leftJoinAndSelect('relation.sourceEntity', 'sourceEntity')
+            .leftJoinAndSelect('relation.targetEntity', 'targetEntity')
+            .where('relation.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+        this.applyVisibilityCondition(relationQuery, 'relation', visibility)
+        if (visibility !== GRAPH_VISIBILITY_HIDDEN) {
+            this.applyVisibilityCondition(relationQuery, 'sourceEntity', GRAPH_VISIBILITY_ACTIVE)
+            this.applyVisibilityCondition(relationQuery, 'targetEntity', GRAPH_VISIBILITY_ACTIVE)
+        }
+        if (query?.relationType) {
+            relationQuery.andWhere('relation.type = :relationType', { relationType: query.relationType })
+        }
+        if (query?.origin) {
+            this.applyOriginCondition(relationQuery, 'relation', query.origin)
+        }
+        if (query?.search) {
+            relationQuery.andWhere(
+                new Brackets((qb) => {
+                    qb.where('relation.type ILIKE :search', { search: `%${query.search}%` })
+                        .orWhere('relation.description ILIKE :search', { search: `%${query.search}%` })
+                        .orWhere('sourceEntity.name ILIKE :search', { search: `%${query.search}%` })
+                        .orWhere('targetEntity.name ILIKE :search', { search: `%${query.search}%` })
+                })
+            )
+        }
+        return relationQuery
+    }
+
+    private async expandVisibleEntityIds(
+        knowledgebaseId: string,
+        seedEntityId: string,
+        depth: number,
+        visibility: KnowledgeGraphVisibility
+    ) {
+        const seed = await this.entityRepository.findOne({ where: { id: seedEntityId, knowledgebaseId } })
+        if (!seed || (visibility === GRAPH_VISIBILITY_ACTIVE && !isActiveVisibility(seed.visibility))) {
+            return []
+        }
+        const entityIds = new Set<string>([seedEntityId])
+        let frontier = [seedEntityId]
+        for (let hop = 0; hop < depth && frontier.length; hop++) {
+            const relations = await this.createRelationQuery(knowledgebaseId, { visibility }, visibility)
+                .andWhere(
+                    new Brackets((qb) => {
+                        qb.where('relation.sourceEntityId IN (:...frontier)', { frontier }).orWhere(
+                            'relation.targetEntityId IN (:...frontier)',
+                            { frontier }
+                        )
+                    })
+                )
+                .getMany()
+            const next = new Set<string>()
+            for (const relation of relations) {
+                for (const id of [relation.sourceEntityId, relation.targetEntityId]) {
+                    if (id && !entityIds.has(id)) {
+                        entityIds.add(id)
+                        next.add(id)
+                    }
+                }
+            }
+            frontier = [...next]
+        }
+        return [...entityIds]
+    }
+
+    private async assertNoEntityConflict(
+        knowledgebase: Pick<IKnowledgebase, 'tenantId' | 'organizationId' | 'id'>,
+        normalizedName: string,
+        type: string,
+        ignoreEntityId?: string
+    ) {
+        const existing = await this.entityRepository.findOne({
+            where: {
+                tenantId: knowledgebase.tenantId ?? IsNull(),
+                organizationId: knowledgebase.organizationId ?? IsNull(),
+                knowledgebaseId: knowledgebase.id,
+                normalizedName,
+                type
+            }
+        })
+        if (existing && existing.id !== ignoreEntityId) {
+            throw new BadRequestException('Knowledge graph entity already exists')
+        }
+    }
+
+    private async assertNoRelationConflict(
+        knowledgebaseId: string,
+        sourceEntityId: string,
+        targetEntityId: string,
+        type: string,
+        ignoreRelationId?: string
+    ) {
+        const existing = await this.relationRepository.findOne({
+            where: {
+                knowledgebaseId,
+                sourceEntityId,
+                targetEntityId,
+                type
+            }
+        })
+        if (existing && existing.id !== ignoreRelationId) {
+            throw new BadRequestException('Knowledge graph relation already exists')
+        }
+    }
+
+    private async resolveRelationEndpoints(
+        knowledgebaseId: string,
+        input: { sourceEntityId?: string | null; targetEntityId?: string | null },
+        allowHiddenEndpoints = false
+    ) {
+        if (!input.sourceEntityId || !input.targetEntityId) {
+            throw new BadRequestException('Relation source and target entities are required')
+        }
+        if (input.sourceEntityId === input.targetEntityId) {
+            throw new BadRequestException('Relation source and target entities must be different')
+        }
+        const [source, target] = await Promise.all([
+            this.findGraphEntity(knowledgebaseId, input.sourceEntityId),
+            this.findGraphEntity(knowledgebaseId, input.targetEntityId)
+        ])
+        if (
+            !allowHiddenEndpoints &&
+            (!isActiveVisibility(source.visibility) || !isActiveVisibility(target.visibility))
+        ) {
+            throw new BadRequestException('Cannot create or move a relation with hidden endpoint entities')
+        }
+        return { source, target }
     }
 
     private isTextChunk(chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>) {
@@ -651,15 +1276,20 @@ export class GraphragService {
                 type,
                 name: extracted.name.trim(),
                 normalizedName,
+                origin: GRAPH_ORIGIN_EXTRACTED,
+                visibility: GRAPH_VISIBILITY_ACTIVE,
                 aliases: extracted.aliases ?? [],
                 description: extracted.description ?? null,
                 confidence: extracted.confidence ?? null,
                 revision: graphJob.revision ?? 0
             })
-        } else {
+        } else if (isExtractedOrigin(entity.origin)) {
             entity.name = entity.name || extracted.name.trim()
             entity.aliases = uniq([...(entity.aliases ?? []), ...(extracted.aliases ?? [])])
             entity.description = extracted.description ?? entity.description
+            entity.confidence = Math.max(entity.confidence ?? 0, extracted.confidence ?? 0)
+            entity.revision = graphJob.revision ?? entity.revision
+        } else {
             entity.confidence = Math.max(entity.confidence ?? 0, extracted.confidence ?? 0)
             entity.revision = graphJob.revision ?? entity.revision
         }
@@ -714,15 +1344,20 @@ export class GraphragService {
                 targetEntityId: target.id,
                 type,
                 normalizedType: type,
+                origin: GRAPH_ORIGIN_EXTRACTED,
+                visibility: GRAPH_VISIBILITY_ACTIVE,
                 description: extracted.description ?? null,
                 confidence: extracted.confidence ?? null,
                 weight: extracted.confidence ?? null,
                 revision: graphJob.revision ?? 0
             })
-        } else {
+        } else if (isExtractedOrigin(relation.origin)) {
             relation.description = extracted.description ?? relation.description
             relation.confidence = Math.max(relation.confidence ?? 0, extracted.confidence ?? 0)
             relation.weight = Math.max(relation.weight ?? 0, extracted.confidence ?? 0)
+            relation.revision = graphJob.revision ?? relation.revision
+        } else {
+            relation.confidence = Math.max(relation.confidence ?? 0, extracted.confidence ?? 0)
             relation.revision = graphJob.revision ?? relation.revision
         }
         return this.relationRepository.save(relation)
@@ -806,6 +1441,10 @@ export class GraphragService {
 
     private async pruneEntities(entityIds: string[]) {
         for (const entityId of uniq(compact(entityIds))) {
+            const entity = await this.entityRepository.findOne({ where: { id: entityId } })
+            if (!entity || !isExtractedOrigin(entity.origin) || !isActiveVisibility(entity.visibility)) {
+                continue
+            }
             const [mentionCount, outgoingCount, incomingCount] = await Promise.all([
                 this.mentionRepository.count({ where: { entityId } }),
                 this.relationRepository.count({ where: { sourceEntityId: entityId } }),
@@ -827,10 +1466,14 @@ export class GraphragService {
 
         const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebase, true)
         await vectorStore.clear()
-        const entities = await this.entityRepository.find({
-            where: { knowledgebaseId },
-            order: { updatedAt: 'ASC' }
-        })
+        const entities = await this.entityRepository
+            .createQueryBuilder('entity')
+            .where('entity.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+            .andWhere('(entity.visibility = :visibility OR entity.visibility IS NULL)', {
+                visibility: GRAPH_VISIBILITY_ACTIVE
+            })
+            .orderBy('entity.updatedAt', 'ASC')
+            .getMany()
         if (!entities.length) {
             return
         }
@@ -932,12 +1575,26 @@ export class GraphragService {
             kind: 'knowledge_graph_entity',
             knowledgebaseId: knowledgebase.id
         })
-        return results
+        const scored = results
             .map(([doc, score]) => ({
                 entityId: typeof doc.metadata?.graphEntityId === 'string' ? doc.metadata.graphEntityId : null,
                 score: 1 - score
             }))
             .filter((item): item is { entityId: string; score: number } => !!item.entityId)
+        if (!scored.length) {
+            return []
+        }
+        const activeEntities = await this.entityRepository
+            .createQueryBuilder('entity')
+            .select('entity.id')
+            .where('entity.knowledgebaseId = :knowledgebaseId', { knowledgebaseId: knowledgebase.id })
+            .andWhere('entity.id IN (:...entityIds)', { entityIds: scored.map((item) => item.entityId) })
+            .andWhere('(entity.visibility = :visibility OR entity.visibility IS NULL)', {
+                visibility: GRAPH_VISIBILITY_ACTIVE
+            })
+            .getMany()
+        const activeIds = new Set(activeEntities.map((entity) => entity.id))
+        return scored.filter((item) => activeIds.has(item.entityId))
     }
 
     private async expandEntities(knowledgebaseId: string, seedEntityIds: string[], hops: number) {
@@ -945,13 +1602,20 @@ export class GraphragService {
         const relations = new Map<string, KnowledgeGraphRelation>()
         let frontier = [...seedEntityIds]
         for (let hop = 0; hop < hops && frontier.length; hop++) {
-            const items = await this.relationRepository.find({
-                where: [
-                    { knowledgebaseId, sourceEntityId: In(frontier) },
-                    { knowledgebaseId, targetEntityId: In(frontier) }
-                ],
-                relations: ['sourceEntity', 'targetEntity']
-            })
+            const items = await this.createRelationQuery(
+                knowledgebaseId,
+                { visibility: GRAPH_VISIBILITY_ACTIVE },
+                GRAPH_VISIBILITY_ACTIVE
+            )
+                .andWhere(
+                    new Brackets((qb) => {
+                        qb.where('relation.sourceEntityId IN (:...frontier)', { frontier }).orWhere(
+                            'relation.targetEntityId IN (:...frontier)',
+                            { frontier }
+                        )
+                    })
+                )
+                .getMany()
             const next = new Set<string>()
             for (const relation of items) {
                 relations.set(relation.id, relation)

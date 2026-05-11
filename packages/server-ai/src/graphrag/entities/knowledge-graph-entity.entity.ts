@@ -1,4 +1,9 @@
-import { IKnowledgebase, IKnowledgeGraphEntity } from '@xpert-ai/contracts'
+import {
+    IKnowledgebase,
+    IKnowledgeGraphEntity,
+    KnowledgeGraphItemOrigin,
+    KnowledgeGraphVisibility
+} from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
@@ -9,6 +14,8 @@ import { KnowledgeGraphRelation } from './knowledge-graph-relation.entity'
 
 @Entity('knowledge_graph_entity')
 @Index(['tenantId', 'organizationId', 'knowledgebaseId', 'normalizedName', 'type'], { unique: true })
+@Index(['knowledgebaseId', 'origin'])
+@Index(['knowledgebaseId', 'visibility'])
 export class KnowledgeGraphEntity extends TenantOrganizationBaseEntity implements IKnowledgeGraphEntity {
     @ApiProperty({ type: () => Knowledgebase, readOnly: true })
     @ManyToOne(() => Knowledgebase, {
@@ -41,6 +48,16 @@ export class KnowledgeGraphEntity extends TenantOrganizationBaseEntity implement
     @IsString()
     @Column({ type: 'varchar', length: 512 })
     normalizedName: string
+
+    @ApiProperty({ type: () => String })
+    @IsString()
+    @Column({ type: 'varchar', length: 32, default: 'extracted' })
+    origin?: KnowledgeGraphItemOrigin
+
+    @ApiProperty({ type: () => String })
+    @IsString()
+    @Column({ type: 'varchar', length: 32, default: 'active' })
+    visibility?: KnowledgeGraphVisibility
 
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()

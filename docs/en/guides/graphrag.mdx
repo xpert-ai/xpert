@@ -77,21 +77,46 @@ On the knowledge base test page, select `Vector`, `Graph`, or `Hybrid` before ru
 
 Use `hybrid` for most validation because it shows how GraphRAG augments the existing vector result set while keeping vector recall available.
 
+## Visualizing And Maintaining The Graph
+
+The knowledge base sidebar includes a `Graph` page when GraphRAG is available. The page uses an interactive force graph to show entities as nodes and relations as edges, with filters for search text, entity type, relation type, origin, visibility, focus entity, depth, and result size.
+
+Operators can inspect an entity or relation from the graph or side lists. The inspector shows the selected item, connected relations, and read-only evidence mentions with document/chunk provenance.
+
+GraphRAG v1 also supports curated maintenance:
+
+- create manual entities and relations
+- edit extracted entity names, types, aliases, descriptions, and visibility
+- edit relation endpoints, types, descriptions, weight, and visibility
+- hide entities or relations instead of physically deleting them
+- keep mention/evidence records read-only so source traceability remains intact
+
+Manual and curated rows are preserved during document re-indexing and graph rebuilds. Rebuild refreshes extracted evidence and extracted active rows, but it does not remove manual rows, curated rows, or hidden rows. Hidden entities and relations are excluded from graph retrieval, visualization, and entity vector synchronization by default.
+
 ## API Overview
 
 GraphRAG adds these knowledge base APIs:
 
-| Endpoint                                                       | Purpose                                                                   |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `POST /knowledgebase/:id/graph/rebuild`                        | Clears and rebuilds the graph index for all existing documents.           |
-| `GET /knowledgebase/:id/graph/status`                          | Returns aggregate graph status, counts, and recent graph jobs.            |
-| `GET /knowledgebase/:id/graph/entities`                        | Lists graph entities for the knowledge base.                              |
-| `GET /knowledgebase/:id/graph/entities/:entityId/neighborhood` | Returns a local entity neighborhood with relations and evidence mentions. |
-| `POST /knowledgebase/:id/test`                                 | Accepts retrieval mode and GraphRAG parameters for retrieval testing.     |
+| Endpoint                                                       | Purpose                                                                          |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `POST /knowledgebase/:id/graph/rebuild`                        | Rebuilds extracted graph data while preserving manual, curated, and hidden rows. |
+| `GET /knowledgebase/:id/graph/status`                          | Returns aggregate graph status, counts, and recent graph jobs.                   |
+| `GET /knowledgebase/:id/graph/entities`                        | Lists graph entities for the knowledge base.                                     |
+| `GET /knowledgebase/:id/graph/entities/:entityId/neighborhood` | Returns a local entity neighborhood with relations and evidence mentions.        |
+| `GET /knowledgebase/:id/graph/visualization`                   | Returns graph nodes, edges, and type facets for the visual explorer.             |
+| `GET /knowledgebase/:id/graph/relations`                       | Lists graph relations with source and target entities.                           |
+| `GET /knowledgebase/:id/graph/mentions`                        | Lists read-only evidence mentions for an entity, relation, document, or chunk.   |
+| `POST /knowledgebase/:id/graph/entities`                       | Creates a manual graph entity.                                                   |
+| `PATCH /knowledgebase/:id/graph/entities/:entityId`            | Curates an entity or restores/hides it through `visibility`.                     |
+| `DELETE /knowledgebase/:id/graph/entities/:entityId`           | Soft-hides an entity and its incident relations.                                 |
+| `POST /knowledgebase/:id/graph/relations`                      | Creates a manual graph relation.                                                 |
+| `PATCH /knowledgebase/:id/graph/relations/:relationId`         | Curates a relation or restores/hides it through `visibility`.                    |
+| `DELETE /knowledgebase/:id/graph/relations/:relationId`        | Soft-hides a relation.                                                           |
+| `POST /knowledgebase/:id/test`                                 | Accepts retrieval mode and GraphRAG parameters for retrieval testing.            |
 
 ## MVP Scope
 
-The current GraphRAG release focuses on local graph retrieval:
+The current GraphRAG release focuses on local graph retrieval and curated maintenance:
 
 - Postgres and TypeORM graph tables
 - asynchronous graph index jobs
@@ -99,6 +124,6 @@ The current GraphRAG release focuses on local graph retrieval:
 - entity vector recall
 - 1 to 2 hop neighborhood expansion
 - `vector`, `graph`, and `hybrid` retrieval
-- minimal configuration, rebuild, status, and test UI
+- configuration, rebuild, status, test, graph visualization, and entity/relation maintenance UI
 
-The MVP does not include community/global search, Neo4j or Fuseki, or a full graph editing and exploration workspace.
+The MVP does not include community/global search, Neo4j or Fuseki, or free-form mention/evidence editing.

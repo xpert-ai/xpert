@@ -62,6 +62,19 @@
           {{ 'PAC.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}
         }
       </a>
+
+      <a
+        class="router-menu-item"
+        title=""
+        [routerLink]="['./', 'graph']"
+        [routerLinkActiveOptions]="{ exact: false }"
+        routerLinkActive="active"
+      >
+        <z-icon zType="hub" class="mr-2 text-xl" />
+        @if (sideMenuOpened()) {
+          {{ 'PAC.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}
+        }
+      </a>
     }
     <a
       class="router-menu-item"
