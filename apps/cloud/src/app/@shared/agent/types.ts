@@ -1,11 +1,17 @@
 import { computed, Directive, model } from '@angular/core'
-import { FILE_VARIABLES, TInterruptMessage, TStateVariable, TWorkflowVarGroup, XpertParameterTypeEnum } from '@cloud/app/@core/types'
+import {
+  FILE_VARIABLES,
+  TInterruptMessage,
+  TStateVariable,
+  TWorkflowVarGroup,
+  XpertParameterTypeEnum
+} from '@cloud/app/@core/types'
 
 export type TStateVariableType = TStateVariable & {
   expanded?: boolean
   parent?: string
   level?: number
-  displayName: string
+  displayName?: string
 }
 
 @Directive()
@@ -22,7 +28,7 @@ export class AbstractInterruptComponent<T = unknown, O = unknown> {
   readonly data = computed(() => this.message()?.data)
 }
 
-export function expandVariablesWithItems(groups: TWorkflowVarGroup[]) {
+export function expandVariablesWithItems(groups: TWorkflowVarGroup[] | null | undefined) {
   if (!groups?.length) {
     return groups
   }
@@ -143,5 +149,5 @@ function buildItemVariables(variable: TStateVariableType, seen: Set<string>): TS
 }
 
 function hasItemChildren(variable: TStateVariableType) {
-  return Array.isArray(variable.item) && variable.item.length > 0 || variable.type === XpertParameterTypeEnum.FILE
+  return (Array.isArray(variable.item) && variable.item.length > 0) || variable.type === XpertParameterTypeEnum.FILE
 }
