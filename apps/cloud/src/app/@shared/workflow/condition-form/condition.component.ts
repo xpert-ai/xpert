@@ -6,14 +6,15 @@ import { attrModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   agentLabel,
+  getVariableSchema,
   injectToastr,
   TStateVariable,
   TWFCaseCondition,
   TWorkflowVarGroup,
   WorkflowComparisonOperator,
   XpertParameterTypeEnum
-} from 'apps/cloud/src/app/@core'
-import { StateVariableSelectComponent, TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
+} from '@cloud/app/@core'
+import { expandVariablesWithItems, StateVariableSelectComponent, XpertVariableInputComponent } from '../../agent'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -52,19 +53,7 @@ export class XpertWorkflowConditionFormComponent {
 
   readonly _variableSelector = attrModel(this.condition, 'variableSelector')
 
-  readonly variableSelector = computed(() => {
-    const names = this.condition()?.variableSelector?.split('.')
-    if (names?.length > 1) {
-      return {
-        group: names[0],
-        name: names[1]
-      }
-    }
-    return {
-      group: '',
-      name: this.condition()?.variableSelector
-    }
-  })
+  readonly expandedVariables = computed(() => expandVariablesWithItems(this.variables()))
   readonly groupVariables = computed(() => {
     return this.variables()
   })
@@ -88,17 +77,9 @@ export class XpertWorkflowConditionFormComponent {
     this.condition.update((state) => ({ ...(state ?? {}), comparisonOperator: value }) as TWFCaseCondition)
   }
 
-  readonly variable = computed<TStateVariable>(() => {
-    const { group, name } = this.variableSelector() ?? {}
-    let variable = null
-    this.variables()?.some((g) => {
-      if ((group && g.group?.name === group) || (!group && !g.group?.name)) {
-        variable = g.variables.find((_) => _.name === name)
-      }
-      return !!variable
-    })
-    return variable
-  })
+  readonly variable = computed<TStateVariable | null>(
+    () => getVariableSchema(this.expandedVariables(), this.condition()?.variableSelector).variable ?? null
+  )
 
   readonly variableType = computed(() => this.variable()?.type)
 
