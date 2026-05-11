@@ -3,6 +3,7 @@ import { SandboxGetManagedServiceLogsHandler } from './get-managed-service-logs.
 import { SandboxListManagedServicesHandler } from './list-managed-services.handler'
 import { SandboxRestartManagedServiceHandler } from './restart-managed-service.handler'
 import { SandboxCopyFileHandler } from './sandbox.copy-file.handler'
+import { SandboxCopyTreeHandler } from './sandbox.copy-tree.handler'
 import { SandboxStartManagedServiceHandler } from './start-managed-service.handler'
 import { SandboxStopManagedServiceHandler } from './stop-managed-service.handler'
 import { SandboxVMHandler } from './vm.handler'
@@ -11,6 +12,7 @@ export const CommandHandlers = [
     SandboxVMHandler,
     SandboxAcquireBackendHandler,
     SandboxCopyFileHandler,
+    SandboxCopyTreeHandler,
     SandboxStartManagedServiceHandler,
     SandboxListManagedServicesHandler,
     SandboxGetManagedServiceLogsHandler,
