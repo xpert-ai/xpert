@@ -159,7 +159,13 @@ describe('AssistantsController', () => {
                         { type: 'workflow', from: 'agent-1', to: 'skills-middleware' },
                         { type: 'workflow', from: 'agent-1', to: 'required-middleware' },
                         { type: 'workflow', from: 'agent-1', to: 'optional-middleware' },
-                        { key: 'agent-1/required-sub-agent', type: 'agent', from: 'agent-1', to: 'required-sub-agent' },
+                        {
+                            key: 'agent-1/required-sub-agent',
+                            type: 'agent',
+                            from: 'agent-1',
+                            to: 'required-sub-agent',
+                            required: true
+                        },
                         {
                             key: 'agent-1/optional-sub-agent',
                             type: 'agent',
@@ -456,8 +462,166 @@ describe('AssistantsController', () => {
                 }
             ]
         })
-        expect(agentMiddlewareRegistry.get).toHaveBeenCalledTimes(1)
+        expect(agentMiddlewareRegistry.get).toHaveBeenCalledTimes(2)
+        expect(agentMiddlewareRegistry.get).toHaveBeenCalledWith('provider-a')
         expect(agentMiddlewareRegistry.get).toHaveBeenCalledWith('provider-b')
+    })
+
+    it('loads runtime capabilities from the xpert draft when requested', async () => {
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn(async () => ({
+                id: 'assistant-1',
+                workspaceId: 'workspace-1',
+                name: 'Published Assistant',
+                title: 'Published Assistant',
+                agent: {
+                    key: 'published-agent'
+                },
+                graph: {
+                    nodes: [],
+                    connections: []
+                },
+                draft: {
+                    team: {
+                        name: 'Draft Assistant',
+                        title: 'Draft Assistant',
+                        agent: {
+                            key: 'draft-agent'
+                        }
+                    },
+                    nodes: [
+                        {
+                            key: 'draft-skills-middleware',
+                            type: 'workflow',
+                            entity: {
+                                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                provider: 'skillsMiddleware',
+                                options: {
+                                    skills: ['draft-skill']
+                                }
+                            }
+                        },
+                        {
+                            key: 'draft-sub-agent-a',
+                            type: 'agent',
+                            entity: {
+                                key: 'draft-sub-agent-a',
+                                name: 'draft-sub-agent-a',
+                                title: 'Draft Sub Agent A',
+                                description: 'Handles draft sub-agent A.'
+                            }
+                        },
+                        {
+                            key: 'draft-sub-agent-b',
+                            type: 'agent',
+                            entity: {
+                                key: 'draft-sub-agent-b',
+                                name: 'draft-sub-agent-b',
+                                title: 'Draft Sub Agent B',
+                                description: 'Handles draft sub-agent B.'
+                            }
+                        }
+                    ],
+                    connections: [
+                        { type: 'workflow', from: 'draft-agent', to: 'draft-skills-middleware' },
+                        { type: 'agent', from: 'draft-agent', to: 'draft-sub-agent-a' },
+                        { type: 'agent', from: 'draft-agent', to: 'draft-sub-agent-b' }
+                    ]
+                }
+            }))
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn(async () => false),
+            getUserPreferenceByAssistantId: jest.fn(async () => null)
+        }
+        const skillPackageService = {
+            getAllByWorkspace: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'draft-skill',
+                        workspaceId: 'workspace-1',
+                        name: 'Draft Skill',
+                        skillIndex: {
+                            name: 'Draft Skill'
+                        }
+                    }
+                ]
+            }))
+        }
+        const promptWorkflowService = {
+            resolveRuntimeCommandProfile: jest.fn(async () => ({
+                hasProfile: false,
+                xpertCommands: [],
+                workspaceCommands: [],
+                preferredSkillEntries: [],
+                skillEntries: []
+            }))
+        }
+        const controller = new AssistantsController(
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
+            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+            {
+                get: jest.fn()
+            } as unknown as ConstructorParameters<typeof AssistantsController>[2],
+            skillPackageService as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            new RuntimeCommandService(),
+            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+        )
+
+        const result = await controller.getRuntimeCapabilities('assistant-1', 'true')
+
+        expect(result.skills).toEqual([
+            {
+                id: 'draft-skill',
+                workspaceId: 'workspace-1',
+                label: 'Draft Skill',
+                description: undefined,
+                repositoryName: undefined,
+                provider: undefined,
+                default: true
+            }
+        ])
+        expect(result.subAgents).toEqual([
+            {
+                nodeKey: 'draft-sub-agent-a',
+                type: 'agent',
+                label: 'Draft Sub Agent A',
+                name: 'draft-sub-agent-a',
+                description: 'Handles draft sub-agent A.',
+                agentKey: 'draft-sub-agent-a',
+                toolNames: [],
+                toolsetNames: [],
+                knowledgebaseNames: []
+            },
+            {
+                nodeKey: 'draft-sub-agent-b',
+                type: 'agent',
+                label: 'Draft Sub Agent B',
+                name: 'draft-sub-agent-b',
+                description: 'Handles draft sub-agent B.',
+                agentKey: 'draft-sub-agent-b',
+                toolNames: [],
+                toolsetNames: [],
+                knowledgebaseNames: []
+            }
+        ])
+        expect(skillPackageService.getAllByWorkspace).toHaveBeenCalled()
+        expect(skillPackageService.getAllByWorkspace.mock.calls[0].slice(0, 3)).toEqual([
+            'workspace-1',
+            {
+                relations: ['skillIndex', 'skillIndex.repository']
+            },
+            false
+        ])
+        expect(promptWorkflowService.resolveRuntimeCommandProfile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'assistant-1',
+                title: 'Draft Assistant',
+                agent: expect.objectContaining({
+                    key: 'draft-agent'
+                })
+            })
+        )
     })
 
     it('filters user-disabled skills from runtime capabilities', async () => {
@@ -619,6 +783,156 @@ describe('AssistantsController', () => {
             expect.arrayContaining([
                 expect.objectContaining({
                     name: 'disabled-command'
+                })
+            ])
+        )
+    })
+
+    it('includes slash commands from middleware connected to the current agent', async () => {
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn(async () => ({
+                id: 'assistant-1',
+                workspaceId: 'workspace-1',
+                title: 'Assistant 1',
+                agent: {
+                    key: 'agent-1'
+                },
+                graph: {
+                    nodes: [
+                        {
+                            key: 'middleware-ralph',
+                            type: 'workflow',
+                            entity: {
+                                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                provider: 'ralph-loop'
+                            }
+                        }
+                    ],
+                    connections: [{ type: 'workflow', from: 'agent-1', to: 'middleware-ralph' }]
+                }
+            }))
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn(async () => false),
+            getUserPreferenceByAssistantId: jest.fn(async () => null)
+        }
+        const agentMiddlewareRegistry = {
+            get: jest.fn(() => ({
+                meta: {
+                    label: {
+                        en_US: 'Ralph Loop'
+                    },
+                    slashCommands: [
+                        {
+                            name: 'goal',
+                            label: 'Goal',
+                            action: {
+                                type: 'insert_invocation',
+                                template: 'Goal: {{args}}'
+                            }
+                        }
+                    ]
+                }
+            }))
+        }
+        const promptWorkflowService = {
+            resolveRuntimeCommandProfile: jest.fn(async () => ({
+                hasProfile: false,
+                xpertCommands: [],
+                workspaceCommands: [],
+                preferredSkillEntries: [],
+                skillEntries: []
+            }))
+        }
+        const controller = new AssistantsController(
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
+            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+            agentMiddlewareRegistry as unknown as ConstructorParameters<typeof AssistantsController>[2],
+            {
+                getAllByWorkspace: jest.fn()
+            } as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            new RuntimeCommandService(),
+            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+        )
+
+        const result = await controller.getRuntimeCapabilities('assistant-1')
+
+        expect(result.commands).toEqual([
+            expect.objectContaining({
+                name: 'goal',
+                action: {
+                    type: 'insert_invocation',
+                    template: '/goal ',
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: {
+                            ids: []
+                        },
+                        plugins: {
+                            nodeKeys: ['middleware-ralph']
+                        },
+                        subAgents: {
+                            nodeKeys: []
+                        }
+                    }
+                },
+                source: {
+                    type: 'middleware',
+                    provider: 'ralph-loop',
+                    nodeKey: 'middleware-ralph',
+                    label: 'Ralph Loop'
+                }
+            })
+        ])
+    })
+
+    it('does not include Ralph goal command when the middleware is not connected', async () => {
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn(async () => ({
+                id: 'assistant-1',
+                workspaceId: 'workspace-1',
+                title: 'Assistant 1',
+                agent: {
+                    key: 'agent-1'
+                },
+                graph: {
+                    nodes: [],
+                    connections: []
+                }
+            }))
+        }
+        const assistantBindingService = {
+            isEffectiveSystemAssistantId: jest.fn(async () => false),
+            getUserPreferenceByAssistantId: jest.fn(async () => null)
+        }
+        const promptWorkflowService = {
+            resolveRuntimeCommandProfile: jest.fn(async () => ({
+                hasProfile: false,
+                xpertCommands: [],
+                workspaceCommands: [],
+                preferredSkillEntries: [],
+                skillEntries: []
+            }))
+        }
+        const controller = new AssistantsController(
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
+            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+            {
+                get: jest.fn()
+            } as unknown as ConstructorParameters<typeof AssistantsController>[2],
+            {
+                getAllByWorkspace: jest.fn()
+            } as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            new RuntimeCommandService(),
+            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+        )
+
+        const result = await controller.getRuntimeCapabilities('assistant-1')
+
+        expect(result.commands).not.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'goal'
                 })
             ])
         )

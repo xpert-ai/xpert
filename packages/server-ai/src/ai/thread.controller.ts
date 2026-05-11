@@ -1,34 +1,34 @@
 import { CheckpointTuple } from '@langchain/langgraph'
 import { Metadata, Run, ThreadState } from '@langchain/langgraph-sdk'
 import {
-	appendMessagePlainText,
-	ChatMessageTypeEnum,
-	createMessageAppendContextTracker,
-	IUser,
-	IXpertAgentExecution,
-	USAGE_HOUR_FORMAT
+    appendMessagePlainText,
+    ChatMessageTypeEnum,
+    createMessageAppendContextTracker,
+    IUser,
+    IXpertAgentExecution,
+    USAGE_HOUR_FORMAT
 } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import {
-	Body,
-	Controller,
-	Delete,
-	Get,
-	Header,
-	Headers,
-	HttpException,
-	HttpCode,
-	HttpStatus,
-	Logger,
-	Param,
-	Patch,
-	Post,
-	Query,
-	Req,
-	Res,
-	Sse,
-	UseGuards,
-	UseInterceptors
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Header,
+    Headers,
+    HttpException,
+    HttpCode,
+    HttpStatus,
+    Logger,
+    Param,
+    Patch,
+    Post,
+    Query,
+    Req,
+    Res,
+    Sse,
+    UseGuards,
+    UseInterceptors
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -38,9 +38,9 @@ import { IsNull } from 'typeorm'
 import { CopilotCheckpointGetTupleQuery } from '../copilot-checkpoint'
 import { UnimplementedException } from '../core'
 import {
-	FindAgentExecutionsQuery,
-	GetThreadContextUsageQuery,
-	XpertAgentExecutionOneQuery
+    FindAgentExecutionsQuery,
+    GetThreadContextUsageQuery,
+    XpertAgentExecutionOneQuery
 } from '../xpert-agent-execution'
 import { AiService } from './ai.service'
 import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from './commands'
@@ -52,8 +52,8 @@ import { GetChatConversationQuery } from '../chat-conversation'
 import { CopilotUserUsageQuery } from '../copilot-user/queries'
 import { formatInUTC0 } from '../shared/utils'
 import {
-	assertPublicXpertSessionConversationAccess,
-	getPublicXpertSessionConversationScope
+    assertPublicXpertSessionConversationAccess,
+    getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
 
 @ApiTags('AI/Threads')
@@ -63,408 +63,414 @@ import {
 @UseInterceptors(TransformInterceptor)
 @Controller('threads')
 export class ThreadsController {
-	readonly #logger = new Logger(ThreadsController.name)
+    readonly #logger = new Logger(ThreadsController.name)
 
-	constructor(
-		private readonly aiService: AiService,
-		private readonly queryBus: QueryBus,
-		private readonly commandBus: CommandBus,
-		private readonly redisSseStreamService: RedisSseStreamService
-	) {}
+    constructor(
+        private readonly aiService: AiService,
+        private readonly queryBus: QueryBus,
+        private readonly commandBus: CommandBus,
+        private readonly redisSseStreamService: RedisSseStreamService
+    ) {}
 
-	// Threads: A thread contains the accumulated outputs of a group of runs.
+    // Threads: A thread contains the accumulated outputs of a group of runs.
 
-	@Post()
-	async createThread(@Body() body: components['schemas']['ThreadCreate'], @CurrentUser() user: IUser) {
-		return await this.commandBus.execute(new ThreadCreateCommand(body))
-	}
+    @Post()
+    async createThread(@Body() body: components['schemas']['ThreadCreate'], @CurrentUser() user: IUser) {
+        return await this.commandBus.execute(new ThreadCreateCommand(body))
+    }
 
-	@HttpCode(HttpStatus.OK)
-	@Post('search')
-	async searchThreads(@Body() req: components['schemas']['ThreadSearchRequest']) {
-		return this.queryBus.execute(new SearchThreadsQuery(req))
-	}
+    @HttpCode(HttpStatus.OK)
+    @Post('search')
+    async searchThreads(@Body() req: components['schemas']['ThreadSearchRequest']) {
+        return this.queryBus.execute(new SearchThreadsQuery(req))
+    }
 
-	@Get(':thread_id')
-	async getThread(@Param('thread_id') thread_id: string) {
-		return await this.queryBus.execute(new FindThreadQuery(thread_id))
-	}
+    @Get(':thread_id')
+    async getThread(@Param('thread_id') thread_id: string) {
+        return await this.queryBus.execute(new FindThreadQuery(thread_id))
+    }
 
-	@Patch(':thread_id')
-	async patchThread(@Param('thread_id') thread_id: string, @Body() thread: components['schemas']['ThreadPatch']) {
-		throw new UnimplementedException()
-	}
+    @Patch(':thread_id')
+    async patchThread(@Param('thread_id') thread_id: string, @Body() thread: components['schemas']['ThreadPatch']) {
+        throw new UnimplementedException()
+    }
 
-	@HttpCode(HttpStatus.ACCEPTED)
-	@Delete(':thread_id')
-	async deleteThread(@Param('thread_id') thread_id: string) {
-		await this.ensurePublicThreadAccess(thread_id)
-		return await this.commandBus.execute(new ThreadDeleteCommand(thread_id))
-	}
+    @HttpCode(HttpStatus.ACCEPTED)
+    @Delete(':thread_id')
+    async deleteThread(@Param('thread_id') thread_id: string) {
+        await this.ensurePublicThreadAccess(thread_id)
+        return await this.commandBus.execute(new ThreadDeleteCommand(thread_id))
+    }
 
-	@Get(':thread_id/state')
-	async getThreadState(@Param('thread_id') thread_id: string, @Query() query: any) {
-		await this.ensurePublicThreadAccess(thread_id)
-		console.log(query)
-		const tuple = await this.queryBus.execute(
-			new CopilotCheckpointGetTupleQuery({
-				thread_id,
-				checkpoint_ns: '',
-				checkpoint_id: query.checkpoint_id
-			})
-		)
-		return transformThreadState(tuple)
-	}
+    @Get(':thread_id/state')
+    async getThreadState(@Param('thread_id') thread_id: string, @Query() query: any) {
+        await this.ensurePublicThreadAccess(thread_id)
+        console.log(query)
+        const tuple = await this.queryBus.execute(
+            new CopilotCheckpointGetTupleQuery({
+                thread_id,
+                checkpoint_ns: '',
+                checkpoint_id: query.checkpoint_id
+            })
+        )
+        return transformThreadState(tuple)
+    }
 
-	@Post(':thread_id/state')
-	async updateThreadState(
-		@Param('thread_id') thread_id: string,
-		@Body() state: components['schemas']['ThreadStateUpdate']
-	) {
-		throw new UnimplementedException()
-	}
+    @Post(':thread_id/state')
+    async updateThreadState(
+        @Param('thread_id') thread_id: string,
+        @Body() state: components['schemas']['ThreadStateUpdate']
+    ) {
+        throw new UnimplementedException()
+    }
 
-	@Post(':thread_id/history')
-	async getThreadHistory(
-		@Param('thread_id') thread_id: string,
-		@Body()
-		body: {
-			limit: number
-			before?: string
-		}
-	) {
-		throw new UnimplementedException()
-	}
+    @Post(':thread_id/history')
+    async getThreadHistory(
+        @Param('thread_id') thread_id: string,
+        @Body()
+        body: {
+            limit: number
+            before?: string
+        }
+    ) {
+        throw new UnimplementedException()
+    }
 
-	@Post(':thread_id/copy')
-	async copyThread(@Param('thread_id') thread_id: string) {
-		throw new UnimplementedException()
-	}
+    @Post(':thread_id/copy')
+    async copyThread(@Param('thread_id') thread_id: string) {
+        throw new UnimplementedException()
+    }
 
-	// Runs: A run is an invocation of a graph / assistant on a thread. It updates the state of the thread.
+    // Runs: A run is an invocation of a graph / assistant on a thread. It updates the state of the thread.
 
-	@Get(':thread_id/runs')
-	async getThreadRuns(
-		@Param('thread_id') thread_id: string,
-		@Query('limit') limit: number,
-		@Query('offset') offset: number
-	) {
-		await this.ensurePublicThreadAccess(thread_id)
-		const result = await this.queryBus.execute(
-			new FindAgentExecutionsQuery({
-				where: {
-					threadId: thread_id,
-					parentId: IsNull()
-				},
-				take: limit,
-				skip: offset
-			})
-		)
+    @Get(':thread_id/runs')
+    async getThreadRuns(
+        @Param('thread_id') thread_id: string,
+        @Query('limit') limit: number,
+        @Query('offset') offset: number
+    ) {
+        await this.ensurePublicThreadAccess(thread_id)
+        const result = await this.queryBus.execute(
+            new FindAgentExecutionsQuery({
+                where: {
+                    threadId: thread_id,
+                    parentId: IsNull()
+                },
+                take: limit,
+                skip: offset
+            })
+        )
 
-		return result.items.map(transformRun)
-	}
+        return result.items.map(transformRun)
+    }
 
-	/**
-	 * Create run in background, return run immediately.
-	 *
-	 * @param thread_id
-	 * @param body
-	 * @returns
-	 */
-	@Post(':thread_id/runs')
-	async createRun(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
-		const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
-		stream.subscribe({
-			error: (err) => {
-				console.error('Error in run stream in background:', err)
-			}
-		})
-		return transformRun(execution)
-	}
+    /**
+     * Create run in background, return run immediately.
+     *
+     * @param thread_id
+     * @param body
+     * @returns
+     */
+    @Post(':thread_id/runs')
+    async createRun(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
+        const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
+        stream.subscribe({
+            error: (err) => {
+                console.error('Error in run stream in background:', err)
+            }
+        })
+        return transformRun(execution)
+    }
 
-	/**
-	 * Create run and stream messages back to client.
-	 *
-	 * @param res
-	 * @param thread_id
-	 * @param body
-	 * @returns
-	 */
-	@Header('content-type', 'text/event-stream')
-	@Header('Connection', 'keep-alive')
-	@Post(':thread_id/runs/stream')
-	@Sse()
-	async runStream(
-		@Req() req: Request,
-		@Res() res: Response,
-		@Param('thread_id') thread_id: string,
-		@Body() body: components['schemas']['RunCreateStateful'],
-		@Headers('last-event-id') lastEventId?: string
-	) {
-		try {
-			const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
-			stream.subscribe({
-				error: (err) => {
-					console.error('Error in run stream:', err)
-				}
-			})
-			const contender = buildSseLockOwner(req, {
-				mode: 'create',
-				lastEventId
-			})
-			const {
-				lockId,
-				lock,
-				stream: sseStream
-			} = await this.redisSseStreamService.createSseStream({
-				threadId: thread_id,
-				runId: execution.id,
-				lastEventId,
-				mode: 'create',
-				owner: contender
-			})
+    /**
+     * Create run and stream messages back to client.
+     *
+     * @param res
+     * @param thread_id
+     * @param body
+     * @returns
+     */
+    @Header('content-type', 'text/event-stream')
+    @Header('Connection', 'keep-alive')
+    @Post(':thread_id/runs/stream')
+    @Sse()
+    async runStream(
+        @Req() req: Request,
+        @Res() res: Response,
+        @Param('thread_id') thread_id: string,
+        @Body() body: components['schemas']['RunCreateStateful'],
+        @Headers('last-event-id') lastEventId?: string
+    ) {
+        try {
+            const { stream, execution, streamTransport } = await this.commandBus.execute(
+                new RunCreateStreamCommand(thread_id, body)
+            )
+            if (streamTransport === 'direct') {
+                return stream
+            }
 
-			if (!lockId) {
-				this.#logger.warn(
-					{
-						threadId: thread_id,
-						runId: execution.id,
-						holder: sseStreamOwnerPayload(lock),
-						contender
-					},
-					'SSE run stream lock conflict'
-				)
-				throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
-			}
+            stream.subscribe({
+                error: (err) => {
+                    console.error('Error in run stream:', err)
+                }
+            })
+            const contender = buildSseLockOwner(req, {
+                mode: 'create',
+                lastEventId
+            })
+            const {
+                lockId,
+                lock,
+                stream: sseStream
+            } = await this.redisSseStreamService.createSseStream({
+                threadId: thread_id,
+                runId: execution.id,
+                lastEventId,
+                mode: 'create',
+                owner: contender
+            })
 
-			res.on('close', () => {
-				this.redisSseStreamService.releaseLock(thread_id, execution.id, lockId).catch(() => null)
-			})
+            if (!lockId) {
+                this.#logger.warn(
+                    {
+                        threadId: thread_id,
+                        runId: execution.id,
+                        holder: sseStreamOwnerPayload(lock),
+                        contender
+                    },
+                    'SSE run stream lock conflict'
+                )
+                throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
+            }
 
-			return sseStream
-		} catch (error) {
-			console.error('Error starting run stream:')
-			console.error(error)
-			throw error
-		}
-	}
+            res.on('close', () => {
+                this.redisSseStreamService.releaseLock(thread_id, execution.id, lockId).catch(() => null)
+            })
 
-	/**
-	 * Create run and wait for it to complete, then return the final message.
-	 *
-	 * @param thread_id
-	 * @param body
-	 * @returns
-	 */
-	@Post(':thread_id/runs/wait')
-	async runWait(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
-		const { stream, execution } = await this.commandBus.execute<
-			RunCreateStreamCommand,
-			{ stream: Observable<MessageEvent>; execution: IXpertAgentExecution }
-		>(new RunCreateStreamCommand(thread_id, body))
-		const messageAppendContextTracker = createMessageAppendContextTracker()
-		return lastValueFrom(
-			stream.pipe(
-				filter((event) => event.data.type === ChatMessageTypeEnum.MESSAGE),
-				reduce(
-					(acc, event) => {
-						const { messageContext } = messageAppendContextTracker.resolve({
-							incoming: event.data.data,
-							fallbackSource: 'run_wait',
-							fallbackStreamId: execution.id
-						})
+            return sseStream
+        } catch (error) {
+            console.error('Error starting run stream:')
+            console.error(error)
+            throw error
+        }
+    }
 
-						acc.content = appendMessagePlainText(acc.content, event.data.data, messageContext)
-						return acc
-					},
-					{
-						content: ''
-					}
-				),
-				map((data) => ({
-					role: 'ai',
-					content: data.content
-				}))
-			)
-		)
-	}
+    /**
+     * Create run and wait for it to complete, then return the final message.
+     *
+     * @param thread_id
+     * @param body
+     * @returns
+     */
+    @Post(':thread_id/runs/wait')
+    async runWait(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
+        const { stream, execution } = await this.commandBus.execute<
+            RunCreateStreamCommand,
+            { stream: Observable<MessageEvent>; execution: IXpertAgentExecution }
+        >(new RunCreateStreamCommand(thread_id, body))
+        const messageAppendContextTracker = createMessageAppendContextTracker()
+        return lastValueFrom(
+            stream.pipe(
+                filter((event) => event.data.type === ChatMessageTypeEnum.MESSAGE),
+                reduce(
+                    (acc, event) => {
+                        const { messageContext } = messageAppendContextTracker.resolve({
+                            incoming: event.data.data,
+                            fallbackSource: 'run_wait',
+                            fallbackStreamId: execution.id
+                        })
 
-	/**
-	 * Join existing run stream (supports Last-Event-ID resume).
-	 *
-	 * @param res
-	 * @param thread_id
-	 * @param run_id
-	 * @param lastEventId
-	 * @returns
-	 */
-	@Header('content-type', 'text/event-stream')
-	@Header('Connection', 'keep-alive')
-	@Get(':thread_id/runs/:run_id/stream')
-	@Sse()
-	async joinRunStream(
-		@Req() req: Request,
-		@Res() res: Response,
-		@Param('thread_id') thread_id: string,
-		@Param('run_id') run_id: string,
-		@Headers('last-event-id') lastEventId?: string
-	) {
-		const contender = buildSseLockOwner(req, {
-			mode: 'join',
-			lastEventId
-		})
-		const { lockId, lock, stream } = await this.redisSseStreamService.createSseStream({
-			threadId: thread_id,
-			runId: run_id,
-			lastEventId,
-			mode: 'join',
-			owner: contender
-		})
+                        acc.content = appendMessagePlainText(acc.content, event.data.data, messageContext)
+                        return acc
+                    },
+                    {
+                        content: ''
+                    }
+                ),
+                map((data) => ({
+                    role: 'ai',
+                    content: data.content
+                }))
+            )
+        )
+    }
 
-		if (!lockId) {
-			this.#logger.warn(
-				{
-					threadId: thread_id,
-					runId: run_id,
-					holder: sseStreamOwnerPayload(lock),
-					contender
-				},
-				'SSE run join lock conflict'
-			)
-			throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
-		}
+    /**
+     * Join existing run stream (supports Last-Event-ID resume).
+     *
+     * @param res
+     * @param thread_id
+     * @param run_id
+     * @param lastEventId
+     * @returns
+     */
+    @Header('content-type', 'text/event-stream')
+    @Header('Connection', 'keep-alive')
+    @Get(':thread_id/runs/:run_id/stream')
+    @Sse()
+    async joinRunStream(
+        @Req() req: Request,
+        @Res() res: Response,
+        @Param('thread_id') thread_id: string,
+        @Param('run_id') run_id: string,
+        @Headers('last-event-id') lastEventId?: string
+    ) {
+        const contender = buildSseLockOwner(req, {
+            mode: 'join',
+            lastEventId
+        })
+        const { lockId, lock, stream } = await this.redisSseStreamService.createSseStream({
+            threadId: thread_id,
+            runId: run_id,
+            lastEventId,
+            mode: 'join',
+            owner: contender
+        })
 
-		res.on('close', () => {
-			this.redisSseStreamService.releaseLock(thread_id, run_id, lockId).catch(() => null)
-		})
+        if (!lockId) {
+            this.#logger.warn(
+                {
+                    threadId: thread_id,
+                    runId: run_id,
+                    holder: sseStreamOwnerPayload(lock),
+                    contender
+                },
+                'SSE run join lock conflict'
+            )
+            throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
+        }
 
-		return stream
-	}
+        res.on('close', () => {
+            this.redisSseStreamService.releaseLock(thread_id, run_id, lockId).catch(() => null)
+        })
 
-	@Get(':thread_id/runs/:run_id')
-	async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
-		const execution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(run_id))
-		return transformRun(execution)
-	}
+        return stream
+    }
 
-	@Post(':thread_id/runs/:run_id/cancel')
-	async cancelThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
-		// Cancel the run
-		try {
-			return await this.commandBus.execute(
-				new CancelConversationCommand({
-					threadId: thread_id,
-					executionId: run_id
-				})
-			)
-		} catch (error) {
-			console.error('Error cancelling conversation:', error)
-			throw error
-		}
-	}
+    @Get(':thread_id/runs/:run_id')
+    async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
+        const execution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(run_id))
+        return transformRun(execution)
+    }
 
-	// Others
-	@Get(':thread_id/context-usage')
-	async getThreadContextUsage(@Param('thread_id') threadId: string, @Query('agentKey') agentKey?: string) {
-		return await this.queryBus.execute(new GetThreadContextUsageQuery(threadId, agentKey))
-	}
+    @Post(':thread_id/runs/:run_id/cancel')
+    async cancelThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
+        // Cancel the run
+        try {
+            return await this.commandBus.execute(
+                new CancelConversationCommand({
+                    threadId: thread_id,
+                    executionId: run_id
+                })
+            )
+        } catch (error) {
+            console.error('Error cancelling conversation:', error)
+            throw error
+        }
+    }
 
-	@Get(':thread_id/usage')
-	async getThreadUsage(
-		@Param('thread_id') threadId: string,
-		@Query('start') start: string,
-		@Query('end') end?: string
-	) {
-		const endHour = end ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
-		return await this.queryBus.execute(new CopilotUserUsageQuery({ start, end: endHour, threadId }))
-	}
+    // Others
+    @Get(':thread_id/context-usage')
+    async getThreadContextUsage(@Param('thread_id') threadId: string, @Query('agentKey') agentKey?: string) {
+        return await this.queryBus.execute(new GetThreadContextUsageQuery(threadId, agentKey))
+    }
 
-	private async ensurePublicThreadAccess(threadId: string) {
-		if (!getPublicXpertSessionConversationScope()) {
-			return
-		}
+    @Get(':thread_id/usage')
+    async getThreadUsage(
+        @Param('thread_id') threadId: string,
+        @Query('start') start: string,
+        @Query('end') end?: string
+    ) {
+        const endHour = end ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
+        return await this.queryBus.execute(new CopilotUserUsageQuery({ start, end: endHour, threadId }))
+    }
 
-		const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
-		assertPublicXpertSessionConversationAccess(conversation)
-	}
+    private async ensurePublicThreadAccess(threadId: string) {
+        if (!getPublicXpertSessionConversationScope()) {
+            return
+        }
+
+        const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
+        assertPublicXpertSessionConversationAccess(conversation)
+    }
 }
 
 function transformRun(execution: IXpertAgentExecution) {
-	return {
-		run_id: execution.id,
-		thread_id: execution.threadId,
-		assistant_id: execution.xpertId,
-		created_at: execution.createdAt.toISOString(),
-		updated_at: execution.updatedAt.toISOString(),
-		status: execution.status,
-		metadata: execution.metadata as Metadata
-	} as Run
+    return {
+        run_id: execution.id,
+        thread_id: execution.threadId,
+        assistant_id: execution.xpertId,
+        created_at: execution.createdAt.toISOString(),
+        updated_at: execution.updatedAt.toISOString(),
+        status: execution.status,
+        metadata: execution.metadata as Metadata
+    } as Run
 }
 
 function transformThreadState(tuple: CheckpointTuple) {
-	return {
-		values: tuple.checkpoint.channel_values,
-		checkpoint: tuple.config.configurable,
-		parent_checkpoint: tuple.parentConfig?.configurable,
-		metadata: tuple.metadata as Metadata,
-		created_at: tuple.checkpoint.ts
-	} as ThreadState
+    return {
+        values: tuple.checkpoint.channel_values,
+        checkpoint: tuple.config.configurable,
+        parent_checkpoint: tuple.parentConfig?.configurable,
+        metadata: tuple.metadata as Metadata,
+        created_at: tuple.checkpoint.ts
+    } as ThreadState
 }
 
 function buildSseLockOwner(
-	req: Request,
-	options: Pick<SseLockOwnerCandidate, 'mode' | 'lastEventId'>
+    req: Request,
+    options: Pick<SseLockOwnerCandidate, 'mode' | 'lastEventId'>
 ): SseLockOwnerCandidate {
-	return {
-		mode: options.mode,
-		requestId: readHeader(req, 'x-request-id'),
-		userId: readRequestUserId(req),
-		ip: readRequestIp(req),
-		forwardedFor: readHeader(req, 'x-forwarded-for'),
-		userAgent: readHeader(req, 'user-agent'),
-		origin: readHeader(req, 'origin'),
-		referer: readHeader(req, 'referer'),
-		method: req.method,
-		endpoint: req.originalUrl || req.url,
-		lastEventId: options.lastEventId?.trim() || null
-	}
+    return {
+        mode: options.mode,
+        requestId: readHeader(req, 'x-request-id'),
+        userId: readRequestUserId(req),
+        ip: readRequestIp(req),
+        forwardedFor: readHeader(req, 'x-forwarded-for'),
+        userAgent: readHeader(req, 'user-agent'),
+        origin: readHeader(req, 'origin'),
+        referer: readHeader(req, 'referer'),
+        method: req.method,
+        endpoint: req.originalUrl || req.url,
+        lastEventId: options.lastEventId?.trim() || null
+    }
 }
 
 function sseStreamOwnerPayload(lock?: SseLockSnapshot | null) {
-	if (!lock) {
-		return null
-	}
+    if (!lock) {
+        return null
+    }
 
-	return {
-		lockId: lock.lockId,
-		ttlMs: lock.ttlMs,
-		owner: lock.owner
-	}
+    return {
+        lockId: lock.lockId,
+        ttlMs: lock.ttlMs,
+        owner: lock.owner
+    }
 }
 
 function readHeader(req: Request, name: string) {
-	const value = req.headers[name]
-	if (Array.isArray(value)) {
-		const first = value.find((item) => item?.trim())
-		return first?.trim() || null
-	}
-	return typeof value === 'string' && value.trim() ? value.trim() : null
+    const value = req.headers[name]
+    if (Array.isArray(value)) {
+        const first = value.find((item) => item?.trim())
+        return first?.trim() || null
+    }
+    return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 function readRequestIp(req: Request) {
-	return (
-		readHeader(req, 'cf-connecting-ip') ||
-		readHeader(req, 'x-real-ip') ||
-		req.ip ||
-		req.socket?.remoteAddress ||
-		null
-	)
+    return (
+        readHeader(req, 'cf-connecting-ip') ||
+        readHeader(req, 'x-real-ip') ||
+        req.ip ||
+        req.socket?.remoteAddress ||
+        null
+    )
 }
 
 function readRequestUserId(req: Request) {
-	const user = (req as Request & { user?: Partial<IUser> }).user
-	if (typeof user?.id === 'string' && user.id.trim()) {
-		return user.id.trim()
-	}
-	return null
+    const user = (req as Request & { user?: Partial<IUser> }).user
+    if (typeof user?.id === 'string' && user.id.trim()) {
+        return user.id.trim()
+    }
+    return null
 }

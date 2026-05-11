@@ -2933,6 +2933,7 @@
       "AddIntegrationHelp": "了解更多關於自定義集成的信息"
     },
     "Xpert": {
+      "AgentRunStatusReplied": "已回覆",
       "ExportXpertDSL": "導出數字專家 DSL",
       "UseDraft": "使用草稿",
       "UseDraftTooltip": "使用草稿版本導出",

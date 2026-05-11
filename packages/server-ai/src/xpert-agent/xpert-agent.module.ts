@@ -39,7 +39,7 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         forwardRef(() => EnvironmentModule),
         ExecutionCancelModule,
         SkillPackageModule,
-        PromptWorkflowModule
+        forwardRef(() => PromptWorkflowModule)
     ],
     controllers: [XpertAgentController],
     providers: [

@@ -1,4 +1,3 @@
-
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { DateRelativePipe } from '@cloud/app/@core'
@@ -22,7 +21,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     Copy2Component,
     ChatComponentMessageComponent,
     ChatMessageDashboardComponent
-],
+  ],
   selector: 'chat-message-content',
   templateUrl: './content.component.html',
   styleUrl: 'content.component.scss',
@@ -36,6 +35,7 @@ export class ChatMessageContentComponent {
   readonly content = input<TMessageContentComplex>()
   readonly last = input<boolean>()
   readonly collapse = input<boolean>()
+  readonly agentOutput = input<boolean>(false)
 
   readonly submessage = computed(() => this.content())
   readonly text = computed(() => (this.content()?.type === 'text' ? (<TMessageContentText>this.content()).text : ''))

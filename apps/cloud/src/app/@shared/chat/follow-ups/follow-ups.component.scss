@@ -1,0 +1,72 @@
+@reference "../../../../styles/tailwind-reference.css";
+
+.chat-follow-ups {
+  box-shadow: 0 12px 30px color-mix(in oklab, var(--foreground) 7%, transparent);
+}
+
+.follow-up-settings-panel {
+  min-height: 0;
+}
+
+.follow-up-behavior-toggle-shell {
+  min-width: 128px;
+}
+
+:host ::ng-deep .follow-up-behavior-toggle [role='tablist'] {
+  height: 32px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--ring) 16%, transparent);
+  background: color-mix(in oklab, var(--background) 96%, transparent);
+}
+
+:host ::ng-deep .follow-up-behavior-toggle [role='tab'] {
+  height: 28px;
+  min-height: 0;
+  min-width: 54px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+:host ::ng-deep .follow-up-behavior-toggle [role='tab'][aria-selected='true'] {
+  @apply bg-primary-500 shadow-none;
+  color: var(--primary-foreground);
+}
+
+:host ::ng-deep .follow-up-behavior-toggle [role='tab'][aria-selected='false'] {
+  @apply text-text-tertiary hover:text-text-primary;
+}
+
+.follow-up-primary-action {
+  height: 24px;
+  min-height: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+
+@media (max-width: 480px) {
+  .follow-up-behavior-toggle-shell {
+    width: 100%;
+  }
+
+  :host ::ng-deep .follow-up-behavior-toggle,
+  :host ::ng-deep .follow-up-behavior-toggle > div,
+  :host ::ng-deep .follow-up-behavior-toggle [role='tablist'] {
+    width: 100%;
+  }
+
+  :host ::ng-deep .follow-up-behavior-toggle [role='tab'] {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+}
+
+:host ::ng-deep .chat-follow-ups-menu {
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--ring) 16%, transparent);
+  background: color-mix(in oklab, var(--background) 98%, transparent);
+  box-shadow: 0 18px 40px color-mix(in oklab, var(--foreground) 18%, transparent);
+}

@@ -95,7 +95,7 @@ describe('RuntimeCommandService', () => {
                     label: 'Review Skill'
                 }
             }
-            ])
+        ])
     })
 
     it('defaults skill submit_prompt commands to prompt workflow commands', () => {
@@ -321,27 +321,177 @@ describe('RuntimeCommandService', () => {
         ])
     })
 
-    it('merges runtime commands by xpert, preferred skill, workspace, then skill priority and hides built-in conflicts', () => {
+    it('normalizes middleware runtime commands and injects the owning middleware capability', () => {
+        const service = new RuntimeCommandService()
+
+        expect(
+            service.normalizeMiddlewareRuntimeSlashCommands(
+                [
+                    {
+                        name: 'goal',
+                        label: 'Goal',
+                        description: 'Run a goal loop',
+                        argsHint: '<objective>',
+                        action: {
+                            type: 'submit_prompt',
+                            template: 'Goal: {{args}}'
+                        }
+                    },
+                    {
+                        name: 'invoke',
+                        action: {
+                            type: 'client_action',
+                            action: {
+                                type: 'middleware_only'
+                            }
+                        }
+                    }
+                ],
+                {
+                    provider: 'goal-loop-provider',
+                    nodeKey: 'middleware-goal',
+                    label: 'Goal Loop'
+                }
+            )
+        ).toEqual([
+            expect.objectContaining({
+                name: 'goal',
+                label: 'Goal',
+                description: 'Run a goal loop',
+                category: 'prompt_workflow',
+                argsHint: '<objective>',
+                kind: 'prompt_workflow',
+                workflow: {
+                    type: 'prompt_workflow',
+                    name: 'goal',
+                    label: 'Goal',
+                    description: 'Run a goal loop'
+                },
+                action: {
+                    type: 'insert_invocation',
+                    template: '/goal ',
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: {
+                            ids: []
+                        },
+                        plugins: {
+                            nodeKeys: ['middleware-goal']
+                        },
+                        subAgents: {
+                            nodeKeys: []
+                        }
+                    }
+                },
+                source: {
+                    type: 'middleware',
+                    provider: 'goal-loop-provider',
+                    nodeKey: 'middleware-goal',
+                    label: 'Goal Loop'
+                }
+            })
+        ])
+    })
+
+    it('merges runtime commands by middleware, xpert, preferred skill, workspace, then skill priority', () => {
         const service = new RuntimeCommandService()
 
         expect(
             service.mergeRuntimeSlashCommands([
+                [
+                    runtimeCommand('review', {
+                        type: 'middleware',
+                        provider: 'provider-review',
+                        nodeKey: 'middleware-review'
+                    }),
+                    runtimeCommand('goal', {
+                        type: 'middleware',
+                        provider: 'provider-goal',
+                        nodeKey: 'middleware-goal'
+                    })
+                ],
                 [runtimeCommand('review', { type: 'xpert' })],
-                [runtimeCommand('explain', { type: 'skill', skillId: 'skill-review', workspaceId: 'workspace-1', label: 'Review Skill' })],
+                [
+                    runtimeCommand('explain', {
+                        type: 'skill',
+                        skillId: 'skill-review',
+                        workspaceId: 'workspace-1',
+                        label: 'Review Skill'
+                    })
+                ],
                 [
                     runtimeCommand('review', { type: 'workspace_prompt_workflow' }),
                     runtimeCommand('explain', { type: 'workspace_prompt_workflow' })
                 ],
                 [
-                    runtimeCommand('plan', { type: 'skill', skillId: 'skill-plan', workspaceId: 'workspace-1', label: 'Plan Skill' }),
-                    runtimeCommand('explain', { type: 'skill', skillId: 'skill-explain', workspaceId: 'workspace-1', label: 'Explain Skill' }),
-                    runtimeCommand('test', { type: 'skill', skillId: 'skill-test', workspaceId: 'workspace-1', label: 'Test Skill' })
+                    runtimeCommand('plan', {
+                        type: 'skill',
+                        skillId: 'skill-plan',
+                        workspaceId: 'workspace-1',
+                        label: 'Plan Skill'
+                    }),
+                    runtimeCommand('goal', {
+                        type: 'skill',
+                        skillId: 'skill-goal',
+                        workspaceId: 'workspace-1',
+                        label: 'Goal Skill'
+                    }),
+                    runtimeCommand('explain', {
+                        type: 'skill',
+                        skillId: 'skill-explain',
+                        workspaceId: 'workspace-1',
+                        label: 'Explain Skill'
+                    }),
+                    runtimeCommand('test', {
+                        type: 'skill',
+                        skillId: 'skill-test',
+                        workspaceId: 'workspace-1',
+                        label: 'Test Skill'
+                    })
                 ]
             ])
         ).toEqual([
-            runtimeCommand('review', { type: 'xpert' }),
-            runtimeCommand('explain', { type: 'skill', skillId: 'skill-review', workspaceId: 'workspace-1', label: 'Review Skill' }),
-            runtimeCommand('test', { type: 'skill', skillId: 'skill-test', workspaceId: 'workspace-1', label: 'Test Skill' })
+            runtimeCommand('review', { type: 'middleware', provider: 'provider-review', nodeKey: 'middleware-review' }),
+            runtimeCommand('goal', { type: 'middleware', provider: 'provider-goal', nodeKey: 'middleware-goal' }),
+            runtimeCommand('explain', {
+                type: 'skill',
+                skillId: 'skill-review',
+                workspaceId: 'workspace-1',
+                label: 'Review Skill'
+            }),
+            runtimeCommand('test', {
+                type: 'skill',
+                skillId: 'skill-test',
+                workspaceId: 'workspace-1',
+                label: 'Test Skill'
+            })
+        ])
+    })
+
+    it('keeps built-in command names reserved for non-middleware commands', () => {
+        const service = new RuntimeCommandService()
+
+        expect(
+            service.mergeRuntimeSlashCommands([
+                [
+                    runtimeCommand('goal', {
+                        type: 'skill',
+                        skillId: 'skill-goal',
+                        workspaceId: 'workspace-1',
+                        label: 'Goal Skill'
+                    })
+                ],
+                [runtimeCommand('goal', { type: 'workspace_prompt_workflow' })],
+                [
+                    runtimeCommand('goal', {
+                        type: 'middleware',
+                        provider: 'other-provider',
+                        nodeKey: 'middleware-other'
+                    })
+                ]
+            ])
+        ).toEqual([
+            runtimeCommand('goal', { type: 'middleware', provider: 'other-provider', nodeKey: 'middleware-other' })
         ])
     })
 })

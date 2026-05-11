@@ -20,7 +20,7 @@ import { nonNullable, stringifyMessageContent } from '@xpert-ai/copilot'
 import { ListHeightStaggerAnimation } from '@xpert-ai/core'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { omit } from '@xpert-ai/ocap-core'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
 import {
@@ -31,6 +31,8 @@ import {
   IChatMessage,
   injectToastr,
   SynthesizeService,
+  TMessageContentComplex,
+  TMessageContentReasoning,
   TtsStreamPlayerService,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum
@@ -45,6 +47,19 @@ import { TCopilotChatMessage } from '../types'
 import { ChatMessageContentComponent } from './content/content.component'
 import { ChatMessageAvatarComponent } from './avatar/avatar.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  AgentRunEntry,
+  AgentRunEvent,
+  AgentRunRenderNode,
+  AgentRunRenderUnit,
+  buildAgentRunRenderTree,
+  getAgentNodeUnits,
+  getAgentRunCounts,
+  getAgentRunDuration,
+  isFailedRunStatus,
+  isRunningRunStatus,
+  normalizeRunStatus
+} from './agent-run-tree'
 
 @Component({
   standalone: true,
@@ -88,6 +103,7 @@ export class ChatAiMessageComponent {
   readonly #toastr = injectToastr()
   readonly #dialog = inject(Dialog)
   readonly #synthesizeService = inject(SynthesizeService)
+  readonly #translate = inject(TranslateService)
 
   // Inputs
   readonly message = input<TCopilotChatMessage>()
@@ -100,6 +116,13 @@ export class ChatAiMessageComponent {
   readonly project = this.chatService.project
   readonly avatar = computed(() => (this.xpert() ? this.xpert().avatar : this.project()?.avatar))
   readonly title = computed(() => (this.xpert() ? this.xpert().title || this.xpert().name : this.project()?.name))
+  readonly agents = computed(
+    () =>
+      this.xpert()?.agents?.reduce((acc, agent) => {
+        acc[agent.key] = agent
+        return acc
+      }, {}) ?? {}
+  )
   readonly features = computed(() => this.xpert()?.features)
   readonly textToSpeech_enabled = computed(() => this.features()?.textToSpeech?.enabled)
   readonly feedbacks = this.chatService.feedbacks
@@ -152,6 +175,7 @@ export class ChatAiMessageComponent {
   })
 
   readonly contentString = computed(() => stringifyMessageContent(this.message().content))
+  readonly renderTree = computed(() => buildAgentRunRenderTree(this.message()))
 
   readonly executings = computed(() =>
     this.message().executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING)
@@ -177,10 +201,16 @@ export class ChatAiMessageComponent {
   )
 
   // Reasoning
-  readonly reasoning = computed(() => this.message().reasoning)
+  readonly reasoning = computed(() => {
+    const tree = this.renderTree()
+    return tree.hasAgentRuns ? tree.rootReasoning : this.message().reasoning
+  })
 
   // Steps
-  readonly #events = computed(() => this.message().events)
+  readonly #events = computed(() => {
+    const tree = this.renderTree()
+    return tree.hasAgentRuns ? tree.rootEvents : this.message().events
+  })
   readonly lastStep = computed(() =>
     this.canvasMessageId() !== this.message().id && this.#events() ? this.#events()[this.#events().length - 1] : null
   )
@@ -198,6 +228,7 @@ export class ChatAiMessageComponent {
   readonly canvasType = computed(() => this.homeService.canvasOpened()?.type)
 
   readonly collapseMessages = model<Record<string, boolean>>({})
+  readonly collapseAgentRuns = model<Record<string, boolean>>({})
 
   constructor() {
     effect(() => {
@@ -208,6 +239,161 @@ export class ChatAiMessageComponent {
   updateCollapse(id: string, status: boolean) {
     this.collapseMessages.update((state) => ({ ...state, [id]: status }))
     this.collapseMessages.update((state) => ({ ...state, [id]: status }))
+  }
+
+  trackAgentRenderUnit(index: number, unit: AgentRunRenderUnit) {
+    return unit.type === 'agent' ? `agent-${unit.node.id}` : `entry-${unit.entry.source}-${unit.entry.index}-${index}`
+  }
+
+  agentNodeUnits(node: AgentRunRenderNode) {
+    return getAgentNodeUnits(node)
+  }
+
+  entryContent(entry: AgentRunEntry): TMessageContentComplex {
+    return typeof entry.item === 'string'
+      ? ({
+          type: 'text',
+          text: entry.item
+        } as TMessageContentComplex)
+      : (entry.item as TMessageContentComplex)
+  }
+
+  previousEntryContent(units: AgentRunRenderUnit[], index: number) {
+    for (let i = index - 1; i >= 0; i--) {
+      const unit = units[i]
+      if (unit.type === 'entry' && unit.entry.source === 'content') {
+        return this.entryContent(unit.entry)
+      }
+    }
+    return null
+  }
+
+  entryContentId(entry: AgentRunEntry) {
+    const item = entry.item
+    return typeof item === 'string' ? null : item.id
+  }
+
+  isAgentRunExpanded(node: AgentRunRenderNode, hasFollowingItem: boolean) {
+    const state = this.collapseAgentRuns()[node.id]
+    if (typeof state === 'boolean') {
+      return !state
+    }
+    return isRunningRunStatus(node.info.status) || !hasFollowingItem
+  }
+
+  toggleAgentRun(node: AgentRunRenderNode, hasFollowingItem: boolean) {
+    this.collapseAgentRuns.update((state) => ({
+      ...state,
+      [node.id]: this.isAgentRunExpanded(node, hasFollowingItem)
+    }))
+  }
+
+  agentRunTitle(node: AgentRunRenderNode) {
+    const key = node.info.agentKey
+    const agent = key ? this.agents()[key] : null
+    return agent?.title || agent?.name || key || node.info.title || node.info.xpertName || 'Agent'
+  }
+
+  agentRunDuration(node: AgentRunRenderNode) {
+    const duration = getAgentRunDuration(node.info)
+    return duration === null ? null : this.formatDuration(duration)
+  }
+
+  agentRunStatusIcon(node: AgentRunRenderNode) {
+    const status = normalizeRunStatus(node.info.status)
+    if (status === XpertAgentExecutionStatusEnum.RUNNING) {
+      return 'ri-loader-2-line animate-spin text-primary-500'
+    }
+    if (status === XpertAgentExecutionStatusEnum.SUCCESS) {
+      return 'ri-checkbox-circle-line text-text-success'
+    }
+    if (status === XpertAgentExecutionStatusEnum.PENDING && getAgentRunCounts(node).text > 0) {
+      return 'ri-checkbox-circle-line text-text-success'
+    }
+    if (isFailedRunStatus(status)) {
+      return 'ri-close-circle-line text-text-destructive'
+    }
+    return 'ri-time-line text-text-tertiary'
+  }
+
+  agentRunStatusLabel(node: AgentRunRenderNode) {
+    const status = normalizeRunStatus(node.info.status)
+    if (status === XpertAgentExecutionStatusEnum.PENDING && getAgentRunCounts(node).text > 0) {
+      return this.#translate.instant('PAC.Xpert.AgentRunStatusReplied', { Default: 'Replied' })
+    }
+    return status
+  }
+
+  agentRunInputTooltip(node: AgentRunRenderNode) {
+    return node.info.inputs === undefined ? null : this.formatDisplayValue(node.info.inputs)
+  }
+
+  agentRunCountItems(node: AgentRunRenderNode) {
+    const counts = getAgentRunCounts(node)
+    return [
+      counts.text
+        ? { key: 'text', icon: 'ri-message-2-line', count: counts.text, label: `${counts.text} messages` }
+        : null,
+      counts.tools
+        ? { key: 'tools', icon: 'ri-tools-line', count: counts.tools, label: `${counts.tools} tools` }
+        : null,
+      counts.events
+        ? { key: 'events', icon: 'ri-information-line', count: counts.events, label: `${counts.events} events` }
+        : null,
+      counts.children
+        ? { key: 'children', icon: 'ri-git-branch-line', count: counts.children, label: `${counts.children} agents` }
+        : null
+    ].filter((item): item is { key: string; icon: string; count: number; label: string } => !!item)
+  }
+
+  agentRunError(node: AgentRunRenderNode) {
+    return node.info.error === undefined || node.info.error === null ? null : this.formatDisplayValue(node.info.error)
+  }
+
+  agentEvent(entry: AgentRunEntry) {
+    return entry.item as AgentRunEvent
+  }
+
+  agentEventLabel(event: AgentRunEvent) {
+    return event.title || event.message || event.event || 'Event'
+  }
+
+  agentEventDetail(event: AgentRunEvent) {
+    return event.title && event.message ? event.message : null
+  }
+
+  isAgentEventError(event: AgentRunEvent) {
+    return event.error !== undefined || isFailedRunStatus(event.status)
+  }
+
+  reasoningEntry(entry: AgentRunEntry) {
+    return entry.item as TMessageContentReasoning
+  }
+
+  private formatDisplayValue(value: unknown) {
+    if (typeof value === 'string') {
+      return value
+    }
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return String(value)
+    }
+  }
+
+  private formatDuration(durationMs: number) {
+    if (durationMs < 1000) {
+      return `${durationMs}ms`
+    }
+    if (durationMs < 10000) {
+      return `${(durationMs / 1000).toFixed(1)}s`
+    }
+    if (durationMs < 60000) {
+      return `${Math.round(durationMs / 1000)}s`
+    }
+    const minutes = Math.floor(durationMs / 60000)
+    const seconds = Math.floor((durationMs % 60000) / 1000)
+    return `${minutes}m ${seconds}s`
   }
 
   onCopy(copyButton) {

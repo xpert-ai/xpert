@@ -12,14 +12,16 @@ import {
     IXpert,
     ModelPropertyKey,
     normalizeMiddlewareProvider,
+    resolveRuntimeXpert,
     TXpertGraph,
     TXpertTeamConnection,
     TXpertTeamNode
 } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@xpert-ai/server-core'
-import { Body, Controller, Get, Logger, Param, Post, UseGuards, UseInterceptors } from '@nestjs/common'
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { Body, Controller, Get, Logger, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { AgentMiddlewareRegistry, normalizeContextSize, RequestContext } from '@xpert-ai/plugin-sdk'
+import { parseQueryBoolean } from '@xpert-ai/server-common'
 import { isNil, omitBy, pick } from 'lodash-es'
 import { AssistantBindingService } from '../assistant-binding'
 import { PublishedXpertAccessService } from '../xpert'
@@ -88,14 +90,16 @@ export class AssistantsController {
     }
 
     @Get(':id/runtime-capabilities')
-    async getRuntimeCapabilities(@Param('id') id: string) {
-        const xpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(id))
+    @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
+    async getRuntimeCapabilities(@Param('id') id: string, @Query('isDraft') isDraft?: string | boolean | string[]) {
+        const sourceXpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(id))
             ? await this.publishedXpertAccessService.getPublishedXpertInTenant(id, {
                   relations: ASSISTANT_RELATIONS
               })
             : await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
                   relations: ASSISTANT_RELATIONS
               })
+        const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
         const agentKey = getAssistantPrimaryAgentKey(xpert)
         const graph = xpert.graph
         const middlewareNodes = agentKey && graph ? getAgentMiddlewareNodes(graph, agentKey) : []
@@ -115,16 +119,17 @@ export class AssistantsController {
                   )
                 : new Set<string>()
 
-        const plugins = middlewareNodes
+        const middlewareCapabilities = middlewareNodes
             .map((node) => {
                 const entity = node.entity as unknown as IWFNMiddleware
                 const provider = normalizeMiddlewareProvider(entity?.provider)
-                if (!provider || provider === SKILLS_MIDDLEWARE_NAME || isRequiredMiddleware(entity)) {
+                if (!provider || provider === SKILLS_MIDDLEWARE_NAME) {
                     return null
                 }
 
                 const strategy = tryGetMiddlewareStrategy(this.agentMiddlewareRegistry, provider)
                 const meta = strategy?.meta
+                const label = resolveI18nText(meta?.label, provider)
                 const runtimeMeta = omitBy(
                     {
                         icon: meta?.icon
@@ -132,18 +137,33 @@ export class AssistantsController {
                     isNil
                 )
                 return {
-                    nodeKey: node.key,
-                    provider,
-                    label: resolveI18nText(meta?.label, provider),
-                    description: resolveI18nText(meta?.description),
-                    ...(Object.keys(runtimeMeta).length ? { meta: runtimeMeta } : {}),
-                    toolNames: Object.entries(entity?.tools ?? {})
-                        .filter(([, enabled]) => enabled !== false)
-                        .map(([name]) => name)
+                    plugin: isRequiredMiddleware(entity)
+                        ? null
+                        : {
+                              nodeKey: node.key,
+                              provider,
+                              label,
+                              description: resolveI18nText(meta?.description),
+                              ...(Object.keys(runtimeMeta).length ? { meta: runtimeMeta } : {}),
+                              toolNames: Object.entries(entity?.tools ?? {})
+                                  .filter(([, enabled]) => enabled !== false)
+                                  .map(([name]) => name)
+                          },
+                    commands: this.runtimeCommandService.normalizeMiddlewareRuntimeSlashCommands(
+                        meta?.slashCommands ?? [],
+                        {
+                            provider,
+                            nodeKey: node.key,
+                            label
+                        }
+                    )
                 }
             })
             .filter((item): item is NonNullable<typeof item> => !!item)
-
+        const plugins = middlewareCapabilities
+            .map((item) => item.plugin)
+            .filter((item): item is NonNullable<typeof item> => !!item)
+        const middlewareCommands = middlewareCapabilities.flatMap((item) => item.commands)
         const runtimeSkills =
             hasSkillsMiddleware && xpert.workspaceId
                 ? await this.getRuntimeSkills(xpert.workspaceId, defaultSkillSelection, disabledSkillIds)
@@ -192,6 +212,7 @@ export class AssistantsController {
             plugins,
             subAgents,
             commands: this.runtimeCommandService.mergeRuntimeSlashCommands([
+                middlewareCommands,
                 xpertCommands,
                 preferredSkillCommands,
                 workspaceCommands,

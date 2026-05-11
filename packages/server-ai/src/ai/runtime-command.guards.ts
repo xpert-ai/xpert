@@ -20,6 +20,7 @@ export const BUILTIN_SLASH_COMMAND_NAMES = new Set([
     'help',
     'clear',
     'plan',
+    'goal',
     'skills',
     'plugins',
     'subagents',
@@ -66,6 +67,12 @@ export type RuntimeSlashCommandSource =
           type: 'workspace_prompt_workflow'
           workflowId?: string
           workspaceId?: string | null
+          label?: string
+      }
+    | {
+          type: 'middleware'
+          provider: string
+          nodeKey: string
           label?: string
       }
 
@@ -127,6 +134,12 @@ export type RuntimePromptWorkflowCommandOptions = {
     allowList?: RuntimeCommandAllowList
 }
 
+export type RuntimeMiddlewareCommandOptions = {
+    provider: string
+    nodeKey: string
+    label?: string
+}
+
 export function parseRuntimeCommandSkill(skill: RuntimeCommandSkill): RuntimeCommandSkillInput | null {
     const id = readTrimmedString(skill.id)
     if (!id) {
@@ -175,7 +188,7 @@ export function isRuntimeSlashCommandName(value: string): boolean {
     return SLASH_COMMAND_NAME_PATTERN.test(value)
 }
 
-function parseSkillSlashCommands(value: unknown): SkillSlashCommand[] {
+export function parseSkillSlashCommands(value: unknown): SkillSlashCommand[] {
     if (!Array.isArray(value)) {
         return []
     }
@@ -251,7 +264,9 @@ function parseSkillSlashCommandAction(value: unknown): SkillSlashCommandAction |
     return null
 }
 
-function parseClientAction(value: unknown): Extract<SkillSlashCommandAction, { type: 'client_action' }>['action'] | null {
+function parseClientAction(
+    value: unknown
+): Extract<SkillSlashCommandAction, { type: 'client_action' }>['action'] | null {
     if (!isPlainObject(value)) {
         return null
     }

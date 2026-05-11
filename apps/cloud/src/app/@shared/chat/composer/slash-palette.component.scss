@@ -1,0 +1,57 @@
+@reference "../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply block;
+}
+
+.slash-palette {
+  @apply max-h-[min(28rem,60vh)] w-full overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg p-2 text-text-primary shadow-xl;
+}
+
+.slash-palette-title {
+  @apply px-2 pb-2 text-xs font-semibold uppercase tracking-normal text-text-tertiary;
+}
+
+.slash-palette-row {
+  @apply flex h-auto min-h-12 w-full items-center justify-start gap-3 rounded-xl px-2 py-2 text-left hover:bg-hover-bg;
+}
+
+.slash-palette-row--active {
+  @apply bg-hover-bg;
+}
+
+.slash-palette-row--disabled {
+  @apply cursor-not-allowed opacity-50;
+}
+
+.slash-palette-icon {
+  @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary;
+}
+
+.slash-palette-children {
+  @apply ml-4 flex flex-col border-l border-divider-regular pl-3;
+}
+
+.slash-palette-child-row {
+  @apply relative min-h-11;
+}
+
+.slash-palette-branch {
+  @apply absolute -left-3 top-1/2 h-px w-3 bg-divider-regular;
+}
+
+.slash-palette-child-icon {
+  @apply h-7 w-7;
+}
+
+.slash-palette-alias {
+  @apply shrink-0 rounded-full border border-divider-regular px-2 py-0.5 text-xs text-text-tertiary;
+}
+
+.slash-palette-empty {
+  @apply px-3 py-5 text-center text-sm text-text-tertiary;
+}
+
+.slash-palette-empty-state {
+  @apply rounded-xl border border-dashed border-divider-regular py-4;
+}

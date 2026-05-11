@@ -15,7 +15,7 @@ import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-w
 type ResolvedFile = _TFile & { id?: string }
 
 type CreateHumanMessageOptions = {
-    xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile'>
+    xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile' | 'graph' | 'agent'>
 }
 
 async function resolveStorageFile(queryBus: QueryBus, fileId: string): Promise<ResolvedFile | null> {
@@ -189,7 +189,7 @@ export async function createHumanMessage(
 async function resolvePromptWorkflowHumanInput(
     queryBus: QueryBus,
     human: Partial<typeof AgentStateAnnotation.State>['human'],
-    xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile'>
+    xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile' | 'graph' | 'agent'>
 ) {
     if (!xpert || !human?.input || !isPromptWorkflowInvocationCandidate(human.input)) {
         return human

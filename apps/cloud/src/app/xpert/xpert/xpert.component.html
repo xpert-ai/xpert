@@ -73,9 +73,7 @@
                   class="relative flex w-40 flex-col gap-2 rounded-2xl border border-token-border-light bg-components-card-bg px-3 pb-4 pt-3 text-start align-top text-[15px] shadow-sm transition hover:bg-hover-bg"
                   (click)="chatInput.ask(statement)"
                 >
-                  <div
-                    class="line-clamp-3 max-w-full text-balance font-light text-text-secondary break-word"
-                  >
+                  <div class="line-clamp-3 max-w-full text-balance font-light text-text-secondary break-word">
                     {{ statement }}
                   </div>
                 </button>
@@ -144,7 +142,7 @@
       </div>
     </div>
 
-    <chat-input
+    <xp-chat-input
       #chatInput
       cdkTrapFocusAutoCapture
       class="rounded-t-[28px] px-2 md:px-0"

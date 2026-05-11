@@ -19,6 +19,8 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 
+export type ClientToolMessageTransformer = (message: ToolMessage, toolCall: ToolCall) => PromiseOrValue<ToolMessage>
+
 const contextSchema = z.object({
     /**
      * Client-side tool names.
@@ -43,7 +45,9 @@ const contextSchema = z.object({
     emitToolMessages: z.boolean().optional()
 })
 
-export type ClientToolMiddlewareConfig = InferInteropZodInput<typeof contextSchema>
+export type ClientToolMiddlewareConfig = InferInteropZodInput<typeof contextSchema> & {
+    transformToolMessage?: ClientToolMessageTransformer
+}
 
 export const CLIENT_TOOL_MIDDLEWARE_NAME = 'ClientToolMiddleware'
 
@@ -196,6 +200,39 @@ function toToolMessage(message: ClientToolMessageInput | ToolMessage, toolCall: 
         status: message.status,
         artifact: message.artifact
     })
+}
+
+function getClientToolMessageToolCallId(message: ClientToolMessageInput | ToolMessage | undefined): string | undefined {
+    if (!message) {
+        return undefined
+    }
+
+    const toolCallId = Reflect.get(message, 'tool_call_id')
+    return typeof toolCallId === 'string' && toolCallId ? toolCallId : undefined
+}
+
+function selectClientToolMessage(toolMessages: unknown, toolCall: ToolCall): ClientToolMessageInput | ToolMessage {
+    if (!Array.isArray(toolMessages) || toolMessages.length === 0) {
+        throw new Error('Invalid ClientToolResponse: toolMessages must be a non-empty array')
+    }
+
+    const messages = toolMessages as Array<ClientToolMessageInput | ToolMessage>
+    if (toolMessages.length === 1) {
+        return messages[0]
+    }
+
+    if (!toolCall.id) {
+        throw new Error('Invalid ClientToolResponse: multiple toolMessages returned but the tool call has no id.')
+    }
+
+    const matches = messages.filter((message) => getClientToolMessageToolCallId(message) === toolCall.id)
+    if (matches.length !== 1) {
+        throw new Error(
+            `Invalid ClientToolResponse: expected exactly one toolMessage for tool_call_id "${toolCall.id}", received ${matches.length}.`
+        )
+    }
+
+    return matches[0]
 }
 
 type ClientToolDisplayMessage = string | Record<string, string>
@@ -494,13 +531,7 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                     const response = (await interrupt(clientRequest)) as ClientToolResponse
                     const toolMessages = response?.toolMessages
 
-                    if (!Array.isArray(toolMessages) || toolMessages.length !== 1) {
-                        throw new Error(
-                            'Invalid ClientToolResponse: toolMessages must be an array with exactly one item'
-                        )
-                    }
-
-                    const message = toolMessages[0]
+                    const message = selectClientToolMessage(toolMessages, request.toolCall)
                     if (message?.tool_call_id && request.toolCall.id && message.tool_call_id !== request.toolCall.id) {
                         throw new Error(
                             `Invalid ClientToolResponse: tool_call_id "${message.tool_call_id}" does not match "${request.toolCall.id}".`
@@ -508,20 +539,23 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                     }
 
                     const toolMessage = toToolMessage(message, request.toolCall)
-                    await runManager?.handleToolEnd(toolMessage)
+                    const preparedToolMessage = options.transformToolMessage
+                        ? await options.transformToolMessage(toolMessage, request.toolCall)
+                        : toolMessage
+                    await runManager?.handleToolEnd(preparedToolMessage)
                     if (shouldEmitToolMessages) {
                         await dispatchClientToolStepEvent({
                             toolCall: request.toolCall,
                             runtimeMetadata: runtimeConfig.metadata,
                             displayConfig,
-                            status: mapClientToolStatus(message.status ?? toolMessage.status),
+                            status: mapClientToolStatus(message.status ?? preparedToolMessage.status),
                             createdAt,
                             endAt: new Date(),
-                            output: stringifyValue(toolMessage.content),
-                            artifact: toolMessage.artifact
+                            output: stringifyValue(preparedToolMessage.content),
+                            artifact: preparedToolMessage.artifact
                         })
                     }
-                    return toolMessage
+                    return preparedToolMessage
                 } catch (error) {
                     if (isGraphInterrupt(error)) {
                         throw error

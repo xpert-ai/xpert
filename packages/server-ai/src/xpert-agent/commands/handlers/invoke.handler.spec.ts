@@ -35,6 +35,8 @@ jest.mock('../../../environment', () => {
 
     return {
         EnvironmentService: class EnvironmentService {},
+        getContextEnvState: actual.getContextEnvState,
+        mergeEnvironmentWithEnvState: actual.mergeEnvironmentWithEnvState,
         mergeRuntimeContextWithEnv: actual.mergeRuntimeContextWithEnv
     }
 })

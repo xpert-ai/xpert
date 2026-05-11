@@ -1,3 +1,4 @@
+import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { createHumanMessage } from './message'
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
 
@@ -14,8 +15,8 @@ describe('createHumanMessage', () => {
         const message = await createHumanMessage(
             {
                 execute: jest.fn()
-            } as any,
-            queryBus as any,
+            } as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
             {
                 human: {
                     input: '/review src/app.ts',
@@ -66,6 +67,34 @@ describe('createHumanMessage', () => {
 
         expect(message.content).toBe('Please review src/app.ts')
         expect(queryBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('attempts to resolve builtin-named slash invocations so middleware commands can own them', async () => {
+        const queryBus = {
+            execute: jest.fn().mockResolvedValue(null)
+        }
+
+        const message = await createHumanMessage(
+            {
+                execute: jest.fn()
+            } as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                human: {
+                    input: '/goal Migrate the app'
+                }
+            },
+            undefined,
+            {
+                xpert: {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1'
+                }
+            }
+        )
+
+        expect(message.content).toBe('/goal Migrate the app')
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ResolvePromptWorkflowInvocationQuery))
     })
 
     it('turns image references into image_url content parts and preserves text fallback', async () => {
