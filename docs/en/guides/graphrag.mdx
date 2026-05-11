@@ -1,0 +1,104 @@
+# GraphRAG for Knowledge Bases
+
+GraphRAG adds graph-aware retrieval to Xpert knowledge bases. It keeps the existing vector RAG behavior as the default, then optionally builds a lightweight knowledge graph from uploaded documents so retrieval can use entities, relationships, and source evidence in addition to semantic vector similarity.
+
+## What GraphRAG Solves
+
+Vector search is strong for direct semantic matches, but it can miss answers that require connecting multiple concepts across chunks. GraphRAG improves those cases by extracting explicit entities and relationships from indexed documents, linking them back to source chunks, and expanding from matched entities to their local graph neighborhood.
+
+Typical use cases include:
+
+- finding all facts connected to a product, customer, team, metric, incident, policy, or system
+- answering questions that depend on relationships across several chunks
+- improving retrieval for domain knowledge where names, aliases, and relationships matter
+- preserving source traceability through document and chunk evidence
+
+## Retrieval Modes
+
+Knowledge base retrieval supports three modes:
+
+| Mode     | Behavior                                                                                                                      | Best for                                                    |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `vector` | Uses the existing vector similarity pipeline. This remains the default.                                                       | General semantic retrieval and current production behavior. |
+| `graph`  | Recalls graph entities with query embeddings, expands the local relationship neighborhood, then returns evidence chunks.      | Entity-centric questions and relationship lookup.           |
+| `hybrid` | Combines vector and graph chunks, deduplicates by chunk, blends scores with `graphWeight`, and reuses rerank when configured. | Most production GraphRAG scenarios.                         |
+
+If GraphRAG is disabled or graph search fails during hybrid retrieval, the existing vector path continues to work.
+
+## How Indexing Works
+
+When GraphRAG is enabled for a knowledge base, document ingestion continues to run the normal chunking and vector embedding flow first. After chunks and vectors are written successfully, Xpert enqueues an asynchronous graph indexing job.
+
+The graph indexer:
+
+- extracts entities, relations, aliases, descriptions, evidence quotes, and confidence values with the Primary Copilot LLM
+- merges entities only by explicit `type` and normalized name
+- deduplicates relations by knowledge base, source entity, target entity, and relation type
+- stores mentions as evidence linked to `documentId` and `chunkId`
+- embeds entity summaries into a graph entity vector collection
+- marks graph job status independently from document vector status
+
+Graph indexing failure does not change a document's finished vector ingestion state and does not block Agent retriever tools.
+
+## Configuration
+
+Open the knowledge base configuration page and use the GraphRAG section in Retrieval Settings.
+
+Key settings:
+
+| Setting                   | Purpose                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| `enabled`                 | Turns GraphRAG indexing and graph retrieval on for the knowledge base. The default is off. |
+| `entityTopK`              | Number of candidate entities recalled from the graph entity vector collection.             |
+| `neighborHops`            | Local graph expansion depth. The MVP supports 1 to 2 hops.                                 |
+| `graphWeight`             | Hybrid fusion weight applied to graph scores.                                              |
+| `extractionBatchSize`     | Number of chunks sent to each extraction batch.                                            |
+| `extractionMaxCharacters` | Maximum extraction input length per batch.                                                 |
+
+After enabling GraphRAG, rebuild the graph from the configuration page. The page shows graph status and aggregate entity/relation counts.
+
+## Statuses
+
+Knowledge bases expose a graph status:
+
+| Status             | Meaning                                                                     |
+| ------------------ | --------------------------------------------------------------------------- |
+| `disabled`         | GraphRAG is off.                                                            |
+| `rebuild_required` | GraphRAG is enabled, but the graph needs to be rebuilt before use.          |
+| `indexing`         | Graph indexing jobs are queued or running.                                  |
+| `ready`            | Graph indexing has completed successfully.                                  |
+| `failed`           | One or more graph indexing jobs failed. Vector retrieval remains available. |
+
+Document lists also show recent graph index job status so operators can distinguish vector ingestion from graph indexing.
+
+## Testing Retrieval
+
+On the knowledge base test page, select `Vector`, `Graph`, or `Hybrid` before running a query. The test request sends the selected mode and graph parameters to the knowledge base test endpoint.
+
+Use `hybrid` for most validation because it shows how GraphRAG augments the existing vector result set while keeping vector recall available.
+
+## API Overview
+
+GraphRAG adds these knowledge base APIs:
+
+| Endpoint                                                       | Purpose                                                                   |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `POST /knowledgebase/:id/graph/rebuild`                        | Clears and rebuilds the graph index for all existing documents.           |
+| `GET /knowledgebase/:id/graph/status`                          | Returns aggregate graph status, counts, and recent graph jobs.            |
+| `GET /knowledgebase/:id/graph/entities`                        | Lists graph entities for the knowledge base.                              |
+| `GET /knowledgebase/:id/graph/entities/:entityId/neighborhood` | Returns a local entity neighborhood with relations and evidence mentions. |
+| `POST /knowledgebase/:id/test`                                 | Accepts retrieval mode and GraphRAG parameters for retrieval testing.     |
+
+## MVP Scope
+
+The current GraphRAG release focuses on local graph retrieval:
+
+- Postgres and TypeORM graph tables
+- asynchronous graph index jobs
+- LLM entity and relation extraction
+- entity vector recall
+- 1 to 2 hop neighborhood expansion
+- `vector`, `graph`, and `hybrid` retrieval
+- minimal configuration, rebuild, status, and test UI
+
+The MVP does not include community/global search, Neo4j or Fuseki, or a full graph editing and exploration workspace.

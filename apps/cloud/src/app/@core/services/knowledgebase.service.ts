@@ -12,11 +12,17 @@ import {
   IDocumentSourceProvider,
   IDocumentUnderstandingProvider,
   IKnowledgebase,
+  IKnowledgeGraphEntity,
+  IKnowledgeGraphMention,
+  IKnowledgeGraphRelation,
   IKnowledgebaseTask,
   IKnowledgeDocument,
   IKnowledgeRetrievalLog,
   IXpert,
+  KnowledgeDocumentMetadata,
+  KnowledgeGraphStatusResponse,
   PaginationParams,
+  TKBRetrievalSettings,
   toHttpParams
 } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
@@ -104,8 +110,43 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     )
   }
 
-  test(id: string, options: { query: string; k: number; score: number; filter?: Record<string, unknown> }) {
+  test(
+    id: string,
+    options: {
+      query: string
+      k: number
+      score: number
+      filter?: KnowledgeDocumentMetadata
+      retrieval?: TKBRetrievalSettings
+    }
+  ) {
     return this.httpClient.post<DocumentInterface<DocumentMetadata>[]>(this.apiBaseUrl + '/' + id + '/test', options)
+  }
+
+  getGraphStatus(id: string) {
+    return this.httpClient.get<KnowledgeGraphStatusResponse>(this.apiBaseUrl + `/${id}/graph/status`)
+  }
+
+  rebuildGraph(id: string) {
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/graph/rebuild`, {})
+  }
+
+  getGraphEntities(id: string, params?: PaginationParams<IKnowledgeGraphEntity>) {
+    return this.httpClient.get<{ items: IKnowledgeGraphEntity[]; total: number }>(
+      this.apiBaseUrl + `/${id}/graph/entities`,
+      {
+        params: params ? toHttpParams(params) : null
+      }
+    )
+  }
+
+  getGraphNeighborhood(id: string, entityId: string) {
+    return this.httpClient.get<{
+      entity: IKnowledgeGraphEntity
+      relations: IKnowledgeGraphRelation[]
+      connectedEntities: IKnowledgeGraphEntity[]
+      mentions: IKnowledgeGraphMention[]
+    }>(this.apiBaseUrl + `/${id}/graph/entities/${entityId}/neighborhood`)
   }
 
   similaritySearch(

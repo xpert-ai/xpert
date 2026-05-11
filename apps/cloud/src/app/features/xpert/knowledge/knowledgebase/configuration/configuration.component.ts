@@ -1,4 +1,3 @@
-
 import { ChangeDetectorRef, Component, computed, DestroyRef, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -17,6 +16,8 @@ import {
   AiModelTypeEnum,
   ICopilotModel,
   IKnowledgebase,
+  KnowledgeGraphStatus,
+  KnowledgeGraphStatusResponse,
   KnowledgebasePermission,
   KnowledgebaseService,
   KnowledgebaseStatusEnum,
@@ -30,7 +31,12 @@ import { EmojiAvatarComponent } from '../../../../../@shared/avatar/'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 
 function hasRebuildingStatus(value: unknown): value is { status: KnowledgebaseStatusEnum.REBUILDING } {
-  return typeof value === 'object' && value !== null && 'status' in value && value.status === KnowledgebaseStatusEnum.REBUILDING
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'status' in value &&
+    value.status === KnowledgebaseStatusEnum.REBUILDING
+  )
 }
 
 @Component({
@@ -49,11 +55,12 @@ function hasRebuildingStatus(value: unknown): value is { status: KnowledgebaseSt
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     KnowledgeRetrievalSettingsComponent
-],
+  ],
   animations: [routeAnimations]
 })
 export class KnowledgeConfigurationComponent {
   KnowledgebasePermission = KnowledgebasePermission
+  KnowledgeGraphStatus = KnowledgeGraphStatus
   DisplayBehaviour = DisplayBehaviour
   eModelType = AiModelTypeEnum
   eModelFeature = ModelFeature
@@ -106,6 +113,7 @@ export class KnowledgeConfigurationComponent {
         kb.recall = retrieval?.recall
         kb.rerankModel = retrieval?.rerankModel
         kb.rerankModelId = retrieval?.rerankModelId
+        kb.graphRag = retrieval?.graphRag
         return { ...kb }
       })
     }
@@ -130,11 +138,21 @@ export class KnowledgeConfigurationComponent {
   })
 
   readonly loading = signal(false)
+  readonly graphLoading = signal(false)
+  readonly graphStatus = signal<KnowledgeGraphStatusResponse | null>(null)
   readonly #pollingRebuild = signal(false)
+  readonly #pollingGraph = signal(false)
 
   readonly #rebuildPollingEffect = effect(() => {
     if (this.rebuilding()) {
       this.pollRebuildStatus()
+    }
+  })
+
+  readonly #graphStatusEffect = effect(() => {
+    const knowledgebaseId = this.knowledgebase()?.id
+    if (knowledgebaseId) {
+      this.refreshGraphStatus()
     }
   })
 
@@ -181,23 +199,22 @@ export class KnowledgeConfigurationComponent {
       delete payload.copilotModelId
     }
 
-    this.knowledgebaseService
-      .update(this.knowledgebase().id, payload)
-      .subscribe({
-        next: (knowledgebase) => {
-          this.loading.set(false)
-          this._toastrService.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
-          this.knowledgebaseComponent.refresh()
-          this.pristine.set(true)
-          if (hasRebuildingStatus(knowledgebase)) {
-            this.pollRebuildStatus()
-          }
-        },
-        error: (error) => {
-          this._toastrService.error(getErrorMessage(error))
-          this.loading.set(false)
+    this.knowledgebaseService.update(this.knowledgebase().id, payload).subscribe({
+      next: (knowledgebase) => {
+        this.loading.set(false)
+        this._toastrService.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+        this.knowledgebaseComponent.refresh()
+        this.refreshGraphStatus()
+        this.pristine.set(true)
+        if (hasRebuildingStatus(knowledgebase)) {
+          this.pollRebuildStatus()
         }
-      })
+      },
+      error: (error) => {
+        this._toastrService.error(getErrorMessage(error))
+        this.loading.set(false)
+      }
+    })
   }
 
   private pollRebuildStatus() {
@@ -223,6 +240,84 @@ export class KnowledgeConfigurationComponent {
       )
       .subscribe({
         next: () => {
+          this.knowledgebaseComponent.refresh()
+        },
+        error: (error) => {
+          this._toastrService.error(getErrorMessage(error))
+        }
+      })
+  }
+
+  refreshGraphStatus() {
+    const knowledgebaseId = this.knowledgebase()?.id
+    if (!knowledgebaseId) {
+      return
+    }
+
+    this.knowledgebaseService
+      .getGraphStatus(knowledgebaseId)
+      .pipe(take(1), takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (status) => {
+          this.graphStatus.set(status)
+          if (status.status === KnowledgeGraphStatus.INDEXING) {
+            this.pollGraphStatus()
+          }
+        },
+        error: () => {
+          this.graphStatus.set(null)
+        }
+      })
+  }
+
+  rebuildGraph() {
+    const knowledgebaseId = this.knowledgebase()?.id
+    if (!knowledgebaseId || !this.knowledgebase()?.graphRag?.enabled) {
+      return
+    }
+
+    this.graphLoading.set(true)
+    this.knowledgebaseService
+      .rebuildGraph(knowledgebaseId)
+      .pipe(
+        take(1),
+        takeUntilDestroyed(this.#destroyRef),
+        finalize(() => {
+          this.graphLoading.set(false)
+        })
+      )
+      .subscribe({
+        next: () => {
+          this._toastrService.success('PAC.Knowledgebase.GraphRebuildStarted', { Default: 'Graph rebuild started' })
+          this.refreshGraphStatus()
+          this.pollGraphStatus()
+        },
+        error: (error) => {
+          this._toastrService.error(getErrorMessage(error))
+        }
+      })
+  }
+
+  private pollGraphStatus() {
+    const knowledgebaseId = this.knowledgebase()?.id
+    if (!knowledgebaseId || this.#pollingGraph()) {
+      return
+    }
+
+    this.#pollingGraph.set(true)
+    timer(0, 2500)
+      .pipe(
+        switchMap(() => this.knowledgebaseService.getGraphStatus(knowledgebaseId)),
+        filter((status) => status.status !== KnowledgeGraphStatus.INDEXING),
+        take(1),
+        takeUntilDestroyed(this.#destroyRef),
+        finalize(() => {
+          this.#pollingGraph.set(false)
+        })
+      )
+      .subscribe({
+        next: (status) => {
+          this.graphStatus.set(status)
           this.knowledgebaseComponent.refresh()
         },
         error: (error) => {

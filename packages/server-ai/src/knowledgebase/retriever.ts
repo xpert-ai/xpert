@@ -98,7 +98,8 @@ export class KnowledgeRetriever extends BaseRetriever {
                     k: this.options?.recall.topK,
                     source: 'retriever',
                     filter,
-                    filtering_conditions
+                    filtering_conditions,
+                    retrieval: this.options?.retrieval
                 })
             )
             return results.map(
