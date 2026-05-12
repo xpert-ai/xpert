@@ -1,16 +1,21 @@
 import { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { SandboxProviderCreateOptions, SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { SandboxAcquireBackendCommand } from '../acquire-backend.command'
 
 type SandboxInstance = {
     configurable: TSandboxConfigurable
 }
 
+type SandboxRuntimeConfigurable = TSandboxConfigurable & {
+    workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding']
+}
+
 @CommandHandler(SandboxAcquireBackendCommand)
-export class SandboxAcquireBackendHandler
-    implements ICommandHandler<SandboxAcquireBackendCommand, TSandboxConfigurable>
-{
+export class SandboxAcquireBackendHandler implements ICommandHandler<
+    SandboxAcquireBackendCommand,
+    TSandboxConfigurable
+> {
     private readonly instances = new Map<string, Map<string, SandboxInstance>>()
 
     constructor(private readonly registry: SandboxProviderRegistry) {}
@@ -25,7 +30,7 @@ export class SandboxAcquireBackendHandler
         }
 
         const sessionKey = this.getSessionKey(workFor.type, workFor.id)
-        const instanceKey = this.getInstanceKey(provider, workingDirectory)
+        const instanceKey = this.getInstanceKey(provider, workingDirectory, workspaceBinding)
         const sessionMap = this.instances.get(sessionKey) ?? new Map<string, SandboxInstance>()
         const existing = sessionMap.get(instanceKey)
         if (existing) {
@@ -40,11 +45,14 @@ export class SandboxAcquireBackendHandler
             workingDirectory,
             workspaceBinding
         })
-        const configurable: TSandboxConfigurable = {
+        const configurable: SandboxRuntimeConfigurable = {
             environmentId: environmentId ?? null,
             provider,
             workingDirectory,
             backend
+        }
+        if (workspaceBinding) {
+            configurable.workspaceBinding = workspaceBinding
         }
         sessionMap.set(instanceKey, { configurable })
         this.instances.set(sessionKey, sessionMap)
@@ -55,7 +63,26 @@ export class SandboxAcquireBackendHandler
         return `${workForType}:${workForId}`
     }
 
-    private getInstanceKey(provider?: string | null, workingDirectory?: string | null) {
-        return `${provider ?? '__default__'}:${workingDirectory ?? '__default__'}`
+    private getInstanceKey(
+        provider?: string | null,
+        workingDirectory?: string | null,
+        workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding']
+    ) {
+        const workspaceIdentity = this.getWorkspaceBindingIdentity(workspaceBinding)
+        return `${provider ?? '__default__'}:${workingDirectory ?? '__default__'}:${workspaceIdentity}`
+    }
+
+    private getWorkspaceBindingIdentity(workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding']) {
+        if (!workspaceBinding) {
+            return ''
+        }
+
+        return JSON.stringify([
+            workspaceBinding.volumeRoot ?? '',
+            workspaceBinding.bindSource ?? '',
+            workspaceBinding.workspaceRoot ?? '',
+            workspaceBinding.containerMountPath ?? '',
+            workspaceBinding.workspacePath ?? ''
+        ])
     }
 }
