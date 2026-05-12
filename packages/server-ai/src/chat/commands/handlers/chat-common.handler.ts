@@ -847,6 +847,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     project.toolsets.map(({ id }) => id),
                     {
                         projectId: project.id,
+                        workspaceId: project.workspaceId,
                         conversationId,
                         xpertId: null,
                         signal: abortController.signal,

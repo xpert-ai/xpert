@@ -18,248 +18,261 @@ import { createCodeNode, WorkflowCodeValidator } from '../code/index'
 import { AgentStateAnnotation, nextWorkflowNodes, TStateChannel, TWorkflowGraphNode } from '../../../shared'
 import { createAnswerNode } from '../answer/node'
 
-
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
-	readonly #logger = new Logger(CreateWorkflowNodeHandler.name)
+    readonly #logger = new Logger(CreateWorkflowNodeHandler.name)
 
-	@Inject(WorkflowCodeValidator)
-	private codeValidator: WorkflowCodeValidator
+    @Inject(WorkflowCodeValidator)
+    private codeValidator: WorkflowCodeValidator
 
-	@Inject(WorkflowNodeRegistry)
-	private readonly nodeRegistry: WorkflowNodeRegistry
+    @Inject(WorkflowNodeRegistry)
+    private readonly nodeRegistry: WorkflowNodeRegistry
 
-	constructor(
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {}
+    constructor(
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus
+    ) {}
 
-	public async execute(command: CreateWorkflowNodeCommand) {
-		const { xpertId, graph, node, options } = command
-		const { xpert } = options
-		
-		let workflow = {} as any
-		const channel: TStateChannel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
-		switch (node.entity.type) {
-			case WorkflowNodeTypeEnum.TRIGGER: {
-				workflow = createTriggerNode(graph, node, {
-					conversationId: options.conversationId,
-					xpertId,
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					environment: options.environment
-				})
-				break
-			}
-			// case WorkflowNodeTypeEnum.ASSIGNER: {
-			// 	workflow = createAssignerNode(graph, node, {
-			// 		commandBus: this.commandBus,
-			// 		queryBus: this.queryBus,
-			// 		xpertId,
-			// 		environment: options.environment,
-			// 	})
-			// 	break
-			// }
-			case WorkflowNodeTypeEnum.IF_ELSE: {
-				workflow = createRouterNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					environment: options.environment
-				})
-				break
-			}
-			case WorkflowNodeTypeEnum.ITERATING: {
-				workflow = await this.commandBus.execute(new CreateWNIteratingCommand(xpertId, graph, node, options))
-				break
-			}
-			case WorkflowNodeTypeEnum.ANSWER: {
-				workflow = createAnswerNode(graph, node, {
-					leaderKey: command.leaderKey,
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment,
-					conversationId: options.conversationId
-				})
+    public async execute(command: CreateWorkflowNodeCommand) {
+        const { xpertId, graph, node, options } = command
+        const { xpert } = options
 
-				// await this.commandBus.execute(new CreateWNAnswerCommand(xpertId, graph, node, options))
-				break
-			}
-			case WorkflowNodeTypeEnum.CLASSIFIER: {
-				workflow = await this.commandBus.execute(new CreateWNClassifierCommand(xpert as IXpert, graph, node, options))
-				break
-			}
-			// case WorkflowNodeTypeEnum.SPLITTER: {
-			// 	workflow = createSplitterNode(graph, node)
-			// 	break
-			// }
-			case WorkflowNodeTypeEnum.CODE: {
-				workflow = createCodeNode(graph, node, {
-					xpertId, 
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					environment: options.environment,
-					validator: this.codeValidator
-				})
-				// channel = {
-				// 	name: channelName(node.key),
-				// 	annotation: Annotation<Record<string, unknown>>({
-				// 		reducer: (a, b) => {
-				// 			return b
-				// 				? {
-				// 						...a,
-				// 						...b
-				// 					}
-				// 				: a
-				// 		},
-				// 		default: () => ({})
-				// 	})
-				// }
-				break
-			}
-			case WorkflowNodeTypeEnum.HTTP: {
-				workflow = createHttpNode(graph, node, {
-					xpertId, 
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					environment: options.environment
-				})
-				// channel = {
-				// 	name: channelName(node.key),
-				// 	annotation: Annotation<Record<string, unknown>>({
-				// 		reducer: (a, b) => {
-				// 			return b
-				// 				? {
-				// 						...a,
-				// 						...b
-				// 					}
-				// 				: a
-				// 		},
-				// 		default: () => ({})
-				// 	})
-				// }
-				break
-			}
-			case WorkflowNodeTypeEnum.KNOWLEDGE: {
-				workflow =  await this.commandBus.execute(new CreateWNKnowledgeRetrievalCommand(xpertId, graph, node, options))
-				// channel = {
-				// 	name: channelName(node.key),
-				// 	annotation: Annotation<Record<string, unknown>>({
-				// 		reducer: (a, b) => {
-				// 			return b
-				// 				? {
-				// 						...a,
-				// 						...b
-				// 					}
-				// 				: a
-				// 		},
-				// 		default: () => ({})
-				// 	})
-				// }
-				break
-			}
-			case WorkflowNodeTypeEnum.SUBFLOW: {
-				workflow =  await this.commandBus.execute(new CreateWNSubflowCommand(xpertId, graph, node, options))
-				// channel = {
-				// 	name: channelName(node.key),
-				// 	annotation: Annotation<Record<string, unknown>>({
-				// 		reducer: (a, b) => {
-				// 			return b
-				// 				? {
-				// 						...a,
-				// 						...b
-				// 					}
-				// 				: a
-				// 		},
-				// 		default: () => ({})
-				// 	})
-				// }
-				break
-			}
-			case WorkflowNodeTypeEnum.TEMPLATE: {
-				workflow = createTemplateNode(graph, node, {
-					xpertId, 
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					environment: options.environment
-				})
-				break
-			}
-			case WorkflowNodeTypeEnum.TOOL: {
-				workflow = createToolNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment,
-					conversationId: options.conversationId
-				})
-				break
-			}
-			case WorkflowNodeTypeEnum.AGENT_TOOL: {
-				workflow = createAgentToolNode(graph, node, {
-					leaderKey: command.leaderKey,
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment,
-					conversationId: options.conversationId
-				})
-				break
-			}
-			default:
-				try {
-					const creator = this.nodeRegistry.get(node.entity.type)
+        let workflow = {} as any
+        const channel: TStateChannel = {
+            name: channelName(node.key),
+            annotation: Annotation<Record<string, unknown>>({
+                reducer: (a, b) => {
+                    return b
+                        ? {
+                              ...a,
+                              ...b
+                          }
+                        : a
+                },
+                default: () => ({})
+            })
+        }
+        switch (node.entity.type) {
+            case WorkflowNodeTypeEnum.TRIGGER: {
+                workflow = createTriggerNode(graph, node, {
+                    conversationId: options.conversationId,
+                    xpertId,
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    environment: options.environment
+                })
+                break
+            }
+            // case WorkflowNodeTypeEnum.ASSIGNER: {
+            // 	workflow = createAssignerNode(graph, node, {
+            // 		commandBus: this.commandBus,
+            // 		queryBus: this.queryBus,
+            // 		xpertId,
+            // 		environment: options.environment,
+            // 	})
+            // 	break
+            // }
+            case WorkflowNodeTypeEnum.IF_ELSE: {
+                workflow = createRouterNode(graph, node, {
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    environment: options.environment
+                })
+                break
+            }
+            case WorkflowNodeTypeEnum.ITERATING: {
+                workflow = await this.commandBus.execute(new CreateWNIteratingCommand(xpertId, graph, node, options))
+                break
+            }
+            case WorkflowNodeTypeEnum.ANSWER: {
+                workflow = createAnswerNode(graph, node, {
+                    leaderKey: command.leaderKey,
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    xpertId,
+                    environment: options.environment,
+                    conversationId: options.conversationId
+                })
 
-					const result = await creator.create({graph, node, xpertId, environment: options.environment, isDraft: options.isDraft})
+                // await this.commandBus.execute(new CreateWNAnswerCommand(xpertId, graph, node, options))
+                break
+            }
+            case WorkflowNodeTypeEnum.CLASSIFIER: {
+                workflow = await this.commandBus.execute(
+                    new CreateWNClassifierCommand(xpert as IXpert, graph, node, options)
+                )
+                break
+            }
+            // case WorkflowNodeTypeEnum.SPLITTER: {
+            // 	workflow = createSplitterNode(graph, node)
+            // 	break
+            // }
+            case WorkflowNodeTypeEnum.CODE: {
+                workflow = createCodeNode(graph, node, {
+                    xpertId,
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    environment: options.environment,
+                    validator: this.codeValidator
+                })
+                // channel = {
+                // 	name: channelName(node.key),
+                // 	annotation: Annotation<Record<string, unknown>>({
+                // 		reducer: (a, b) => {
+                // 			return b
+                // 				? {
+                // 						...a,
+                // 						...b
+                // 					}
+                // 				: a
+                // 		},
+                // 		default: () => ({})
+                // 	})
+                // }
+                break
+            }
+            case WorkflowNodeTypeEnum.HTTP: {
+                workflow = createHttpNode(graph, node, {
+                    xpertId,
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    environment: options.environment
+                })
+                // channel = {
+                // 	name: channelName(node.key),
+                // 	annotation: Annotation<Record<string, unknown>>({
+                // 		reducer: (a, b) => {
+                // 			return b
+                // 				? {
+                // 						...a,
+                // 						...b
+                // 					}
+                // 				: a
+                // 		},
+                // 		default: () => ({})
+                // 	})
+                // }
+                break
+            }
+            case WorkflowNodeTypeEnum.KNOWLEDGE: {
+                workflow = await this.commandBus.execute(
+                    new CreateWNKnowledgeRetrievalCommand(xpertId, graph, node, options)
+                )
+                // channel = {
+                // 	name: channelName(node.key),
+                // 	annotation: Annotation<Record<string, unknown>>({
+                // 		reducer: (a, b) => {
+                // 			return b
+                // 				? {
+                // 						...a,
+                // 						...b
+                // 					}
+                // 				: a
+                // 		},
+                // 		default: () => ({})
+                // 	})
+                // }
+                break
+            }
+            case WorkflowNodeTypeEnum.SUBFLOW: {
+                workflow = await this.commandBus.execute(new CreateWNSubflowCommand(xpertId, graph, node, options))
+                // channel = {
+                // 	name: channelName(node.key),
+                // 	annotation: Annotation<Record<string, unknown>>({
+                // 		reducer: (a, b) => {
+                // 			return b
+                // 				? {
+                // 						...a,
+                // 						...b
+                // 					}
+                // 				: a
+                // 		},
+                // 		default: () => ({})
+                // 	})
+                // }
+                break
+            }
+            case WorkflowNodeTypeEnum.TEMPLATE: {
+                workflow = createTemplateNode(graph, node, {
+                    xpertId,
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    environment: options.environment
+                })
+                break
+            }
+            case WorkflowNodeTypeEnum.TOOL: {
+                workflow = createToolNode(graph, node, {
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    xpertId,
+                    workspaceId: xpert?.workspaceId,
+                    environment: options.environment,
+                    conversationId: options.conversationId
+                })
+                break
+            }
+            case WorkflowNodeTypeEnum.AGENT_TOOL: {
+                workflow = createAgentToolNode(graph, node, {
+                    leaderKey: command.leaderKey,
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    xpertId,
+                    environment: options.environment,
+                    conversationId: options.conversationId
+                })
+                break
+            }
+            default:
+                try {
+                    const creator = this.nodeRegistry.get(node.entity.type)
 
-					workflow = {
-						workflowNode: {
-							name: result.name,
-							graph: result.graph,
-							ends: result.ends
-						},
-						navigator: result.navigator ?? (async (state: typeof AgentStateAnnotation.State, config) => {
-							if (state[channelName(node.key)]['error']) {
-								return (
-									graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
-									END
-								)
-							}
-				
-							return nextWorkflowNodes(graph, node.key, state)
-						})
-					}
-					if (result.channel !== undefined) {
-						workflow.channel = result.channel
-					}
-					break
-				} catch (error) {
-					console.error(error)
-				    throw new Error(`Unsupported workflow node type: ${node.entity?.type}: ${error.message}`)
-				}
-		}
+                    const result = await creator.create({
+                        graph,
+                        node,
+                        xpertId,
+                        environment: options.environment,
+                        isDraft: options.isDraft
+                    })
 
-		return {
-			channel,
-			...workflow,
-			nextNodes: graph.connections
-				.filter((_) => _.type === 'edge' && _.from.startsWith(node.key))
-				.map((conn) =>
-					graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to)
-				)
-		} as TWorkflowGraphNode
-	}
+                    workflow = {
+                        workflowNode: {
+                            name: result.name,
+                            graph: result.graph,
+                            ends: result.ends
+                        },
+                        navigator:
+                            result.navigator ??
+                            (async (state: typeof AgentStateAnnotation.State, config) => {
+                                if (state[channelName(node.key)]['error']) {
+                                    return (
+                                        graph.connections.find(
+                                            (conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`
+                                        )?.to ?? END
+                                    )
+                                }
+
+                                return nextWorkflowNodes(graph, node.key, state)
+                            })
+                    }
+                    if (result.channel !== undefined) {
+                        workflow.channel = result.channel
+                    }
+                    break
+                } catch (error) {
+                    console.error(error)
+                    throw new Error(`Unsupported workflow node type: ${node.entity?.type}: ${error.message}`)
+                }
+        }
+
+        return {
+            channel,
+            ...workflow,
+            nextNodes: graph.connections
+                .filter((_) => _.type === 'edge' && _.from.startsWith(node.key))
+                .map((conn) =>
+                    graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to)
+                )
+        } as TWorkflowGraphNode
+    }
 }

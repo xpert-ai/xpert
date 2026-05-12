@@ -3,16 +3,16 @@ import { PromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
 import {
-	channelName,
-	IEnvironment,
-	IWFNTool,
-	IWorkflowNode,
-	IXpertAgentExecution,
-	TAgentRunnableConfigurable,
-	TXpertGraph,
-	TXpertTeamNode,
-	WorkflowNodeTypeEnum,
-	XpertParameterTypeEnum
+    channelName,
+    IEnvironment,
+    IWFNTool,
+    IWorkflowNode,
+    IXpertAgentExecution,
+    TAgentRunnableConfigurable,
+    TXpertGraph,
+    TXpertTeamNode,
+    WorkflowNodeTypeEnum,
+    XpertParameterTypeEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage, isBlank } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -20,16 +20,15 @@ import { get, omitBy } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import { toEnvState } from '../../../environment'
 import {
-	_BaseToolset,
-	AgentStateAnnotation,
-	deepTransformValue,
-	nextWorkflowNodes,
-	stateToParameters,
-	TWorkflowGraphNode
+    _BaseToolset,
+    AgentStateAnnotation,
+    deepTransformValue,
+    nextWorkflowNodes,
+    stateToParameters,
+    TWorkflowGraphNode
 } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
-
 
 const WORKFLOW_TOOL_ERROR_CHANNEL = 'error'
 const WORKFLOW_TOOL_TEXT_CHANNEL = 'text'
@@ -37,202 +36,209 @@ const WORKFLOW_TOOL_JSON_CHANNEL = 'json'
 const WORKFLOW_TOOL_FILES_CHANNEL = 'files'
 
 export function createToolNode(
-	graph: TXpertGraph,
-	node: TXpertTeamNode & { type: 'workflow' },
-	params: {
-		commandBus: CommandBus
-		queryBus: QueryBus
-		xpertId: string
-		environment: IEnvironment
-		conversationId: string
-	}
+    graph: TXpertGraph,
+    node: TXpertTeamNode & { type: 'workflow' },
+    params: {
+        commandBus: CommandBus
+        queryBus: QueryBus
+        xpertId: string
+        workspaceId?: string
+        environment: IEnvironment
+        conversationId: string
+    }
 ): TWorkflowGraphNode {
-	const { commandBus, queryBus, xpertId, environment, conversationId } = params
-	const entity = node.entity as IWFNTool
+    const { commandBus, queryBus, xpertId, workspaceId, environment, conversationId } = params
+    const entity = node.entity as IWFNTool
 
-	const toolsetId = entity.toolsetId
-	const toolName = entity.toolName
+    const toolsetId = entity.toolsetId
+    const toolName = entity.toolName
 
-	return {
-		workflowNode: {
-			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
-				const configurable: TAgentRunnableConfigurable = config.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, projectId, agentKey } =
-					configurable
+    return {
+        workflowNode: {
+            graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
+                const configurable: TAgentRunnableConfigurable = config.configurable
+                const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, projectId, agentKey } =
+                    configurable
 
-				const toolsets = await commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
-					new ToolsetGetToolsCommand([toolsetId], {
-						projectId,
-						conversationId,
-						xpertId,
-						agentKey,
-						signal: config.signal,
-						env: toEnvState(environment)
-					})
-				)
+                const toolsets = await commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
+                    new ToolsetGetToolsCommand([toolsetId], {
+                        projectId,
+                        workspaceId,
+                        conversationId,
+                        xpertId,
+                        agentKey,
+                        signal: config.signal,
+                        env: toEnvState(environment)
+                    })
+                )
 
-				const stateEnv = stateToParameters(state, environment)
+                const stateEnv = stateToParameters(state, environment)
 
-				let parameters = await deepTransformValue(entity.parameters, async (v) => {
-					v = v?.trim() || ''
-					// If it's a single variable, then directly take value for it.
-					if (v.match(/^{{.*}}$/)) {
-						v = v.replace(/^{{/, '').replace(/}}$/, '').trim()
-						return get(stateEnv, v)
-					}
-					return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
-				})
+                let parameters = await deepTransformValue(entity.parameters, async (v) => {
+                    v = v?.trim() || ''
+                    // If it's a single variable, then directly take value for it.
+                    if (v.match(/^{{.*}}$/)) {
+                        v = v.replace(/^{{/, '').replace(/}}$/, '').trim()
+                        return get(stateEnv, v)
+                    }
+                    return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
+                })
 
-				if (entity.omitBlankValues) {
-					parameters = omitBy(parameters, isBlank)
-				}
+                if (entity.omitBlankValues) {
+                    parameters = omitBy(parameters, isBlank)
+                }
 
-				const execution: IXpertAgentExecution = {
-					category: 'workflow',
-					type: WorkflowNodeTypeEnum.TOOL,
-					inputs: parameters,
-					parentId: executionId,
-					threadId: thread_id,
-					checkpointNs: checkpoint_ns,
-					checkpointId: checkpoint_id,
-					agentKey: node.key,
-					title: entity.title
-				}
-				return await wrapAgentExecution(
-					async () => {
-						const toolset = toolsets[0]
-						await toolset.initTools()
-						const tool = toolset.getTool(toolName)
-						try {
-							// The artifact can be obtained from the returned ToolMessage by using a tool call.
-							const outputMessage: ToolMessage = await tool.invoke({
-															id: uuidv4(),
-															name: toolName,
-															type: 'tool_call',
-															args: parameters
-														  }, config)
-							let output = outputMessage?.content
-							const artifact = outputMessage?.artifact
-							let resultJson = null
-							if (typeof output === 'string') {
-								try {
-									resultJson = JSON.parse(output)
-								} catch (e) {
-									// ignore JSON parse error
-								}
-							} else {
-								resultJson = output
-								output = JSON.stringify(output, null, 2)
-							}
+                const execution: IXpertAgentExecution = {
+                    category: 'workflow',
+                    type: WorkflowNodeTypeEnum.TOOL,
+                    inputs: parameters,
+                    parentId: executionId,
+                    threadId: thread_id,
+                    checkpointNs: checkpoint_ns,
+                    checkpointId: checkpoint_id,
+                    agentKey: node.key,
+                    title: entity.title
+                }
+                return await wrapAgentExecution(
+                    async () => {
+                        const toolset = toolsets[0]
+                        await toolset.initTools()
+                        const tool = toolset.getTool(toolName)
+                        try {
+                            // The artifact can be obtained from the returned ToolMessage by using a tool call.
+                            const outputMessage: ToolMessage = await tool.invoke(
+                                {
+                                    id: uuidv4(),
+                                    name: toolName,
+                                    type: 'tool_call',
+                                    args: parameters
+                                },
+                                config
+                            )
+                            let output = outputMessage?.content
+                            const artifact = outputMessage?.artifact
+                            let resultJson = null
+                            if (typeof output === 'string') {
+                                try {
+                                    resultJson = JSON.parse(output)
+                                } catch (e) {
+                                    // ignore JSON parse error
+                                }
+                            } else {
+                                resultJson = output
+                                output = JSON.stringify(output, null, 2)
+                            }
 
-							return {
-								state: {
-									[channelName(node.key)]: {
-										[WORKFLOW_TOOL_TEXT_CHANNEL]: output,
-										[WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
-										[WORKFLOW_TOOL_FILES_CHANNEL]: artifact?.files ?? undefined,
-										[WORKFLOW_TOOL_ERROR_CHANNEL]: null
-									}
-								},
-								output: resultJson || output
-							}
-						} catch (error) {
-							if (entity.errorHandling?.type === 'defaultValue') {
-								const result = entity.errorHandling.defaultValue?.result
-								let resultJson = result
-								try {
-									resultJson = JSON.parse(result)
-								} catch (e) {
-									// ignore JSON parse error
-								}
-								return {
-									state: {
-										[channelName(node.key)]: {
-											[WORKFLOW_TOOL_TEXT_CHANNEL]: result,
-											[WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
-											[WORKFLOW_TOOL_FILES_CHANNEL]: [],
-											[WORKFLOW_TOOL_ERROR_CHANNEL]: null
-										}
-									},
-									output: resultJson || result
-								}
-							} else if (entity.errorHandling?.type === 'failBranch') {
-								return {
-									state: {
-										[channelName(node.key)]: {
-											[WORKFLOW_TOOL_TEXT_CHANNEL]: null,
-											[WORKFLOW_TOOL_JSON_CHANNEL]: null,
-											[WORKFLOW_TOOL_FILES_CHANNEL]: [],
-											[WORKFLOW_TOOL_ERROR_CHANNEL]:
-												getErrorMessage(error) || 'An error occurred while executing the tool'
-										}
-									}
-								}
-							}
-							throw error
-						}
-					},
-					{
-						commandBus: commandBus,
-						queryBus: queryBus,
-						subscriber: subscriber,
-						execution
-					}
-				)()
-			}),
-			ends: []
-		},
-		...(entity.errorHandling?.type === 'failBranch' ? {
-			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-				if (state[channelName(node.key)]?.[WORKFLOW_TOOL_ERROR_CHANNEL]) {
-					return (
-						graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
-						END
-					)
-				}
-				return nextWorkflowNodes(graph, node.key, state)
-			},
-		} : {})
-	}
+                            return {
+                                state: {
+                                    [channelName(node.key)]: {
+                                        [WORKFLOW_TOOL_TEXT_CHANNEL]: output,
+                                        [WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
+                                        [WORKFLOW_TOOL_FILES_CHANNEL]: artifact?.files ?? undefined,
+                                        [WORKFLOW_TOOL_ERROR_CHANNEL]: null
+                                    }
+                                },
+                                output: resultJson || output
+                            }
+                        } catch (error) {
+                            if (entity.errorHandling?.type === 'defaultValue') {
+                                const result = entity.errorHandling.defaultValue?.result
+                                let resultJson = result
+                                try {
+                                    resultJson = JSON.parse(result)
+                                } catch (e) {
+                                    // ignore JSON parse error
+                                }
+                                return {
+                                    state: {
+                                        [channelName(node.key)]: {
+                                            [WORKFLOW_TOOL_TEXT_CHANNEL]: result,
+                                            [WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
+                                            [WORKFLOW_TOOL_FILES_CHANNEL]: [],
+                                            [WORKFLOW_TOOL_ERROR_CHANNEL]: null
+                                        }
+                                    },
+                                    output: resultJson || result
+                                }
+                            } else if (entity.errorHandling?.type === 'failBranch') {
+                                return {
+                                    state: {
+                                        [channelName(node.key)]: {
+                                            [WORKFLOW_TOOL_TEXT_CHANNEL]: null,
+                                            [WORKFLOW_TOOL_JSON_CHANNEL]: null,
+                                            [WORKFLOW_TOOL_FILES_CHANNEL]: [],
+                                            [WORKFLOW_TOOL_ERROR_CHANNEL]:
+                                                getErrorMessage(error) || 'An error occurred while executing the tool'
+                                        }
+                                    }
+                                }
+                            }
+                            throw error
+                        }
+                    },
+                    {
+                        commandBus: commandBus,
+                        queryBus: queryBus,
+                        subscriber: subscriber,
+                        execution
+                    }
+                )()
+            }),
+            ends: []
+        },
+        ...(entity.errorHandling?.type === 'failBranch'
+            ? {
+                  navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+                      if (state[channelName(node.key)]?.[WORKFLOW_TOOL_ERROR_CHANNEL]) {
+                          return (
+                              graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)
+                                  ?.to ?? END
+                          )
+                      }
+                      return nextWorkflowNodes(graph, node.key, state)
+                  }
+              }
+            : {})
+    }
 }
 
 export function toolOutputVariables(entity: IWorkflowNode) {
-	return [
-		{
-			type: XpertParameterTypeEnum.STRING,
-			name: WORKFLOW_TOOL_TEXT_CHANNEL,
-			title: 'Text',
-			description: {
-				en_US: 'Text output from tool',
-				zh_Hans: '工具的文本输出'
-			}
-		},
-		{
-			type: XpertParameterTypeEnum.OBJECT,
-			name: WORKFLOW_TOOL_JSON_CHANNEL,
-			title: 'JSON',
-			description: {
-				en_US: 'JSON output from tool',
-				zh_Hans: '工具的 JSON 输出'
-			}
-		},
-		{
-			type: XpertParameterTypeEnum.ARRAY_FILE,
-			name: WORKFLOW_TOOL_FILES_CHANNEL,
-			title: 'Files',
-			description: {
-				en_US: 'Files output from tool',
-				zh_Hans: '工具的文件输出'
-			}
-		},
-		{
-			type: XpertParameterTypeEnum.STRING,
-			name: 'error',
-			title: 'Error',
-			description: {
-				en_US: 'Error info',
-				zh_Hans: '错误信息'
-			}
-		}
-	]
+    return [
+        {
+            type: XpertParameterTypeEnum.STRING,
+            name: WORKFLOW_TOOL_TEXT_CHANNEL,
+            title: 'Text',
+            description: {
+                en_US: 'Text output from tool',
+                zh_Hans: '工具的文本输出'
+            }
+        },
+        {
+            type: XpertParameterTypeEnum.OBJECT,
+            name: WORKFLOW_TOOL_JSON_CHANNEL,
+            title: 'JSON',
+            description: {
+                en_US: 'JSON output from tool',
+                zh_Hans: '工具的 JSON 输出'
+            }
+        },
+        {
+            type: XpertParameterTypeEnum.ARRAY_FILE,
+            name: WORKFLOW_TOOL_FILES_CHANNEL,
+            title: 'Files',
+            description: {
+                en_US: 'Files output from tool',
+                zh_Hans: '工具的文件输出'
+            }
+        },
+        {
+            type: XpertParameterTypeEnum.STRING,
+            name: 'error',
+            title: 'Error',
+            description: {
+                en_US: 'Error info',
+                zh_Hans: '错误信息'
+            }
+        }
+    ]
 }

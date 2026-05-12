@@ -326,7 +326,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
                     // Add toolset's states into global variables
                     const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
-                        new ToolsetGetToolsCommand(agent.toolsetIds)
+                        new ToolsetGetToolsCommand(agent.toolsetIds, {
+                            workspaceId: agent.team?.workspaceId
+                        })
                     )
                     for await (const toolset of toolsets) {
                         const toolVars = await toolset.getVariables()
@@ -466,7 +468,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
         }
 
         const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
-            new ToolsetGetToolsCommand(agent.toolsetIds)
+            new ToolsetGetToolsCommand(agent.toolsetIds, {
+                workspaceId: agent.team?.workspaceId
+            })
         )
 
         if (agent.parameters) {

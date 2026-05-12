@@ -256,6 +256,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
             new ToolsetGetToolsCommand(agent.toolsetIds, {
                 projectId: options.projectId,
+                workspaceId: xpert.workspaceId,
                 conversationId: options.conversationId,
                 xpertId: xpert.id,
                 agentKey,
@@ -623,7 +624,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         isDraft: options.isDraft,
                         subscriber,
                         environment,
-                        xpert: team
+                        conversationId: options.conversationId,
+                        xpert: {
+                            ...team,
+                            workspaceId: team.workspaceId ?? xpert.workspaceId
+                        }
                     })
                 )
                 if (channel) {
