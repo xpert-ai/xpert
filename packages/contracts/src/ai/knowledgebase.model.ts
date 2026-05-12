@@ -78,6 +78,13 @@ export type TKnowledgebase = {
    */
   copilotModel?: ICopilotModel
   copilotModelId?: string
+
+  /**
+   * Chat model for knowledgebase LLM tasks.
+   */
+  chatModel?: ICopilotModel | null
+  chatModelId?: string | null
+
   embeddingCollectionName?: string | null
   embeddingModelFingerprint?: string | null
   embeddingDimensions?: number | null

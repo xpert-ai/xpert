@@ -1,8 +1,10 @@
 import { Queue } from 'bull'
 import { QueryBus } from '@nestjs/cqrs'
 import { Repository } from 'typeorm'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { KnowledgebaseService } from '../knowledgebase'
+import { CopilotModelGetChatModelQuery } from '../copilot-model'
 import { KnowledgeDocumentChunkService } from '../knowledge-document/chunk/chunk.service'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import {
@@ -97,6 +99,77 @@ describe('GraphRAG service', () => {
         expect(jobRepository.save).not.toHaveBeenCalled()
         expect(knowledgebaseRepository.update).not.toHaveBeenCalled()
         expect(queue.add).not.toHaveBeenCalled()
+    })
+
+    it('uses the configured knowledgebase chat model for extraction before primary copilot', async () => {
+        const structuredModel = {
+            invoke: jest.fn(async () => ({
+                entities: [],
+                relations: []
+            }))
+        }
+        const chatModel = {
+            withStructuredOutput: jest.fn(() => structuredModel)
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query instanceof CopilotModelGetChatModelQuery) {
+                    return chatModel
+                }
+                throw new Error('Primary copilot fallback should not be used')
+            })
+        }
+        const jobRepository = {
+            update: jest.fn()
+        }
+        const service = new GraphragService(
+            repositoryMock<KnowledgeGraphEntity>(),
+            repositoryMock<KnowledgeGraphRelation>(),
+            repositoryMock<KnowledgeGraphMention>(),
+            repositoryMock<KnowledgeGraphCommunity>(),
+            jobRepository as unknown as Repository<KnowledgeGraphIndexJob>,
+            repositoryMock<Knowledgebase>(),
+            {} as unknown as KnowledgebaseService,
+            {} as unknown as KnowledgeDocumentService,
+            {} as unknown as KnowledgeDocumentChunkService,
+            queryBus as unknown as QueryBus,
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+        )
+        const knowledgebase = {
+            ...enabledKnowledgebase(),
+            name: 'Graph KB',
+            chatModel: {
+                copilotId: 'chat-copilot',
+                modelType: AiModelTypeEnum.LLM,
+                model: 'gpt-4o'
+            }
+        }
+
+        await (service as any).extractDocumentGraph(
+            knowledgebase,
+            [
+                {
+                    id: 'chunk-1',
+                    documentId: 'doc-1',
+                    pageContent: 'Alice works with Bob.',
+                    metadata: {
+                        chunkId: 'chunk-1'
+                    }
+                }
+            ],
+            {
+                enabled: true,
+                extractionBatchSize: 1,
+                extractionMaxCharacters: 500
+            }
+        )
+
+        expect(queryBus.execute).toHaveBeenCalledTimes(1)
+        expect(queryBus.execute.mock.calls[0][0]).toBeInstanceOf(CopilotModelGetChatModelQuery)
+        expect(queryBus.execute.mock.calls[0][0].copilot).toBeNull()
+        expect(queryBus.execute.mock.calls[0][0].copilotModel).toBe(knowledgebase.chatModel)
+        expect(chatModel.withStructuredOutput).toHaveBeenCalled()
+        expect(structuredModel.invoke).toHaveBeenCalled()
     })
 
     it('creates manual graph entities and syncs active entity vectors', async () => {

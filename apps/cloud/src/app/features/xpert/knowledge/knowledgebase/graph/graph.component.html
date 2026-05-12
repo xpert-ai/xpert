@@ -18,7 +18,32 @@
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <div
+          class="flex h-10 max-w-full items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-3 text-sm text-text-secondary"
+        >
+          <z-icon zType="bot" class="shrink-0 text-text-tertiary" />
+          <span class="shrink-0 font-medium">
+            {{ 'PAC.Knowledgebase.GraphChatModel' | translate: { Default: 'Chat model' } }}
+          </span>
+          <span class="max-w-48 truncate text-text-primary">
+            @if (chatModelName(); as modelName) {
+              {{ modelName }}
+            } @else {
+              {{ 'PAC.Knowledgebase.GraphChatModelFallback' | translate: { Default: 'Primary Copilot fallback' } }}
+            }
+          </span>
+          <a
+            z-button
+            zType="ghost"
+            zSize="sm"
+            class="ml-1"
+            [routerLink]="['/xpert/knowledges', knowledgebase()?.id, 'configuration']"
+          >
+            <z-icon zType="settings" />
+            {{ 'PAC.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' } }}
+          </a>
+        </div>
         <button z-button type="button" zType="outline" zSize="lg" [disabled]="loading()" (click)="loadGraph()">
           <z-icon zType="refresh" />
           {{ 'PAC.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}

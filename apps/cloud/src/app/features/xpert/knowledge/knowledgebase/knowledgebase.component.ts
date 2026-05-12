@@ -71,7 +71,7 @@ export class KnowledgebaseComponent {
     loader: ({ request }) => {
       return this.knowledgebaseAPI
         .getOneById(request.id, {
-          relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline'],
+          relations: ['copilotModel', 'chatModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline'],
           select: {
             xperts: {
               id: true,

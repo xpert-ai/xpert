@@ -822,6 +822,9 @@ export class GraphragService {
             where: { id: graphIndexJobId },
             relations: [
                 'knowledgebase',
+                'knowledgebase.chatModel',
+                'knowledgebase.chatModel.copilot',
+                'knowledgebase.chatModel.copilot.modelProvider',
                 'knowledgebase.copilotModel',
                 'knowledgebase.copilotModel.copilot',
                 'knowledgebase.copilotModel.copilot.modelProvider'
@@ -1134,25 +1137,7 @@ export class GraphragService {
         config?: GraphRagConfig | null
     ): Promise<TKnowledgeGraphExtraction> {
         const graphConfig = resolveGraphConfig(config)
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot>(
-            new CopilotOneByRoleQuery(
-                RequestContext.currentTenantId() ?? knowledgebase.tenantId,
-                RequestContext.getOrganizationId() ?? knowledgebase.organizationId,
-                AiProviderRole.Primary,
-                ['copilotModel']
-            )
-        )
-        if (!copilot?.copilotModel) {
-            throw new Error('No available primary copilot found for GraphRAG extraction')
-        }
-        const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-            new CopilotModelGetChatModelQuery(copilot, copilot.copilotModel, {
-                abortController: new AbortController(),
-                usageCallback: () => {
-                    //
-                }
-            })
-        )
+        const chatModel = await this.resolveExtractionChatModel(knowledgebase)
         const structuredModel = chatModel.withStructuredOutput<TKnowledgeGraphExtraction>(graphExtractionSchema, {
             method: 'functionCalling'
         })
@@ -1189,6 +1174,43 @@ export class GraphragService {
             )
         }
         return merged
+    }
+
+    private async resolveExtractionChatModel(knowledgebase: IKnowledgebase): Promise<BaseChatModel> {
+        const configuredChatModel = knowledgebase.chatModel
+        if (configuredChatModel) {
+            if (!configuredChatModel.copilot && !configuredChatModel.copilotId) {
+                throw new Error('Knowledgebase chat model provider is required for GraphRAG extraction')
+            }
+            return this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
+                new CopilotModelGetChatModelQuery(configuredChatModel.copilot ?? null, configuredChatModel, {
+                    abortController: new AbortController(),
+                    usageCallback: () => {
+                        //
+                    }
+                })
+            )
+        }
+
+        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot>(
+            new CopilotOneByRoleQuery(
+                RequestContext.currentTenantId() ?? knowledgebase.tenantId,
+                RequestContext.getOrganizationId() ?? knowledgebase.organizationId,
+                AiProviderRole.Primary,
+                ['copilotModel']
+            )
+        )
+        if (!copilot?.copilotModel) {
+            throw new Error('No available primary copilot found for GraphRAG extraction')
+        }
+        return this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
+            new CopilotModelGetChatModelQuery(copilot, copilot.copilotModel, {
+                abortController: new AbortController(),
+                usageCallback: () => {
+                    //
+                }
+            })
+        )
     }
 
     private formatChunksForExtraction(chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[], maxCharacters: number) {

@@ -90,6 +90,7 @@ export class KnowledgeConfigurationComponent {
   readonly avatar = attrModel(this.knowledgebaseModel, 'avatar')
   readonly name = attrModel(this.knowledgebaseModel, 'name')
   readonly description = attrModel(this.knowledgebaseModel, 'description')
+  readonly chatModel = attrModel(this.knowledgebaseModel, 'chatModel')
   readonly visionModel = attrModel(this.knowledgebaseModel, 'visionModel')
   readonly copilotModel = linkedModel<Partial<ICopilotModel> | null>({
     initialValue: null,
@@ -198,6 +199,14 @@ export class KnowledgeConfigurationComponent {
       delete payload.copilotModel
       delete payload.copilotModelId
     }
+    if (!this.chatModel()) {
+      payload.chatModel = null
+      payload.chatModelId = null
+    }
+    if (!this.visionModel()) {
+      payload.visionModel = null
+      payload.visionModelId = null
+    }
 
     this.knowledgebaseService.update(this.knowledgebase().id, payload).subscribe({
       next: (knowledgebase) => {
@@ -228,7 +237,7 @@ export class KnowledgeConfigurationComponent {
       .pipe(
         switchMap(() =>
           this.knowledgebaseService.getOneById(knowledgebaseId, {
-            relations: ['copilotModel']
+            relations: ['copilotModel', 'chatModel', 'rerankModel', 'visionModel']
           })
         ),
         filter((knowledgebase) => knowledgebase.status !== KnowledgebaseStatusEnum.REBUILDING),

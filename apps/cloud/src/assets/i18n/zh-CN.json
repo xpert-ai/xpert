@@ -1348,7 +1348,8 @@
     "Knowledgebase": {
       "ModelConfiguration": "模型配置",
       "ChangeEmbeddingModelDraftNotice": "换模型要重建，保存后会创建待重建模型。",
-      "ModelConfigurationManagedInSettings": "嵌入模型、视觉模型和重排模型请在知识库配置页统一设置。",
+      "ModelConfigurationManagedInSettings": "对话模型、嵌入模型、视觉模型和重排模型请在知识库配置页统一设置。",
+      "ChatModel": "对话模型",
       "OpenConfiguration": "打开配置页",
       "Status_RebuildRequired": "待重建向量",
       "Status_Rebuilding": "向量重建中",
@@ -1363,6 +1364,8 @@
       "GraphStatus_RebuildRequired": "需要重建",
       "GraphStatus_Disabled": "已禁用",
       "GraphStatus_Pending": "待处理",
+      "GraphChatModel": "对话模型",
+      "GraphChatModelFallback": "回退到主模型",
       "GraphDisabledTitle": "GraphRAG 已禁用",
       "GraphDisabledDesc": "请在配置中启用 GraphRAG 并重建图谱后使用可视化。",
       "GraphEmptyTitle": "暂无图谱数据",

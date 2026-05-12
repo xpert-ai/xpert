@@ -82,6 +82,21 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @Column({ nullable: true })
     copilotModelId?: string
 
+    @ApiPropertyOptional({ type: () => CopilotModel })
+    @OneToOne(() => CopilotModel, {
+        nullable: true,
+        cascade: true
+    })
+    @JoinColumn()
+    chatModel?: ICopilotModel | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @RelationId((it: Knowledgebase) => it.chatModel)
+    @IsString()
+    @IsOptional()
+    @Column({ nullable: true })
+    chatModelId?: string | null
+
     @ApiPropertyOptional({ type: () => String })
     @IsString()
     @IsOptional()

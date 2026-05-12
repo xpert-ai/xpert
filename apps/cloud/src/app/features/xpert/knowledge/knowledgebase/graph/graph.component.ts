@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { FormsModule } from '@angular/forms'
+import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardBadgeComponent,
@@ -88,6 +89,7 @@ const ALL_SELECT_VALUE = '__all__'
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     ReactiveFormsModule,
     TranslateModule,
     NgmSpinComponent,
@@ -120,6 +122,10 @@ export class KnowledgeGraphComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly chatModelName = computed(() => {
+    const chatModel = this.knowledgebase()?.chatModel
+    return chatModel?.model || chatModel?.copilot?.copilotModel?.model || null
+  })
   readonly search = model('')
   readonly entityType = model('')
   readonly relationType = model('')

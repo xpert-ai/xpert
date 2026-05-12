@@ -31,7 +31,7 @@ When GraphRAG is enabled for a knowledge base, document ingestion continues to r
 
 The graph indexer:
 
-- extracts entities, relations, aliases, descriptions, evidence quotes, and confidence values with the Primary Copilot LLM
+- extracts entities, relations, aliases, descriptions, evidence quotes, and confidence values with the knowledge base chat model when configured, otherwise with the Primary Copilot LLM
 - merges entities only by explicit `type` and normalized name
 - deduplicates relations by knowledge base, source entity, target entity, and relation type
 - stores mentions as evidence linked to `documentId` and `chunkId`
@@ -80,6 +80,8 @@ Use `hybrid` for most validation because it shows how GraphRAG augments the exis
 ## Visualizing And Maintaining The Graph
 
 The knowledge base sidebar includes a `Graph` page when GraphRAG is available. The page uses an interactive force graph to show entities as nodes and relations as edges, with filters for search text, entity type, relation type, origin, visibility, focus entity, depth, and result size.
+
+The Graph page shows the chat model currently used for GraphRAG extraction and links back to the knowledge base configuration page. The model itself is configured at the knowledge base level rather than inside the graph editor.
 
 Operators can inspect an entity or relation from the graph or side lists. The inspector shows the selected item, connected relations, and read-only evidence mentions with document/chunk provenance.
 

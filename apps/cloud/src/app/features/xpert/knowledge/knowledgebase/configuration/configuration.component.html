@@ -131,6 +131,13 @@
 
       <copilot-model-select
         class="block mb-4"
+        [label]="'PAC.Knowledgebase.ChatModel' | translate: { Default: 'Chat Model' }"
+        [modelType]="eModelType.LLM"
+        [(ngModel)]="chatModel"
+      />
+
+      <copilot-model-select
+        class="block mb-4"
         [label]="'PAC.Knowledgebase.VisionModel' | translate: { Default: 'Vision Model' }"
         [modelType]="eModelType.LLM"
         [features]="[eModelFeature.VISION]"

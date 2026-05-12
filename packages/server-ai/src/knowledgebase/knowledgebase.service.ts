@@ -303,6 +303,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 'copilotModel',
                 'copilotModel.copilot',
                 'copilotModel.copilot.modelProvider',
+                'chatModel',
+                'chatModel.copilot',
+                'chatModel.copilot.modelProvider',
                 'pendingCopilotModel',
                 'pendingCopilotModel.copilot',
                 'pendingCopilotModel.copilot.modelProvider'

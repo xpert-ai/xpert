@@ -172,7 +172,7 @@
             }
           }
         }
-        <th scope="col" class="px-6 py-3 w-28">
+        <th scope="col" class="px-6 py-3 w-48">
           {{ 'PAC.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing Progress' } }}
         </th>
         <th scope="col" class="px-6 py-3 w-28">
@@ -237,9 +237,9 @@
           }
 
           <!-- progress Column -->
-          <td class="px-6 py-2 w-36">
+          <td class="px-6 py-2 w-48">
             @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
-              <div class="cursor-pointer" (click)="openTask(element)">
+              <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
                 @switch (knowledgebase()?.status) {
                   @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
                     <ngm-tags

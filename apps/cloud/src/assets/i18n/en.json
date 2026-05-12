@@ -1215,7 +1215,8 @@
     "Knowledgebase": {
       "ModelConfiguration": "Model Configuration",
       "ChangeEmbeddingModelDraftNotice": "Changing the embedding model requires vector rebuild. Save to create a pending rebuild model.",
-      "ModelConfigurationManagedInSettings": "Embedding, vision, and rerank models are configured on the knowledgebase configuration page.",
+      "ModelConfigurationManagedInSettings": "Chat, embedding, vision, and rerank models are configured on the knowledgebase configuration page.",
+      "ChatModel": "Chat Model",
       "OpenConfiguration": "Open configuration",
       "Status_RebuildRequired": "Pending vector rebuild",
       "Status_Rebuilding": "Vector rebuilding",
@@ -1230,6 +1231,8 @@
       "GraphStatus_RebuildRequired": "Rebuild required",
       "GraphStatus_Disabled": "Disabled",
       "GraphStatus_Pending": "Pending",
+      "GraphChatModel": "Chat model",
+      "GraphChatModelFallback": "Primary Copilot fallback",
       "GraphDisabledTitle": "GraphRAG is disabled",
       "GraphDisabledDesc": "Enable GraphRAG in configuration and rebuild the graph to use visualization.",
       "GraphEmptyTitle": "No graph data",
