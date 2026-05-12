@@ -197,6 +197,36 @@ export type KnowledgeGraphMentionListQuery = {
   take?: number | null
 }
 
+export type KnowledgeGraphEntityChunksQuery = {
+  neighborHops?: number | null
+  take?: number | null
+  includeMentions?: boolean | null
+  mentionTake?: number | null
+  documentId?: string | null
+}
+
+export type KnowledgeGraphEntityChunksResponse = {
+  entity: IKnowledgeGraphEntity
+  chunks: IKnowledgeDocumentChunk[]
+  evidenceByChunkId: Record<string, IKnowledgeGraphMention[]>
+  totals: {
+    chunks: number
+    mentions: number
+    entityIds: number
+    relations: number
+  }
+  limits: {
+    take: number
+    neighborHops: number
+    mentionTake: number
+    includeMentions: boolean
+  }
+  truncated?: {
+    chunks?: boolean
+    mentions?: boolean
+  }
+}
+
 export type KnowledgeGraphEntityCreateInput = {
   name: string
   type: string

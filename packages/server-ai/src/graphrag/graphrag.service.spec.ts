@@ -343,4 +343,106 @@ describe('GraphRAG service', () => {
         })
         expect(vectorStore.clear).toHaveBeenCalled()
     })
+
+    it('resolves full chunks for a graph entity through mention evidence', async () => {
+        const entityRepository = {
+            findOne: jest.fn(async () => ({
+                id: 'entity-1',
+                knowledgebaseId: 'kb-1',
+                type: 'feature',
+                name: 'Plan Mode',
+                normalizedName: 'plan mode',
+                visibility: 'active'
+            }))
+        }
+        const mentionRepository = {
+            find: jest
+                .fn()
+                .mockResolvedValueOnce([
+                    {
+                        id: 'mention-1',
+                        knowledgebaseId: 'kb-1',
+                        entityId: 'entity-1',
+                        documentId: 'doc-1',
+                        chunkId: 'chunk-1',
+                        quote: 'Plan Mode drafts a plan.',
+                        confidence: 0.92
+                    }
+                ])
+                .mockResolvedValueOnce([
+                    {
+                        id: 'mention-1',
+                        knowledgebaseId: 'kb-1',
+                        entityId: 'entity-1',
+                        documentId: 'doc-1',
+                        chunkId: 'chunk-1',
+                        quote: 'Plan Mode drafts a plan.',
+                        confidence: 0.92
+                    },
+                    {
+                        id: 'mention-2',
+                        knowledgebaseId: 'kb-1',
+                        entityId: 'entity-1',
+                        documentId: 'doc-1',
+                        chunkId: 'chunk-1',
+                        quote: 'It reviews before editing.',
+                        confidence: 0.8
+                    }
+                ])
+        }
+        const chunkService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'chunk-row-1',
+                        knowledgebaseId: 'kb-1',
+                        documentId: 'doc-1',
+                        pageContent: 'Plan Mode drafts a plan before editing files.',
+                        metadata: {
+                            chunkId: 'chunk-1'
+                        },
+                        document: {
+                            id: 'doc-1',
+                            name: 'Agent docs'
+                        }
+                    }
+                ]
+            }))
+        }
+        const service = new GraphragService(
+            entityRepository as unknown as Repository<KnowledgeGraphEntity>,
+            repositoryMock<KnowledgeGraphRelation>(),
+            mentionRepository as unknown as Repository<KnowledgeGraphMention>,
+            repositoryMock<KnowledgeGraphCommunity>(),
+            repositoryMock<KnowledgeGraphIndexJob>(),
+            repositoryMock<Knowledgebase>(),
+            {} as unknown as KnowledgebaseService,
+            {} as unknown as KnowledgeDocumentService,
+            chunkService as unknown as KnowledgeDocumentChunkService,
+            { execute: jest.fn() } as unknown as QueryBus,
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+        )
+
+        const result = await service.getEntityChunks('kb-1', 'entity-1', {
+            take: 3,
+            includeMentions: true,
+            mentionTake: 1
+        })
+
+        expect(result.entity.id).toBe('entity-1')
+        expect(result.chunks[0].pageContent).toBe('Plan Mode drafts a plan before editing files.')
+        expect(result.chunks[0].metadata).toMatchObject({
+            chunkId: 'chunk-1',
+            matchedEntities: ['entity-1']
+        })
+        expect(result.evidenceByChunkId['chunk-1']).toHaveLength(1)
+        expect(result.totals).toMatchObject({
+            chunks: 1,
+            mentions: 2,
+            entityIds: 1,
+            relations: 0
+        })
+        expect(result.truncated?.mentions).toBe(true)
+        expect(chunkService.findAll).toHaveBeenCalled()
+    })
 })

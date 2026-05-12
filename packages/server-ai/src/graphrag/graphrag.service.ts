@@ -10,6 +10,8 @@ import {
     IKnowledgeDocumentChunk,
     KDocumentSourceType,
     KnowledgeDocumentMetadata,
+    KnowledgeGraphEntityChunksQuery,
+    KnowledgeGraphEntityChunksResponse,
     KnowledgeGraphEntityCreateInput,
     KnowledgeGraphEntityUpdateInput,
     KnowledgeGraphIndexJobStatus,
@@ -206,6 +208,20 @@ function clampGraphDepth(value?: number | null) {
         return 1
     }
     return Math.min(2, Math.max(0, Math.floor(value)))
+}
+
+function clampGraphEntityChunkTake(value?: number | null) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return 10
+    }
+    return Math.min(50, Math.max(1, Math.floor(value)))
+}
+
+function clampGraphMentionTake(value?: number | null) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return 5
+    }
+    return Math.min(20, Math.max(0, Math.floor(value)))
 }
 
 @Injectable()
@@ -521,6 +537,108 @@ export class GraphragService {
             relations,
             connectedEntities,
             mentions
+        }
+    }
+
+    async getEntityChunks(
+        knowledgebaseId: string,
+        entityId: string,
+        query?: KnowledgeGraphEntityChunksQuery
+    ): Promise<KnowledgeGraphEntityChunksResponse> {
+        const entity = await this.findGraphEntity(knowledgebaseId, entityId)
+        const neighborHops = typeof query?.neighborHops === 'number' ? clampGraphDepth(query.neighborHops) : 0
+        const take = clampGraphEntityChunkTake(query?.take)
+        const mentionTake = clampGraphMentionTake(query?.mentionTake)
+        const includeMentions = query?.includeMentions !== false
+        const expanded =
+            neighborHops > 0
+                ? await this.expandEntities(knowledgebaseId, [entity.id], neighborHops)
+                : { entityIds: [entity.id], relations: [] as KnowledgeGraphRelation[] }
+        const relationIds = expanded.relations.map((relation) => relation.id)
+        const allowedDocumentIds = query?.documentId ? [query.documentId] : null
+        const docs = await this.resolveGraphChunks({
+            knowledgebaseId,
+            entityScores: expanded.entityIds.map((expandedEntityId) => ({
+                entityId: expandedEntityId,
+                score: expandedEntityId === entity.id ? 1 : 0.5
+            })),
+            entityIds: expanded.entityIds,
+            relations: expanded.relations,
+            allowedDocumentIds,
+            topK: take
+        })
+        const chunkIds = uniq(
+            compact(
+                docs.map((chunk) => {
+                    const metadata = chunk.metadata as TDocChunkMetadata | undefined
+                    return metadata?.chunkId ?? ('id' in chunk ? String(chunk.id) : undefined)
+                })
+            )
+        )
+        const evidenceByChunkId: Record<string, KnowledgeGraphMention[]> = {}
+        let mentionTotal = 0
+        let mentionsTruncated = false
+
+        if (includeMentions && mentionTake > 0 && chunkIds.length) {
+            const baseWhere = {
+                knowledgebaseId,
+                chunkId: In(chunkIds),
+                ...(query?.documentId ? { documentId: query.documentId } : {})
+            }
+            const where: FindOptionsWhere<KnowledgeGraphMention>[] = [
+                {
+                    ...baseWhere,
+                    entityId: In(expanded.entityIds)
+                }
+            ]
+            if (relationIds.length) {
+                where.push({
+                    ...baseWhere,
+                    relationId: In(relationIds)
+                })
+            }
+            const mentions = await this.mentionRepository.find({
+                where,
+                order: {
+                    confidence: 'DESC',
+                    createdAt: 'DESC'
+                }
+            })
+            mentionTotal = mentions.length
+            for (const mention of mentions) {
+                if (!mention.chunkId) {
+                    continue
+                }
+                const bucket = evidenceByChunkId[mention.chunkId] ?? []
+                if (bucket.length < mentionTake) {
+                    bucket.push(mention)
+                    evidenceByChunkId[mention.chunkId] = bucket
+                } else {
+                    mentionsTruncated = true
+                }
+            }
+        }
+
+        return {
+            entity,
+            chunks: docs as unknown as IKnowledgeDocumentChunk[],
+            evidenceByChunkId,
+            totals: {
+                chunks: docs.length,
+                mentions: mentionTotal,
+                entityIds: expanded.entityIds.length,
+                relations: expanded.relations.length
+            },
+            limits: {
+                take,
+                neighborHops,
+                mentionTake,
+                includeMentions
+            },
+            truncated: {
+                chunks: docs.length >= take,
+                mentions: mentionsTruncated
+            }
         }
     }
 

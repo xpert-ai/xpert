@@ -1,7 +1,11 @@
 import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { KnowledgeGraphMentionListQuery, KnowledgeGraphVisualizationQuery } from '@xpert-ai/contracts'
+import {
+    KnowledgeGraphEntityChunksQuery,
+    KnowledgeGraphMentionListQuery,
+    KnowledgeGraphVisualizationQuery
+} from '@xpert-ai/contracts'
 import { KnowledgeGraphEntity } from './entities'
 import { GraphragService } from './graphrag.service'
 
@@ -48,6 +52,15 @@ export class GraphragController {
     @Get('entities/:entityId/neighborhood')
     async neighborhood(@Param('id') id: string, @Param('entityId') entityId: string) {
         return this.service.getNeighborhood(id, entityId)
+    }
+
+    @Get('entities/:entityId/chunks')
+    async entityChunks(
+        @Param('id') id: string,
+        @Param('entityId') entityId: string,
+        @Query('data', ParseJsonPipe) query?: KnowledgeGraphEntityChunksQuery
+    ) {
+        return this.service.getEntityChunks(id, entityId, query)
     }
 
     @Get('visualization')
