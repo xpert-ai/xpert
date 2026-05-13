@@ -11,8 +11,8 @@ jest.mock('@xpert-ai/contracts', () => {
     }
 })
 
-import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { getAgentMiddlewares } from './middleware'
+import { IWFNMiddleware, IXpertAgent, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { getAgentMiddlewares, getRuntimeEnabledMiddlewareNodes } from './middleware'
 import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
 
 describe('getAgentMiddlewares', () => {
@@ -23,11 +23,7 @@ describe('getAgentMiddlewares', () => {
         }
         const createMiddleware = jest.fn(async () => ({
             name: 'provider-a',
-            tools: [
-                { name: 'shared' },
-                { name: 'xpertOff' },
-                { name: 'userOff' }
-            ]
+            tools: [{ name: 'shared' }, { name: 'xpertOff' }, { name: 'userOff' }]
         }))
         const registry = {
             get: jest.fn(() => ({
@@ -281,5 +277,42 @@ describe('getAgentMiddlewares', () => {
         expect(middlewares.map((middleware) => middleware.name)).toEqual([SKILLS_MIDDLEWARE_NAME])
         expect(registry.get).toHaveBeenCalledTimes(1)
         expect(registry.get).toHaveBeenCalledWith(SKILLS_MIDDLEWARE_NAME)
+    })
+
+    it('throws a clear runtime error when one node connects to multiple skills middleware nodes', () => {
+        const graph = {
+            nodes: [
+                {
+                    key: 'skills-middleware-1',
+                    type: 'workflow',
+                    position: { x: 0, y: 0 },
+                    entity: {
+                        key: 'skills-middleware-1',
+                        type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                        provider: SKILLS_MIDDLEWARE_NAME,
+                        required: true
+                    } as IWFNMiddleware
+                } as TXpertTeamNode<'workflow'>,
+                {
+                    key: 'skills-middleware-2',
+                    type: 'workflow',
+                    position: { x: 100, y: 0 },
+                    entity: {
+                        key: 'skills-middleware-2',
+                        type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                        provider: SKILLS_MIDDLEWARE_NAME,
+                        required: true
+                    } as IWFNMiddleware
+                } as TXpertTeamNode<'workflow'>
+            ],
+            connections: [
+                { key: 'agent-1/skills-middleware-1', type: 'workflow', from: 'agent-1', to: 'skills-middleware-1' },
+                { key: 'agent-1/skills-middleware-2', type: 'workflow', from: 'agent-1', to: 'skills-middleware-2' }
+            ]
+        } as TXpertGraph
+
+        expect(() => getRuntimeEnabledMiddlewareNodes(graph, { key: 'agent-1', options: {} } as IXpertAgent)).toThrow(
+            'Node "agent-1" can connect to only one Skills Middleware node'
+        )
     })
 })

@@ -511,7 +511,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   selectPanel(panel: ClawXpertConversationPanel) {
-    this.activePanel.update((activePanel) => (activePanel === panel ? null : panel))
+    this.activePanel.set(panel)
   }
 
   private async attachComposerReferences(references: ChatKitComposerReference[]) {
