@@ -1,11 +1,51 @@
-import { C_MEASURES, FilterOperator } from '@xpert-ai/ocap-core'
-import {
-	buildOcapQueryFromUose,
-	normalizeUoseQueryResponse,
-	UoseMdxQueryRequest
-} from './uose-query.mapper'
+import { C_MEASURES, CalculationType, FilterOperator, TimeLevelType } from '@xpert-ai/ocap-core'
+import type { Schema } from '@xpert-ai/ocap-core'
+import { buildOcapQueryFromUose, normalizeUoseQueryResponse, UoseMdxQueryRequest } from './uose-query.mapper'
 
 describe('uose-query.mapper', () => {
+	const salesSchema: Schema = {
+		name: 'Demo',
+		cubes: [
+			{
+				name: 'Sales',
+				dimensionUsages: [
+					{
+						name: 'Order Date',
+						source: 'Date',
+						foreignKey: 'order_date_key'
+					}
+				]
+			}
+		],
+		dimensions: [
+			{
+				name: 'Date',
+				type: 'TimeDimension',
+				hierarchies: [
+					{
+						name: 'Date',
+						levels: [
+							{
+								name: 'Year',
+								levelType: TimeLevelType.TimeYears,
+								semantics: {
+									formatter: '[yyyy]'
+								}
+							},
+							{
+								name: 'Month',
+								levelType: TimeLevelType.TimeMonths,
+								semantics: {
+									formatter: '[yyyy].[yyyyMM]'
+								}
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+
 	const baseRequest: UoseMdxQueryRequest = {
 		context: {
 			traceId: 'trace-1',
@@ -94,6 +134,122 @@ describe('uose-query.mapper', () => {
 			cube: 'Sales',
 			rows: [{ dimension: 'Region' }]
 		})
+	})
+
+	it('normalizes semantic date dimensions and time window members from schema', () => {
+		const query = buildOcapQueryFromUose(
+			{
+				...baseRequest,
+				dimensions: [{ dimensionId: 'Order Date', level: 'month' }],
+				filters: [],
+				timeWindow: {
+					from: '2024-01-01',
+					to: '2024-12-31'
+				}
+			},
+			salesSchema
+		)
+
+		expect(query.rows).toEqual([
+			{
+				dimension: '[Order Date]',
+				hierarchy: '[Order Date]',
+				level: 'Month'
+			}
+		])
+		expect(query.filters).toEqual([
+			{
+				dimension: {
+					dimension: '[Order Date]',
+					hierarchy: '[Order Date]',
+					level: 'Month'
+				},
+				operator: FilterOperator.BT,
+				members: [{ key: '[2024].[202401]' }, { key: '[2024].[202412]' }]
+			}
+		])
+	})
+
+	it('passes calculated measures and uses timeDimension for time window filters', () => {
+		const query = buildOcapQueryFromUose(
+			{
+				...baseRequest,
+				metrics: [{ metricId: 'Sales Amount Plus 10%', level: 'raw' }],
+				dimensions: [{ dimensionId: 'Region' }],
+				timeDimension: { dimensionId: 'Order Date', level: 'month' },
+				filters: [],
+				timeWindow: {
+					from: '2024-01-01',
+					to: '2024-12-31'
+				},
+				calculatedMeasures: [
+					{
+						name: 'Sales Amount Plus 10%',
+						caption: 'Sales Amount Plus 10%',
+						formula: '[Measures].[Sales Amount] * 1.1',
+						dimension: 'Measures',
+						calculationType: 'Calculated',
+						formatString: 'Currency'
+					}
+				]
+			},
+			salesSchema
+		)
+
+		expect(query.rows).toEqual([
+			{
+				dimension: 'Region',
+				hierarchy: 'Region',
+				level: undefined
+			}
+		])
+		expect(query.columns).toEqual([
+			{
+				dimension: C_MEASURES,
+				measure: 'Sales Amount Plus 10%'
+			}
+		])
+		expect(query.filters).toEqual([
+			{
+				dimension: {
+					dimension: '[Order Date]',
+					hierarchy: '[Order Date]',
+					level: 'Month'
+				},
+				operator: FilterOperator.BT,
+				members: [{ key: '[2024].[202401]' }, { key: '[2024].[202412]' }]
+			}
+		])
+		expect(query.calculatedMeasures).toEqual([
+			{
+				name: 'Sales Amount Plus 10%',
+				caption: 'Sales Amount Plus 10%',
+				formula: '[Measures].[Sales Amount] * 1.1',
+				dimension: C_MEASURES,
+				calculationType: CalculationType.Calculated,
+				properties: [
+					{
+						name: 'FORMAT_STRING',
+						value: 'Currency'
+					}
+				]
+			}
+		])
+	})
+
+	it('rejects full MDX statements in calculated measure formulas', () => {
+		expect(() =>
+			buildOcapQueryFromUose({
+				...baseRequest,
+				metrics: [{ metricId: 'Unsafe', level: 'raw' }],
+				calculatedMeasures: [
+					{
+						name: 'Unsafe',
+						formula: 'SELECT [Measures].[Revenue] ON COLUMNS FROM [Sales]'
+					}
+				]
+			})
+		).toThrow(/formula fragment/)
 	})
 
 	it('normalizes OCAP QueryReturn to UOSE response', () => {

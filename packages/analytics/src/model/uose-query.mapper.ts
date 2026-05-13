@@ -1,6 +1,26 @@
 import { createHash } from 'node:crypto'
-import { C_MEASURES, FilterOperator } from '@xpert-ai/ocap-core'
-import type { QueryOptions, QueryReturn } from '@xpert-ai/ocap-core'
+import {
+	C_MEASURES,
+	CalculationType,
+	FilterOperator,
+	reformat,
+	RuntimeLevelType,
+	TimeGranularity,
+	TimeLevelType,
+	unwrapBrackets,
+	wrapBrackets
+} from '@xpert-ai/ocap-core'
+import type {
+	Cube,
+	DimensionUsage,
+	CalculatedProperty,
+	PropertyDimension,
+	PropertyHierarchy,
+	PropertyLevel,
+	QueryOptions,
+	QueryReturn,
+	Schema
+} from '@xpert-ai/ocap-core'
 
 export type UoseMdxQueryMode = 'semantic_dsl' | 'mdx_statement' | 'native_dsl'
 export type UoseMetricLevel = 'raw' | 'business' | 'decision'
@@ -43,6 +63,20 @@ export interface UoseMdxFilter {
 	value: unknown
 }
 
+export interface UoseMdxCalculatedMeasure {
+	name: string
+	caption?: string
+	formula: string
+	dimension?: string
+	hierarchy?: string
+	calculationType?: 'Calculated'
+	formatString?: string
+	formatting?: {
+		unit?: string
+		decimal?: number
+	}
+}
+
 export interface UoseMdxQueryRequest {
 	context: UoseMdxAdapterContext
 	queryMode?: UoseMdxQueryMode
@@ -50,7 +84,9 @@ export interface UoseMdxQueryRequest {
 	cubeName: string
 	metrics: UoseMdxMetricRef[]
 	dimensions?: UoseMdxDimensionRef[]
+	timeDimension?: UoseMdxDimensionRef
 	filters?: UoseMdxFilter[]
+	calculatedMeasures?: UoseMdxCalculatedMeasure[]
 	statement?: string
 	nativeQuery?: Record<string, unknown>
 	timeWindow?: {
@@ -90,7 +126,19 @@ export interface UoseMdxQueryResponse {
 	}
 }
 
-export function buildOcapQueryFromUose(request: UoseMdxQueryRequest): QueryOptions {
+type ResolvedUoseDimensionRef = {
+	dimensionId: string
+	hierarchy: string
+	level?: string
+	levelFormatter?: string
+	timeGranularity?: TimeGranularity
+}
+
+const MAX_CALCULATED_EXPRESSION_LENGTH = 2000
+const DISALLOWED_MDX_EXPRESSION_PATTERN =
+	/\b(select|with|from|create|drop|alter|update|insert|delete|call|drillthrough)\b/i
+
+export function buildOcapQueryFromUose(request: UoseMdxQueryRequest, schema?: Schema): QueryOptions {
 	if (request.queryMode === 'native_dsl') {
 		return {
 			...(request.nativeQuery ?? {}),
@@ -98,9 +146,12 @@ export function buildOcapQueryFromUose(request: UoseMdxQueryRequest): QueryOptio
 		} as QueryOptions
 	}
 
-	const rows = (request.dimensions ?? []).map((dimension) => ({
+	const resolvedDimensions = (request.dimensions ?? []).map((dimension) =>
+		resolveDimensionRef(schema, request.cubeName, dimension)
+	)
+	const rows = resolvedDimensions.map((dimension) => ({
 		dimension: dimension.dimensionId,
-		hierarchy: dimension.hierarchy?.[0] ?? dimension.dimensionId,
+		hierarchy: dimension.hierarchy,
 		level: dimension.level
 	}))
 	const columns = request.metrics.map((metric) => ({
@@ -108,15 +159,17 @@ export function buildOcapQueryFromUose(request: UoseMdxQueryRequest): QueryOptio
 		measure: metric.metricId
 	}))
 	const filters = [
-		...(request.filters ?? []).map(mapFilter),
-		...mapTimeWindowFilters(request)
+		...(request.filters ?? []).map((filter) => mapFilter(filter, schema, request.cubeName)),
+		...mapTimeWindowFilters(request, resolvedDimensions, schema)
 	]
+	const calculatedMeasures = normalizeCalculatedMeasures(request.calculatedMeasures)
 
 	return {
 		cube: request.cubeName,
 		rows,
 		columns,
 		filters,
+		...(calculatedMeasures.length > 0 ? { calculatedMeasures } : {}),
 		paging: {
 			top: normalizeLimit(request.limit)
 		}
@@ -132,7 +185,9 @@ export function normalizeUoseQueryResponse(
 	const rows = extractRows(queryReturn)
 	const columns = extractColumns(queryReturn, rows)
 	const stats = readObject(queryReturn)?.stats as Record<string, unknown> | undefined
-	const statements = Array.isArray(stats?.statements) ? stats.statements.filter((item): item is string => typeof item === 'string') : []
+	const statements = Array.isArray(stats?.statements)
+		? stats.statements.filter((item): item is string => typeof item === 'string')
+		: []
 	const rowCount = rows.length
 
 	return {
@@ -173,26 +228,91 @@ export function buildUoseMdxError(
 	}
 }
 
-function mapFilter(filter: UoseMdxFilter) {
+function normalizeCalculatedMeasures(measures: UoseMdxCalculatedMeasure[] | undefined): CalculatedProperty[] {
+	const output: CalculatedProperty[] = []
+	for (const item of measures ?? []) {
+		const name = normalizeString(item.name)
+		const formula = normalizeString(item.formula)
+		if (!name || !formula) {
+			throw new Error('Calculated measure requires name and formula')
+		}
+		validateCalculatedExpression(formula)
+
+		const measure: CalculatedProperty = {
+			name,
+			formula,
+			dimension: normalizeString(item.dimension) ?? C_MEASURES,
+			calculationType: CalculationType.Calculated
+		}
+		const caption = normalizeString(item.caption)
+		if (caption) {
+			measure.caption = caption
+		}
+		const hierarchy = normalizeString(item.hierarchy)
+		if (hierarchy) {
+			measure.hierarchy = hierarchy
+		}
+		if (item.formatting) {
+			measure.formatting = item.formatting
+		}
+		const formatString = normalizeString(item.formatString)
+		if (formatString) {
+			measure.properties = [
+				...(measure.properties ?? []),
+				{
+					name: 'FORMAT_STRING',
+					value: formatString
+				}
+			]
+		}
+		output.push(measure)
+	}
+
+	return output
+}
+
+function validateCalculatedExpression(expression: string): void {
+	if (expression.length > MAX_CALCULATED_EXPRESSION_LENGTH) {
+		throw new Error(`Calculated expression is too long; max ${MAX_CALCULATED_EXPRESSION_LENGTH} characters`)
+	}
+	if (expression.includes(';')) {
+		throw new Error('Calculated expression must not contain semicolons')
+	}
+	if (DISALLOWED_MDX_EXPRESSION_PATTERN.test(expression)) {
+		throw new Error('Calculated expression must be an MDX formula fragment, not a full statement')
+	}
+}
+
+function mapFilter(filter: UoseMdxFilter, schema: Schema | undefined, cubeName: string) {
+	const field = resolveFieldDimensionId(schema, cubeName, filter.field)
 	const operator = mapFilterOperator(filter.op)
 	const members = mapFilterMembers(filter)
 
 	return {
 		dimension: {
-			dimension: filter.field,
-			hierarchy: filter.field
+			dimension: field,
+			hierarchy: field
 		},
 		operator,
 		members
 	}
 }
 
-function mapTimeWindowFilters(request: UoseMdxQueryRequest) {
+function mapTimeWindowFilters(
+	request: UoseMdxQueryRequest,
+	dimensions: ResolvedUoseDimensionRef[],
+	schema: Schema | undefined
+) {
 	if (!request.timeWindow) {
 		return []
 	}
 
-	const dimension = (request.dimensions ?? []).find((item) => item.level || /date|time|day|week|month|year/i.test(item.dimensionId))
+	const timeDimension = request.timeDimension
+		? resolveDimensionRef(schema, request.cubeName, request.timeDimension)
+		: undefined
+	const dimension =
+		timeDimension ??
+		dimensions.find((item) => item.level || /date|time|day|week|month|year/i.test(item.dimensionId))
 	if (!dimension) {
 		return []
 	}
@@ -201,16 +321,238 @@ function mapTimeWindowFilters(request: UoseMdxQueryRequest) {
 		{
 			dimension: {
 				dimension: dimension.dimensionId,
-				hierarchy: dimension.hierarchy?.[0] ?? dimension.dimensionId,
+				hierarchy: dimension.hierarchy,
 				level: dimension.level
 			},
 			operator: FilterOperator.BT,
 			members: [
-				{ key: request.timeWindow.from },
-				{ key: request.timeWindow.to }
+				{
+					key: formatTimeWindowMember(
+						request.timeWindow.from,
+						dimension.levelFormatter,
+						dimension.timeGranularity
+					)
+				},
+				{
+					key: formatTimeWindowMember(
+						request.timeWindow.to,
+						dimension.levelFormatter,
+						dimension.timeGranularity
+					)
+				}
 			]
 		}
 	]
+}
+
+function resolveDimensionRef(
+	schema: Schema | undefined,
+	cubeName: string,
+	dimension: UoseMdxDimensionRef
+): ResolvedUoseDimensionRef {
+	const cube = findCube(schema, cubeName)
+	const usage = findDimensionUsage(cube, dimension.dimensionId)
+	const sourceDimension = findSourceDimension(schema, cube, usage, dimension.dimensionId)
+	const sourceHierarchy = findHierarchy(sourceDimension, dimension.hierarchy?.[0])
+	const level = findLevel(sourceHierarchy, sourceDimension, dimension.level)
+	const dimensionId = usage ? toUniqueNameSegment(usage.name) : dimension.dimensionId
+	const hierarchy = dimension.hierarchy?.[0] ? toHierarchyName(dimensionId, dimension.hierarchy[0]) : dimensionId
+
+	return {
+		dimensionId,
+		hierarchy,
+		level: level?.name ?? dimension.level,
+		levelFormatter: level?.semantics?.formatter ?? level?.formatter,
+		timeGranularity: resolveTimeGranularity(level, dimension.level)
+	}
+}
+
+function resolveFieldDimensionId(schema: Schema | undefined, cubeName: string, field: string): string {
+	const usage = findDimensionUsage(findCube(schema, cubeName), field)
+	return usage ? toUniqueNameSegment(usage.name) : field
+}
+
+function findCube(schema: Schema | undefined, cubeName: string): Cube | undefined {
+	const normalizedCubeName = normalizeComparisonName(cubeName)
+	return schema?.cubes?.find((cube) => normalizeComparisonName(cube.name) === normalizedCubeName)
+}
+
+function findDimensionUsage(cube: Cube | undefined, dimensionId: string): DimensionUsage | undefined {
+	const normalizedDimensionId = normalizeComparisonName(dimensionId)
+	return cube?.dimensionUsages?.find((usage) =>
+		[usage.name, usage.caption, usage.source].some(
+			(candidate) => normalizeComparisonName(candidate) === normalizedDimensionId
+		)
+	)
+}
+
+function findSourceDimension(
+	schema: Schema | undefined,
+	cube: Cube | undefined,
+	usage: DimensionUsage | undefined,
+	dimensionId: string
+): PropertyDimension | undefined {
+	const candidates = [usage?.source, usage?.name, dimensionId]
+	for (const candidate of candidates) {
+		const normalizedCandidate = normalizeComparisonName(candidate)
+		if (!normalizedCandidate) {
+			continue
+		}
+		const dimension = [...(schema?.dimensions ?? []), ...(cube?.dimensions ?? [])].find(
+			(item) =>
+				normalizeComparisonName(item.name) === normalizedCandidate ||
+				normalizeComparisonName(item.caption) === normalizedCandidate
+		)
+		if (dimension) {
+			return dimension
+		}
+	}
+	return undefined
+}
+
+function findHierarchy(
+	dimension: PropertyDimension | undefined,
+	requestedHierarchy: string | undefined
+): PropertyHierarchy | undefined {
+	const hierarchies = dimension?.hierarchies ?? []
+	if (!requestedHierarchy) {
+		return hierarchies.find((hierarchy) => hierarchy.name === dimension?.defaultHierarchy) ?? hierarchies[0]
+	}
+
+	const normalizedHierarchy = normalizeComparisonName(requestedHierarchy)
+	return hierarchies.find(
+		(hierarchy) =>
+			normalizeComparisonName(hierarchy.name) === normalizedHierarchy ||
+			normalizeComparisonName(hierarchy.caption) === normalizedHierarchy
+	)
+}
+
+function findLevel(
+	hierarchy: PropertyHierarchy | undefined,
+	dimension: PropertyDimension | undefined,
+	requestedLevel: string | undefined
+): PropertyLevel | undefined {
+	const levels = hierarchy?.levels ?? dimension?.hierarchies?.flatMap((item) => item.levels ?? []) ?? []
+	const normalizedLevel = normalizeComparisonName(lastUniqueNameSegment(requestedLevel))
+	if (!normalizedLevel) {
+		return undefined
+	}
+
+	return levels.find(
+		(level) =>
+			normalizeComparisonName(level.name) === normalizedLevel ||
+			normalizeComparisonName(level.caption) === normalizedLevel ||
+			isTimeLevelMatch(level, normalizedLevel)
+	)
+}
+
+function isTimeLevelMatch(level: PropertyLevel, normalizedLevel: string): boolean {
+	const requestedGranularity = timeGranularityFromLevelName(normalizedLevel)
+	return requestedGranularity !== undefined && resolveTimeGranularity(level, undefined) === requestedGranularity
+}
+
+function resolveTimeGranularity(
+	level: PropertyLevel | undefined,
+	requestedLevel: string | undefined
+): TimeGranularity | undefined {
+	const normalizedLevel = normalizeComparisonName(lastUniqueNameSegment(requestedLevel))
+	const requestedGranularity = timeGranularityFromLevelName(normalizedLevel)
+	if (requestedGranularity) {
+		return requestedGranularity
+	}
+
+	if (!level) {
+		return undefined
+	}
+
+	const levelType = level.levelType
+	if (levelType === TimeLevelType.TimeYears || levelType === RuntimeLevelType.TIME_YEAR) {
+		return TimeGranularity.Year
+	}
+	if (levelType === TimeLevelType.TimeQuarters || levelType === RuntimeLevelType.TIME_QUARTER) {
+		return TimeGranularity.Quarter
+	}
+	if (levelType === TimeLevelType.TimeMonths || levelType === RuntimeLevelType.TIME_MONTH) {
+		return TimeGranularity.Month
+	}
+	if (levelType === TimeLevelType.TimeWeeks || levelType === RuntimeLevelType.TIME_WEEK) {
+		return TimeGranularity.Week
+	}
+	if (levelType === TimeLevelType.TimeDays || levelType === RuntimeLevelType.TIME_DAY) {
+		return TimeGranularity.Day
+	}
+
+	return undefined
+}
+
+function timeGranularityFromLevelName(normalizedLevel: string): TimeGranularity | undefined {
+	if (normalizedLevel === 'year') {
+		return TimeGranularity.Year
+	}
+	if (normalizedLevel === 'quarter') {
+		return TimeGranularity.Quarter
+	}
+	if (normalizedLevel === 'month') {
+		return TimeGranularity.Month
+	}
+	if (normalizedLevel === 'week') {
+		return TimeGranularity.Week
+	}
+	if (normalizedLevel === 'day' || normalizedLevel === 'date') {
+		return TimeGranularity.Day
+	}
+	return undefined
+}
+
+function formatTimeWindowMember(
+	value: string,
+	formatter: string | undefined,
+	timeGranularity: TimeGranularity | undefined
+): string {
+	const trimmed = normalizeString(value)
+	if (!trimmed || !formatter || !timeGranularity || trimmed.startsWith('[')) {
+		return value
+	}
+
+	try {
+		return reformat(new Date(), trimmed, timeGranularity, formatter)
+	} catch {
+		return value
+	}
+}
+
+function toHierarchyName(dimensionId: string, hierarchy: string): string {
+	const trimmed = hierarchy.trim()
+	if (!trimmed || trimmed.startsWith('[')) {
+		return hierarchy
+	}
+	return `${dimensionId}.${toUniqueNameSegment(trimmed)}`
+}
+
+function toUniqueNameSegment(value: string): string {
+	const trimmed = value.trim()
+	if (!trimmed || trimmed.startsWith('[')) {
+		return value
+	}
+	return wrapBrackets(trimmed)
+}
+
+function lastUniqueNameSegment(value: string | undefined): string | undefined {
+	const trimmed = normalizeString(value)
+	if (!trimmed) {
+		return undefined
+	}
+	const parts = trimmed.split('].[')
+	if (parts.length > 1) {
+		const lastPart = parts[parts.length - 1]
+		return unwrapBrackets(lastPart?.startsWith('[') ? lastPart : `[${lastPart}`)
+	}
+	return unwrapBrackets(trimmed)
+}
+
+function normalizeComparisonName(value: string | undefined): string {
+	const normalized = lastUniqueNameSegment(value)?.trim().toLowerCase()
+	return normalized ?? ''
 }
 
 function mapFilterOperator(op: UoseMdxFilter['op']): FilterOperator {
@@ -249,7 +591,11 @@ function mapFilterMembers(filter: UoseMdxFilter) {
 
 function unwrapQueryReturn(payload: unknown): unknown {
 	const object = readObject(payload)
-	if (object && readObject(object.data) && (Array.isArray(readObject(object.data)?.data) || readObject(object.data)?.schema)) {
+	if (
+		object &&
+		readObject(object.data) &&
+		(Array.isArray(readObject(object.data)?.data) || readObject(object.data)?.schema)
+	) {
 		return object.data
 	}
 	return payload
@@ -257,14 +603,12 @@ function unwrapQueryReturn(payload: unknown): unknown {
 
 function extractRows(payload: unknown): Array<Record<string, unknown>> {
 	const object = readObject(payload)
-	const rows = (
-		(Array.isArray(payload) && payload) ||
+	const rows = ((Array.isArray(payload) && payload) ||
 		(Array.isArray(object?.rows) && object.rows) ||
 		(Array.isArray(object?.data) && object.data) ||
 		(Array.isArray(readObject(object?.data)?.rows) && readObject(object?.data)?.rows) ||
 		(Array.isArray(readObject(object?.data)?.data) && readObject(object?.data)?.data) ||
-		[]
-	) as unknown[]
+		[]) as unknown[]
 
 	return rows.map((row, index) => {
 		if (row && typeof row === 'object' && !Array.isArray(row)) {
