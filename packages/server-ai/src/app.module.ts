@@ -43,6 +43,7 @@ import { FileUploadTargetsModule } from './shared'
 import { InitializationModule } from './initialization/initialization.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 import { VolumeModule } from './shared/volume'
+import { FileMemoryModule } from './file-memory'
 
 @Module({
     imports: [
@@ -67,6 +68,7 @@ import { VolumeModule } from './shared/volume'
         HandoffQueueModule,
         FileUploadTargetsModule,
         VolumeModule,
+        FileMemoryModule,
         XpertModule,
         XpertAgentModule,
         XpertMiddlewareModule,
