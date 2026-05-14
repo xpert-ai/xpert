@@ -153,7 +153,9 @@ Automatic skill discovery is enabled. If the installed skills above are not enou
 3. After installation, read the installed skill's SKILL.md with read_skill_file and follow its instructions.
 4. You can also add skills yourself with \`npx skills add\`; it installs skills under the current working directory's \`.agents/skills\`. Read those SKILL.md files with read_skill_file using paths inside the current working directory.
 
-Search only when a new skill is likely to materially improve the answer. Do not install unrelated or speculative skills.`
+Search only when a new skill is likely to materially improve the answer. Do not install unrelated or speculative skills.
+
+This is a runtime skill flow. Do not use read_skill_file, repository search, repository install, npx skills add, or runtime skill directories to create or maintain workspace skill packages. Use dedicated workspace skill authoring tools when present.`
 const SKILLS_SYSTEM_PROMPT = `
 ## Skills System
 
@@ -195,7 +197,9 @@ User: "Can you research the latest developments in quantum computing?"
 3. Follow the skill's research workflow (search → organize → synthesize)
 4. Use any helper scripts with absolute paths
 
-Remember: Skills are tools to make you more capable and consistent. When in doubt, check if a skill exists for the task!`
+Remember: Skills are tools to make you more capable and consistent. When in doubt, check if a skill exists for the task.
+
+Use this runtime flow to apply existing skills, not to author workspace skill packages. If the user asks to create, update, or delete a skill package, use dedicated workspace skill authoring tools when present.`
 
 /**
  * Middleware for loading and exposing agent skills.

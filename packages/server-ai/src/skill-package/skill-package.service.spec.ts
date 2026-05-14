@@ -14,6 +14,7 @@ jest.mock('@xpert-ai/server-common', () => ({
 				version?: string
 				license?: string
 				tags?: string[]
+				[key: string]: unknown
 			} = {}
 			let currentArrayKey: 'tags' | null = null
 
@@ -42,9 +43,7 @@ jest.mock('@xpert-ai/server-common', () => ({
 					continue
 				}
 
-				if (key === 'name' || key === 'description' || key === 'version' || key === 'license') {
-					result[key] = parsedValue
-				}
+				result[key] = parsedValue
 			}
 
 			return result
@@ -785,6 +784,67 @@ describe('SkillPackageService', () => {
 		)
 	})
 
+	it('creates a workspace skill package with bundled agents, scripts, references, and assets', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-complex-'))
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		createSpy.mockImplementationOnce(async (item: any) => ({
+			id: 'skill-created-1',
+			...item
+		}))
+
+		const result = await service.createWorkspaceSkillPackage('workspace-1', {
+			userIntent: 'Create image editor skill',
+			skillName: 'Image Editor',
+			skillMarkdown: '---\nname: image-editor\ndescription: Edit images.\n---\n# Image Editor\n',
+			files: [
+				{
+					path: 'agents/openai.yaml',
+					content: 'display_name: Image Editor\nshort_description: Edit images\n'
+				},
+				{
+					path: 'scripts/rotate.py',
+					content: 'print("rotate")\n',
+					executable: true
+				},
+				{
+					path: 'references/workflows.md',
+					content: '# Workflows\n'
+				},
+				{
+					path: 'assets/icon.png',
+					contentBase64: 'aWNvbg=='
+				}
+			]
+		})
+
+		expect(createSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				workspaceId: 'workspace-1',
+				skillIndexId: null,
+				visibility: 'private',
+				packagePath: 'image-editor'
+			})
+		)
+		await expect(readFile(join(tempRoot, 'image-editor', 'SKILL.md'), 'utf8')).resolves.toContain('# Image Editor\n')
+		await expect(readFile(join(tempRoot, 'image-editor', 'agents/openai.yaml'), 'utf8')).resolves.toContain(
+			'display_name: Image Editor'
+		)
+		await expect(readFile(join(tempRoot, 'image-editor', 'scripts/rotate.py'), 'utf8')).resolves.toBe(
+			'print("rotate")\n'
+		)
+		await expect(readFile(join(tempRoot, 'image-editor', 'references/workflows.md'), 'utf8')).resolves.toBe(
+			'# Workflows\n'
+		)
+		await expect(readFile(join(tempRoot, 'image-editor', 'assets/icon.png'))).resolves.toEqual(Buffer.from('icon'))
+		expect(result.files).toEqual([
+			expect.objectContaining({ path: 'SKILL.md' }),
+			expect.objectContaining({ path: 'agents/openai.yaml' }),
+			expect.objectContaining({ path: 'scripts/rotate.py' }),
+			expect.objectContaining({ path: 'references/workflows.md' }),
+			expect.objectContaining({ path: 'assets/icon.png' })
+		])
+	})
+
 	it('adds a numeric suffix when creating a workspace skill package with an existing slug', async () => {
 		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-dup-'))
 		await mkdir(join(tempRoot, 'workspace-skill'), { recursive: true })
@@ -815,6 +875,97 @@ describe('SkillPackageService', () => {
 			})
 		).rejects.toThrow('SKILL.md frontmatter must include name and description')
 		expect(createSpy).not.toHaveBeenCalled()
+	})
+
+	it('rejects strict workspace skill creation when SKILL.md frontmatter has extra fields', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-strict-invalid-'))
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+		await expect(
+			service.createWorkspaceSkillPackage('workspace-1', {
+				userIntent: 'Create a workspace helper',
+				skillName: 'Workspace Skill',
+				skillMarkdown:
+					'---\nname: Workspace Skill\ndescription: Helps this workspace.\nversion: 1.0.0\n---\n# Workspace Skill\n',
+				strictFrontmatter: true
+			})
+		).rejects.toThrow('SKILL.md frontmatter may only include name, description')
+		expect(createSpy).not.toHaveBeenCalled()
+	})
+
+	it('rejects workspace skill creation when bundled files try to replace SKILL.md', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-file-invalid-'))
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+		await expect(
+			service.createWorkspaceSkillPackage('workspace-1', {
+				userIntent: 'Create a workspace helper',
+				skillName: 'Workspace Skill',
+				skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+				files: [{ path: 'SKILL.md', content: '# Replacement\n' }]
+			})
+		).rejects.toThrow('SKILL.md must be provided with skillMarkdown')
+		expect(createSpy).not.toHaveBeenCalled()
+		await expect(readFile(join(tempRoot, 'workspace-skill', 'SKILL.md'), 'utf8')).rejects.toThrow()
+	})
+
+	it('rejects workspace skill creation when bundled files use unsafe or duplicate paths', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-path-invalid-'))
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+		await expect(
+			service.createWorkspaceSkillPackage('workspace-1', {
+				userIntent: 'Create a workspace helper',
+				skillName: 'Workspace Skill',
+				skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+				files: [{ path: '../secret.txt', content: 'secret\n' }]
+			})
+		).rejects.toThrow('Invalid skill file path')
+
+		await expect(
+			service.createWorkspaceSkillPackage('workspace-1', {
+				userIntent: 'Create a workspace helper',
+				skillName: 'Workspace Skill',
+				skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+				files: [
+					{ path: 'references/guide.md', content: '# Guide\n' },
+					{ path: 'references/guide.md', content: '# Duplicate\n' }
+				]
+			})
+		).rejects.toThrow('Duplicate skill file path')
+		expect(createSpy).not.toHaveBeenCalled()
+	})
+
+	it('rejects workspace skill creation when bundled files include invalid base64', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-base64-invalid-'))
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+		await expect(
+			service.createWorkspaceSkillPackage('workspace-1', {
+				userIntent: 'Create a workspace helper',
+				skillName: 'Workspace Skill',
+				skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+				files: [{ path: 'assets/icon.png', contentBase64: 'not-base64???' }]
+			})
+		).rejects.toThrow('invalid base64 content')
+		expect(createSpy).not.toHaveBeenCalled()
+	})
+
+	it('cleans up the package directory when database creation fails after staged write', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-db-fail-'))
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		createSpy.mockRejectedValueOnce(new Error('db failed'))
+
+		await expect(
+			service.createWorkspaceSkillPackage('workspace-1', {
+				userIntent: 'Create a workspace helper',
+				skillName: 'Workspace Skill',
+				skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+				files: [{ path: 'references/guide.md', content: '# Guide\n' }]
+			})
+		).rejects.toThrow('db failed')
+		await expect(readFile(join(tempRoot, 'workspace-skill', 'SKILL.md'), 'utf8')).rejects.toThrow()
+		await expect(readFile(join(tempRoot, 'workspace-skill', 'references/guide.md'), 'utf8')).rejects.toThrow()
 	})
 
 	it('publishes a template skill bundle from a directory and excludes bundle.yaml from installed files', async () => {
@@ -1056,6 +1207,64 @@ describe('SkillPackageService', () => {
 		const saveResult = await service.saveSkillPackageFile('workspace-1', 'skill-1', 'SKILL.md', '# After\n')
 		expect(saveResult.contents).toBe('# After\n')
 		await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# After\n')
+	})
+
+	it('saves workspace SKILL.md with strict frontmatter validation and refreshes metadata', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-save-skill-md-'))
+		const skillRoot = join(tempRoot, 'weather')
+		await mkdir(skillRoot, { recursive: true })
+		await writeFile(
+			join(skillRoot, 'SKILL.md'),
+			'---\nname: Weather\ndescription: Before.\n---\n# Weather\n',
+			'utf8'
+		)
+
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		;(service as any).findOne = jest.fn().mockImplementation(async () => ({
+			id: 'skill-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			packagePath: 'weather',
+			visibility: 'private',
+			metadata: {
+				name: 'Weather',
+				skillMdPath: join(skillRoot, 'SKILL.md')
+			}
+		}))
+
+		const result = await service.saveWorkspaceSkillMarkdown(
+			'workspace-1',
+			'skill-1',
+			'---\nname: Weather\ndescription: After.\n---\n# Weather\n',
+			{ strictFrontmatter: true }
+		)
+
+		expect(result.file.contents).toContain('description: After.')
+		expect(service.update).toHaveBeenCalledWith(
+			'skill-1',
+			expect.objectContaining({
+				workspaceId: 'workspace-1',
+				name: 'Weather',
+				metadata: expect.objectContaining({
+					name: 'Weather',
+					description: expect.objectContaining({ en_US: 'After.' }),
+					source: 'file',
+					skillPath: 'weather',
+					skillMdPath: join(skillRoot, 'SKILL.md')
+				})
+			})
+		)
+	})
+
+	it('rejects strict workspace SKILL.md updates with extra frontmatter fields', async () => {
+		await expect(
+			service.saveWorkspaceSkillMarkdown(
+				'workspace-1',
+				'skill-1',
+				'---\nname: Weather\ndescription: After.\nversion: 1.0.0\n---\n# Weather\n',
+				{ strictFrontmatter: true }
+			)
+		).rejects.toThrow('SKILL.md frontmatter may only include name, description')
 	})
 
 	it('deletes workspace skill folders recursively', async () => {
