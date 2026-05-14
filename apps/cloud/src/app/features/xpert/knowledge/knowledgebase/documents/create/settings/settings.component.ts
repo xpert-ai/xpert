@@ -18,13 +18,12 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
 import { KnowledgeDocIdComponent } from '@cloud/app/@shared/knowledge'
 import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmCheckboxComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xp-knowledge-document-create-settings',

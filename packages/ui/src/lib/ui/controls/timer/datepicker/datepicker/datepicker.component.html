@@ -1,0 +1,10 @@
+@if (label()) {
+  <label>{{ label() }}</label>
+}
+
+<div class="flex items-center gap-2">
+  <div class="flex-1">
+    <z-date-picker [formControl]="date" />
+  </div>
+  <ng-content select="[ngmSuffix]"></ng-content>
+</div>

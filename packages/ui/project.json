@@ -4,7 +4,7 @@
   "sourceRoot": "packages/ui/src",
   "prefix": "xp",
   "projectType": "library",
-  "tags": [],
+  "tags": ["scope:headless-ui"],
   "targets": {
     "build": {
       "executor": "@nx/angular:package",

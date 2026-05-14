@@ -1,4 +1,3 @@
-
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -15,7 +14,6 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { routeAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -31,7 +29,13 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { XpertToolBuiltinCredentialComponent } from './credential/credential.component'
 import { isNil } from 'lodash-es'
-import { ZardDialogModule, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmSpinComponent,
+  ZardDialogModule,
+  ZardInputDirective,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { TextFieldModule } from '@angular/cdk/text-field'
 
 @Component({
@@ -48,7 +52,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
     TextFieldModule,
     XpertToolBuiltinCredentialComponent,
     ZardSwitchComponent
-],
+  ],
   selector: 'xpert-tool-builtin-authorize',
   templateUrl: './authorize.component.html',
   styleUrl: 'authorize.component.scss',
@@ -105,22 +109,18 @@ export class XpertToolBuiltinAuthorizeComponent {
     //   },
     // )
 
-    effect(
-      () => {
-        if (this.toolsetCredentials()) {
-          this.#credentials.set(this.toolsetCredentials())
-        }
+    effect(() => {
+      if (this.toolsetCredentials()) {
+        this.#credentials.set(this.toolsetCredentials())
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (this.toolset()) {
-          this.toolsetName.set(this.toolset().name)
-          this.toolsetDescription.set(this.toolset().description)
-        }
+    effect(() => {
+      if (this.toolset()) {
+        this.toolsetName.set(this.toolset().name)
+        this.toolsetDescription.set(this.toolset().description)
       }
-    )
+    })
   }
 
   getCredential(name: string) {

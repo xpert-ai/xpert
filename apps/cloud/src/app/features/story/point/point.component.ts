@@ -15,7 +15,6 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { ActivatedRoute } from '@angular/router'
 import { StoryPointsService, convertStoryResult } from '@xpert-ai/cloud/state'
 import { NgmTransformScaleDirective, NxCoreService } from '@xpert-ai/core'
-import { NgmDrawerTriggerComponent } from '@xpert-ai/ocap-angular/common'
 import { DensityDirective, effectAction } from '@xpert-ai/ocap-angular/core'
 import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import { AgentType, omit } from '@xpert-ai/ocap-core'
@@ -33,6 +32,7 @@ import { StoryScales } from '../types'
 import { provideStory } from '@xpert-ai/story'
 import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
+import { NgmDrawerTriggerComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

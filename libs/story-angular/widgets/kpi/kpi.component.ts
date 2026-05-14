@@ -4,7 +4,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling, WidgetMenuType, nonNullable } from '@xpert-ai/core'
-import { NgmObjectNumberComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmSelectionModule, SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
 import {
   DataSettings,
@@ -26,7 +25,12 @@ import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { KPIPlaceholderComponent } from './placeholder/placeholder.component'
 import { KeyPerformanceIndicatorService } from './key-performance-indicator.service'
 import { NxWidgetKPIOptions } from './types'
-import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmObjectNumberComponent,
+  NgmSpinComponent,
+  ZardIconComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 export interface PacWidgetKPIStyling extends StoryWidgetStyling {
   title: ComponentStyling
   value: ComponentStyling

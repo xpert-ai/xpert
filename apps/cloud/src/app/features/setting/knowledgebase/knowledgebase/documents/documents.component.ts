@@ -2,13 +2,15 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ZardDialogService, ZardPaginatorComponent, ZardProgressCircleComponent, type ZardTableSortDirection } from '@xpert-ai/headless-ui'
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
-  NgmCommonModule,
   NgmConfirmDeleteService,
-  NgmCountdownConfirmationComponent
-} from '@xpert-ai/ocap-angular/common'
+  ZardDialogService,
+  ZardPaginatorComponent,
+  ZardProgressCircleComponent,
+  type ZardTableSortDirection
+} from '@xpert-ai/headless-ui'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { NgmCommonModule, NgmCountdownConfirmationComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { get } from 'lodash-es'
 import {
@@ -155,13 +157,18 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
           })
         )
         .subscribe((data) =>
-          this.data.set(data.map((item) => ({
-            ...item,
-            createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
-              locale: getDateLocale(this.translateService.currentLang)
-            }),
-            parserConfig: item.parserConfig ?? {}
-          }) as IKnowledgeDocument))
+          this.data.set(
+            data.map(
+              (item) =>
+                ({
+                  ...item,
+                  createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
+                    locale: getDateLocale(this.translateService.currentLang)
+                  }),
+                  parserConfig: item.parserConfig ?? {}
+                }) as IKnowledgeDocument
+            )
+          )
         )
     })
 

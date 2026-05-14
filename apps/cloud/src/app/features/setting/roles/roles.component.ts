@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angul
 import { BehaviorSubject, firstValueFrom, Subject } from 'rxjs'
 import { debounceTime, filter, map, shareReplay, switchMap, tap } from 'rxjs/operators'
 import { environment } from '../../../../environments/environment'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import { NgmConfirmDeleteService, NgmConfirmUniqueComponent, ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   IRole,
@@ -18,7 +18,6 @@ import {
 } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
   standalone: false,
@@ -28,7 +27,7 @@ import { NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@xpert-ai/oc
 })
 export class RolesComponent extends TranslationBaseComponent implements OnInit {
   readonly destroyRef = inject(DestroyRef)
-  
+
   permissionGroups = PermissionGroups
 
   private readonly refresh$ = new BehaviorSubject<void>(null)
@@ -137,7 +136,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
         this.getTranslation(`PAC.NOTES.ROLES.PERMISSION_UPDATED`, {
           Default: `Permission '{{name}}' Updated`,
           name: this.role.name
-        }),
+        })
       )
     } catch (error) {
       // this.toastrService.danger(
@@ -185,7 +184,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
       const newRole = await firstValueFrom(this.rolesService.create({ name: result, rolePermissions: [] }))
       if (newRole) {
         this.refresh()
-        this._toastr.success('PAC.NOTES.ROLES.RoleCreate', {Default: 'Create Role'})
+        this._toastr.success('PAC.NOTES.ROLES.RoleCreate', { Default: 'Create Role' })
         this.role = newRole
       }
     } catch (error) {
@@ -199,14 +198,16 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
     }
 
     const result = await firstValueFrom(
-      this._dialog.open(NgmConfirmUniqueComponent, {
-        data: {
-          title: this.getTranslation('PAC.Role.RenameTitle', {
-            Default: 'Rename Role'
-          }),
-          value: role.name
-        }
-      }).afterClosed()
+      this._dialog
+        .open(NgmConfirmUniqueComponent, {
+          data: {
+            title: this.getTranslation('PAC.Role.RenameTitle', {
+              Default: 'Rename Role'
+            }),
+            value: role.name
+          }
+        })
+        .afterClosed()
     )
 
     const name = result?.trim?.() ?? result
@@ -232,7 +233,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
       try {
         await firstValueFrom(this.rolesService.delete(role))
         this.refresh()
-        this._toastr.success('PAC.NOTES.ROLES.RoleDelete', {Default: 'Delete Role'})
+        this._toastr.success('PAC.NOTES.ROLES.RoleDelete', { Default: 'Delete Role' })
       } catch (error) {
         this._toastr.error(getErrorMessage(error))
       }
@@ -252,17 +253,17 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
   }
 
   /**
-	 * Disabled General Group Permissions
-	 *
-	 * @returns
-	 */
-	isDisabledAdministrationPermissions(): boolean {
-		if (!this.role) {
-			return true;
-		}
-		if (this.user?.role.name === RolesEnum.SUPER_ADMIN) {
-			return false;
-		}
-		return true;
-	}
+   * Disabled General Group Permissions
+   *
+   * @returns
+   */
+  isDisabledAdministrationPermissions(): boolean {
+    if (!this.role) {
+      return true
+    }
+    if (this.user?.role.name === RolesEnum.SUPER_ADMIN) {
+      return false
+    }
+    return true
+  }
 }

@@ -3,12 +3,21 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, TemplateRef, ViewChild, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms'
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators
+} from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
 import { IModelRole } from '@xpert-ai/contracts'
-import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
-import { buildListboxOptions, ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { ButtonGroupDirective, NgmDisplayBehaviourComponent, NgmSearchComponent } from '@xpert-ai/headless-ui'
+import { buildListboxOptions, ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { cloneDeep } from '@xpert-ai/ocap-core'
 import { uuid } from 'apps/cloud/src/app/@core'
 import { NGXLogger } from 'ngx-logger'
@@ -17,7 +26,13 @@ import { SemanticModelService } from '../model.service'
 import { AccessControlStateService } from './access-control.service'
 import { ModelComponent } from '../model.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
+import {
+  Z_MODAL_DATA,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardDialogService
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: false,
@@ -51,7 +66,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
 
   // Selectors
 
-  readonly modelSideMenuOpened= this.#model.sideMenuOpened
+  readonly modelSideMenuOpened = this.#model.sideMenuOpened
   creatFormGroup = new FormGroup({
     name: new FormControl('', [Validators.required, this.forbiddenNameValidator()]),
     type: new FormControl(),
@@ -159,9 +174,9 @@ export class AccessControlComponent extends TranslationBaseComponent {
         (cdkListboxValueChange)="value.set([...$event.value])"
       >
         @for (item of options(); track item.key) {
-        <li class="ngm-cdk-option" [cdkOption]="item.value ?? item.key">
-          <ngm-display-behaviour [option]="toDisplayOption(item)" [highlight]="search.value"></ngm-display-behaviour>
-        </li>
+          <li class="ngm-cdk-option" [cdkOption]="item.value ?? item.key">
+            <ngm-display-behaviour [option]="toDisplayOption(item)" [highlight]="search.value"></ngm-display-behaviour>
+          </li>
         }
       </ul>
     </div>
@@ -182,7 +197,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
     NgmSearchComponent,
     NgmDisplayBehaviourComponent,
     ButtonGroupDirective
-]
+  ]
 })
 export class CubeSelectorComponent {
   readonly #dialogRef = inject(ZardDialogRef)

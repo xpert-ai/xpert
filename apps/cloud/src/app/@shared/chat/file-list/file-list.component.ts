@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { FileTypePipe } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { cloneDeep, sortBy } from 'lodash-es'
@@ -18,6 +17,7 @@ import {
   XpertProjectService
 } from '../../../@core'
 import { FileIconComponent } from '../../files'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 export type TFileDirectoryItem = TFileDirectory & {
   expanded?: boolean
@@ -42,7 +42,7 @@ export type TFileDirectoryItem = TFileDirectory & {
     DateRelativePipe,
     FileTypePipe,
     FileIconComponent
-]
+  ]
 })
 export class ChatFileListComponent {
   readonly #conversation = inject(ChatConversationService)
@@ -62,10 +62,11 @@ export class ChatFileListComponent {
 
   // States
   readonly #files = myRxResource<{ projectId?: string; conversationId: string }, TFileDirectoryItem[]>({
-    request: () => this.refresh() && {
-      projectId: this.projectId(),
-      conversationId: this.conversationId()
-    },
+    request: () =>
+      this.refresh() && {
+        projectId: this.projectId(),
+        conversationId: this.conversationId()
+      },
     loader: ({ request }) => this.getFiles({ ...request })
   })
 
@@ -149,42 +150,42 @@ export class ChatFileListComponent {
   }
 
   deleteFile(file: TFileDirectoryItem) {
-    this.loading.set(true);
-    (this.projectId() ? 
-      this.#projectService.deleteFile(this.projectId(), file.fullPath)
-      : this.#conversation.deleteFile(this.conversationId(), file.fullPath)).subscribe({
-        next: () => {
-          this.loading.set(false)
-          this.refresh.set({}) // Trigger refresh
-          this.#toastr.success('PAC.Chat.FileDeleted', {Default: 'File deleted successfully'})
-        },
-        error: (error) => {
-          this.loading.set(false)
-          this.#toastr.error('PAC.Chat.FileDeleteError', '', {Default: 'Failed to delete file'})
-        },
-      })
+    this.loading.set(true)
+    ;(this.projectId()
+      ? this.#projectService.deleteFile(this.projectId(), file.fullPath)
+      : this.#conversation.deleteFile(this.conversationId(), file.fullPath)
+    ).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.refresh.set({}) // Trigger refresh
+        this.#toastr.success('PAC.Chat.FileDeleted', { Default: 'File deleted successfully' })
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error('PAC.Chat.FileDeleteError', '', { Default: 'Failed to delete file' })
+      }
+    })
   }
 
   emptyFiles() {
-    this.deleteFile({fullPath: '/', filePath: '/', directory: '/',})
+    this.deleteFile({ fullPath: '/', filePath: '/', directory: '/' })
   }
 }
 
 function flatten(items: TFileDirectoryItem[], level = 0): TFileDirectoryItem[] {
-  return sortBy(items, 'createdAt').reverse().reduce((acc: TFileDirectoryItem[], item) => {
-    acc.push({ ...item, level, levels: new Array(level).fill(null) })
-    if (item.expanded && item.children && item.children.length > 0) {
-      acc.push(...flatten(item.children, level + 1))
-    }
-    return acc
-  }, [])
+  return sortBy(items, 'createdAt')
+    .reverse()
+    .reduce((acc: TFileDirectoryItem[], item) => {
+      acc.push({ ...item, level, levels: new Array(level).fill(null) })
+      if (item.expanded && item.children && item.children.length > 0) {
+        acc.push(...flatten(item.children, level + 1))
+      }
+      return acc
+    }, [])
 }
 
 // Find the attachment in the tree by fullPath
-function findAttachmentByFullPath(
-  items: TFileDirectoryItem[],
-  fullPath: string
-): TFileDirectoryItem | undefined {
+function findAttachmentByFullPath(items: TFileDirectoryItem[], fullPath: string): TFileDirectoryItem | undefined {
   for (const item of items) {
     if (item.fullPath === fullPath) {
       return item

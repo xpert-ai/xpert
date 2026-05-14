@@ -1,0 +1,101 @@
+@use 'sass:map';
+@use 'sass:color';
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+
+@mixin color($config-or-theme) {
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $primary: map.get($config, 'primary');
+  $background: map.get($config, background);
+
+  z-tree.ngm-tree-select__panel {
+    background-color: transparent;
+
+    [data-slot='tree-node'] {
+      padding-right: 10px;
+    }
+
+    &.selection {
+      [data-slot='tree-node'] {
+        cursor: pointer;
+
+        &:hover,
+        &:focus {
+          background-color: color.change(themeCompat.m2-get-color-from-palette($background, hover), $alpha: 0.03);
+          // color: themeCompat.m2-get-color-from-palette($primary);
+        }
+
+        &.selected {
+          background-color: color.change(themeCompat.m2-get-color-from-palette($background, hover), $alpha: 0.05);
+        }
+      }
+    }
+  }
+
+  .ngm-tree-select__panel {
+    .ngm-tree-select__option {
+      .z-icon-rtl-mirror {
+        color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.3);
+      }
+
+      &:hover,
+      &:focus {
+        background-color: color.change(themeCompat.m2-get-color-from-palette($background, hover), $alpha: 0.03);
+      }
+
+      &.selected {
+        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.08);
+        color: themeCompat.m2-get-color-from-palette($primary);
+      }
+    }
+  }
+}
+
+@mixin density($config-or-theme) {
+  .ngm-tree-select__panel {
+    z-checkbox {
+      display: flex;
+
+      .z-checkbox__label {
+        flex: 1;
+        overflow: hidden;
+      }
+    }
+
+    .ngm-tree-select__option {
+      [z-button][data-icon-only],
+      z-button[data-icon-only] {
+        .z-icon {
+          margin: 0;
+        }
+      }
+    }
+
+    &.ngm-density__cosy {
+      .ngm-tree-select__option {
+        min-height: 34px;
+        @apply text-sm;
+      }
+    }
+
+    &.ngm-density__compact {
+      .ngm-tree-select__option {
+        min-height: 28px;
+        font-size: 12px;
+      }
+    }
+  }
+
+  z-tree.ngm-tree-select__panel {
+    &.ngm-density__cosy {
+      [data-slot='tree-node'] {
+        min-height: 34px;
+      }
+    }
+    &.ngm-density__compact {
+      [data-slot='tree-node'] {
+        min-height: 28px;
+        font-size: 12px;
+      }
+    }
+  }
+}

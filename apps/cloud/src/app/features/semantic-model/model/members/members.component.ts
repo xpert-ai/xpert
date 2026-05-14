@@ -1,27 +1,19 @@
-
 import { Component, computed, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { SemanticModelServerService } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { isEntitySet } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelEntityService, ToastrService } from 'apps/cloud/src/app/@core'
 import { catchError, combineLatest, delay, map, of, startWith, switchMap, tap } from 'rxjs'
-import { ZardAccordionImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardAccordionImports } from '@xpert-ai/headless-ui'
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { ModelMembersCubeComponent } from './cube/cube.component'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    TranslateModule,
-    ...ZardAccordionImports,
-    NgmSpinComponent,
-    ModelMembersCubeComponent
-],
+  imports: [FormsModule, TranslateModule, ...ZardAccordionImports, NgmSpinComponent, ModelMembersCubeComponent],
   selector: 'pac-model-members',
   templateUrl: 'members.component.html',
   styleUrl: 'members.component.scss'

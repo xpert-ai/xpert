@@ -2,9 +2,14 @@ import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ToastrService, UsersService } from '@xpert-ai/cloud/state'
 import { IUser, RolesEnum } from '@xpert-ai/contracts'
-import { NgmConfirmDeleteService, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
-import { getErrorMessage, RequestScopeLevel, RoleService, Store, UsersOrganizationsService } from 'apps/cloud/src/app/@core'
+import {
+  getErrorMessage,
+  RequestScopeLevel,
+  RoleService,
+  Store,
+  UsersOrganizationsService
+} from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
@@ -16,7 +21,7 @@ import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { RouterModule } from '@angular/router'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardSelectImports } from '@xpert-ai/headless-ui'
+import { NgmConfirmDeleteService, NgmSearchComponent, ZardSelectImports } from '@xpert-ai/headless-ui'
 import { distinctUntilChanged } from 'rxjs/operators'
 
 @Component({
@@ -60,12 +65,10 @@ export class ManageUserComponent extends TranslationBaseComponent {
     initialValue: this.store.activeScope
   })
   readonly isTenantScope = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
-  private readonly scopeLevel$ = this.store
-    .selectActiveScope()
-    .pipe(
-      map((scope) => scope.level),
-      distinctUntilChanged()
-    )
+  private readonly scopeLevel$ = this.store.selectActiveScope().pipe(
+    map((scope) => scope.level),
+    distinctUntilChanged()
+  )
 
   roles$ = new BehaviorSubject<string[]>([])
   readonly availableRoles$ = this.roleService.getAll().pipe(
@@ -95,9 +98,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
   public readonly users$ = combineLatest([this.refresh$, this.scopeLevel$, this.roles$, this.search$]).pipe(
     switchMap(([, scopeLevel, roles, search]) =>
       scopeLevel === RequestScopeLevel.TENANT
-        ? this.userService.getAll(['role']).pipe(
-            map((users) => this.filterUsers(users, search, roles, true))
-          )
+        ? this.userService.getAll(['role']).pipe(map((users) => this.filterUsers(users, search, roles, true)))
         : this.userOrganizationsService.getAllInOrg(['user', 'user.role']).pipe(
             map(({ items }) => this.mapMembershipsToUsers(items)),
             map((users) => this.filterUsers(users, search, roles, true))
@@ -124,7 +125,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
     const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: userLabel(user) }))
     if (confirm) {
       try {
-        await firstValueFrom(this.userService.delete(user.id,))
+        await firstValueFrom(this.userService.delete(user.id))
         this.toastrService.success('PAC.NOTES.USERS.UserDelete', {
           name: userLabel(user)
         })

@@ -4,7 +4,6 @@ import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -20,7 +19,7 @@ import {
   XpertTypeEnum
 } from '../../../../@core'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-connect-knowledge',

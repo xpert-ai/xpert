@@ -4,8 +4,7 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { throwError } from 'rxjs'
-import { ZardComboboxDeprecatedComponent } from '@xpert-ai/headless-ui/components/combobox-deprecated'
-import { ZardSelectComponent } from '@xpert-ai/headless-ui/components/select'
+import { ZardComboboxDeprecatedComponent, ZardSelectComponent } from '@xpert-ai/headless-ui'
 import { PACFormlySelectModule } from './select.module'
 
 const { TestBed } = require('@angular/core/testing')
@@ -109,7 +108,8 @@ describe('formly: Select Type', () => {
     }
     const { fixture, detectChanges } = renderComponent(field)
 
-    const select = fixture.debugElement.query(By.directive(ZardSelectComponent)).componentInstance as ZardSelectComponent
+    const select = fixture.debugElement.query(By.directive(ZardSelectComponent))
+      .componentInstance as ZardSelectComponent
     select.selectItem('b', 'Option B')
     detectChanges()
 

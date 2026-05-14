@@ -9,12 +9,12 @@ import {
   ISkillRepositoryIndex,
   WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
 } from '@cloud/app/@core'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { finalize } from 'rxjs'
 import { SkillRepositoryService, ToastrService } from '../../../@core/services'
 import { XpertSkillRepositoryRegisterComponent } from '../register/register.component'
 import { XpertSkillRepositoryComponent } from '../skill-repository/skill-repository.component'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -63,22 +63,20 @@ export class XpertSkillRepositoriesComponent {
       ? this.repositoryService.getAvailables()
       : this.repositoryService.getAllInOrg()
 
-    repositories$
-      .pipe(finalize(() => this.loadingRepos.set(false)))
-      .subscribe({
-        next: ({ items }) => {
-          const repositories = items ?? []
-          this.repositories.set(repositories)
-          this.repositoriesLoaded.emit(repositories)
-          // if (!this.selectedRepositoryId() && items?.length) {
-          //   this.selectedRepositoryId.set(items[0].id)
-          // }
-        },
-        error: (err) => {
-          this.repositoriesLoaded.emit(this.repositories())
-          this.toastr.error(getErrorMessage(err))
-        }
-      })
+    repositories$.pipe(finalize(() => this.loadingRepos.set(false))).subscribe({
+      next: ({ items }) => {
+        const repositories = items ?? []
+        this.repositories.set(repositories)
+        this.repositoriesLoaded.emit(repositories)
+        // if (!this.selectedRepositoryId() && items?.length) {
+        //   this.selectedRepositoryId.set(items[0].id)
+        // }
+      },
+      error: (err) => {
+        this.repositoriesLoaded.emit(this.repositories())
+        this.toastr.error(getErrorMessage(err))
+      }
+    })
   }
 
   selectRepository(repo: ISkillRepository) {
@@ -102,7 +100,7 @@ export class XpertSkillRepositoriesComponent {
         },
         disableClose: true,
         backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
       })
       .closed.subscribe({
         next: (result) => {

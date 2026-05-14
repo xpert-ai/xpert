@@ -4,8 +4,16 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardAccordionImports, ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import {
+  NgmSelectComponent,
+  ZardAccordionImports,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDividerComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
 import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   calcOffsetRange,
@@ -25,7 +33,21 @@ import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, ZardDialogModule, ...ZardFormImports, ...ZardAccordionImports, ZardIconComponent, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule, NgmSelectComponent],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    ReactiveFormsModule,
+    DragDropModule,
+    ZardDialogModule,
+    ...ZardFormImports,
+    ...ZardAccordionImports,
+    ZardIconComponent,
+    ZardDividerComponent,
+    ZardInputDirective,
+    ZardButtonComponent,
+    OcapCoreModule,
+    NgmSelectComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-time-filter-editor',
   templateUrl: './time-filter-editor.component.html',
@@ -39,9 +61,9 @@ export class NgmTimeFilterEditorComponent implements OnInit {
     entityType: EntityType
     slicer: TimeRangesSlicer
     forControl: boolean
-  }>(DIALOG_DATA, {optional: true})
+  }>(DIALOG_DATA, { optional: true })
 
-  private _dialogRef? = inject(DialogRef, {optional: true})
+  private _dialogRef? = inject(DialogRef, { optional: true })
 
   @Input() get entityType() {
     return this.entityType$.value
@@ -73,9 +95,7 @@ export class NgmTimeFilterEditorComponent implements OnInit {
     shareReplay(1)
   )
 
-  public hierarchies$ = this.property$.pipe(
-    map((property) => property?.hierarchies)
-  )
+  public hierarchies$ = this.property$.pipe(map((property) => property?.hierarchies))
   public readonly hierarchyOptions$ = this.hierarchies$.pipe(
     map(
       (hierarchies) =>
@@ -89,7 +109,7 @@ export class NgmTimeFilterEditorComponent implements OnInit {
   forControl = false
   constructor(
     private coreService: NgmOcapCoreService,
-    private formBuilder: FormBuilder,
+    private formBuilder: FormBuilder
   ) {
     this.property$.subscribe()
   }

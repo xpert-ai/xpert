@@ -11,7 +11,6 @@ import {
   KnowledgebaseService,
   KnowledgeDocumentService
 } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
@@ -20,6 +19,7 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { KnowledgeDocumentCreateSettingsComponent } from '../create/settings/settings.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
 import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings/settings.component'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -34,7 +34,7 @@ import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings
     NgmSpinComponent,
     KnowledgeDocumentCreateSettingsComponent,
     KnowledgeDocumentPipelineSettingsComponent
-]
+  ]
 })
 export class KnowledgeDocumentSettingsComponent {
   eKDocumentSourceType = KDocumentSourceType

@@ -14,6 +14,31 @@
             "prefix": "xp|z",
             "style": "kebab-case"
           }
+        ],
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["@xpert-ai/headless-ui/*", "packages/ui/src/**"],
+                "message": "Import UI symbols from the @xpert-ai/headless-ui root entrypoint instead of UI deep paths."
+              },
+              {
+                "group": [
+                  "@xpert-ai/ocap-angular",
+                  "@xpert-ai/ocap-angular/*",
+                  "@xpert-ai/ocap-core",
+                  "@metad/ocap-core",
+                  "@xpert-ai/story",
+                  "@xpert-ai/story/*",
+                  "packages/angular/**",
+                  "packages/core/**",
+                  "libs/story-angular/**"
+                ],
+                "message": "packages/ui is the base UI library and must not depend on OCAP, Story, semantic model, or angular business packages."
+              }
+            ]
+          }
         ]
       }
     },

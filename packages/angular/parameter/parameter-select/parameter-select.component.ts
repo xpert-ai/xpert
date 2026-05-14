@@ -4,8 +4,15 @@ import { Component, effect, forwardRef, inject, input, Input, model, ViewContain
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardDialogService, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@xpert-ai/ocap-angular/common'
+import {
+  NgmDisplayBehaviourComponent,
+  NgmInputComponent,
+  ZardButtonComponent,
+  ZardDialogService,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
 import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   CubeParameterEnum,
@@ -85,13 +92,11 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
   private onTouched: any
 
   constructor() {
-    effect(
-      () => {
-        if (nonNullable(this.model())) {
-          this.onChange?.(this.model())
-        }
+    effect(() => {
+      if (nonNullable(this.model())) {
+        this.onChange?.(this.model())
       }
-    )
+    })
   }
 
   writeValue(obj: any): void {
@@ -116,17 +121,16 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
 
   async openCreate() {
     this.#dialog
-        .open(NgmParameterCreateComponent, {
-          viewContainerRef: this.#viewContainerRef,
-          data: {
-            dataSettings: this.dataSettings(),
-            entityType: this.entityType()
-          }
-        })
-        .closed
-        .subscribe((result) => {
-          //
-        })
+      .open(NgmParameterCreateComponent, {
+        viewContainerRef: this.#viewContainerRef,
+        data: {
+          dataSettings: this.dataSettings(),
+          entityType: this.entityType()
+        }
+      })
+      .closed.subscribe((result) => {
+        //
+      })
   }
 
   openEditParameter(key: string) {
@@ -139,8 +143,7 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
           name: key
         }
       })
-      .closed
-      .subscribe((result) => {
+      .closed.subscribe((result) => {
         if (result) {
           console.log(result)
         }

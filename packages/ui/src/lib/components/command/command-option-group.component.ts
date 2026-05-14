@@ -6,19 +6,19 @@ import {
   inject,
   input,
   signal,
-  ViewEncapsulation,
-} from '@angular/core';
+  ViewEncapsulation
+} from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { ZardCommandOptionComponent } from '@/shared/components/command/command-option.component';
-import { ZardCommandComponent } from '@/shared/components/command/command.component';
-import { commandGroupHeadingVariants, commandGroupVariants } from '@/shared/components/command/command.variants';
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { ZardCommandOptionComponent } from './command-option.component'
+import { ZardCommandComponent } from './command.component'
+import { commandGroupHeadingVariants, commandGroupVariants } from './command.variants'
+import { mergeClasses } from '../../utils/merge-classes'
 
 export abstract class ZardCommandOptionGroup {
-  abstract registerOption(option: ZardCommandOptionComponent): void;
-  abstract unregisterOption(option: ZardCommandOptionComponent): void;
+  abstract registerOption(option: ZardCommandOptionComponent): void
+  abstract unregisterOption(option: ZardCommandOptionComponent): void
 }
 
 @Component({
@@ -39,43 +39,43 @@ export abstract class ZardCommandOptionGroup {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  exportAs: 'zCommandOptionGroup',
+  exportAs: 'zCommandOptionGroup'
 })
 export class ZardCommandOptionGroupComponent implements ZardCommandOptionGroup {
-  private readonly commandComponent = inject(ZardCommandComponent, { optional: true });
-  private readonly optionComponentsAsChildren = contentChildren(ZardCommandOptionComponent, { descendants: true });
-  private readonly registeredOptionComponents = signal<ZardCommandOptionComponent[]>([]);
+  private readonly commandComponent = inject(ZardCommandComponent, { optional: true })
+  private readonly optionComponentsAsChildren = contentChildren(ZardCommandOptionComponent, { descendants: true })
+  private readonly registeredOptionComponents = signal<ZardCommandOptionComponent[]>([])
 
-  readonly zLabel = input.required<string>();
-  readonly class = input<ClassValue>('');
+  readonly zLabel = input.required<string>()
+  readonly class = input<ClassValue>('')
 
-  protected readonly classes = computed(() => mergeClasses(commandGroupVariants({}), this.class()));
-  protected readonly headingClasses = computed(() => mergeClasses(commandGroupHeadingVariants({})));
+  protected readonly classes = computed(() => mergeClasses(commandGroupVariants({}), this.class()))
+  protected readonly headingClasses = computed(() => mergeClasses(commandGroupHeadingVariants({})))
   private readonly optionComponents = computed(() =>
-    this.optionComponentsAsChildren().length ? this.optionComponentsAsChildren() : this.registeredOptionComponents(),
-  );
+    this.optionComponentsAsChildren().length ? this.optionComponentsAsChildren() : this.registeredOptionComponents()
+  )
 
   protected readonly isGroupVisible = computed(() => {
     if (!this.commandComponent || !this.optionComponents().length) {
-      return true;
+      return true
     }
 
-    const searchTerm = this.commandComponent.searchTerm();
+    const searchTerm = this.commandComponent.searchTerm()
     // If no search term, show all groups
     if (!searchTerm) {
-      return true;
+      return true
     }
 
-    const filteredOptions = this.commandComponent.filteredOptions();
+    const filteredOptions = this.commandComponent.filteredOptions()
     // Check if any option in this group is in the filtered list
-    return this.optionComponents().some(option => filteredOptions.includes(option));
-  });
+    return this.optionComponents().some((option) => filteredOptions.includes(option))
+  })
 
   registerOption(option: ZardCommandOptionComponent) {
-    this.registeredOptionComponents.update(current => [...current, option]);
+    this.registeredOptionComponents.update((current) => [...current, option])
   }
 
   unregisterOption(option: ZardCommandOptionComponent) {
-    this.registeredOptionComponents.update(current => current.filter(o => o !== option));
+    this.registeredOptionComponents.update((current) => current.filter((o) => o !== option))
   }
 }

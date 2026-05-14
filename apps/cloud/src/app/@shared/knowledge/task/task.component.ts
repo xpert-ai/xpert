@@ -2,11 +2,11 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { DateRelativePipe, IKnowledgebase, KnowledgeDocumentService } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { ChatMessageExecutionPanelComponent } from '../../chat'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -28,27 +28,27 @@ export class KnowledgeTaskComponent {
     loader: ({ request }) => {
       return request.knowledgebaseId && request.id
         ? this.knowledgeDocAPI.getById(request.id, {
-          select: {
-            id: true,
-            category: true,
-            status: true,
-            processBeginAt: true,
-            processDuation: true,
-            processMsg: true,
-            progress: true,
-            tasks: {
+            select: {
               id: true,
-              taskType: true,
-              createdAt: true,
+              category: true,
               status: true,
-              error: true,
-              context: true,
-              steps: true,
-              executionId: true
-            }
-          },
-          relations: ['tasks'],
-        })
+              processBeginAt: true,
+              processDuation: true,
+              processMsg: true,
+              progress: true,
+              tasks: {
+                id: true,
+                taskType: true,
+                createdAt: true,
+                status: true,
+                error: true,
+                context: true,
+                steps: true,
+                executionId: true
+              }
+            },
+            relations: ['tasks']
+          })
         : null
     }
   })
@@ -57,7 +57,10 @@ export class KnowledgeTaskComponent {
   readonly isLoading = computed(() => this.#docResource.status() === 'loading')
   readonly document = this.#document
   readonly error = this.#docResource.error
-  readonly tasks = computed(() => this.#document()?.tasks?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [])
+  readonly tasks = computed(
+    () =>
+      this.#document()?.tasks?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || []
+  )
 
   readonly executionId = signal<string>(null)
 

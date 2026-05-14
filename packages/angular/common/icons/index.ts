@@ -1,4 +1,1 @@
-export * from './plus/plus.component'
-export * from './close/close.component'
-export * from './variable/variable.component'
-export * from './slash/slash.component'
+export { CloseSvgComponent, PlusSvgComponent, SlashSvgComponent, VariableSvgComponent } from '@xpert-ai/headless-ui'

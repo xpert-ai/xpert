@@ -1,4 +1,4 @@
-import { ZardSelectItemComponent } from '@/src/lib/components/select/select-item.component';
-import { ZardSelectComponent } from '@/src/lib/components/select/select.component';
+import { ZardSelectItemComponent } from './select-item.component'
+import { ZardSelectComponent } from './select.component'
 
-export const ZardSelectImports = [ZardSelectComponent, ZardSelectItemComponent] as const;
+export const ZardSelectImports = [ZardSelectComponent, ZardSelectItemComponent] as const

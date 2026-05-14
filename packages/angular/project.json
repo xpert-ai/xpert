@@ -3,14 +3,12 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/angular/src",
   "prefix": "metad-ocap",
-  "tags": [],
+  "tags": ["scope:ocap-angular"],
   "projectType": "library",
   "targets": {
     "build": {
       "executor": "@nx/angular:package",
-      "outputs": [
-        "{workspaceRoot}/dist/{projectRoot}"
-      ],
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
       "options": {
         "project": "packages/angular/ng-package.json"
       },
@@ -25,23 +23,37 @@
       "defaultConfiguration": "production",
       "dependsOn": [
         {
-          "projects": [
-            "ngx-echarts"
-          ],
+          "projects": ["ngx-echarts"],
           "target": "build",
           "params": "ignore"
         },
         {
-          "projects": [
-            "duckdb"
-          ],
+          "projects": ["duckdb"],
           "target": "build",
           "params": "ignore"
         },
         {
-          "projects": [
-            "echarts"
-          ],
+          "projects": ["echarts"],
+          "target": "build",
+          "params": "ignore"
+        },
+        {
+          "projects": ["core"],
+          "target": "build",
+          "params": "ignore"
+        },
+        {
+          "projects": ["store"],
+          "target": "build",
+          "params": "ignore"
+        },
+        {
+          "projects": ["sql"],
+          "target": "build",
+          "params": "ignore"
+        },
+        {
+          "projects": ["ui"],
           "target": "build",
           "params": "ignore"
         }
@@ -49,23 +61,16 @@
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": [
-        "{workspaceRoot}/coverage/{projectRoot}"
-      ],
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "packages/angular/jest.config.ts"
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": [
-        "{options.outputFile}"
-      ],
+      "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": [
-          "packages/angular/**/*.ts",
-          "packages/angular/**/*.html"
-        ]
+        "lintFilePatterns": ["packages/angular/**/*.ts", "packages/angular/**/*.html"]
       }
     }
   }

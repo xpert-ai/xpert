@@ -1,9 +1,7 @@
-
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { KnowledgebaseService } from '@cloud/app/@core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -15,7 +13,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { PlusSvgComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-understanding',
@@ -23,14 +21,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./understanding.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FFlowModule,
-    ...ZardTooltipImports,
-    TranslateModule,
-    IconComponent,
-    PlusSvgComponent,
-    NgmI18nPipe
-],
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, IconComponent, PlusSvgComponent, NgmI18nPipe],
   host: {
     tabindex: '-1'
   }

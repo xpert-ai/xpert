@@ -1,9 +1,8 @@
-
 import { Component, computed, effect, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr, Repository } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-project-github-repositories',
@@ -52,19 +51,15 @@ export class XpProjectGitHubRepositoriesComponent {
   readonly repository = computed(() => this.repositories().find((repo) => repo.full_name === this.repositoryName()))
 
   constructor() {
-    effect(
-      () => {
-        if (this.installationId()) {
-          this.checkInstallation()
-        }
+    effect(() => {
+      if (this.installationId()) {
+        this.checkInstallation()
       }
-    )
+    })
 
-    effect(
-      () => {
-        this.repositoryUrl.set(this.repositoryName())
-      }
-    )
+    effect(() => {
+      this.repositoryUrl.set(this.repositoryName())
+    })
   }
 
   checkInstallation(page: number = 1, append: boolean = false) {

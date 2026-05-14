@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
 import { Store, UsersService } from '@xpert-ai/cloud/state'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { of } from 'rxjs'
@@ -13,7 +12,7 @@ import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/op
 import { getErrorMessage, injectToastr, RolesEnum, routeAnimations } from '../../../../@core'
 import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, NgmSpinComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -97,7 +96,7 @@ export class PACEditUserComponent {
     if (this.newPassword().password && this.newPassword().confirmPassword === this.newPassword().password) {
       this.loading.set(true)
       try {
-        await this.userService.update(this.user().id, {hash: this.newPassword().password})
+        await this.userService.update(this.user().id, { hash: this.newPassword().password })
         this.loading.set(false)
         this.toastr.success('PAC.USERS_PAGE.PasswordChangedSuccessfully', {
           Default: 'Password changed successfully'

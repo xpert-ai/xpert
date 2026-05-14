@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, forwardRef, inject, input, model } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -11,6 +10,7 @@ import { combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs
 import { ITag, TagCategoryEnum, TagService } from '../../../@core'
 import { TagComponent } from '../tag/tag.component'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -23,7 +23,7 @@ import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
     ReactiveFormsModule,
     NgmHighlightDirective,
     NgmI18nPipe,
-    TagComponent,
+    TagComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-select',

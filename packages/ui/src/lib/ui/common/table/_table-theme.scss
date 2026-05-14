@@ -1,0 +1,86 @@
+@use 'sass:map';
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@reference "tailwindcss";
+@mixin color($config-or-theme) {
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $accent: map.get($config, accent);
+  $background: map.get($config, background);
+  $foreground: map.get($config, foreground);
+
+  .ngm-table {
+    [z-table-sort-header] {
+      flex: 1;
+    }
+  }
+
+  table[z-table] {
+    &.striped {
+      tr[z-table-row]:nth-child(even) {
+        background-color: lighten(themeCompat.m2-get-color-from-palette($background, hover), 50%);
+      }
+
+      tr[z-table-row] {
+        &:hover {
+          background-color: themeCompat.m2-get-color-from-palette($background, hover);
+        }
+      }
+    }
+
+    &.ngm-table-grid {
+      [z-table-head],
+      [z-table-cell] {
+        padding: 0 10px;
+      }
+      &.ngm-density__compact {
+        [z-table-head],
+        [z-table-cell] {
+          padding: 0 5px;
+        }
+      }
+
+      tr[z-table-row]:first-child {
+        border-top-width: 1px;
+        border-top-style: solid;
+        border-top-color: themeCompat.m2-get-color-from-palette($foreground, divider);
+      }
+      [z-table-cell],
+      [z-table-head] {
+        border-right: 1px solid themeCompat.m2-get-color-from-palette($foreground, divider);
+
+        &:first-child {
+          border-left: 1px solid themeCompat.m2-get-color-from-palette($foreground, divider);
+        }
+      }
+    }
+
+    tr[z-table-row] {
+      &:hover {
+        background-color: themeCompat.m2-get-color-from-palette($background, hover);
+      }
+    }
+  }
+}
+
+@mixin density($config-or-theme) {
+  .ngm-table {
+    .ngm-header-cell {
+      .searchable {
+        @apply p-2 max-w-[15em];
+      }
+    }
+    &.ngm-density__cosy {
+      .ngm-header-cell {
+        .searchable {
+          @apply py-2 px-1;
+        }
+      }
+    }
+    &.ngm-density__compact {
+      .ngm-header-cell {
+        .searchable {
+          @apply p-1;
+        }
+      }
+    }
+  }
+}

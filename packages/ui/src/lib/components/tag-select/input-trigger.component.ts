@@ -1,13 +1,13 @@
-import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core'
 
-import { ZardIconComponent } from '@/src/lib/components/icon';
-import { ZardInputDirective } from '@/src/lib/components/input';
+import { ZardIconComponent } from '../icon'
+import { ZardInputDirective } from '../input'
 
-import { ZardTagSelectChipComponent } from './tag-chip.component';
+import { ZardTagSelectChipComponent } from './tag-chip.component'
 
 export interface ZardTagSelectDisplayItem {
-  key: string;
-  label: string;
+  key: string
+  label: string
 }
 
 @Component({
@@ -16,53 +16,53 @@ export interface ZardTagSelectDisplayItem {
   templateUrl: './input-trigger.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'block',
+    class: 'block'
   },
-  exportAs: 'zTagSelectInputTrigger',
+  exportAs: 'zTagSelectInputTrigger'
 })
 export class ZardTagSelectInputTriggerComponent {
-  readonly inputElement = viewChild<ElementRef<HTMLInputElement>>('inputElement');
+  readonly inputElement = viewChild<ElementRef<HTMLInputElement>>('inputElement')
 
-  readonly items = input<readonly ZardTagSelectDisplayItem[]>([]);
-  readonly disabled = input(false);
-  readonly inputValue = input('');
-  readonly placeholder = input('');
-  readonly canInput = input(true);
-  readonly clearable = input(false);
-  readonly showClear = input(false);
-  readonly showSuggestionsIndicator = input(false);
-  readonly suggestionsOpen = input(false);
+  readonly items = input<readonly ZardTagSelectDisplayItem[]>([])
+  readonly disabled = input(false)
+  readonly inputValue = input('')
+  readonly placeholder = input('')
+  readonly canInput = input(true)
+  readonly clearable = input(false)
+  readonly showClear = input(false)
+  readonly showSuggestionsIndicator = input(false)
+  readonly suggestionsOpen = input(false)
 
-  readonly chipRemove = output<number>();
-  readonly inputValueChange = output<string>();
-  readonly inputKeydown = output<KeyboardEvent>();
-  readonly inputPaste = output<ClipboardEvent>();
-  readonly inputFocus = output<void>();
-  readonly inputBlur = output<void>();
-  readonly clear = output<void>();
+  readonly chipRemove = output<number>()
+  readonly inputValueChange = output<string>()
+  readonly inputKeydown = output<KeyboardEvent>()
+  readonly inputPaste = output<ClipboardEvent>()
+  readonly inputFocus = output<void>()
+  readonly inputBlur = output<void>()
+  readonly clear = output<void>()
 
   focusInput(): void {
-    this.inputElement()?.nativeElement.focus();
+    this.inputElement()?.nativeElement.focus()
   }
 
   protected onContainerMouseDown(event: MouseEvent): void {
-    const target = event.target as HTMLElement | null;
+    const target = event.target as HTMLElement | null
     if (!this.canInput() || this.disabled() || target?.closest('button')) {
-      return;
+      return
     }
 
-    event.preventDefault();
-    this.focusInput();
+    event.preventDefault()
+    this.focusInput()
   }
 
   protected onInput(event: Event): void {
-    const target = event.target as HTMLInputElement | null;
-    this.inputValueChange.emit(target?.value ?? '');
+    const target = event.target as HTMLInputElement | null
+    this.inputValueChange.emit(target?.value ?? '')
   }
 
   protected onClear(event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.clear.emit();
+    event.preventDefault()
+    event.stopPropagation()
+    this.clear.emit()
   }
 }

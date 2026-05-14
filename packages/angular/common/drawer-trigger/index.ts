@@ -1,1 +1,1 @@
-export * from './drawer-trigger.component'
+export { NgmDrawerTriggerComponent } from '@xpert-ai/headless-ui'

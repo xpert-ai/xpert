@@ -1,0 +1,21 @@
+@reference "tailwindcss";
+:host {
+  @apply flex overflow-hidden;
+
+  &.over {
+    .ngm-drawer-backdrop {
+      position: absolute;
+      top: 0;
+      right: 0;
+    }
+
+    &.opened {
+      .ngm-drawer-backdrop {
+        left: 0;
+        bottom: 0;
+        z-index: 1000;
+        background-color: color-mix(in oklab, var(--foreground) 10%, transparent);
+      }
+    }
+  }
+}

@@ -1,7 +1,6 @@
 import { NgModule } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { NgmOptionContent } from './option-content'
-import { NgmInputComponent } from './input.component'
+import { NgmInputComponent, NgmOptionContent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
@@ -297,11 +297,15 @@ export class XpertStudioPanelCommandsComponent {
   }
 
   private findWorkspaceEntry(workflow: IPromptWorkflow) {
-    return this.entries().find((entry) => entry.source === 'workspace_prompt_workflow' && entry.workflowId === workflow.id)
+    return this.entries().find(
+      (entry) => entry.source === 'workspace_prompt_workflow' && entry.workflowId === workflow.id
+    )
   }
 
   private findSkillEntry(item: SkillCommandItem) {
-    return this.entries().find((entry) => entry.source === 'skill' && (entry.skillCommandName ?? entry.name) === item.name)
+    return this.entries().find(
+      (entry) => entry.source === 'skill' && (entry.skillCommandName ?? entry.name) === item.name
+    )
   }
 
   private updateEntry(
@@ -382,7 +386,9 @@ export class XpertStudioPanelCommandsComponent {
       }
       const previous = seen.get(name)
       if (previous) {
-        conflicts.push(this.#translate.instant('PAC.PromptWorkflow.CommandNameConflict', { name, previous, source: entry.source }))
+        conflicts.push(
+          this.#translate.instant('PAC.PromptWorkflow.CommandNameConflict', { name, previous, source: entry.source })
+        )
       } else {
         seen.set(name, entry.source)
       }

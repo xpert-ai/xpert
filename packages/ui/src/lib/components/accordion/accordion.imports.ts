@@ -3,9 +3,9 @@ import {
   ZardAccordionDescriptionComponent,
   ZardAccordionHeaderComponent,
   ZardAccordionItemComponent,
-  ZardAccordionTitleComponent,
-} from '@/src/lib/components/accordion/accordion-item.component';
-import { ZardAccordionComponent } from '@/src/lib/components/accordion/accordion.component';
+  ZardAccordionTitleComponent
+} from './accordion-item.component'
+import { ZardAccordionComponent } from './accordion.component'
 
 export const ZardAccordionImports = [
   ZardAccordionComponent,
@@ -13,5 +13,5 @@ export const ZardAccordionImports = [
   ZardAccordionHeaderComponent,
   ZardAccordionTitleComponent,
   ZardAccordionDescriptionComponent,
-  ZardAccordionContentDirective,
-] as const;
+  ZardAccordionContentDirective
+] as const

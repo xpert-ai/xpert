@@ -15,7 +15,7 @@ import {
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule, normalizeTableSearchValue } from '@xpert-ai/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
@@ -33,7 +33,6 @@ import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
 import { ZardCheckboxComponent, ZardIconComponent, ZardLoaderComponent, ZardTableImports } from '@xpert-ai/headless-ui'
-import { normalizeTableSearchValue } from '../../common/table/table.utils'
 
 export interface MemberTableOptions extends ControlOptions {
   label?: string

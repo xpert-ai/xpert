@@ -1,0 +1,5 @@
+@reference "tailwindcss";
+:host {
+  cursor: pointer;
+  color: var(--muted-foreground);
+}

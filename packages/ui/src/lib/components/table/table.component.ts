@@ -6,12 +6,12 @@ import {
   Directive,
   input,
   output,
-  ViewEncapsulation,
-} from '@angular/core';
+  ViewEncapsulation
+} from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { ZardIconComponent } from '@/src/lib/components/icon';
+import { ZardIconComponent } from '../icon'
 import {
   type ZardTableSizeVariants,
   type ZardTableTypeVariants,
@@ -21,146 +21,132 @@ import {
   tableHeaderVariants,
   tableHeadVariants,
   tableRowVariants,
-  tableVariants,
-} from '@/shared/components/table/table.variants';
-import { mergeClasses } from '@/shared/utils/merge-classes';
+  tableVariants
+} from './table.variants'
+import { mergeClasses } from '../../utils/merge-classes'
 
-export type ZardTableSortDirection = '' | 'asc' | 'desc';
+export type ZardTableSortDirection = '' | 'asc' | 'desc'
 
 @Component({
   selector: 'table[z-table]',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zTable',
+  exportAs: 'zTable'
 })
 export class ZardTableComponent {
-  readonly zType = input<ZardTableTypeVariants>('default');
-  readonly zSize = input<ZardTableSizeVariants>('default');
-  readonly class = input<ClassValue>('');
+  readonly zType = input<ZardTableTypeVariants>('default')
+  readonly zSize = input<ZardTableSizeVariants>('default')
+  readonly class = input<ClassValue>('')
 
   protected readonly classes = computed(() =>
     mergeClasses(
       tableVariants({
         zType: this.zType(),
-        zSize: this.zSize(),
+        zSize: this.zSize()
       }),
-      this.class(),
-    ),
-  );
+      this.class()
+    )
+  )
 }
 
 @Component({
   selector: 'thead[z-table-header]',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zTableHeader',
+  exportAs: 'zTableHeader'
 })
 export class ZardTableHeaderComponent {
-  readonly class = input<ClassValue>('');
+  readonly class = input<ClassValue>('')
 
-  protected readonly classes = computed(() => mergeClasses(tableHeaderVariants(), this.class()));
+  protected readonly classes = computed(() => mergeClasses(tableHeaderVariants(), this.class()))
 }
 
 @Component({
   selector: 'tbody[z-table-body]',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zTableBody',
+  exportAs: 'zTableBody'
 })
 export class ZardTableBodyComponent {
-  readonly class = input<ClassValue>('');
+  readonly class = input<ClassValue>('')
 
-  protected readonly classes = computed(() => mergeClasses(tableBodyVariants(), this.class()));
+  protected readonly classes = computed(() => mergeClasses(tableBodyVariants(), this.class()))
 }
 
 @Component({
   selector: 'tr[z-table-row]',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zTableRow',
+  exportAs: 'zTableRow'
 })
 export class ZardTableRowComponent {
-  readonly class = input<ClassValue>('');
+  readonly class = input<ClassValue>('')
 
-  protected readonly classes = computed(() => mergeClasses(tableRowVariants(), this.class()));
+  protected readonly classes = computed(() => mergeClasses(tableRowVariants(), this.class()))
 }
 
 @Component({
   selector: 'th[z-table-head]',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zTableHead',
+  exportAs: 'zTableHead'
 })
 export class ZardTableHeadComponent {
-  readonly class = input<ClassValue>('');
+  readonly class = input<ClassValue>('')
 
-  protected readonly classes = computed(() => mergeClasses(tableHeadVariants(), this.class()));
+  protected readonly classes = computed(() => mergeClasses(tableHeadVariants(), this.class()))
 }
 
 @Component({
   selector: 'td[z-table-cell]',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zTableCell',
+  exportAs: 'zTableCell'
 })
 export class ZardTableCellComponent {
-  readonly class = input<ClassValue>('');
+  readonly class = input<ClassValue>('')
 
-  protected readonly classes = computed(() => mergeClasses(tableCellVariants(), this.class()));
+  protected readonly classes = computed(() => mergeClasses(tableCellVariants(), this.class()))
 }
 
 @Component({
   selector: 'caption[z-table-caption]',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zTableCaption',
+  exportAs: 'zTableCaption'
 })
 export class ZardTableCaptionComponent {
-  readonly class = input<ClassValue>('');
+  readonly class = input<ClassValue>('')
 
-  protected readonly classes = computed(() => mergeClasses(tableCaptionVariants(), this.class()));
+  protected readonly classes = computed(() => mergeClasses(tableCaptionVariants(), this.class()))
 }
 
 @Component({
@@ -179,54 +165,54 @@ export class ZardTableCaptionComponent {
     '[attr.aria-disabled]': 'zDisabled() ? "true" : null',
     '[class]': 'classes()',
     '[attr.data-direction]': 'zDirection() || null',
-    '(click)': 'toggleSort()',
+    '(click)': 'toggleSort()'
   },
-  exportAs: 'zTableSortHeader',
+  exportAs: 'zTableSortHeader'
 })
 export class ZardTableSortHeaderComponent {
-  readonly class = input<ClassValue>('');
-  readonly zDirection = input<ZardTableSortDirection>('');
-  readonly zDisabled = input(false, { transform: booleanAttribute });
-  readonly zDisableClear = input(false, { transform: booleanAttribute });
+  readonly class = input<ClassValue>('')
+  readonly zDirection = input<ZardTableSortDirection>('')
+  readonly zDisabled = input(false, { transform: booleanAttribute })
+  readonly zDisableClear = input(false, { transform: booleanAttribute })
 
-  readonly zSortChange = output<ZardTableSortDirection>();
+  readonly zSortChange = output<ZardTableSortDirection>()
 
   protected readonly classes = computed(() =>
     mergeClasses(
       'inline-flex w-full items-center gap-1 whitespace-nowrap rounded-sm text-left text-inherit transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
       this.zDisabled() ? 'pointer-events-none opacity-50' : '',
-      this.class(),
-    ),
-  );
+      this.class()
+    )
+  )
 
   protected readonly iconName = computed(() => {
     switch (this.zDirection()) {
       case 'asc':
-        return 'chevron-up';
+        return 'chevron-up'
       case 'desc':
-        return 'chevron-down';
+        return 'chevron-down'
       default:
-        return 'chevrons-up-down';
+        return 'chevrons-up-down'
     }
-  });
+  })
 
   toggleSort(): void {
     if (this.zDisabled()) {
-      return;
+      return
     }
 
-    const nextDirection = this.getNextDirection(this.zDirection(), this.zDisableClear());
-    this.zSortChange.emit(nextDirection);
+    const nextDirection = this.getNextDirection(this.zDirection(), this.zDisableClear())
+    this.zSortChange.emit(nextDirection)
   }
 
   private getNextDirection(direction: ZardTableSortDirection, disableClear: boolean): ZardTableSortDirection {
     switch (direction) {
       case '':
-        return 'asc';
+        return 'asc'
       case 'asc':
-        return 'desc';
+        return 'desc'
       default:
-        return disableClear ? 'asc' : '';
+        return disableClear ? 'asc' : ''
     }
   }
 }
@@ -239,17 +225,17 @@ export class ZardTableSortHeaderComponent {
     '[style.position]': 'isSticky() ? "sticky" : null',
     '[style.left]': 'offset()',
     '[style.zIndex]': 'zIndex()',
-    '[attr.data-sticky-start]': 'offset()',
+    '[attr.data-sticky-start]': 'offset()'
   },
-  exportAs: 'zTableStickyStart',
+  exportAs: 'zTableStickyStart'
 })
 export class ZardTableStickyStartDirective {
-  readonly zTableStickyStart = input<string | number | null>(0);
-  readonly zTableStickyZIndex = input<string | number | null>(1);
+  readonly zTableStickyStart = input<string | number | null>(0)
+  readonly zTableStickyZIndex = input<string | number | null>(1)
 
-  protected readonly offset = computed(() => toCssLength(this.zTableStickyStart()));
-  protected readonly zIndex = computed(() => toCssNumber(this.zTableStickyZIndex(), '1'));
-  protected readonly isSticky = computed(() => this.offset() !== null);
+  protected readonly offset = computed(() => toCssLength(this.zTableStickyStart()))
+  protected readonly zIndex = computed(() => toCssNumber(this.zTableStickyZIndex(), '1'))
+  protected readonly isSticky = computed(() => this.offset() !== null)
 }
 
 @Directive({
@@ -260,40 +246,40 @@ export class ZardTableStickyStartDirective {
     '[style.position]': 'isSticky() ? "sticky" : null',
     '[style.right]': 'offset()',
     '[style.zIndex]': 'zIndex()',
-    '[attr.data-sticky-end]': 'offset()',
+    '[attr.data-sticky-end]': 'offset()'
   },
-  exportAs: 'zTableStickyEnd',
+  exportAs: 'zTableStickyEnd'
 })
 export class ZardTableStickyEndDirective {
-  readonly zTableStickyEnd = input<string | number | null>(0);
-  readonly zTableStickyZIndex = input<string | number | null>(1);
+  readonly zTableStickyEnd = input<string | number | null>(0)
+  readonly zTableStickyZIndex = input<string | number | null>(1)
 
-  protected readonly offset = computed(() => toCssLength(this.zTableStickyEnd()));
-  protected readonly zIndex = computed(() => toCssNumber(this.zTableStickyZIndex(), '1'));
-  protected readonly isSticky = computed(() => this.offset() !== null);
+  protected readonly offset = computed(() => toCssLength(this.zTableStickyEnd()))
+  protected readonly zIndex = computed(() => toCssNumber(this.zTableStickyZIndex(), '1'))
+  protected readonly isSticky = computed(() => this.offset() !== null)
 }
 
 function toCssLength(value: string | number | null | undefined): string | null {
   if (value === null || value === undefined || value === '') {
-    return null;
+    return null
   }
 
   if (typeof value === 'number') {
-    return `${value}px`;
+    return `${value}px`
   }
 
-  const trimmed = value.trim();
+  const trimmed = value.trim()
   if (!trimmed) {
-    return null;
+    return null
   }
 
-  return /^-?\d+(\.\d+)?$/.test(trimmed) ? `${trimmed}px` : trimmed;
+  return /^-?\d+(\.\d+)?$/.test(trimmed) ? `${trimmed}px` : trimmed
 }
 
 function toCssNumber(value: string | number | null | undefined, fallback: string): string {
   if (value === null || value === undefined || value === '') {
-    return fallback;
+    return fallback
   }
 
-  return String(value);
+  return String(value)
 }

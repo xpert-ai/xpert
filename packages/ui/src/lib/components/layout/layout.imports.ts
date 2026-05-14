@@ -1,12 +1,8 @@
-import { ContentComponent } from '@/shared/components/layout/content.component';
-import { FooterComponent } from '@/shared/components/layout/footer.component';
-import { HeaderComponent } from '@/shared/components/layout/header.component';
-import { LayoutComponent } from '@/shared/components/layout/layout.component';
-import {
-  SidebarComponent,
-  SidebarGroupComponent,
-  SidebarGroupLabelComponent,
-} from '@/shared/components/layout/sidebar.component';
+import { ContentComponent } from './content.component'
+import { FooterComponent } from './footer.component'
+import { HeaderComponent } from './header.component'
+import { LayoutComponent } from './layout.component'
+import { SidebarComponent, SidebarGroupComponent, SidebarGroupLabelComponent } from './sidebar.component'
 
 export const LayoutImports = [
   LayoutComponent,
@@ -15,5 +11,5 @@ export const LayoutImports = [
   ContentComponent,
   SidebarComponent,
   SidebarGroupComponent,
-  SidebarGroupLabelComponent,
-] as const;
+  SidebarGroupLabelComponent
+] as const

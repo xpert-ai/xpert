@@ -1,10 +1,8 @@
-
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { ISemanticModelCache, SemanticModelServerService } from '@xpert-ai/cloud/state'
 import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
@@ -24,7 +22,7 @@ import {
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -40,7 +38,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSelectComponent,
     NgxJsonViewerModule,
     Copy2Component
-],
+  ],
   selector: 'semanctic-model-cache',
   templateUrl: './cache.component.html',
   styleUrl: 'cache.component.scss',
@@ -75,16 +73,14 @@ export class SemancticModelCacheComponent {
   readonly preview = signal<ISemanticModelCache>(null)
 
   constructor() {
-    effect(
-      () => {
-        const timeRange = this.timeRange()
-        const language = this.language()
-        this.caches.set([])
-        this.currentPage.set(0)
-        this.done.set(false)
-        this.loadLogs({ language, timeRange, currentPage: 0 })
-      }
-    )
+    effect(() => {
+      const timeRange = this.timeRange()
+      const language = this.language()
+      this.caches.set([])
+      this.currentPage.set(0)
+      this.done.set(false)
+      this.loadLogs({ language, timeRange, currentPage: 0 })
+    })
   }
 
   loadLogs = effectAction((origin$: Observable<{ language: string; timeRange: string[]; currentPage: number }>) => {

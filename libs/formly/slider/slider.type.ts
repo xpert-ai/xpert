@@ -1,9 +1,8 @@
-
 import { ChangeDetectionStrategy, Component, Type } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSliderInputComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmFieldColor } from '@xpert-ai/ocap-angular/core'
 import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core'
+import { NgmSliderInputComponent } from '@xpert-ai/headless-ui'
 
 interface SliderProps extends FormlyFieldProps {
   color?: NgmFieldColor
@@ -31,22 +30,23 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
   standalone: true,
   selector: 'pac-formly-slider',
   template: `
-<ngm-slider-input class="w-full"
-  [tabIndex]="props.tabindex"
-  [label]="props.label"
-  [color]="props.color"
-  [displayWith]="props.displayWith"
-  [max]="props.max"
-  [min]="props.min"
-  [step]="props.step"
-  [discrete]="props.discrete ?? props.thumbLabel"
-  [showTickMarks]="props.showTickMarks"
-  [autoScale]="props.autoScale"
-  [unit]="props.unit"
-  [(ngModel)]="model"
-  (valueChange)="onChange($event)"
->
-</ngm-slider-input>
+    <ngm-slider-input
+      class="w-full"
+      [tabIndex]="props.tabindex"
+      [label]="props.label"
+      [color]="props.color"
+      [displayWith]="props.displayWith"
+      [max]="props.max"
+      [min]="props.min"
+      [step]="props.step"
+      [discrete]="props.discrete ?? props.thumbLabel"
+      [showTickMarks]="props.showTickMarks"
+      [autoScale]="props.autoScale"
+      [unit]="props.unit"
+      [(ngModel)]="model"
+      (valueChange)="onChange($event)"
+    >
+    </ngm-slider-input>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./slider.type.scss'],
@@ -55,7 +55,7 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
 export class FormlyFieldSliderComponent extends FieldType<FieldTypeConfig<SliderProps>> {
   override defaultOptions = {
     props: {
-      thumbLabel: false,
+      thumbLabel: false
     }
   }
 

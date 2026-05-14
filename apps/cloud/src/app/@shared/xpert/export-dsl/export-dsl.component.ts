@@ -4,10 +4,9 @@ import { ChangeDetectionStrategy, Component, inject, model, signal } from '@angu
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
 import { SlideUpAnimation } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { tap } from 'rxjs/operators'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

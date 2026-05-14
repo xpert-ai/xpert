@@ -5,9 +5,9 @@ import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectHelpWebsite, injectToastr } from '@cloud/app/@core'
 import { PluginComponent, TPlugin } from '@cloud/app/@shared/plugins'
 import { injectPluginAPI } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -44,18 +44,17 @@ export class PluginInstallComponent {
   readonly error = signal<string | null>(null)
 
   constructor() {
-    effect(
-      (onCleanup) => {
-        const name = this.pluginName()
-        if (!name) {
-          this.latestVersion.set(null)
-          return
-        }
+    effect((onCleanup) => {
+      const name = this.pluginName()
+      if (!name) {
+        this.latestVersion.set(null)
+        return
+      }
 
-        let cancelled = false
-        onCleanup(() => {
-          cancelled = true
-        })
+      let cancelled = false
+      onCleanup(() => {
+        cancelled = true
+      })
 
       const encoded = encodeURIComponent(name)
       fetch(`https://registry.npmjs.org/${encoded}`)

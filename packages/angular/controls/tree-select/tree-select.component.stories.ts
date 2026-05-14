@@ -1,7 +1,6 @@
 import { Component, Input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
-import { TREE_NODE_DATA } from '@xpert-ai/ocap-angular/common/tree-select/tree-select.component.stories'
 import {
   DisplayDensity,
   NgmAppearance,
@@ -18,6 +17,25 @@ import { Meta, moduleMetadata, StoryObj } from '@storybook/angular'
 import { CUBE_SALES_ORDER, MockAgent } from '../../mock/agent-mock.service'
 import { NgmControlsModule } from '../controls.module'
 import { MemberTreeSelectOptions, NgmMemberTreeSelectComponent } from './tree-select.component'
+
+const TREE_NODE_DATA = [
+  {
+    key: 'Fruit',
+    caption: 'Fruit',
+    children: [
+      { key: 'Apple', caption: 'Apple' },
+      { key: 'Banana', caption: 'Banana' }
+    ]
+  },
+  {
+    key: 'Vegetables',
+    caption: 'Vegetables',
+    children: [
+      { key: 'Broccoli', caption: 'Broccoli' },
+      { key: 'Carrots', caption: 'Carrots' }
+    ]
+  }
+]
 
 @Component({
   selector: 'test-member-tree-select',

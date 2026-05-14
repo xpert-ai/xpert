@@ -3,7 +3,6 @@ import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, contentChild, inject, input, model, TemplateRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import {
   buildListboxOptions,
   debouncedSignal,
@@ -15,6 +14,7 @@ import {
 } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
+import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use z-select instead
@@ -87,10 +87,12 @@ export class NgmSelectComponent {
       const label = this.i18n.transform(option.label)
       const description = this.i18n.transform(option.description)
       const value = formatSelectOptionValue(option.value).toLowerCase()
-      return label?.toLowerCase().includes(searchTerm)
-        || description?.toLowerCase().includes(searchTerm)
-        || value.includes(searchTerm)
-        || hasSelectOptionValue(this.values(), option.value)
+      return (
+        label?.toLowerCase().includes(searchTerm) ||
+        description?.toLowerCase().includes(searchTerm) ||
+        value.includes(searchTerm) ||
+        hasSelectOptionValue(this.values(), option.value)
+      )
     })
   })
 

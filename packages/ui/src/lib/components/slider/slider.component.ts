@@ -25,8 +25,8 @@ import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 import type { ClassValue } from 'clsx'
 import { type Observable, filter, fromEvent, map, merge, Subject, switchMap, takeUntil, tap } from 'rxjs'
 
-import { mergeClasses } from '@/shared/utils/merge-classes'
-import { clamp, convertValueToPercentage, roundToStep } from '@/shared/utils/number'
+import { mergeClasses } from '../../utils/merge-classes'
+import { clamp, convertValueToPercentage, roundToStep } from '../../utils/number'
 
 import {
   sliderLabelVariants,

@@ -1,15 +1,12 @@
 import { NgModule } from '@angular/core'
 
-import { SplitButtonComponent } from './split-button.component'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { SplitButtonModule as HeadlessSplitButtonModule } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead
  */
 @NgModule({
-  imports: [ZardButtonComponent, ZardIconComponent],
-  exports: [SplitButtonComponent],
-  declarations: [SplitButtonComponent],
-  providers: []
+  imports: [HeadlessSplitButtonModule],
+  exports: [HeadlessSplitButtonModule]
 })
 export class SplitButtonModule {}

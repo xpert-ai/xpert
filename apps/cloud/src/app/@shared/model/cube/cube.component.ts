@@ -4,14 +4,13 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input } f
 import { FormsModule } from '@angular/forms'
 import { injectToastr, TMessageContentCube } from '@cloud/app/@core'
 import { SemanticModelServerService } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { CubeStudioComponent } from '../studio/studio.component'
 import { ChecklistComponent } from '../../common'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,7 +25,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     ChecklistComponent,
     CubeStudioComponent
-],
+  ],
   host: {
     class: 'xp-model-cube'
   },
@@ -49,20 +48,16 @@ export class ModelCubeComponent extends ModelDraftBaseComponent {
   constructor() {
     super()
 
-    effect(
-      () => {
-        if (this.#modelId()) {
-          this.modelId.set(this.#modelId())
-        }
+    effect(() => {
+      if (this.#modelId()) {
+        this.modelId.set(this.#modelId())
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (this.#cubeName()) {
-          this.cubeName.set(this.#cubeName())
-        }
+    effect(() => {
+      if (this.#cubeName()) {
+        this.cubeName.set(this.#cubeName())
       }
-    )
+    })
   }
 }

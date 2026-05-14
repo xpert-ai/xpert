@@ -1,9 +1,9 @@
-import { ZardContextMenuDirective } from '@/shared/components/menu/context-menu.directive';
-import { ZardMenuContentDirective } from '@/shared/components/menu/menu-content.directive';
-import { ZardMenuItemDirective } from '@/shared/components/menu/menu-item.directive';
-import { ZardMenuLabelComponent } from '@/shared/components/menu/menu-label.component';
-import { ZardMenuShortcutComponent } from '@/shared/components/menu/menu-shortcut.component';
-import { ZardMenuDirective } from '@/shared/components/menu/menu.directive';
+import { ZardContextMenuDirective } from './context-menu.directive'
+import { ZardMenuContentDirective } from './menu-content.directive'
+import { ZardMenuItemDirective } from './menu-item.directive'
+import { ZardMenuLabelComponent } from './menu-label.component'
+import { ZardMenuShortcutComponent } from './menu-shortcut.component'
+import { ZardMenuDirective } from './menu.directive'
 
 export const ZardMenuImports = [
   ZardContextMenuDirective,
@@ -11,5 +11,5 @@ export const ZardMenuImports = [
   ZardMenuItemDirective,
   ZardMenuDirective,
   ZardMenuLabelComponent,
-  ZardMenuShortcutComponent,
-] as const;
+  ZardMenuShortcutComponent
+] as const

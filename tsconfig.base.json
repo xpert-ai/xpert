@@ -67,8 +67,7 @@
       "@xpert-ai/plugin-vstore-chroma": ["packages/plugins/vstore-chroma/src/index.ts"],
       "@xpert-ai/plugin-vstore-weaviate": ["packages/plugins/vstore-weaviate/src/index.ts"],
       "ngx-echarts": ["legacies/ngx-echarts/src/public-api"],
-      "@xpert-ai/headless-ui": ["packages/ui/src/index.ts"],
-      "@xpert-ai/headless-ui/*": ["packages/ui/src/lib/*"]
+      "@xpert-ai/headless-ui": ["packages/ui/src/index.ts"]
     },
     "preserveConstEnums": true,
     "allowSyntheticDefaultImports": true,

@@ -1,20 +1,30 @@
-
 import { Component, computed, effect, forwardRef, inject, input, Input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { nonNullable, PropertyDimension } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, startWith } from 'rxjs'
-import { NgmDisplayBehaviourComponent } from '../display-behaviour'
-import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
-import { ZardComboboxDeprecatedComponent, ZardComboboxDeprecatedGroup, ZardComboboxDeprecatedOption, ZardFormImports } from '@xpert-ai/headless-ui'
+import { NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
+import {
+  NgmDisplayBehaviourComponent,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedGroup,
+  ZardComboboxDeprecatedOption,
+  ZardFormImports
+} from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead
  */
 @Component({
   standalone: true,
-  imports: [...ZardFormImports, ZardComboboxDeprecatedComponent, ReactiveFormsModule, TranslateModule, NgmDisplayBehaviourComponent],
+  imports: [
+    ...ZardFormImports,
+    ZardComboboxDeprecatedComponent,
+    ReactiveFormsModule,
+    TranslateModule,
+    NgmDisplayBehaviourComponent
+  ],
   selector: 'ngm-hierarchy-select',
   templateUrl: './hierarchy-select.component.html',
   styles: [],
@@ -47,14 +57,16 @@ export class NgmHierarchySelectComponent implements ControlValueAccessor {
       label: `-- ${this.#translate.instant('Ngm.Common.None', { Default: 'None' })} --`
     }
   ])
-  readonly groups = computed<ZardComboboxDeprecatedGroup[]>(() =>
-    this.dimensions()?.map((dimension) => ({
-      label: dimension.caption,
-      options: dimension.hierarchies?.map((hierarchy) => ({
-        value: hierarchy.name,
-        label: hierarchy.caption || hierarchy.name
+  readonly groups = computed<ZardComboboxDeprecatedGroup[]>(
+    () =>
+      this.dimensions()?.map((dimension) => ({
+        label: dimension.caption,
+        options:
+          dimension.hierarchies?.map((hierarchy) => ({
+            value: hierarchy.name,
+            label: hierarchy.caption || hierarchy.name
+          })) ?? []
       })) ?? []
-    })) ?? []
   )
 
   readonly error = signal<string>('')
@@ -71,15 +83,14 @@ export class NgmHierarchySelectComponent implements ControlValueAccessor {
       if (hierarchy) return hierarchy
       return dimension.hierarchies?.find((item) => item.name === this.value())
     }, null)
-      if (nonNullable(this.value()) && nonNullable(this.dimensions()) && !hierarchy) {
-        this.error.set(
-          this.#translate.instant('Ngm.Messages.NotFoundValue', { Default: 'Not found value: ' }) + this.value()
-        )
-      } else {
-        this.error.set(null)
-      }
+    if (nonNullable(this.value()) && nonNullable(this.dimensions()) && !hierarchy) {
+      this.error.set(
+        this.#translate.instant('Ngm.Messages.NotFoundValue', { Default: 'Not found value: ' }) + this.value()
+      )
+    } else {
+      this.error.set(null)
     }
-  )
+  })
 
   writeValue(obj: any): void {
     this.formControl.setValue(obj ?? '', { emitEvent: false })

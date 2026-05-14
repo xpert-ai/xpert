@@ -3,17 +3,24 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, model, si
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
-import { ChatConversationService, DateRelativePipe, OrderTypeEnum, routeAnimations, TChatConversationLog, XpertAPIService } from '@cloud/app/@core'
+import {
+  ChatConversationService,
+  DateRelativePipe,
+  OrderTypeEnum,
+  routeAnimations,
+  TChatConversationLog,
+  XpertAPIService
+} from '@cloud/app/@core'
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
 import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } from '@cloud/app/@shared/chat'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -77,13 +84,17 @@ export class XpertLogsComponent {
       delayWhen(() => this.xpertId$.pipe(filter((id) => !!id))),
       switchMap(() => {
         this.loading.set(true)
-        return this.xpertService.getConversations(this.xpertId(), {
-          // select: ['id', 'threadId', 'title', 'status', 'createdById', 'fromEndUserId', 'updatedAt'],
-          relations: ['createdBy'],
-          order: { updatedAt: OrderTypeEnum.DESC },
-          take: this.pageSize,
-          skip: this.currentPage() * this.pageSize
-        }, this.timeRange())
+        return this.xpertService.getConversations(
+          this.xpertId(),
+          {
+            // select: ['id', 'threadId', 'title', 'status', 'createdById', 'fromEndUserId', 'updatedAt'],
+            relations: ['createdBy'],
+            order: { updatedAt: OrderTypeEnum.DESC },
+            take: this.pageSize,
+            skip: this.currentPage() * this.pageSize
+          },
+          this.timeRange()
+        )
       }),
       tap({
         next: ({ items, total }) => {
@@ -108,7 +119,7 @@ export class XpertLogsComponent {
   }
 
   togglePreview(id: string) {
-    this.preview.update((state) => state === id ? null : id)
+    this.preview.update((state) => (state === id ? null : id))
   }
 
   selectExecution(id: string) {
@@ -128,11 +139,7 @@ export class XpertLogsComponent {
     this.conversationService.cancelConversation(conversation.id, conversation.organizationId ?? undefined).subscribe({
       next: () => {
         this.conversations.update((state) =>
-          state.map((item) =>
-            item.id === conversation.id
-              ? { ...item, status: 'interrupted' }
-              : item
-          )
+          state.map((item) => (item.id === conversation.id ? { ...item, status: 'interrupted' } : item))
         )
       }
     })

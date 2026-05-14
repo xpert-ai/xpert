@@ -17,9 +17,9 @@ import {
   XpertTypeEnum
 } from '@cloud/app/@core'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { ExploreAgentInstallComponent } from './install/install.component'
 import { ExploreXpertCardComponent } from './xpert-card.component'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 type ExploreViewMode = 'square' | 'mine'
 
@@ -183,7 +183,9 @@ export class ExploreAgentsComponent {
   }
 
   openMineItem(item: IXpert) {
-    this.#router.navigate(item.type === XpertTypeEnum.Copilot ? ['/xpert/x', item.id, 'copilot'] : ['/xpert/x', item.id])
+    this.#router.navigate(
+      item.type === XpertTypeEnum.Copilot ? ['/xpert/x', item.id, 'copilot'] : ['/xpert/x', item.id]
+    )
   }
 
   openMineWorkspace(event?: Event) {

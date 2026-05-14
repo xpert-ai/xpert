@@ -1,0 +1,12 @@
+@reference "tailwindcss";
+:host {
+  @apply block overflow-visible;
+}
+
+[z-input] {
+  @apply outline-none text-right max-w-[50%];
+}
+
+z-slider {
+  @apply block w-full;
+}

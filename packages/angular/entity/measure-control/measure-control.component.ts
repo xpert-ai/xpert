@@ -11,7 +11,7 @@ import {
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule
 } from '@angular/forms'
-import { NgmPropertyComponent, NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmPropertyComponent } from '@xpert-ai/ocap-angular/common'
 import {
   CalculationProperty,
   CalculationType,
@@ -25,11 +25,20 @@ import {
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import { map } from 'rxjs/operators'
-import { ZardFormImports } from '@xpert-ai/headless-ui'
+import { NgmSelectComponent, ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, CdkListboxModule, ...ZardFormImports, NgmPropertyComponent, NgmSelectComponent],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    DragDropModule,
+    CdkListboxModule,
+    ...ZardFormImports,
+    NgmPropertyComponent,
+    NgmSelectComponent
+  ],
   selector: 'ngm-measure-control',
   templateUrl: './measure-control.component.html',
   styleUrl: './measure-control.component.scss',

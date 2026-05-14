@@ -1,4 +1,3 @@
-
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -12,7 +11,6 @@ import {
   signal
 } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -28,7 +26,7 @@ import {
 import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { isNil, omit } from 'lodash-es'
 import { Subscription } from 'rxjs'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -40,7 +38,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     JSONSchemaFormComponent,
     ZardSwitchComponent
-],
+  ],
   selector: 'mcp-toolset-tool-test',
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',

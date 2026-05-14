@@ -6,7 +6,6 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject,
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { EMPTY, switchMap, tap } from 'rxjs'
@@ -21,7 +20,7 @@ import {
 import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { XpertDevelopAppComponent, XpertDevelopEmbeddedComponent } from '../develop'
 import { XpertComponent } from '../xpert.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -35,7 +34,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmSpinComponent,
     QRCodeComponent
-],
+  ],
   selector: 'xpert-app',
   templateUrl: './app.component.html',
   styleUrl: 'app.component.scss',

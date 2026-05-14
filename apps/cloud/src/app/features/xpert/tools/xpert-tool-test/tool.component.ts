@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, model, out
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { IfAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -15,7 +14,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { Observable, of, shareReplay, switchMap, tap } from 'rxjs'
 import { XpertToolsetToolTestComponent } from '../tool-test'
-import { ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [

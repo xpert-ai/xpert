@@ -6,7 +6,6 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -23,7 +22,7 @@ import {
 import { EmojiAvatarComponent, IconComponent } from '../../avatar'
 import { IntegrationFormComponent } from '../../integration'
 import { environment } from '@cloud/environments/environment'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { CdkConfirmDeleteComponent, NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use triggers in workflow instead
@@ -46,7 +45,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     IconComponent,
     IntegrationFormComponent,
     NgmI18nPipe
-],
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertPublishComponent {
@@ -75,13 +74,11 @@ export class XpertPublishComponent {
   readonly integration = model<IIntegration>()
 
   constructor() {
-    effect(
-      () => {
-        if (this.xpert()) {
-          this.integrations.set(this.xpert().integrations)
-        }
+    effect(() => {
+      if (this.xpert()) {
+        this.integrations.set(this.xpert().integrations)
       }
-    )
+    })
 
     effect(
       () => {
@@ -90,13 +87,11 @@ export class XpertPublishComponent {
       { allowSignalWrites: true }
     )
 
-    effect(
-      () => {
-        if (this.selectedIntegrations()) {
-          this.integration.set(this.selectedIntegrations()[0])
-        }
+    effect(() => {
+      if (this.selectedIntegrations()) {
+        this.integration.set(this.selectedIntegrations()[0])
       }
-    )
+    })
   }
 
   onStart(statement: string): void {

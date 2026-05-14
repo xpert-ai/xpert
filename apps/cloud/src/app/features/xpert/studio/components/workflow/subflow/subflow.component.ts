@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNKnowledgeRetrieval,
@@ -11,7 +10,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { PlusSvgComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-subflow',

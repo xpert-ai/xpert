@@ -4,9 +4,14 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  NgmHighlightDirective,
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
 import { SemanticModelServerService, Store } from '@xpert-ai/cloud/state'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, ISemanticModel, ProjectAPIService } from 'apps/cloud/src/app/@core'
@@ -15,7 +20,22 @@ import { combineLatest, debounceTime, map, startWith } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, CdkListboxModule, ...ZardFormImports, ZardButtonComponent, ZardInputDirective, ZardIconComponent, DensityDirective, ButtonGroupDirective, NgmHighlightDirective, InlineSearchComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    DragDropModule,
+    CdkListboxModule,
+    ...ZardFormImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ZardIconComponent,
+    DensityDirective,
+    ButtonGroupDirective,
+    NgmHighlightDirective,
+    InlineSearchComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-project-creation',
   templateUrl: `./creation.component.html`,

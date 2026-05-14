@@ -2,12 +2,22 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, effect, inject, model, OnDestroy, OnInit, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  effect,
+  inject,
+  model,
+  OnDestroy,
+  OnInit,
+  signal
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { OverlayAnimation1 } from '@xpert-ai/core'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { map, shareReplay, Subject, takeUntil } from 'rxjs'
@@ -23,6 +33,7 @@ import {
   XpertTableStatus
 } from '../../../../@core'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -83,10 +94,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     const databases = this.#tablesResource.value()?.items || []
     if (status || dataSourceId) {
       return databases.filter((table) => {
-        return (
-          (status ? table.status === status : true) &&
-          (dataSourceId ? table.database === dataSourceId : true)
-        )
+        return (status ? table.status === status : true) && (dataSourceId ? table.database === dataSourceId : true)
       })
     }
     return databases
@@ -98,7 +106,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
 
   // Edit table
   readonly table = model<Partial<IXpertTable> | null>(null)
-  readonly #isClosing = signal(false)  // Flag to prevent side effects when closing
+  readonly #isClosing = signal(false) // Flag to prevent side effects when closing
   readonly database = attrModel(this.table, 'database')
   readonly name = attrModel(this.table, 'name')
   readonly description = attrModel(this.table, 'description')
@@ -114,26 +122,26 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     }
   })
   readonly schema = attrModel(this.table, 'schema')
-  
+
   // Track previous database ID to detect changes
   readonly #previousDatabaseId = signal<string | undefined>(undefined)
   readonly columns = attrModel(this.table, 'columns')
-  
+
   // Clear schema when database changes - effect must be in field initializer (injection context)
   readonly #schemaClearEffect = effect(() => {
     // Skip if we're closing the dialog to prevent side effects
     if (this.#isClosing()) {
       return
     }
-    
+
     // Skip if table is null (dialog is closed)
     if (!this.table()) {
       return
     }
-    
+
     const databaseId = this.database()
     const previousDatabaseId = this.#previousDatabaseId()
-    
+
     // If database changed, clear schema immediately
     if (databaseId !== previousDatabaseId && previousDatabaseId !== undefined) {
       // Database changed, clear schema immediately to avoid mismatch errors
@@ -148,20 +156,20 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       }, 0)
       return
     }
-    
+
     // Update previous database ID if it's the first time
     if (previousDatabaseId === undefined && databaseId !== undefined) {
       this.#previousDatabaseId.set(databaseId)
     }
-    
+
     // Also check if current schema is valid in the current database's schema list
     // Only check after schemas have been loaded (when availableSchemas.length > 0)
     const currentSchema = this.schema()
     const availableSchemas = this.schemasOptions()
-    
+
     // Wait for schemas to load before validating
     if (databaseId && currentSchema && availableSchemas.length > 0) {
-      const schemaExists = availableSchemas.some(s => s.value === currentSchema)
+      const schemaExists = availableSchemas.some((s) => s.value === currentSchema)
       if (!schemaExists) {
         // Current schema doesn't exist in the new database, clear it
         setTimeout(() => {
@@ -174,7 +182,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       }
     }
   })
-  
+
   readonly schemasOptions = computed(() => {
     return (this.#schemasRs.value() || []).map((schema) => ({
       value: schema.name,
@@ -496,7 +504,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       return databases.map((db: any) => ({
         value: db.id,
         label: db.name,
-        type: db.type  // Store database type (e.g., 'mysql', 'postgres')
+        type: db.type // Store database type (e.g., 'mysql', 'postgres')
       }))
     }),
     shareReplay(1)
@@ -504,7 +512,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
 
   // Store database type map
   readonly #databaseTypeMap = signal<Map<string, string>>(new Map())
-  
+
   // PostgreSQL data types
   readonly postgresTypes: TSelectOption[] = [
     // Numeric types - Integers
@@ -711,15 +719,15 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   readonly types = computed(() => {
     const databaseId = this.database()
     if (!databaseId) {
-      return []  // Return empty array if no database selected
+      return [] // Return empty array if no database selected
     }
-    
+
     // Get database type from map
     const databaseType = this.#databaseTypeMap().get(databaseId)
-    
+
     // Normalize database type for comparison (case-insensitive)
     const normalizedType = databaseType?.toLowerCase() || ''
-    
+
     // Return types based on database type
     // Check for PostgreSQL variants: 'postgres', 'postgresql', 'pg', etc.
     if (normalizedType.includes('postgres') || normalizedType === 'pg') {
@@ -736,42 +744,34 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // Initialize translated texts
     this.updateTranslations()
-    
+
     // Subscribe to language change events and update all translated texts
-    this.#translate.onLangChange
-      .pipe(takeUntil(this.#destroy$))
-      .subscribe(() => {
-        this.updateTranslations()
-        this.#cdr.markForCheck() // Trigger change detection
-      })
-    
+    this.#translate.onLangChange.pipe(takeUntil(this.#destroy$)).subscribe(() => {
+      this.updateTranslations()
+      this.#cdr.markForCheck() // Trigger change detection
+    })
+
     // Subscribe to databases to build type map
-    this.databases$
-      .pipe(takeUntil(this.#destroy$))
-      .subscribe((databases) => {
-        const typeMap = new Map<string, string>()
-        databases.forEach((db: any) => {
-          if (db.value && db.type) {
-            typeMap.set(db.value, db.type)
-          }
-        })
-        this.#databaseTypeMap.set(typeMap)
-        // Trigger change detection after map is updated
-        this.#cdr.markForCheck()
+    this.databases$.pipe(takeUntil(this.#destroy$)).subscribe((databases) => {
+      const typeMap = new Map<string, string>()
+      databases.forEach((db: any) => {
+        if (db.value && db.type) {
+          typeMap.set(db.value, db.type)
+        }
       })
+      this.#databaseTypeMap.set(typeMap)
+      // Trigger change detection after map is updated
+      this.#cdr.markForCheck()
+    })
   }
-  
+
   /**
    * Update all translated texts
    */
   private updateTranslations() {
-    this.statusPlaceholder.set(
-      this.#translate.instant('PAC.Workspace.AllStatus', {Default: 'All Status'})
-    )
-    this.databasePlaceholder.set(
-      this.#translate.instant('PAC.Workspace.AllDatabases', {Default: 'All Databases'})
-    )
-    
+    this.statusPlaceholder.set(this.#translate.instant('PAC.Workspace.AllStatus', { Default: 'All Status' }))
+    this.databasePlaceholder.set(this.#translate.instant('PAC.Workspace.AllDatabases', { Default: 'All Databases' }))
+
     // Note: Do not modify types and statusOptions arrays to avoid breaking CdkListbox internal state
     // These arrays' labels are already multi-language objects {en_US: '...', zh_Hans: '...'}
     // i18n pipe will automatically select the correct text based on current language
@@ -791,7 +791,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     if (this.#isClosing()) {
       return
     }
-    this.#isClosing.set(false)  // Reset closing flag
+    this.#isClosing.set(false) // Reset closing flag
     this.table.set({
       name: ''
     })
@@ -803,15 +803,15 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   addColumn() {
     const columns = [
       ...(this.table().columns ?? []),
-      { 
-        name: '', 
-        label: '', 
-        type: 'string', 
+      {
+        name: '',
+        label: '',
+        type: 'string',
         required: false,
         isPrimaryKey: false,
         isUnique: false,
         autoIncrement: false,
-        defaultValue: undefined,  // Do not set default value to avoid sending empty string to backend
+        defaultValue: undefined, // Do not set default value to avoid sending empty string to backend
         length: undefined
       } as TXpertTableColumn
     ]
@@ -828,12 +828,12 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   }
 
   editTable(table: IXpertTable) {
-    this.#isClosing.set(false)  // Reset closing flag
+    this.#isClosing.set(false) // Reset closing flag
     this.table.set({ ...table })
   }
 
   closeTableDialog() {
-    this.#isClosing.set(true)  // Set closing flag to prevent side effects
+    this.#isClosing.set(true) // Set closing flag to prevent side effects
     this.table.set(null)
     // Reset closing flag after a longer delay to ensure all effects have completed
     setTimeout(() => {
@@ -846,7 +846,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     if (!this.table().workspaceId) {
       this.table.update((v) => ({ ...v, workspaceId: this.workspace()?.id }))
     }
-    
+
     // Validate ENUM and SET types before saving
     const columns = this.table().columns || []
     for (const col of columns) {
@@ -856,7 +856,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
           this.#toastr.danger(
             this.#translate.instant('PAC.Workspace.EnumValuesRequired', {
               Default: 'Enum Values is required for ENUM type',
-              fieldName: col.name || this.#translate.instant('PAC.Workspace.FieldName', {Default: 'Field'})
+              fieldName: col.name || this.#translate.instant('PAC.Workspace.FieldName', { Default: 'Field' })
             })
           )
           return
@@ -868,18 +868,18 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
           this.#toastr.danger(
             this.#translate.instant('PAC.Workspace.SetValuesRequired', {
               Default: 'Set Values is required for SET type',
-              fieldName: col.name || this.#translate.instant('PAC.Workspace.FieldName', {Default: 'Field'})
+              fieldName: col.name || this.#translate.instant('PAC.Workspace.FieldName', { Default: 'Field' })
             })
           )
           return
         }
       }
     }
-    
+
     // Clean field data: remove empty string default values
     const cleanedTable = {
       ...this.table(),
-      columns: columns.map(col => ({
+      columns: columns.map((col) => ({
         ...col,
         // Set empty string or whitespace-only default values to undefined
         defaultValue: col.defaultValue && col.defaultValue.trim() ? col.defaultValue : undefined,
@@ -888,7 +888,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
         setValues: col.setValues && col.setValues.length > 0 ? col.setValues : undefined
       }))
     }
-    
+
     // Use upsert method, update if id exists, otherwise create
     const isUpdate = !!cleanedTable.id
     this.xpertTableAPI.upsert(cleanedTable).subscribe({
@@ -926,7 +926,11 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     this.xpertTableAPI.activateTable(tableId).subscribe({
       next: () => {
         this.#loading.set(false)
-        this.#toastr.success(this.#translate.instant('PAC.Xpert.MemoryMessages.TableActivationStarted', { Default: 'Table activation started' }))
+        this.#toastr.success(
+          this.#translate.instant('PAC.Xpert.MemoryMessages.TableActivationStarted', {
+            Default: 'Table activation started'
+          })
+        )
         this.#tablesResource.reload()
       },
       error: (err) => {
@@ -944,15 +948,15 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     const infoText = this.#translate.instant('PAC.Workspace.DeleteTableInfo', {
       Default: 'This operation will delete the physical table in the database and cannot be recovered!',
       name: table.name,
-      description: table.description || this.#translate.instant('PAC.KEY_WORDS.None', {Default: 'None'}),
+      description: table.description || this.#translate.instant('PAC.KEY_WORDS.None', { Default: 'None' }),
       status: table.status
     })
-    
+
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: table.name,
-          information: `${infoText}\n\n${this.#translate.instant('PAC.Workspace.TableName', {Default: 'Table Name'})}: ${table.name}\n${this.#translate.instant('PAC.KEY_WORDS.Description', {Default: 'Description'})}: ${table.description || this.#translate.instant('PAC.KEY_WORDS.None', {Default: 'None'})}\n${this.#translate.instant('PAC.KEY_WORDS.Status', {Default: 'Status'})}: ${table.status}`
+          information: `${infoText}\n\n${this.#translate.instant('PAC.Workspace.TableName', { Default: 'Table Name' })}: ${table.name}\n${this.#translate.instant('PAC.KEY_WORDS.Description', { Default: 'Description' })}: ${table.description || this.#translate.instant('PAC.KEY_WORDS.None', { Default: 'None' })}\n${this.#translate.instant('PAC.KEY_WORDS.Status', { Default: 'Status' })}: ${table.status}`
         }
       })
       .closed.subscribe({
@@ -990,15 +994,15 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       unique: 'PAC.Workspace.UniqueShort',
       autoIncrement: 'PAC.Workspace.AutoIncrementShort'
     }
-    
+
     const defaults = {
       pk: 'PK',
       required: 'Required',
       unique: 'Unique',
       autoIncrement: 'Auto Inc'
     }
-    
-    return this.#translate.instant(translationKeys[constraint], {Default: defaults[constraint]})
+
+    return this.#translate.instant(translationKeys[constraint], { Default: defaults[constraint] })
   }
 
   /**
@@ -1046,7 +1050,10 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement
     const value = input.value.trim()
     if (value) {
-      col.enumValues = value.split(',').map(v => v.trim()).filter(v => v.length > 0)
+      col.enumValues = value
+        .split(',')
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0)
     } else {
       col.enumValues = undefined
     }
@@ -1059,7 +1066,10 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement
     const value = input.value.trim()
     if (value) {
-      col.setValues = value.split(',').map(v => v.trim()).filter(v => v.length > 0)
+      col.setValues = value
+        .split(',')
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0)
     } else {
       col.setValues = undefined
     }
@@ -1078,4 +1088,3 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     return normalizedType.includes('postgres') || normalizedType === 'pg'
   }
 }
-

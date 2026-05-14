@@ -6,9 +6,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { Router, RouterModule } from '@angular/router'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
 import { parseYAML } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardSelectImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardSelectImports } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   ICopilotModel,
@@ -39,7 +38,8 @@ import { map, switchMap } from 'rxjs/operators'
   templateUrl: './install.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-components-panel-bg px-8 py-6 text-left shadow-xl'
+    class:
+      'flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-components-panel-bg px-8 py-6 text-left shadow-xl'
   }
 })
 export class ExploreAgentInstallComponent {
@@ -144,7 +144,7 @@ export class ExploreAgentInstallComponent {
           this.loading.set(false)
           this.#toastr.error(getErrorMessage(error))
         }
-    })
+      })
   }
 }
 

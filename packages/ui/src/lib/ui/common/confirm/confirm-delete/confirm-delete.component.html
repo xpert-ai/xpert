@@ -1,0 +1,29 @@
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h4 style="pointer-events: none">
+    @if (data.title) {
+      {{ data.title }}
+    } @else {
+      {{ 'COMPONENTS.CONFIRM.DELETE' | translate: { Default: 'Confirm Delete' } }}
+      @if (data?.value) {
+        [<span class="font-bold">{{ data.value }}</span
+        >]
+      }
+      ?
+    }
+  </h4>
+</header>
+
+<xp-dialog-content class="min-h-[100px]">
+  <div class="whitespace-pre-line">{{ data?.information }}</div>
+</xp-dialog-content>
+
+<xp-dialog-actions align="end">
+  <div ngmButtonGroup>
+    <button z-button zType="ghost" xpDialogClose>
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
+    </button>
+    <button z-button zType="default" cdkFocusInitial [xpDialogClose]="true">
+      {{ 'COMPONENTS.COMMON.Confirm' | translate: { Default: 'Confirm' } }}
+    </button>
+  </div>
+</xp-dialog-actions>

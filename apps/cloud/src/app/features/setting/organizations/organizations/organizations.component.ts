@@ -2,14 +2,13 @@ import { SelectionModel } from '@angular/cdk/collections'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { getErrorMessage, IOrganization, OrganizationsService, ToastrService } from '../../../../@core'
 import { OrganizationsComponent } from '../organizations.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-all-organizations',

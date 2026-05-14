@@ -9,7 +9,6 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -20,7 +19,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioNodeStatus } from '../../types'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-node-toolset',

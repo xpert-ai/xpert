@@ -4,9 +4,15 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { firstValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { getErrorMessage, IShareSkillPackageInput, ISkillPackage, SkillPackageService, ToastrService } from '@cloud/app/@core'
+import {
+  getErrorMessage,
+  IShareSkillPackageInput,
+  ISkillPackage,
+  SkillPackageService,
+  ToastrService
+} from '@cloud/app/@core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 type ExploreSkillShareDialogData = {
   skill: ISkillPackage
@@ -60,7 +66,9 @@ type ExploreSkillShareDialogData = {
         </div>
         <div class="mt-1 text-sm text-text-tertiary">
           {{
-            (skill.metadata?.author?.name || ('PAC.Explore.AutoCreatorHint' | translate: { Default: 'Creator will be generated from the current user' }))
+            skill.metadata?.author?.name ||
+              ('PAC.Explore.AutoCreatorHint'
+                | translate: { Default: 'Creator will be generated from the current user' })
           }}
         </div>
       </div>
@@ -132,13 +140,22 @@ type ExploreSkillShareDialogData = {
             {{ creatorName }}
           </div>
           <div class="mt-1 text-xs text-text-tertiary">
-            {{ 'PAC.Explore.CreatorReadonlyHint' | translate: { Default: 'Creator is filled automatically from the current user and cannot be edited here.' } }}
+            {{
+              'PAC.Explore.CreatorReadonlyHint'
+                | translate
+                  : { Default: 'Creator is filled automatically from the current user and cannot be edited here.' }
+            }}
           </div>
         </div>
 
         @if (form.invalid && form.touched) {
-          <div class="rounded-2xl border border-status-destructive bg-status-destructive/10 px-4 py-3 text-sm text-status-destructive">
-            {{ 'PAC.Explore.ShareValidationHint' | translate: { Default: 'Please complete the display name and description first.' } }}
+          <div
+            class="rounded-2xl border border-status-destructive bg-status-destructive/10 px-4 py-3 text-sm text-status-destructive"
+          >
+            {{
+              'PAC.Explore.ShareValidationHint'
+                | translate: { Default: 'Please complete the display name and description first.' }
+            }}
           </div>
         }
 

@@ -1,1 +1,2 @@
-export * from './confirm-code-editor/confirm-code-editor.component'
+export { NgmConfirmCodeEditorComponent } from '@xpert-ai/headless-ui'
+export type { ConfirmCodeEditorData } from '@xpert-ai/headless-ui'

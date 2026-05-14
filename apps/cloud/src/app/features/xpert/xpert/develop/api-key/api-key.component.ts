@@ -4,7 +4,6 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MaskPipe } from '@xpert-ai/core'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ApiKeyBindingType,
@@ -17,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EMPTY, firstValueFrom } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { CdkConfirmDeleteComponent, NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 
 type ApiKeyListItem = IApiKey & { copied?: boolean }

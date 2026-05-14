@@ -4,14 +4,19 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { nonBlank, SlideUpAnimation } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, IXpert, ToastrService, TSelectOption, XpertAPIService } from '@cloud/app/@core'
 import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
-import { injectConfirm, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  injectConfirm,
+  injectConfirmDelete,
+  NgmSpinComponent,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [

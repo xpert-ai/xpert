@@ -6,14 +6,24 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, model, signal } fro
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption, mergeSelectedValues } from '@xpert-ai/ocap-angular/core'
 import { DSCoreService, nonNullable } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, combineLatestWith, distinctUntilChanged, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { EntitySelectResultType } from '../types'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmDisplayBehaviourComponent,
+  NgmSearchComponent,
+  Z_MODAL_DATA,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardLoaderComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 export type EntitySelectDataType = {
   dataSources: ISelectOption<string>[]
   dsCoreService: DSCoreService
@@ -42,7 +52,7 @@ export type EntitySelectDataType = {
     NgmSearchComponent,
     ButtonGroupDirective,
     NgmDisplayBehaviourComponent
-]
+  ]
 })
 export class NgmEntityDialogComponent implements OnInit {
   public readonly data = inject<EntitySelectDataType>(Z_MODAL_DATA)

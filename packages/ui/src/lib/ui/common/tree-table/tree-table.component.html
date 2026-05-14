@@ -1,0 +1,107 @@
+<table
+  z-table
+  [zSize]="tableSize"
+  [displayDensity]="displayDensity"
+  [class.ngm-table-grid]="grid"
+  [class.striped]="striped"
+>
+  <thead z-table-header>
+    <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+      <th z-table-head [ngClass]="stickyHeaders ? 'sticky top-0 z-20 bg-background' : ''">
+        <div class="flex items-center">
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            [displayDensity]="displayDensity"
+            (click)="toggleUnfold()"
+          >
+            @if (!unfold) {
+              <z-icon zType="unfold_more"></z-icon>
+            }
+            @if (unfold) {
+              <z-icon zType="unfold_less"></z-icon>
+            }
+          </button>
+          <span> {{ nameLabel }} </span>
+        </div>
+      </th>
+
+      @for (column of columns; track column.name) {
+        <th
+          z-table-head
+          [ngClass]="[stickyHeaders ? 'sticky top-0 z-20 bg-background' : '', column.headerClass ?? '']"
+          [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
+          [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
+          [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 5 : 1"
+          [style.width]="column.width || null"
+          [style.min-width]="column.minWidth || null"
+          [style.max-width]="column.maxWidth || null"
+        >
+          <div class="min-w-0" [style.max-width]="column.maxWidth || null">
+            {{ column.caption || column.name }}
+          </div>
+        </th>
+      }
+    </tr>
+  </thead>
+
+  <tbody z-table-body>
+    @for (data of visibleNodes(); track data.key) {
+      <tr z-table-row>
+        <td z-table-cell>
+          <div class="flex justify-start items-center">
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              [displayDensity]="displayDensity"
+              [style.visibility]="!data.expandable ? 'hidden' : ''"
+              [style.marginLeft.px]="data.level * treeNodePadding"
+              (click)="toggleNode(data)"
+            >
+              <z-icon
+                class="z-icon-rtl-mirror"
+                [zType]="treeControl.isExpanded(data) ? 'expand_more' : 'chevron_right'"
+              ></z-icon>
+            </button>
+            @if (nameCellTemplate) {
+              <ng-container *ngTemplateOutlet="nameCellTemplate; context: data"></ng-container>
+            }
+            @if (!nameCellTemplate) {
+              {{ data.caption || data.name }}
+            }
+          </div>
+        </td>
+
+        @for (column of columns; track column.name) {
+          <td
+            z-table-cell
+            [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
+            [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
+            [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 4 : 1"
+            [ngClass]="column.cellClass ?? ''"
+            [style.width]="column.width || null"
+            [style.min-width]="column.minWidth || null"
+            [style.max-width]="column.maxWidth || null"
+          >
+            <div
+              [ngClass]="contentClass(column)"
+              [style.max-width]="column.maxWidth || null"
+              [attr.title]="cellTitle(data, column)"
+            >
+              @if (column.cellTemplate) {
+                <ng-container *ngTemplateOutlet="column.cellTemplate; context: data"></ng-container>
+              }
+              @if (!column.cellTemplate) {
+                {{ displayValue(data, column) }}
+              }
+            </div>
+          </td>
+        }
+      </tr>
+    }
+  </tbody>
+</table>

@@ -4,15 +4,18 @@ import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { SemanticModelServerService } from '@xpert-ai/cloud/state'
 import {
   CdkConfirmDeleteComponent,
   NgmSearchComponent,
   NgmTableComponent,
-  TableColumn
-} from '@xpert-ai/ocap-angular/common'
+  TableColumn,
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
 import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -36,7 +39,7 @@ import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } f
     AppearanceDirective,
     NgmTableComponent,
     NgmSearchComponent
-],
+  ],
   animations: [routeAnimations]
 })
 export class ChatBIModelsComponent extends TranslationBaseComponent {

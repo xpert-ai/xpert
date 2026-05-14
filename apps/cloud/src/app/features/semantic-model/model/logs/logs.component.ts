@@ -4,7 +4,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@xpert-ai/cloud/state'
 import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
@@ -23,6 +22,7 @@ import {
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -105,44 +105,51 @@ export class SemancticModelLogsComponent {
     })
   }
 
-  loadLogs = effectAction((origin$: Observable<{ cube: string; status: QueryStatusEnum; timeRange: string[]; currentPage: number }>) => {
-    return origin$.pipe(
-      delayWhen(() => this.modelId$.pipe(filter((id) => !!id))),
-      switchMap(({ cube, status, timeRange, currentPage }) => {
-        this.loading.set(true)
-        return this.semanticModelService.getLogs(
-          this.modelComponent.model.id,
-          {
-            where: { cube: cube || undefined, status: status || undefined },
-            relations: ['createdBy'],
-            order: { updatedAt: OrderTypeEnum.DESC },
-            take: this.pageSize,
-            skip: currentPage * this.pageSize
+  loadLogs = effectAction(
+    (origin$: Observable<{ cube: string; status: QueryStatusEnum; timeRange: string[]; currentPage: number }>) => {
+      return origin$.pipe(
+        delayWhen(() => this.modelId$.pipe(filter((id) => !!id))),
+        switchMap(({ cube, status, timeRange, currentPage }) => {
+          this.loading.set(true)
+          return this.semanticModelService
+            .getLogs(
+              this.modelComponent.model.id,
+              {
+                where: { cube: cube || undefined, status: status || undefined },
+                relations: ['createdBy'],
+                order: { updatedAt: OrderTypeEnum.DESC },
+                take: this.pageSize,
+                skip: currentPage * this.pageSize
+              },
+              timeRange
+            )
+            .pipe(map(({ items, total }) => ({ items, total, currentPage })))
+        }),
+        tap({
+          next: ({ items, total, currentPage }) => {
+            this.logs.update((state) => [...state, ...items])
+            this.currentPage.update((state) => ++state)
+            if (items.length < this.pageSize || currentPage * this.pageSize >= total) {
+              this.done.set(true)
+            }
+            this.loading.set(false)
           },
-          timeRange
-        ).pipe(
-          map(({ items, total }) => ({ items, total, currentPage }))
-        )
-      }),
-      tap({
-        next: ({ items, total, currentPage }) => {
-          this.logs.update((state) => [...state, ...items])
-          this.currentPage.update((state) => ++state)
-          if (items.length < this.pageSize || currentPage * this.pageSize >= total) {
-            this.done.set(true)
+          error: (err) => {
+            this.loading.set(false)
           }
-          this.loading.set(false)
-        },
-        error: (err) => {
-          this.loading.set(false)
-        }
-      })
-    )
-  })
+        })
+      )
+    }
+  )
 
   onIntersection() {
     if (!this.loading() && !this.done()) {
-      this.loadLogs({ timeRange: this.timeRange(), cube: this.cube(), status: this.status(), currentPage: this.currentPage() })
+      this.loadLogs({
+        timeRange: this.timeRange(),
+        cube: this.cube(),
+        status: this.status(),
+        currentPage: this.currentPage()
+      })
     }
   }
 }

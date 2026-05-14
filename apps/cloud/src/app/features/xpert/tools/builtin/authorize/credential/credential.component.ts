@@ -1,14 +1,17 @@
-
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmRemoteSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, CredentialsType, ToolProviderCredentials } from 'apps/cloud/src/app/@core'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmRemoteSelectComponent,
+  ZardDialogModule,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -22,7 +25,7 @@ import { ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xper
     NgmDensityDirective,
     CopilotModelSelectComponent,
     ZardSwitchComponent
-],
+  ],
   selector: 'xpert-tool-builtin-credential',
   templateUrl: './credential.component.html',
   styleUrl: 'credential.component.scss',
@@ -65,13 +68,11 @@ export class XpertToolBuiltinCredentialComponent {
   readonly error = signal<string>(null)
 
   constructor() {
-    effect(
-      () => {
-        if (this.valueModel() === undefined && !isNil(this.credential()?.default)) {
-          this.valueModel.set(this.credential().default)
-        }
+    effect(() => {
+      if (this.valueModel() === undefined && !isNil(this.credential()?.default)) {
+        this.valueModel.set(this.credential().default)
       }
-    )
+    })
   }
 
   onError(error: string) {

@@ -4,14 +4,19 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { IndicatorsService, SemanticModelServerService, Store, StoriesService } from '@xpert-ai/cloud/state'
 import { getErrorMessage } from '@xpert-ai/core'
-import { NgmConfirmOptionsComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import { TimeGranularity } from '@xpert-ai/ocap-core'
 import { NxStoryModule } from '@xpert-ai/story/story'
 import { TranslateModule } from '@ngx-translate/core'
-import { GridType, Gridster, GridsterConfig, GridsterItem as GridsterItemComponent, GridsterItemConfig } from 'angular-gridster2'
+import {
+  GridType,
+  Gridster,
+  GridsterConfig,
+  GridsterItem as GridsterItemComponent,
+  GridsterItemConfig
+} from 'angular-gridster2'
 import { cloneDeep, compact, isEqual, pick } from 'lodash-es'
-import { ZardDialogService, ZardDatePickerComponent } from '@xpert-ai/headless-ui'
+import { NgmConfirmOptionsComponent, ZardDatePickerComponent, ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   combineLatest,
@@ -242,15 +247,13 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
   constructor() {
     super()
 
-    effect(
-      () => {
-        const createdDemo = this.createdDemo()
-        this.quickGuides.update((quickGuides) => {
-          quickGuides.sample.complete = createdDemo
-          return quickGuides
-        })
-      }
-    )
+    effect(() => {
+      const createdDemo = this.createdDemo()
+      this.quickGuides.update((quickGuides) => {
+        quickGuides.sample.complete = createdDemo
+        return quickGuides
+      })
+    })
   }
 
   ngOnInit(): void {
@@ -273,15 +276,18 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
       this._dialog
         .open(NgmConfirmOptionsComponent, {
           data: {
-            information: this.quickGuides().sample.complete ? this.getTranslation('PAC.MENU.HOME.RegenerateSamples', { Default: 'Regenerate Samples' }):
-              this.getTranslation('PAC.MENU.HOME.GenerateSamples', {Default: 'Generate Samples'}),
+            information: this.quickGuides().sample.complete
+              ? this.getTranslation('PAC.MENU.HOME.RegenerateSamples', { Default: 'Regenerate Samples' })
+              : this.getTranslation('PAC.MENU.HOME.GenerateSamples', { Default: 'Generate Samples' }),
             formFields: [
               {
                 key: 'source',
                 type: 'radio',
                 defaultValue: OrganizationDemoNetworkEnum.aliyun,
                 props: {
-                  label: this.getTranslation('PAC.ORGANIZATIONS_PAGE.Organization.SelectDataNetwork', {Default: 'Select Data Network'}),
+                  label: this.getTranslation('PAC.ORGANIZATIONS_PAGE.Organization.SelectDataNetwork', {
+                    Default: 'Select Data Network'
+                  }),
                   options: [
                     {
                       value: OrganizationDemoNetworkEnum.aliyun,

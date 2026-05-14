@@ -14,7 +14,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
-import { NgmDisplayBehaviourComponent } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { NgmEntityPropertyComponent } from '@xpert-ai/ocap-angular/entity'
 import { AggregationRole, CalculationType, nonNullable } from '@xpert-ai/ocap-core'
@@ -24,7 +23,12 @@ import { debounceTime } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
 import { ModelDesignerType } from '../../types'
 import { ModelEntityService } from '../entity.service'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmDisplayBehaviourComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { HttpEventType, HttpResponse } from '@angular/common/http'
 import { ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { NGM_WASM_AGENT_WORKER } from '@xpert-ai/ocap-angular/wasm-agent'
 import { TableEntity, isEqual, pick } from '@xpert-ai/ocap-core'
@@ -11,8 +10,9 @@ import { NgmDndDirective } from '@xpert-ai/core'
 import { IStorageFile, StorageFileService } from 'apps/cloud/src/app/@core'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import {
-  Z_MODAL_DATA, 
-  ZardDialogRef, 
+  NgmSelectComponent,
+  Z_MODAL_DATA,
+  ZardDialogRef,
   ZardProgressBarComponent,
   ZardProgressCircleComponent,
   ZardStepperImports,
@@ -156,13 +156,13 @@ export class ModelCreateTableComponent implements OnInit {
                     tableName: name,
                     columns: Object.keys(data[0]).map((key) => ({
                       name: key,
-                      fieldName: key,
+                      fieldName: key
                     })),
                     preview: data,
                     displayedColumns: Object.keys(data[0])
                   } as any
                 ])
-              } else if(!type) {
+              } else if (!type) {
                 throw new Error(`Unknown file type '${type}'`)
               }
             } catch (err: any) {

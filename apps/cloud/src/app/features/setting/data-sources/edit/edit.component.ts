@@ -14,10 +14,16 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmInputComponent,
+  NgmRadioSelectComponent,
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardInputDirective,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { environment } from '@cloud/environments/environment'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
-import { NgmInputComponent, NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, myRxResource, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { cloneDeep } from '@xpert-ai/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -120,16 +126,14 @@ export class PACDataSourceEditComponent {
     private serverAgent: ServerAgent,
     @Optional() private localAgent?: LocalAgent
   ) {
-    effect(
-      () => {
-        const dataSource = this.dataSource()
-        if (dataSource) {
-          this.formGroup.patchValue(dataSource)
-          this.optionsFormGroup.patchValue(dataSource.options)
-          assign(this.model, dataSource.options)
-        }
+    effect(() => {
+      const dataSource = this.dataSource()
+      if (dataSource) {
+        this.formGroup.patchValue(dataSource)
+        this.optionsFormGroup.patchValue(dataSource.options)
+        assign(this.model, dataSource.options)
       }
-    )
+    })
   }
 
   onCancel() {

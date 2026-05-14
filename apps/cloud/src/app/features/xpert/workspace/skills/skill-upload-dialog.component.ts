@@ -3,7 +3,6 @@ import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from 
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import {
   getErrorMessage,
   injectSkillPackageAPI,
@@ -13,6 +12,7 @@ import {
   ISkillRepositoryIndex
 } from '@cloud/app/@core'
 import { firstValueFrom } from 'rxjs'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -22,7 +22,7 @@ import { firstValueFrom } from 'rxjs'
     <div class="w-[420px] overflow-hidden rounded-2xl bg-components-card-bg text-text-primary shadow-2xl">
       <div class="flex items-center justify-between border-b border-divider-regular px-4 py-3">
         <div class="text-lg font-semibold">
-          {{ 'PAC.Skill.UploadSkills' | translate : { Default: 'Upload Skills' } }}
+          {{ 'PAC.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}
         </div>
         <button type="button" class="text-text-tertiary transition-colors hover:text-text-primary" (click)="close()">
           <i class="ri-close-line text-xl"></i>
@@ -32,7 +32,10 @@ import { firstValueFrom } from 'rxjs'
       <div class="p-4 space-y-4">
         <div class="rounded-lg border-2 border-dashed border-divider-regular bg-background-default-subtle p-4">
           <p class="mb-2 text-sm text-text-secondary">
-            {{ 'PAC.Skill.UploadSkillsHint' | translate : { Default: 'Upload a zip containing one or more skill folders (each with SKILL.md).' } }}
+            {{
+              'PAC.Skill.UploadSkillsHint'
+                | translate: { Default: 'Upload a zip containing one or more skill folders (each with SKILL.md).' }
+            }}
           </p>
           <button
             type="button"
@@ -43,7 +46,7 @@ import { firstValueFrom } from 'rxjs'
             <div class="flex items-center gap-2">
               <i class="ri-upload-2-line"></i>
               <span class="text-sm text-text-primary">
-                {{ 'PAC.Skill.ChooseFile' | translate : { Default: 'Choose file' } }}
+                {{ 'PAC.Skill.ChooseFile' | translate: { Default: 'Choose file' } }}
               </span>
             </div>
             <span class="text-xs text-text-tertiary">{{ files().length }}</span>
@@ -60,7 +63,9 @@ import { firstValueFrom } from 'rxjs'
           @if (files().length) {
             <div class="mt-3 max-h-40 overflow-auto space-y-2">
               @for (file of files(); track fileTrackBy($index, file)) {
-                <div class="flex items-center justify-between rounded-md border border-divider-regular bg-components-card-bg/80 px-3 py-2">
+                <div
+                  class="flex items-center justify-between rounded-md border border-divider-regular bg-components-card-bg/80 px-3 py-2"
+                >
                   <div class="min-w-0 truncate text-sm text-text-primary">{{ file.name }}</div>
                   <button
                     type="button"
@@ -77,13 +82,8 @@ import { firstValueFrom } from 'rxjs'
         </div>
 
         <div class="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            class="btn btn-secondary btn-medium"
-            [disabled]="loading()"
-            (click)="close()"
-          >
-            {{ 'PAC.ACTIONS.Cancel' | translate : { Default: 'Cancel' } }}
+          <button type="button" class="btn btn-secondary btn-medium" [disabled]="loading()" (click)="close()">
+            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button
             type="button"
@@ -93,10 +93,10 @@ import { firstValueFrom } from 'rxjs'
             (click)="upload()"
           >
             @if (loading()) {
-              <ngm-spin size="small" class="mr-1" /> {{ 'PAC.ACTIONS.Uploading' | translate : { Default: 'Uploading' } }}
+              <ngm-spin size="small" class="mr-1" /> {{ 'PAC.ACTIONS.Uploading' | translate: { Default: 'Uploading' } }}
             } @else {
               <i class="ri-cloud-upload-line mr-1"></i>
-              {{ 'PAC.ACTIONS.Upload' | translate : { Default: 'Upload' } }}
+              {{ 'PAC.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
             }
           </button>
         </div>

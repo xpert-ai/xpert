@@ -1,0 +1,10 @@
+@reference "tailwindcss";
+:host {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+table[z-table] {
+  min-width: 100%;
+}

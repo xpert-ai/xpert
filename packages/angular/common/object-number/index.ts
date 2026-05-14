@@ -1,1 +1,1 @@
-export * from './public-api';
+export { NgmObjectNumberComponent } from '@xpert-ai/headless-ui'

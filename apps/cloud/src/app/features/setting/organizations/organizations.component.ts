@@ -5,7 +5,6 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators 
 import { ActivatedRoute, Router } from '@angular/router'
 import { IFeatureOrganization, IOrganizationCreateInput, IUser, OrganizationDemoNetworkEnum } from '@xpert-ai/contracts'
 import { CURRENT_USER_FULL_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
@@ -22,7 +21,20 @@ import {
 } from '../../../@core'
 import { timezones } from '../../../@core/constants/timezone'
 import { OrganizationMutationComponent } from './organization-mutation/organization-mutation.component'
-import { ZardInputDirective, ZardStepperImports, ZardInputGroupComponent, ZardIconComponent, ZardTabsImports, ZardRadioComponent, ZardRadioGroupComponent, ZardButtonComponent, ZardSelectImports, ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmDelete,
+  NgmTableComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardInputGroupComponent,
+  ZardRadioComponent,
+  ZardRadioGroupComponent,
+  ZardSelectImports,
+  ZardStepperImports,
+  ZardSwitchComponent,
+  ZardTabsImports
+} from '@xpert-ai/headless-ui'
 import { OrgAvatarComponent, OrgAvatarEditorComponent } from '@cloud/app/@shared/organization'
 import { TagMaintainComponent } from '@cloud/app/@shared/tag'
 import { CommonModule } from '@angular/common'
@@ -83,10 +95,9 @@ export class OrganizationsComponent {
   readonly activeScope = toSignal(this.#store.selectActiveScope(), {
     initialValue: this.#store.activeScope
   })
-  readonly activeLanguage = toSignal(
-    this.#translate.onLangChange.pipe(map(({ lang }) => lang)),
-    { initialValue: this.#translate.currentLang || this.#translate.getDefaultLang() || 'en' }
-  )
+  readonly activeLanguage = toSignal(this.#translate.onLangChange.pipe(map(({ lang }) => lang)), {
+    initialValue: this.#translate.currentLang || this.#translate.getDefaultLang() || 'en'
+  })
   readonly routeOrganizationId = toSignal(
     this.#route.paramMap.pipe(
       map((params) => params.get('id')),
@@ -124,24 +135,16 @@ export class OrganizationsComponent {
     isActive: [true]
   })
 
-  readonly isTenantScope = computed(
-    () => this.activeScope().level === RequestScopeLevel.TENANT
-  )
+  readonly isTenantScope = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
   readonly canViewAllOrganizations = computed(
     () => this.isTenantScope() && this.#store.hasPermission(PermissionsEnum.ALL_ORG_VIEW)
   )
   readonly canCreateOrganizations = computed(
     () => this.isTenantScope() && this.#store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
   )
-  readonly isTenantDetailView = computed(
-    () => this.isTenantScope() && !!this.routeOrganizationId()
-  )
-  readonly showRegistrySection = computed(
-    () => !this.isTenantScope() || !this.isTenantDetailView()
-  )
-  readonly showDetailsSection = computed(
-    () => !this.isTenantScope() || this.isTenantDetailView()
-  )
+  readonly isTenantDetailView = computed(() => this.isTenantScope() && !!this.routeOrganizationId())
+  readonly showRegistrySection = computed(() => !this.isTenantScope() || !this.isTenantDetailView())
+  readonly showDetailsSection = computed(() => !this.isTenantScope() || this.isTenantDetailView())
   readonly canEditSelectedOrganization = computed(
     () => !!this.selectedOrganization() && this.#store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
   )
@@ -152,9 +155,7 @@ export class OrganizationsComponent {
         this.#store.hasPermission(permission)
       )
   )
-  readonly canEditGovernanceFields = computed(
-    () => this.canEditSelectedOrganization() && this.isTenantScope()
-  )
+  readonly canEditGovernanceFields = computed(() => this.canEditSelectedOrganization() && this.isTenantScope())
   readonly visibleOrganizations = computed(() => {
     const search = this.searchText().trim().toLowerCase()
     const organizations = this.organizations()
@@ -186,46 +187,48 @@ export class OrganizationsComponent {
           Default: 'Current organization'
         })
   })
-  readonly selectedOrganizationSubtitle = computed(
-    () => this.selectedOrganization()?.short_description?.trim() || null
-  )
+  readonly selectedOrganizationSubtitle = computed(() => this.selectedOrganization()?.short_description?.trim() || null)
 
   #loadToken = 0
 
   constructor() {
-    effect(() => {
-      this.activeScope()
-      this.routeOrganizationId()
-      this.refreshTick()
-      void this.loadOrganizationsWorkspace()
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        this.activeScope()
+        this.routeOrganizationId()
+        this.refreshTick()
+        void this.loadOrganizationsWorkspace()
+      },
+      { allowSignalWrites: true }
+    )
 
-    effect(() => {
-      if (
-        this.isTenantScope() &&
-        (this.selectedTab() === 'tags' || this.selectedTab() === 'demo')
-      ) {
-        this.selectedTab.set('general')
-      }
-    }, { allowSignalWrites: true })
-
-    effect(() => {
-      this.selectedOrganization()
-      this.canEditSelectedOrganization()
-      this.canEditGovernanceFields()
-      this.applyFormAccess()
-    }, { allowSignalWrites: true })
-
-    this.source.valueChanges
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((value) => {
-        if (value !== null) {
-          this.fileUrl.setValue('', { emitEvent: false })
-          this.fileUrl.disable({ emitEvent: false })
-        } else {
-          this.fileUrl.enable({ emitEvent: false })
+    effect(
+      () => {
+        if (this.isTenantScope() && (this.selectedTab() === 'tags' || this.selectedTab() === 'demo')) {
+          this.selectedTab.set('general')
         }
-      })
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
+        this.selectedOrganization()
+        this.canEditSelectedOrganization()
+        this.canEditGovernanceFields()
+        this.applyFormAccess()
+      },
+      { allowSignalWrites: true }
+    )
+
+    this.source.valueChanges.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((value) => {
+      if (value !== null) {
+        this.fileUrl.setValue('', { emitEvent: false })
+        this.fileUrl.disable({ emitEvent: false })
+      } else {
+        this.fileUrl.enable({ emitEvent: false })
+      }
+    })
 
     this.fileUrl.disable({ emitEvent: false })
   }
@@ -294,8 +297,7 @@ export class OrganizationsComponent {
     }
 
     const information = this.#translate.instant('PAC.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
-      Default:
-        'Delete this organization only when it has no members, pending invites, or user groups.'
+      Default: 'Delete this organization only when it has no members, pending invites, or user groups.'
     })
 
     this.confirmDelete(
@@ -507,13 +509,8 @@ export class OrganizationsComponent {
 
       const detail =
         organizations.find(
-          (organization) =>
-            organization.id === selectedOrganizationId &&
-            Array.isArray(organization.tags)
-        ) ??
-        (await firstValueFrom(
-          this.#organizationsService.getById(selectedOrganizationId, null, ['tags'])
-        ))
+          (organization) => organization.id === selectedOrganizationId && Array.isArray(organization.tags)
+        ) ?? (await firstValueFrom(this.#organizationsService.getById(selectedOrganizationId, null, ['tags'])))
 
       if (loadToken !== this.#loadToken) {
         return
@@ -586,33 +583,20 @@ export class OrganizationsComponent {
       return null
     }
 
-    if (
-      forcedOrganizationId &&
-      organizations.some((organization) => organization.id === forcedOrganizationId)
-    ) {
+    if (forcedOrganizationId && organizations.some((organization) => organization.id === forcedOrganizationId)) {
       return forcedOrganizationId
     }
 
-    if (
-      routeOrganizationId &&
-      organizations.some((organization) => organization.id === routeOrganizationId)
-    ) {
+    if (routeOrganizationId && organizations.some((organization) => organization.id === routeOrganizationId)) {
       return routeOrganizationId
     }
 
     const currentSelectionId = this.selectedOrganization()?.id
-    if (
-      currentSelectionId &&
-      organizations.some((organization) => organization.id === currentSelectionId)
-    ) {
+    if (currentSelectionId && organizations.some((organization) => organization.id === currentSelectionId)) {
       return currentSelectionId
     }
 
-    return (
-      organizations.find((organization) => organization.isDefault)?.id ??
-      organizations[0]?.id ??
-      null
-    )
+    return organizations.find((organization) => organization.isDefault)?.id ?? organizations[0]?.id ?? null
   }
 
   private sortOrganizations(organizations: IOrganization[]) {
@@ -627,10 +611,7 @@ export class OrganizationsComponent {
 
   private syncStoreSelectedOrganization(organization: IOrganization) {
     const activeScope = this.activeScope()
-    if (
-      activeScope.level === RequestScopeLevel.ORGANIZATION &&
-      activeScope.organizationId === organization.id
-    ) {
+    if (activeScope.level === RequestScopeLevel.ORGANIZATION && activeScope.organizationId === organization.id) {
       this.#store.selectedOrganization = organization
     }
   }

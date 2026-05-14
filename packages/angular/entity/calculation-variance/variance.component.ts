@@ -13,10 +13,9 @@ import { CompareToEnum, DataSettings, EntityType } from '@xpert-ai/ocap-core'
 import { PropertyCapacity } from '../types'
 
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
 import { NgmCompareMemberSelectComponent } from '../compare-member-select/member-select.component'
-import { ZardFormImports, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
+import { NgmSelectComponent, ZardCheckboxComponent, ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -29,7 +28,7 @@ import { ZardFormImports, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
     NgmPropertySelectComponent,
     NgmCompareMemberSelectComponent,
     NgmSelectComponent
-],
+  ],
   selector: 'ngm-calculation-variance',
   templateUrl: 'variance.component.html',
   styleUrls: ['variance.component.scss'],

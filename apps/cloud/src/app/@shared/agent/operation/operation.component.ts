@@ -1,12 +1,18 @@
-
 import { booleanAttribute, Component, computed, effect, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { SlashSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { agentLabel, BIInterruptMessageType, TInterruptCommand, TInterruptMessage, TSensitiveOperation, TToolCall } from '../../../@core'
+import {
+  agentLabel,
+  BIInterruptMessageType,
+  TInterruptCommand,
+  TInterruptMessage,
+  TSensitiveOperation,
+  TToolCall
+} from '../../../@core'
 import { XpertAgentIdentityComponent } from '../agent-identity/agent-identity.component'
 import { XpertAgentInterruptComponent } from '../interrupt/interrupt.component'
+import { SlashSvgComponent } from '@xpert-ai/headless-ui'
 
 /**
  * Display tools that call confirmation dialogs or interrupt components that require user interaction
@@ -20,7 +26,7 @@ import { XpertAgentInterruptComponent } from '../interrupt/interrupt.component'
     NgmI18nPipe,
     XpertAgentIdentityComponent,
     XpertAgentInterruptComponent
-],
+  ],
   selector: 'xp-xpert-agent-operation',
   templateUrl: 'operation.component.html',
   styleUrls: ['operation.component.scss']
@@ -53,29 +59,27 @@ export class XpertAgentOperationComponent {
   readonly tasks = computed(() => this.operation()?.tasks)
   readonly resume = attrModel(this.command, 'resume')
   readonly agentKey = attrModel(this.command, 'agentKey')
-  readonly interrupts = computed(() => this.operation()?.tasks?.flatMap(task => task.interrupts) || [])
+  readonly interrupts = computed(() => this.operation()?.tasks?.flatMap((task) => task.interrupts) || [])
 
   readonly #toolCalls = signal<TToolCall[]>(null)
 
   constructor() {
-    effect(
-      () => {
-        // console.log(this.operation())
-        if (this.operation()?.tasks) {
-          this.#toolCalls.set(this.operation().tasks.map(({ call }) => call))
-          // Support one task temporarily
-          if (this.operation().tasks.length > 0) {
-            this.agentKey.set(this.operation().tasks[0].agent?.key || null)
-          }
+    effect(() => {
+      // console.log(this.operation())
+      if (this.operation()?.tasks) {
+        this.#toolCalls.set(this.operation().tasks.map(({ call }) => call))
+        // Support one task temporarily
+        if (this.operation().tasks.length > 0) {
+          this.agentKey.set(this.operation().tasks[0].agent?.key || null)
         }
       }
-    )
+    })
   }
 
   onConfirm() {
     const message = this.interrupts()[0]?.value as TInterruptMessage
     if (message && message.type === BIInterruptMessageType.DeleteArtifact) {
-      this.resume.set({confirm: true})
+      this.resume.set({ confirm: true })
       setTimeout(() => {
         this.confirm.emit()
       })
@@ -83,14 +87,14 @@ export class XpertAgentOperationComponent {
       this.confirm.emit()
     }
   }
-  
+
   /**
    * @deprecated use onConfirm with command resume instead
    */
   onReject() {
     const message = this.interrupts()[0]?.value as TInterruptMessage
     if (message && message.type === BIInterruptMessageType.DeleteArtifact) {
-      this.resume.set({confirm: false})
+      this.resume.set({ confirm: false })
       setTimeout(() => {
         this.confirm.emit()
       })

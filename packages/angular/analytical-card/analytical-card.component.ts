@@ -50,8 +50,18 @@ import { ComponentStore } from '@xpert-ai/store'
 import { ECharts } from 'echarts/core'
 import { assign, cloneDeep, findIndex, isEmpty, isNil } from 'lodash-es'
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs'
-import { distinctUntilChanged, filter, map, pairwise, shareReplay, skip, startWith, tap, withLatestFrom } from 'rxjs/operators'
-import { Step } from '@xpert-ai/ocap-angular/common'
+import {
+  distinctUntilChanged,
+  filter,
+  map,
+  pairwise,
+  shareReplay,
+  skip,
+  startWith,
+  tap,
+  withLatestFrom
+} from 'rxjs/operators'
+import { type Step } from '@xpert-ai/headless-ui'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
 import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
@@ -82,7 +92,7 @@ export interface AnalyticalCardOptions {
   hideDataDownload?: boolean
   disableContextMenu?: boolean
   /**
-   * Enable realtinme linked analysis: output slicers immediately when data selected 
+   * Enable realtinme linked analysis: output slicers immediately when data selected
    */
   realtimeLinked?: boolean
 }
@@ -141,7 +151,7 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
     })
   }
   private _dataSettings$ = this.select((state) => state.dataSettings)
-  public _dataSettings = signal<DataSettings>(null, {equal: isEqual})
+  public _dataSettings = signal<DataSettings>(null, { equal: isEqual })
 
   readonly chartSettings = input<ChartSettings>(null)
   readonly chartOptions = input<ChartOptions>(null)
@@ -178,9 +188,9 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
     return this.appearance?.displayDensity
   }
 
-  readonly _chartSettings = computed(() => this.chartSettings(), {equal: isEqual})
-  readonly _chartOptions = computed(() => this.chartOptions(), {equal: isEqual})
-  readonly _options = computed(() => this.options(), {equal: isEqual})
+  readonly _chartSettings = computed(() => this.chartSettings(), { equal: isEqual })
+  readonly _chartOptions = computed(() => this.chartOptions(), { equal: isEqual })
+  readonly _options = computed(() => this.options(), { equal: isEqual })
   readonly showHeader = computed(() => !this.options()?.hideHeader)
 
   get chartType() {
@@ -211,7 +221,7 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
     }),
     map(({ options }) => options),
     // 为初始化 ECharts 实例，然后传递给 SmartEChartEngine 以便进行事件绑定
-    startWith({}),
+    startWith({})
   ) as any
 
   public readonly isLoading$ = this.businessService.loading$
@@ -228,11 +238,14 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
   readonly drilledDimensions$ = this.select((state) => state.drilledDimensions)
   readonly breadcrumbs$ = this.drilledDimensions$.pipe(
     map((drills) => {
-      return drills?.map((item) => ({
-        value: item,
-        label: item.slicer.members[0].label || (item.slicer.members[0].value as string),
-        active: true
-      } as Step))
+      return drills?.map(
+        (item) =>
+          ({
+            value: item,
+            label: item.slicer.members[0].label || (item.slicer.members[0].value as string),
+            active: true
+          }) as Step
+      )
     })
   )
 
@@ -265,13 +278,15 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
     this.businessService.selectEntityType(),
     this.selectedDrilledDimensions$,
     (presentationVariant, entityType, selectedDrilledDimensions) => {
-      return presentationVariant?.groupBy?.map((item: Dimension) => ({
-        dimension: item,
-        property: getEntityProperty(entityType, item),
-        disabled: !!selectedDrilledDimensions?.find(
-          (selected) => getPropertyName(selected.dimension) === getPropertyName(item)
-        )
-      })).filter(({property}) => !!property)
+      return presentationVariant?.groupBy
+        ?.map((item: Dimension) => ({
+          dimension: item,
+          property: getEntityProperty(entityType, item),
+          disabled: !!selectedDrilledDimensions?.find(
+            (selected) => getPropertyName(selected.dimension) === getPropertyName(item)
+          )
+        }))
+        .filter(({ property }) => !!property)
     }
   )
 
@@ -304,16 +319,20 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
 
       // 每次都 clone chartAnnotation 防止重复修改
       const _chartAnnotation = cloneDeep(chartAnnotation)
-      
+
       const dimensions = _chartAnnotation.dimensions
       selectedHierachyLevels.forEach((item) => {
         const index = findIndex(dimensions, (o) => getPropertyName(o) === getPropertyName(item.parent))
-        dimensions.splice(index, 1, { // @todo
+        dimensions.splice(index, 1, {
+          // @todo
           ...dimensions[index],
           ...item.dimension
         })
       })
-      const selectOptions = selectedHierachyLevels.reduce((slicers, item) => putFilter(slicers, item.slicer), selectionVariant.selectOptions)
+      const selectOptions = selectedHierachyLevels.reduce(
+        (slicers, item) => putFilter(slicers, item.slicer),
+        selectionVariant.selectOptions
+      )
 
       return assign(cloneDeep(dataSettings), {
         chartAnnotation: {
@@ -358,7 +377,7 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
           if (slicer?.dimension?.dimension !== dimension.dimension) {
             return {
               property: hierarchy,
-              slicer: null,
+              slicer: null
             }
           }
 
@@ -396,19 +415,15 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
   */
   // Listener for dataSettings changed
   private _dataSettingsSub = this.dataSettings$
-    .pipe(
-      filter(Boolean),
-      startWith(null),
-      pairwise(),
-      takeUntilDestroyed(),
-    )
+    .pipe(filter(Boolean), startWith(null), pairwise(), takeUntilDestroyed())
     .subscribe(([a, b]) => {
       if (
         isEqual(
           {
             ...(a ?? {}),
             chartAnnotation: omit(a?.chartAnnotation, 'chartType')
-          }, {
+          },
+          {
             ...b,
             chartAnnotation: omit(b.chartAnnotation, 'chartType')
           }
@@ -421,39 +436,46 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
 
   // Listeners for explain logic
   private _explainSub = combineLatest([
-      this.dataSettings$,
-      this.businessService.selectResult(),
-      this.echartsEngine.selectChartOptions().pipe(startWith(null))
-    ]).pipe(takeUntilDestroyed()).subscribe(([dataSettings, queryReturn, chartOptions]) => {
-      this.explain.emit([
-        dataSettings, queryReturn, chartOptions
-      ])
+    this.dataSettings$,
+    this.businessService.selectResult(),
+    this.echartsEngine.selectChartOptions().pipe(startWith(null))
+  ])
+    .pipe(takeUntilDestroyed())
+    .subscribe(([dataSettings, queryReturn, chartOptions]) => {
+      this.explain.emit([dataSettings, queryReturn, chartOptions])
     })
 
   // Clear slicers changed output when ECharts refresh
-  private _echartsOptionSub = this.echartsEngine.selectChartOptions().pipe(takeUntilDestroyed()).subscribe(() => {
-    this.openContextMenu(null)
-  })
+  private _echartsOptionSub = this.echartsEngine
+    .selectChartOptions()
+    .pipe(takeUntilDestroyed())
+    .subscribe(() => {
+      this.openContextMenu(null)
+    })
 
   // Listeners for ECharts events
   // ECharts ContextMenu event
-  private _contextMenuSub = this.echartsEngine.chartContextMenu$.pipe(takeUntilDestroyed()).subscribe((event: EChartEngineEvent) => {
-    event.event.stopPropagation()
-    event.event.preventDefault()
+  private _contextMenuSub = this.echartsEngine.chartContextMenu$
+    .pipe(takeUntilDestroyed())
+    .subscribe((event: EChartEngineEvent) => {
+      event.event.stopPropagation()
+      event.event.preventDefault()
 
-    // Unselect selected data item in series component
-    this.echartsEngine.dispatchAction({
-      ...pick(event, 'seriesIndex', 'seriesId', 'seriesName', 'dataIndex', 'name'),
-      type: 'unselect',
+      // Unselect selected data item in series component
+      this.echartsEngine.dispatchAction({
+        ...pick(event, 'seriesIndex', 'seriesId', 'seriesName', 'dataIndex', 'name'),
+        type: 'unselect'
+      })
     })
-  })
 
   // ECharts selecchanged event
-  private _selectChangedSub = this.echartsEngine.selectChanged$.pipe(takeUntilDestroyed()).subscribe((event: IChartSelectedEvent) => {
-    this._ngZone.run(() => {
-      this.openContextMenu(event.slicers, event.event)
+  private _selectChangedSub = this.echartsEngine.selectChanged$
+    .pipe(takeUntilDestroyed())
+    .subscribe((event: IChartSelectedEvent) => {
+      this._ngZone.run(() => {
+        this.openContextMenu(event.slicers, event.event)
+      })
     })
-  })
 
   constructor() {
     super({} as AnalyticalCardState)
@@ -506,7 +528,7 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
 
   /**
    * Refresh data
-   * 
+   *
    * @param force Force refresh
    */
   refresh(force?: boolean) {
@@ -534,7 +556,7 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
     if (event?.type === 'touchend') {
       this.contextMenuPosition.x = event.zrX + 50 + 'px'
       this.contextMenuPosition.y = event.zrY + 'px'
-    } else if(event) {
+    } else if (event) {
       this.contextMenuPosition.x = event.offsetX + 50 + 'px'
       this.contextMenuPosition.y = event.offsetY + 'px'
     }
@@ -548,7 +570,7 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
       if (!this.options()?.disableContextMenu) {
         this.contextMenu.open()
       }
-      
+
       if (this.options()?.realtimeLinked) {
         this.onLinkAnalysis(slicers)
       }
@@ -557,14 +579,14 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
 
   /**
    * Linked analysis, output selected slicers on chart
-   * 
-   * @param slicers 
+   *
+   * @param slicers
    */
   onLinkAnalysis(slicers: ISlicer[]) {
     this.slicersChange.emit(slicers)
     this._slicersChanging$.next(slicers)
   }
-  
+
   readonly drill = this.updater((state, drillLevel: DrillLevel) => {
     state.selectedDrilledDimensions = state.selectedDrilledDimensions || []
     state.drilledDimensions = state.drilledDimensions || []

@@ -17,9 +17,8 @@ import { combineLatestWith, map, switchMap, tap } from 'rxjs/operators'
 import { userLabel, UserPipe } from '../../../../@shared/pipes/'
 import { UserAvatarComponent } from '../../../../@shared/user'
 import { ProjectComponent } from '../../project/project.component'
-import { NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
-import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { NgmTableComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({

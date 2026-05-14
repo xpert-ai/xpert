@@ -8,6 +8,7 @@ import { injectWorkspace } from '@xpert-ai/cloud/state'
 import { parseYAML } from '@xpert-ai/core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import {
+  NgmSpinComponent,
   ZardComboboxDeprecatedComponent,
   ZardDialogService,
   ZardStepperImports,
@@ -49,7 +50,6 @@ import {
 import { genAgentKey } from '../../utils'
 import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 
 import {
   CHAT_WORKFLOW_TRIGGER_PROVIDER,
@@ -148,8 +148,7 @@ export const BLANK_XPERT_DIALOG_CATEGORY = {
   CLAW: 'claw'
 } as const
 
-export type BlankXpertDialogCategory =
-  (typeof BLANK_XPERT_DIALOG_CATEGORY)[keyof typeof BLANK_XPERT_DIALOG_CATEGORY]
+export type BlankXpertDialogCategory = (typeof BLANK_XPERT_DIALOG_CATEGORY)[keyof typeof BLANK_XPERT_DIALOG_CATEGORY]
 
 export function normalizeBlankXpertDialogCategory(
   category: string | null | undefined
@@ -849,7 +848,10 @@ export class XpertNewBlankComponent {
     }
 
     const primaryAgentPrompt = this.buildInitialPrimaryAgentPrompt()
-    const nextDraft = this.withInitialPrimaryAgentPromptInDraft(this.buildTemplateImportDraft(draft), primaryAgentPrompt)
+    const nextDraft = this.withInitialPrimaryAgentPromptInDraft(
+      this.buildTemplateImportDraft(draft),
+      primaryAgentPrompt
+    )
     const xpert = await firstValueFrom(this.xpertService.importDSL(nextDraft))
     const hydratedXpert = this.withInitialPrimaryAgentPrompt(xpert, primaryAgentPrompt)
     const preparedXpert = await this.provisionKnowledgebaseIfNeeded(hydratedXpert)
@@ -974,7 +976,11 @@ export class XpertNewBlankComponent {
       const skillPackage = await firstValueFrom(
         this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1))
       )
-      if (!this.usesWorkspaceSkillDefaults() && item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER && item.repositoryId) {
+      if (
+        !this.usesWorkspaceSkillDefaults() &&
+        item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER &&
+        item.repositoryId
+      ) {
         const repositoryDefault = this.selectedRepositoryDefault()
         const disabledSkillIds =
           repositoryDefault?.repositoryId === item.repositoryId
@@ -1058,7 +1064,8 @@ export class XpertNewBlankComponent {
   }
 
   private buildTemplateImportDraft(draft: TXpertTeamDraft) {
-    const selectedCopilotModel = this.copilotModel() ?? draft.team.agent?.copilotModel ?? draft.team.copilotModel ?? null
+    const selectedCopilotModel =
+      this.copilotModel() ?? draft.team.agent?.copilotModel ?? draft.team.copilotModel ?? null
     const finalDraft = this.isAgentType()
       ? applyAgentTemplateWizardState(draft, this.getSelections(), {
           defaultCopilotModel: selectedCopilotModel,

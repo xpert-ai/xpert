@@ -14,9 +14,13 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardSegmentedComponent, ZardSegmentedItemComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmSpinComponent,
+  ZardSegmentedComponent,
+  ZardSegmentedItemComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { MarkdownModule } from 'ngx-markdown'
 import { firstValueFrom } from 'rxjs'
 import type { TChatFileElementReference, TFile } from '@xpert-ai/contracts'

@@ -1,4 +1,5 @@
-export * from './breadcrumb/breadcrumb.component'
+export { NgmBreadcrumbBarComponent } from '@xpert-ai/headless-ui'
+export type { Step } from '@xpert-ai/headless-ui'
 export * from './common.module'
 export * from './display-behaviour/index'
 export * from './table/index'
@@ -9,11 +10,10 @@ export * from './tree-table/index'
 export * from './tree-select/index'
 export * from './select/index'
 export * from './split-button/index'
-export * from './search/search.component'
+export { NgmSearchComponent } from '@xpert-ai/headless-ui'
 export * from './slider-input/index'
 export * from './tag/index'
-export * from './input/input.component'
-export * from './input/option-content'
+export { NgmInputComponent, NgmOptionContent } from '@xpert-ai/headless-ui'
 export * from './input/input.module'
 export * from './drawer-trigger/index'
 export * from './scroll/'
@@ -21,12 +21,15 @@ export * from './confirm/index'
 export * from './property/property.component'
 export * from './hierarchy-select/hierarchy-select.component'
 export * from './drawer/index'
-export * from './object-number/object-number.component'
+export * from './object-number/index'
 export * from './icons/index'
-export * from './spin/spin.component'
-export * from './radio-select/select.component'
-export * from './remote-select/select.component'
-export * from './checkbox/checkbox.component'
-export * from './stepper/stepper.component'
-export * from './progress-spinner/spinner.component'
-export * from './copy/copy.component'
+export {
+  NgmCheckboxComponent,
+  NgmCopyComponent,
+  NgmProgressSpinnerComponent,
+  NgmRadioSelectComponent,
+  NgmRemoteSelectComponent,
+  NgmSpinComponent,
+  NgmStepperComponent
+} from '@xpert-ai/headless-ui'
+export type { TStep } from '@xpert-ai/headless-ui'

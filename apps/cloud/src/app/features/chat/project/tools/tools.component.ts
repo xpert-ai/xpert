@@ -35,8 +35,7 @@ import { ChatProjectComponent } from '../project.component'
 import { CardCreateComponent } from '@cloud/app/@shared/card'
 import { debouncedSignal, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmHighlightDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -58,7 +57,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmI18nPipe,
     EmojiAvatarComponent,
     NgmHighlightDirective
-],
+  ],
   selector: 'chat-project-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',

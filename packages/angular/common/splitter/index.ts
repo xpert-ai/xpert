@@ -1,3 +1,8 @@
-export * from './splitter-pane/splitter-pane.component'
-export * from './splitter.component'
+export {
+  DragDirection,
+  SplitterBarComponent,
+  SplitterComponent,
+  SplitterPaneComponent,
+  SplitterType
+} from '@xpert-ai/headless-ui'
 export * from './splitter.module'

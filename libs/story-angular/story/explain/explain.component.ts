@@ -1,7 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core'
-import { NgmPrismHighlightComponent } from '@xpert-ai/ocap-angular/prism'
 import { convertQueryResultColumns, nonNullable } from '@xpert-ai/core'
-import { NgmCopyComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { OcapCoreModule, OmitBlankPipe } from '@xpert-ai/ocap-angular/core'
 import { isDataSettings } from '@xpert-ai/ocap-core'
 import { uuid } from '@xpert-ai/story/core'
@@ -11,7 +9,14 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmCopyComponent,
+  NgmPrismHighlightComponent,
+  NgmTableComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -26,7 +31,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     OmitBlankPipe,
     NgxJsonViewerModule,
     NgmCopyComponent
-],
+  ],
   selector: 'pac-story-explain',
   templateUrl: 'explain.component.html',
   styleUrls: ['explain.component.scss']

@@ -1,16 +1,10 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, effect, inject, signal } from '@angular/core'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
-import {
-  IUserGroup,
-  OrderTypeEnum,
-  UserGroupService,
-  getErrorMessage,
-  injectToastr
-} from '../../../../@core'
+import { IUserGroup, OrderTypeEnum, UserGroupService, getErrorMessage, injectToastr } from '../../../../@core'
 import { TranslationBaseComponent } from '../../../../@shared/language'
+import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

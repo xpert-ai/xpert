@@ -70,14 +70,13 @@ import {
 import { isEqual, uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
 import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@xpert-ai/core'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 import { ATTACHMENT_DEFAULT_VARIABLE } from '../../types'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { XpertStudioPanelMiddlewareSectionComponent } from './middleware-section/middleware.component'
-import { ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -434,14 +433,12 @@ export class XpertStudioPanelAgentComponent {
   readonly middlewareOrder = attrModel(this.middlewares, 'order')
 
   constructor() {
-    effect(
-      () => {
-        if (this.xpertAgent()) {
-          this.prompt.set(this.xpertAgent().prompt)
-          this.copilotModel.set(this.xpertAgent().copilotModel)
-        }
+    effect(() => {
+      if (this.xpertAgent()) {
+        this.prompt.set(this.xpertAgent().prompt)
+        this.copilotModel.set(this.xpertAgent().copilotModel)
       }
-    )
+    })
   }
 
   onNameChange(event: string) {

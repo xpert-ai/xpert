@@ -12,10 +12,10 @@ import {
   ToastrService
 } from '@cloud/app/@core'
 import { ScheduleFormComponent } from '@cloud/app/@shared/schedule'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'model-sync-task',
@@ -28,7 +28,7 @@ import { omit } from 'lodash-es'
     CdkMenuModule,
     NgmSpinComponent,
     ScheduleFormComponent
-],
+  ],
   templateUrl: './task.component.html',
   styleUrl: './task.component.scss'
 })
@@ -56,13 +56,13 @@ export class ModelTaskDialogComponent {
     this.loading.set(true)
     this.modelEntityAPI
       .startSchedule(this.task().id, {
-        schedule: {...this.schedule(), frequency: this.schedule().frequency || TaskFrequency.Once}
+        schedule: { ...this.schedule(), frequency: this.schedule().frequency || TaskFrequency.Once }
       })
       .subscribe({
         next: () => {
           this.loading.set(false)
-          this.#toastr.success('PAC.MODEL.TaskCreatedSuccessfully', {Default: 'Task created successfully'})
-          this.close({...this.task(), schedule: this.schedule()})
+          this.#toastr.success('PAC.MODEL.TaskCreatedSuccessfully', { Default: 'Task created successfully' })
+          this.close({ ...this.task(), schedule: this.schedule() })
         },
         error: (error) => {
           this.loading.set(false)

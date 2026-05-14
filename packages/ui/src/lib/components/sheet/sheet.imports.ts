@@ -1,6 +1,6 @@
-import { OverlayModule } from '@angular/cdk/overlay';
-import { PortalModule } from '@angular/cdk/portal';
+import { OverlayModule } from '@angular/cdk/overlay'
+import { PortalModule } from '@angular/cdk/portal'
 
-import { ZardSheetComponent } from '@/src/lib/components/sheet/sheet.component';
+import { ZardSheetComponent } from './sheet.component'
 
-export const ZardSheetImports = [ZardSheetComponent, OverlayModule, PortalModule] as const;
+export const ZardSheetImports = [ZardSheetComponent, OverlayModule, PortalModule] as const

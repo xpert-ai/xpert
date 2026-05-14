@@ -11,8 +11,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertExecutionService } from '../../../services/execution.service'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-agent-tool',

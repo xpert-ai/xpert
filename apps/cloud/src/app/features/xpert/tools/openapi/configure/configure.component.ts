@@ -1,5 +1,15 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject, input, model, output, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  effect,
+  inject,
+  input,
+  model,
+  output,
+  signal
+} from '@angular/core'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
 import {
   FormArray,
@@ -29,12 +39,12 @@ import { combineLatestWith, distinctUntilChanged, filter, map, of, switchMap } f
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Samples } from '../types'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Dialog } from '@angular/cdk/dialog'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -100,13 +110,19 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
 
   readonly valueChange = outputFromObservable(this.formGroup.valueChanges)
 
-  readonly isValid = toSignal(this.formGroup.valueChanges.pipe(
-    combineLatestWith(this.refresh$),
-    map(() => this.formGroup.valid)))
-  readonly isDirty = toSignal(this.formGroup.valueChanges.pipe(
-    combineLatestWith(this.refresh$),
-    map(() => this.formGroup.dirty)))
-  
+  readonly isValid = toSignal(
+    this.formGroup.valueChanges.pipe(
+      combineLatestWith(this.refresh$),
+      map(() => this.formGroup.valid)
+    )
+  )
+  readonly isDirty = toSignal(
+    this.formGroup.valueChanges.pipe(
+      combineLatestWith(this.refresh$),
+      map(() => this.formGroup.dirty)
+    )
+  )
+
   get name() {
     return this.formGroup.get('name')
   }
@@ -164,31 +180,29 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
       this.loading() ? this.formGroup.disable() : this.formGroup.enable()
     })
 
-    effect(
-      () => {
-        if (this.toolset() && !this.formGroup.value.id) {
-          this.formGroup.patchValue({
-            ...pick(
-              this.toolset(),
-              'id',
-              'name',
-              'avatar',
-              'description',
-              'options',
-              'schema',
-              'type',
-              'category',
-              'tags',
-              'privacyPolicy',
-              'customDisclaimer'
-            ),
-            credentials: this.toolset().credentials ?? {},
-            tools: []
-          } as any)
-          this.#cdr.detectChanges()
-        }
+    effect(() => {
+      if (this.toolset() && !this.formGroup.value.id) {
+        this.formGroup.patchValue({
+          ...pick(
+            this.toolset(),
+            'id',
+            'name',
+            'avatar',
+            'description',
+            'options',
+            'schema',
+            'type',
+            'category',
+            'tags',
+            'privacyPolicy',
+            'customDisclaimer'
+          ),
+          credentials: this.toolset().credentials ?? {},
+          tools: []
+        } as any)
+        this.#cdr.detectChanges()
       }
-    )
+    })
   }
 
   addTool(apiBundle: ApiToolBundle) {
@@ -210,7 +224,7 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
         this.loading.set(false)
         // Handle the success scenario here
         this.formGroup.patchValue({
-          schema: result.schema,
+          schema: result.schema
         })
       },
       error: (err) => {
@@ -228,19 +242,19 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
   }
 
   openToolTest(tool: Partial<IXpertTool>) {
-    this.#dialog.open(XpertToolTestDialogComponent, {
-      panelClass: 'medium',
-      data: {
-        tool: {
-          ...tool,
-          toolset: this.formGroup.value
-        },
-        enableAuthorization: true
-      }
-    }).closed.subscribe({
-      next: (result) => {
-
-      }
-    })
+    this.#dialog
+      .open(XpertToolTestDialogComponent, {
+        panelClass: 'medium',
+        data: {
+          tool: {
+            ...tool,
+            toolset: this.formGroup.value
+          },
+          enableAuthorization: true
+        }
+      })
+      .closed.subscribe({
+        next: (result) => {}
+      })
   }
 }

@@ -1,2 +1,1 @@
-export * from './scroll-back.component'
-export * from './scroll-bottom.directive'
+export { NgmAutoScrollBottomDirective, NgmScrollBackComponent } from '@xpert-ai/headless-ui'

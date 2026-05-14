@@ -23,7 +23,6 @@ import {
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
-import { CloseSvgComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, myRxResource, NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, omit, uniq } from 'lodash-es'
@@ -34,7 +33,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { CloseSvgComponent, NgmSpinComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-toolset',
   templateUrl: './toolset.component.html',

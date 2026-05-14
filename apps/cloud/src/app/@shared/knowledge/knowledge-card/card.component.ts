@@ -3,11 +3,11 @@ import { Component, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { IKnowledgebase, KnowledgebaseTypeEnum } from '@cloud/app/@core/types'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { startWith } from 'rxjs/operators'
 import { EmojiAvatarComponent } from '../../avatar'
 import { UserPipe } from '../../pipes'
+import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

@@ -5,9 +5,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { IsDirty } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -49,7 +48,7 @@ import { XpertService } from '../xpert.service'
     CopilotModelSelectComponent,
     TagSelectComponent,
     NgmSpinComponent
-],
+  ],
   templateUrl: './basic.component.html',
   styleUrl: './basic.component.scss',
   animations: [IfAnimation]
@@ -103,7 +102,7 @@ export class XpertBasicComponent implements IsDirty {
     description: this.#fb.control(null),
     avatar: this.#fb.control(null),
     tags: this.#fb.control(null),
-    copilotModel: this.#fb.control(null),
+    copilotModel: this.#fb.control(null)
     // starters: this.#fb.array([
     //   this.#fb.control(null),
     //   this.#fb.control(null),
@@ -134,14 +133,12 @@ export class XpertBasicComponent implements IsDirty {
   // }
 
   constructor() {
-    effect(
-      () => {
-        if (this.team()) {
-          this.form.patchValue(this.team())
-          this.form.markAsPristine()
-        }
+    effect(() => {
+      if (this.team()) {
+        this.form.patchValue(this.team())
+        this.form.markAsPristine()
       }
-    )
+    })
   }
 
   isDirty(): boolean {

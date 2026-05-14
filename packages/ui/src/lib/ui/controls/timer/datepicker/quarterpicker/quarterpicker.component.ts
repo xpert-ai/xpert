@@ -1,0 +1,52 @@
+import { Component, forwardRef, input } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
+import { ZardQuarterPickerComponent } from '../../../../../components/date-picker'
+
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, ZardQuarterPickerComponent],
+  selector: 'ngm-quarterpicker',
+  templateUrl: './quarterpicker.component.html',
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => NgmQuarterpickerComponent),
+      multi: true
+    }
+  ]
+})
+export class NgmQuarterpickerComponent implements ControlValueAccessor {
+  readonly label = input<string>('')
+
+  date = new FormControl<Date | null>(null)
+
+  /**
+   * Invoked when the model has been changed
+   */
+  onChange: (_: any) => void = (_: any) => {}
+  /**
+   * Invoked when the model has been touched
+   */
+  onTouched: () => void = () => {}
+
+  constructor() {
+    this.date.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.onChange(value)
+      this.onTouched()
+    })
+  }
+
+  writeValue(obj: any): void {
+    this.date.setValue(obj, { emitEvent: false })
+  }
+  registerOnChange(fn: any): void {
+    this.onChange = fn
+  }
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn
+  }
+  setDisabledState?(isDisabled: boolean): void {
+    isDisabled ? this.date.disable() : this.date.enable()
+  }
+}

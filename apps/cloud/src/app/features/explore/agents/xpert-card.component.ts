@@ -3,15 +3,21 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpert, TXpertTemplate, XpertTypeEnum } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
-import { ZardButtonComponent, ZardTooltipDirective } from '@xpert-ai/headless-ui'
+import { NgmHighlightDirective, ZardButtonComponent, ZardTooltipDirective } from '@xpert-ai/headless-ui'
 
 export type ExploreXpertCardVariant = 'square' | 'mine'
 
 @Component({
   standalone: true,
   selector: 'xp-explore-xpert-card',
-  imports: [CommonModule, TranslateModule, EmojiAvatarComponent, NgmHighlightDirective, ZardButtonComponent, ZardTooltipDirective],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    EmojiAvatarComponent,
+    NgmHighlightDirective,
+    ZardButtonComponent,
+    ZardTooltipDirective
+  ],
   templateUrl: './xpert-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -25,10 +31,15 @@ export class ExploreXpertCardComponent {
   readonly actionClick = output<void>()
 
   readonly isMine = computed(() => this.variant() === 'mine')
-  readonly title = computed(() => this.mineItem()?.title || this.mineItem()?.name || this.templateItem()?.title || this.templateItem()?.name || '')
+  readonly title = computed(
+    () =>
+      this.mineItem()?.title || this.mineItem()?.name || this.templateItem()?.title || this.templateItem()?.name || ''
+  )
   readonly description = computed(() => this.mineItem()?.description || this.templateItem()?.description || '')
   readonly category = computed(() => this.templateItem()?.category || '')
-  readonly type = computed<TXpertTemplate['type'] | IXpert['type'] | null>(() => this.mineItem()?.type || this.templateItem()?.type || null)
+  readonly type = computed<TXpertTemplate['type'] | IXpert['type'] | null>(
+    () => this.mineItem()?.type || this.templateItem()?.type || null
+  )
   readonly avatar = computed(() => this.mineItem()?.avatar || this.templateItem()?.avatar)
   readonly displayDate = computed(() => this.mineItem()?.updatedAt || this.mineItem()?.createdAt || null)
   readonly creator = computed(() => {
@@ -45,8 +56,9 @@ export class ExploreXpertCardComponent {
 
   readonly avatarClass = computed(() => 'overflow-hidden rounded-2xl shadow-sm')
 
-  readonly badgeClass = computed(() =>
-    'absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-divider-regular bg-components-card-bg text-text-secondary shadow-sm'
+  readonly badgeClass = computed(
+    () =>
+      'absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-divider-regular bg-components-card-bg text-text-secondary shadow-sm'
   )
 
   handleCardClick() {

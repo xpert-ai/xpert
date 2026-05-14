@@ -3,7 +3,6 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { isEqual } from 'lodash-es'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
@@ -12,7 +11,7 @@ import { injectXpertAgentAPI, IWFNMiddleware, XpertAgentExecutionStatusEnum } fr
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { XpertExecutionService } from '../../../services/execution.service'
 import { map } from 'rxjs/operators'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-node-middleware',
   templateUrl: './middleware.component.html',
@@ -76,7 +75,9 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
     }),
     loader: ({ request }) => {
       return request.provider
-        ? this.agentAPI.getAgentMiddleware(request.provider, request.options, request.xpertId).pipe(map((res) => res.tools))
+        ? this.agentAPI
+            .getAgentMiddleware(request.provider, request.options, request.xpertId)
+            .pipe(map((res) => res.tools))
         : null
     }
   })

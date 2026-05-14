@@ -1,6 +1,6 @@
 import { computed, effect, Signal, signal } from '@angular/core'
 import { readExcelWorkSheets } from '@xpert-ai/core'
-import { TableColumn } from '@xpert-ai/ocap-angular/common'
+import { TableColumn } from '@xpert-ai/headless-ui'
 
 export const SPREADSHEET_PREVIEW_ROW_LIMIT = 200
 
@@ -181,116 +181,114 @@ export function createCanvasFilePreviewState(
   const previewData = signal<CanvasFilePreviewData>(createEmptyCanvasFilePreviewData())
   const previewLoading = signal(false)
 
-  effect(
-    (onCleanup) => {
-      const currentSource = source()
-      const kind = previewKind()
-      let active = true
+  effect((onCleanup) => {
+    const currentSource = source()
+    const kind = previewKind()
+    let active = true
 
-      onCleanup(() => {
-        active = false
-      })
+    onCleanup(() => {
+      active = false
+    })
 
-      previewData.set(createEmptyCanvasFilePreviewData())
+    previewData.set(createEmptyCanvasFilePreviewData())
 
-      if (!currentSource) {
+    if (!currentSource) {
+      previewLoading.set(false)
+      return
+    }
+
+    if (kind === 'text' || kind === 'code' || kind === 'html') {
+      if (currentSource.contents !== null) {
         previewLoading.set(false)
+        previewData.set({
+          content: currentSource.contents,
+          error: null,
+          spreadsheet: null
+        })
         return
       }
 
-      if (kind === 'text' || kind === 'code' || kind === 'html') {
-        if (currentSource.contents !== null) {
-          previewLoading.set(false)
+      if (!currentSource.url) {
+        previewLoading.set(false)
+        previewData.set({
+          content: null,
+          error: 'missing-url',
+          spreadsheet: null
+        })
+        return
+      }
+
+      previewLoading.set(true)
+      void loadText(currentSource.url)
+        .then((content) => {
+          if (!active) {
+            return
+          }
+
           previewData.set({
-            content: currentSource.contents,
+            content,
             error: null,
             spreadsheet: null
           })
-          return
-        }
-
-        if (!currentSource.url) {
           previewLoading.set(false)
+        })
+        .catch(() => {
+          if (!active) {
+            return
+          }
+
           previewData.set({
             content: null,
-            error: 'missing-url',
+            error: 'load-failed',
             spreadsheet: null
           })
-          return
-        }
-
-        previewLoading.set(true)
-        void loadText(currentSource.url)
-          .then((content) => {
-            if (!active) {
-              return
-            }
-
-            previewData.set({
-              content,
-              error: null,
-              spreadsheet: null
-            })
-            previewLoading.set(false)
-          })
-          .catch(() => {
-            if (!active) {
-              return
-            }
-
-            previewData.set({
-              content: null,
-              error: 'load-failed',
-              spreadsheet: null
-            })
-            previewLoading.set(false)
-          })
-        return
-      }
-
-      if (kind === 'spreadsheet') {
-        if (!currentSource.url) {
           previewLoading.set(false)
-          previewData.set({
-            content: null,
-            error: 'missing-url',
-            spreadsheet: null
-          })
-          return
-        }
-
-        previewLoading.set(true)
-        void loadCanvasSpreadsheetPreview(currentSource.url, currentSource.name, currentSource.mimeType)
-          .then((spreadsheet) => {
-            if (!active) {
-              return
-            }
-
-            previewData.set({
-              content: null,
-              error: null,
-              spreadsheet
-            })
-            previewLoading.set(false)
-          })
-          .catch(() => {
-            if (!active) {
-              return
-            }
-
-            previewData.set({
-              content: null,
-              error: 'load-failed',
-              spreadsheet: null
-            })
-            previewLoading.set(false)
-          })
-        return
-      }
-
-      previewLoading.set(false)
+        })
+      return
     }
-  )
+
+    if (kind === 'spreadsheet') {
+      if (!currentSource.url) {
+        previewLoading.set(false)
+        previewData.set({
+          content: null,
+          error: 'missing-url',
+          spreadsheet: null
+        })
+        return
+      }
+
+      previewLoading.set(true)
+      void loadCanvasSpreadsheetPreview(currentSource.url, currentSource.name, currentSource.mimeType)
+        .then((spreadsheet) => {
+          if (!active) {
+            return
+          }
+
+          previewData.set({
+            content: null,
+            error: null,
+            spreadsheet
+          })
+          previewLoading.set(false)
+        })
+        .catch(() => {
+          if (!active) {
+            return
+          }
+
+          previewData.set({
+            content: null,
+            error: 'load-failed',
+            spreadsheet: null
+          })
+          previewLoading.set(false)
+        })
+      return
+    }
+
+    previewLoading.set(false)
+  })
 
   return {
     canCopyPreview: computed(() => canCopyCanvasFilePreview(previewKind())),

@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
@@ -18,7 +17,7 @@ import {
   UsersOrganizationsService
 } from '../../../../@core'
 import { PACEditUserComponent } from '../edit-user/edit-user.component'
-import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, NgmTableComponent, ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

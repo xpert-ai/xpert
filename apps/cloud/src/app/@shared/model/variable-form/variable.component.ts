@@ -6,7 +6,6 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmVariableComponent } from '@xpert-ai/ocap-angular/controls'
 import { ButtonGroupDirective, isNotNil, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { DataSettings, Semantics, VariableEntryType, VariableProperty } from '@xpert-ai/ocap-core'
@@ -14,7 +13,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectApiBaseUrl, injectToastr, TSelectOption } from '../../../@core'
 import { NgmSelectComponent } from '../../common'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,7 +32,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     NgmVariableComponent,
     NgmSelectComponent,
     NgmCheckboxComponent
-],
+  ],
   selector: 'model-cube-variable-form',
   templateUrl: 'variable.component.html',
   styleUrls: ['variable.component.scss']
@@ -121,7 +120,7 @@ export class CubeVariableFormComponent {
       defaultLow: this.defaultLow()?.members?.[0]?.key,
       visible: this.visible(),
       variableEntryType: this.required() ? VariableEntryType.Required : VariableEntryType.Optional,
-      semantics: this.semantic() ? {semantic: this.semantic()} : null
+      semantics: this.semantic() ? { semantic: this.semantic() } : null
     })
   }
 }

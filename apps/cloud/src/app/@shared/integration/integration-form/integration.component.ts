@@ -4,8 +4,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmInputComponent, NgmSpinComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
@@ -30,7 +29,7 @@ import { EmojiAvatarComponent } from '../../avatar'
     EmojiAvatarComponent,
     NgmInputComponent,
     NgmSpinComponent
-],
+  ],
   selector: 'pac-integration-form',
   templateUrl: 'integration.component.html',
   styleUrls: ['integration.component.scss']
@@ -62,9 +61,7 @@ export class IntegrationFormComponent {
 
   readonly provider = this.formGroup.get('provider')
   readonly providerName = toSignal(this.provider.valueChanges.pipe(startWith(this.provider.value)))
-  readonly integrationProvider = computed(() =>
-    this.#providers().find((item) => item.name === this.providerName())
-  )
+  readonly integrationProvider = computed(() => this.#providers().find((item) => item.name === this.providerName()))
 
   readonly schema = computed(() => {
     const schema = this.integrationProvider()?.schema
@@ -92,19 +89,17 @@ export class IntegrationFormComponent {
   readonly loading = signal(false)
 
   constructor() {
-    effect(
-      () => {
-        if (this.integration()) {
-          this.formGroup.patchValue(this.integration())
-          assign(this.optionsModel, this.integration().options)
-          if (this.integration().id) {
-            this.formGroup.markAsPristine()
-          } else {
-            this.formGroup.markAsDirty()
-          }
+    effect(() => {
+      if (this.integration()) {
+        this.formGroup.patchValue(this.integration())
+        assign(this.optionsModel, this.integration().options)
+        if (this.integration().id) {
+          this.formGroup.markAsPristine()
+        } else {
+          this.formGroup.markAsDirty()
         }
       }
-    )
+    })
   }
 
   onModelChange(model) {

@@ -1,13 +1,17 @@
-
 import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { ToastrService } from '@xpert-ai/cloud/state'
-import { NgmInputComponent } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AuthInfoType } from '../types'
-import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef } from '@xpert-ai/headless-ui'
+import {
+  NgmInputComponent,
+  Z_SHEET_DATA,
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardSheetRef
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -20,7 +24,7 @@ import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef 
     ButtonGroupDirective,
     OcapCoreModule,
     NgmInputComponent
-],
+  ],
   selector: 'bottom-sheet-basic',
   templateUrl: 'bottom-sheet-basic.component.html'
 })

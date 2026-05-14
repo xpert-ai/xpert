@@ -1,7 +1,14 @@
 import { Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
-import { ZardButtonComponent, ZardIconComponent, ZardPaginatorComponent, type ZardPageEvent, ZardTableImports } from '@xpert-ai/headless-ui'
+import {
+  NgmDisplayBehaviourComponent,
+  TableColumn,
+  ZardButtonComponent,
+  ZardIconComponent,
+  type ZardPageEvent,
+  ZardPaginatorComponent,
+  ZardTableImports
+} from '@xpert-ai/headless-ui'
 
-import { NgmDisplayBehaviourComponent, TableColumn } from '@xpert-ai/ocap-angular/common'
 import { DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { serializeMemberCaption } from '@xpert-ai/ocap-sql'
@@ -85,51 +92,39 @@ export class HierarchyTableComponent<T> {
   })
 
   constructor() {
-    effect(
-      () => {
-        const data = this.data()
-        if (data) {
-          this._data.set([...data])
-          const root = data[0]
-          if (root.levelNumber === 0) {
-            this.expandNode(root)
-          }
+    effect(() => {
+      const data = this.data()
+      if (data) {
+        this._data.set([...data])
+        const root = data[0]
+        if (root.levelNumber === 0) {
+          this.expandNode(root)
         }
       }
-    )
+    })
 
-    effect(
-      () => {
-        this.displayedColumns.set([
-          'levelNumber',
-          ...this.columns().map((column) => column.name),
-          'childrenCardinality'
-        ])
+    effect(() => {
+      this.displayedColumns.set(['levelNumber', ...this.columns().map((column) => column.name), 'childrenCardinality'])
+    })
+
+    effect(() => {
+      const pageSizeOptions = this.pageSizeOptions()
+      if (!pageSizeOptions?.length) {
+        this.pageSize.set(DEFAULT_PAGE_SIZE_OPTIONS[0])
+        return
       }
-    )
 
-    effect(
-      () => {
-        const pageSizeOptions = this.pageSizeOptions()
-        if (!pageSizeOptions?.length) {
-          this.pageSize.set(DEFAULT_PAGE_SIZE_OPTIONS[0])
-          return
-        }
-
-        if (!pageSizeOptions.includes(this.pageSize())) {
-          this.pageSize.set(pageSizeOptions[0])
-        }
+      if (!pageSizeOptions.includes(this.pageSize())) {
+        this.pageSize.set(pageSizeOptions[0])
       }
-    )
+    })
 
-    effect(
-      () => {
-        const maxPageIndex = Math.max(Math.ceil(this._data().length / this.pageSize()) - 1, 0)
-        if (this.pageIndex() > maxPageIndex) {
-          this.pageIndex.set(maxPageIndex)
-        }
+    effect(() => {
+      const maxPageIndex = Math.max(Math.ceil(this._data().length / this.pageSize()) - 1, 0)
+      if (this.pageIndex() > maxPageIndex) {
+        this.pageIndex.set(maxPageIndex)
       }
-    )
+    })
   }
 
   getValue(row: any, name: string) {

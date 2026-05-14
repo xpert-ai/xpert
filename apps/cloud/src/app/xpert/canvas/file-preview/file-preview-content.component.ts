@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core'
 import { SafePipe } from '@xpert-ai/core'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { CanvasFilePreviewKind, CanvasSpreadsheetPreview } from './file-preview.utils'
+import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -34,10 +34,8 @@ export class ChatCanvasFilePreviewContentComponent {
         (this.previewKind() === 'spreadsheet' && !this.activeSheet()))
   )
 
-  readonly #resetSheetSelectionEffect = effect(
-    () => {
-      this.spreadsheet()
-      this.selectedSheetIndex.set(0)
-    }
-  )
+  readonly #resetSheetSelectionEffect = effect(() => {
+    this.spreadsheet()
+    this.selectedSheetIndex.set(0)
+  })
 }

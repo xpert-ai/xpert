@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   agentLabel,
@@ -15,7 +14,7 @@ import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertNodeErrorHandlingComponent } from '../error-handling/error.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { PlusSvgComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-node-agent',
   templateUrl: './agent.component.html',

@@ -1,1 +1,1 @@
-export * from './select.component'
+export { NgmSelectComponent } from '@xpert-ai/headless-ui'

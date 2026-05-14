@@ -5,13 +5,12 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { nonNullable, OverlayAnimation1 } from '@xpert-ai/core'
-import { NgmSearchComponent, NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
 import { IOrganization, RequestScopeLevel, RolesEnum, ScopeService, Store } from '../../../@core'
 import { OrgAvatarComponent } from '../../../@shared/organization'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmHighlightDirective, NgmSearchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-organization-selector',
@@ -46,15 +45,14 @@ export class OrganizationSelectorComponent {
     initialValue: this.store.user
   })
 
-  readonly #organizations = computed(
-    () =>
-      uniqBy(
-        (this.currentUser()?.organizations ?? [])
-          .filter((membership) => membership?.isActive !== false && membership?.organization?.isActive !== false)
-          .map((membership) => membership.organization)
-          .filter(nonNullable),
-        (item) => item.id
-      ).sort((a, b) => a.name.localeCompare(b.name))
+  readonly #organizations = computed(() =>
+    uniqBy(
+      (this.currentUser()?.organizations ?? [])
+        .filter((membership) => membership?.isActive !== false && membership?.organization?.isActive !== false)
+        .map((membership) => membership.organization)
+        .filter(nonNullable),
+      (item) => item.id
+    ).sort((a, b) => a.name.localeCompare(b.name))
   )
 
   readonly organizations = computed(() => {
@@ -99,9 +97,7 @@ export class OrganizationSelectorComponent {
         })
   )
 
-  readonly showTenantScopeItem = computed(
-    () => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN
-  )
+  readonly showTenantScopeItem = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
   readonly hasOrganizations = computed(() => this.#organizations().length > 0)
   readonly hasVisibleOrganizations = computed(() => this.organizations().length > 0)
   readonly canOpenMenu = computed(() => this.showTenantScopeItem() || this.hasOrganizations())
@@ -127,10 +123,7 @@ export class OrganizationSelectorComponent {
 
   isActiveOrganization(organization: IOrganization) {
     const scope = this.activeScope()
-    return (
-      scope.level === RequestScopeLevel.ORGANIZATION &&
-      scope.organizationId === organization?.id
-    )
+    return scope.level === RequestScopeLevel.ORGANIZATION && scope.organizationId === organization?.id
   }
 
   selectTenantScope() {

@@ -1,4 +1,3 @@
-
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -13,7 +12,6 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -29,7 +27,7 @@ import {
 import { isNil, omit } from 'lodash-es'
 import { Observable, Subscription } from 'rxjs'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -41,7 +39,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     XpToolParametersFormComponent,
     ZardSwitchComponent
-],
+  ],
   selector: 'xpert-toolset-tool-test',
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',

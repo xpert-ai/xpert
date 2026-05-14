@@ -1,15 +1,13 @@
-
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmConfirmDeleteService, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subscription, firstValueFrom, of, startWith, switchMap, tap } from 'rxjs'
 import { IStorageFile, ProjectAPIService, StorageFileService, ToastrService, listAnimation } from '../../../@core'
 import { SharedUiModule } from '../../ui.module'
 
-import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
+import { NgmConfirmDeleteService, NgmSearchComponent, Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-project-files',
@@ -25,7 +23,7 @@ import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
     AppearanceDirective,
     DensityDirective,
     NgmSearchComponent
-],
+  ],
   animations: [listAnimation]
 })
 export class ProjectFilesDialogComponent {

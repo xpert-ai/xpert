@@ -5,9 +5,9 @@ import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { injectPluginAPI, IPluginConfiguration, PLUGIN_CONFIGURATION_STATUS } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { TInstalledPlugin } from '../types'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 type TPluginConfigureDialogData = {
   plugin: TInstalledPlugin

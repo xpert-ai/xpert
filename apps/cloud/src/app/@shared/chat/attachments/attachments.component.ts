@@ -14,11 +14,10 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { injectToastr, IStorageFile, StorageFileService } from '@cloud/app/@core'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentComponent } from '../attachment/attachment.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
@@ -32,7 +31,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     ChatAttachmentComponent
-],
+  ],
   selector: 'chat-attachments',
   templateUrl: './attachments.component.html',
   styleUrl: 'attachments.component.scss',

@@ -1,4 +1,3 @@
-
 import { Component, inject, model, computed, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -8,10 +7,9 @@ import { ExampleVectorStoreRetriever } from 'apps/cloud/src/app/@core/copilot'
 import { CopilotExampleService, getErrorMessage, injectToastr } from 'apps/cloud/src/app/@core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { DocumentInterface } from '@langchain/core/documents'
-import { NgmSliderInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, pipe, switchMap } from 'rxjs'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSliderInputComponent, NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-copilot-knowledge-testing',
   standalone: true,
@@ -22,7 +20,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSelectComponent,
     NgmSpinComponent,
     NgmSliderInputComponent
-],
+  ],
   templateUrl: './testing.component.html',
   styleUrl: './testing.component.scss'
 })

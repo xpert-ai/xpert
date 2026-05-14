@@ -16,8 +16,13 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { FavoritesService, StoriesService, convertStory } from '@xpert-ai/cloud/state'
-import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import {
+  AppearanceDirective,
+  ButtonGroupDirective,
+  DensityDirective,
+  NgmDSCoreService
+} from '@xpert-ai/ocap-angular/core'
 import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import { DisplayBehaviour, FlatTreeNode, TreeNodeInterface, hierarchize } from '@xpert-ai/ocap-core'
 import { Story } from '@xpert-ai/story/core'
@@ -62,6 +67,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
 import { XpTreeSelectComponent } from '../../../@shared/form-fields'
 import {
+  NgmConfirmDeleteService,
   ZardDialogRef,
   ZardDialogService,
   ZardFlatTreeControl,
@@ -93,9 +99,7 @@ import { ProjectSelectorComponent } from '../../../@theme/header'
   templateUrl: 'project.component.html',
   styleUrls: ['project.component.scss'],
   animations: [routeAnimations],
-  providers: [
-    ProjectService,
-  ]
+  providers: [ProjectService]
 })
 export class ProjectComponent extends TranslationBaseComponent {
   DisplayBehaviour = DisplayBehaviour

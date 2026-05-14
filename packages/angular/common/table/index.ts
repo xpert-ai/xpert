@@ -1,7 +1,16 @@
-export * from './fixed-size-table-virtual-scroll-strategy'
-export * from './table-data-source'
-export * from './table-item-size.directive'
+export {
+  displayDensityToTableSize,
+  filterTableRowsByColumn,
+  filterTableRowsByColumns,
+  FixedSizeTableVirtualScrollStrategy,
+  NgmSelectionTableComponent,
+  NgmTableComponent,
+  normalizeTableSearchValue,
+  paginateTableRows,
+  parseTableWidthToPx,
+  sortTableRows,
+  TableItemSizeDirective,
+  TableVirtualScrollDataSource
+} from '@xpert-ai/headless-ui'
+export type { SelectionTableColumn, TableColumn, TableColumnClassName, TableSortState } from '@xpert-ai/headless-ui'
 export * from './table.module'
-export * from './table/table.component'
-export * from './selection-table/selection-table.component'
-export * from './types'

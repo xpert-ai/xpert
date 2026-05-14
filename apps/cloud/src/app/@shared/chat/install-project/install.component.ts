@@ -7,7 +7,6 @@ import { RouterModule } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { parseYAML } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -33,7 +32,7 @@ import { of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { ProjectInstallToolsetComponent } from './toolset/toolset.component'
 import { ProjectInstallXpertComponent } from './xpert/xpert.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -123,14 +122,12 @@ export class XpertProjectInstallComponent {
   readonly loading = computed(() => this.#loading() || this.#templateRs.status() === 'loading')
 
   constructor() {
-    effect(
-      () => {
-        const dsl = this.#templateRs.value()
-        if (dsl) {
-          this.dsl.set(dsl)
-        }
+    effect(() => {
+      const dsl = this.#templateRs.value()
+      if (dsl) {
+        this.dsl.set(dsl)
       }
-    )
+    })
   }
 
   close() {

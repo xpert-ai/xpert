@@ -2,7 +2,12 @@ import { animate, style, transition, trigger } from '@angular/animations'
 import { CdkDragEnd } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import {
+  NgmConfirmCodeEditorComponent,
+  NgmConfirmUniqueComponent,
+  NgmInputComponent,
+  ZardDialogService
+} from '@xpert-ai/headless-ui'
 import {
   Component,
   ElementRef,
@@ -24,10 +29,8 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { StoriesService, convertNewSemanticModelResult } from '@xpert-ai/cloud/state'
 import { CopilotChatMessage } from '@xpert-ai/copilot'
 import { IsNilPipe } from '@xpert-ai/core'
-import { NgmConfirmUniqueComponent, NgmInputComponent } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { CHARTS, cloneDeep, DeepPartial, omit } from '@xpert-ai/ocap-core'
-import { NgmConfirmCodeEditorComponent } from '@xpert-ai/ocap-angular/editor'
 import { PreferencesComponent, QuerySettingComponent, ThemeBuilderComponent } from '@xpert-ai/story'
 import {
   EmulatedDevice,

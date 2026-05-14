@@ -1,9 +1,6 @@
 <z-form-field fxFlex="100" [appearance]="appearance">
   <z-form-label>Select</z-form-label>
-  <ngm-select
-    [formControl]="formControl"
-    [selectOptions]="(dimensions$ | async)?.map(property => ({ value: property.__id__, label: property.caption || property.name }))">
-  </ngm-select>
+  <ngm-select [formControl]="formControl" [selectOptions]="dimensionOptions$ | async"> </ngm-select>
 
   <div zFormSuffix>
     <button
@@ -13,9 +10,9 @@
       zShape="circle"
       z-menu
       [zMenuTriggerFor]="operatorMenu"
-      (click)="$event.stopPropagation();$event.preventDefault();"
+      (click)="$event.stopPropagation(); $event.preventDefault()"
     >
-        <z-icon zType="drag_handle"></z-icon>
+      <z-icon zType="drag_handle"></z-icon>
     </button>
 
     <button
@@ -26,14 +23,13 @@
       zFormSuffix
       z-menu
       [zMenuTriggerFor]="slicerMenu"
-      (click)="$event.stopPropagation();$event.preventDefault();"
+      (click)="$event.stopPropagation(); $event.preventDefault()"
     >
-        <z-icon zType="more_vert"></z-icon>
+      <z-icon zType="more_vert"></z-icon>
     </button>
 
     <ng-content></ng-content>
   </div>
-  
 </z-form-field>
 
 <ng-template #operatorMenu>
@@ -43,23 +39,23 @@
       <span>Equal</span>
     </button>
     <button type="button" z-menu-item>
-        <z-icon zType="chevron_left"></z-icon>
-        <span>Less than</span>
+      <z-icon zType="chevron_left"></z-icon>
+      <span>Less than</span>
     </button>
 
     <button type="button" z-menu-item>
-        <z-icon zType="first_page"></z-icon>
-        <span>Less Equal</span>
+      <z-icon zType="first_page"></z-icon>
+      <span>Less Equal</span>
     </button>
 
     <button type="button" z-menu-item>
-        <z-icon zType="chevron_right"></z-icon>
-        <span>Greater than</span>
+      <z-icon zType="chevron_right"></z-icon>
+      <span>Greater than</span>
     </button>
-    
+
     <button type="button" z-menu-item>
-        <z-icon zType="last_page"></z-icon>
-        <span>Greater Equal</span>
+      <z-icon zType="last_page"></z-icon>
+      <span>Greater Equal</span>
     </button>
   </div>
 </ng-template>

@@ -42,7 +42,7 @@ import {
   WidgetMenuType,
   WidgetService
 } from '@xpert-ai/core'
-import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { effectAction } from '@xpert-ai/ocap-angular/core'
 import {
   assignDeepOmitBlank,
@@ -69,7 +69,12 @@ import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { select } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardDialogService, ZardDividerComponent, ZardToastService } from '@xpert-ai/headless-ui'
+import {
+  NgmConfirmDeleteService,
+  ZardDialogService,
+  ZardDividerComponent,
+  ZardToastService
+} from '@xpert-ai/headless-ui'
 import { cloneDeep, isEmpty, isEqual, pick } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, from, Observable, of } from 'rxjs'
@@ -111,7 +116,7 @@ import { NxStoryWidgetService } from './story-widget.service'
     ContentLoaderModule,
     NxCoreModule,
     NgmCommonModule,
-    ZardDividerComponent,
+    ZardDividerComponent
   ]
 })
 export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
@@ -664,7 +669,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
             linkedAnalysis: cloneDeep(widget.linkedAnalysis) ?? {},
             widgets: widgets
               ?.filter((item) => item.key !== widget.key)
-              .map((item) => ({ 
+              .map((item) => ({
                 key: item.key,
                 caption: item.name || item.title || item.key
               }))

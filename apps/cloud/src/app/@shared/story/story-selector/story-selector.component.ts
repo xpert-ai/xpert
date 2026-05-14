@@ -3,18 +3,27 @@ import { ChangeDetectionStrategy, Component, Inject, inject, Input, Optional } f
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { StoriesService, WidgetsService } from '@xpert-ai/cloud/state'
 import { NgmDialogComponent } from '@xpert-ai/components/dialog'
-import { BehaviorSubject, combineLatest, distinctUntilChanged, firstValueFrom, map, of, startWith, switchMap, tap } from 'rxjs'
+import {
+  BehaviorSubject,
+  combineLatest,
+  distinctUntilChanged,
+  firstValueFrom,
+  map,
+  of,
+  startWith,
+  switchMap,
+  tap
+} from 'rxjs'
 import { DefaultProject, ISemanticModel, IStory, ProjectAPIService } from '../../../@core'
 import { LazyImgDirective } from '../../directives/lazy-img.directive'
 import { SharedUiModule } from '../../ui.module'
 import { CreatedByPipe } from '../../pipes'
 
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
+import { NgmSelectComponent, Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 type SelectableStory = IStory & { modelNotInStory: boolean }
 
 @Component({
@@ -79,36 +88,43 @@ export class StorySelectorComponent {
   get pointControl() {
     return this.formGroup.get('pointControl') as FormControl
   }
-  
+
   projectStories = new Map<string, SelectableStory[]>()
 
-  public readonly projects$ = this.projectService.getMy(['models'])
-    .pipe(
-      switchMap((projects) => this._model$.pipe(
-        map((model) => projects.map((project) => ({
-          ...project,
-          modelNotInProject: !project.models.find((item) => item.id === model?.id)
-        }))),
-      )),
-      switchMap(async (items) => {
-        const defaultName = await firstValueFrom(this.translateService.get('PAC.Project.DefaultProject', {Default: 'Default'}))
+  public readonly projects$ = this.projectService.getMy(['models']).pipe(
+    switchMap((projects) =>
+      this._model$.pipe(
+        map((model) =>
+          projects.map((project) => ({
+            ...project,
+            modelNotInProject: !project.models.find((item) => item.id === model?.id)
+          }))
+        )
+      )
+    ),
+    switchMap(async (items) => {
+      const defaultName = await firstValueFrom(
+        this.translateService.get('PAC.Project.DefaultProject', { Default: 'Default' })
+      )
 
-        return [
-          {
-            ...DefaultProject,
-            name: defaultName,
-            modelNotInProject: false
-          },
-          ...items
-        ]
-      })
-    )
+      return [
+        {
+          ...DefaultProject,
+          name: defaultName,
+          modelNotInProject: false
+        },
+        ...items
+      ]
+    })
+  )
   public readonly projectOptions$ = this.projects$.pipe(
-    map((projects) => projects.map((project) => ({
-      value: project.id,
-      label: project.name,
-      modelNotInProject: project.modelNotInProject
-    })))
+    map((projects) =>
+      projects.map((project) => ({
+        value: project.id,
+        label: project.name,
+        modelNotInProject: project.modelNotInProject
+      }))
+    )
   )
 
   public readonly stories$ = this.projectControl.valueChanges.pipe(
@@ -120,57 +136,67 @@ export class StorySelectorComponent {
         return of(cachedStories)
       }
 
-      return this.storiesService.getAllByProject(id === DefaultProject.id ? null : id, ['points', 'models']).pipe(
-        tap((stories) => this.projectStories.set(id, stories as SelectableStory[]))
-      )
+      return this.storiesService
+        .getAllByProject(id === DefaultProject.id ? null : id, ['points', 'models'])
+        .pipe(tap((stories) => this.projectStories.set(id, stories as SelectableStory[])))
     }),
-    switchMap((stories) => this._model$.pipe(
-      map((model) => (stories ?? []).map((story) => ({
-        ...story,
-        modelNotInStory: !story.models.find((item) => item.id === model?.id)
-      }))),
-    ))
+    switchMap((stories) =>
+      this._model$.pipe(
+        map((model) =>
+          (stories ?? []).map((story) => ({
+            ...story,
+            modelNotInStory: !story.models.find((item) => item.id === model?.id)
+          }))
+        )
+      )
+    )
   )
   public readonly storiesSignal = toSignal(this.stories$, { initialValue: [] as SelectableStory[] })
   public readonly storyOptions$ = this.stories$.pipe(
-    map((stories) => stories.map((story) => ({
-      value: story.id,
-      label: story.name,
-      modelNotInStory: story.modelNotInStory
-    })))
+    map((stories) =>
+      stories.map((story) => ({
+        value: story.id,
+        label: story.name,
+        modelNotInStory: story.modelNotInStory
+      }))
+    )
   )
   public readonly points$ = combineLatest([
     this.storyControl.valueChanges.pipe(startWith(this.storyControl.value)),
     this.stories$
-  ]).pipe(
-    map(([storyId, stories]) => stories.find((story) => story.id === storyId)?.points ?? [])
-  )
+  ]).pipe(map(([storyId, stories]) => stories.find((story) => story.id === storyId)?.points ?? []))
   public readonly pointsSignal = toSignal(this.points$, { initialValue: [] })
   public readonly pointOptions$ = this.points$.pipe(
-    map((points) => points.map((point) => ({
-      value: point.id,
-      label: point.name,
-      key: point.key
-    })))
+    map((points) =>
+      points.map((point) => ({
+        value: point.id,
+        label: point.name,
+        key: point.key
+      }))
+    )
   )
-  constructor(@Optional() @Inject(Z_MODAL_DATA) private data,
+  constructor(
+    @Optional() @Inject(Z_MODAL_DATA) private data,
     @Optional()
-    public dialogRef: ZardDialogRef<StorySelectorComponent> ) {
+    public dialogRef: ZardDialogRef<StorySelectorComponent>
+  ) {
     this.model = this.data?.model
   }
 
   async onApply() {
     const selectedStory = this.storiesSignal().find((story) => story.id === this.storyControl.value)
     const selectedPoint = this.pointsSignal().find((point) => point.id === this.pointControl.value)
-    const widget = await firstValueFrom(this.widgetsService.create({
-      storyId: selectedStory?.id,
-      pointId: selectedPoint?.id,
-      ...(this.data.widget),
-      dataSettings: {
-        ...(this.data.widget.dataSettings ?? {}),
-      }
-    }))
+    const widget = await firstValueFrom(
+      this.widgetsService.create({
+        storyId: selectedStory?.id,
+        pointId: selectedPoint?.id,
+        ...this.data.widget,
+        dataSettings: {
+          ...(this.data.widget.dataSettings ?? {})
+        }
+      })
+    )
 
-    this.dialogRef?.close({...widget, pageKey: selectedPoint?.key})
+    this.dialogRef?.close({ ...widget, pageKey: selectedPoint?.key })
   }
 }

@@ -3,7 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/story-angular/src",
   "prefix": "pac",
-  "tags": [],
+  "tags": ["scope:story-angular"],
   "projectType": "library",
   "targets": {
     "build": {
