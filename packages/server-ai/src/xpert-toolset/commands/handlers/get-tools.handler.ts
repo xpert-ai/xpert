@@ -14,70 +14,79 @@ import { TBuiltinToolsetParams } from '../../../shared'
 
 @CommandHandler(ToolsetGetToolsCommand)
 export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCommand> {
-	readonly #logger = new Logger(ToolsetGetToolsHandler.name)
+    readonly #logger = new Logger(ToolsetGetToolsHandler.name)
 
-	constructor(
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly toolsetService: XpertToolsetService
-	) {}
+    constructor(
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+        private readonly toolsetService: XpertToolsetService
+    ) {}
 
-	public async execute(command: ToolsetGetToolsCommand): Promise<BaseToolset<Tool>[]> {
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
+    public async execute(command: ToolsetGetToolsCommand): Promise<BaseToolset<Tool>[]> {
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
 
-		const ids = command.ids
-		if (!ids) {
-			return []
-		}
-		const { items: toolsets } = await this.toolsetService.findAll({
-			where: {
-				id: In(ids)
-			},
-			relations: ['tools']
-		})
+        const ids = command.ids
+        if (!ids?.length) {
+            return []
+        }
+        const workspaceId = normalizeWorkspaceId(command.environment?.workspaceId)
+        const { items: toolsets } = await this.toolsetService.findAll({
+            where: {
+                id: In(ids),
+                ...(workspaceId ? { workspaceId } : {})
+            },
+            relations: ['tools']
+        })
 
-		const context: TBuiltinToolsetParams = {
-			conversationId: command.environment?.conversationId,
-			tenantId,
-			organizationId,
-			// toolsetService: this.toolsetService,
-			commandBus: this.commandBus,
-			queryBus: this.queryBus,
-			userId: RequestContext.currentUserId(),
-			projectId: command.environment?.projectId,
-			xpertId: command.environment?.xpertId,
-			agentKey: command.environment?.agentKey,
-			signal: command.environment?.signal,
-			env: command.environment?.env,
-			store: command.environment?.store
-		}
+        const context: TBuiltinToolsetParams = {
+            conversationId: command.environment?.conversationId,
+            tenantId,
+            organizationId,
+            // toolsetService: this.toolsetService,
+            commandBus: this.commandBus,
+            queryBus: this.queryBus,
+            userId: RequestContext.currentUserId(),
+            projectId: command.environment?.projectId,
+            xpertId: command.environment?.xpertId,
+            agentKey: command.environment?.agentKey,
+            signal: command.environment?.signal,
+            env: command.environment?.env,
+            store: command.environment?.store
+        }
 
-		return Promise.all(toolsets.map(async (toolset) => {
-			switch (toolset.category) {
-				case XpertToolsetCategoryEnum.BUILTIN: {
-					return await createBuiltinToolset(toolset.type, toolset, context)
-				}
-				case XpertToolsetCategoryEnum.API: {
-					switch (toolset.type) {
-						case 'openapi': {
-							return new OpenAPIToolset(toolset)
-						}
-						case 'odata': {
-							return new ODataToolset(toolset)
-						}
-						default: {
-							throw new ToolProviderNotFoundError(`API Tool type '${toolset.type}' not found`)
-						}
-					}
-				}
-				case XpertToolsetCategoryEnum.MCP: {
-					return new MCPToolset(toolset, context)
-				}
-				default: {
-					throw new ToolProviderNotFoundError(`Tool category '${toolset.category}' not found`)
-				}
-			}
-		}))
-	}
+        return Promise.all(
+            toolsets.map(async (toolset) => {
+                switch (toolset.category) {
+                    case XpertToolsetCategoryEnum.BUILTIN: {
+                        return await createBuiltinToolset(toolset.type, toolset, context)
+                    }
+                    case XpertToolsetCategoryEnum.API: {
+                        switch (toolset.type) {
+                            case 'openapi': {
+                                return new OpenAPIToolset(toolset)
+                            }
+                            case 'odata': {
+                                return new ODataToolset(toolset)
+                            }
+                            default: {
+                                throw new ToolProviderNotFoundError(`API Tool type '${toolset.type}' not found`)
+                            }
+                        }
+                    }
+                    case XpertToolsetCategoryEnum.MCP: {
+                        return new MCPToolset(toolset, context)
+                    }
+                    default: {
+                        throw new ToolProviderNotFoundError(`Tool category '${toolset.category}' not found`)
+                    }
+                }
+            })
+        )
+    }
+}
+
+function normalizeWorkspaceId(value?: string | null) {
+    const workspaceId = value?.trim()
+    return workspaceId && workspaceId !== 'null' && workspaceId !== 'undefined' ? workspaceId : null
 }

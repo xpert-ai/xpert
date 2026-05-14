@@ -1,21 +1,22 @@
-import { KnowledgeDocumentMetadata, TWFCase } from '@xpert-ai/contracts'
+import { KnowledgeDocumentMetadata, TKBRetrievalSettings, TWFCase } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 export class KnowledgeSearchQuery implements IQuery {
-	static readonly type = '[Knowledgebase] Similarity Search'
+    static readonly type = '[Knowledgebase] Similarity Search'
 
-	constructor(
-		public readonly input: {
-			tenantId: string
-			organizationId: string
-			knowledgebases: string[]
-			query: string
-			k?: number
-			score?: number
-			filter?: KnowledgeDocumentMetadata
-			filtering_conditions?: TWFCase
-			source: string
-			id?: string // Request ID for tracing the request
-		}
-	) {}
+    constructor(
+        public readonly input: {
+            tenantId: string
+            organizationId: string
+            knowledgebases: string[]
+            query: string
+            k?: number
+            score?: number
+            filter?: KnowledgeDocumentMetadata
+            filtering_conditions?: TWFCase
+            retrieval?: TKBRetrievalSettings
+            source: string
+            id?: string // Request ID for tracing the request
+        }
+    ) {}
 }

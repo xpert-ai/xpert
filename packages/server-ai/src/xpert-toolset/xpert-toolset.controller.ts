@@ -1,34 +1,44 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { getErrorMessage, keepAlive, takeUntilClose } from '@xpert-ai/server-common'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IPagination, IXpertTool, IXpertToolset, TAvatar } from '@xpert-ai/contracts'
 import {
-	CrudController,
-	PaginationParams,
-	ParseJsonPipe,
-	Public,
-	RequestContext,
-	TransformInterceptor,
-	UUIDValidationPipe
+    ChatMessageEventTypeEnum,
+    ChatMessageTypeEnum,
+    IPagination,
+    ITenant,
+    IXpertTool,
+    IXpertToolset,
+    TAvatar
+} from '@xpert-ai/contracts'
+import {
+    CrudController,
+    GetDefaultTenantQuery,
+    PaginationParams,
+    ParseJsonPipe,
+    Public,
+    RequestContext,
+    TransformInterceptor,
+    UUIDValidationPipe
 } from '@xpert-ai/server-core'
 import { ConfigService } from '@xpert-ai/server-config'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import {
-	Body,
-	Controller,
-	Get,
-	HttpException,
-	HttpStatus,
-	Logger,
-	Param,
-	Post,
-	Query,
-	Res,
-	UseInterceptors,
-	Inject,
-	UseGuards,
-	InternalServerErrorException,
-	Header,
-	Sse
+    Body,
+    Controller,
+    Get,
+    HttpException,
+    HttpStatus,
+    Logger,
+    Param,
+    Post,
+    Query,
+    Res,
+    UseInterceptors,
+    Inject,
+    UseGuards,
+    InternalServerErrorException,
+    Header,
+    Sse,
+    NotFoundException
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -40,12 +50,12 @@ import { TestOpenAPICommand } from '../xpert-tool/commands/'
 import { MCPToolsBySchemaCommand, ParserODataSchemaCommand, ParserOpenAPISchemaCommand } from './commands/'
 import { ToolProviderDTO, ToolsetPublicDTO } from './dto'
 import {
-	GetODataRemoteMetadataQuery,
-	GetOpenAPIRemoteSchemaQuery,
-	ListBuiltinCredentialsSchemaQuery,
-	ListBuiltinToolProvidersQuery,
-	ListBuiltinToolsQuery,
-	ToolProviderIconQuery
+    GetODataRemoteMetadataQuery,
+    GetOpenAPIRemoteSchemaQuery,
+    ListBuiltinCredentialsSchemaQuery,
+    ListBuiltinToolProvidersQuery,
+    ListBuiltinToolsQuery,
+    ToolProviderIconQuery
 } from './queries'
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
@@ -53,232 +63,269 @@ import { ToolProviderNotFoundError } from './errors'
 import { ToolsetGuard } from './guards/toolset.guard'
 import { WorkspaceGuard } from '../xpert-workspace'
 
-
 @ApiTags('XpertToolset')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class XpertToolsetController extends CrudController<XpertToolset> {
-	readonly #logger = new Logger(XpertToolsetController.name)
+    readonly #logger = new Logger(XpertToolsetController.name)
 
-	@Inject(ConfigService)
-	private readonly configService: ConfigService
+    @Inject(ConfigService)
+    private readonly configService: ConfigService
 
-	get baseUrl() {
-		return this.configService.get('baseUrl') as string
-	}
-	
-	constructor(
-		private readonly service: XpertToolsetService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		@Inject(CACHE_MANAGER)
-		private readonly cacheManager: Cache
-	) {
-		super(service)
-	}
+    get baseUrl() {
+        return this.configService.get('baseUrl') as string
+    }
 
-	@UseGuards(WorkspaceGuard)
-	@Get('by-workspace/:workspaceId')
-	async getAllByWorkspace(
-		@Param('workspaceId') workspaceId: string,
-		@Query('data', ParseJsonPipe) data: PaginationParams<XpertToolset>,
-		@Query('published') published?: boolean
-	) {
-		const result = await this.service.getAllByWorkspace(workspaceId, data, published, RequestContext.currentUser())
-		const items = await this.service.afterLoad(result.items)
-		return {
-			...result,
-			items: items.map((item) => new ToolsetPublicDTO(item))
-		}
-	}
+    constructor(
+        private readonly service: XpertToolsetService,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+        @Inject(CACHE_MANAGER)
+        private readonly cacheManager: Cache
+    ) {
+        super(service)
+    }
 
-	@ApiOperation({ summary: 'find all' })
-	@ApiResponse({
-		status: HttpStatus.OK,
-		description: 'Found records'
-	})
-	@Get()
-	async findAllTools(
-		@Query('data', ParseJsonPipe) options?: PaginationParams<XpertToolset>
-	): Promise<IPagination<ToolsetPublicDTO>> {
-		const { items, ...rest } = await this.service.findAll(options)
-		const _items = await this.service.afterLoad(items)
-		return {
-			items: _items.map((item) => new ToolsetPublicDTO(item)),
-			...rest
-		}
-	}
+    private async resolvePublicTenantId(tenant?: string) {
+        const explicitTenantId = this.normalizeTenantId(tenant)
+        if (explicitTenantId) {
+            return explicitTenantId
+        }
 
-	@Get('tags')
-	async getAllTags() {
-		return this.service.getAllTags()
-	}
+        const currentTenantId = RequestContext.getScope().tenantId ?? RequestContext.currentTenantId()
+        if (currentTenantId) {
+            return currentTenantId
+        }
 
-	/**
-	 * Get all available toolset providers
-	 * 
-	 * @returns 
-	 */
-	@Get('providers')
-	async getAllToolProviders() {
-		const items = await this.queryBus.execute(new ListBuiltinToolProvidersQuery())
-		return items.map((schema) =>
-					new ToolProviderDTO({
-						...schema.identity
-					}, this.baseUrl)
-				)
-	}
-	
-	@Post('provider/openapi/remote')
-	async getOpenAPISchema(@Body() body: {url: string; credentials: Record<string, string>}) {
-		return this.queryBus.execute(new GetOpenAPIRemoteSchemaQuery(body.url, body.credentials))
-	}
+        const defaultTenant = await this.queryBus.execute<GetDefaultTenantQuery, ITenant | null>(
+            new GetDefaultTenantQuery()
+        )
+        return defaultTenant?.id ?? null
+    }
 
-	/**
-	 * Convert OpenAPI Schema to Tool's JSON Schema
-	 * 
-	 * @param param0 { schema: Schema of OpenAPI }
-	 * @returns 
-	 */
-	@Post('provider/openapi/schema')
-	async parseOpenAPISchema(@Body() { schema }: { schema: string }) {
-		return this.commandBus.execute(new ParserOpenAPISchemaCommand(schema))
-	}
+    private normalizeTenantId(tenant?: string | null) {
+        const tenantId = tenant?.trim()
+        return tenantId ? tenantId : null
+    }
 
-	@Post('provider/openapi/test')
-	async testOpenAPI(@Body() tool: IXpertTool) {
-		return this.commandBus.execute(new TestOpenAPICommand(tool))
-	}
+    @UseGuards(WorkspaceGuard)
+    @Get('by-workspace/:workspaceId')
+    async getAllByWorkspace(
+        @Param('workspaceId') workspaceId: string,
+        @Query('data', ParseJsonPipe) data: PaginationParams<XpertToolset>,
+        @Query('published') published?: boolean
+    ) {
+        const result = await this.service.getAllByWorkspace(workspaceId, data, published, RequestContext.currentUser())
+        const items = await this.service.afterLoad(result.items)
+        return {
+            ...result,
+            items: items.map((item) => new ToolsetPublicDTO(item))
+        }
+    }
 
-	@Get('provider/:name')
-	async getToolProvider(@Param('name') provider: string) {
-		const providers = await this.queryBus.execute(new ListBuiltinToolProvidersQuery([provider]))
-		if (!providers[0]) {
-			throw new ToolProviderNotFoundError(`Tool provider '${provider}' not found!`)
-		}
+    @ApiOperation({ summary: 'find all' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Found records'
+    })
+    @Get()
+    async findAllTools(
+        @Query('data', ParseJsonPipe) options?: PaginationParams<XpertToolset>
+    ): Promise<IPagination<ToolsetPublicDTO>> {
+        const { items, ...rest } = await this.service.findAll(options)
+        const _items = await this.service.afterLoad(items)
+        return {
+            items: _items.map((item) => new ToolsetPublicDTO(item)),
+            ...rest
+        }
+    }
 
-		return new ToolProviderDTO({
-			...providers[0].identity
-		}, this.baseUrl)
-	}
+    @Get('tags')
+    async getAllTags() {
+        return this.service.getAllTags()
+    }
 
-	@Public()
-	@Get(':id/avatar')
-	async getMCPAvatar(@Param('id', UUIDValidationPipe) id: string) {
-		const cacheKey = `toolset:avatar:${id}`
-		const cache = await this.cacheManager.get<{avatar: TAvatar}>(cacheKey)
-		if (!cache) {
-			const toolset = await this.service.findOne(id)
-			await this.cacheManager.set(cacheKey, {avatar: toolset.avatar}, 5 * 60 * 1000) // Cache for 5 minutes
-			return toolset.avatar
-		}
-		return cache.avatar
-	}
+    /**
+     * Get all available toolset providers
+     *
+     * @returns
+     */
+    @Get('providers')
+    async getAllToolProviders() {
+        const items = await this.queryBus.execute(new ListBuiltinToolProvidersQuery())
+        return items.map(
+            (schema) =>
+                new ToolProviderDTO(
+                    {
+                        ...schema.identity
+                    },
+                    this.baseUrl
+                )
+        )
+    }
 
-	@Public()
-	@Get('builtin-provider/:name/icon')
-	async getProviderIcon(@Param('name') provider: string, @Query('org') org: string, @Res() res: ServerResponse) {
-		const [icon, mimetype] = await this.queryBus.execute(new ToolProviderIconQuery({organizationId: org, provider}))
-		if (icon) {
-			res.setHeader('Content-Type', mimetype)
-			res.end(icon)
-			return
-		}
-		throw new HttpException('Icon not found', HttpStatus.NOT_FOUND)
-	}
+    @Post('provider/openapi/remote')
+    async getOpenAPISchema(@Body() body: { url: string; credentials: Record<string, string> }) {
+        return this.queryBus.execute(new GetOpenAPIRemoteSchemaQuery(body.url, body.credentials))
+    }
 
-	@Get('builtin-provider/:name/tools')
-	async getBuiltinTools(@Param('name') provider: string) {
-		return this.queryBus.execute(new ListBuiltinToolsQuery(provider))
-	}
+    /**
+     * Convert OpenAPI Schema to Tool's JSON Schema
+     *
+     * @param param0 { schema: Schema of OpenAPI }
+     * @returns
+     */
+    @Post('provider/openapi/schema')
+    async parseOpenAPISchema(@Body() { schema }: { schema: string }) {
+        return this.commandBus.execute(new ParserOpenAPISchemaCommand(schema))
+    }
 
-	@Get('builtin-provider/:name/credentials-schema')
-	async getBuiltinCredentialsSchema(@Param('name') provider: string) {
-		return this.queryBus.execute(new ListBuiltinCredentialsSchemaQuery(provider))
-	}
+    @Post('provider/openapi/test')
+    async testOpenAPI(@Body() tool: IXpertTool) {
+        return this.commandBus.execute(new TestOpenAPICommand(tool))
+    }
 
-	@Post('builtin-provider/:name/instance')
-	async createBuiltinInstance(@Param('name') provider: string, @Body() body: Partial<IXpertToolset>) {
-		try {
-			return await this.service.createBuiltinToolset(provider, body)
-		} catch(err) {
-			throw new InternalServerErrorException(err.message)
-		}
-	}
+    @Get('provider/:name')
+    async getToolProvider(@Param('name') provider: string) {
+        const providers = await this.queryBus.execute(new ListBuiltinToolProvidersQuery([provider]))
+        if (!providers[0]) {
+            throw new ToolProviderNotFoundError(`Tool provider '${provider}' not found!`)
+        }
 
-	@Post('provider/odata/remote')
-	async getODataMetadata(@Body() body: {url: string; credentials: Record<string, string>}) {
-		return await this.queryBus.execute(new GetODataRemoteMetadataQuery(body.url, body.credentials))
-	}
+        return new ToolProviderDTO(
+            {
+                ...providers[0].identity
+            },
+            this.baseUrl
+        )
+    }
 
-	@Post('provider/odata/schema')
-	async parseODataSchema(@Body() { schema }: { schema: string }) {
-		return this.commandBus.execute(new ParserODataSchemaCommand(schema))
-	}
+    @Public()
+    @Get(':id/avatar')
+    async getMCPAvatar(@Param('id', UUIDValidationPipe) id: string, @Query('tenant') tenant?: string) {
+        const tenantId = await this.resolvePublicTenantId(tenant)
+        if (!tenantId) {
+            throw new NotFoundException('Default tenant was not found')
+        }
 
-	/**
-	 * @Post @Sse There is a priority order.
-	 */
-	@Header('content-type', 'text/event-stream')
-	@Header('Connection', 'keep-alive')
-	@Post('provider/mcp/tools')
-	@Sse()
-	getMCPTools(@Res() res: Response, @Body() toolset: Partial<IXpertToolset>) {
-		return new Observable<MessageEvent>((subscriber) => {
-			RunnableLambda.from(async (toolset: Partial<IXpertToolset>) => {
-				try {
-					const result = await this.commandBus.execute(new MCPToolsBySchemaCommand(toolset))
-					subscriber.next({
-						data: {
-							type: ChatMessageTypeEnum.MESSAGE,
-							data: result
-						}
-					} as MessageEvent)
-					subscriber.complete()
-				} catch(err) {
-					this.#logger.error(err)
-					subscriber.error(err)
-				}
-			}).invoke(toolset, {
-				callbacks: [
-					{
-						handleCustomEvent(eventName, data, runId) {
-							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
-								subscriber.next({
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										data: data
-									}
-								} as MessageEvent)
-							} else {
-								this.#logger.warn(`Unprocessed custom event in xpert agent: ${eventName} ${runId}`)
-							}
-						},
-					},
-				],
-			}).catch((err) => {
-				console.error(err)
-				subscriber.error(getErrorMessage(err))
-			})
-		}).pipe(
-			// Add an operator to send a comment event periodically (30s) to keep the connection alive
-			keepAlive(30000),
-			takeUntilClose(res)
-		)
-	}
+        const cacheKey = `toolset:avatar:${tenantId}:${id}`
+        const cache = await this.cacheManager.get<{ avatar?: TAvatar }>(cacheKey)
+        if (!cache) {
+            const avatar = await this.service.findPublicAvatar(id, tenantId)
+            await this.cacheManager.set(cacheKey, { avatar }, 5 * 60 * 1000) // Cache for 5 minutes
+            return avatar
+        }
+        return cache.avatar
+    }
 
-	// Single Toolset
-	@Get(':toolsetId/tools')
-	async getToolsetTools(@Param('toolsetId') toolsetId: string,) {
-		const toolset = await this.service.findOne(toolsetId, { relations: ['tools'] })
-		return toolset.tools
-	}
+    @Public()
+    @Get('builtin-provider/:name/icon')
+    async getProviderIcon(@Param('name') provider: string, @Query('org') org: string, @Res() res: ServerResponse) {
+        const [icon, mimetype] = await this.queryBus.execute(
+            new ToolProviderIconQuery({ organizationId: org, provider })
+        )
+        if (icon) {
+            res.setHeader('Content-Type', mimetype)
+            res.end(icon)
+            return
+        }
+        throw new HttpException('Icon not found', HttpStatus.NOT_FOUND)
+    }
 
-	@UseGuards(ToolsetGuard)
-	@Get(':id/credentials')
-	async getCredentials(@Param('id') toolsetId: string,) {
-		const toolset = await this.service.findOne(toolsetId)
-		return toolset.credentials
-	}
+    @Get('builtin-provider/:name/tools')
+    async getBuiltinTools(@Param('name') provider: string) {
+        return this.queryBus.execute(new ListBuiltinToolsQuery(provider))
+    }
+
+    @Get('builtin-provider/:name/credentials-schema')
+    async getBuiltinCredentialsSchema(@Param('name') provider: string) {
+        return this.queryBus.execute(new ListBuiltinCredentialsSchemaQuery(provider))
+    }
+
+    @Post('builtin-provider/:name/instance')
+    async createBuiltinInstance(@Param('name') provider: string, @Body() body: Partial<IXpertToolset>) {
+        try {
+            return await this.service.createBuiltinToolset(provider, body)
+        } catch (err) {
+            throw new InternalServerErrorException(err.message)
+        }
+    }
+
+    @Post('provider/odata/remote')
+    async getODataMetadata(@Body() body: { url: string; credentials: Record<string, string> }) {
+        return await this.queryBus.execute(new GetODataRemoteMetadataQuery(body.url, body.credentials))
+    }
+
+    @Post('provider/odata/schema')
+    async parseODataSchema(@Body() { schema }: { schema: string }) {
+        return this.commandBus.execute(new ParserODataSchemaCommand(schema))
+    }
+
+    /**
+     * @Post @Sse There is a priority order.
+     */
+    @Header('content-type', 'text/event-stream')
+    @Header('Connection', 'keep-alive')
+    @Post('provider/mcp/tools')
+    @Sse()
+    getMCPTools(@Res() res: Response, @Body() toolset: Partial<IXpertToolset>) {
+        return new Observable<MessageEvent>((subscriber) => {
+            RunnableLambda.from(async (toolset: Partial<IXpertToolset>) => {
+                try {
+                    const result = await this.commandBus.execute(new MCPToolsBySchemaCommand(toolset))
+                    subscriber.next({
+                        data: {
+                            type: ChatMessageTypeEnum.MESSAGE,
+                            data: result
+                        }
+                    } as MessageEvent)
+                    subscriber.complete()
+                } catch (err) {
+                    this.#logger.error(err)
+                    subscriber.error(err)
+                }
+            })
+                .invoke(toolset, {
+                    callbacks: [
+                        {
+                            handleCustomEvent(eventName, data, runId) {
+                                if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+                                    subscriber.next({
+                                        data: {
+                                            type: ChatMessageTypeEnum.EVENT,
+                                            data: data
+                                        }
+                                    } as MessageEvent)
+                                } else {
+                                    this.#logger.warn(`Unprocessed custom event in xpert agent: ${eventName} ${runId}`)
+                                }
+                            }
+                        }
+                    ]
+                })
+                .catch((err) => {
+                    console.error(err)
+                    subscriber.error(getErrorMessage(err))
+                })
+        }).pipe(
+            // Add an operator to send a comment event periodically (30s) to keep the connection alive
+            keepAlive(30000),
+            takeUntilClose(res)
+        )
+    }
+
+    // Single Toolset
+    @Get(':toolsetId/tools')
+    async getToolsetTools(@Param('toolsetId') toolsetId: string) {
+        const toolset = await this.service.findOne(toolsetId, { relations: ['tools'] })
+        return toolset.tools
+    }
+
+    @UseGuards(ToolsetGuard)
+    @Get(':id/credentials')
+    async getCredentials(@Param('id') toolsetId: string) {
+        const toolset = await this.service.findOne(toolsetId)
+        return toolset.credentials
+    }
 }

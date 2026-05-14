@@ -345,7 +345,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('toggles the files panel and resolves the current conversation context from the thread', async () => {
+  it('renders the files panel and resolves the current conversation context from the thread', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -356,11 +356,17 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
+  })
+
+  it('keeps the active panel open when its tab is clicked again', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
     fixture.detectChanges()
 
-    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+    expect(fixture.componentInstance.activePanel()).toBe('files')
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
   })
 
   it('renders the terminal panel with the resolved conversation and project context', async () => {
@@ -406,18 +412,6 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   it('transitions the layout into a main workspace with a right-side chat dialog when a panel opens', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settle(fixture)
-
-    fixture.componentInstance.selectPanel('files')
-    await settle(fixture)
-
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[0rem_minmax(0,1fr)]')
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[0rem_minmax(0,1fr)]')
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-rows-1')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('rounded-none')
-    expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-0')
-
-    fixture.componentInstance.selectPanel('files')
     await settle(fixture)
 
     const chatShell = fixture.nativeElement.querySelectorAll('section')[1]?.querySelector('div') as HTMLElement | null

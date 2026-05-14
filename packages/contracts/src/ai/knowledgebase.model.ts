@@ -6,12 +6,13 @@ import { IXpert } from './xpert.model'
 import { IIntegration } from '../integration.model'
 import { channelName } from '../agent/graph'
 import { IDocChunkMetadata } from './knowledge-doc-chunk.model'
+import type { GraphRagConfig, KnowledgeGraphStatus } from './knowledge-graph.model'
 
 /**
  * Non-internal types should remain the same as IntegrationEnum.
  */
 export enum KnowledgeProviderEnum {
-  Internal = 'internal',
+  Internal = 'internal'
 }
 
 export enum KnowledgebaseTypeEnum {
@@ -77,6 +78,13 @@ export type TKnowledgebase = {
    */
   copilotModel?: ICopilotModel
   copilotModelId?: string
+
+  /**
+   * Chat model for knowledgebase LLM tasks.
+   */
+  chatModel?: ICopilotModel | null
+  chatModelId?: string | null
+
   embeddingCollectionName?: string | null
   embeddingModelFingerprint?: string | null
   embeddingDimensions?: number | null
@@ -91,6 +99,11 @@ export type TKnowledgebase = {
 
   rebuildTaskId?: string | null
   embeddingRebuildError?: string | null
+
+  graphRag?: GraphRagConfig | null
+  graphStatus?: KnowledgeGraphStatus | null
+  graphRevision?: number | null
+  graphIndexError?: string | null
 
   // Rerank model for re-ranking retrieved chunks
   rerankModel?: ICopilotModel
@@ -128,11 +141,11 @@ export type TKnowledgebase = {
   recall?: TKBRecallParams
 
   status?: KnowledgebaseStatusEnum
-  
+
   /**
    * Metadata custom field definition array
    */
-	metadataSchema?: KBMetadataFieldDef[]
+  metadataSchema?: KBMetadataFieldDef[]
 
   /**
    * API service enabled
@@ -194,19 +207,26 @@ export type TKBRecallParams = {
 }
 
 export type DocumentMetadata = IDocChunkMetadata & {
-    score?: number; 
-    relevanceScore?: number
-} & Record<string, any>;
+  score?: number
+  relevanceScore?: number
+} & Record<string, any>
 
 export type MetadataFieldType =
-  | 'string' | 'number' | 'boolean' | 'enum' | 'datetime' | 'string[]' | 'number[]' | 'object';
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'enum'
+  | 'datetime'
+  | 'string[]'
+  | 'number[]'
+  | 'object'
 
 export type KBMetadataFieldDef = {
-  key: string;                // Unique key, e.g. "department"
-  label?: I18nObject;             // Display label
-  type: MetadataFieldType;
-  enumValues?: string[];
-  description?: string;
+  key: string // Unique key, e.g. "department"
+  label?: I18nObject // Display label
+  type: MetadataFieldType
+  enumValues?: string[]
+  description?: string
 }
 
 /**

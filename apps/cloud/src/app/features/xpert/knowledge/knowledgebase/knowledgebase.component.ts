@@ -26,7 +26,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import { ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -43,6 +43,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     NgmSpinComponent,
     XpertInlineProfileComponent,
+    ZardIconComponent,
     ZardSwitchComponent
   ],
   animations: [routeAnimations, OverlayAnimation1]
@@ -70,7 +71,7 @@ export class KnowledgebaseComponent {
     loader: ({ request }) => {
       return this.knowledgebaseAPI
         .getOneById(request.id, {
-          relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline'],
+          relations: ['copilotModel', 'chatModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline'],
           select: {
             xperts: {
               id: true,

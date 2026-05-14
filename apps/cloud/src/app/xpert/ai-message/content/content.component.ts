@@ -11,6 +11,7 @@ import { ChatComponentMessageComponent } from '../../component-message'
 import { TCopilotChatMessage } from '../../types'
 import { ChatMessageDashboardComponent } from '../dashboard/dashboard.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { splitStreamingMarkdown } from './streaming-markdown'
 @Component({
   standalone: true,
   imports: [
@@ -50,14 +51,12 @@ export class ChatMessageContentComponent {
     next: (text) => {
       if (this.answering()) {
         const restText = text.startsWith(this.frozenText) ? text.slice(this.frozenText.length) : text
-        const blocks = restText.split('\n\n')
-        if (blocks.length > 1) {
-          this.frozenBlocks.update((state) => [...state, ...blocks.slice(0, -1)])
-          this.frozenText += blocks.slice(0, -1).join('\n\n')
-          this.streaming.set(blocks[blocks.length - 1])
-        } else {
-          this.streaming.set(restText)
+        const { frozenBlocks, frozenText, streaming } = splitStreamingMarkdown(restText)
+        if (frozenBlocks.length) {
+          this.frozenBlocks.update((state) => [...state, ...frozenBlocks])
+          this.frozenText += frozenText
         }
+        this.streaming.set(streaming)
       } else {
         this.frozenBlocks.set([text])
         this.frozenText = text

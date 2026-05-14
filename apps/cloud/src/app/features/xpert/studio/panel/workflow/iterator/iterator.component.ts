@@ -15,7 +15,7 @@ import {
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { TSelectOption } from '@xpert-ai/ocap-angular/core'
+import { myRxResource, TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { attrModel, linkedModel } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
@@ -23,6 +23,8 @@ import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
+import { isEqual } from 'lodash-es'
+import { of } from 'rxjs'
 @Component({
   selector: 'xpert-studio-panel-workflow-iterator',
   templateUrl: './iterator.component.html',
@@ -129,9 +131,20 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
       type: 'output',
       environmentId: this.studioService.environmentId(),
       inputs: [this.nodeKey()],
-      connections: this.connections()
+      connections: this.connections(),
+      revision: this.variablesRevision()
     }
   })
+  readonly #subVariables = myRxResource({
+    request: () => this.subVarOptions(),
+    loader: ({ request }) => {
+      return request ? this.xpertService.getNodeVariables(request) : of(null)
+    },
+    options: {
+      equal: isEqual
+    }
+  })
+  readonly subVariables = this.#subVariables.value
 
   // System variables
   readonly SYSTEM_VARIABLES = [IteratorIndexParameterName, IteratorItemParameterName]
@@ -172,15 +185,22 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
   }
 
   updateOutputVar(index: number, value: string) {
-    const type = value ? getVariableSchema(this.variables(), value).variable?.type : null
+    const variable = value ? getVariableSchema(this.subVariables() ?? this.variables(), value).variable : null
     this.outputParams.update((state) => {
+      if (!state?.[index]) {
+        return state
+      }
       state[index] = {
         ...state[index],
         variable: value,
-        type
+        type: value ? (variable?.type ?? state[index].type) : undefined
       }
       return [...state]
     })
+  }
+
+  useItemOutputName(index: number) {
+    this.updateOutput(index, 'name', IteratorItemParameterName)
   }
 
   removeOutputParam(name: string) {

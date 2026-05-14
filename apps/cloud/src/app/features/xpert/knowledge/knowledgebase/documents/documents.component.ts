@@ -26,7 +26,8 @@ import {
   of as observableOf,
   startWith,
   Subject,
-  switchMap
+  switchMap,
+  take
 } from 'rxjs'
 import {
   getDateLocale,
@@ -39,6 +40,9 @@ import {
   KBMetadataFieldDef,
   KDocumentSourceType,
   KnowledgebaseService,
+  KnowledgeGraphIndexJobStatus,
+  KnowledgeGraphStatus,
+  KnowledgeGraphStatusResponse,
   KnowledgebaseStatusEnum,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
@@ -79,6 +83,8 @@ const REFRESH_DEBOUNCE_TIME = 5000
 export class KnowledgeDocumentsComponent {
   eKDocumentSourceType = KDocumentSourceType
   eKBDocumentStatusEnum = KBDocumentStatusEnum
+  eKnowledgeGraphIndexJobStatus = KnowledgeGraphIndexJobStatus
+  eKnowledgeGraphStatus = KnowledgeGraphStatus
   eKnowledgebaseStatusEnum = KnowledgebaseStatusEnum
   STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
 
@@ -134,6 +140,16 @@ export class KnowledgeDocumentsComponent {
   readonly isLoading = signal(false)
   isRateLimitReached = false
   readonly #data = signal<IKnowledgeDocument[]>([])
+  readonly graphJobs = signal<KnowledgeGraphStatusResponse['jobs']>([])
+  readonly graphJobByDocumentId = computed(() => {
+    const byDocumentId = new Map<string, NonNullable<KnowledgeGraphStatusResponse['jobs']>[number]>()
+    for (const job of this.graphJobs() ?? []) {
+      if (typeof job.documentId === 'string' && job.documentId) {
+        byDocumentId.set(job.documentId, job)
+      }
+    }
+    return byDocumentId
+  })
   readonly total = signal<number>(0)
   readonly selectionModel = new SelectionModel<string>(true, [])
   readonly search = model<string>()
@@ -166,13 +182,11 @@ export class KnowledgeDocumentsComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
-          this.#router.navigate(['../test'], { relativeTo: this.#route })
-        }
+    effect(() => {
+      if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
+        this.#router.navigate(['../test'], { relativeTo: this.#route })
       }
-    )
+    })
 
     afterNextRender(() => {
       merge(this.knowledgebase$, this.parentId$, this.refresh$)
@@ -230,7 +244,7 @@ export class KnowledgeDocumentsComponent {
             return data.items
           })
         )
-        .subscribe((data) =>
+        .subscribe((data) => {
           this.#data.set(
             data.map(
               (item) =>
@@ -243,7 +257,8 @@ export class KnowledgeDocumentsComponent {
                 }) as IKnowledgeDocument
             )
           )
-        )
+          this.refreshGraphJobs()
+        })
     })
 
     effect(() => {
@@ -259,6 +274,12 @@ export class KnowledgeDocumentsComponent {
           ].includes(item.status)
         )
       ) {
+        this.delayRefresh$.next(true)
+      }
+    })
+
+    effect(() => {
+      if (this.knowledgebase()?.graphStatus === KnowledgeGraphStatus.INDEXING) {
         this.delayRefresh$.next(true)
       }
     })
@@ -281,6 +302,31 @@ export class KnowledgeDocumentsComponent {
 
   refresh() {
     this.refresh$.next(true)
+    this.refreshGraphJobs()
+  }
+
+  refreshGraphJobs() {
+    const knowledgebase = this.knowledgebase()
+    if (!knowledgebase?.id || !knowledgebase.graphRag?.enabled) {
+      this.graphJobs.set([])
+      return
+    }
+
+    this.kbAPI
+      .getGraphStatus(knowledgebase.id)
+      .pipe(take(1))
+      .subscribe({
+        next: (status) => {
+          this.graphJobs.set(status.jobs ?? [])
+        },
+        error: () => {
+          this.graphJobs.set([])
+        }
+      })
+  }
+
+  graphJobStatus(documentId: string) {
+    return this.graphJobByDocumentId().get(documentId)
   }
 
   backHome() {

@@ -1,0 +1,77 @@
+# GraphRAG v1 可视化与编辑维护实施计划
+
+## Summary
+
+- 基于现有 GraphRAG v0 能力继续实现 v1：新增知识库 Graph 页面，提供实体/关系可视化、搜索过滤、邻域浏览、只读证据查看，以及实体/关系的人工维护 CRUD。
+- 使用现有 `echarts`/`ngx-echarts` 做图谱可视化，不新增图谱渲染依赖。
+- 采用 “Preserve Manual” 策略：人工新增、人工修正、隐藏/删除标记在文档重建和 Graph rebuild 后保留；抽取来源的数据可刷新。
+- 本文件补齐 GraphRAG v1 的可视化与维护设计，基于现有 v0 能力和用户确认的 v1 目标落地。
+
+## Public APIs And Types
+
+- 在 `packages/contracts/src/ai/knowledge-graph.model.ts` 扩展：
+  - `KnowledgeGraphItemOrigin = 'extracted' | 'manual' | 'curated'`
+  - `KnowledgeGraphVisibility = 'active' | 'hidden'`
+  - 实体/关系接口增加 `origin`、`visibility` 显式字段；默认 `extracted`/`active`。
+  - 新增 `KnowledgeGraphViewNode`、`KnowledgeGraphViewEdge`、`KnowledgeGraphViewResponse`、`KnowledgeGraphMentionListQuery`。
+  - 新增实体/关系 create/update DTO 类型，服务端只接受显式字段：`name`、`type`、`aliases`、`description`、`visibility`、`sourceEntityId`、`targetEntityId`、`weight`。
+- 扩展后端 Graph API：
+  - `GET /knowledgebase/:id/graph/visualization`
+  - `GET /knowledgebase/:id/graph/relations`
+  - `GET /knowledgebase/:id/graph/mentions`
+  - `POST /knowledgebase/:id/graph/entities`
+  - `PATCH /knowledgebase/:id/graph/entities/:entityId`
+  - `DELETE /knowledgebase/:id/graph/entities/:entityId`
+  - `POST /knowledgebase/:id/graph/relations`
+  - `PATCH /knowledgebase/:id/graph/relations/:relationId`
+  - `DELETE /knowledgebase/:id/graph/relations/:relationId`
+- `DELETE` 语义为软隐藏：设置 `visibility = 'hidden'`，不物理删除证据；恢复通过 `PATCH visibility: 'active'` 完成。
+
+## Implementation Changes
+
+- 后端数据与索引：
+  - 为 `KnowledgeGraphEntity`、`KnowledgeGraphRelation` 增加 `origin`、`visibility` TypeORM 列，显式声明 `type: 'varchar'`、默认值和索引；保留现有唯一约束语义。
+  - 新增 GraphRAG 维护 service 方法：创建/更新/隐藏实体，创建/更新/隐藏关系，关系源/目标必须属于同一 knowledgebase，名称/type 更新必须重新规范化并处理唯一冲突。
+  - 抽取 upsert 新实体/关系时标记 `origin='extracted'`；更新已 `curated/manual` 的行时只补充 mention、mentionCount、confidence 等证据字段，不覆盖人工维护的展示字段。
+  - 用户编辑抽取实体/关系后标记 `origin='curated'`；手工创建标记 `origin='manual'`、`confidence=1`。
+  - `clearDocument()` 只清理文档 mention 和纯抽取、未隐藏、无证据残留；不 prune `manual/curated/hidden` 行。
+  - `rebuildKnowledgebase()` 改为清理抽取 mention/job/community 和纯抽取 active 行，保留 `manual/curated/hidden` 行；rebuild 完成后重新同步 active 实体向量。
+  - 图检索、图可视化、实体向量同步默认排除 `visibility='hidden'` 的实体和关系。
+- 前端页面：
+  - 在知识库侧边栏新增 `Graph` 菜单和 `/graph` 路由，新增 standalone `KnowledgeGraphComponent`。
+  - 页面布局：顶部状态/搜索/过滤工具栏，中间 ECharts force graph，侧边实体/关系列表或 inspector；支持 disabled、indexing、failed、empty、loading 状态。
+  - 图谱工具栏支持关键词、实体类型、关系类型、origin、visibility、focus entity、depth/take 过滤；默认只看 active 数据。
+  - 选中节点显示实体详情、关联关系、mention quote 证据；选中边显示关系详情、source/target、证据列表。
+  - 新增实体和关系编辑对话框，使用 Reactive Forms、`inject()`、signals、新控制流和 Tailwind；证据只读，不允许编辑 mention。
+  - 所有新增前端文本走 translate key，补齐 `en-US`/`en` 和 `zh-Hans`/`zh-CN` 文案；不新增硬编码颜色字面量，ECharts 颜色从主题 CSS variables 派生。
+- Client service：
+  - `KnowledgebaseService` 增加 visualization、relations、mentions、entity CRUD、relation CRUD 方法。
+  - Graph 页面用 `async/await` + `firstValueFrom` 处理有限 HTTP 请求；避免对长生命周期 store stream 使用 `forkJoin`。
+- 文档：
+  - 新增或补齐 `docs/plans/graphrag-v1.mdx`，记录 v1 可视化与维护设计。
+  - 更新中英文 GraphRAG guide，说明图谱页面、人工维护、rebuild 保留策略和 hidden 语义。
+
+## Test Plan
+
+- 后端单元测试：
+  - entity/relation CRUD 的 normalize、唯一冲突、同 KB 校验、disabled GraphRAG 拒绝写入。
+  - 用户编辑后 `origin='curated'`，手工创建后 `origin='manual'`，隐藏数据不参与检索/可视化/向量同步。
+  - document cleanup 和 rebuild 保留 manual/curated/hidden 行，只刷新 extracted evidence。
+  - 隐藏实体时 incident relations 同步隐藏；恢复实体不自动恢复关系，关系需单独恢复。
+- 前端测试：
+  - Graph 页面加载 visualization、过滤刷新、节点/边选择 inspector。
+  - 新增/编辑实体和关系表单校验、保存后刷新、API 错误 toastr。
+  - disabled/indexing/failed/empty 状态展示，所有模板新增文本使用 translate。
+- 验证命令：
+  - `pnpm nx test server-ai --testFile=packages/server-ai/src/graphrag/**/*.spec.ts`
+  - `pnpm nx test server-ai --testFile=packages/server-ai/src/knowledgebase/queries/handlers/knowledge-search.handler.spec.ts`
+  - `pnpm nx test cloud --testFile=apps/cloud/src/app/features/xpert/knowledge/knowledgebase/graph/**/*.spec.ts`
+  - `pnpm run check:typeorm-columns`
+  - `pnpm nx build contracts && pnpm nx build server-ai && pnpm nx build cloud`
+
+## Assumptions
+
+- v1 只做每个知识库内的图谱可视化和维护，不引入 Neo4j/Fuseki，不做 P2 community/global search。
+- mention/evidence 是抽取证据，v1 只读展示，不支持人工编辑证据链。
+- 项目当前仍以 TypeORM synchronize 建表为主；若部署链路要求迁移，再补迁移文件。
+- 若现有 unrelated build failure 仍由 `@xpert-ai/chatkit-types` 缺失导出触发，记录为既有阻塞，不混入 GraphRAG v1 变更。

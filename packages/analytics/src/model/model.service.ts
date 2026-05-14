@@ -10,13 +10,21 @@ import {
 	Visibility
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@xpert-ai/server-core'
+import {
+	FindOptionsWhere,
+	ITryRequest,
+	PaginationParams,
+	REDIS_CLIENT,
+	RequestContext,
+	User
+} from '@xpert-ai/server-core'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
+import { Agent, DataSourceFactory } from '@xpert-ai/ocap-core'
 import * as _axios from 'axios'
 import chalk from 'chalk'
 import { I18nService } from 'nestjs-i18n'
@@ -24,6 +32,7 @@ import { RedisClientType } from 'redis'
 import { FindManyOptions, FindOneOptions, ILike, Repository } from 'typeorm'
 import { Cache } from 'cache-manager'
 import { t } from 'i18next'
+import { firstValueFrom } from 'rxjs'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
 import { SemanticModelCache, SemanticModelQueryLog } from '../core/entities/internal'
 import { Md5 } from '../core/helper'
@@ -35,7 +44,7 @@ import { SemanticModelPublicDTO, SemanticModelQueryDTO } from './dto'
 import { SemanticModelUpdatedEvent } from './events'
 import { XMLA_CONNECTION_KEY, updateXmlaCatalogContent } from './helper'
 import { SemanticModel } from './model.entity'
-import { NgmDSCoreService, registerSemanticModel } from './ocap'
+import { NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCES_TOKEN, registerSemanticModel } from './ocap'
 import { ModelCubeQuery } from './queries/cube.query'
 import {
 	buildOcapQueryFromUose,
@@ -70,6 +79,10 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		private readonly redisClient: RedisClientType,
 		@Inject(CACHE_MANAGER)
 		private readonly cacheManager: Cache,
+		@Inject(OCAP_AGENT_TOKEN)
+		private readonly ocapAgent: Agent,
+		@Inject(OCAP_DATASOURCES_TOKEN)
+		private readonly ocapDataSourceFactories: { type: string; factory: DataSourceFactory }[],
 		/**
 		 * Core service of ocap framework
 		 */
@@ -211,17 +224,19 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			}
 
 			if (request.queryMode === 'mdx_statement' || request.statement) {
-				if (!request.statement?.trim()) {
-					return buildUoseMdxError(UoseMdxAdapterErrorCode.PROVIDER_ERROR, 'MDX statement query requires statement')
+				const statement = request.statement?.trim()
+				if (!statement) {
+					return buildUoseMdxError(
+						UoseMdxAdapterErrorCode.PROVIDER_ERROR,
+						'MDX statement query requires statement'
+					)
 				}
-				const result = await this.query(request.modelId, { statement: request.statement }, {
-					acceptLanguage: options.acceptLanguage,
-					id: request.context?.traceId
-				})
+				const result = await this.queryMdxStatement(request, statement, options)
 				return normalizeUoseQueryResponse(request, result, Date.now() - startedAt)
 			}
 
-			const query = buildOcapQueryFromUose(request)
+			const model = await this.findOne4Ocap(request.modelId, { withIndicators: true })
+			const query = buildOcapQueryFromUose(request, model.options?.schema)
 			const result = await this.queryBus.execute(
 				new ModelCubeQuery(
 					{
@@ -249,6 +264,24 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 				cubeName: request?.cubeName,
 				queryMode: request?.queryMode ?? 'semantic_dsl'
 			})
+		}
+	}
+
+	private async queryMdxStatement(
+		request: UoseMdxQueryRequest,
+		statement: string,
+		options: { acceptLanguage?: string }
+	) {
+		const model = await this.findOne4Ocap(request.modelId, { withIndicators: true })
+		const language = model.preferences?.language || options.acceptLanguage
+		const dsCoreService = new NgmDSCoreService(this.ocapAgent, this.ocapDataSourceFactories)
+		registerSemanticModel(model, false, dsCoreService, { language })
+
+		try {
+			const dataSource = await firstValueFrom(dsCoreService.getDataSource(request.modelId))
+			return await firstValueFrom(dataSource.query({ statement, forceRefresh: true }))
+		} finally {
+			dsCoreService.ngOnDestroy()
 		}
 	}
 
@@ -380,9 +413,10 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		} catch (err) {
 			this.logger.error(err)
 			// Provide more detailed error message including host and port
-			const errorMessage = err?.code === 'ECONNREFUSED' 
-				? t('analytics:Error.FailedConnectToOLAP') + ` (${olapHost}:${olapPort})`
-				: t('analytics:Error.FailedConnectToOLAP')
+			const errorMessage =
+				err?.code === 'ECONNREFUSED'
+					? t('analytics:Error.FailedConnectToOLAP') + ` (${olapHost}:${olapPort})`
+					: t('analytics:Error.FailedConnectToOLAP')
 			throw new Error(errorMessage)
 		}
 	}
@@ -445,17 +479,19 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * Find one semantic model by id for OCAP with cache.
-	 * 
+	 *
 	 * @cache semantic model cache 1 minute
 	 */
-	async findOne4Ocap(id: string, params: {withIndicators?: boolean; skipCache?: boolean} = {}) {
+	async findOne4Ocap(id: string, params: { withIndicators?: boolean; skipCache?: boolean } = {}) {
 		const { withIndicators, skipCache } = params ?? {}
 		const cacheKey = `analytics:semantic-model:${id}`
-		
+
 		let model: ISemanticModel = await this.cacheManager.get(cacheKey)
 		if (!model || skipCache) {
 			model = await this.findOne(id, {
-				relations: ['dataSource', 'dataSource.type', 'roles', 'roles.users',].concat(withIndicators ? ['indicators'] : [])
+				relations: ['dataSource', 'dataSource.type', 'roles', 'roles.users'].concat(
+					withIndicators ? ['indicators'] : []
+				)
 			})
 			await this.cacheManager.set(cacheKey, model, 1000 * 60) // 1 minute cache
 		}
@@ -465,7 +501,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * Clear the cache of semantic model
-	 * @param id 
+	 * @param id
 	 */
 	async clearOne4Ocap(id: string) {
 		const cacheKey = `analytics:semantic-model:${id}`
@@ -530,14 +566,14 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			items.push({
 				name: cube.name,
 				caption: cube.caption,
-				description: cube.description,
+				description: cube.description
 			})
 		})
 		model.options?.schema?.virtualCubes?.forEach((cube) => {
 			items.push({
 				name: cube.name,
 				caption: cube.caption,
-				description: cube.description,
+				description: cube.description
 			})
 		})
 		return items
@@ -553,12 +589,12 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * Update draft (Avoiding version lock checks)
-	 * 
+	 *
 	 * @todo consider using version lock
-	 * 
-	 * @param id 
-	 * @param draft 
-	 * @returns 
+	 *
+	 * @param id
+	 * @param draft
+	 * @returns
 	 */
 	async updateDraft(id: string, draft: TSemanticModelDraft) {
 		const model = await this.findOne(id)
@@ -569,7 +605,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	async saveDraft(id: string, draft: TSemanticModelDraft) {
-		const model = await this.findOne(id, {relations: ['dataSource', 'dataSource.type']})
+		const model = await this.findOne(id, { relations: ['dataSource', 'dataSource.type'] })
 		if (model.draft?.version && model.draft.version !== draft.version) {
 			throw new NotFoundException(
 				await this.i18nService.t('analytics.Error.SemanticModelDraftVersionNotFound', {
@@ -587,7 +623,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			version: model.draft?.version ? model.draft.version + 1 : 1
 		} as TSemanticModelDraft
 
-		model.draft.checklist = model.dataSource.type.protocol === DataSourceProtocolEnum.XMLA ? null : await this.validate(model.draft)
+		model.draft.checklist =
+			model.dataSource.type.protocol === DataSourceProtocolEnum.XMLA ? null : await this.validate(model.draft)
 
 		await this.repository.save(model)
 
@@ -643,7 +680,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async delete(id: string) {
 		try {
-		    await this.eventEmitter.emitAsync(EVENT_SEMANTIC_MODEL_DELETED, new SemanticModelDeletedEvent(id))
+			await this.eventEmitter.emitAsync(EVENT_SEMANTIC_MODEL_DELETED, new SemanticModelDeletedEvent(id))
 		} catch (err) {
 			console.error(err)
 		}

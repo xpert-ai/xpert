@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import { of, Subject } from 'rxjs'
@@ -11,6 +13,12 @@ import {
 import { CopilotModelSelectComponent } from './select.component'
 
 describe('CopilotModelSelectComponent', () => {
+  it('places model parameter help tooltips on top', () => {
+    const template = readFileSync(join(__dirname, 'select.component.html'), 'utf8')
+
+    expect(template).toContain('[zTooltip]="parameter.help | i18n" zPosition="top"')
+  })
+
   const copilot = {
     id: 'copilot-1',
     role: 'primary',

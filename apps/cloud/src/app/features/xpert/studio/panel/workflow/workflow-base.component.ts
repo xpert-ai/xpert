@@ -32,17 +32,20 @@ export class XpertWorkflowBaseComponent {
 
   readonly draft = computed(() => this.studioService.viewModel())
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
-  readonly iteratorInputs = computed(() => {
-    const parentId = this.node()?.parentId
-    if (!parentId) {
+  readonly iteratorInputs = computed(
+    () => {
+      const parentId = this.node()?.parentId
+      if (!parentId) {
+        return undefined
+      }
+      const parent = this.nodes()?.find((node) => node.key === parentId)
+      if (parent?.type === 'workflow' && parent.entity?.type === WorkflowNodeTypeEnum.ITERATOR) {
+        return [parent.key]
+      }
       return undefined
-    }
-    const parent = this.nodes()?.find((node) => node.key === parentId)
-    if (parent?.type === 'workflow' && parent.entity?.type === WorkflowNodeTypeEnum.ITERATOR) {
-      return [parent.key]
-    }
-    return undefined
-  }, { equal: isEqual })
+    },
+    { equal: isEqual }
+  )
 
   readonly connections = toSignal(
     this.studioService.savedEvent$.pipe(
@@ -56,6 +59,12 @@ export class XpertWorkflowBaseComponent {
       distinctUntilChanged(isEqual)
     )
   )
+  readonly variablesRevision = toSignal(
+    this.studioService.savedEvent$.pipe(
+      filter((value) => value),
+      map(() => Date.now())
+    )
+  )
 
   // Fetch avaiable variables for this node from server
   readonly varOptions = computed<TXpertVariablesOptions>(() => ({
@@ -63,18 +72,21 @@ export class XpertWorkflowBaseComponent {
     agentKey: this.key(),
     environmentId: this.studioService.environmentId(),
     connections: this.connections(),
-    inputs: this.iteratorInputs()
+    inputs: this.iteratorInputs(),
+    revision: this.variablesRevision()
   }))
 
   readonly #variables = myRxResource({
-    request: () => ({
+    request: () =>
+      ({
         xpertId: this.xpertId(),
         workflowKey: this.key(),
         // type: 'input',
         environmentId: this.studioService.environmentId(),
         connections: this.connections(),
-        inputs: this.iteratorInputs()
-      } as TXpertVariablesOptions),
+        inputs: this.iteratorInputs(),
+        revision: this.variablesRevision()
+      }) as TXpertVariablesOptions,
     loader: ({ request }) => {
       return request ? this.xpertAPI.getNodeVariables(request) : of(null)
     },

@@ -626,16 +626,21 @@ export type TChatOptions = {
  * Knowledgebase retrieval settings
  */
 export type TKBRetrievalSettings = {
-  metadata: {
+  mode?: 'vector' | 'graph' | 'hybrid'
+  neighborHops?: number
+  entityTopK?: number
+  communityTopK?: number
+  graphWeight?: number
+  metadata?: {
     filtering_mode: 'disabled' | 'automatic' | 'manual'
     /**
      * Conditions (filter) when mode is manual
      */
-    filtering_conditions: TWFCase
+    filtering_conditions?: TWFCase
     /**
      * Parameter fields (tool call) when mode is automatic
      */
-    fields: Record<string, object>
+    fields?: Record<string, object>
   }
 }
 

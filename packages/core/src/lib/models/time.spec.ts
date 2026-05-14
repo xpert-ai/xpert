@@ -5,7 +5,6 @@ import { AggregationRole } from './property'
 import { EntityType } from './sdl'
 import { reformat, TimeGranularity, TimeRangesSlicer, TimeRangeType, workOutTimeRangeSlicers } from './time'
 
-
 const entityType: EntityType = {
   name: 'Sales',
   properties: {
@@ -20,19 +19,20 @@ const entityType: EntityType = {
 }
 
 describe('Time Range slicers', () => {
-  
   it('#reformat date string', () => {
     const result = reformat(new Date(), '202001', TimeGranularity.Month, 'yyyy-MM')
     expect(result).toBe('2020-01')
 
     expect(reformat(new Date(), '202001', TimeGranularity.Month, 'yyyy-MM-dd')).toBe('2020-01-01')
+    expect(reformat(new Date(), '2020-01-02', TimeGranularity.Month, '[yyyy].[yyyyMM]')).toBe('[2020].[202001]')
+    expect(reformat(new Date(), '20200102', TimeGranularity.Month, '[yyyy].[yyyyMM]')).toBe('[2020].[202001]')
     expect(reformat(new Date(), '2020Q1', TimeGranularity.Quarter, 'yyyy-MM-dd')).toBe('2020-01-01')
     // expect(reformat(new Date(), '20201', TimeGranularity.Week, 'yyyy-MM-dd')).toBe('2020-01-01')
     expect(reformat(new Date(), '20200102', TimeGranularity.Day, 'yyyy-MM-dd')).toBe('2020-01-02')
 
     try {
       expect(reformat(new Date(), '202001', TimeGranularity.Day, 'yyyy-MM-dd')).toBe('2020-01-02')
-    } catch(err) {
+    } catch (err) {
       expect(err)
     }
   })
@@ -51,20 +51,14 @@ describe('Time Range slicers', () => {
       ]
     }
 
-    expect(
-      workOutTimeRangeSlicers(
-        new Date('2022-05-01'),
-        timeRange,
-        ENTITY_TYPE_SALESORDER
-      )
-    ).toEqual([{
-      dimension: {
-        dimension: '[Time]'
-      },
-      members: [
-        { key: '202205', "value": "202205" }
-      ]
-    }])
+    expect(workOutTimeRangeSlicers(new Date('2022-05-01'), timeRange, ENTITY_TYPE_SALESORDER)).toEqual([
+      {
+        dimension: {
+          dimension: '[Time]'
+        },
+        members: [{ key: '[2022].[5]', value: '[2022].[5]' }]
+      }
+    ])
   })
 
   it('#WorkOutTimeRangeSlicers with Formatter', () => {
@@ -82,13 +76,9 @@ describe('Time Range slicers', () => {
       ]
     }
 
-    expect(
-      workOutTimeRangeSlicers(
-        new Date('2022-05-01'),
-        timeRange,
-        entityType
-      )
-    ).toEqual([{ dimension: { dimension: 'Time' }, members: [{ key: '2022.05', value: '2022.05' }] }])
+    expect(workOutTimeRangeSlicers(new Date('2022-05-01'), timeRange, entityType)).toEqual([
+      { dimension: { dimension: 'Time' }, members: [{ key: '2022.05', value: '2022.05' }] }
+    ])
   })
 
   it('#Time slicer with start-end', () => {
@@ -108,21 +98,16 @@ describe('Time Range slicers', () => {
       ]
     }
 
-    expect(
-      workOutTimeRangeSlicers(
-        new Date('2022-05-01'),
-        timeRange,
-        entityType
-      )
-    ).toEqual([
-      { 
-        dimension: { dimension: 'Time' }, 
+    expect(workOutTimeRangeSlicers(new Date('2022-05-01'), timeRange, entityType)).toEqual([
+      {
+        dimension: { dimension: 'Time' },
         members: [
           { key: '2022.01', value: '2022.01' },
           { key: '2023.02', value: '2023.02' }
         ],
         operator: FilterOperator.BT
-      }])
+      }
+    ])
   })
 
   it('#WorkOutTimeRangeSlicers with Semantics', () => {
@@ -140,39 +125,35 @@ describe('Time Range slicers', () => {
     }
 
     expect(
-      workOutTimeRangeSlicers(
-        new Date('2022-05-01'),
-        timeRange,
-        {
-          ...entityType,
-          properties: {
-            ...entityType.properties,
-            Time: {
-              ...entityType.properties['Time'],
-              semantics: {
-                semantic: Semantics.Calendar,
-                formatter: ``
-              },
-              hierarchies: [
-                {
-                  name: '',
-                  role: AggregationRole.hierarchy,
-                  levels: [
-                    {
-                      name: 'Month',
-                      role: AggregationRole.level,
-                      semantics: {
-                        semantic: Semantics['Calendar.Month'],
-                        formatter: `[yyyy].[MM]`
-                      }
+      workOutTimeRangeSlicers(new Date('2022-05-01'), timeRange, {
+        ...entityType,
+        properties: {
+          ...entityType.properties,
+          Time: {
+            ...entityType.properties['Time'],
+            semantics: {
+              semantic: Semantics.Calendar,
+              formatter: ``
+            },
+            hierarchies: [
+              {
+                name: '',
+                role: AggregationRole.hierarchy,
+                levels: [
+                  {
+                    name: 'Month',
+                    role: AggregationRole.level,
+                    semantics: {
+                      semantic: Semantics['Calendar.Month'],
+                      formatter: `[yyyy].[MM]`
                     }
-                  ]
-                }
-              ]
-            }
+                  }
+                ]
+              }
+            ]
           }
         }
-      )
+      })
     ).toEqual([{ dimension: { dimension: 'Time' }, members: [{ key: '[2022].[05]', value: '[2022].[05]' }] }])
   })
 })

@@ -1,0 +1,42 @@
+# xpert-pro 知识库 GraphRAG 升级路线
+
+## 摘要
+
+- 当前 `xpert-pro` 知识库已具备完整 RAG 基础：文档摄取、Pipeline、chunk、PGVector/插件向量库、metadata filter、rerank、Agent Retriever Tool。
+- `packages/server-ai/src/graphrag` 目前只是空模块；图谱能力尚未落地。
+- 第一阶段采用 **Postgres MVP**：用 TypeORM 表保存图节点/边/证据，用现有 PGVector 保存实体/社区摘要向量，不新增 Neo4j/Fuseki 运行依赖。
+- 目标聚焦 **GraphRAG 检索增强**：实体关系扩展、局部图检索、社区摘要、可溯源引用；暂不做完整图谱编辑平台。
+
+## 关键改造
+
+- 新建/补齐 `GraphragModule`：注册图谱实体、服务、队列、查询处理器，并接入 `ServerAIModule` 已有导入点。
+- 新增图谱数据模型：`knowledge_graph_entity`、`knowledge_graph_relation`、`knowledge_graph_mention`、`knowledge_graph_community`、`knowledge_graph_index_job`。
+- 扩展知识库配置：在 `IKnowledgebase/TKnowledgebase` 增加 `graphRag` 配置、`graphStatus`、`graphRevision`，默认关闭。
+- 扩展检索配置：在 `TKBRetrievalSettings` 增加 `mode: vector | graph | hybrid`、`neighborHops`、`entityTopK`、`communityTopK`、`graphWeight`。
+- 在文档入库链路中新增异步图谱索引：`KnowledgeDocumentConsumer` 与知识库 Pipeline 的 Knowledge Base 节点完成 chunk 落库后，投递 `knowledge-graph-index` job。
+- 图谱索引流程：chunk -> LLM 结构化抽取实体/关系/claims -> 实体归一与合并 -> 建边与证据绑定 -> 生成实体摘要/社区摘要 -> 写 Postgres 和 PGVector graph collections。
+- 检索流程升级：保留现有向量检索；新增 `GraphKnowledgeRetriever`，支持实体召回、1-2 跳邻域扩展、社区摘要召回、chunk 证据回查；`hybrid` 模式融合 vector score、graph score、rerank。
+- 前端最小升级：知识库配置页增加 GraphRAG 开关和索引状态；测试页增加检索模式选择；文档页展示图谱索引状态；后续再加图谱探索视图。
+- API 新增：`POST /knowledgebase/:id/graph/rebuild`、`GET /knowledgebase/:id/graph/status`、`GET /knowledgebase/:id/graph/entities`、`GET /knowledgebase/:id/graph/entities/:entityId/neighborhood`；`POST /knowledgebase/:id/test` 支持 graph/hybrid 模式。
+
+## 阶段路线
+
+- P0 基线整理：补齐 GraphRAG 配置类型、数据库实体、空模块装配、图谱 job 状态机；确保默认行为仍是现有 vector RAG。
+- P1 局部图检索 MVP：实现实体/关系抽取、证据绑定、实体归一、图谱索引队列、实体向量召回、邻域扩展，并让 Agent 现有知识库工具可走 `hybrid`。
+- P2 GraphRAG 全局检索：加入社区划分和社区摘要，支持 broad question 的 global search，与现有 rerank/metadata filter 联动。
+- P3 产品化与治理：图谱状态 UI、重建/取消、错误诊断、检索日志扩展、评测集、租户隔离审计、文档删除/更新时的图谱增量清理。
+- P4 可插拔图谱后端：抽象 `GraphStoreStrategy`，再评估接入 `data-xpert` RDF/Fuseki sidecar 或 Neo4j，避免一开始把部署复杂度推高。
+
+## 测试计划
+
+- 单元测试：抽取 schema 校验、实体归一、关系去重、证据映射、score 融合、metadata filter 与 graph filter 共存。
+- 集成测试：直接文档队列和知识库 Pipeline 都能生成图谱；文档更新/删除会清理相关节点边；图谱索引失败时向量检索可降级。
+- E2E 测试：`vector`、`graph`、`hybrid` 三种检索模式；Agent 工具调用；知识库测试页；多租户/多组织隔离。
+- 质量评测：建立 20-50 条包含实体关系、多跳、概览类问题的 gold set，对比 vector-only 与 hybrid 的命中率、答案引用完整性和延迟。
+
+## 假设
+
+- 第一阶段不引入 Neo4j/Fuseki 作为 xpert-pro 必需依赖。
+- GraphRAG 失败不阻断现有知识库入库和向量检索。
+- 抽取模型复用现有 Copilot LLM；实体/社区摘要向量复用现有 embedding 模型和 PGVector。
+- `data-xpert` RDF/Fuseki 资产作为后续语义/本体增强方向，不作为 MVP 阻塞项。
