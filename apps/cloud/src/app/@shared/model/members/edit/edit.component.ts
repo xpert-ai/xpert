@@ -14,7 +14,6 @@ import {
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage } from '@cloud/app/@core'
 import { convertQueryResultColumns } from '@xpert-ai/core'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import { NgmCalculatedMeasureComponent, NgmEntityModule, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import {
@@ -35,7 +34,7 @@ import { catchError, map, of, startWith } from 'rxjs'
 import { typeOfObj } from '../../types'
 import { animate, style, transition, trigger } from '@angular/animations'
 import { ModelStudioService } from '../../model.service'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, NgmTableComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

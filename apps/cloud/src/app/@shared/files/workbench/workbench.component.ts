@@ -17,7 +17,6 @@ import {
   untracked,
   viewChild
 } from '@angular/core'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Observable, defaultIfEmpty, finalize, firstValueFrom, from, isObservable } from 'rxjs'
 import type { TChatFileElementReference } from '@xpert-ai/contracts'
@@ -36,6 +35,7 @@ import {
 import { type FileTreeSizeVariants } from '../tree/tree.component.variants'
 import { FilePanelMode, FileViewerComponent } from '../viewer/viewer.component'
 import { resolveFilePreviewKind, toFilePreviewSource, type FilePreviewKind } from '../preview/file-preview.utils'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 
 type DirtyDialogAction = 'save' | 'discard' | 'cancel'
 export type FileWorkbenchTreeItem = FileTreeNode
@@ -77,7 +77,8 @@ type FileWorkbenchPreviewResource = {
 }
 
 type FileModifiedTimestamp = NonNullable<TFile['createdAt'] | TFile['updatedAt']>
-type FileWithModifiedTimestamp = TFile & ({ readonly updatedAt: FileModifiedTimestamp } | { readonly createdAt: FileModifiedTimestamp })
+type FileWithModifiedTimestamp = TFile &
+  ({ readonly updatedAt: FileModifiedTimestamp } | { readonly createdAt: FileModifiedTimestamp })
 
 type LoadDirectoryChildrenOptions = {
   merge?: boolean
@@ -695,7 +696,10 @@ export class FileWorkbenchComponent {
     this.fileTreeLoadingPaths.update((paths) => new Set(paths).add(filePath))
     try {
       const files = await resolveAsyncValue(filesLoader(filePath))
-      if (this.rootId() !== rootId || (options.requestToken != null && options.requestToken !== this.#treeRequestToken)) {
+      if (
+        this.rootId() !== rootId ||
+        (options.requestToken != null && options.requestToken !== this.#treeRequestToken)
+      ) {
         return
       }
 
@@ -703,10 +707,7 @@ export class FileWorkbenchComponent {
         updateFileTreeNode(state, filePath, (node) => {
           const nextChildren = prepareFileTree(files ?? [])
           const children = options.merge
-            ? mergeFileTreeState(
-                Array.isArray(node.children) ? (node.children as FileTreeNode[]) : [],
-                nextChildren
-              )
+            ? mergeFileTreeState(Array.isArray(node.children) ? (node.children as FileTreeNode[]) : [], nextChildren)
             : nextChildren
 
           if (node.expanded && node.children === children) {
@@ -1015,7 +1016,9 @@ function hasFileModifiedTimestamp(file: TFile | null | undefined): file is FileW
   return isFileModifiedTimestamp(file?.updatedAt) || isFileModifiedTimestamp(file?.createdAt)
 }
 
-function isFileModifiedTimestamp(value: FileModifiedTimestamp | number | string | null | undefined): value is FileModifiedTimestamp {
+function isFileModifiedTimestamp(
+  value: FileModifiedTimestamp | number | string | null | undefined
+): value is FileModifiedTimestamp {
   if (value instanceof Date) {
     return !Number.isNaN(value.getTime())
   }

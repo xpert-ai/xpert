@@ -8,7 +8,6 @@ import {
   XpertWorkflowRetryComponent
 } from '@cloud/app/@shared/workflow'
 import { linkedModel } from '@xpert-ai/core'
-import { NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BodyType,
@@ -28,7 +27,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmRadioSelectComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

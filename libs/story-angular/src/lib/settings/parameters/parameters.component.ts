@@ -3,8 +3,15 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, ViewContainerRef, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 
-import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import {
+  NgmConfirmDeleteService,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogService,
+  ZardDividerComponent,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { ISelectOption, NgmDSCacheService } from '@xpert-ai/ocap-angular/core'
 import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import { CalculationProperty, EntityType, ParameterProperty, getEntityCalculations } from '@xpert-ai/ocap-core'
@@ -27,7 +34,7 @@ import { Dialog } from '@angular/cdk/dialog'
     ZardDividerComponent,
     TranslateModule,
     NgmCommonModule
-],
+  ],
   selector: 'pac-story-parameters',
   templateUrl: 'parameters.component.html',
   styleUrls: ['parameters.component.scss']
@@ -90,17 +97,15 @@ export class ParametersComponent {
     }
     const entityType = await firstValueFrom(this.storyService.selectEntityType(dataSettings))
     const result = await firstValueFrom(
-      this.#dialog
-        .open(NgmParameterCreateComponent, {
-          viewContainerRef: this._viewContainerRef,
-          data: {
-            dataSettings: dataSettings,
-            entityType: entityType,
-            coreService: this.coreService,
-            name: name
-          }
-        })
-        .closed
+      this.#dialog.open(NgmParameterCreateComponent, {
+        viewContainerRef: this._viewContainerRef,
+        data: {
+          dataSettings: dataSettings,
+          entityType: entityType,
+          coreService: this.coreService,
+          name: name
+        }
+      }).closed
     )
 
     if (result) {
@@ -130,7 +135,6 @@ export class ParametersComponent {
     //   coreService: this.coreService,
     //   value: null
     // }
-
     // const property = await firstValueFrom(
     //   this._dialog
     //     .open<unknown, unknown, CalculationProperty>(CalculationEditorComponent, {
@@ -164,7 +168,6 @@ export class ParametersComponent {
     //     })
     //     .afterClosed()
     // )
-
     // if (property) {
     //   this.storyService.updateCalculationMeasure({ dataSettings, calculation: property })
     // }

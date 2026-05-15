@@ -7,11 +7,11 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
 import { ProjectCreationComponent } from '@cloud/app/@shared/project'
-import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } from '../../../@core'
+import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -23,7 +23,7 @@ import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } fro
     TranslateModule,
     NgmSearchComponent,
     NgmHighlightDirective
-],
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-header-project',
   templateUrl: `./project.component.html`
@@ -119,10 +119,9 @@ export class ProjectSelectorComponent {
       .open<IProject>(ProjectCreationComponent, {
         disableClose: true,
         backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
       })
-      .closed
-      .subscribe({
+      .closed.subscribe({
         next: (newProject) => {
           this.store.selectedProject = newProject
           this._router.navigate(['/data/project'])

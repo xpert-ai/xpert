@@ -1,12 +1,12 @@
-import type { BooleanInput } from '@angular/cdk/coercion';
-import { CdkMenuItem } from '@angular/cdk/menu';
-import { booleanAttribute, computed, Directive, effect, inject, input, signal, untracked } from '@angular/core';
+import type { BooleanInput } from '@angular/cdk/coercion'
+import { CdkMenuItem } from '@angular/cdk/menu'
+import { booleanAttribute, computed, Directive, effect, inject, input, signal, untracked } from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
-import { menuItemVariants, type ZardMenuItemTypeVariants } from './menu.variants';
+import { menuItemVariants, type ZardMenuItemTypeVariants } from './menu.variants'
 
 @Directive({
   selector: 'button[z-menu-item], [z-menu-item]',
@@ -22,75 +22,75 @@ import { menuItemVariants, type ZardMenuItemTypeVariants } from './menu.variants
     '(pointermove)': 'onPointerMove($event)',
     '(click)': 'onClick($event)',
     '(keydown.enter)': 'onClick($event)',
-    '(keydown.space)': 'onClick($event)',
+    '(keydown.space)': 'onClick($event)'
   },
   hostDirectives: [
     {
       directive: CdkMenuItem,
-      outputs: ['cdkMenuItemTriggered: menuItemTriggered'],
-    },
-  ],
+      outputs: ['cdkMenuItemTriggered: menuItemTriggered']
+    }
+  ]
 })
 export class ZardMenuItemDirective {
-  private readonly cdkMenuItem = inject(CdkMenuItem, { host: true });
+  private readonly cdkMenuItem = inject(CdkMenuItem, { host: true })
 
-  readonly zDisabled = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
-  readonly zInset = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
-  readonly zType = input<ZardMenuItemTypeVariants>('default');
-  readonly class = input<ClassValue>('');
+  readonly zDisabled = input<boolean, BooleanInput>(false, { transform: booleanAttribute })
+  readonly zInset = input<boolean, BooleanInput>(false, { transform: booleanAttribute })
+  readonly zType = input<ZardMenuItemTypeVariants>('default')
+  readonly class = input<ClassValue>('')
 
-  private readonly isFocused = signal(false);
+  private readonly isFocused = signal(false)
 
-  protected readonly disabledState = computed(() => this.zDisabled());
+  protected readonly disabledState = computed(() => this.zDisabled())
 
-  protected readonly isOpenState = computed(() => this.cdkMenuItem.isMenuOpen());
+  protected readonly isOpenState = computed(() => this.cdkMenuItem.isMenuOpen())
 
-  protected readonly highlightedState = computed(() => this.isFocused());
+  protected readonly highlightedState = computed(() => this.isFocused())
 
   protected readonly classes = computed(() =>
     mergeClasses(
       menuItemVariants({
         inset: this.zInset(),
-        zType: this.zType(),
+        zType: this.zType()
       }),
-      this.class(),
-    ),
-  );
+      this.class()
+    )
+  )
 
   constructor() {
     effect(() => {
-      const disabled = this.zDisabled();
+      const disabled = this.zDisabled()
       untracked(() => {
-        this.cdkMenuItem.disabled = disabled;
-      });
-    });
+        this.cdkMenuItem.disabled = disabled
+      })
+    })
   }
 
   onFocus(): void {
     if (!this.zDisabled()) {
-      this.isFocused.set(true);
+      this.isFocused.set(true)
     }
   }
 
   onBlur(): void {
-    this.isFocused.set(false);
+    this.isFocused.set(false)
   }
 
   onPointerMove(event: PointerEvent) {
     if (event.defaultPrevented || !(event.pointerType === 'mouse')) {
-      return;
+      return
     }
 
     if (!this.zDisabled()) {
-      const item = event.currentTarget;
-      (item as HTMLElement)?.focus({ preventScroll: true });
+      const item = event.currentTarget
+      ;(item as HTMLElement)?.focus({ preventScroll: true })
     }
   }
 
   onClick(event: Event) {
     if (this.disabledState()) {
-      event.preventDefault();
-      event.stopPropagation();
+      event.preventDefault()
+      event.stopPropagation()
     }
   }
 }

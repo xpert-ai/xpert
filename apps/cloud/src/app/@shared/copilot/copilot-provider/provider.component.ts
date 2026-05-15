@@ -13,8 +13,13 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import {
+  CdkConfirmDeleteComponent,
+  NgmSpinComponent,
+  ZardInputDirective,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'

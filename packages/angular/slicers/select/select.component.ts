@@ -4,7 +4,7 @@ import { ControlValueAccessor, FormArray, FormControl, FormGroup, NG_VALUE_ACCES
 import { AggregationRole, Dimension, EntitySet, getEntityDimensionAndHierarchies, ISlicer } from '@xpert-ai/ocap-core'
 import { isEqual } from 'lodash-es'
 import { BehaviorSubject, distinctUntilChanged, map, shareReplay, withLatestFrom } from 'rxjs'
-import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
+import { NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   selector: 'ngm-slicer-select',
@@ -36,6 +36,15 @@ export class SlicerSelectComponent implements ControlValueAccessor {
 
   public dimensions$ = this.entitySet$.pipe(
     map((entitySet) => getEntityDimensionAndHierarchies(entitySet?.entityType)),
+    shareReplay(1)
+  )
+  public dimensionOptions$ = this.dimensions$.pipe(
+    map((dimensions) =>
+      dimensions.map((property) => ({
+        value: property.__id__,
+        label: property.caption || property.name
+      }))
+    ),
     shareReplay(1)
   )
 

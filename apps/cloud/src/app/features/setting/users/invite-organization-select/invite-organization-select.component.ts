@@ -4,12 +4,16 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmDialogComponent } from '@xpert-ai/components/dialog'
-import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IOrganization } from '../../../../@core'
 import { OrgAvatarComponent } from '../../../../@shared/organization'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import {
+  NgmHighlightDirective,
+  NgmSearchComponent,
+  ZardButtonComponent,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
 
 export interface InviteOrganizationSelectDialogData {
   organizations: IOrganization[]
@@ -45,9 +49,7 @@ export class InviteOrganizationSelectComponent {
   readonly data = inject<InviteOrganizationSelectDialogData>(DIALOG_DATA)
 
   readonly searchTerm = signal('')
-  readonly selectedOrganizationId = signal(
-    this.data.selectedOrganizationId ?? this.data.organizations[0]?.id ?? null
-  )
+  readonly selectedOrganizationId = signal(this.data.selectedOrganizationId ?? this.data.organizations[0]?.id ?? null)
   readonly organizations = computed(() => {
     const keyword = this.searchTerm().trim().toLowerCase()
     if (!keyword) {
@@ -61,10 +63,7 @@ export class InviteOrganizationSelectComponent {
     )
   })
   readonly selectedOrganization = computed(
-    () =>
-      this.data.organizations.find(
-        (organization) => organization.id === this.selectedOrganizationId()
-      ) ?? null
+    () => this.data.organizations.find((organization) => organization.id === this.selectedOrganizationId()) ?? null
   )
 
   trackById(_: number, organization: IOrganization) {

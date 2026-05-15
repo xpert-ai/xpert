@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { Store } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest } from 'rxjs'
 import { map, take } from 'rxjs/operators'
@@ -20,6 +19,7 @@ import {
   PermissionsEnum,
   UsersOrganizationsService
 } from 'apps/cloud/src/app/@core'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 type TOrganizationMembership = IUserOrganization & {
   organization?: IOrganization | null
@@ -129,7 +129,9 @@ export class XpertAuthorizationComponent {
 
     return current.some((id, index) => id !== initial[index])
   })
-  readonly hasAvailableOrganizations = computed(() => this.organizationOptions().length > 0 || !!this.selectedOrganization())
+  readonly hasAvailableOrganizations = computed(
+    () => this.organizationOptions().length > 0 || !!this.selectedOrganization()
+  )
   readonly isBusy = computed(() => this.loading() || this.organizationsLoading() || this.saving())
 
   constructor() {
@@ -285,43 +287,41 @@ export class XpertAuthorizationComponent {
     this.organizationsLoading.set(true)
     const requestId = ++this.#organizationsRequestId
     const organizations$ = this.#store.hasPermission(PermissionsEnum.ALL_ORG_VIEW)
-      ? this.#organizationsService.getAll([], { isActive: true }).pipe(
-          map(({ items }) => this.sortOrganizations(items ?? []))
-        )
-      : this.#usersOrganizationsService.getAll(['organization'], { userId, isActive: true }).pipe(
-          map(({ items }) => this.normalizeOrganizationsFromMemberships(items as TOrganizationMembership[]))
-        )
+      ? this.#organizationsService
+          .getAll([], { isActive: true })
+          .pipe(map(({ items }) => this.sortOrganizations(items ?? [])))
+      : this.#usersOrganizationsService
+          .getAll(['organization'], { userId, isActive: true })
+          .pipe(map(({ items }) => this.normalizeOrganizationsFromMemberships(items as TOrganizationMembership[])))
 
-    organizations$
-      .pipe(take(1), takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: (organizations) => {
-          if (requestId !== this.#organizationsRequestId) {
-            return
-          }
-
-          this.#organizationsLoaded = true
-          this.organizationsLoading.set(false)
-          this.organizationOptions.set(organizations)
-
-          const currentOrganizationId = this.selectedOrganizationId()
-          if (currentOrganizationId && organizations.some((organization) => organization.id === currentOrganizationId)) {
-            return
-          }
-
-          this.selectedOrganizationId.set(organizations[0]?.id ?? null)
-        },
-        error: (error) => {
-          if (requestId !== this.#organizationsRequestId) {
-            return
-          }
-
-          this.organizationsLoading.set(false)
-          this.organizationOptions.set([])
-          this.selectedOrganizationId.set(null)
-          this.#toastr.error(getErrorMessage(error))
+    organizations$.pipe(take(1), takeUntilDestroyed(this.#destroyRef)).subscribe({
+      next: (organizations) => {
+        if (requestId !== this.#organizationsRequestId) {
+          return
         }
-      })
+
+        this.#organizationsLoaded = true
+        this.organizationsLoading.set(false)
+        this.organizationOptions.set(organizations)
+
+        const currentOrganizationId = this.selectedOrganizationId()
+        if (currentOrganizationId && organizations.some((organization) => organization.id === currentOrganizationId)) {
+          return
+        }
+
+        this.selectedOrganizationId.set(organizations[0]?.id ?? null)
+      },
+      error: (error) => {
+        if (requestId !== this.#organizationsRequestId) {
+          return
+        }
+
+        this.organizationsLoading.set(false)
+        this.organizationOptions.set([])
+        this.selectedOrganizationId.set(null)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 
   private loadAuthorizationData(organizationId: string) {
@@ -360,10 +360,7 @@ export class XpertAuthorizationComponent {
           }))
           this.selectedGroupIdsByOrganization.update((state) => ({
             ...state,
-            [organizationId]: this.sanitizeGroupIds(
-              state[organizationId] ?? serverSelectedGroupIds,
-              availableGroupIds
-            )
+            [organizationId]: this.sanitizeGroupIds(state[organizationId] ?? serverSelectedGroupIds, availableGroupIds)
           }))
           this.loading.set(false)
         },

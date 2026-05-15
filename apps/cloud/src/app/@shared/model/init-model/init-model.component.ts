@@ -5,7 +5,6 @@ import { Component, computed, effect, inject, Injector, model, signal } from '@a
 import { FormsModule } from '@angular/forms'
 import { uuid } from '@cloud/app/@core'
 import { ISemanticModel, OrderTypeEnum, SemanticModelServerService } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY } from 'rxjs'
@@ -13,6 +12,7 @@ import { map, switchMap } from 'rxjs/operators'
 import { AbstractInterruptComponent } from '../../agent'
 import { NgmSelectComponent } from '../../common'
 import { ModelCreationComponent } from '../creation/creation.component'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -21,7 +21,7 @@ import { ModelCreationComponent } from '../creation/creation.component'
   templateUrl: 'init-model.component.html',
   styleUrls: ['init-model.component.scss']
 })
-export class InitModelComponent extends AbstractInterruptComponent<{name?: string}, {modelId?: string}> {
+export class InitModelComponent extends AbstractInterruptComponent<{ name?: string }, { modelId?: string }> {
   readonly modelsAPI = inject(SemanticModelServerService)
   readonly #dialog = inject(Dialog)
   readonly #injector = inject(Injector)

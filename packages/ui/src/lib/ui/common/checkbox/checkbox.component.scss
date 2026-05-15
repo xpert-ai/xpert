@@ -1,0 +1,8 @@
+@reference "tailwindcss";
+:host {
+  @apply flex justify-start items-center;
+}
+
+input[type='checkbox']:checked {
+  background-image: none;
+}

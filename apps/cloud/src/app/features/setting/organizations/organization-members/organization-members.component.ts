@@ -1,21 +1,15 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, Input, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { BehaviorSubject, combineLatest, firstValueFrom, of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { IUser } from '@xpert-ai/contracts'
-import {
-  getErrorMessage,
-  IUserOrganization,
-  ToastrService,
-  UsersOrganizationsService
-} from '../../../../@core'
+import { getErrorMessage, IUserOrganization, ToastrService, UsersOrganizationsService } from '../../../../@core'
 import { SharedModule } from '../../../../@shared/shared.module'
-import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, NgmTableComponent, ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -24,13 +18,7 @@ import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
   host: {
     class: 'block w-full min-w-0'
   },
-  imports: [
-    SharedModule,
-    ZardButtonComponent,
-    ZardSwitchComponent,
-    UserProfileInlineComponent,
-    NgmTableComponent
-  ]
+  imports: [SharedModule, ZardButtonComponent, ZardSwitchComponent, UserProfileInlineComponent, NgmTableComponent]
 })
 export class OrganizationMembersComponent extends TranslationBaseComponent {
   readonly confirmDelete = injectConfirmDelete()
@@ -53,10 +41,9 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
       switchMap(([organizationId]) =>
         organizationId
           ? this.userOrganizationsService
-              .getAll(
-                ['user', 'user.role', 'user.organizations', 'user.organizations.organization'],
-                { organizationId }
-              )
+              .getAll(['user', 'user.role', 'user.organizations', 'user.organizations.organization'], {
+                organizationId
+              })
               .pipe(
                 map(({ items }) =>
                   [...items].sort((left, right) => {

@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { map } from 'rxjs/operators'
 import { CertificationService } from '../../@core'
 import { SharedUiModule } from '../ui.module'
+import { NgmSelectComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

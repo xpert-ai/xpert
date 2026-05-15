@@ -1,19 +1,26 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common'
 import { Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@xpert-ai/core'
-import { NgmConfirmDeleteService, NgmSearchComponent, NgmTagsComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, EMPTY, map, startWith, switchMap } from 'rxjs'
-import { getErrorMessage, IIntegration, IntegrationService, OrderTypeEnum, routeAnimations, ToastrService } from '../../../@core'
+import {
+  getErrorMessage,
+  IIntegration,
+  IntegrationService,
+  OrderTypeEnum,
+  routeAnimations,
+  ToastrService
+} from '../../../@core'
 import { EmojiAvatarComponent, IconComponent } from '../../../@shared/avatar'
 import { CardCreateComponent } from '../../../@shared/card'
 import { UserPipe } from '../../../@shared/pipes'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmConfirmDeleteService, NgmSearchComponent, NgmTagsComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -55,7 +62,9 @@ export class IntegrationHomeComponent {
   readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
   readonly integrations = toSignal(
     this.refresh$.pipe(
-      switchMap(() => this.integrationAPI.getAllInOrg({ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } })),
+      switchMap(() =>
+        this.integrationAPI.getAllInOrg({ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } })
+      ),
       combineLatestWith(
         this.searchControl.valueChanges.pipe(
           debounceTime(300),

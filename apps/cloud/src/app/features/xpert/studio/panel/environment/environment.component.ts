@@ -7,7 +7,6 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signa
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpertEnvironmentManageComponent, XpertEnvVariableFormComponent } from '@cloud/app/@shared/environment'
 import { AsteriskPipe } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { isNil } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EnvironmentService, injectHelpWebsite } from 'apps/cloud/src/app/@core'
@@ -15,7 +14,7 @@ import { IEnvironment, TEnvironmentVariable, VariableOperationEnum } from '../..
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-environment',
   templateUrl: './environment.component.html',
@@ -33,7 +32,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     AsteriskPipe,
     XpertEnvVariableFormComponent
-]
+  ]
 })
 export class XpertStudioPanelEnvironmentComponent {
   eVariableOperationEnum = VariableOperationEnum

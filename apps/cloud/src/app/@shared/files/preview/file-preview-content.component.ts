@@ -12,7 +12,6 @@ import {
   viewChild
 } from '@angular/core'
 import { SafePipe } from '@xpert-ai/core'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import type { TChatFileElementReference } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
@@ -20,6 +19,7 @@ import { FileEditorSelection } from '../editor/editor.component'
 import { FileHtmlPreviewComponent } from './file-html-preview.component'
 import { FilePreviewKind, SpreadsheetPreview } from './file-preview.utils'
 import { clamp, inferTextPreviewSelection, toSelectionElement } from './preview-selection.utils'
+import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
 
 type FilePreviewReferenceSelection = {
   left: number

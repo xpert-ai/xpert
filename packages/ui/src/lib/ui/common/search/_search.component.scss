@@ -1,0 +1,28 @@
+@reference "tailwindcss";
+.ngm-search__input[z-input] {
+  @apply rounded-md relative flex justify-start items-center
+    hover:bg-muted/50 focus:bg-muted;
+}
+
+.ngm-density__cosy .ngm-search,
+.ngm-density__cosy.ngm-search {
+  .ngm-search__input {
+    @apply h-8 rounded-lg;
+  }
+}
+.ngm-density__compact .ngm-search,
+.ngm-density__compact.ngm-search {
+  .ngm-search__input {
+    @apply h-7 rounded-md;
+  }
+}
+
+.ngm-search {
+  .ngm-search__input {
+    @apply h-10;
+    font-size: 14px;
+    line-height: 36px;
+    padding: 5px;
+    padding-left: 32px;
+  }
+}

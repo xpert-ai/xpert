@@ -6,12 +6,12 @@ import { routeAnimations } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { PluginAPIService } from '@xpert-ai/cloud/state'
 import { OverlayAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { debouncedSignal, myResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TPlugin } from '@cloud/app/@shared/plugins'
 import { TPluginWithDownloads } from '../types'
 import { SettingsPluginComponent } from '../plugin/plugin.component'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

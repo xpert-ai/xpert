@@ -1,16 +1,18 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isObservable, startWith } from 'rxjs'
 import {
+  NgmHighlightDirective,
   ZardComboboxDeprecatedComponent,
+  type ZardComboboxDeprecatedOption,
   ZardComboboxDeprecatedOptionTemplateDirective,
-  type ZardComboboxDeprecatedOption
-} from '@xpert-ai/headless-ui/components/combobox-deprecated'
-import { ZardFormImports, ZardInputStatusVariants, ZardInputDirective } from '@xpert-ai/headless-ui'
+  ZardFormImports,
+  ZardInputDirective,
+  ZardInputStatusVariants
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -51,11 +53,13 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
   newValue: string | null = null
 
   ngOnInit(): void {
-    this.formControl.valueChanges.pipe(startWith(this.formControl.value), takeUntilDestroyed(this.#destroyRef)).subscribe((value) => {
-      this.oldValue = value
-      this.newValue = value
-      this.searchTerm.set('')
-    })
+    this.formControl.valueChanges
+      .pipe(startWith(this.formControl.value), takeUntilDestroyed(this.#destroyRef))
+      .subscribe((value) => {
+        this.oldValue = value
+        this.newValue = value
+        this.searchTerm.set('')
+      })
 
     if (isObservable(this.props?.options)) {
       this.props.options.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((options) => {
@@ -103,7 +107,7 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
   }
 
   inputStatus(): ZardInputStatusVariants | undefined {
-    return this.hasError() ? 'error' : undefined as ZardInputStatusVariants
+    return this.hasError() ? 'error' : (undefined as ZardInputStatusVariants)
   }
 
   readonly filterOption = (option: ZardComboboxDeprecatedOption<unknown, ISelectOption>, searchTerm: string) => {

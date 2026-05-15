@@ -12,7 +12,7 @@ import {
 } from '@angular/forms'
 import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@xpert-ai/cloud/state'
 import { nonBlank, nonNullable } from '@xpert-ai/core'
-import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmHierarchySelectComponent } from '@xpert-ai/ocap-angular/common'
 import { ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import { NgmCalculatedMeasureComponent } from '@xpert-ai/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
@@ -49,12 +49,13 @@ import {
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
 import {
+  NgmAdvancedSelectComponent,
   ZardButtonComponent,
+  ZardCheckboxComponent,
   ZardDatePickerComponent,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
@@ -295,39 +296,37 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
       this.formGroup.get('validity').setValue(value ? format(value, 'yyyy-MM-dd') : null)
     })
 
-    effect(
-      () => {
-        const indicator = this.indicator()
-        const semanticModel = this.semanticModel()
-        if (semanticModel && indicator) {
-          const _indicator = {
-            ...indicator,
-            visible: false,
-            name: indicator.name?.trim() || '',
-            code: indicator.code?.trim() || ''
-          }
-          const indicators = [...semanticModel.indicators]
-          const index = indicators.findIndex((item) => item.id === _indicator.id)
-          if (index >= 0) {
-            indicators.splice(index, 1, _indicator as Indicator)
-          } else {
-            indicators.push(_indicator as Indicator)
-          }
-          const dataSource = registerModel(
-            {
-              ...semanticModel,
-              indicators,
-              isIndicatorsDraft: true
-              // name: semanticModel.key || semanticModel.name, // xmla 中的 CATALOG_NAME 仍然在使用 model name 属性值， 所示改成 data source name 改成 key 之前需要先修改 CATALOG_NAME 的取值逻辑
-            } as NgmSemanticModel,
-            false,
-            this.dsCoreService,
-            this.wasmAgent
-          )
-          this.dataSourceName$.next(dataSource.key)
+    effect(() => {
+      const indicator = this.indicator()
+      const semanticModel = this.semanticModel()
+      if (semanticModel && indicator) {
+        const _indicator = {
+          ...indicator,
+          visible: false,
+          name: indicator.name?.trim() || '',
+          code: indicator.code?.trim() || ''
         }
+        const indicators = [...semanticModel.indicators]
+        const index = indicators.findIndex((item) => item.id === _indicator.id)
+        if (index >= 0) {
+          indicators.splice(index, 1, _indicator as Indicator)
+        } else {
+          indicators.push(_indicator as Indicator)
+        }
+        const dataSource = registerModel(
+          {
+            ...semanticModel,
+            indicators,
+            isIndicatorsDraft: true
+            // name: semanticModel.key || semanticModel.name, // xmla 中的 CATALOG_NAME 仍然在使用 model name 属性值， 所示改成 data source name 改成 key 之前需要先修改 CATALOG_NAME 的取值逻辑
+          } as NgmSemanticModel,
+          false,
+          this.dsCoreService,
+          this.wasmAgent
+        )
+        this.dataSourceName$.next(dataSource.key)
       }
-    )
+    })
   }
 
   writeValue(obj: any): void {

@@ -6,7 +6,6 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectExportXpertDsl, XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import { OverlayAnimation1 } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmCopyComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
@@ -26,7 +25,13 @@ import {
   ToastrService
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
-import { ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmDelete,
+  NgmCopyComponent,
+  NgmSpinComponent,
+  ZardIconComponent,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

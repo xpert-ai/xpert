@@ -3,7 +3,6 @@ import { Component, computed, effect, inject, model, signal, viewChild, ViewCont
 import { FormsModule } from '@angular/forms'
 
 import { SemanticModelServerService } from '@xpert-ai/cloud/state'
-import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import {
   Cube,
@@ -29,7 +28,16 @@ import { NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'
-import { ZardAccordionImports, ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardProgressCircleComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  CdkConfirmDeleteComponent,
+  NgmCheckboxComponent,
+  ZardAccordionImports,
+  ZardButtonComponent,
+  ZardDialogService,
+  ZardIconComponent,
+  ZardProgressCircleComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -105,13 +113,11 @@ export class ModelMembersCubeComponent {
     //   },
     // )
 
-    effect(
-      () => {
-        if (this.entity() && !this.selectedDims()) {
-          this.selectedDims.set(this.entity()?.options?.vector?.dimensions ?? [])
-        }
+    effect(() => {
+      if (this.entity() && !this.selectedDims()) {
+        this.selectedDims.set(this.entity()?.options?.vector?.dimensions ?? [])
       }
-    )
+    })
 
     effect(() => {
       if (this.job()?.status === 'processing') {

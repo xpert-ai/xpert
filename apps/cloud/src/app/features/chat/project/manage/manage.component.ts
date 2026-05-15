@@ -9,7 +9,6 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { PAC_API_BASE_URL } from '@xpert-ai/cloud/auth'
 import { attrModel } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -25,7 +24,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EMPTY, map, switchMap } from 'rxjs'
 import { ChatProjectMembersComponent } from '../members/members.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'chat-project-manage',
@@ -39,7 +38,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     ChatProjectMembersComponent,
     IntegrationSelectComponent
-],
+  ],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss'
 })

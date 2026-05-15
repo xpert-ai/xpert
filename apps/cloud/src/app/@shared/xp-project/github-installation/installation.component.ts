@@ -1,11 +1,17 @@
-
 import { Component, computed, effect, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr, Repository, transformInstallation } from '@cloud/app/@core'
+import {
+  getErrorMessage,
+  injectGitHubAPI,
+  injectProjectService,
+  injectToastr,
+  Repository,
+  transformInstallation
+} from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-project-github-installation',
@@ -40,7 +46,7 @@ export class XpProjectGitHubInstallationComponent {
     compute: () => this.vcs()?.installationId,
     update: () => {}
   })
-  readonly currentInstallation = computed(() => this.installations()?.find((i) => ''+i.id === this.installationId()))
+  readonly currentInstallation = computed(() => this.installations()?.find((i) => '' + i.id === this.installationId()))
 
   readonly installationOptions = computed(() =>
     this.installations()?.map((installation) => ({
@@ -83,5 +89,4 @@ export class XpProjectGitHubInstallationComponent {
   handleRefresh() {
     this.refreshInstallations()
   }
-
 }

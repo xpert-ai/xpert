@@ -3,7 +3,6 @@ import { AsyncPipe } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { OverlayAnimations } from '@xpert-ai/core'
-import { CloseSvgComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -21,7 +20,7 @@ import { BehaviorSubject, map, shareReplay, startWith, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { CloseSvgComponent, NgmSpinComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-xpert',
   templateUrl: './xpert.component.html',

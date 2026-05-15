@@ -1,4 +1,3 @@
-
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
@@ -9,13 +8,18 @@ import { ICertification, IProject, IUser, ProjectAPIService, Store, ToastrServic
 import { ProjectComponent } from '../project/project.component'
 import { uniq } from 'lodash-es'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmConfirmDeleteService, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { CertificationSelectComponent } from '../../../@shared/certification'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { userLabel } from '../../../@shared/pipes'
 import { UserProfileComponent, UserProfileInlineComponent, UserRoleSelectComponent } from '../../../@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
+import {
+  NgmConfirmDeleteService,
+  NgmTableComponent,
+  ZardButtonComponent,
+  ZardDialogService,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -30,20 +34,20 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xper
     DensityDirective,
     AppearanceDirective,
     NgmTableComponent
-],
+  ],
   selector: 'pac-project-members',
   templateUrl: 'members.component.html',
   styles: [
-`
-:host {
-  width: 100%;
-  overflow: auto;
-}
-.rounded-full[z-button],
-z-button.rounded-full {
-  border-radius: 50%;
-}
-`
+    `
+      :host {
+        width: 100%;
+        overflow: auto;
+      }
+      .rounded-full[z-button],
+      z-button.rounded-full {
+        border-radius: 50%;
+      }
+    `
   ]
 })
 export class ProjectMembersComponent extends TranslationBaseComponent {
@@ -73,9 +77,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   // Subscribers
   private _projectDetailSub = combineLatest([this.refresh$, this.projectComponent.projectId$])
     .pipe(
-      switchMap(([, projectId]) =>
-        this.projectAPI.getOne(projectId ?? null, ['owner', 'members', 'certifications'])
-      ),
+      switchMap(([, projectId]) => this.projectAPI.getOne(projectId ?? null, ['owner', 'members', 'certifications'])),
       takeUntilDestroyed()
     )
     .subscribe((project) => {
@@ -115,9 +117,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
 
   async transferOwner() {
     const value = await firstValueFrom(
-      this.#dialog
-        .open<{ users: IUser[] }>(UserRoleSelectComponent, { data: { single: true } })
-        .closed
+      this.#dialog.open<{ users: IUser[] }>(UserRoleSelectComponent, { data: { single: true } }).closed
     )
     const user = value?.users?.[0]
     if (user) {
@@ -129,9 +129,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   }
 
   async openMemberSelect() {
-    const value = await firstValueFrom(
-      this.#dialog.open<{ users: IUser[] }>(UserRoleSelectComponent).closed
-    )
+    const value = await firstValueFrom(this.#dialog.open<{ users: IUser[] }>(UserRoleSelectComponent).closed)
     if (value) {
       this.addMembers(value.users.map(({ id }) => id))
     }

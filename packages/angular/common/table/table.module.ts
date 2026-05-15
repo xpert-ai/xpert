@@ -1,10 +1,8 @@
-import { NgModule } from '@angular/core';
-import { TableItemSizeDirective } from './table-item-size.directive';
+import { NgModule } from '@angular/core'
+import { TableVirtualScrollModule as HeadlessTableVirtualScrollModule } from '@xpert-ai/headless-ui'
 
 @NgModule({
-  declarations: [TableItemSizeDirective],
-  imports: [],
-  exports: [TableItemSizeDirective]
+  imports: [HeadlessTableVirtualScrollModule],
+  exports: [HeadlessTableVirtualScrollModule]
 })
-export class TableVirtualScrollModule {
-}
+export class TableVirtualScrollModule {}

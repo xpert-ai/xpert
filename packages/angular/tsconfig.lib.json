@@ -6,6 +6,17 @@
     "declarationMap": true,
     "inlineSources": true,
     "types": [],
+    "paths": {
+      "@xpert-ai/headless-ui": ["dist/packages/ui"],
+      "@xpert-ai/ocap-angular": ["packages/angular/src/index.ts"],
+      "@xpert-ai/ocap-angular/*": ["packages/angular/*/index.ts", "packages/angular/*"],
+      "@xpert-ai/ocap-core": ["dist/packages/core"],
+      "@xpert-ai/ocap-duckdb": ["dist/packages/duckdb"],
+      "@xpert-ai/ocap-echarts": ["dist/packages/echarts"],
+      "@xpert-ai/ocap-sql": ["dist/packages/sql"],
+      "@xpert-ai/store": ["dist/packages/store"],
+      "ngx-echarts": ["dist/packages/ngx-echarts"]
+    },
     "target": "ES2022",
     "useDefineForClassFields": false
   },
@@ -14,6 +25,8 @@
     "src/test-setup.ts",
     "jest.config.ts",
     "src/**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.test.ts",
     "**/*.stories.ts",
     "**/*.stories.js"
   ],

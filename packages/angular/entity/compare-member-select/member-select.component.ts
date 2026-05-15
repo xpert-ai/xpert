@@ -1,4 +1,3 @@
-
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,8 +18,7 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { ZardDialogService, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSelectComponent, ZardDialogService, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import {
   AggregationRole,
@@ -35,11 +33,18 @@ import {
 } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, firstValueFrom, startWith } from 'rxjs'
-import { NgmFieldAppearance } from "@xpert-ai/ocap-angular/core";
+import { NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, ZardInputDirective, NgmSelectComponent],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...ZardFormImports,
+    ZardInputDirective,
+    NgmSelectComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-compare-member-select',
   templateUrl: './member-select.component.html',

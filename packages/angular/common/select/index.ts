@@ -1,3 +1,2 @@
-export * from './advanced/select.component'
-export * from './select/index'
+export { NgmAdvancedSelectComponent, NgmSelectComponent } from '@xpert-ai/headless-ui'
 export * from './select.module'

@@ -1,1 +1,5 @@
-export * from './confirm';
+export { injectConfirm, type TConfirmInfo, UiConfirmDialogContentComponent } from './confirm'
+export * from './common'
+export * from './controls'
+export * from './editor'
+export * from './prism'

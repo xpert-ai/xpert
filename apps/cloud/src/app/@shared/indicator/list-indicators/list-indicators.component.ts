@@ -5,13 +5,12 @@ import { FormsModule } from '@angular/forms'
 import { DateRelativePipe, getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@xpert-ai/cloud/state'
 import { IfAnimation } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { XpIndicatorFormComponent } from '../indicator-form/indicator-form.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xp-list-indicators',
@@ -26,7 +25,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     DateRelativePipe,
     XpIndicatorFormComponent
-],
+  ],
   animations: [IfAnimation]
 })
 export class XpListIndicatorsComponent {

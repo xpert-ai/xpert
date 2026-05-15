@@ -1,0 +1,101 @@
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
+@reference "tailwindcss";
+/* The prefix used to generate the fully qualified name for tokens in this file. */
+$prefix: (ngm, color);
+
+@function get-unthemable-tokens() {
+  @return ();
+}
+
+@function get-color-tokens() {
+  @return (surface-container-low: null, surface-container: null, surface-container-high: null, surface: null);
+}
+
+@function get-token-slots() {
+  @return sass-utils.deep-merge-all(get-unthemable-tokens(), get-color-tokens());
+}
+
+@include token-utils.use-tokens($prefix, get-token-slots()) {
+  .ngm-input-element[z-input] {
+    background-color: var(#{token-utils.get-token-variable(surface-container-high)});
+    &:hover:not(:disabled) {
+      --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
+      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
+    }
+    &:focus {
+      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
+      background-color: var(#{token-utils.get-token-variable(surface)});
+      opacity: 0.8;
+    }
+    &:disabled {
+      background-color: var(#{token-utils.get-token-variable(surface-container-low)});
+    }
+  }
+}
+
+.ngm-input-element[z-input] {
+  @apply min-w-[6rem] block box-border w-full max-w-full p-2 rounded-lg border border-solid border-transparent
+    text-foreground ring-offset-1 ring-offset-transparent ring-2 ring-transparent
+    focus:ring-ring focus:z-10 focus:outline-none
+    disabled:text-muted-foreground disabled:border-border disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed
+    placeholder:italic placeholder:text-muted-foreground disabled:opacity-50;
+
+  &.ngm-input__searching {
+    @apply focus:bg-background;
+  }
+}
+
+.ngm-input__suffix {
+  @apply absolute right-2;
+}
+
+.ngm-density__cosy {
+  .ngm-input-element[z-input] {
+    @apply py-1 px-2 text-sm rounded;
+  }
+  .ngm-input__suffix {
+    @apply absolute right-1;
+  }
+  .ngm-input-element__clear {
+    @apply w-6 h-6;
+    .z-icon,
+    i {
+      font-size: 20px;
+    }
+  }
+}
+
+.ngm-density__compact {
+  .ngm-input-label {
+    @apply text-sm;
+  }
+  .ngm-input-element[z-input] {
+    @apply py-1 px-2 text-xs rounded;
+  }
+  .ngm-input__suffix {
+    @apply absolute right-0;
+  }
+}
+
+.ngm-input-element[z-input].ngm-w-full {
+  @apply w-full;
+}
+
+.ngm-input-label {
+  @apply p-1 text-ellipsis whitespace-nowrap overflow-hidden disabled:opacity-50;
+}
+
+.ngm-form-field__subscript-wrapper {
+  @apply w-full h-2;
+}
+
+.ngm-input-error {
+  .ngm-input-element {
+    border-color: var(--mdc-theme-error);
+  }
+}
+
+textarea.ngm-input-element {
+  @apply min-h-[50px];
+}

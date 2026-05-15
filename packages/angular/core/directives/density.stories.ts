@@ -1,13 +1,23 @@
 import { provideHttpClient } from '@angular/common/http'
 
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { DensityDirective } from './displayDensity'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardCheckboxComponent, ZardChipComponent, ZardChipGridComponent, ZardChipRemoveDirective, ZardChipRowComponent, ZardChipSetComponent, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
+import {
+  NgmSearchComponent,
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardChipComponent,
+  ZardChipGridComponent,
+  ZardChipRemoveDirective,
+  ZardChipRowComponent,
+  ZardChipSetComponent,
+  ZardIconComponent,
+  ZardMenuImports
+} from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Core/DisplayDensity',

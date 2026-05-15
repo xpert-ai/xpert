@@ -1,10 +1,10 @@
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input, ViewEncapsulation } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input, ViewEncapsulation } from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { dividerVariants, type ZardDividerVariants } from './divider.variants';
+import { dividerVariants, type ZardDividerVariants } from './divider.variants'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
 @Component({
   selector: 'z-divider',
@@ -16,32 +16,32 @@ import { mergeClasses } from '@/shared/utils/merge-classes';
     '[attr.role]': `'separator'`,
     '[attr.aria-orientation]': 'orientation()',
     '[attr.data-orientation]': 'orientation()',
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zDivider',
+  exportAs: 'zDivider'
 })
 export class ZardDividerComponent {
-  readonly zOrientation = input<ZardDividerVariants['zOrientation']>('horizontal');
-  readonly zVariant = input<ZardDividerVariants['zVariant']>('solid');
-  readonly zSpacing = input<ZardDividerVariants['zSpacing']>('none');
+  readonly zOrientation = input<ZardDividerVariants['zOrientation']>('horizontal')
+  readonly zVariant = input<ZardDividerVariants['zVariant']>('solid')
+  readonly zSpacing = input<ZardDividerVariants['zSpacing']>('none')
   readonly vertical = input(false, {
     alias: 'vertical',
-    transform: booleanAttribute,
-  });
-  readonly class = input<ClassValue>('');
+    transform: booleanAttribute
+  })
+  readonly class = input<ClassValue>('')
 
   protected readonly orientation = computed<ZardDividerVariants['zOrientation']>(() =>
-    this.vertical() ? 'vertical' : this.zOrientation(),
-  );
+    this.vertical() ? 'vertical' : this.zOrientation()
+  )
 
   protected readonly classes = computed(() =>
     mergeClasses(
       dividerVariants({
         zOrientation: this.orientation(),
         zVariant: this.zVariant(),
-        zSpacing: this.zSpacing(),
+        zSpacing: this.zSpacing()
       }),
-      this.class(),
-    ),
-  );
+      this.class()
+    )
+  )
 }

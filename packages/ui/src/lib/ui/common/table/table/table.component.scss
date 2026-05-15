@@ -1,0 +1,54 @@
+@reference "tailwindcss";
+:host {
+  display: flex;
+  flex-direction: column;
+
+  ::ng-deep {
+    [z-table-head] {
+      .searchable-icon {
+        opacity: 0;
+        transition: all 200ms;
+      }
+
+      &:hover {
+        .searchable-icon {
+          opacity: 1;
+        }
+      }
+
+      .searchable {
+        @apply ml-2;
+        [z-input] {
+          width: 0;
+          max-width: 0;
+          overflow: hidden;
+          text-align: left;
+        }
+
+        &.searching {
+          border-radius: var(--radius-md);
+          background-color: var(--muted);
+
+          [z-input] {
+            width: 100px;
+            max-width: unset;
+            outline: none;
+          }
+        }
+      }
+    }
+  }
+}
+
+.searchable [z-input] {
+  @apply bg-transparent;
+}
+
+[z-table-cell],
+[z-table-head] {
+  white-space: nowrap;
+
+  &.number {
+    text-align: right;
+  }
+}

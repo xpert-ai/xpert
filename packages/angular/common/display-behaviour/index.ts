@@ -1,1 +1,1 @@
-export * from './display-behaviour.component'
+export { NgmDisplayBehaviourComponent } from '@xpert-ai/headless-ui'

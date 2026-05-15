@@ -3,8 +3,14 @@ import { Component, inject, LOCALE_ID } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 import { InviteService, Store, ToastrService } from '@xpert-ai/cloud/state'
-import { type IInvite, type IOrganization, type IRole, InvitationExpirationEnum, InvitationTypeEnum, InviteStatusEnum } from '@xpert-ai/contracts'
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import {
+  type IInvite,
+  type IOrganization,
+  type IRole,
+  InvitationExpirationEnum,
+  InvitationTypeEnum,
+  InviteStatusEnum
+} from '@xpert-ai/contracts'
 import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { getErrorMessage } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -13,7 +19,13 @@ import { formatDistanceToNow, isAfter } from 'date-fns'
 import { BehaviorSubject, combineLatestWith, map, switchMap, withLatestFrom } from 'rxjs'
 import { PACUsersComponent } from '../users.component'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmDelete,
+  NgmTableComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 
 type InviteDisplayStatus = InviteStatusEnum | 'EXPIRED'
 type InviteRow = IInvite & {
@@ -64,17 +76,20 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
       })
     }),
     map(({ items }) =>
-      items.map((invite) => ({
-        ...invite,
-        createdAt: new DatePipe(this.locale).transform(new Date(invite.createdAt)),
-        expireDate: invite.expireDate
-          ? formatDistanceToNow(new Date(invite.expireDate))
-          : InvitationExpirationEnum.NEVER,
-        displayStatus: this.getDisplayStatus(invite),
-        statusText: this.getTranslation(`PAC.INVITE_PAGE.STATUS.${this.getDisplayStatus(invite)}`, {
-          Default: this.getDisplayStatus(invite)
-        })
-      } as InviteRow))
+      items.map(
+        (invite) =>
+          ({
+            ...invite,
+            createdAt: new DatePipe(this.locale).transform(new Date(invite.createdAt)),
+            expireDate: invite.expireDate
+              ? formatDistanceToNow(new Date(invite.expireDate))
+              : InvitationExpirationEnum.NEVER,
+            displayStatus: this.getDisplayStatus(invite),
+            statusText: this.getTranslation(`PAC.INVITE_PAGE.STATUS.${this.getDisplayStatus(invite)}`, {
+              Default: this.getDisplayStatus(invite)
+            })
+          }) as InviteRow
+      )
     )
   )
 
@@ -136,10 +151,15 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
       return
     }
 
-    this.confirmDelete({
-      value: email,
-      information: this.translateService.instant('PAC.USERS_PAGE.ConfirmDeleteInvite', {Default: 'After deletion, the invited user will no longer be able to confirm the invitation'})
-    }, this.inviteService.delete(id)).subscribe({
+    this.confirmDelete(
+      {
+        value: email,
+        information: this.translateService.instant('PAC.USERS_PAGE.ConfirmDeleteInvite', {
+          Default: 'After deletion, the invited user will no longer be able to confirm the invitation'
+        })
+      },
+      this.inviteService.delete(id)
+    ).subscribe({
       next: () => {
         this.toastrService.success('TOASTR.MESSAGE.INVITES_DELETE', {
           email: email,

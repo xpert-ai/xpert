@@ -4,6 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 
 import {
+  CdkConfirmDeleteComponent,
   ZardButtonComponent,
   ZardDividerComponent,
   ZardIconComponent,
@@ -14,7 +15,6 @@ import { RouterModule } from '@angular/router'
 import { injectFetchModelDetails, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { Indicator, IndicatorsService } from '@xpert-ai/cloud/state'
 import { saveAsYaml, uploadYamlFile } from '@xpert-ai/core'
-import { CdkConfirmDeleteComponent } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import { TranslateModule } from '@ngx-translate/core'
@@ -39,7 +39,7 @@ import { IndicatorImportComponent } from './indicator-import/indicator-import.co
     ZardDividerComponent,
     ButtonGroupDirective,
     DensityDirective
-],
+  ],
   selector: 'pac-project-indicators',
   templateUrl: './indicators.component.html',
   styleUrls: ['./indicators.component.scss'],

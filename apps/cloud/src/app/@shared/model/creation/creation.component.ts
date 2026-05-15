@@ -13,11 +13,18 @@ import {
   Validators
 } from '@angular/forms'
 
-import { ZardButtonComponent, ZardCheckboxComponent, ZardFormImports, ZardInputDirective, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
+import {
+  NgmSelectionTableComponent,
+  SelectionTableColumn,
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardFormImports,
+  ZardInputDirective,
+  ZardProgressBarComponent
+} from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { BusinessAreasService, DataSourceService, ISemanticModel } from '@xpert-ai/cloud/state'
 import { nonBlank } from '@xpert-ai/core'
-import { NgmSelectionTableComponent, SelectionTableColumn } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import { AgentType, Catalog, isNil } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

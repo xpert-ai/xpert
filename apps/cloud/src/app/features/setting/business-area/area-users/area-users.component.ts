@@ -4,7 +4,6 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { BusinessAreaUserService } from '@xpert-ai/cloud/state'
 import { BusinessAreaRole, IBusinessAreaUser, IUser } from '@xpert-ai/contracts'
-import { NgmConfirmDeleteService, NgmSearchComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from 'apps/cloud/src/app/@core'
 import {
@@ -25,6 +24,7 @@ import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
+import { NgmConfirmDeleteService, NgmSearchComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -120,22 +120,20 @@ export class BusinessAreaUsersComponent extends TranslationBaseComponent {
       Default: { Modeler: 'Modeler', Viewer: 'Viewer' }
     })
     const value = await firstValueFrom(
-      this.#dialog
-        .open<{users: IUser[]; role: string;}>(UserRoleSelectComponent, {
-          data: {
-            roles: [
-              {
-                value: BusinessAreaRole.Modeler,
-                label: modelerLabel.Modeler
-              },
-              {
-                value: BusinessAreaRole.Viewer,
-                label: modelerLabel.Viewer
-              }
-            ]
-          }
-        })
-        .closed
+      this.#dialog.open<{ users: IUser[]; role: string }>(UserRoleSelectComponent, {
+        data: {
+          roles: [
+            {
+              value: BusinessAreaRole.Modeler,
+              label: modelerLabel.Modeler
+            },
+            {
+              value: BusinessAreaRole.Viewer,
+              label: modelerLabel.Viewer
+            }
+          ]
+        }
+      }).closed
     )
     if (value) {
       const businessArea = this.businessArea()

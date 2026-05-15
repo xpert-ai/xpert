@@ -5,7 +5,6 @@ import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input, output } from '@angular/core'
 import { rxResource, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import {
   buildListboxOptions,
   formatSelectOptionValue,
@@ -20,7 +19,12 @@ import { catchError, debounceTime, defer, of, startWith } from 'rxjs'
 import { TWorkflowVarGroup } from '../../../@core/types'
 import { expandVariablesWithItems } from '../../agent/types'
 import { toParams } from '@xpert-ai/core'
-import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import {
+  NgmHighlightDirective,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardLoaderComponent
+} from '@xpert-ai/headless-ui'
 import { buildRemoteSelectRequest, isSameRemoteSelectRequest } from './select.request'
 
 type TSelectOptionValue = string | { id: string }

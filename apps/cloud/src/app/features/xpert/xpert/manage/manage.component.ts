@@ -7,7 +7,6 @@ import { Component, computed, inject, signal, ViewContainerRef } from '@angular/
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { uploadYamlFile } from '@xpert-ai/core'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { pick } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
@@ -27,6 +26,7 @@ import { XpertAppComponent } from '../app/app.component'
 import { XpertBasicComponent } from '../basic/basic.component'
 import { XpertComponent } from '../xpert.component'
 import { createOverwriteDraftFromDsl, groupImportedDslMemories, TImportedXpertDsl } from './import-dsl.util'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-basic-manage',

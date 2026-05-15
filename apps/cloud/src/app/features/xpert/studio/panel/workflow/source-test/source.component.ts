@@ -15,7 +15,6 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { KnowledgeLocalFileComponent } from '@cloud/app/@shared/knowledge'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
-import { NgmCheckboxComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource, omitBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -35,7 +34,7 @@ import { nonNullable } from '@xpert-ai/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { SelectionModel } from '@angular/cdk/collections'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmCheckboxComponent, NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-source-test',
@@ -53,7 +52,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     KnowledgeLocalFileComponent,
     ContentLoaderModule,
     NgmCheckboxComponent
-]
+  ]
 })
 export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent {
   eDocumentSourceProviderCategoryEnum = DocumentSourceProviderCategoryEnum

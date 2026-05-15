@@ -5,7 +5,6 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { IsDirty } from '@xpert-ai/core'
 import { IIntegration } from '@xpert-ai/contracts'
-import { NgmInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -16,7 +15,14 @@ import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { environment } from '@cloud/environments/environment'
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmInputComponent,
+  NgmSpinComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import omit from 'lodash-es/omit'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
@@ -96,10 +102,14 @@ export class IntegrationConfigurationComponent implements IsDirty {
   })
 
   readonly provider = toSignal(
-    this.formGroup.get('provider').valueChanges.pipe(startWith(this.formGroup.get('provider').value), distinctUntilChanged())
+    this.formGroup
+      .get('provider')
+      .valueChanges.pipe(startWith(this.formGroup.get('provider').value), distinctUntilChanged())
   )
 
-  readonly integrationProvider = computed(() => this.providersResource().find((provider) => provider.name === this.provider()))
+  readonly integrationProvider = computed(() =>
+    this.providersResource().find((provider) => provider.name === this.provider())
+  )
   readonly schema = computed(() => this.integrationProvider()?.schema)
 
   readonly integration = derivedFrom(
@@ -121,10 +131,9 @@ export class IntegrationConfigurationComponent implements IsDirty {
   readonly longConnectionProbe = computed<IntegrationTestProbe | null>(() => this.testResult()?.probe ?? null)
   readonly testWarnings = computed(() => this.testResult()?.warnings ?? [])
   readonly isSlackProvider = computed(() => this.provider() === 'slack')
-  readonly optionsValue = toSignal(
-    this.optionsControl.valueChanges.pipe(startWith(this.optionsControl.value)),
-    { initialValue: this.optionsControl.value }
-  )
+  readonly optionsValue = toSignal(this.optionsControl.valueChanges.pipe(startWith(this.optionsControl.value)), {
+    initialValue: this.optionsControl.value
+  })
 
   constructor() {
     effect(() => {

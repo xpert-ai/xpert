@@ -2,7 +2,6 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import {
@@ -14,6 +13,7 @@ import {
   IXpertWorkspace,
   TXpertWorkspaceVisibility
 } from 'apps/cloud/src/app/@core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workspace-settings-general',
@@ -50,19 +50,17 @@ export class XpertWorkspaceSettingsGeneralComponent {
   readonly currentVisibility = computed(() => this.savedVisibility())
 
   constructor() {
-    effect(
-      () => {
-        const workspace = this.workspace()
-        if (workspace) {
-          const visibility: TXpertWorkspaceVisibility =
-            this.isTenantWorkspace() && this.workspaceService.isTenantShared(workspace) ? 'tenant-shared' : 'private'
+    effect(() => {
+      const workspace = this.workspace()
+      if (workspace) {
+        const visibility: TXpertWorkspaceVisibility =
+          this.isTenantWorkspace() && this.workspaceService.isTenantShared(workspace) ? 'tenant-shared' : 'private'
 
-          this.name.set(workspace.name)
-          this.savedVisibility.set(visibility)
-          this.tenantShared.set(visibility === 'tenant-shared')
-        }
+        this.name.set(workspace.name)
+        this.savedVisibility.set(visibility)
+        this.tenantShared.set(visibility === 'tenant-shared')
       }
-    )
+    })
   }
 
   async update() {
@@ -102,44 +100,49 @@ export class XpertWorkspaceSettingsGeneralComponent {
 
   archive() {
     this.loading.set(true)
-    this.confirmDel({
+    this.confirmDel(
+      {
         value: this.workspace().name,
         title: this.i18n()?.ArchiveWorkspace || 'Archive Workspace',
         information: this.i18n()?.ArchiveWorkspaceInfo || 'Things in the workspace will no longer be available'
       },
       this.workspaceService.archive(this.workspace().id)
     ).subscribe({
-        next: () => {
-          this.archived.emit()
-          this.#toastr.success('PAC.Messages.ArchivedSuccessfully', { Default: 'Archived successfully' })
-        },
-        error: (error) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
-        },
-        complete: () => {
-          this.loading.set(false)
-        }
-      }) 
+      next: () => {
+        this.archived.emit()
+        this.#toastr.success('PAC.Messages.ArchivedSuccessfully', { Default: 'Archived successfully' })
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      },
+      complete: () => {
+        this.loading.set(false)
+      }
+    })
   }
 
   delete() {
     this.loading.set(true)
     this.confirmDel(
-      {value: this.workspace().name, information: this.i18n()?.ConfirmDelWorkspace || 'The experts and toolsets contained in the workspace will be deleted.' },
+      {
+        value: this.workspace().name,
+        information:
+          this.i18n()?.ConfirmDelWorkspace || 'The experts and toolsets contained in the workspace will be deleted.'
+      },
       this.workspaceService.delete(this.workspace().id)
     ).subscribe({
-        next: () => {
-          this.deleted.emit()
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
-        },
-        error: (error) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
-        },
-        complete: () => {
-          this.loading.set(false)
-        }
-      })
+      next: () => {
+        this.deleted.emit()
+        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      },
+      complete: () => {
+        this.loading.set(false)
+      }
+    })
   }
 }

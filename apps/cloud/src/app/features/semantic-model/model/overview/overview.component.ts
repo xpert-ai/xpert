@@ -5,21 +5,13 @@ import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { CommonModule } from '@angular/common'
 
-import { NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { UserPipe } from '@cloud/app/@shared/pipes'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { NgmTableComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    TranslateModule,
-    ZardButtonComponent,
-    NgmTableComponent,
-    UserPipe
-  ],
+  imports: [CommonModule, RouterModule, TranslateModule, ZardButtonComponent, NgmTableComponent, UserPipe],
   selector: 'pac-model-overview',
   templateUrl: 'overview.component.html',
   styleUrls: ['overview.component.scss']

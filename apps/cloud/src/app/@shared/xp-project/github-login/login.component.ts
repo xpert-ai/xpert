@@ -1,10 +1,9 @@
-
 import { Component, computed, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-project-github-login',

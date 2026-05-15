@@ -3,7 +3,6 @@ import { Component, computed, inject, output } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, nonBlank } from '@xpert-ai/core'
-import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
@@ -24,6 +23,7 @@ import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertNewKnowledgeComponent } from '../../knowledge'
+import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

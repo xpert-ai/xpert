@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  NgmSpinComponent,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
@@ -14,7 +15,6 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { EChartsOption } from 'echarts'
 import { NgxEchartsDirective } from 'ngx-echarts'
 import { firstValueFrom } from 'rxjs'

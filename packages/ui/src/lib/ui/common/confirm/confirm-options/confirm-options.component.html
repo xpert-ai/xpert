@@ -1,0 +1,27 @@
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h4 style="pointer-events: none">
+    <span class="font-bold">{{ data?.information }}</span>
+  </h4>
+</header>
+
+<xp-dialog-content class="min-h-[100px]">
+  <formly-form
+    class="w-full"
+    [form]="formGroup"
+    [fields]="fields()"
+    [model]="model"
+    (modelChange)="onModelChange($event)"
+    [options]="options"
+  ></formly-form>
+</xp-dialog-content>
+
+<xp-dialog-actions align="end">
+  <div ngmButtonGroup>
+    <button z-button zType="ghost" xpDialogClose>
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
+    </button>
+    <button z-button zType="default" cdkFocusInitial (click)="apply()">
+      {{ 'COMPONENTS.COMMON.Confirm' | translate: { Default: 'Confirm' } }}
+    </button>
+  </div>
+</xp-dialog-actions>

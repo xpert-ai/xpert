@@ -1,7 +1,17 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  model,
+  signal,
+  TemplateRef,
+  viewChild
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
@@ -20,7 +30,6 @@ import {
   XpertSkillRepositoriesComponent
 } from '@cloud/app/@shared/skills'
 import { OverlayAnimation1 } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, forkJoin } from 'rxjs'
@@ -36,7 +45,7 @@ import {
 import { XpertAssistantFacade } from '../../assistant-shell/assistant.facade'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertSkillUploadDialogComponent } from './skill-upload-dialog.component'
-import { cx } from '@xpert-ai/headless-ui'
+import { cx, injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 type MobilePane = 'skills' | 'tree' | 'file'
 
@@ -64,7 +73,7 @@ type MobilePane = 'skills' | 'tree' | 'file'
 })
 export class XpertWorkspaceSkillsComponent {
   readonly cx = cx
-  
+
   readonly defaultSkillIcon: IconDefinition = {
     type: 'emoji',
     value: '🧩',
@@ -109,7 +118,9 @@ export class XpertWorkspaceSkillsComponent {
   readonly selectedSkillIds = signal<Set<string>>(new Set())
   readonly activeSkillId = signal<string | null>(null)
   readonly #pendingAssistantSkillId = signal<string | null>(null)
-  readonly activeSkill = computed(() => this.skills().find((skill) => skill.id && skill.id === this.activeSkillId()) ?? null)
+  readonly activeSkill = computed(
+    () => this.skills().find((skill) => skill.id && skill.id === this.activeSkillId()) ?? null
+  )
   readonly filteredSkills = computed(() => {
     const term = this.search().trim().toLowerCase()
     if (!term) {
@@ -134,7 +145,9 @@ export class XpertWorkspaceSkillsComponent {
     )
   })
   readonly hasSelection = computed(() => this.selectedSkillIds().size > 0)
-  readonly allSelected = computed(() => this.skills().length > 0 && this.selectedSkillIds().size === this.skills().length)
+  readonly allSelected = computed(
+    () => this.skills().length > 0 && this.selectedSkillIds().size === this.skills().length
+  )
   readonly partialSelected = computed(() => {
     const total = this.skills().length
     const selected = this.selectedSkillIds().size
@@ -250,7 +263,11 @@ export class XpertWorkspaceSkillsComponent {
 
   readonly #syncSelectionWithData = effect(
     () => {
-      const ids = new Set(this.skills().map((skill) => skill.id).filter((id): id is string => !!id))
+      const ids = new Set(
+        this.skills()
+          .map((skill) => skill.id)
+          .filter((id): id is string => !!id)
+      )
       this.selectedSkillIds.update((selected) => {
         const next = new Set<string>()
         selected.forEach((id) => {
@@ -309,7 +326,10 @@ export class XpertWorkspaceSkillsComponent {
       return skill.skillIndex.repository.provider
     }
 
-    return readGithubProvenanceText(skill?.metadata, 'sourceProvider') || this.translateDefault('PAC.Skill.LocalProvider', 'local')
+    return (
+      readGithubProvenanceText(skill?.metadata, 'sourceProvider') ||
+      this.translateDefault('PAC.Skill.LocalProvider', 'local')
+    )
   }
 
   publisherLabel(skill: ISkillPackage | null | undefined): string {
@@ -487,7 +507,13 @@ export class XpertWorkspaceSkillsComponent {
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked
     this.selectedSkillIds.set(
-      checked ? new Set(this.skills().map((skill) => skill.id).filter((id): id is string => !!id)) : new Set()
+      checked
+        ? new Set(
+            this.skills()
+              .map((skill) => skill.id)
+              .filter((id): id is string => !!id)
+          )
+        : new Set()
     )
   }
 

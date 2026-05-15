@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@/shared/*": ["src/lib/*"],
-      "@/src/lib/*": ["src/lib/*"]
+      "@/src/lib/*": ["src/lib/*"],
+      "@xpert-ai/headless-ui": ["src/index.ts"]
     },
     "isolatedModules": true,
     "moduleResolution": "bundler",

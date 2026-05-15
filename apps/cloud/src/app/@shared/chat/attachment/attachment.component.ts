@@ -1,15 +1,26 @@
-
 import { HttpEventType } from '@angular/common/http'
-import { booleanAttribute, Component, computed, effect, inject, input, model, output, signal, TemplateRef, viewChild } from '@angular/core'
+import {
+  booleanAttribute,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  output,
+  signal,
+  TemplateRef,
+  viewChild
+} from '@angular/core'
 import { StorageFileService } from '@cloud/app/@core'
 import { getErrorMessage, IStorageFile } from '@cloud/app/@core/types'
 import { FileTypePipe, linkedModel } from '@xpert-ai/core'
 import { effectAction, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
-import { NgmProgressSpinnerComponent } from '@xpert-ai/ocap-angular/common'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { FileIconComponent } from '../../files'
+import { NgmProgressSpinnerComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -51,19 +62,18 @@ export class ChatAttachmentComponent {
 
   // States
   readonly progress = signal<number>(null)
-  readonly previewUrl = signal<string | null>(null);
+  readonly previewUrl = signal<string | null>(null)
   readonly uploadedUrl = linkedModel({
     initialValue: null,
     compute: () => this.storageFile()?.url,
-    update: () => {
-    }
+    update: () => {}
   })
   readonly isImage = signal<boolean>(false)
 
   readonly name = computed(() => this.storageFile()?.originalName || this.file()?.name)
 
   // Children
-  readonly imageDialog = viewChild('dialog', {read: TemplateRef})
+  readonly imageDialog = viewChild('dialog', { read: TemplateRef })
   dialogRef: DialogRef
 
   constructor() {
@@ -72,16 +82,16 @@ export class ChatAttachmentComponent {
     })
 
     effect(() => {
-      const file = this.file();
+      const file = this.file()
       if (file) {
         // Check if file is an image
-        this.isImage.set(file.type.startsWith('image/'));
+        this.isImage.set(file.type.startsWith('image/'))
 
         // Generate preview for images
         if (this.isImage()) {
-          const reader = new FileReader();
-          reader.onload = () => this.previewUrl.set(reader.result as string);
-          reader.readAsDataURL(file);
+          const reader = new FileReader()
+          reader.onload = () => this.previewUrl.set(reader.result as string)
+          reader.readAsDataURL(file)
         }
 
         if (this.immediately() && !this.storageFile()) {
@@ -111,7 +121,7 @@ export class ChatAttachmentComponent {
       const file = this.storageFile()
       if (file) {
         // Check if file is an image
-        this.isImage.set(file.mimetype.startsWith('image/'));
+        this.isImage.set(file.mimetype.startsWith('image/'))
       }
     })
   }
@@ -129,7 +139,7 @@ export class ChatAttachmentComponent {
                   case HttpEventType.Response:
                     this.progress.set(100)
                     this.storageFile.set(event.body)
-                    this.uploadedUrl.set(event.body.url); // Assuming response contains URL
+                    this.uploadedUrl.set(event.body.url) // Assuming response contains URL
                     break
                 }
               }),
@@ -166,7 +176,8 @@ export class ChatAttachmentComponent {
   readonly deleteFile = effectAction((file$: Observable<string>) => {
     return file$.pipe(
       switchMap((file) =>
-        file ? this.storageFileService.delete(file).pipe(
+        file
+          ? this.storageFileService.delete(file).pipe(
               catchError((error) => {
                 this.error.emit(getErrorMessage(error))
                 return of(null)
@@ -187,7 +198,7 @@ export class ChatAttachmentComponent {
 
   openImage() {
     this.dialogRef = this.#dialog.open(this.imageDialog(), {
-      backdropClass: 'backdrop-blur-sm-black',
+      backdropClass: 'backdrop-blur-sm-black'
     })
   }
 

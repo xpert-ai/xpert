@@ -7,7 +7,6 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
-import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IToolProvider, IXpertToolset, XpertToolsetCategoryEnum } from 'apps/cloud/src/app/@core'
@@ -16,7 +15,7 @@ import { debounceTime, map, startWith } from 'rxjs'
 import { EmojiAvatarComponent } from '../../../../../@shared/avatar'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmHighlightDirective, NgmSearchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-toolset-menu',
   templateUrl: './toolset.component.html',

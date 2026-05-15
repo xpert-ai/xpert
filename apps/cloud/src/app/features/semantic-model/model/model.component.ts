@@ -20,7 +20,6 @@ import { SemanticModelServerService } from '@xpert-ai/cloud/state'
 import { nonBlank } from '@xpert-ai/core'
 import {
   NgmCommonModule,
-  NgmConfirmDeleteService,
   NgmConfirmUniqueComponent,
   ResizerModule,
   SplitterModule
@@ -83,7 +82,16 @@ import {
   SemanticModelEntityType,
   TOOLBAR_ACTION_CATEGORY
 } from './types'
-import { ZardButtonComponent, ZardDialogOpenConfig, ZardDialogService, ZardDrawerImports, ZardIconComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmConfirmDeleteService,
+  ZardButtonComponent,
+  ZardDialogOpenConfig,
+  ZardDialogService,
+  ZardDrawerImports,
+  ZardIconComponent,
+  ZardLoaderComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [

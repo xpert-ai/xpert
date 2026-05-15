@@ -18,12 +18,12 @@ import {
   XpertTaskService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { of } from 'rxjs'
 import { ScheduleFormComponent } from '../../schedule'
+import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-task-new-blank',
@@ -38,7 +38,7 @@ import { ScheduleFormComponent } from '../../schedule'
     NgmSearchComponent,
     NgmProgressSpinnerComponent,
     ScheduleFormComponent
-],
+  ],
   templateUrl: './task-dialog.component.html',
   styleUrl: './task-dialog.component.scss'
 })
@@ -71,7 +71,9 @@ export class XpertTaskDialogComponent {
   readonly isTrialUser = computed(() => this.user()?.role?.name === RolesEnum.TRIAL)
   readonly isCreateMode = computed(() => !this.task()?.id)
   readonly isTrialTaskLimitPending = computed(() => this.isTrialUser() && this.isCreateMode() && this.total() == null)
-  readonly isTrialTaskLimitReached = computed(() => this.isTrialUser() && this.isCreateMode() && (this.total() ?? 0) >= 10)
+  readonly isTrialTaskLimitReached = computed(
+    () => this.isTrialUser() && this.isCreateMode() && (this.total() ?? 0) >= 10
+  )
   readonly isSubmitDisabled = computed(
     () =>
       !this.prompt() ||
@@ -120,7 +122,7 @@ export class XpertTaskDialogComponent {
       .subscribe({
         next: (task) => {
           this.loading.set(false)
-          this.#toastr.success('PAC.Xpert.TaskCreatedSuccessfully', {Default: 'Task created successfully'})
+          this.#toastr.success('PAC.Xpert.TaskCreatedSuccessfully', { Default: 'Task created successfully' })
           this.close(task)
         },
         error: (error) => {

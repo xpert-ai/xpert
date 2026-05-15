@@ -27,7 +27,6 @@ import {
   PersistState
 } from '@xpert-ai/cloud/state'
 import { OverlayAnimations, routeAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -48,7 +47,7 @@ import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
 import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
 import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/task-dialog.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
 type TAgentLink = {

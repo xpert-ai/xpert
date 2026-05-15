@@ -1,4 +1,3 @@
-
 import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
 import { DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import {
@@ -13,8 +12,7 @@ import {
   isParameterProperty,
   isSemanticCalendar
 } from '@xpert-ai/ocap-core'
-import { NgmDisplayBehaviourComponent } from '../display-behaviour/display-behaviour.component'
-import { type ZardIconSizeVariants, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { NgmDisplayBehaviourComponent, type ZardIconSizeVariants, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -52,12 +50,14 @@ export class NgmPropertyComponent {
     effect(() => {
       const property = this.property()
       const role = this.role()
-      this.icon.set(property
-        ? propertyIcon({
-            ...property,
-            role: role ?? property.role
-          }).icon
-        : null)
+      this.icon.set(
+        property
+          ? propertyIcon({
+              ...property,
+              role: role ?? property.role
+            }).icon
+          : null
+      )
     })
   }
 }
@@ -67,7 +67,7 @@ export const SemanticIconMap = {
 }
 
 export function propertyIcon(property: EntityProperty) {
-  let icon: string  | null = null
+  let icon: string | null = null
   let label: Semantics | string | null | undefined = null
   switch (property?.role) {
     case AggregationRole.dimension:

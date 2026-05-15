@@ -19,11 +19,11 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 
-import { NgmInputComponent } from '@xpert-ai/ocap-angular/common'
 import { FormlyModule } from '@ngx-formly/core'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import {
+  NgmInputComponent,
   ZardButtonComponent,
   ZardSwitchComponent,
   ZardToggleGroupComponent,

@@ -1,23 +1,16 @@
-import {
-  booleanAttribute,
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  input,
-  ViewEncapsulation,
-} from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input, ViewEncapsulation } from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
 import {
   containerProgressBarVariants,
   progressBarVariants,
   type ZardProgressBarShapeVariants,
   type ZardProgressBarSizeVariants,
-  type ZardProgressBarTypeVariants,
-} from './progress-bar.variants';
+  type ZardProgressBarTypeVariants
+} from './progress-bar.variants'
 
 @Component({
   selector: 'z-progress-bar',
@@ -51,26 +44,26 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    class: 'block w-full',
-  },
+    class: 'block w-full'
+  }
 })
 export class ZardProgressBarComponent {
-  readonly zType = input<ZardProgressBarTypeVariants>('default');
-  readonly zSize = input<ZardProgressBarSizeVariants>('default');
-  readonly zShape = input<ZardProgressBarShapeVariants>('default');
-  readonly zIndeterminate = input(false, { transform: booleanAttribute });
-  readonly class = input<ClassValue>('');
-  readonly barClass = input<ClassValue>('');
-  readonly progress = input(0);
+  readonly zType = input<ZardProgressBarTypeVariants>('default')
+  readonly zSize = input<ZardProgressBarSizeVariants>('default')
+  readonly zShape = input<ZardProgressBarShapeVariants>('default')
+  readonly zIndeterminate = input(false, { transform: booleanAttribute })
+  readonly class = input<ClassValue>('')
+  readonly barClass = input<ClassValue>('')
+  readonly progress = input(0)
 
   readonly correctedProgress = computed(() => {
     if (this.progress() > 100) {
-      return 100;
+      return 100
     } else if (this.progress() < 0) {
-      return 0;
+      return 0
     }
-    return this.progress();
-  });
+    return this.progress()
+  })
 
   protected readonly classes = computed(() =>
     mergeClasses(
@@ -78,16 +71,16 @@ export class ZardProgressBarComponent {
         zIndeterminate: this.zIndeterminate(),
         zType: this.zType(),
         zSize: this.zSize(),
-        zShape: this.zShape(),
+        zShape: this.zShape()
       }),
-      this.class(),
-    ),
-  );
+      this.class()
+    )
+  )
 
   protected readonly barClasses = computed(() =>
     mergeClasses(
       progressBarVariants({ zIndeterminate: this.zIndeterminate(), zType: this.zType(), zShape: this.zShape() }),
-      this.barClass(),
-    ),
-  );
+      this.barClass()
+    )
+  )
 }

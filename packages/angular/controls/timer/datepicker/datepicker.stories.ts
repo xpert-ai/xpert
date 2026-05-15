@@ -5,9 +5,9 @@ import { provideAnimations } from '@angular/platform-browser/animations'
 import { provideOcapMock, provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { FilterSelectionType, TimeGranularity } from '@xpert-ai/ocap-core'
 import { action } from '@storybook/addon-actions'
+import { NgmYearpickerComponent } from '@xpert-ai/headless-ui'
 import { NgmMemberDatepickerComponent } from './datepicker.component'
 import { NgmMemberDatepickerModule } from './datepicker.module'
-import { NgmYearpickerComponent } from './yearpicker/yearpicker.component'
 
 export const actionsData = {
   onPinTask: action('onPinTask'),
@@ -50,7 +50,7 @@ export const Default: Story = {
 type YearStory = StoryObj<NgmYearpickerComponent>
 export const YearPicker: YearStory = {
   args: {
-    label: 'Year Picker',
+    label: 'Year Picker'
   },
   render: (args) => ({
     props: {

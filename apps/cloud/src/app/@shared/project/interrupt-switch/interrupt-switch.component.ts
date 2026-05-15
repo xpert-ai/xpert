@@ -5,7 +5,6 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { FormControl, FormsModule } from '@angular/forms'
 import { ProjectAPIService } from '@cloud/app/@core'
 import { IProject } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, startWith, switchMap } from 'rxjs/operators'
@@ -13,6 +12,7 @@ import { AbstractInterruptComponent } from '../../agent'
 import { NgmSelectComponent } from '../../common'
 import { injectI18nService } from '../../i18n'
 import { ProjectCreationComponent } from '../creation/creation.component'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -21,7 +21,10 @@ import { ProjectCreationComponent } from '../creation/creation.component'
   templateUrl: 'interrupt-switch.component.html',
   styleUrls: ['interrupt-switch.component.scss']
 })
-export class ProjectInterruptSwitchComponent extends AbstractInterruptComponent<{ name?: string }, {projectId?: string}> {
+export class ProjectInterruptSwitchComponent extends AbstractInterruptComponent<
+  { name?: string },
+  { projectId?: string }
+> {
   readonly #dialog = inject(Dialog)
   readonly projectAPI = inject(ProjectAPIService)
   readonly i18nService = injectI18nService()
@@ -69,25 +72,25 @@ export class ProjectInterruptSwitchComponent extends AbstractInterruptComponent<
   constructor() {
     super()
 
-    effect(
-      () => {
-        if (this.name()) {
-          this.types.set(['New'])
-        }
+    effect(() => {
+      if (this.name()) {
+        this.types.set(['New'])
       }
-    )
+    })
   }
 
   onNewModel() {
-    this.#dialog.open<IProject>(ProjectCreationComponent, {
-      disableClose: true,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-    }).closed.subscribe((project) => {
-      if (project) {
-        this.biProjectId.set(project.id)
-        this.createdProject.set(project)
-      }
-    })
+    this.#dialog
+      .open<IProject>(ProjectCreationComponent, {
+        disableClose: true,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
+      })
+      .closed.subscribe((project) => {
+        if (project) {
+          this.biProjectId.set(project.id)
+          this.createdProject.set(project)
+        }
+      })
   }
 }

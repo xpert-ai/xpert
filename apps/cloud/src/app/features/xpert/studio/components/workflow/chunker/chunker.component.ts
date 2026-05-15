@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -15,7 +14,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { PlusSvgComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-chunker',
@@ -23,14 +22,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./chunker.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FFlowModule,
-    ...ZardTooltipImports,
-    TranslateModule,
-    IconComponent,
-    PlusSvgComponent,
-    NgmI18nPipe
-],
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, IconComponent, PlusSvgComponent, NgmI18nPipe],
   host: {
     tabindex: '-1'
   }

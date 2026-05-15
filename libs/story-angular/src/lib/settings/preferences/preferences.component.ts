@@ -3,7 +3,7 @@ import { FormGroup } from '@angular/forms'
 import { FormlyFormOptions } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { pick } from '@xpert-ai/ocap-core'
-import { NgmConfirmCodeEditorComponent } from '@xpert-ai/ocap-angular/editor'
+import { NgmConfirmCodeEditorComponent } from '@xpert-ai/headless-ui'
 import { cloneDeep } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { PreferencesSchema } from './schema'
@@ -16,7 +16,6 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
   styleUrls: ['./preferences.component.scss']
 })
 export class PreferencesComponent implements OnInit {
-  
   private readonly _dialog = inject(Dialog)
   private readonly _cdr = inject(ChangeDetectorRef)
 
@@ -24,7 +23,7 @@ export class PreferencesComponent implements OnInit {
     {
       link: 'general',
       label: 'General'
-    },
+    }
   ]
   activeLink = ''
   schemas = []
@@ -47,7 +46,7 @@ export class PreferencesComponent implements OnInit {
       this._preferencesSchema = (<any>PreferencesSchema(CSS).pop()).fieldGroup
       this.menus = this._preferencesSchema.map((item) => ({
         link: item.key,
-        label: item.props.label,
+        label: item.props.label
       }))
 
       if (!this.activeLink) {
@@ -93,15 +92,13 @@ export class PreferencesComponent implements OnInit {
 
   async openThemeEditor() {
     const result = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmCodeEditorComponent, {
-          panelClass: 'large',
-          data: {
-            language: 'json',
-            model: this.echartsTheme
-          }
-        })
-        .closed
+      this._dialog.open(NgmConfirmCodeEditorComponent, {
+        panelClass: 'large',
+        data: {
+          language: 'json',
+          model: this.echartsTheme
+        }
+      }).closed
     )
     if (result) {
       this.echartsTheme = result

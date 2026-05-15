@@ -7,10 +7,16 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { injectOrganizationId } from '@xpert-ai/cloud/state'
 import { AiProviderRole, ICopilot } from '@xpert-ai/contracts'
 import { CapitalizePipe, DisappearAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardAccordionImports, type ZardAccordionItemLike, ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmSpinComponent,
+  ZardAccordionImports,
+  type ZardAccordionItemLike,
+  ZardButtonComponent,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { getErrorMessage, injectCopilots, injectCopilotServer, injectToastr } from 'apps/cloud/src/app/@core'
 import { CopilotAiProvidersComponent, CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { capitalize } from 'lodash-es'

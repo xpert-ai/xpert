@@ -1,5 +1,5 @@
 import { computed, effect, Signal, signal } from '@angular/core'
-import { TableColumn } from '@xpert-ai/ocap-angular/common'
+import { TableColumn } from '@xpert-ai/headless-ui'
 
 export const SPREADSHEET_PREVIEW_ROW_LIMIT = 200
 

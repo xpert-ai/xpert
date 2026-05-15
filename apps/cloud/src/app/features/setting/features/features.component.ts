@@ -1,10 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router'
-import { FeatureService, RequestScopeLevel, Store, getErrorMessage, injectToastr, routeAnimations } from '../../../@core'
+import {
+  FeatureService,
+  RequestScopeLevel,
+  Store,
+  getErrorMessage,
+  injectToastr,
+  routeAnimations
+} from '../../../@core'
 import { SharedModule } from '../../../@shared/shared.module'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -70,7 +77,7 @@ export class PACFeaturesComponent {
       next: () => {
         this.#featureService.notifyFeatureDefinitionsRefreshed()
         this.loading.set(false)
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
+        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
       },
       error: (err) => {
         this.loading.set(false)

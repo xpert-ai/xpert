@@ -1,8 +1,6 @@
-
 import { Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { parseYAML } from '@xpert-ai/core'
-import { injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -25,6 +23,7 @@ import {
 } from '../../../@core'
 import { IconComponent } from '../../avatar'
 import { injectI18nService } from '../../i18n'
+import { injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -82,11 +81,18 @@ export class XpertPipelinesComponent {
   }
 
   async createEmptyKB() {
-    const name = await firstValueFrom(this.inputName<string>({
-        title: this.#i18n.instant('PAC.Knowledgebase.CreateEmptyKnowledgebase', { Default: 'Create an empty knowledgebase' }),
-        description: this.#i18n.instant('PAC.Knowledgebase.CreateEmptyKnowledgebaseDesc', { Default: 'There are no documents in an empty knowledge base yet. You can upload documents to this knowledge base at any time in the future.' }),
+    const name = await firstValueFrom(
+      this.inputName<string>({
+        title: this.#i18n.instant('PAC.Knowledgebase.CreateEmptyKnowledgebase', {
+          Default: 'Create an empty knowledgebase'
+        }),
+        description: this.#i18n.instant('PAC.Knowledgebase.CreateEmptyKnowledgebaseDesc', {
+          Default:
+            'There are no documents in an empty knowledge base yet. You can upload documents to this knowledge base at any time in the future.'
+        }),
         value: ''
-      }))
+      })
+    )
     if (!name) {
       return
     }
@@ -94,13 +100,12 @@ export class XpertPipelinesComponent {
     this.loading.set(true)
     try {
       const result = await firstValueFrom(
-        this.knowledgebaseAPI
-              .create({
-                workspaceId: this.workspaceId(),
-                type: KnowledgebaseTypeEnum.Standard,
-                name: name,
-                // description: template.description
-              })
+        this.knowledgebaseAPI.create({
+          workspaceId: this.workspaceId(),
+          type: KnowledgebaseTypeEnum.Standard,
+          name: name
+          // description: template.description
+        })
       )
       this.loading.set(false)
       this.knowledgebase.set(result)
@@ -117,11 +122,11 @@ export class XpertPipelinesComponent {
       type: XpertTypeEnum.Knowledge,
       latest: true,
       agent: {
-				key: uuid(),
-				options: {
-					hidden: true
-				}
-			},
+        key: uuid(),
+        options: {
+          hidden: true
+        }
+      }
     }
 
     if (!this.knowledgebase()) {
@@ -132,15 +137,17 @@ export class XpertPipelinesComponent {
     if (!knowledgebase) return
 
     this.loading.set(true)
-    this.xpertAPI.importDSL({
-      ...draft,
-      team: {
-        ...draft.team,
-        ...xpert,
-        name: `${knowledgebase.name} Pipeline - ${uuid()}`,
-        knowledgebase: knowledgebase ? { id: knowledgebase.id } : undefined
-      }
-    }).subscribe({
+    this.xpertAPI
+      .importDSL({
+        ...draft,
+        team: {
+          ...draft.team,
+          ...xpert,
+          name: `${knowledgebase.name} Pipeline - ${uuid()}`,
+          knowledgebase: knowledgebase ? { id: knowledgebase.id } : undefined
+        }
+      })
+      .subscribe({
         next: (pipeline) => {
           this.created.emit(pipeline)
           this.loading.set(false)
@@ -156,9 +163,7 @@ export class XpertPipelinesComponent {
     this.loading.set(true)
     this.xpertTemplateAPI
       .getKnowledgePipelineTemplate(template.id)
-      .pipe(
-        switchMap((data) => parseYAML<TXpertTeamDraft>(data.export_data)),
-      )
+      .pipe(switchMap((data) => parseYAML<TXpertTeamDraft>(data.export_data)))
       .subscribe({
         next: (draft) => {
           this.loading.set(false)

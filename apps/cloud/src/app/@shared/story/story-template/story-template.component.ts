@@ -1,19 +1,32 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmConfirmDeleteService, NgmHighlightDirective, NgmTagsComponent } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { find, sortBy, values } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { debounceTime, map, startWith, switchMap } from 'rxjs/operators'
-import { listAnimation, StoryTemplateType, StoryTemplateService, ToastrService, IStoryTemplate, ITag, getErrorMessage } from '../../../@core'
+import {
+  listAnimation,
+  StoryTemplateType,
+  StoryTemplateService,
+  ToastrService,
+  IStoryTemplate,
+  ITag,
+  getErrorMessage
+} from '../../../@core'
 import { InlineSearchComponent } from '../../form-fields'
 import { SharedUiModule } from '../../ui.module'
 import { UserPipe } from '../../pipes'
 import { TagViewerComponent } from '../../tag'
 
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
+import {
+  NgmConfirmDeleteService,
+  NgmHighlightDirective,
+  NgmTagsComponent,
+  Z_MODAL_DATA,
+  ZardDialogRef
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-story-template',

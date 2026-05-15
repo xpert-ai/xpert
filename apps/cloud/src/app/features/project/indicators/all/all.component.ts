@@ -17,7 +17,6 @@ import { RouterModule } from '@angular/router'
 import { exportIndicator, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@xpert-ai/cloud/state'
 import { saveAsYaml } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { catchError, debounceTime, filter, map, merge, of, Subject, switchMap } from 'rxjs'
@@ -31,7 +30,13 @@ import {
 } from '../../../../@core/index'
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
-import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmDelete,
+  NgmSpinComponent,
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -43,7 +48,7 @@ import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '
     TranslateModule,
     NgmSpinComponent,
     DateRelativePipe
-],
+  ],
   selector: 'pac-indicator-all',
   templateUrl: './all.component.html',
   styleUrls: ['./all.component.scss']

@@ -5,7 +5,6 @@ import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { DataSourceService } from '@xpert-ai/cloud/state'
-import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
@@ -15,7 +14,7 @@ import { CardCreateComponent } from '../../../@shared/card'
 import { PACDataSourceCreationComponent } from './creation/creation.component'
 import { PACDataSourceEditComponent } from './edit/edit.component'
 
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent, ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [

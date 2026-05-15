@@ -30,7 +30,6 @@ import {
 } from '@xpert-ai/cloud/state'
 import { saveAsYaml } from '@xpert-ai/core'
 import { AnalyticalCardModule } from '@xpert-ai/ocap-angular/analytical-card'
-import { injectConfirmDelete, NgmResizableDirective, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource, NgmDSCoreService, PERIODS } from '@xpert-ai/ocap-angular/core'
 import {
   C_MEASURES,
@@ -55,7 +54,14 @@ import { injectI18nService } from '../../i18n'
 import { XpIndicatorRegisterFormComponent } from '../register-form/register-form.component'
 import { exportIndicator } from '../types'
 import { ChecklistComponent } from '../../common'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmDelete,
+  NgmResizableDirective,
+  NgmSpinComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xp-indicator-form',
@@ -321,29 +327,25 @@ export class XpIndicatorFormComponent {
   readonly explains = signal<any[]>([])
 
   constructor() {
-    effect(
-      () => {
-        const indicator = this.indicator()
-        const draft = this.draft()
-        if (indicator && this.dataSource()) {
-          // this.dataSource().updateOptions((options) => {
-          //   return {
-          //     ...options,
-          //     isDraftIndicators: uniq([...(options.isDraftIndicators ?? []), indicator.code]),
-          //   }
-          // })
-          this.dataSource().upsertIndicator(convertIndicatorResult(draft ? { ...indicator, ...draft } : indicator))
-        }
+    effect(() => {
+      const indicator = this.indicator()
+      const draft = this.draft()
+      if (indicator && this.dataSource()) {
+        // this.dataSource().updateOptions((options) => {
+        //   return {
+        //     ...options,
+        //     isDraftIndicators: uniq([...(options.isDraftIndicators ?? []), indicator.code]),
+        //   }
+        // })
+        this.dataSource().upsertIndicator(convertIndicatorResult(draft ? { ...indicator, ...draft } : indicator))
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (this.draft()) {
-          this.draftForm.set({ ...this.draft() })
-        }
+    effect(() => {
+      if (this.draft()) {
+        this.draftForm.set({ ...this.draft() })
       }
-    )
+    })
   }
 
   isDirty(): boolean {

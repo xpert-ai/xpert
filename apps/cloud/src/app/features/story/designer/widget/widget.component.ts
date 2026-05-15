@@ -1,4 +1,3 @@
-
 import { NgStyle } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, inject } from '@angular/core'
 import {
@@ -16,12 +15,11 @@ import { ComponentStyling } from '@xpert-ai/story/core'
 import { debounceTime, distinctUntilChanged, firstValueFrom, map } from 'rxjs'
 import { IScreenshot, ScreenshotService, ToastrService, listAnimation } from '../../../../@core'
 import { SharedUiModule } from '../../../../@shared/ui.module'
-import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { NgmInputComponent, NgmSliderInputComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { ColorInputComponent } from '../color-input/color-input.component'
 import { ImageUploadComponent } from '../image-upload/image-upload.component'
 import { ClipboardModule } from '@angular/cdk/clipboard'
 import { sortBy } from 'lodash-es'
-import { NgmInputComponent, NgmSliderInputComponent } from '@xpert-ai/ocap-angular/common'
 import { BackdropFilterEnum, FilterEnum } from '@xpert-ai/core'
 import { DesignerTextComponent } from '../text/text.component'
 
@@ -44,7 +42,7 @@ import { DesignerTextComponent } from '../text/text.component'
     DesignerTextComponent,
     ZardLoaderComponent,
     NgStyle
-],
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-designer-widget',
   templateUrl: './widget.component.html',
@@ -63,7 +61,7 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
   private readonly formBuilder = inject(FormBuilder)
   private readonly _cdr = inject(ChangeDetectorRef)
   private readonly toastrService = inject(ToastrService)
-  
+
   borderImages = []
   PresetBorderImages = [
     {
@@ -373,7 +371,7 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
     transform: null,
     transformOrigin: null,
     filter: null,
-    opacity: null,
+    opacity: null
   })
 
   readonly textFormControl = new FormControl({})
@@ -548,11 +546,11 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
   setDisabledState?(isDisabled: boolean): void {}
 
   onBorderImage(event) {
-    this.borderImage.setValue(event ? this.borderImage.value ?? {} : null)
+    this.borderImage.setValue(event ? (this.borderImage.value ?? {}) : null)
   }
 
   onBackgroundImage(event) {
-    this.backgroundImageObj.setValue(event ? this.backgroundImageObj.value ?? {} : null)
+    this.backgroundImageObj.setValue(event ? (this.backgroundImageObj.value ?? {}) : null)
   }
 
   async onFileSelected(event: Event) {
@@ -601,7 +599,9 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
     this.customImages = this.showCustomImages ? this._customImages : []
     if (this.showCustomImages && !this.loadingCustomImages && !this._customImages) {
       this.loadingCustomImages = true
-      const images = await firstValueFrom(this.screenshotService.getAll().pipe(map(({items}) => sortBy(items, 'createdAt').reverse())))
+      const images = await firstValueFrom(
+        this.screenshotService.getAll().pipe(map(({ items }) => sortBy(items, 'createdAt').reverse()))
+      )
       this.loadingCustomImages = false
       this._customImages = images
       this.customImages = this._customImages
@@ -615,7 +615,7 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
     } else {
       if (!this._customImages && !this.loadingCustomImages) {
         this.loadingCustomImages = true
-        const images = await firstValueFrom(this.screenshotService.getAll().pipe(map(({items}) => items)))
+        const images = await firstValueFrom(this.screenshotService.getAll().pipe(map(({ items }) => items)))
         this.loadingCustomImages = false
         this._customImages = images
       }
@@ -625,7 +625,7 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
   }
 
   onCopyToClipboardCopied(event) {
-    this.toastrService.info({code: 'Story.Toolbar.CopiedtoClipboard', default: 'Copied to clipboard'})
+    this.toastrService.info({ code: 'Story.Toolbar.CopiedtoClipboard', default: 'Copied to clipboard' })
   }
 }
 
@@ -634,9 +634,8 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
   imports: [FormlyModule, TranslateModule, ReactiveFormsModule, DesignerWidgetComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-widget-designer',
-  template: `
-<!-- Optional field label rendered by the designer wrapper. -->
-<pac-designer-widget class="ngm-density__compact" [formControl]="$any(formControl)"></pac-designer-widget>`,
+  template: ` <!-- Optional field label rendered by the designer wrapper. -->
+    <pac-designer-widget class="ngm-density__compact" [formControl]="$any(formControl)"></pac-designer-widget>`,
   styles: [
     `
       :host {
@@ -646,6 +645,4 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
     `
   ]
 })
-export class PACFormlyWidgetDesignerComponent extends FieldType {
-
-}
+export class PACFormlyWidgetDesignerComponent extends FieldType {}

@@ -2,11 +2,19 @@ import { Component, TemplateRef, inject, signal, viewChild } from '@angular/core
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmConfirmDeleteService, TableColumn } from '@xpert-ai/ocap-angular/common'
+import { NgmConfirmDeleteService } from '@xpert-ai/headless-ui'
+import { NgmCommonModule, TableColumn } from '@xpert-ai/ocap-angular/common'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, catchError, map, switchMap, tap } from 'rxjs'
-import { XpertAPIService, IXpertRole, OrderTypeEnum, ToastrService, getErrorMessage, omitSystemProperty } from '../../../../@core'
+import {
+  XpertAPIService,
+  IXpertRole,
+  OrderTypeEnum,
+  ToastrService,
+  getErrorMessage,
+  omitSystemProperty
+} from '../../../../@core'
 import { AvatarComponent } from 'apps/cloud/src/app/@shared/files'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
@@ -72,7 +80,7 @@ export class XpertRolesComponent extends TranslationBaseComponent {
 
   private itemsSub = this.#refresh$
     .pipe(
-      switchMap(() => this.roleService.getAllInOrg({ order: {updatedAt: OrderTypeEnum.DESC } })),
+      switchMap(() => this.roleService.getAllInOrg({ order: { updatedAt: OrderTypeEnum.DESC } })),
       map(({ items }) => items),
       takeUntilDestroyed()
     )

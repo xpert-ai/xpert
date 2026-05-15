@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { OverlayModule } from '@angular/cdk/overlay'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import { NgmConfirmUniqueComponent, ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   ChangeDetectorRef,
   Component,
@@ -24,7 +24,7 @@ import {
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Params, Router } from '@angular/router'
 import { NxCoreModule, nonNullable, uploadYamlFile } from '@xpert-ai/core'
-import { NgmCommonModule, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { NgmSmartFilterBarService, effectAction } from '@xpert-ai/ocap-angular/core'
 import { assignDeepOmitBlank, omit, omitBlank } from '@xpert-ai/ocap-core'
 import {
@@ -525,7 +525,7 @@ export class NxStoryPointComponent {
     // event.stopPropagation() // 当初使用这个时为了避免继续触发 storypoint 页面的点击事件, 但现在看来它不仅阻止了 StoryPoint 的事件, 也阻止了很多其他事件
     // 所以还得换其他方式: 还是得从区分点击了具体什么组件来考虑
     // 来自 StoryWidget 上的事件加上标记, 后续 StoryPoint 组件可判断点击的目标
-    (<MouseEvent & {__fromStoryWidget__: boolean}>event).__fromStoryWidget__ = true
+    ;(<MouseEvent & { __fromStoryWidget__: boolean }>event).__fromStoryWidget__ = true
     this.selectWidget(widget, widgetComponent.disableFab)
   }
 

@@ -1,10 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
-import { NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardSelectImports } from '@xpert-ai/headless-ui'
+import { NgmConfirmDeleteService, ZardSelectImports } from '@xpert-ai/headless-ui'
 import { UsersService } from '@xpert-ai/cloud/state'
 import { BehaviorSubject, catchError, firstValueFrom, from, map, shareReplay, switchMap } from 'rxjs'
 import { CertificationService, ICertification, ToastrService } from '../../../@core'
@@ -54,14 +53,12 @@ export class CertificationComponent {
     switchMap(() => this.certificationService.getAll(['owner'])),
     shareReplay({ bufferSize: 1, refCount: true })
   )
-  public readonly users$ = this.userService
-    .getAll()
-    .pipe(
-      catchError((err) => {
-        return from(this.userService.getMe()).pipe(map((user) => [user]))
-      }),
-      shareReplay({ bufferSize: 1, refCount: true })
-    )
+  public readonly users$ = this.userService.getAll().pipe(
+    catchError((err) => {
+      return from(this.userService.getMe()).pipe(map((user) => [user]))
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  )
 
   async createCertification() {
     try {
@@ -72,7 +69,7 @@ export class CertificationComponent {
       )
 
       this.refresh$.next()
-      this._toastrService.success('PAC.Certification.CreateCertification', {Default: 'Create Certification'})
+      this._toastrService.success('PAC.Certification.CreateCertification', { Default: 'Create Certification' })
     } catch (err) {
       this._toastrService.error(err)
     }
@@ -88,7 +85,7 @@ export class CertificationComponent {
           this.certification = null
         }
         this.refresh$.next()
-        this._toastrService.success('PAC.Certification.DeleteCertification', {Default: 'Delete Certification'})
+        this._toastrService.success('PAC.Certification.DeleteCertification', { Default: 'Delete Certification' })
       } catch (err) {
         this._toastrService.error(err)
       }
@@ -106,8 +103,7 @@ export class CertificationComponent {
   }
 
   onOwnerSelectionChange(value: string | number | Array<string | number>) {
-    const ownerId =
-      !Array.isArray(value) && typeof value === 'string' && value !== this.noOwnerValue ? value : null
+    const ownerId = !Array.isArray(value) && typeof value === 'string' && value !== this.noOwnerValue ? value : null
     this.formControls.ownerId.setValue(ownerId)
     this.formControls.ownerId.markAsDirty()
     this.formControls.ownerId.markAsTouched()
@@ -126,7 +122,7 @@ export class CertificationComponent {
       )
 
       this.refresh$.next()
-      this._toastrService.success('PAC.Certification.UpdateCertification', {Default: 'Update Certification'})
+      this._toastrService.success('PAC.Certification.UpdateCertification', { Default: 'Update Certification' })
       this.certification = null
     } catch (err) {
       this._toastrService.error(err)

@@ -1,11 +1,9 @@
-
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { IWFNJSONStringify } from '@cloud/app/@core'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { PlusSvgComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xp-workflow-node-json-stringify',
   templateUrl: './json-stringify.component.html',

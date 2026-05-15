@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNTask,
@@ -14,7 +13,7 @@ import { NgxFloatUiModule, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertExecutionService } from '../../../services/execution.service'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-task',

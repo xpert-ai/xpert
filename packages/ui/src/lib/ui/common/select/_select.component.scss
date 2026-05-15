@@ -1,0 +1,71 @@
+@use '../input/_input.component.scss';
+
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
+@reference "tailwindcss";
+/* The prefix used to generate the fully qualified name for tokens in this file. */
+$prefix: (ngm, color);
+
+@function get-unthemable-tokens() {
+  @return ();
+}
+
+@function get-color-tokens() {
+  @return (surface-container-low: null, surface-container: null, surface-container-high: null, surface: null);
+}
+
+@function get-token-slots() {
+  @return sass-utils.deep-merge-all(get-unthemable-tokens(), get-color-tokens());
+}
+
+@include token-utils.use-tokens($prefix, get-token-slots()) {
+  .ngm-select-element {
+    background-color: var(#{token-utils.get-token-variable(surface-container-high)});
+    &:hover {
+      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
+      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
+    }
+    &:enabled:focus {
+      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
+      background-color: var(#{token-utils.get-token-variable(surface)});
+    }
+    &:disabled {
+      background-color: var(#{token-utils.get-token-variable(surface-container-low)});
+    }
+  }
+}
+
+.ngm-select-element {
+  @apply p-2 rounded-lg border border-solid border-transparent
+  text-foreground ring-offset-1 ring-offset-transparent ring-2 ring-transparent
+  focus:z-10 focus:outline-none enabled:hover:ring-ring/50 enabled:focus:ring-ring
+  disabled:text-muted-foreground disabled:border-border disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed
+  disabled:opacity-50;
+}
+
+.ngm-select-label {
+  @apply p-1 text-ellipsis whitespace-nowrap overflow-hidden disabled:opacity-50;
+}
+
+.ngm-density__cosy {
+  .ngm-select-element {
+    @apply px-2 py-1 text-sm rounded;
+  }
+}
+
+.ngm-density__compact {
+  .ngm-select-label {
+    @apply text-sm;
+  }
+  .ngm-select-element {
+    @apply px-2 py-1 text-xs rounded;
+  }
+
+  .ngm-input-element__clear {
+    @apply w-5 h-5;
+    .z-icon,
+    i {
+      font-size: 16px;
+    }
+  }
+}

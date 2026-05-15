@@ -28,7 +28,7 @@ import { HammerModule } from '@angular/platform-browser'
 import { ActivatedRoute, Params, Router } from '@angular/router'
 import { TrialWatermarkComponent } from '@xpert-ai/components/trial-watermark'
 import { NgmTransformScaleDirective, NxCoreModule, camelCaseObject } from '@xpert-ai/core'
-import { NgmCommonModule, NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { NgmSmartFilterBarService, OcapCoreModule, isNotEmpty } from '@xpert-ai/ocap-angular/core'
 import { isNil, omitBlank } from '@xpert-ai/ocap-core'
 import {
@@ -44,7 +44,12 @@ import {
 import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { ISmartFilterBarOptions } from '@xpert-ai/story/widgets/filter-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardDialogService, ZardDividerComponent } from '@xpert-ai/headless-ui'
+import {
+  NgmConfirmDeleteService,
+  NgmConfirmUniqueComponent,
+  ZardDialogService,
+  ZardDividerComponent
+} from '@xpert-ai/headless-ui'
 import { isEqual, startsWith } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
@@ -314,20 +319,18 @@ export class NxStoryComponent implements AfterViewInit {
       // filters.forEach(item => this.filterBarService.put(item))
     })
 
-  #pageKeyEffect = effect(
-    () => {
-      const currentIndex = this.storyService.currentPageIndex()
-      const pageKey = this.storyService.currentPageKey()
-      if ((currentIndex !== 0 && pageKey)) {
-        const queryParams: Params = { pageKey }
-        this.router.navigate([], {
-          relativeTo: this.route,
-          queryParams: queryParams,
-          queryParamsHandling: 'merge' // remove to replace all query params by provided
-        })
-      }
+  #pageKeyEffect = effect(() => {
+    const currentIndex = this.storyService.currentPageIndex()
+    const pageKey = this.storyService.currentPageKey()
+    if (currentIndex !== 0 && pageKey) {
+      const queryParams: Params = { pageKey }
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: queryParams,
+        queryParamsHandling: 'merge' // remove to replace all query params by provided
+      })
     }
-  )
+  })
 
   private _storySub = this.story$
     .pipe(
@@ -400,11 +403,9 @@ export class NxStoryComponent implements AfterViewInit {
     @Optional()
     public settingsService?: NxSettingsPanelService
   ) {
-    effect(
-      () => {
-        this.storyService.setEditable(this.editable())
-      }
-    )
+    effect(() => {
+      this.storyService.setEditable(this.editable())
+    })
 
     effect(() => {
       const token = this.queryParams()['token']

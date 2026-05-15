@@ -15,7 +15,6 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { debouncedSignal, myRxResource, NgmI18nPipe, nonBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -36,8 +35,8 @@ import {
   ProviderModel
 } from '../../../@core'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
-import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { NgmHighlightDirective, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui'
 
 type ModelParameterRulesResourceValue = {
   model: string | undefined
@@ -540,10 +539,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     return options ? { ...options } : undefined
   }
 
-  private areOptionsEqual(
-    current: Record<string, any> | undefined,
-    next: Record<string, any> | undefined
-  ) {
+  private areOptionsEqual(current: Record<string, any> | undefined, next: Record<string, any> | undefined) {
     const currentKeys = Object.keys(current ?? {})
     const nextKeys = Object.keys(next ?? {})
 

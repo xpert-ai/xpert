@@ -5,7 +5,6 @@ import { FormControl } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@xpert-ai/core'
-import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
@@ -23,7 +22,7 @@ import {
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { UserProfileInlineComponent } from '../../../@shared/user'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, injectConfirmUnique, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

@@ -23,7 +23,6 @@ import { AIPermissionsEnum, getErrorMessage, injectProjectService, injectToastr,
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertCardComponent } from '@cloud/app/@shared/xpert'
 import { linkedModel, OverlayAnimations } from '@xpert-ai/core'
-import { NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService } from 'ngx-permissions'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -31,7 +30,7 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { combineLatestWith, debounceTime, map, of, pipe, startWith } from 'rxjs'
 import { ChatHomeService } from '../../home.service'
 import { ChatProjectComponent } from '../project.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSearchComponent, NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -48,7 +47,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     NgmSearchComponent,
     XpertCardComponent
-],
+  ],
   selector: 'pac-chat-project-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',
@@ -183,14 +182,12 @@ export class ChatProjectXpertsComponent {
       }
     })
 
-    effect(
-      () => {
-        if (!this.hoverTooltip()) {
-          this.overlayRef()?.detach()
-          this.element.set(null)
-        }
+    effect(() => {
+      if (!this.hoverTooltip()) {
+        this.overlayRef()?.detach()
+        this.element.set(null)
       }
-    )
+    })
   }
 
   showMore() {

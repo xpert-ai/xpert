@@ -15,7 +15,6 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { convertQueryResultColumns, linkedModel } from '@xpert-ai/core'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import {
   NgmCalculatedMeasureComponent,
@@ -42,7 +41,7 @@ import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
 import { animate, style, transition, trigger } from '@angular/animations'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
-import { ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, NgmTableComponent, ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -198,13 +197,11 @@ export class ModelEntityCalculationComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        if (this.calculatedMember()) {
-          this.entityService.setSelectedProperty(this.typeKey())
-        }
+    effect(() => {
+      if (this.calculatedMember()) {
+        this.entityService.setSelectedProperty(this.typeKey())
       }
-    )
+    })
 
     effect(() => {
       if (!this.calculatedMember()) {

@@ -2,7 +2,6 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, inject, signal } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { CopilotChatConversation } from '@xpert-ai/copilot'
-import { NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
 import { cloneDeep, isEqual } from '@xpert-ai/ocap-core'
 import { ComponentStore } from '@xpert-ai/store'
 import { ModelQuery, ModelQueryService, convertModelQueryResult, injectTranslate, uuid } from 'apps/cloud/src/app/@core'
@@ -11,7 +10,7 @@ import { ModelQueryState, QueryResult } from '../types'
 import { initModelQueryState } from './types'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import { NgmConfirmUniqueComponent, ZardDialogService } from '@xpert-ai/headless-ui'
 export interface QueryLabState {
   modelId: string
   queries: {
@@ -92,7 +91,7 @@ export class QueryLabService extends ComponentStore<QueryLabState> {
     const query = this.get((state) => state.queries[key].query)
     if (query.type && query.type !== type) {
       throw new Error(
-        this.translate.instant('PAC.MODEL.QUERY.QueryTypeInitialized', {Default: 'Query type has been initialized'})
+        this.translate.instant('PAC.MODEL.QUERY.QueryTypeInitialized', { Default: 'Query type has been initialized' })
       )
     }
     this.updateQuery({ key, query: { type } })

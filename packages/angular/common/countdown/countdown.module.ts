@@ -1,12 +1,8 @@
-import { CommonModule } from '@angular/common';
-import { NgModule } from '@angular/core';
-import { NgmCountdownComponent } from './countdown.component';
-import { CountdownTimer } from './countdown.timer';
+import { NgModule } from '@angular/core'
+import { NgmCountdownModule as HeadlessNgmCountdownModule } from '@xpert-ai/headless-ui'
 
 @NgModule({
-  imports: [CommonModule],
-  providers: [CountdownTimer],
-  declarations: [NgmCountdownComponent],
-  exports: [NgmCountdownComponent],
+  imports: [HeadlessNgmCountdownModule],
+  exports: [HeadlessNgmCountdownModule]
 })
 export class NgmCountdownModule {}

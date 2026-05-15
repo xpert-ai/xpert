@@ -3,7 +3,7 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { By } from '@angular/platform-browser'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardComboboxDeprecatedComponent } from '@xpert-ai/headless-ui/components/combobox-deprecated'
+import { ZardComboboxDeprecatedComponent } from '@xpert-ai/headless-ui'
 import { PACFormlyInputModule } from './input.module'
 
 const { TestBed } = require('@angular/core/testing')

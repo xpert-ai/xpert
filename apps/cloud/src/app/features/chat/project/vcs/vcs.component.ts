@@ -1,11 +1,17 @@
-
 import { Component, computed, effect, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr, Repository, transformInstallation } from '@cloud/app/@core'
+import {
+  getErrorMessage,
+  injectGitHubAPI,
+  injectProjectService,
+  injectToastr,
+  Repository,
+  transformInstallation
+} from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'chat-project-vcs',
@@ -40,7 +46,7 @@ export class ChatProjectVcsComponent {
     compute: () => this.vcs()?.installationId,
     update: () => {}
   })
-  readonly currentInstallation = computed(() => this.installations()?.find((i) => ''+i.id === this.installationId()))
+  readonly currentInstallation = computed(() => this.installations()?.find((i) => '' + i.id === this.installationId()))
 
   readonly installationOptions = computed(() =>
     this.installations()?.map((installation) => ({
@@ -87,11 +93,9 @@ export class ChatProjectVcsComponent {
     this.#installations.reload()
   }
 
-  checkInstallation(page: number = 1, append: boolean = false,) {
-    if (!append)
-      this.isLoading.set(true)
-    if (append)
-      this.repositoriesLoadingMore.set(true)
+  checkInstallation(page: number = 1, append: boolean = false) {
+    if (!append) this.isLoading.set(true)
+    if (append) this.repositoriesLoadingMore.set(true)
     this.error.set(null)
     this.githubAPI.getRepositories(this.vcs().integrationId, this.installationId() as string, page, 30).subscribe({
       next: (data) => {
@@ -109,7 +113,7 @@ export class ChatProjectVcsComponent {
         this.isLoading.set(false)
         this.repositoriesLoadingMore.set(false)
       },
-      error: (err)=> {
+      error: (err) => {
         this.error.set(getErrorMessage(err))
         this.isInstalled.set(false)
         this.isLoading.set(false)
@@ -125,8 +129,7 @@ export class ChatProjectVcsComponent {
   }
 
   handleRefresh() {
-    this.refreshInstallations(),
-    this.checkInstallation()
+    ;(this.refreshInstallations(), this.checkInstallation())
   }
 
   openRepository(repo: Repository) {
@@ -134,12 +137,11 @@ export class ChatProjectVcsComponent {
   }
 
   handleManageOnGitHub() {
-    const appId = null;
-    const fallbackInstallationsUrl =
-      "https://github.com/settings/installations";
+    const appId = null
+    const fallbackInstallationsUrl = 'https://github.com/settings/installations'
     const applicationUrl = appId
       ? `https://github.com/settings/connections/applications/${appId}`
-      : fallbackInstallationsUrl;
-    window.open(applicationUrl, "_blank");
+      : fallbackInstallationsUrl
+    window.open(applicationUrl, '_blank')
   }
 }

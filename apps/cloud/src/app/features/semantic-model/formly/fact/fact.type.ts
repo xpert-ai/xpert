@@ -15,7 +15,6 @@ import {
 import { FormControl, FormsModule } from '@angular/forms'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { attrModel, bindFormControlToSignal, linkedModel } from '@xpert-ai/core'
-import { NgmDisplayBehaviourComponent, NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { Cube } from '@xpert-ai/ocap-core'
 import { FieldType } from '@ngx-formly/core'
@@ -23,6 +22,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { Observable } from 'rxjs'
 import { MODEL_TYPE } from '../../model/types'
 import { TablesJoinComponent } from '../../tables-join'
+import { NgmDisplayBehaviourComponent, NgmRadioSelectComponent } from '@xpert-ai/headless-ui'
 
 /**
  */

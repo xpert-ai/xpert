@@ -1,7 +1,15 @@
-
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  input,
+  output,
+  signal
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertAgent, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -9,6 +17,7 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { interval, of, pipe, Subscription, switchMap, tap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-panel-execution',
@@ -22,7 +31,7 @@ import { XpertExecutionService } from '../../services/execution.service'
     NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
-]
+  ]
 })
 export class XpertStudioPanelExecutionComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -72,7 +81,9 @@ export class XpertStudioPanelExecutionComponent {
   readonly executions = computed(() =>
     this.#execution()?.subExecutions?.map((exec) => ({
       ...exec,
-      agent: exec.agent ?? this.nodes()?.find((node) => node.type === 'agent' && node.key === exec.agentKey)?.entity as IXpertAgent
+      agent:
+        exec.agent ??
+        (this.nodes()?.find((node) => node.type === 'agent' && node.key === exec.agentKey)?.entity as IXpertAgent)
     }))
   )
 
@@ -80,14 +91,12 @@ export class XpertStudioPanelExecutionComponent {
   #pollingSubscription: Subscription | null = null
 
   constructor() {
-    effect(
-      () => {
-        this.executionService.clear()
-        if (this.#execution()) {
-          this.executionService.setAgentExecution(this.#execution().agentKey, this.#execution())
-        }
+    effect(() => {
+      this.executionService.clear()
+      if (this.#execution()) {
+        this.executionService.setAgentExecution(this.#execution().agentKey, this.#execution())
       }
-    )
+    })
 
     // Watch execution status and start/stop polling accordingly
     effect(() => {
@@ -111,7 +120,7 @@ export class XpertStudioPanelExecutionComponent {
     }
     // Refresh every 2 seconds
     this.#pollingSubscription = interval(2000).subscribe(() => {
-      this.#refreshTrigger.update(v => v + 1)
+      this.#refreshTrigger.update((v) => v + 1)
     })
   }
 

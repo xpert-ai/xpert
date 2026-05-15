@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -12,6 +11,7 @@ import { isEqual } from 'lodash-es'
 import { Subscription } from 'rxjs'
 import { CopilotProviderService, getErrorMessage, IAiProviderEntity, ICopilot, ToastrService } from '../../../@core'
 import { CopilotCredentialFormComponent } from '../credential-form/form.component'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -28,11 +28,11 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     NgmI18nPipe,
     NgmSpinComponent,
     CopilotCredentialFormComponent
-]
+  ]
 })
 export class CopilotAiProviderAuthComponent {
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ provider: IAiProviderEntity; copilot: ICopilot; providerId: string; }>(DIALOG_DATA)
+  readonly #data = inject<{ provider: IAiProviderEntity; copilot: ICopilot; providerId: string }>(DIALOG_DATA)
   readonly #copilotProviderService = inject(CopilotProviderService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)

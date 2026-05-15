@@ -8,8 +8,8 @@ import {
   ZardTableCaptionComponent,
   ZardTableSortHeaderComponent,
   ZardTableStickyStartDirective,
-  ZardTableStickyEndDirective,
-} from '@/shared/components/table/table.component';
+  ZardTableStickyEndDirective
+} from './table.component'
 
 export const ZardTableImports = [
   ZardTableComponent,
@@ -21,5 +21,5 @@ export const ZardTableImports = [
   ZardTableCaptionComponent,
   ZardTableSortHeaderComponent,
   ZardTableStickyStartDirective,
-  ZardTableStickyEndDirective,
-] as const;
+  ZardTableStickyEndDirective
+] as const

@@ -35,8 +35,7 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
-import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -59,7 +58,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     KnowledgeLocalFileComponent,
     XpertParametersFormComponent,
     KnowledgeDocumentPreviewComponent
-]
+  ]
 })
 export class KnowledgeDocumentPipelineStep1Component {
   eKDocumentSourceType = KDocumentSourceType
@@ -142,14 +141,12 @@ export class KnowledgeDocumentPipelineStep1Component {
   readonly error = signal<string>(null)
 
   constructor() {
-    effect(
-      () => {
-        if (this.createFileTask.value()) {
-          this.taskId.set(this.createFileTask.value().id)
-          this.setSelection(this.createFileTask.value().context?.documents?.map((doc) => doc.id) ?? [])
-        }
+    effect(() => {
+      if (this.createFileTask.value()) {
+        this.taskId.set(this.createFileTask.value().id)
+        this.setSelection(this.createFileTask.value().context?.documents?.map((doc) => doc.id) ?? [])
       }
-    )
+    })
   }
 
   closePreview() {

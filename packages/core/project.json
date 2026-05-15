@@ -15,10 +15,10 @@
         "buildLibsFromSource": false,
         "assets": [
           {
-						"glob": "**/*.json",
-						"input": "packages/core/src/i18n/",
-						"output": "./src/i18n/"
-					},
+            "glob": "**/*.json",
+            "input": "packages/core/src/i18n/",
+            "output": "./src/i18n/"
+          },
           {
             "glob": "*.md",
             "input": "packages/core/",
@@ -27,9 +27,7 @@
         ],
         "compiler": "swc",
         "format": ["cjs", "esm"],
-        "external": [
-          "@xpert-ai/store"
-        ]
+        "external": ["@xpert-ai/store"]
       }
     },
     "publish": {
@@ -64,5 +62,5 @@
       }
     }
   },
-  "tags": []
+  "tags": ["scope:ocap-core"]
 }

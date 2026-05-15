@@ -8,18 +8,18 @@ import {
   linkedSignal,
   output,
   signal,
-  ViewEncapsulation,
-} from '@angular/core';
-import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+  ViewEncapsulation
+} from '@angular/core'
+import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
-import { toggleVariants, type ZardToggleVariants } from './toggle.variants';
+import { toggleVariants, type ZardToggleVariants } from './toggle.variants'
 
-type OnTouchedType = () => void;
-type OnChangeType = (value: boolean) => void;
+type OnTouchedType = () => void
+type OnChangeType = (value: boolean) => void
 
 @Component({
   selector: 'z-toggle',
@@ -40,79 +40,79 @@ type OnChangeType = (value: boolean) => void;
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => ZardToggleComponent),
-      multi: true,
-    },
+      multi: true
+    }
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '(mouseenter)': 'handleHover()',
+    '(mouseenter)': 'handleHover()'
   },
-  exportAs: 'zToggle',
+  exportAs: 'zToggle'
 })
 export class ZardToggleComponent implements ControlValueAccessor {
-  readonly zValue = input<boolean | undefined>();
-  readonly zDefault = input<boolean>(false);
-  readonly zDisabled = input(false, { alias: 'disabled', transform: booleanAttribute });
-  readonly zType = input<ZardToggleVariants['zType']>('default');
-  readonly zSize = input<ZardToggleVariants['zSize']>('md');
-  readonly zAriaLabel = input<string>('', { alias: 'aria-label' });
-  readonly class = input<ClassValue>('');
+  readonly zValue = input<boolean | undefined>()
+  readonly zDefault = input<boolean>(false)
+  readonly zDisabled = input(false, { alias: 'disabled', transform: booleanAttribute })
+  readonly zType = input<ZardToggleVariants['zType']>('default')
+  readonly zSize = input<ZardToggleVariants['zSize']>('md')
+  readonly zAriaLabel = input<string>('', { alias: 'aria-label' })
+  readonly class = input<ClassValue>('')
 
-  readonly zToggleClick = output<void>();
-  readonly zToggleHover = output<void>();
-  readonly zToggleChange = output<boolean>();
+  readonly zToggleClick = output<void>()
+  readonly zToggleHover = output<void>()
+  readonly zToggleChange = output<boolean>()
 
-  private readonly isUsingNgModel = signal(false);
+  private readonly isUsingNgModel = signal(false)
 
-  protected readonly value = linkedSignal(() => this.zValue() ?? this.zDefault());
+  protected readonly value = linkedSignal(() => this.zValue() ?? this.zDefault())
 
-  protected readonly disabled = linkedSignal(() => this.zDisabled());
+  protected readonly disabled = linkedSignal(() => this.zDisabled())
 
   protected readonly classes = computed(() =>
-    mergeClasses(toggleVariants({ zSize: this.zSize(), zType: this.zType() }), this.class()),
-  );
+    mergeClasses(toggleVariants({ zSize: this.zSize(), zType: this.zType() }), this.class())
+  )
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private onTouched: OnTouchedType = () => {};
+  private onTouched: OnTouchedType = () => {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private onChangeFn: OnChangeType = () => {};
+  private onChangeFn: OnChangeType = () => {}
 
   handleHover() {
-    this.zToggleHover.emit();
+    this.zToggleHover.emit()
   }
 
   toggle() {
     if (this.disabled()) {
-      return;
+      return
     }
 
-    const next = !this.value();
+    const next = !this.value()
 
     if (this.zValue() === undefined) {
-      this.value.set(next);
+      this.value.set(next)
     }
 
-    this.zToggleClick.emit();
-    this.zToggleChange.emit(next);
-    this.onChangeFn(next);
-    this.onTouched();
+    this.zToggleClick.emit()
+    this.zToggleChange.emit(next)
+    this.onChangeFn(next)
+    this.onTouched()
   }
 
   writeValue(val: boolean): void {
-    this.value.set(val ?? this.zDefault());
+    this.value.set(val ?? this.zDefault())
   }
 
   registerOnChange(fn: any): void {
-    this.onChangeFn = fn;
-    this.isUsingNgModel.set(true);
+    this.onChangeFn = fn
+    this.isUsingNgModel.set(true)
   }
 
   registerOnTouched(fn: any): void {
-    this.onTouched = fn;
+    this.onTouched = fn
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this.disabled.set(isDisabled);
+    this.disabled.set(isDisabled)
   }
 }

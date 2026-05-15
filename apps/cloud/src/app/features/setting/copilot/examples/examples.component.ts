@@ -3,13 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { saveAsYaml, uploadYamlFile } from '@xpert-ai/core'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
-import {
-  NgmCommonModule,
-  NgmConfirmDeleteService,
-  NgmConfirmOptionsComponent,
-  TableColumn
-} from '@xpert-ai/ocap-angular/common'
+import { NgmConfirmDeleteService, ZardDialogService } from '@xpert-ai/headless-ui'
+import { NgmCommonModule, NgmConfirmOptionsComponent, TableColumn } from '@xpert-ai/ocap-angular/common'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AppService } from 'apps/cloud/src/app/app.service'
@@ -39,7 +34,15 @@ import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
   selector: 'pac-settings-copilot-examples',
   templateUrl: './examples.component.html',
   styleUrls: ['./examples.component.scss'],
-  imports: [RouterModule, TranslateModule, SharedUiModule, FormsModule, ReactiveFormsModule, NgmCommonModule, ZardLoaderComponent]
+  imports: [
+    RouterModule,
+    TranslateModule,
+    SharedUiModule,
+    FormsModule,
+    ReactiveFormsModule,
+    NgmCommonModule,
+    ZardLoaderComponent
+  ]
 })
 export class CopilotExamplesComponent extends TranslationBaseComponent {
   DisplayBehaviour = DisplayBehaviour
@@ -129,18 +132,24 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
 
   readonly lang = this.appService.lang
   readonly refreshFilter$ = new BehaviorSubject<void>(null)
-  readonly _roles = toSignal(this.refreshFilter$.pipe(switchMap(() => this.xpertService.getMyCopilots()), map(({items}) => items)))
+  readonly _roles = toSignal(
+    this.refreshFilter$.pipe(
+      switchMap(() => this.xpertService.getMyCopilots()),
+      map(({ items }) => items)
+    )
+  )
   readonly roles = computed(() => {
     const lang = this.lang() as LanguagesEnum
-    const roles = this._roles()?.map((role) => ({
-      ...role,
-      title: [LanguagesEnum.Chinese, LanguagesEnum.SimplifiedChinese].includes(lang) ? role.titleCN : role.title
-    })) ?? []
+    const roles =
+      this._roles()?.map((role) => ({
+        ...role,
+        title: [LanguagesEnum.Chinese, LanguagesEnum.SimplifiedChinese].includes(lang) ? role.titleCN : role.title
+      })) ?? []
 
     return [
       {
         key: null,
-        caption: this.getTranslation('PAC.KEY_WORDS.Default', {Default: 'Default'})
+        caption: this.getTranslation('PAC.KEY_WORDS.Default', { Default: 'Default' })
       },
       ...roles.map((role) => ({
         value: role,
@@ -169,13 +178,11 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
   constructor() {
     super()
 
-    effect(
-      () => {
-        if (this.items()) {
-          this.loading.set(false)
-        }
+    effect(() => {
+      if (this.items()) {
+        this.loading.set(false)
       }
-    )
+    })
   }
 
   refresh() {
@@ -194,7 +201,7 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
     this.confirmDelete
       .confirm({
         value: id,
-        information: `${this.getTranslation('PAC.Copilot.Examples.Input', {Default: 'Input'})}: ${input}`
+        information: `${this.getTranslation('PAC.Copilot.Examples.Input', { Default: 'Input' })}: ${input}`
       })
       .pipe(
         switchMap((confirm) => {

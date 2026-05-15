@@ -5,7 +5,6 @@ import { HttpErrorResponse } from '@angular/common/http'
 import { Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { DataSourceService } from '@xpert-ai/cloud/state'
-import { NgmInputComponent } from '@xpert-ai/ocap-angular/common'
 import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { AgentType, DataSource, TableColumnType, compact } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -15,7 +14,7 @@ import { CreationTable, getErrorMessage } from '../../../@core'
 import { UploadSheetType, WorkBook, convertExcelDate2ISO, readExcelJson } from '../types'
 import { FilesUploadComponent, UploadFile } from '../../../@shared/files'
 import { SharedUiModule } from '../../../@shared/ui.module'
-import { ZardProgressCircleComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
+import { NgmInputComponent, ZardProgressCircleComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { createTimer } from '../../../@shared/timer'
 
 import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
@@ -103,7 +102,7 @@ export class ModelUploadComponent {
     this.error = null
     this.isLoading.set(true)
     // 暂时只支持单文件上传
-    this.fileList = Array.from(files).map((file) => ({file}))
+    this.fileList = Array.from(files).map((file) => ({ file }))
 
     this.sheets$.next([])
     try {
@@ -125,13 +124,15 @@ export class ModelUploadComponent {
   async appendFile(file: File) {
     // Multiple sheets for excel file
     const sheets = await readExcelWorkSheets(file)
-    this.sheets$.next(this.sheets$.value.concat(
-      ...sheets.map((item) => ({
-        ...item,
-        displayedColumns: compact(item.columns.map((column) => column.name)),
-        file
-      }))
-    ))
+    this.sheets$.next(
+      this.sheets$.value.concat(
+        ...sheets.map((item) => ({
+          ...item,
+          displayedColumns: compact(item.columns.map((column) => column.name)),
+          file
+        }))
+      )
+    )
   }
 
   async updateColumnType(sheet: UploadSheetType, header: UploadSheetType['columns'][0], event: TableColumnType) {

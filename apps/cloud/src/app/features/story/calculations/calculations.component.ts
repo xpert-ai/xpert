@@ -6,9 +6,19 @@ import { Component, ViewContainerRef, computed, effect, inject, model, signal } 
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardDividerComponent, ZardIconComponent, ZardMenuImports, ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  NgmConfirmDeleteService,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogService,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardMenuImports,
+  ZardProgressBarComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { ISelectOption, filterSearch } from '@xpert-ai/ocap-angular/core'
 import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import { CalculationProperty, DisplayBehaviour, ParameterProperty, getEntityCalculations } from '@xpert-ai/ocap-core'
@@ -146,14 +156,12 @@ export class StoryCalculationsComponent {
     private readonly _dialog: ZardDialogService,
     private readonly _viewContainerRef: ViewContainerRef
   ) {
-    effect(
-      () => {
-        const entities = this.entities$()
-        if (!this.activeLink() && entities?.length > 0) {
-          this.activeEntity(entities[0].value.dataSource, entities[0].key)
-        }
+    effect(() => {
+      const entities = this.entities$()
+      if (!this.activeLink() && entities?.length > 0) {
+        this.activeEntity(entities[0].value.dataSource, entities[0].key)
       }
-    )
+    })
   }
 
   activeEntity(dataSource: string, entity: string) {

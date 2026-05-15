@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -18,7 +17,7 @@ import {
 import { PRESET_INSTRUCTIONS } from './agent'
 import { CopilotInstructionEditorComponent } from '../instruction-editor/editor.component'
 import { CopilotModelSelectComponent } from '../copilot-model-select/select.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'copilot-prompt-generator',
@@ -34,7 +33,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     CopilotModelSelectComponent,
     CopilotInstructionEditorComponent
-]
+  ]
 })
 export class CopilotPromptGeneratorComponent {
   eModelType = AiModelTypeEnum

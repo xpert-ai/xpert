@@ -6,7 +6,6 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
 import { SemanticModelServerService } from '@xpert-ai/cloud/state'
-import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, ISemanticModel, IUser, Store, ToastrService } from 'apps/cloud/src/app/@core'
@@ -20,7 +19,15 @@ import {
 import { uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, map, switchMap } from 'rxjs'
 import { ModelComponent } from '../model.component'
-import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmDelete,
+  NgmSearchComponent,
+  NgmSpinComponent,
+  NgmTableComponent,
+  ZardButtonComponent,
+  ZardDialogService,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -37,7 +44,7 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xper
     NgmSearchComponent,
     NgmTableComponent,
     NgmSpinComponent
-],
+  ],
   selector: 'pac-model-admin',
   templateUrl: 'admin.component.html',
   styleUrl: 'admin.component.scss'

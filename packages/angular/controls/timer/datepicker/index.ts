@@ -1,6 +1,8 @@
+export {
+  NgmDatepickerComponent,
+  NgmMonthpickerComponent,
+  NgmQuarterpickerComponent,
+  NgmYearpickerComponent
+} from '@xpert-ai/headless-ui'
 export * from './datepicker.component'
 export * from './datepicker.module'
-export * from './monthpicker/monthpicker.component'
-export * from './quarterpicker/quarterpicker.component'
-export * from './yearpicker/yearpicker.component'
-export * from './datepicker/datepicker.component'

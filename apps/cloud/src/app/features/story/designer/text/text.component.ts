@@ -1,13 +1,19 @@
-
 import { ChangeDetectionStrategy, Component, forwardRef, inject } from '@angular/core'
-import { ControlValueAccessor, FormBuilder, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { NgmInputComponent, NgmSelectComponent, NgmSliderInputComponent } from '@xpert-ai/ocap-angular/common'
+import {
+  ControlValueAccessor,
+  FormBuilder,
+  FormControl,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule
+} from '@angular/forms'
 import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { ComponentStyling } from '@xpert-ai/story/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ColorInputComponent } from '../color-input/color-input.component'
 import { SharedUiModule } from '../../../../@shared/ui.module'
+import { NgmInputComponent, NgmSelectComponent, NgmSliderInputComponent } from '@xpert-ai/headless-ui'
 
 const UI_DEFAULT_FONT_FAMILY =
   "var(--font-xp-sans, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif)"
@@ -26,7 +32,7 @@ const UI_DEFAULT_FONT_FAMILY =
     NgmInputComponent,
     NgmSelectComponent,
     ColorInputComponent
-],
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-designer-text',
   templateUrl: './text.component.html',
@@ -45,15 +51,15 @@ export class DesignerTextComponent implements ControlValueAccessor {
 
   fontFamilies = [
     UI_DEFAULT_FONT_FAMILY,
-    "Arial, Helvetica, sans-serif",
+    'Arial, Helvetica, sans-serif',
     "'Times New Roman', Times, serif",
-    "Verdana, Geneva, sans-serif",
-    "Georgia, serif",
+    'Verdana, Geneva, sans-serif',
+    'Georgia, serif',
     "'Courier New', Courier, monospace",
-    "Tahoma, Geneva, sans-serif",
+    'Tahoma, Geneva, sans-serif',
     "'Trebuchet MS', sans-serif",
-    "Palatino, serif",
-    "Impact, Charcoal, sans-serif",
+    'Palatino, serif',
+    'Impact, Charcoal, sans-serif',
     "'Lucida Sans Unicode', 'Lucida Grande', sans-serif"
   ]
   fontFamilyOptions = [
@@ -67,21 +73,7 @@ export class DesignerTextComponent implements ControlValueAccessor {
     },
     ...this.fontFamilies.filter((value) => value !== UI_DEFAULT_FONT_FAMILY).map((value) => ({ value, label: value }))
   ]
-  fontWeights = [
-    'normal',
-    'bold',
-    'bolder',
-    'lighter',
-    '100',
-    '200',
-    '300',
-    '400',
-    '500',
-    '600',
-    '700',
-    '800',
-    '900'
-  ]
+  fontWeights = ['normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900']
   fontWeightOptions = this.fontWeights.map((fontWeight) => ({
     value: fontWeight,
     label: fontWeight
@@ -154,9 +146,8 @@ export class DesignerTextComponent implements ControlValueAccessor {
   imports: [FormlyModule, TranslateModule, ReactiveFormsModule, DesignerTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-text-designer',
-  template: `
-<!-- Optional field label rendered by the designer wrapper. -->
-<pac-designer-text class="ngm-density__compact" [formControl]="$any(formControl)" />`,
+  template: ` <!-- Optional field label rendered by the designer wrapper. -->
+    <pac-designer-text class="ngm-density__compact" [formControl]="$any(formControl)" />`,
   styles: [
     `
       :host {
@@ -166,6 +157,4 @@ export class DesignerTextComponent implements ControlValueAccessor {
     `
   ]
 })
-export class PACFormlyTextDesignerComponent extends FieldType {
-
-}
+export class PACFormlyTextDesignerComponent extends FieldType {}

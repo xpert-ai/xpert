@@ -1,25 +1,16 @@
-
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { ParameterTypeEnum, TParameter } from '../../../@core/types'
 import { NgmSelectComponent } from '../../common'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  */
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    TranslateModule,
-    ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmSelectComponent,
-    NgmCheckboxComponent
-],
+  imports: [FormsModule, TranslateModule, ...ZardTooltipImports, NgmI18nPipe, NgmSelectComponent, NgmCheckboxComponent],
   selector: 'parameter',
   templateUrl: 'parameter.component.html',
   styleUrls: ['parameter.component.scss'],

@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { IWFNSkill } from 'apps/cloud/src/app/@core'
 import { NgxFloatUiModule } from 'ngx-float-ui'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { isEqual } from 'lodash-es'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-node-skill',
   templateUrl: './skill.component.html',

@@ -1,0 +1,103 @@
+@reference "tailwindcss";
+:host {
+  @apply flex items-center gap-2;
+
+  &.disabled {
+    .tag {
+      @apply opacity-50;
+    }
+  }
+
+  .tag {
+    @apply shadow-sm;
+
+    &.primary {
+      color: var(--ngm-color-on-primary-container);
+      --ngm-tag-bg: var(--ngm-color-primary-container);
+      --ngm-tag-selected-bg: var(--ngm-color-primary-container);
+    }
+    &.blue {
+      color: var(--color-text-accent);
+      --ngm-tag-bg: color-mix(in oklab, var(--color-text-accent) 12%, transparent);
+      --ngm-tag-selected-bg: color-mix(in oklab, var(--color-text-accent) 18%, transparent);
+    }
+    &.green {
+      color: var(--color-text-success);
+      --ngm-tag-bg: color-mix(in oklab, var(--color-text-success) 12%, transparent);
+      --ngm-tag-selected-bg: color-mix(in oklab, var(--color-text-success) 18%, transparent);
+    }
+    &.red {
+      color: var(--color-text-destructive);
+      --ngm-tag-bg: color-mix(in oklab, var(--color-text-destructive) 12%, transparent);
+      --ngm-tag-selected-bg: color-mix(in oklab, var(--color-text-destructive) 18%, transparent);
+    }
+    &.yellow {
+      color: var(--color-text-warning);
+      --ngm-tag-bg: color-mix(in oklab, var(--color-text-warning) 12%, transparent);
+      --ngm-tag-selected-bg: color-mix(in oklab, var(--color-text-warning) 18%, transparent);
+    }
+    &.gray {
+      color: var(--muted-foreground);
+      --ngm-tag-bg: var(--muted);
+      --ngm-tag-selected-bg: var(--muted);
+    }
+    &.orange {
+      color: var(--color-text-warning);
+      --ngm-tag-bg: color-mix(in oklab, var(--color-text-warning) 12%, transparent);
+      --ngm-tag-selected-bg: color-mix(in oklab, var(--color-text-warning) 18%, transparent);
+    }
+  }
+
+  &.selectable {
+    .tag {
+      @apply cursor-pointer;
+
+      &.selected {
+        background-color: var(--ngm-tag-selected-bg, var(--muted));
+      }
+    }
+  }
+
+  &:not(.selectable) {
+    .tag {
+      &.primary {
+        background-color: var(--ngm-color-primary-container);
+      }
+      &:not(.primary) {
+        background-color: var(--ngm-tag-bg, var(--muted));
+      }
+    }
+  }
+
+  &.small {
+    .tag {
+      @apply px-1.5 py-0.5 rounded-md text-xs font-medium;
+    }
+  }
+
+  &.large {
+    .tag {
+      @apply px-4 py-1 rounded-lg text-base;
+    }
+  }
+}
+
+.tag {
+  @apply px-3 py-1 rounded-lg;
+}
+
+::ng-deep {
+  .ngm-density__cosy .ngm-tags,
+  .ngm-tags.ngm-density__cosy {
+    .tag {
+      @apply px-2 py-0.5 rounded-lg text-sm;
+    }
+  }
+
+  .ngm-density__compact .ngm-tags,
+  .ngm-tags.ngm-density__compact {
+    .tag {
+      @apply px-1 py-0 rounded-md text-sm font-semibold;
+    }
+  }
+}

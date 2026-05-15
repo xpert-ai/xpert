@@ -6,7 +6,6 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { DEFAULT_XPERT_AGENT_RECURSION_LIMIT } from '@xpert-ai/contracts'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, linkedModel, nonBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
@@ -38,7 +37,7 @@ import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
-import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 import { OverlayAnimations } from '@xpert-ai/core'
 
@@ -53,7 +52,7 @@ import { OverlayAnimations } from '@xpert-ai/core'
     ZardSliderComponent,
     TranslateModule,
     NgmSpinComponent,
-    ChecklistComponent,
+    ChecklistComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',

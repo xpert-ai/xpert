@@ -26,7 +26,11 @@ import {
   type ZardTableSortDirection,
   ZardFlatTreeControl,
   ZardTreeFlatDataSource,
-  ZardTreeFlattener
+  ZardTreeFlattener,
+  paginateTableRows,
+  parseTableWidthToPx,
+  sortTableRows,
+  type TableSortState
 } from '@xpert-ai/headless-ui'
 import { csvDownload, DisplayDensity, mergeSelectedValues, NgmAppearance } from '@xpert-ai/ocap-angular/core'
 import {
@@ -75,7 +79,6 @@ import { TranslateService } from '@ngx-translate/core'
 import { maxBy, minBy, orderBy, unionBy } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
 import { combineLatestWith, debounceTime, filter, map, shareReplay, withLatestFrom } from 'rxjs/operators'
-import { paginateTableRows, parseTableWidthToPx, sortTableRows, type TableSortState } from '../common/table/table.utils'
 import { NgmAnalyticsBusinessService } from './analytics.service'
 import { getChromaticScale, getContrastYIQ } from './chromatics'
 import {
@@ -103,9 +106,7 @@ import { NgmTreeFlatDataSource } from './tree-flat-data-source'
     '[attr.aria-disabled]': 'disabled.toString()',
     class: 'ngm-analytical-grid mat-focus-indicator'
   },
-  providers: [
-    NgmAnalyticsBusinessService,
-  ]
+  providers: [NgmAnalyticsBusinessService]
 })
 export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, FocusableOption {
   AggregationRole = AggregationRole
@@ -147,7 +148,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   set slicers(value) {
     this._slicers.set(value)
   }
-  private readonly _slicers = signal<ISlicer[]>([], {equal: isEqual})
+  private readonly _slicers = signal<ISlicer[]>([], { equal: isEqual })
 
   @Output() columnSelectionChanging = new EventEmitter<IColumnSelectionEventArgs>()
   @Output() slicersChanging = new EventEmitter<ISlicer[]>()
@@ -157,11 +158,16 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   readonly showToolbar = computed(() => isNil(this.options()?.showToolbar) || this.options().showToolbar)
 
   // Inner states
-  readonly tablesConfig = signal<{rowAxes?: AnalyticalGridColumn[]; columnAxes?: AnalyticalGridColumn[]; pivotColumns?: AnalyticalGridColumn[][];
-      matHeaders: string[];
-      matRestHeaders: string[][];
+  readonly tablesConfig = signal<
+    {
+      rowAxes?: AnalyticalGridColumn[]
+      columnAxes?: AnalyticalGridColumn[]
+      pivotColumns?: AnalyticalGridColumn[][]
+      matHeaders: string[]
+      matRestHeaders: string[][]
       matRowColumns?: string[]
-    }[]>([])
+    }[]
+  >([])
   readonly pageIndex = signal(0)
   readonly pageSize = signal(20)
   readonly sortState = signal<TableSortState>({ active: null, direction: '' })
@@ -171,14 +177,14 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     i: number | string
     prevRow?: {
       [key: string]: PrimitiveType
-    };
+    }
     rowMembers?: {
       [key: string]: PrimitiveType
-    };
-    column: AnalyticalGridColumn;
+    }
+    column: AnalyticalGridColumn
     columnMembers?: {
       [key: string]: AnalyticalGridColumn
-    };
+    }
   } = {
     prevI: null,
     prevColumn: null,
@@ -252,58 +258,64 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   public readonly data$ = this.analyticsService.selectResult().pipe(map((result) => result.data))
 
   readonly rowAxes$: Observable<AnalyticalGridColumn[]> = this.analyticsService.analytics$.pipe(
-      map((analytics) => {
-        const columns: AnalyticalGridColumn[] = []
-        const measures = {
-            name: C_MEASURES,
-            dimension: C_MEASURES,
-            caption: this.translateService.instant('Ngm.Common.Measures', { Default: 'Measures' }),
-            members: []
-          } as AnalyticalGridColumn
-        analytics.rows?.forEach((column) => {
-          if (isDimension(column)) {
-            columns.push({
-              ...column,
-              name: column.dimension === C_MEASURES ? wrapBrackets(C_MEASURES) : column.property?.name,
-              caption: column.caption || (column.dimension === C_MEASURES ? C_MEASURES : (column.property?.caption ?? column.name)),
-              memberCaption: getDimensionMemberCaption(column, this.entityType()) ||
-                (column.dimension === C_MEASURES ? C_MEASURES_CAPTION : column.name),
-              displayBehaviour: column.displayBehaviour ?? DisplayBehaviour.descriptionOnly
-            } as AnalyticalGridColumn)
-            // Properties
-            column.properties?.forEach((name) => {
-              const hierarchy = getEntityHierarchy(this.entityType(), pick(column, 'dimension', 'hierarchy'))
-              const property = getHierarchyProperty(hierarchy, name)
-              if (property) {
-                columns.push({
-                  name: name,
-                  caption: property.caption,
-                  memberCaption: name,
-                  displayBehaviour: DisplayBehaviour.descriptionOnly,
-                  property
-                } as AnalyticalGridColumn)
-              }
-            })
-          } else if (isMeasure(column)) {
-            measures.members.push(column as any)
-          }
-        })
-
-        if (measures.members.length) {
-          columns.push(measures)
+    map((analytics) => {
+      const columns: AnalyticalGridColumn[] = []
+      const measures = {
+        name: C_MEASURES,
+        dimension: C_MEASURES,
+        caption: this.translateService.instant('Ngm.Common.Measures', { Default: 'Measures' }),
+        members: []
+      } as AnalyticalGridColumn
+      analytics.rows?.forEach((column) => {
+        if (isDimension(column)) {
+          columns.push({
+            ...column,
+            name: column.dimension === C_MEASURES ? wrapBrackets(C_MEASURES) : column.property?.name,
+            caption:
+              column.caption ||
+              (column.dimension === C_MEASURES ? C_MEASURES : (column.property?.caption ?? column.name)),
+            memberCaption:
+              getDimensionMemberCaption(column, this.entityType()) ||
+              (column.dimension === C_MEASURES ? C_MEASURES_CAPTION : column.name),
+            displayBehaviour: column.displayBehaviour ?? DisplayBehaviour.descriptionOnly
+          } as AnalyticalGridColumn)
+          // Properties
+          column.properties?.forEach((name) => {
+            const hierarchy = getEntityHierarchy(this.entityType(), pick(column, 'dimension', 'hierarchy'))
+            const property = getHierarchyProperty(hierarchy, name)
+            if (property) {
+              columns.push({
+                name: name,
+                caption: property.caption,
+                memberCaption: name,
+                displayBehaviour: DisplayBehaviour.descriptionOnly,
+                property
+              } as AnalyticalGridColumn)
+            }
+          })
+        } else if (isMeasure(column)) {
+          measures.members.push(column as any)
         }
+      })
 
-        return unionBy(columns.filter((_) => _.name), 'name')
-      }),
-      combineLatestWith(this._columns$),
-      map(([_columns, _columnsOptions]) => {
-        return _columns.map((column) => {
-          return this.mergeColumnOptions(column, column.name, _columnsOptions)
-        })
-      }),
-      takeUntilDestroyed(),
-      shareReplay(1)
-    )
+      if (measures.members.length) {
+        columns.push(measures)
+      }
+
+      return unionBy(
+        columns.filter((_) => _.name),
+        'name'
+      )
+    }),
+    combineLatestWith(this._columns$),
+    map(([_columns, _columnsOptions]) => {
+      return _columns.map((column) => {
+        return this.mergeColumnOptions(column, column.name, _columnsOptions)
+      })
+    }),
+    takeUntilDestroyed(),
+    shareReplay(1)
+  )
 
   readonly columnAxes$: Observable<AnalyticalGridColumn[]> = this.analyticsService.selectResult().pipe(
     filter(({ error }) => !error),
@@ -404,21 +416,24 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   // Calc Visual Maps from measures
   private visualMapSub = this.analyticsService.analytics$.pipe(takeUntilDestroyed()).subscribe({
     next: (analytics) => {
-      this.visualMaps = [...(analytics.columns ?? []), ...(analytics.rows ?? [])].reduce<typeof this.visualMaps>((visualMaps, dimension) => {
-        if (isMeasure(dimension) && (dimension.palette?.name || dimension.palette?.colors?.length)) {
-          if (dimension.measure) {
-            visualMaps[dimension.measure] = dimension
-          } else if (dimension.members) {
-            dimension.members.filter(isString).forEach((measure) => {
-              visualMaps[measure] = {
-                ...dimension,
-                measure
-              }
-            })
+      this.visualMaps = [...(analytics.columns ?? []), ...(analytics.rows ?? [])].reduce<typeof this.visualMaps>(
+        (visualMaps, dimension) => {
+          if (isMeasure(dimension) && (dimension.palette?.name || dimension.palette?.colors?.length)) {
+            if (dimension.measure) {
+              visualMaps[dimension.measure] = dimension
+            } else if (dimension.members) {
+              dimension.members.filter(isString).forEach((measure) => {
+                visualMaps[measure] = {
+                  ...dimension,
+                  measure
+                }
+              })
+            }
           }
-        }
-        return visualMaps
-      }, {})
+          return visualMaps
+        },
+        {}
+      )
     }
   })
   private explainSub = combineLatest([this.analyticsService.dataSettings$, this.analyticsService.selectResult()])
@@ -469,34 +484,32 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
         if (pivotCol.isCell) {
           pivotCol.measure = pivotCol.name
         }
-        levels[0].push(
-          pivotCol
-        )
+        levels[0].push(pivotCol)
       })
 
       this.pivotColumns = levels
     })
   // set columnsDataSource
   private querySchemaColumnsSub = this.querySchemaColumns$.pipe(takeUntilDestroyed()).subscribe((columns) => {
-      const treeDataNodes = columns.length
-        ? hierarchize(columns, {
-            valueProperty: 'uniqueName',
-            parentNodeProperty: 'parentUniqueName',
-            labelProperty: 'caption'
-          })
-        : []
-
-      this.columnsDataSource.data = treeDataNodes
-      // Expand initial column level after data initialization
-      if (this.options()?.initialColumnLevel > 0) {
-        this.columnTreeControl.dataNodes.forEach((node) => {
-          const level = this.columnTreeControl.getLevel(node)
-          if (level < this.options().initialColumnLevel) {
-            this.columnTreeControl.expand(node)
-          }
+    const treeDataNodes = columns.length
+      ? hierarchize(columns, {
+          valueProperty: 'uniqueName',
+          parentNodeProperty: 'parentUniqueName',
+          labelProperty: 'caption'
         })
-      }
-    })
+      : []
+
+    this.columnsDataSource.data = treeDataNodes
+    // Expand initial column level after data initialization
+    if (this.options()?.initialColumnLevel > 0) {
+      this.columnTreeControl.dataNodes.forEach((node) => {
+        const level = this.columnTreeControl.getLevel(node)
+        if (level < this.options().initialColumnLevel) {
+          this.columnTreeControl.expand(node)
+        }
+      })
+    }
+  })
   // columns tree data
   private schemaColumnsSub = this.analyticsService
     .selectResult()
@@ -550,7 +563,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
                 }
                 return {
                   ...result.schema.columnAxes[2],
-                  ...column,
+                  ...column
                 }
               })
             }
@@ -587,51 +600,53 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
         matHeaders = compact([...rowColumns, ...pivotColumnNames[0]])
       }
 
-      this.tablesConfig.set([{
-        rowAxes: this.rowAxes,
-        columnAxes: this.columnAxes,
-        pivotColumns: this.pivotColumns,
-        matHeaders,
-        matRestHeaders,
-        matRowColumns: compact(
-          rowColumns.length
-            ? [...rowColumns, ...pivotColumnNames[pivotColumnNames.length - 1]]
-            : [
-              // columnAxes[columnAxes.length - 1]?.dimension, 
-              ...pivotColumnNames[pivotColumnNames.length - 1]
-            ]
+      this.tablesConfig.set([
+        {
+          rowAxes: this.rowAxes,
+          columnAxes: this.columnAxes,
+          pivotColumns: this.pivotColumns,
+          matHeaders,
+          matRestHeaders,
+          matRowColumns: compact(
+            rowColumns.length
+              ? [...rowColumns, ...pivotColumnNames[pivotColumnNames.length - 1]]
+              : [
+                  // columnAxes[columnAxes.length - 1]?.dimension,
+                  ...pivotColumnNames[pivotColumnNames.length - 1]
+                ]
           )
-      }])
+        }
+      ])
 
       this.cdr.detectChanges()
     })
-  
+
   // Flat data to tree dataSource
   private filteredTreeDataSub = this.filteredData$
-      .pipe(
-        filter(() => this.rowRecursiveHierarchy),
-        withLatestFrom(this.rowAxes$),
-        takeUntilDestroyed()
-      )
-      .subscribe({
-        next: ([data, rows]) => {
-          const compositeKeys = rows
-            .map((row: AnalyticalGridColumn) => row.name)
-            .filter((key: string) => key !== this.rowRecursiveHierarchy.valueProperty)
-          this.rowDataSource.data = hierarchize<T>(data as T[], this.rowRecursiveHierarchy, { compositeKeys })
-          // Initial row depth after data initialization
-          if (this.options()?.initialRowLevel > 0) {
-            this.rowTreeControl.dataNodes.forEach((node) => {
-              const level = this.rowTreeControl.getLevel(node)
-              if (level < this.options().initialRowLevel) {
-                this.rowTreeControl.expand(node)
-              }
-            })
-          }
-
-          this.cdr.detectChanges()
+    .pipe(
+      filter(() => this.rowRecursiveHierarchy),
+      withLatestFrom(this.rowAxes$),
+      takeUntilDestroyed()
+    )
+    .subscribe({
+      next: ([data, rows]) => {
+        const compositeKeys = rows
+          .map((row: AnalyticalGridColumn) => row.name)
+          .filter((key: string) => key !== this.rowRecursiveHierarchy.valueProperty)
+        this.rowDataSource.data = hierarchize<T>(data as T[], this.rowRecursiveHierarchy, { compositeKeys })
+        // Initial row depth after data initialization
+        if (this.options()?.initialRowLevel > 0) {
+          this.rowTreeControl.dataNodes.forEach((node) => {
+            const level = this.rowTreeControl.getLevel(node)
+            if (level < this.options().initialRowLevel) {
+              this.rowTreeControl.expand(node)
+            }
+          })
         }
-      })
+
+        this.cdr.detectChanges()
+      }
+    })
   // table data
   private dataSub = this.analyticsService
     .selectResult()
@@ -672,29 +687,23 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     private _focusMonitor: FocusMonitor,
     public elementRef: ElementRef<HTMLElement>
   ) {
-    effect(
-      () => {
-        const slicers = this._slicers()
-        if (this.dataSettings) {
-          const dataSettings = {
-            ...this.dataSettings,
-            selectionVariant: {
-              ...(this.dataSettings.selectionVariant ?? {}),
-              selectOptions: [
-                ...(this.dataSettings.selectionVariant?.selectOptions ?? []),
-              ]
-            }
+    effect(() => {
+      const slicers = this._slicers()
+      if (this.dataSettings) {
+        const dataSettings = {
+          ...this.dataSettings,
+          selectionVariant: {
+            ...(this.dataSettings.selectionVariant ?? {}),
+            selectOptions: [...(this.dataSettings.selectionVariant?.selectOptions ?? [])]
           }
-
-          if (slicers) {
-            dataSettings.selectionVariant.selectOptions.push(
-              ...slicers
-            )
-          }
-          this.analyticsService.dataSettings = dataSettings
         }
+
+        if (slicers) {
+          dataSettings.selectionVariant.selectOptions.push(...slicers)
+        }
+        this.analyticsService.dataSettings = dataSettings
       }
-    )
+    })
 
     effect(() => {
       const defaultPageSize = this.options()?.pageSize ?? 20
@@ -706,8 +715,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     effect(() => {
       const total = this.resultsLength()
       const pageSize = this.pageSize()
-      const maxPageIndex =
-        this.options()?.paging && pageSize > 0 ? Math.max(Math.ceil(total / pageSize) - 1, 0) : 0
+      const maxPageIndex = this.options()?.paging && pageSize > 0 ? Math.max(Math.ceil(total / pageSize) - 1, 0) : 0
 
       if (this.pageIndex() > maxPageIndex) {
         this.pageIndex.set(maxPageIndex)
@@ -769,10 +777,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     return sortState.active === columnName ? sortState.direction : ''
   }
 
-  orderedRowAxes(tableConfig: {
-    rowAxes?: AnalyticalGridColumn[]
-    matRowColumns?: string[]
-  }) {
+  orderedRowAxes(tableConfig: { rowAxes?: AnalyticalGridColumn[]; matRowColumns?: string[] }) {
     const rowAxes = tableConfig.rowAxes ?? []
     const rowAxisMap = new Map(rowAxes.map((column) => [column.name, column]))
     const orderedNames = tableConfig.matRowColumns?.filter((name) => rowAxisMap.has(name)) ?? []
@@ -905,11 +910,15 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   }
 
   isRowSelected(row: T, i: number) {
-    return this.selected.i === i && this.selected.rowMembers && !Object.keys(this.selected.rowMembers).some((name) => this.selected.rowMembers[name] !== row[name])
+    return (
+      this.selected.i === i &&
+      this.selected.rowMembers &&
+      !Object.keys(this.selected.rowMembers).some((name) => this.selected.rowMembers[name] !== row[name])
+    )
   }
   isRowCell(element: T, column: AnalyticalGridColumn, j: number) {
-    return isMeasure(this.selected.column) ?
-      this.selected.rowMembers?.[column.name] === element[column.name]
+    return isMeasure(this.selected.column)
+      ? this.selected.rowMembers?.[column.name] === element[column.name]
       : this.selected.column?.name === column.name
   }
 
@@ -919,7 +928,11 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
       return acc
     }, {})
 
-    if (this.selected.i === i && isEqual(rowMembers, this.selected.rowMembers) && this.selected.prevColumn === this.selected.column.name) {
+    if (
+      this.selected.i === i &&
+      isEqual(rowMembers, this.selected.rowMembers) &&
+      this.selected.prevColumn === this.selected.column.name
+    ) {
       this.selected.i = null
       this.selected.rowMembers = null
       this.selected.column = null
@@ -949,15 +962,15 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
               ]
             }
           }),
-          ...Object.values(this.selected.columnMembers).filter(negate(isMeasure)).map((column) => ({
-            dimension: {
-              dimension: column.dimension,
-              hierarchy: column.hierarchy
-            },
-            members: [
-              column.member
-            ]
-          }))
+          ...Object.values(this.selected.columnMembers)
+            .filter(negate(isMeasure))
+            .map((column) => ({
+              dimension: {
+                dimension: column.dimension,
+                hierarchy: column.hierarchy
+              },
+              members: [column.member]
+            }))
         ]
       } else {
         // When a row member is selected, use the row cell member as a slicer
@@ -988,7 +1001,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     this.selected.column = column
 
     this.selected.columnMembers = {}
-    while(column) {
+    while (column) {
       this.selected.columnMembers[column.name] = column
       column = column.parent
     }
@@ -1085,7 +1098,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
       return tables.map((table) => {
         table.matHeaders = moveLeft(table.matHeaders, name)
         table.matRowColumns = moveLeft(table.matRowColumns, name)
-        return {...table}
+        return { ...table }
       })
     })
     // this.matHeaders = moveLeft(this.matHeaders, name)
@@ -1097,7 +1110,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
       return tables.map((table) => {
         table.matHeaders = moveRight(table.matHeaders, name)
         table.matRowColumns = moveRight(table.matRowColumns, name)
-        return {...table}
+        return { ...table }
       })
     })
     // this.matHeaders = moveRight(this.matHeaders, name)
@@ -1279,7 +1292,9 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     this.rowDataSource.connect({ viewChange: of({ start: 0, end: Number.MAX_SAFE_INTEGER }) }),
     { initialValue: [] as any[] }
   )
-  readonly resultsLength = computed(() => (this.rowTreeProperty() ? this.treeRows().length : this.sortedFlatData().length))
+  readonly resultsLength = computed(() =>
+    this.rowTreeProperty() ? this.treeRows().length : this.sortedFlatData().length
+  )
   readonly treeData = computed(() =>
     this.options()?.paging ? paginateTableRows(this.treeRows(), this.pageIndex(), this.pageSize()) : this.treeRows()
   )
@@ -1289,7 +1304,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
       : this.sortedFlatData()
   )
   readonly tableRows = computed(() => (this.rowTreeProperty() ? this.treeData() : this.flatData()))
-  
+
   copy(selected: typeof this.selected) {
     const treeData = this.treeData()
     const flatData = this.flatData()
@@ -1300,15 +1315,20 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
         if (!isNil(selected.i)) {
           rows = [rows[selected.i]]
         }
-        text = rows.map((rowMember) => {
-          if (isMeasure(selected.column)) {
-            return (rowMember[selected.column.name] as {value: number})?.value
-          }
-          return displayByBehaviour({
-            key: rowMember[selected.column.hierarchy || selected.column.dimension],
-            caption: rowMember[selected.column.memberCaption],
-          }, selected.column.displayBehaviour ?? DisplayBehaviour.descriptionOnly)
-        }).join('\r\n')
+        text = rows
+          .map((rowMember) => {
+            if (isMeasure(selected.column)) {
+              return (rowMember[selected.column.name] as { value: number })?.value
+            }
+            return displayByBehaviour(
+              {
+                key: rowMember[selected.column.hierarchy || selected.column.dimension],
+                caption: rowMember[selected.column.memberCaption]
+              },
+              selected.column.displayBehaviour ?? DisplayBehaviour.descriptionOnly
+            )
+          })
+          .join('\r\n')
       }
       if (text) {
         navigator.clipboard.writeText(text).catch(() => {
@@ -1350,9 +1370,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   @HostListener('document:keydown', ['$event'])
   keyUpEvent(event: KeyboardEvent) {
     // Support both Ctrl+C (Windows/Linux) and Cmd+C (macOS)
-    const isCopy =
-      (event.ctrlKey && event.key === 'c') ||
-      (event.metaKey && event.key === 'c')
+    const isCopy = (event.ctrlKey && event.key === 'c') || (event.metaKey && event.key === 'c')
     // Copy when element is focused
     if (isCopy && this._getHostElement() === document.activeElement) {
       this.copy(this.selected)
@@ -1369,14 +1387,14 @@ function downloadData(fileName: string, analytics: DataSettings['analytics'], en
     const property = getEntityProperty2(entityType, item)
     if (isDimension(item)) {
       return {
-          key: property.name,
-          label: property.caption || property.name,
-          caption: getDimensionMemberCaption(item, entityType)
-        } 
+        key: property.name,
+        label: property.caption || property.name,
+        caption: getDimensionMemberCaption(item, entityType)
+      }
     }
     return {
       key: property.name,
-      label: property.caption || property.name,
+      label: property.caption || property.name
     }
   })
   const items = []

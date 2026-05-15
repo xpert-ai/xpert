@@ -10,12 +10,10 @@ import { cloneDeep, merge } from 'lodash-es'
 import { map } from 'rxjs'
 import { getErrorMessage, LANGUAGES, Visibility } from '../../../../@core/types'
 
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { TranslateModule } from '@ngx-translate/core'
 import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

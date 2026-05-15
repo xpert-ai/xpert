@@ -1,5 +1,8 @@
-export * from './resize-observer.directive'
-export * from './highlight.directive'
-export * from './highlight-var.directive'
-export * from './timer.directive'
-export * from './resizable.directive'
+export {
+  NgmHighlightDirective,
+  NgmHighlightVarDirective,
+  NgmResizableDirective,
+  NgmTimerDirective,
+  ResizeObserverDirective
+} from '@xpert-ai/headless-ui'
+export type { ResizeDirection } from '@xpert-ai/headless-ui'

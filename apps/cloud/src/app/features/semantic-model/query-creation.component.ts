@@ -3,8 +3,14 @@ import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import {
+  NgmSelectComponent,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardFormImports,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelServerService } from '@xpert-ai/cloud/state'
@@ -13,7 +19,20 @@ import { ModelQueryService, uuid } from '../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ZardDialogModule, TranslateModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, DragDropModule, ZardButtonComponent, ZardInputDirective, ButtonGroupDirective, DensityDirective, NgmSelectComponent],
+  imports: [
+    CommonModule,
+    ZardDialogModule,
+    TranslateModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ...ZardFormImports,
+    DragDropModule,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ButtonGroupDirective,
+    DensityDirective,
+    NgmSelectComponent
+  ],
   selector: 'pac-query-creation',
   template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none;">
@@ -22,13 +41,16 @@ import { ModelQueryService, uuid } from '../../@core'
     </header>
 
     <div xpDialogContent>
-      <form class="flex flex-col justify-start items-stretch" 
-        [formGroup]="formGroup" (ngSubmit)="create()">
+      <form class="flex flex-col justify-start items-stretch" [formGroup]="formGroup" (ngSubmit)="create()">
         <z-form-field appearance="fill" floatLabel="always">
           <z-form-label>
             {{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
           </z-form-label>
-          <input z-input formControlName="name" placeholder="{{ 'PAC.MODEL.QueryName' | translate: { Default: 'Short name of query' } }}" />
+          <input
+            z-input
+            formControlName="name"
+            placeholder="{{ 'PAC.MODEL.QueryName' | translate: { Default: 'Short name of query' } }}"
+          />
         </z-form-field>
 
         <z-form-field appearance="fill" floatLabel="always">
@@ -38,7 +60,8 @@ import { ModelQueryService, uuid } from '../../@core'
           <ngm-select
             formControlName="modelId"
             [placeholder]="
-              ('PAC.MODEL.QueryBaseModelPlaceholder' | translate: { Default: 'Which model space do you want query' }) + '?'
+              ('PAC.MODEL.QueryBaseModelPlaceholder' | translate: { Default: 'Which model space do you want query' }) +
+              '?'
             "
             [selectOptions]="(models$ | async)?.map(model => ({ value: model.id, label: model.name }))"
           />
@@ -69,7 +92,7 @@ export class QueryCreationDialogComponent implements OnInit {
 
   formGroup = new FormGroup({
     name: new FormControl(null, [Validators.required]),
-    modelId: new FormControl(null, [Validators.required]),
+    modelId: new FormControl(null, [Validators.required])
   })
   public readonly models$ = this.modelsService.getMy()
   constructor(
@@ -85,7 +108,7 @@ export class QueryCreationDialogComponent implements OnInit {
       const query = await firstValueFrom(
         this.modelQueryService.create({
           ...this.formGroup.value,
-          key: uuid(),
+          key: uuid()
         })
       )
 

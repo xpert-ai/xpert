@@ -1,0 +1,19 @@
+@reference "tailwindcss";
+.step:not(.last) {
+  &::after {
+    content: '';
+    width: 0.125rem;
+    height: 100%;
+    background-color: var(--primary);
+    display: inline-block;
+    position: absolute;
+    bottom: -2.75rem;
+    left: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .step:not(.last)::after {
+    left: 1.25rem;
+  }
+}

@@ -15,11 +15,10 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { KebabToCamelCasePipe } from '@xpert-ai/core'
 import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import {
   AiModelTypeEnum,
   getErrorMessage,
@@ -47,7 +46,7 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     KebabToCamelCasePipe,
     NgmSpinComponent,
     CopilotCredentialFormComponent
-]
+  ]
 })
 export class CopilotProviderModelComponent {
   readonly #dialogRef = inject(DialogRef)
@@ -111,24 +110,22 @@ export class CopilotProviderModelComponent {
   }
 
   constructor() {
-    effect(
-      () => {
-        const value = this.model()
-        if (value) {
-          this.modelName.set(value.modelName)
-          this.modelTypes.set([value.modelType])
-          this.credentials.set(value.modelProperties)
+    effect(() => {
+      const value = this.model()
+      if (value) {
+        this.modelName.set(value.modelName)
+        this.modelTypes.set([value.modelType])
+        this.credentials.set(value.modelProperties)
 
-          // todo 未解决 cdkList 未及时响应 modelTypes 的值更新
-          this.#cdr.markForCheck()
-          setTimeout(() => {
-            this.#cdr.detectChanges()
-          }, 1000)
-        } else if (this.modelTypes().length === 0 && this.supported_model_types()) {
-          this.modelTypes.set([this.supported_model_types()[0]])
-        }
+        // todo 未解决 cdkList 未及时响应 modelTypes 的值更新
+        this.#cdr.markForCheck()
+        setTimeout(() => {
+          this.#cdr.detectChanges()
+        }, 1000)
+      } else if (this.modelTypes().length === 0 && this.supported_model_types()) {
+        this.modelTypes.set([this.supported_model_types()[0]])
       }
-    )
+    })
   }
 
   delete() {

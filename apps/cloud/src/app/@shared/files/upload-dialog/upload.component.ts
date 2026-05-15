@@ -1,9 +1,7 @@
-
 import { HttpEventType } from '@angular/common/http'
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
@@ -12,7 +10,7 @@ import { IStorageFile, StorageFileService, ToastrService, getErrorMessage, listA
 import { SharedUiModule } from '../../ui.module'
 import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 
-import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
+import { NgmSearchComponent, Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-files-upload',
@@ -29,7 +27,7 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
     DensityDirective,
     NgmSearchComponent,
     FilesUploadComponent
-],
+  ],
   animations: [listAnimation]
 })
 export class FilesUploadDialogComponent {

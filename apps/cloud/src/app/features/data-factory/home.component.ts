@@ -14,7 +14,6 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CopilotChatMessage } from '@xpert-ai/copilot'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 import { nonBlank, provideOcapCore } from '@xpert-ai/ocap-angular/core'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -24,7 +23,7 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { filter, map, switchMap, tap } from 'rxjs'
 import { ChatBIConversationService, routeAnimations } from '../../@core'
 import { AppService } from '../../app.service'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmSelectComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -37,7 +36,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     NgmSelectComponent
-],
+  ],
   selector: 'pac-chatbi-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',

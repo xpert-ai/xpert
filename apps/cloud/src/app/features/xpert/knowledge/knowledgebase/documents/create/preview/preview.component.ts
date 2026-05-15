@@ -9,13 +9,13 @@ import {
   KnowledgeDocumentService
 } from '@cloud/app/@core'
 import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
-import { NgmCheckboxComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { debouncedSignal, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
+import { NgmCheckboxComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

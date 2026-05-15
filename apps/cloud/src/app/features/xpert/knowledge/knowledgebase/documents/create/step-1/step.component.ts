@@ -5,7 +5,6 @@ import { Component, computed, effect, inject, model, signal, viewChild } from '@
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SafePipe } from '@xpert-ai/core'
-import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe, TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaFormComponent, ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
@@ -33,7 +32,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { isNil, uniq } from 'lodash-es'
 import { KnowledgeFilePreviewComponent, KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { KnowledgeFileSystemComponent } from '../file-system/file-system.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { NgmCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

@@ -1,13 +1,23 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  input,
+  output,
+  signal
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { myRxResource } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { interval, Subscription } from 'rxjs'
 import { getErrorMessage, IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from '../../xpert'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'chat-message-execution-panel',
@@ -21,7 +31,7 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
     NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
-]
+  ]
 })
 export class ChatMessageExecutionPanelComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -41,7 +51,8 @@ export class ChatMessageExecutionPanelComponent {
 
   readonly #execution = myRxResource({
     request: () => ({ id: this.id(), organizationId: this.organizationId() }),
-    loader: ({ request }) => this.#executionService.getOneLog(request.id, undefined, request.organizationId ?? undefined)
+    loader: ({ request }) =>
+      this.#executionService.getOneLog(request.id, undefined, request.organizationId ?? undefined)
   })
 
   readonly error = computed(() => getErrorMessage(this.#execution.error()))

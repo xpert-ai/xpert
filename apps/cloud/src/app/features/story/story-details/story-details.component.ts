@@ -4,18 +4,20 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
+  NgmHighlightDirective,
+  NgmSelectComponent,
+  Z_MODAL_DATA,
   ZardButtonComponent,
-  ZardComboboxDeprecatedComponent,
-  ZardComboboxDeprecatedOptionTemplateDirective,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
   ZardCheckboxComponent,
   ZardChipsImports,
-  ZardDialogModule,
+  ZardComboboxDeprecatedComponent,
   type ZardComboboxDeprecatedOption,
-  Z_MODAL_DATA,
-  ZardDialogRef
+  ZardComboboxDeprecatedOptionTemplateDirective,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective
 } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
 import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
@@ -24,7 +26,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Story, StoryModel, StoryOptions } from '@xpert-ai/story/core'
 import { Subject, combineLatestWith, filter, firstValueFrom, map, startWith, switchMap, tap } from 'rxjs'
 import { ISemanticModel, ProjectAPIService, ScreenshotService, ToastrService } from '../../../@core'
-import { NgmHighlightDirective, NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
   standalone: true,
@@ -45,7 +46,7 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@xpert-ai/ocap-angula
     OcapCoreModule,
     NgmHighlightDirective,
     NgmSelectComponent
-],
+  ],
   selector: 'ngm-story-details',
   templateUrl: './story-details.component.html',
   styleUrls: ['./story-details.component.scss']

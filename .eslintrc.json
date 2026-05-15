@@ -7,12 +7,27 @@
       "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
       "rules": {
         "@typescript-eslint/no-inferrable-types": "off",
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["@xpert-ai/headless-ui/*", "packages/ui/src/**"],
+                "message": "Import UI symbols from the @xpert-ai/headless-ui root entrypoint instead of UI deep paths."
+              }
+            ]
+          }
+        ],
         "@nx/enforce-module-boundaries": [
           "warn",
           {
             "enforceBuildableLibDependency": true,
             "allow": ["@cloud/**"],
             "depConstraints": [
+              {
+                "sourceTag": "scope:headless-ui",
+                "notDependOnLibsWithTags": ["scope:ocap-angular", "scope:ocap-core", "scope:story-angular"]
+              },
               {
                 "sourceTag": "*",
                 "onlyDependOnLibsWithTags": ["*"]

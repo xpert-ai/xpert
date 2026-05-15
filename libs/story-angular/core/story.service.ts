@@ -13,7 +13,6 @@ import {
   NxCoreService,
   write
 } from '@xpert-ai/core'
-import { CdkConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDSCoreService, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
 import { EntitySelectDataType, EntitySelectResultType, NgmEntityDialogComponent } from '@xpert-ai/ocap-angular/entity'
 import {
@@ -36,7 +35,7 @@ import {
 } from '@xpert-ai/ocap-core'
 import { createStore, Query, select, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
-import { ZardDialogService, ZardToastService } from '@xpert-ai/headless-ui'
+import { CdkConfirmUniqueComponent, ZardDialogService, ZardToastService } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { cloneDeep, findKey, includes, isEmpty, isEqual, negate, omit, some, sortBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -683,13 +682,11 @@ export class NxStoryService {
     const name =
       page.name ||
       (await firstValueFrom(
-        this.#dialog
-          .open<string>(CdkConfirmUniqueComponent, {
-            data: {
-              title: this.getTranslation('Story.Story.NewPageName', 'New Page Name')
-            }
-          })
-          .closed
+        this.#dialog.open<string>(CdkConfirmUniqueComponent, {
+          data: {
+            title: this.getTranslation('Story.Story.NewPageName', 'New Page Name')
+          }
+        }).closed
       ))
     if (name) {
       const key = page.key ?? uuid()

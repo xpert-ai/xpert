@@ -1,1 +1,1 @@
-export * from './slider-input.component'
+export { NgmSliderInputComponent } from '@xpert-ai/headless-ui'
