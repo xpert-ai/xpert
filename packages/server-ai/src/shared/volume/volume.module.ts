@@ -6,6 +6,7 @@ import {
     VolumeClient,
     WorkspacePathMapper
 } from './volume'
+import { KnowledgeWorkAreaResolver, XpertWorkAreaResolver } from './work-area'
 
 @Injectable()
 export class WorkspacePathMapperFactory {
@@ -21,8 +22,10 @@ export class WorkspacePathMapperFactory {
             provide: VOLUME_CLIENT,
             useFactory: (): VolumeClient => createRuntimeVolumeClient()
         },
-        WorkspacePathMapperFactory
+        WorkspacePathMapperFactory,
+        KnowledgeWorkAreaResolver,
+        XpertWorkAreaResolver
     ],
-    exports: [VOLUME_CLIENT, WorkspacePathMapperFactory]
+    exports: [VOLUME_CLIENT, WorkspacePathMapperFactory, KnowledgeWorkAreaResolver, XpertWorkAreaResolver]
 })
 export class VolumeModule {}

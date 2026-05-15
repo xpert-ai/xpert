@@ -13,8 +13,7 @@ import {
     SandboxManagedServiceErrorCode,
     TSandboxManagedServiceLogs,
     TSandboxManagedServicePreviewSession,
-    TSandboxManagedServiceStartInput,
-    IChatConversation
+    TSandboxManagedServiceStartInput
 } from '@xpert-ai/contracts'
 import {
     All,
@@ -44,9 +43,15 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import fs from 'fs'
 import { I18nService } from 'nestjs-i18n'
-import { join } from 'path'
+import { isAbsolute, join, relative } from 'path'
 import { Observable } from 'rxjs'
-import { VOLUME_CLIENT, VolumeClient, getMediaTypeWithCharset } from '../shared'
+import {
+    VOLUME_CLIENT,
+    VolumeClient,
+    VolumeHandle,
+    getMediaTypeWithCharset,
+    getWorkspacePathMapperForProvider
+} from '../shared'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
@@ -146,7 +151,7 @@ export class SandboxController {
     async uploadFile(
         @Body('workspace') workspace: string,
         @Body('conversationId') conversationId: string,
-        @Body('path') path: string,
+        @Body('path') folderPath: string,
         @UploadedFile() file: Express.Multer.File,
         @Query('organizationId') organizationId?: string
     ) {
@@ -154,7 +159,9 @@ export class SandboxController {
             const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
                 conversationId
             })
-            const client = this.createConversationVolumeClient(resolved.conversation)
+            const volume = this.volumeClient.resolve(resolved.volumeScope)
+            const workspacePath = this.resolveUploadWorkspacePath(resolved, volume, workspace)
+            const workspaceUrl = this.resolveWorkspacePublicUrl(volume, workspacePath)
 
             const asset = await this.commandBus.execute(
                 new UploadFileCommand({
@@ -166,9 +173,9 @@ export class SandboxController {
                         {
                             kind: 'sandbox',
                             mode: 'mounted_workspace',
-                            workspacePath: client.path(workspace),
-                            workspaceUrl: client.publicUrl(workspace),
-                            folder: path || ''
+                            workspacePath,
+                            workspaceUrl,
+                            folder: folderPath || ''
                         }
                     ]
                 })
@@ -179,6 +186,39 @@ export class SandboxController {
             }
             return { url: destination.url, filePath: destination.path }
         })
+    }
+
+    private resolveUploadWorkspacePath(
+        resolved: Awaited<ReturnType<SandboxConversationContextService['resolveConversationSandbox']>>,
+        volume: VolumeHandle,
+        workspace?: string | null
+    ) {
+        const requestedWorkspace = workspace?.trim()
+        const mapper = getWorkspacePathMapperForProvider(resolved.provider)
+        if (!requestedWorkspace) {
+            return mapper.mapWorkspaceToVolume(resolved.workspaceBinding, resolved.workingDirectory)
+        }
+        if (
+            requestedWorkspace === resolved.workspaceBinding.workspaceRoot ||
+            requestedWorkspace.startsWith(`${resolved.workspaceBinding.workspaceRoot}/`)
+        ) {
+            return mapper.mapWorkspaceToVolume(resolved.workspaceBinding, requestedWorkspace)
+        }
+        if (requestedWorkspace === volume.serverRoot || requestedWorkspace.startsWith(`${volume.serverRoot}/`)) {
+            return requestedWorkspace
+        }
+        if (isAbsolute(requestedWorkspace)) {
+            throw new BadRequestException('Invalid sandbox workspace path')
+        }
+        return volume.path(requestedWorkspace)
+    }
+
+    private resolveWorkspacePublicUrl(volume: VolumeHandle, workspacePath: string) {
+        const relativePath = relative(volume.serverRoot, workspacePath).replace(/\\/g, '/')
+        if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
+            throw new BadRequestException('Invalid sandbox workspace path')
+        }
+        return volume.publicUrl(relativePath === '.' ? '' : relativePath)
     }
 
     @Header('content-type', 'text/event-stream')
@@ -206,7 +246,8 @@ export class SandboxController {
 
             void (async () => {
                 try {
-                    const streamExecute = typeof backend.streamExecute === 'function' ? backend.streamExecute.bind(backend) : null
+                    const streamExecute =
+                        typeof backend.streamExecute === 'function' ? backend.streamExecute.bind(backend) : null
                     const result = streamExecute
                         ? await streamExecute(body.cmd, (line) => {
                               if (active) {
@@ -242,12 +283,11 @@ export class SandboxController {
             return () => {
                 active = false
             }
-        })
-            .pipe(
-                // Add an operator to send a comment event periodically (30s) to keep the connection alive
-                keepAlive(30000),
-                takeUntilClose(res)
-            )
+        }).pipe(
+            // Add an operator to send a comment event periodically (30s) to keep the connection alive
+            keepAlive(30000),
+            takeUntilClose(res)
+        )
     }
 
     @Get('conversations/:conversationId/services')
@@ -520,29 +560,6 @@ export class SandboxController {
         return this.proxyManagedService(conversationId, serviceId, pathname, request, response)
     }
 
-    private createConversationVolumeClient(conversation: Partial<IChatConversation>) {
-        if (conversation?.projectId) {
-            return this.volumeClient.resolve({
-                tenantId: conversation.tenantId,
-                userId: conversation.createdById ?? RequestContext.currentUserId(),
-                catalog: 'projects',
-                projectId: conversation.projectId
-            })
-        }
-
-        if (conversation?.xpertId) {
-            return this.volumeClient.resolve({
-                tenantId: conversation.tenantId,
-                userId: conversation.createdById ?? RequestContext.currentUserId(),
-                catalog: 'xperts',
-                xpertId: conversation.xpertId,
-                isolateByUser: true
-            })
-        }
-
-        throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
-    }
-
     private async proxyManagedService(
         conversationId: string,
         serviceId: string,
@@ -594,5 +611,4 @@ export class SandboxController {
             message: error instanceof Error ? error.message : String(error)
         })
     }
-
 }

@@ -52,10 +52,10 @@ describe('XpertDreamerInvoker', () => {
                 dreamerXpertId: 'dreamer-xpert',
                 dreamerAgentKey: 'DreamerAgent'
             },
-            memoryRoot: '/volume/.xpert/memory/xperts/target-xpert',
-            runRoot: '/volume/.xpert/memory/xperts/target-xpert/.dream/runs/dream-1',
-            evidencePath: '/volume/.xpert/memory/xperts/target-xpert/.dream/runs/dream-1/evidence',
-            instructionsPath: '/volume/.xpert/memory/xperts/target-xpert/.dream/runs/dream-1/evidence/instructions.md'
+            memoryRoot: '/volume/.xpert/memory',
+            runRoot: '/volume/.xpert/memory/.dream/runs/dream-1',
+            evidencePath: '/volume/.xpert/memory/.dream/runs/dream-1/evidence',
+            instructionsPath: '/volume/.xpert/memory/.dream/runs/dream-1/evidence/instructions.md'
         })
 
         expect(xpertRepository.findOne).toHaveBeenCalledWith({
@@ -88,7 +88,10 @@ describe('XpertDreamerInvoker', () => {
             FILE_MEMORY_DREAMER_XPERT_ID: 'dreamer-xpert',
             FILE_MEMORY_DREAMER_AGENT_KEY: 'DreamerAgent'
         }
-        const runner = new XpertDreamerInvoker({ execute: jest.fn() } as any, { findOne: jest.fn().mockResolvedValue(null) } as any)
+        const runner = new XpertDreamerInvoker(
+            { execute: jest.fn() } as any,
+            { findOne: jest.fn().mockResolvedValue(null) } as any
+        )
 
         await expect(
             runner.run({

@@ -1,10 +1,5 @@
 import path from 'node:path'
-import {
-    FILE_MEMORY_DREAM_DIR,
-    FILE_MEMORY_INDEX_FILENAME,
-    FILE_MEMORY_WORKSPACE_PATH,
-    FileMemoryType
-} from './types'
+import { FILE_MEMORY_DREAM_DIR, FILE_MEMORY_INDEX_FILENAME, FILE_MEMORY_WORKSPACE_PATH, FileMemoryType } from './types'
 import { directoryForFileMemoryType, isFileMemoryType } from './taxonomy'
 
 export function getXpertFileMemoryVolumeScope(tenantId: string, xpertId: string) {
@@ -20,7 +15,11 @@ export function getFileMemoryWorkspacePath() {
     return FILE_MEMORY_WORKSPACE_PATH
 }
 
-export function getXpertFileMemoryWorkspacePath(xpertId: string) {
+export function getXpertFileMemoryWorkspacePath(_xpertId?: string) {
+    return FILE_MEMORY_WORKSPACE_PATH
+}
+
+export function getLegacyXpertFileMemoryWorkspacePath(xpertId: string) {
     const normalizedXpertId = normalizeFileMemoryRelativePath(xpertId)
     if (!normalizedXpertId || normalizedXpertId.includes('/')) {
         throw new Error(`Invalid xpert file memory scope: ${xpertId}`)

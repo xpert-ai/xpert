@@ -65,7 +65,7 @@ describe('FileMemoryFacade memory files', () => {
             isolateByUser: false
         })
         expect(VolumeSubtreeClient).toHaveBeenCalledWith(volumeHandle, { allowRootWorkspace: true })
-        expect(mockList).toHaveBeenCalledWith('.xpert/memory/xperts/xpert-1', {
+        expect(mockList).toHaveBeenCalledWith('.xpert/memory', {
             path: 'docs',
             deepth: 2
         })
@@ -85,7 +85,7 @@ describe('FileMemoryFacade memory files', () => {
             xpertId: 'xpert-1',
             isolateByUser: false
         })
-        expect(mockReadFile).toHaveBeenCalledWith('.xpert/memory/xperts/xpert-1', 'README.md')
+        expect(mockReadFile).toHaveBeenCalledWith('.xpert/memory', 'README.md')
     })
 
     it('saves files inside the current xpert memory workspace', async () => {
@@ -103,7 +103,7 @@ describe('FileMemoryFacade memory files', () => {
             xpertId: 'xpert-1',
             isolateByUser: false
         })
-        expect(mockSaveFile).toHaveBeenCalledWith('.xpert/memory/xperts/xpert-1', 'README.md', '# Updated\n')
+        expect(mockSaveFile).toHaveBeenCalledWith('.xpert/memory', 'README.md', '# Updated\n')
     })
 
     it('delegates built-in file memory writes with the xpert-level entity', async () => {

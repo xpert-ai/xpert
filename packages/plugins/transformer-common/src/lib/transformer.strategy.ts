@@ -43,7 +43,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
       scope: []
     } as FileSystemPermission
   ]
-  
+
   readonly meta = {
     name: Default,
     label: {
@@ -69,9 +69,10 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
             zh_Hans: '替换空白字符'
           },
           description: {
-            en_US: 'Whether to replace all whitespace characters with a single space. Replace consecutive spaces, newlines, and tabs.',
+            en_US:
+              'Whether to replace all whitespace characters with a single space. Replace consecutive spaces, newlines, and tabs.',
             zh_Hans: '是否将所有空白字符替换为单个空格。替换掉连续的空格、换行符和制表符。'
-          },
+          }
         },
         removeSensitive: {
           type: 'boolean',
@@ -82,7 +83,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
           description: {
             en_US: 'Whether to remove sensitive information from the document. Remove all URLs and email addresses.',
             zh_Hans: '是否从文档中移除敏感信息。删除所有 URL 和电子邮件地址。'
-          },
+          }
         }
       },
       required: []
@@ -103,7 +104,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     const results = []
     for await (const file of files) {
       const assets: TDocumentAsset[] = []
-      const resolvedFile = await this.resolveDocumentFile(file, xpFileSystem)
+      const resolvedFile = await this.resolveDocumentFile(file, xpFileSystem, config)
       const fileAbsPath = resolvedFile.absolutePath
       const runtimeFilePath = resolvedFile.runtimeFilePath
       const runtimeFileUrl = resolvedFile.runtimeFileUrl
@@ -126,7 +127,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
           data = await this.processDoc(fileAbsPath)
           break
         case 'docx': {
-          const {chunks, imageAssets} = await this.processDocx(fileAbsPath, xpFileSystem)
+          const { chunks, imageAssets } = await this.processDocx(fileAbsPath, xpFileSystem)
           data = chunks
           imageAssets.forEach((asset) => assets.push(asset))
           break
@@ -151,7 +152,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
                 url: runtimeFileUrl,
                 filePath: runtimeFilePath
               })
-              break;
+              break
             }
             default: {
               data = await this.processText(fileAbsPath)
@@ -160,7 +161,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
           }
           break
       }
-      
+
       results.push({
         id: file.id,
         chunks: data.map((_) => {
@@ -188,7 +189,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
 
   private async resolveDocumentFile(
     file: Partial<IKnowledgeDocument>,
-    xpFileSystem: XpFileSystem
+    xpFileSystem: XpFileSystem,
+    config: TDefaultTransformerConfig
   ): Promise<TResolvedDocumentFile> {
     const providedFilePath = this.normalizeFilePath(file.filePath)
     if (providedFilePath) {
@@ -207,8 +209,12 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     }
 
     if (file.fileUrl && isRemoteFile(file.fileUrl)) {
-      const runtimeFilePath = path.join('tmp', this.buildTempFileName(file))
-      const absolutePath = xpFileSystem.fullPath(runtimeFilePath)
+      const tempFileName = this.buildTempFileName(file)
+      const configuredTempDir = this.normalizeFilePath(config.tempDir)
+      const absolutePath = configuredTempDir
+        ? path.join(configuredTempDir, tempFileName)
+        : xpFileSystem.fullPath(path.join('tmp', tempFileName))
+      const runtimeFilePath = xpFileSystem.relativePath(absolutePath) ?? path.join('tmp', tempFileName)
 
       await fsPromises.mkdir(path.dirname(absolutePath), { recursive: true })
       await this.removeFileIfExists(absolutePath)
@@ -221,9 +227,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
       }
     }
 
-    throw new Error(
-      `Unable to resolve a readable file for document '${file.name ?? file.id ?? 'unknown'}'.`
-    )
+    throw new Error(`Unable to resolve a readable file for document '${file.name ?? file.id ?? 'unknown'}'.`)
   }
 
   private buildTempFileName(file: Partial<IKnowledgeDocument>) {
@@ -333,7 +337,10 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
   /**
    * Parse DOCX => Markdown + Extract Images + Return LangChain Documents
    */
-  async processDocx(filePath: string, xpFileSystem: XpFileSystem): Promise<{chunks: Document[]; imageAssets: TDocumentAsset[]}> {
+  async processDocx(
+    filePath: string,
+    xpFileSystem: XpFileSystem
+  ): Promise<{ chunks: Document[]; imageAssets: TDocumentAsset[] }> {
     const imageOutputDir = xpFileSystem.fullPath('images')
 
     if (!fs.existsSync(imageOutputDir)) {
@@ -346,11 +353,11 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
       {
         convertImage: mammoth.images.imgElement(async (image) => {
           // Reading image binary
-          const imageBuffer = await image.read();
-          const ext = image.contentType?.split("/")[1] ?? "png";
+          const imageBuffer = await image.read()
+          const ext = image.contentType?.split('/')[1] ?? 'png'
 
           // Random filename
-          const fileName = `${randomUUID()}.${ext}`;
+          const fileName = `${randomUUID()}.${ext}`
 
           // Save to disk
           const url = await xpFileSystem.writeFile(`images/${fileName}`, imageBuffer)
@@ -359,14 +366,14 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
             type: 'image',
             filePath: `images/${fileName}`,
             url: url
-          });
+          })
 
           // Returns the src path used internally by the HTML.
           return {
-            src: url, // Used to generate HTML/Markdown
-          };
-        }),
-      },
+            src: url // Used to generate HTML/Markdown
+          }
+        })
+      }
     )
 
     const html = result.value // HTML text
@@ -380,8 +387,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         pageContent: md,
         metadata: {
           // source: filePath,
-        },
-      }),
+        }
+      })
     ]
 
     return { chunks, imageAssets: imageAssets }

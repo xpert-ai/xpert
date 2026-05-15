@@ -152,21 +152,21 @@ Root calculation is centralized in [packages/server-ai/src/shared/volume/volume-
 
 `getApiContainerSandboxVolumeRootPath(tenantId)`:
 
-| Scenario | Value |
-| --- | --- |
-| `dev` without `SANDBOX_VOLUME` | `~/data` |
+| Scenario                                                 | Value                           |
+| -------------------------------------------------------- | ------------------------------- |
+| `dev` without `SANDBOX_VOLUME`                           | `~/data`                        |
 | `dev`, server not in Docker, `SANDBOX_VOLUME` configured | `${SANDBOX_VOLUME}/${tenantId}` |
-| `dev`, server in Docker | `/sandbox/${tenantId}` |
-| non-`dev` | `/sandbox/${tenantId}` |
+| `dev`, server in Docker                                  | `/sandbox/${tenantId}`          |
+| non-`dev`                                                | `/sandbox/${tenantId}`          |
 
 ### Host root
 
 `getDockerHostSandboxVolumeRootPath(tenantId)`:
 
-| Scenario | Value |
-| --- | --- |
-| `dev` without `SANDBOX_VOLUME` | `~/data` |
-| `SANDBOX_VOLUME` configured | `${SANDBOX_VOLUME}/${tenantId}` |
+| Scenario                                  | Value                                |
+| ----------------------------------------- | ------------------------------------ |
+| `dev` without `SANDBOX_VOLUME`            | `~/data`                             |
+| `SANDBOX_VOLUME` configured               | `${SANDBOX_VOLUME}/${tenantId}`      |
 | no `SANDBOX_VOLUME` outside flattened dev | falls back to the API-container root |
 
 ### Flattened local development
@@ -188,15 +188,15 @@ That is the main reason why local-development disk roots and logical public URLs
 
 `getVolumeSubpath()` defines the logical subpaths:
 
-| `catalog` | Subpath |
-| --- | --- |
-| `environment` | `/environment/${environmentId}` |
-| `knowledges` | `/knowledges/${knowledgeId}` |
-| `projects` | `/project/${projectId}` |
-| `skills` | `/skills/${rootId}` |
-| `users` | `/user/${userId}` |
-| `workspaces` | `/workspaces/${workspaceId}` |
-| `xperts` shared | `/xpert/${xpertId}` |
+| `catalog`              | Subpath                            |
+| ---------------------- | ---------------------------------- |
+| `environment`          | `/environment/${environmentId}`    |
+| `knowledges`           | `/knowledges/${knowledgeId}`       |
+| `projects`             | `/project/${projectId}`            |
+| `skills`               | `/skills/${rootId}`                |
+| `users`                | `/user/${userId}`                  |
+| `workspaces`           | `/workspaces/${workspaceId}`       |
+| `xperts` shared        | `/xpert/${xpertId}`                |
 | `xperts` user-isolated | `/xpert/${xpertId}/user/${userId}` |
 
 From that subpath we derive:
@@ -206,13 +206,340 @@ From that subpath we derive:
 
 Examples:
 
-| Logical object | Server path | Public URL |
-| --- | --- | --- |
-| Project | `/sandbox/${tenantId}/project/${projectId}` | `/api/sandbox/volume/project/${projectId}` |
-| User | `/sandbox/${tenantId}/user/${userId}` | `/api/sandbox/volume/user/${userId}` |
-| Shared Xpert volume | `/sandbox/${tenantId}/xpert/${xpertId}` | `/api/sandbox/volume/xpert/${xpertId}` |
+| Logical object             | Server path                                            | Public URL                                            |
+| -------------------------- | ------------------------------------------------------ | ----------------------------------------------------- |
+| Project                    | `/sandbox/${tenantId}/project/${projectId}`            | `/api/sandbox/volume/project/${projectId}`            |
+| User                       | `/sandbox/${tenantId}/user/${userId}`                  | `/api/sandbox/volume/user/${userId}`                  |
+| Shared Xpert volume        | `/sandbox/${tenantId}/xpert/${xpertId}`                | `/api/sandbox/volume/xpert/${xpertId}`                |
 | User-isolated Xpert volume | `/sandbox/${tenantId}/xpert/${xpertId}/user/${userId}` | `/api/sandbox/volume/xpert/${xpertId}/user/${userId}` |
-| Workspace | `/sandbox/${tenantId}/workspaces/${workspaceId}` | `/api/sandbox/volume/workspaces/${workspaceId}` |
+| Workspace                  | `/sandbox/${tenantId}/workspaces/${workspaceId}`       | `/api/sandbox/volume/workspaces/${workspaceId}`       |
+
+## Xpert Work Area Rules
+
+Xpert runtime working directories are resolved by `XpertWorkAreaResolver` in `packages/server-ai/src/shared/volume/work-area.ts`.
+
+The design rules are:
+
+- The default working directory is the current user's private operation area for the current context.
+- Shared directories must be used explicitly; the default cwd is not a shared area.
+- Xpert long-term FileMemory is shared at Xpert level and is not isolated by user.
+- Agent invoke, terminal, sandbox upload, conversation workspace files, and managed sandbox services should all use the same resolver output so the Agent cwd and terminal cwd do not diverge.
+
+Canonical layout:
+
+```text
+/sandbox/<tenantId>/
+  project/<projectId>/
+    shared/
+    users/<userId>/
+    agents/<xpertId>/
+    sessions/<conversationId>/
+    .xpert/
+
+  xpert/<xpertId>/
+    shared/
+    users/<userId>/
+    .xpert/memory/
+
+  user/<userId>/
+  environment/<environmentId>/
+```
+
+### Project conversations
+
+When `projectId` exists, the resolver uses the project Volume:
+
+```ts
+{
+  tenantId,
+  catalog: 'projects',
+  projectId,
+  userId
+}
+```
+
+Relative path rules:
+
+| Purpose                                  | Relative path inside the Volume |
+| ---------------------------------------- | ------------------------------- |
+| Default cwd                              | `users/<userId>`                |
+| Project shared workspace                 | `shared`                        |
+| Xpert agent workspace inside the project | `agents/<xpertId>`              |
+| Single-conversation temporary area       | `sessions/<conversationId>`     |
+| Project internal state                   | `.xpert`                        |
+
+In a local shell sandbox, `workspace_path` is a server-visible path, for example:
+
+```text
+/sandbox/<tenantId>/project/<projectId>/users/<userId>
+```
+
+In a Docker sandbox, the same directory is mapped to:
+
+```text
+/workspace/users/<userId>
+```
+
+### Non-project Xpert conversations
+
+When there is no `projectId` and an `xpertId` exists, the resolver uses the shared Xpert Volume:
+
+```ts
+{
+  tenantId,
+  catalog: 'xperts',
+  xpertId,
+  userId,
+  isolateByUser: false
+}
+```
+
+Relative path rules:
+
+| Purpose                    | Relative path inside the Volume |
+| -------------------------- | ------------------------------- |
+| Default cwd                | `users/<userId>`                |
+| Xpert shared file area     | `shared`                        |
+| Xpert long-term FileMemory | `.xpert/memory`                 |
+
+So when multiple users talk to the same Xpert:
+
+- File operations default to each user's own `xpert/<xpertId>/users/<userId>`.
+- Shared work must explicitly use `xpert/<xpertId>/shared`.
+- `memory_write`, Dream, and memory file APIs all read and write the same `xpert/<xpertId>/.xpert/memory`.
+
+### Docker container example
+
+Assume:
+
+- `tenantId = tenant-1`
+- `userId = user-A`
+- `xpertId = xpert-X`
+- this is a non-project conversation
+- the sandbox provider is Docker
+
+The API service container sees this server-side Volume:
+
+```text
+/sandbox/tenant-1/xpert/xpert-X/
+  users/user-A/
+  shared/
+  .xpert/memory/
+```
+
+Directory meanings:
+
+| Directory                                       | Purpose                                                        |
+| ----------------------------------------------- | -------------------------------------------------------------- |
+| `/sandbox/tenant-1/xpert/xpert-X/users/user-A`  | Default file-operation directory for user A talking to Xpert X |
+| `/sandbox/tenant-1/xpert/xpert-X/shared`        | Shared file area for Xpert X; must be used explicitly          |
+| `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | Long-term FileMemory for Xpert X, shared by all users          |
+
+The same Volume is mounted into the sandbox Docker container at `/workspace`, so Agent, terminal, and sandbox tools see:
+
+```text
+/workspace/users/user-A
+/workspace/shared
+/workspace/.xpert/memory
+```
+
+Mapping:
+
+| API service container path                      | Sandbox Docker path        | Meaning                                                                                     |
+| ----------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------- |
+| `/sandbox/tenant-1/xpert/xpert-X/users/user-A`  | `/workspace/users/user-A`  | Default cwd; ordinary generated files, uploads, and terminal commands write here by default |
+| `/sandbox/tenant-1/xpert/xpert-X/shared`        | `/workspace/shared`        | Explicit shared directory                                                                   |
+| `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | `/workspace/.xpert/memory` | Long-term memory directory for `memory_write`, Dream, and memory file APIs                  |
+
+If user B talks to the same Xpert X, the default file directory becomes:
+
+```text
+/sandbox/tenant-1/xpert/xpert-X/users/user-B
+/workspace/users/user-B
+```
+
+But user A and user B share the same Xpert memory directory:
+
+```text
+/sandbox/tenant-1/xpert/xpert-X/.xpert/memory
+/workspace/.xpert/memory
+```
+
+If the conversation belongs to project `project-1`, the default directory switches to the project Volume:
+
+```text
+/sandbox/tenant-1/project/project-1/users/user-A
+/workspace/users/user-A
+```
+
+Project shared, agent, and session directories are:
+
+```text
+/sandbox/tenant-1/project/project-1/shared
+/sandbox/tenant-1/project/project-1/agents/xpert-X
+/sandbox/tenant-1/project/project-1/sessions/<conversationId>
+```
+
+In a Docker sandbox, they map to:
+
+```text
+/workspace/shared
+/workspace/agents/xpert-X
+/workspace/sessions/<conversationId>
+```
+
+### Environment sandboxes
+
+When `sandboxEnvironmentId` exists, the environment sandbox has the highest priority and ignores project context:
+
+```ts
+{
+  tenantId,
+  catalog: 'environment',
+  environmentId,
+  userId
+}
+```
+
+The default cwd remains the environment Volume root, `environment/<environmentId>`. These directories are for explicit environment-level sandboxes and do not participate in the project / Xpert user-directory split.
+
+### Xpert FileMemory
+
+The canonical Xpert FileMemory root is:
+
+```text
+xpert/<xpertId>/.xpert/memory
+```
+
+The full server-side path is:
+
+```text
+/sandbox/<tenantId>/xpert/<xpertId>/.xpert/memory
+```
+
+Notes:
+
+- New writes no longer use `.xpert/memory/xperts/<xpertId>`.
+- Topic frontmatter still keeps `scopeId=<xpertId>` so each memory entry states which Xpert owns it.
+- FileMemory uses `catalog: 'xperts'` and `isolateByUser: false`.
+- On first access, the service lazily migrates from the legacy `.xpert/memory/xperts/<xpertId>` path in a non-destructive way: it copies only files missing from the new root, keeps new files on conflict, and writes a migration report under `.dream/migrations/`.
+
+## Knowledge Work Area Rules
+
+Knowledgebases and knowledge pipelines use the separate `KnowledgeWorkAreaResolver`. It shares the same Volume / Workspace mapping model as Xpert work areas, but it does not merge knowledge files into the Xpert conversation default cwd.
+
+Design rules:
+
+- A knowledgebase is a shared tenant-scoped data asset, with directories scoped by `knowledgebaseId`.
+- Multiple users, Xperts, and pipelines may read and write the same knowledgebase Volume.
+- User-private conversation directories and Xpert FileMemory do not store knowledge source files.
+- Pipeline temporary files are scoped to a single task when a task id is available, so concurrent ingestion runs do not share one `tmp` directory.
+
+Canonical layout:
+
+```text
+/sandbox/<tenantId>/
+  knowledges/<knowledgebaseId>/
+    files/
+    users/<userId>/staging/
+    documents/<documentId>/
+    pipeline/runs/<taskId>/
+    tmp/
+    .knowledge/
+```
+
+Relative path rules:
+
+| Purpose                                                | Relative path inside the Volume |
+| ------------------------------------------------------ | ------------------------------- |
+| Canonical knowledge source files                       | `files`                         |
+| User import staging                                    | `users/<userId>/staging`        |
+| Per-document derived assets                            | `documents/<documentId>`        |
+| Per-task pipeline run workspace                        | `pipeline/runs/<taskId>`        |
+| Per-task pipeline temporary directory                  | `pipeline/runs/<taskId>/tmp`    |
+| Legacy-compatible temporary directory                  | `tmp`                           |
+| Knowledgebase internal state, locks, migration reports | `.knowledge`                    |
+
+### Knowledge uploads
+
+The knowledgebase file upload endpoint still resolves the Volume with `catalog: 'knowledges'` and `knowledgeId`, but new files are written under the `files/` subdirectory.
+
+Example:
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/files/<folder>/manual-<unix>-<random>.pdf
+```
+
+The returned `filePath` stored on the document is relative to the knowledge Volume, for example:
+
+```text
+files/<folder>/manual-<unix>-<random>.pdf
+```
+
+Reads still resolve through `volume.path(doc.filePath)`, so older document paths without the `files/` prefix remain readable.
+
+### Knowledge pipelines
+
+Knowledge pipeline processors and transformers use the same knowledge Volume:
+
+```ts
+{
+  tenantId,
+  catalog: 'knowledges',
+  knowledgeId,
+  userId
+}
+```
+
+When `taskId` exists, the default run workspace is:
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/pipeline/runs/<taskId>
+```
+
+The transformer temporary directory is:
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/pipeline/runs/<taskId>/tmp
+```
+
+Regular document processing without `taskId` uses the document-scoped temporary directory when `documentId` is available:
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/documents/<documentId>/tmp
+```
+
+Preview flows without a task or document context still fall back to:
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/tmp
+```
+
+If a future knowledge pipeline runs inside a Docker sandbox, the same Volume maps to `/workspace`:
+
+```text
+/workspace/files
+/workspace/pipeline/runs/<taskId>
+/workspace/pipeline/runs/<taskId>/tmp
+/workspace/.knowledge
+```
+
+### Runtime `sys` fields
+
+Agent runtime writes the resolver output into `sys`:
+
+| Field                    | Meaning                                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `volume`                 | Server-side Volume root                                                                        |
+| `workspace_path`         | Sandbox-side default cwd                                                                       |
+| `workspace_url`          | Public URL for the default cwd                                                                 |
+| `workspace_root`         | Sandbox-side mount root                                                                        |
+| `shared_workspace_path`  | Shared workspace path                                                                          |
+| `agent_workspace_path`   | Project-scoped Xpert agent workspace path; only set in project context                         |
+| `session_workspace_path` | Single-conversation temporary path; only set when a project conversation has a conversation id |
+| `memory_workspace_path`  | Xpert long-term memory path; only set in non-project Xpert context                             |
+
+`workspace_path`, `workspace_url`, and `volume` are compatibility fields and must remain. New code that needs shared, agent, session, or memory directories should prefer the explicit new fields.
 
 ## Additional path families
 
@@ -233,36 +560,35 @@ Also from [packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pr
 - organization shared skills root: `${volumeRoot}/organizations/${organizationId}/skills/public`
 - global shared skills root: `${volumeRoot}/skills/public`
 
-## Mapping Volume into Workspace
+## Mapping Work Areas into Workspace
 
-The recommended flow is now two-step:
+Generic Volume usage can still use the two-step flow:
 
 1. resolve a Volume
 2. map it into a Workspace
 
-Example:
+But runtime entry points such as Xpert conversations, project conversations, terminal, sandbox upload, managed services, and Agent invoke should prefer `XpertWorkAreaResolver`.
+
+Recommended usage:
 
 ```ts
-const volume = await this.volumeClient
-  .resolve({
-    tenantId,
-    catalog: 'xperts',
-    xpertId,
-    userId,
-    isolateByUser: true
-  })
-  .ensureRoot()
-
-const binding = this.workspacePathMapperFactory
-  .forProvider(provider)
-  .mapVolumeToWorkspace(volume)
+const workArea = await this.workAreaResolver.resolve({
+  tenantId,
+  userId,
+  provider,
+  xpertId,
+  projectId,
+  conversationId,
+  environmentId
+})
 ```
 
 The result means:
 
-- `volume.serverRoot` is for server-side file access
-- `binding.workspacePath` is for sandbox working-directory usage
-- `binding.bindSource` matters only for Docker sandboxes
+- `workArea.volumePath` identifies the server-side Volume root
+- `workArea.workspaceBinding` is passed to the sandbox provider for mounting
+- `workArea.workingDirectory` is the sandbox cwd
+- `workArea.sharedPath`, `agentPath`, `sessionPath`, and `memoryPath` are explicit business paths
 
 ## Field semantics in runtime flows
 
@@ -318,6 +644,8 @@ The new architecture is exposed through [packages/server-ai/src/shared/volume/vo
 
 - `VOLUME_CLIENT`
 - `WorkspacePathMapperFactory`
+- `XpertWorkAreaResolver`
+- `KnowledgeWorkAreaResolver`
 
 Recommended usage:
 
@@ -326,13 +654,30 @@ Recommended usage:
 private readonly volumeClient: VolumeClient
 ```
 
-instead of manually creating `new VolumeClient(...)` inside business logic.
+For Xpert runtime entry points, inject the resolver directly:
+
+```ts
+constructor(
+  private readonly workAreaResolver: XpertWorkAreaResolver
+) {}
+```
+
+For knowledgebase and knowledge pipeline entry points, inject:
+
+```ts
+constructor(
+  private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
+) {}
+```
+
+Do this instead of manually joining `project/users/agents/sessions/.xpert/memory` or `knowledges/files/tmp` in business code.
 
 ## Recommended usage
 
 - Decide first whether you need a Volume or a Workspace.
 - Use `VolumeHandle` when the server must read or write files.
 - Use `WorkspacePathMapper` when a sandbox needs an execution path.
+- Use `XpertWorkAreaResolver` when resolving Xpert, project, or environment runtime directories.
+- Use `KnowledgeWorkAreaResolver` when resolving knowledgebase uploads, knowledge pipelines, or document-derived assets.
 - Use `VolumeSubtreeClient` when you need a controlled subtree browser.
 - Keep the old static helpers only for compatibility, not as the main entry point for new code.
-

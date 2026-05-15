@@ -1,6 +1,7 @@
 import { RequestContext } from '@xpert-ai/server-core'
 import type { CommandBus } from '@nestjs/cqrs'
 import type { ChatConversationService } from '../chat-conversation'
+import type { XpertWorkAreaResolver } from '../shared'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 
 jest.mock('../chat-conversation', () => ({
@@ -10,7 +11,8 @@ jest.mock('../chat-conversation', () => ({
 jest.mock('../shared', () => ({
     VOLUME_CLIENT: 'VOLUME_CLIENT',
     VolumeClient: class VolumeClient {},
-    WorkspacePathMapperFactory: class WorkspacePathMapperFactory {}
+    WorkspacePathMapperFactory: class WorkspacePathMapperFactory {},
+    XpertWorkAreaResolver: class XpertWorkAreaResolver {}
 }))
 
 jest.mock('@xpert-ai/server-core', () => ({
@@ -33,11 +35,8 @@ describe('SandboxConversationContextService', () => {
     let conversationService: {
         findOne: jest.Mock
     }
-    let volumeClient: {
+    let workAreaResolver: {
         resolve: jest.Mock
-    }
-    let workspacePathMapperFactory: {
-        forProvider: jest.Mock
     }
     let service: SandboxConversationContextService
 
@@ -45,43 +44,26 @@ describe('SandboxConversationContextService', () => {
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue(undefined)
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue(undefined)
 
-        const volumeHandle = {
-            ensureRoot: jest.fn(),
-            publicBaseUrl: '/workspace/public',
-            serverRoot: '/workspace/root'
-        }
-        volumeHandle.ensureRoot.mockResolvedValue(volumeHandle)
-
         commandBus = {
-            execute: jest.fn().mockResolvedValue({
+            execute: jest.fn(async (command) => ({
                 backend: {
                     execute: jest.fn()
                 },
                 provider: 'local-shell-sandbox',
-                workingDirectory: '/workspace/root'
-            })
+                workingDirectory: command.params?.workingDirectory
+            }))
         }
         conversationService = {
             findOne: jest.fn()
         }
-        volumeClient = {
-            resolve: jest.fn().mockReturnValue(volumeHandle)
-        }
-        workspacePathMapperFactory = {
-            forProvider: jest.fn().mockReturnValue({
-                mapVolumeToWorkspace: jest.fn().mockReturnValue({
-                    volumeRoot: '/workspace/root',
-                    workspaceRoot: '/workspace/root',
-                    workspacePath: '/workspace/root'
-                })
-            })
+        workAreaResolver = {
+            resolve: jest.fn((input) => createWorkArea(input))
         }
 
         service = new SandboxConversationContextService(
             commandBus as unknown as CommandBus,
             conversationService as unknown as ChatConversationService,
-            volumeClient as any,
-            workspacePathMapperFactory as any
+            workAreaResolver as unknown as XpertWorkAreaResolver
         )
     })
 
@@ -113,12 +95,14 @@ describe('SandboxConversationContextService', () => {
         expect(conversationService.findOne).toHaveBeenCalledWith('conversation-1', {
             relations: ['xpert']
         })
-        expect(volumeClient.resolve).toHaveBeenCalledWith({
+        expect(workAreaResolver.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-from-conversation',
-            catalog: 'xperts',
-            xpertId: 'xpert-1',
             userId: 'user-conversation-owner',
-            isolateByUser: true
+            provider: 'local-shell-sandbox',
+            xpertId: 'xpert-1',
+            projectId: null,
+            conversationId: 'conversation-1',
+            environmentId: null
         })
         expect(commandBus.execute).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -129,13 +113,14 @@ describe('SandboxConversationContextService', () => {
                         type: 'user',
                         id: 'user-conversation-owner'
                     },
-                    workingDirectory: '/workspace/root'
+                    workingDirectory: '/workspace/root/users/user-conversation-owner'
                 })
             })
         )
         expect(resolved.userId).toBe('user-conversation-owner')
         expect(resolved.tenantId).toBe('tenant-from-conversation')
         expect(resolved.effectiveSandboxEnvironmentId).toBeNull()
+        expect(resolved.workingDirectory).toBe('/workspace/root/users/user-conversation-owner')
     })
 
     it('prefers the persisted sandbox environment over project scope for terminal sessions', async () => {
@@ -166,11 +151,14 @@ describe('SandboxConversationContextService', () => {
         expect(conversationService.findOne).toHaveBeenCalledWith('conversation-1', {
             relations: ['xpert']
         })
-        expect(volumeClient.resolve).toHaveBeenCalledWith({
+        expect(workAreaResolver.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            catalog: 'environment',
-            environmentId: 'sandbox-env-1',
-            userId: 'user-1'
+            userId: 'user-1',
+            provider: 'local-shell-sandbox',
+            xpertId: 'xpert-1',
+            projectId: null,
+            conversationId: 'conversation-1',
+            environmentId: 'sandbox-env-1'
         })
         expect(commandBus.execute).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -188,4 +176,93 @@ describe('SandboxConversationContextService', () => {
         expect(resolved.effectiveProjectId).toBeNull()
         expect(resolved.effectiveSandboxEnvironmentId).toBe('sandbox-env-1')
     })
+
+    it('uses the project user workspace as the default terminal cwd', async () => {
+        conversationService.findOne.mockResolvedValue({
+            createdById: 'user-1',
+            id: 'conversation-1',
+            projectId: 'project-1',
+            tenantId: 'tenant-1',
+            xpert: {
+                features: {
+                    sandbox: {
+                        enabled: true,
+                        provider: 'local-shell-sandbox'
+                    }
+                }
+            },
+            xpertId: 'xpert-1'
+        })
+
+        const resolved = await service.resolveConversationSandbox({
+            conversationId: 'conversation-1'
+        })
+
+        expect(workAreaResolver.resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            provider: 'local-shell-sandbox',
+            xpertId: 'xpert-1',
+            projectId: 'project-1',
+            conversationId: 'conversation-1',
+            environmentId: null
+        })
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    workingDirectory: '/workspace/root/users/user-1',
+                    workFor: {
+                        type: 'project',
+                        id: 'project-1'
+                    }
+                })
+            })
+        )
+        expect(resolved.workingDirectory).toBe('/workspace/root/users/user-1')
+    })
 })
+
+function createWorkArea(input: {
+    tenantId: string
+    userId: string
+    provider?: string | null
+    xpertId?: string | null
+    projectId?: string | null
+    conversationId?: string | null
+    environmentId?: string | null
+}) {
+    const defaultRelativePath = input.environmentId ? '' : `users/${input.userId}`
+    const workspacePath = defaultRelativePath ? `/workspace/root/${defaultRelativePath}` : '/workspace/root'
+    const volumeScope = input.environmentId
+        ? {
+              tenantId: input.tenantId,
+              catalog: 'environment',
+              environmentId: input.environmentId,
+              userId: input.userId
+          }
+        : input.projectId
+          ? {
+                tenantId: input.tenantId,
+                catalog: 'projects',
+                projectId: input.projectId,
+                userId: input.userId
+            }
+          : {
+                tenantId: input.tenantId,
+                catalog: 'xperts',
+                xpertId: input.xpertId,
+                userId: input.userId,
+                isolateByUser: false
+            }
+
+    return {
+        volumeScope,
+        workspaceBinding: {
+            volumeRoot: '/workspace/root',
+            workspaceRoot: '/workspace/root',
+            workspacePath
+        },
+        workingDirectory: workspacePath,
+        volumePath: '/workspace/root'
+    }
+}

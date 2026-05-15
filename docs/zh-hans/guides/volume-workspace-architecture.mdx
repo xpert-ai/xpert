@@ -154,22 +154,22 @@ Docker sandbox 会把一个精确的 Volume 根挂到容器内 `/workspace`。
 
 `getApiContainerSandboxVolumeRootPath(tenantId)`：
 
-| 场景 | 返回值 |
-| --- | --- |
-| `dev` 且未配置 `SANDBOX_VOLUME` | `~/data` |
+| 场景                                                    | 返回值                          |
+| ------------------------------------------------------- | ------------------------------- |
+| `dev` 且未配置 `SANDBOX_VOLUME`                         | `~/data`                        |
 | `dev` 且 server 不在 Docker 中，已配置 `SANDBOX_VOLUME` | `${SANDBOX_VOLUME}/${tenantId}` |
-| `dev` 且 server 在 Docker 中 | `/sandbox/${tenantId}` |
-| 非 `dev` | `/sandbox/${tenantId}` |
+| `dev` 且 server 在 Docker 中                            | `/sandbox/${tenantId}`          |
+| 非 `dev`                                                | `/sandbox/${tenantId}`          |
 
 ### 宿主机根
 
 `getDockerHostSandboxVolumeRootPath(tenantId)`：
 
-| 场景 | 返回值 |
-| --- | --- |
-| `dev` 且未配置 `SANDBOX_VOLUME` | `~/data` |
-| 已配置 `SANDBOX_VOLUME` | `${SANDBOX_VOLUME}/${tenantId}` |
-| 未配置 `SANDBOX_VOLUME` 且不是扁平 dev | 回退到 API 容器根 |
+| 场景                                   | 返回值                          |
+| -------------------------------------- | ------------------------------- |
+| `dev` 且未配置 `SANDBOX_VOLUME`        | `~/data`                        |
+| 已配置 `SANDBOX_VOLUME`                | `${SANDBOX_VOLUME}/${tenantId}` |
+| 未配置 `SANDBOX_VOLUME` 且不是扁平 dev | 回退到 API 容器根               |
 
 ### 扁平开发模式
 
@@ -190,15 +190,15 @@ Docker sandbox 会把一个精确的 Volume 根挂到容器内 `/workspace`。
 
 `getVolumeSubpath()` 定义了逻辑子路径：
 
-| `catalog` | 子路径 |
-| --- | --- |
-| `environment` | `/environment/${environmentId}` |
-| `knowledges` | `/knowledges/${knowledgeId}` |
-| `projects` | `/project/${projectId}` |
-| `skills` | `/skills/${rootId}` |
-| `users` | `/user/${userId}` |
-| `workspaces` | `/workspaces/${workspaceId}` |
-| `xperts` 共享 | `/xpert/${xpertId}` |
+| `catalog`           | 子路径                             |
+| ------------------- | ---------------------------------- |
+| `environment`       | `/environment/${environmentId}`    |
+| `knowledges`        | `/knowledges/${knowledgeId}`       |
+| `projects`          | `/project/${projectId}`            |
+| `skills`            | `/skills/${rootId}`                |
+| `users`             | `/user/${userId}`                  |
+| `workspaces`        | `/workspaces/${workspaceId}`       |
+| `xperts` 共享       | `/xpert/${xpertId}`                |
 | `xperts` 按用户隔离 | `/xpert/${xpertId}/user/${userId}` |
 
 基于这个子路径，可以得到：
@@ -208,13 +208,340 @@ Docker sandbox 会把一个精确的 Volume 根挂到容器内 `/workspace`。
 
 示例：
 
-| 逻辑对象 | server 侧路径 | public URL |
-| --- | --- | --- |
-| 项目 | `/sandbox/${tenantId}/project/${projectId}` | `/api/sandbox/volume/project/${projectId}` |
-| 用户 | `/sandbox/${tenantId}/user/${userId}` | `/api/sandbox/volume/user/${userId}` |
-| Xpert 共享卷 | `/sandbox/${tenantId}/xpert/${xpertId}` | `/api/sandbox/volume/xpert/${xpertId}` |
+| 逻辑对象         | server 侧路径                                          | public URL                                            |
+| ---------------- | ------------------------------------------------------ | ----------------------------------------------------- |
+| 项目             | `/sandbox/${tenantId}/project/${projectId}`            | `/api/sandbox/volume/project/${projectId}`            |
+| 用户             | `/sandbox/${tenantId}/user/${userId}`                  | `/api/sandbox/volume/user/${userId}`                  |
+| Xpert 共享卷     | `/sandbox/${tenantId}/xpert/${xpertId}`                | `/api/sandbox/volume/xpert/${xpertId}`                |
 | Xpert 用户隔离卷 | `/sandbox/${tenantId}/xpert/${xpertId}/user/${userId}` | `/api/sandbox/volume/xpert/${xpertId}/user/${userId}` |
-| Workspace | `/sandbox/${tenantId}/workspaces/${workspaceId}` | `/api/sandbox/volume/workspaces/${workspaceId}` |
+| Workspace        | `/sandbox/${tenantId}/workspaces/${workspaceId}`       | `/api/sandbox/volume/workspaces/${workspaceId}`       |
+
+## Xpert 工作区目录规则
+
+Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 `packages/server-ai/src/shared/volume/work-area.ts`。
+
+设计原则：
+
+- 默认工作目录是“当前用户在当前上下文中的私有操作区”。
+- 共享目录必须通过显式路径使用，不能把默认 cwd 当成共享区。
+- Xpert 长期 FileMemory 是 Xpert 级共享状态，不按用户隔离。
+- Agent invoke、terminal、sandbox upload、conversation workspace files、managed sandbox service 都应该使用同一套 resolver 结果，避免 Agent cwd 和终端 cwd 不一致。
+
+标准目录树如下：
+
+```text
+/sandbox/<tenantId>/
+  project/<projectId>/
+    shared/
+    users/<userId>/
+    agents/<xpertId>/
+    sessions/<conversationId>/
+    .xpert/
+
+  xpert/<xpertId>/
+    shared/
+    users/<userId>/
+    .xpert/memory/
+
+  user/<userId>/
+  environment/<environmentId>/
+```
+
+### 项目对话
+
+当 `projectId` 存在时，resolver 使用项目 Volume：
+
+```ts
+{
+  tenantId,
+  catalog: 'projects',
+  projectId,
+  userId
+}
+```
+
+相对路径规则：
+
+| 用途                          | Volume 内相对路径           |
+| ----------------------------- | --------------------------- |
+| 默认 cwd                      | `users/<userId>`            |
+| 项目共享工作区                | `shared`                    |
+| Xpert 在项目下的 agent 工作区 | `agents/<xpertId>`          |
+| 单次会话临时区                | `sessions/<conversationId>` |
+| 项目内部状态                  | `.xpert`                    |
+
+本地 shell sandbox 中，`workspace_path` 会是 server 可见路径，例如：
+
+```text
+/sandbox/<tenantId>/project/<projectId>/users/<userId>
+```
+
+Docker sandbox 中，同一目录会映射为：
+
+```text
+/workspace/users/<userId>
+```
+
+### 非项目 Xpert 对话
+
+当没有 `projectId` 且有 `xpertId` 时，resolver 使用共享 Xpert Volume：
+
+```ts
+{
+  tenantId,
+  catalog: 'xperts',
+  xpertId,
+  userId,
+  isolateByUser: false
+}
+```
+
+相对路径规则：
+
+| 用途                  | Volume 内相对路径 |
+| --------------------- | ----------------- |
+| 默认 cwd              | `users/<userId>`  |
+| Xpert 共享文件区      | `shared`          |
+| Xpert 长期 FileMemory | `.xpert/memory`   |
+
+因此，多个用户与同一个 Xpert 对话时：
+
+- 文件操作默认落到各自的 `xpert/<xpertId>/users/<userId>`。
+- 明确需要共享时使用 `xpert/<xpertId>/shared`。
+- `memory_write`、Dream、memory 文件 API 都读写同一个 `xpert/<xpertId>/.xpert/memory`。
+
+### Docker 容器运行示例
+
+假设：
+
+- `tenantId = tenant-1`
+- `userId = user-A`
+- `xpertId = xpert-X`
+- 非项目对话
+- sandbox provider 是 Docker
+
+API 服务容器看到的 server-side Volume 目录是：
+
+```text
+/sandbox/tenant-1/xpert/xpert-X/
+  users/user-A/
+  shared/
+  .xpert/memory/
+```
+
+各目录含义：
+
+| 目录                                            | 用途                                     |
+| ----------------------------------------------- | ---------------------------------------- |
+| `/sandbox/tenant-1/xpert/xpert-X/users/user-A`  | user A 与 Xpert X 对话的默认文件操作目录 |
+| `/sandbox/tenant-1/xpert/xpert-X/shared`        | Xpert X 的共享文件区，需要显式使用       |
+| `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | Xpert X 的长期 FileMemory，所有用户共享  |
+
+同一个 Volume 在 sandbox Docker 容器里会挂载为 `/workspace`，因此 Agent、terminal 和 sandbox tools 看到的是：
+
+```text
+/workspace/users/user-A
+/workspace/shared
+/workspace/.xpert/memory
+```
+
+对应关系：
+
+| API 服务容器路径                                | Sandbox Docker 路径        | 说明                                                   |
+| ----------------------------------------------- | -------------------------- | ------------------------------------------------------ |
+| `/sandbox/tenant-1/xpert/xpert-X/users/user-A`  | `/workspace/users/user-A`  | 默认 cwd，普通文件生成、文件上传和终端命令默认写入这里 |
+| `/sandbox/tenant-1/xpert/xpert-X/shared`        | `/workspace/shared`        | 显式共享目录                                           |
+| `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | `/workspace/.xpert/memory` | `memory_write`、Dream、memory 文件 API 的长期记忆目录  |
+
+如果 user B 也与同一个 Xpert X 对话，则默认文件目录变为：
+
+```text
+/sandbox/tenant-1/xpert/xpert-X/users/user-B
+/workspace/users/user-B
+```
+
+但 user A 和 user B 共享同一个 Xpert 记忆目录：
+
+```text
+/sandbox/tenant-1/xpert/xpert-X/.xpert/memory
+/workspace/.xpert/memory
+```
+
+如果这次对话属于项目 `project-1`，默认目录会切换到项目 Volume：
+
+```text
+/sandbox/tenant-1/project/project-1/users/user-A
+/workspace/users/user-A
+```
+
+项目共享、agent 和 session 目录分别是：
+
+```text
+/sandbox/tenant-1/project/project-1/shared
+/sandbox/tenant-1/project/project-1/agents/xpert-X
+/sandbox/tenant-1/project/project-1/sessions/<conversationId>
+```
+
+在 Docker sandbox 中对应为：
+
+```text
+/workspace/shared
+/workspace/agents/xpert-X
+/workspace/sessions/<conversationId>
+```
+
+### 环境 sandbox
+
+当 `sandboxEnvironmentId` 存在时，环境 sandbox 优先级最高，会忽略项目上下文：
+
+```ts
+{
+  tenantId,
+  catalog: 'environment',
+  environmentId,
+  userId
+}
+```
+
+环境 Volume 的默认 cwd 仍然是环境根目录，即 `environment/<environmentId>`。这类目录用于显式环境级 sandbox，不参与项目 / Xpert 用户目录划分。
+
+### Xpert FileMemory
+
+Xpert FileMemory 的 canonical root 固定为：
+
+```text
+xpert/<xpertId>/.xpert/memory
+```
+
+也就是 server 侧完整路径：
+
+```text
+/sandbox/<tenantId>/xpert/<xpertId>/.xpert/memory
+```
+
+注意：
+
+- 不再使用 `.xpert/memory/xperts/<xpertId>` 作为新写入路径。
+- frontmatter 中仍保留 `scopeId=<xpertId>`，用于表达记忆属于哪个 Xpert。
+- FileMemory volume scope 使用 `catalog: 'xperts'` 与 `isolateByUser: false`。
+- 首次访问时会从旧路径 `.xpert/memory/xperts/<xpertId>` 做非破坏性 lazy migration：只复制新目录缺失的文件，冲突时保留新文件，并在 `.dream/migrations/` 写 migration report。
+
+## Knowledge 工作区目录规则
+
+知识库和知识流水线使用独立的 `KnowledgeWorkAreaResolver`。它与 Xpert 工作区共享 Volume / Workspace 映射机制，但不并入 Xpert 对话默认 cwd。
+
+设计原则：
+
+- 知识库是 tenant 内的共享数据资产，目录粒度是 `knowledgebaseId`。
+- 多个用户、多个 Xpert、多个 pipeline 可以读写同一个知识库 Volume。
+- 用户私有对话目录和 Xpert FileMemory 不存放知识库源文件。
+- pipeline 的临时文件优先按单次 task 隔离，避免多个导入任务共用同一个 `tmp`。
+
+标准目录树如下：
+
+```text
+/sandbox/<tenantId>/
+  knowledges/<knowledgebaseId>/
+    files/
+    users/<userId>/staging/
+    documents/<documentId>/
+    pipeline/runs/<taskId>/
+    tmp/
+    .knowledge/
+```
+
+相对路径规则：
+
+| 用途                         | Volume 内相对路径            |
+| ---------------------------- | ---------------------------- |
+| 知识库正式源文件             | `files`                      |
+| 用户导入暂存区               | `users/<userId>/staging`     |
+| 单文档派生资产               | `documents/<documentId>`     |
+| 单次 pipeline run 工作区     | `pipeline/runs/<taskId>`     |
+| 单次 pipeline run 临时目录   | `pipeline/runs/<taskId>/tmp` |
+| 兼容旧逻辑的临时目录         | `tmp`                        |
+| 知识库内部状态、锁、迁移报告 | `.knowledge`                 |
+
+### 知识库上传
+
+新的知识库文件上传入口会继续使用 `catalog: 'knowledges'` 与 `knowledgeId` 定位 Volume，但文件会写入 `files/` 子目录。
+
+示例：
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/files/<folder>/manual-<unix>-<random>.pdf
+```
+
+返回给前端和文档记录的 `filePath` 是相对 knowledge Volume 的路径，例如：
+
+```text
+files/<folder>/manual-<unix>-<random>.pdf
+```
+
+读取时仍然通过 `volume.path(doc.filePath)` 解析，因此历史上没有 `files/` 前缀的旧文档路径仍可继续读取。
+
+### 知识流水线
+
+知识流水线 processor / transformer 会使用同一个 knowledge Volume：
+
+```ts
+{
+  tenantId,
+  catalog: 'knowledges',
+  knowledgeId,
+  userId
+}
+```
+
+当存在 `taskId` 时，默认 run 工作区是：
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/pipeline/runs/<taskId>
+```
+
+transformer 临时目录是：
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/pipeline/runs/<taskId>/tmp
+```
+
+没有 `taskId` 但有 `documentId` 的普通文档处理，会使用：
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/documents/<documentId>/tmp
+```
+
+没有 task/document 上下文的预览场景仍回退到：
+
+```text
+/sandbox/<tenantId>/knowledges/<knowledgebaseId>/tmp
+```
+
+Docker sandbox 中，如果未来把知识库 pipeline 映射到容器执行，同一 Volume 会挂载为 `/workspace`：
+
+```text
+/workspace/files
+/workspace/pipeline/runs/<taskId>
+/workspace/pipeline/runs/<taskId>/tmp
+/workspace/.knowledge
+```
+
+### Runtime `sys` 字段
+
+Agent 运行时会把 resolver 结果写入 `sys`：
+
+| 字段                     | 含义                                               |
+| ------------------------ | -------------------------------------------------- |
+| `volume`                 | server 侧 Volume 根路径                            |
+| `workspace_path`         | sandbox 侧默认 cwd                                 |
+| `workspace_url`          | 默认 cwd 对应的 public URL                         |
+| `workspace_root`         | sandbox 侧挂载根                                   |
+| `shared_workspace_path`  | 共享工作区路径                                     |
+| `agent_workspace_path`   | 项目内 Xpert agent 工作区路径，仅项目场景有值      |
+| `session_workspace_path` | 单次会话临时区路径，仅项目且有 conversation 时有值 |
+| `memory_workspace_path`  | Xpert 长期记忆路径，仅非项目 Xpert 场景有值        |
+
+`workspace_path` / `workspace_url` / `volume` 是兼容字段，不能删除。新代码如果需要共享目录、agent 目录、session 目录或 memory 目录，应优先读取新的明确字段。
 
 ## 还有几类额外路径
 
@@ -235,36 +562,35 @@ Docker sandbox 会把一个精确的 Volume 根挂到容器内 `/workspace`。
 - 组织级共享技能根：`${volumeRoot}/organizations/${organizationId}/skills/public`
 - 全局共享技能根：`${volumeRoot}/skills/public`
 
-## 从 Volume 映射到 Workspace
+## 从工作区 Resolver 映射到 Workspace
 
-新的推荐流程是两步：
+普通 Volume 场景仍然可以手动两步处理：
 
 1. 先解析 Volume
 2. 再映射 Workspace
 
-示例：
+但 Xpert 对话、项目对话、terminal、sandbox upload、managed service、Agent invoke 等运行态入口应优先使用 `XpertWorkAreaResolver`。
+
+推荐写法：
 
 ```ts
-const volume = await this.volumeClient
-  .resolve({
-    tenantId,
-    catalog: 'xperts',
-    xpertId,
-    userId,
-    isolateByUser: true
-  })
-  .ensureRoot()
-
-const binding = this.workspacePathMapperFactory
-  .forProvider(provider)
-  .mapVolumeToWorkspace(volume)
+const workArea = await this.workAreaResolver.resolve({
+  tenantId,
+  userId,
+  provider,
+  xpertId,
+  projectId,
+  conversationId,
+  environmentId
+})
 ```
 
 结果含义：
 
-- `volume.serverRoot` 供 server 读写
-- `binding.workspacePath` 供 sandbox 作为工作目录使用
-- `binding.bindSource` 仅在 Docker sandbox 下有意义
+- `workArea.volumePath` 供 server 识别 Volume 根
+- `workArea.workspaceBinding` 供 sandbox provider 挂载
+- `workArea.workingDirectory` 供 sandbox 作为工作目录使用
+- `workArea.sharedPath` / `agentPath` / `sessionPath` / `memoryPath` 供业务显式使用
 
 ## 调用链里的字段语义
 
@@ -320,6 +646,8 @@ const binding = this.workspacePathMapperFactory
 
 - `VOLUME_CLIENT`
 - `WorkspacePathMapperFactory`
+- `XpertWorkAreaResolver`
+- `KnowledgeWorkAreaResolver`
 
 推荐写法：
 
@@ -328,13 +656,30 @@ const binding = this.workspacePathMapperFactory
 private readonly volumeClient: VolumeClient
 ```
 
-而不是继续在业务代码里手动 `new VolumeClient(...)`。
+Xpert 运行态入口推荐直接注入 resolver：
+
+```ts
+constructor(
+  private readonly workAreaResolver: XpertWorkAreaResolver
+) {}
+```
+
+知识库和知识流水线入口推荐直接注入：
+
+```ts
+constructor(
+  private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
+) {}
+```
+
+而不是继续在业务代码里手动拼接 `project/users/agents/sessions/.xpert/memory` 或 `knowledges/files/tmp`。
 
 ## 推荐实践
 
 - 先确定你需要的是 Volume 还是 Workspace。
 - 需要 server 读写时用 `VolumeHandle`。
 - 需要 sandbox 执行路径时先通过 `WorkspacePathMapper` 映射。
+- 需要 Xpert / project / environment 运行目录时用 `XpertWorkAreaResolver`。
+- 需要知识库上传、知识流水线或文档派生资产目录时用 `KnowledgeWorkAreaResolver`。
 - 需要浏览受控子目录时用 `VolumeSubtreeClient`。
 - 保留旧 static helper 只做兼容，不要把它们当作新的主入口。
-

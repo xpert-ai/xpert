@@ -6,6 +6,7 @@ import {
     createFileMemorySignal,
     FILE_MEMORY_DREAM_SYSTEM_PROMPT,
     getXpertFileMemoryVolumeScope,
+    getXpertFileMemoryWorkspacePath,
     hashFileMemoryQuery,
     parseFileMemoryMarkdown,
     renderFileMemoryMarkdown,
@@ -22,6 +23,10 @@ describe('FileMemory core', () => {
             xpertId: 'xpert-1',
             isolateByUser: false
         })
+    })
+
+    it('uses the shared xpert memory root without an xpert-id subdirectory', () => {
+        expect(getXpertFileMemoryWorkspacePath('xpert-1')).toBe('.xpert/memory')
     })
 
     it('parses and renders topic frontmatter with normalized usage', () => {
@@ -139,16 +144,13 @@ tags:
             workingDirectory: '/workspace',
             globInfo: jest.fn().mockResolvedValue([
                 { path: 'profile.md', is_dir: false },
-                { path: '.xpert/memory/xperts/xpert-1/user/preferences.md', is_dir: false },
+                { path: '.xpert/memory/user/preferences.md', is_dir: false },
                 { path: 'nested', is_dir: true }
             ])
         }
         const store = new XpertSandboxMemoryStore(backend as any, 'xpert-1')
 
-        await expect(store.listMarkdownFiles('user')).resolves.toEqual([
-            'user/profile.md',
-            'user/preferences.md'
-        ])
-        expect(backend.globInfo).toHaveBeenCalledWith('*.md', '.xpert/memory/xperts/xpert-1/user')
+        await expect(store.listMarkdownFiles('user')).resolves.toEqual(['user/profile.md', 'user/preferences.md'])
+        expect(backend.globInfo).toHaveBeenCalledWith('*.md', '.xpert/memory/user')
     })
 })

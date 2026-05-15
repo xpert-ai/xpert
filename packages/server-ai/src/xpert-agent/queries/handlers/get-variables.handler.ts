@@ -223,6 +223,46 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                         }
                     },
                     {
+                        name: 'workspace_root',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Workspace Root',
+                            zh_Hans: '工作区根路径'
+                        }
+                    },
+                    {
+                        name: 'shared_workspace_path',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Shared Workspace Path',
+                            zh_Hans: '共享工作区路径'
+                        }
+                    },
+                    {
+                        name: 'agent_workspace_path',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Agent Workspace Path',
+                            zh_Hans: 'Agent 工作区路径'
+                        }
+                    },
+                    {
+                        name: 'session_workspace_path',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Session Workspace Path',
+                            zh_Hans: '会话工作区路径'
+                        }
+                    },
+                    {
+                        name: 'memory_workspace_path',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Xpert Memory Workspace Path',
+                            zh_Hans: 'Xpert 记忆工作区路径'
+                        }
+                    },
+                    {
                         name: 'workspace_url',
                         type: XpertParameterTypeEnum.STRING,
                         description: {

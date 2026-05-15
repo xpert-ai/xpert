@@ -53,9 +53,9 @@ describe('FileMemoryDreamService', () => {
 
     afterEach(async () => {
         await Promise.all(
-            Array.from(((dreamService as unknown as { slots: Map<string, TestDreamSlot> }).slots ?? new Map()).values()).map(
-                (slot) => slot.current?.catch(() => undefined)
-            )
+            Array.from(
+                ((dreamService as unknown as { slots: Map<string, TestDreamSlot> }).slots ?? new Map()).values()
+            ).map((slot) => slot.current?.catch(() => undefined))
         )
         process.env = originalEnv
         await fsPromises.rm(tempRoot, { recursive: true, force: true })
@@ -75,35 +75,41 @@ describe('FileMemoryDreamService', () => {
         await (dreamService as unknown as { slots: Map<string, TestDreamSlot> }).slots.get('tenant-1:xpert-1')?.current
         await waitForRunStatus(run.runId, 'succeeded')
 
-        const runRoot = path.join(tempRoot, '.xpert/memory/xperts/xpert-1/.dream/runs', run.runId)
+        const runRoot = path.join(tempRoot, '.xpert/memory/.dream/runs', run.runId)
         await expect(
-            fsPromises.access(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/.dream/backup/current/MEMORY.md'))
+            fsPromises.access(path.join(tempRoot, '.xpert/memory/.dream/backup/current/MEMORY.md'))
         ).rejects.toThrow()
-        await expect(fsPromises.readFile(path.join(runRoot, 'evidence/memory-manifest.json'), 'utf8')).resolves.toContain(
-            created.relativePath
-        )
+        await expect(
+            fsPromises.readFile(path.join(runRoot, 'evidence/memory-manifest.json'), 'utf8')
+        ).resolves.toContain(created.relativePath)
         await expect(fsPromises.readFile(path.join(runRoot, 'evidence/instructions.md'), 'utf8')).resolves.toContain(
             'You are FileMemory Dream'
         )
         await expect(fsPromises.readFile(path.join(runRoot, 'evidence/scorecards.json'), 'utf8')).resolves.toContain(
             '"scorecards"'
         )
-        await expect(fsPromises.readFile(path.join(runRoot, 'output/preflight-report.md'), 'utf8')).resolves.toContain('Dreamer')
+        await expect(fsPromises.readFile(path.join(runRoot, 'output/preflight-report.md'), 'utf8')).resolves.toContain(
+            'Dreamer'
+        )
         await expect(fsPromises.readFile(path.join(runRoot, 'output/dream-report.json'), 'utf8')).resolves.toContain(
             '"status": "succeeded"'
         )
         await expect(fsPromises.readFile(path.join(runRoot, 'output/validation.json'), 'utf8')).resolves.toContain(
             '"ok": true'
         )
-        await expect(fsPromises.readFile(path.join(runRoot, 'output/changed-files.json'), 'utf8')).resolves.toContain('[]')
-        await expect(fsPromises.readFile(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/.dream/DREAMS.md'), 'utf8')).resolves.toContain(
-            run.runId
+        await expect(fsPromises.readFile(path.join(runRoot, 'output/changed-files.json'), 'utf8')).resolves.toContain(
+            '[]'
         )
+        await expect(
+            fsPromises.readFile(path.join(tempRoot, '.xpert/memory/.dream/DREAMS.md'), 'utf8')
+        ).resolves.toContain(run.runId)
 
         const detail = await dreamService.getRun(xpert, run.runId)
         expect(detail.summary.status).toBe('succeeded')
         expect(detail.preflight).toContain('Dreamer')
-        expect(detail.artifacts.some((artifact) => artifact.path.endsWith('changed-files.json') && artifact.exists)).toBe(true)
+        expect(
+            detail.artifacts.some((artifact) => artifact.path.endsWith('changed-files.json') && artifact.exists)
+        ).toBe(true)
     })
 
     it('coalesces a new trigger when a queued run already exists for the same xpert', async () => {
@@ -170,7 +176,7 @@ describe('FileMemoryDreamService', () => {
         })
         await expect(
             fsPromises.readFile(
-                path.join(tempRoot, '.xpert/memory/xperts/xpert-1/.dream/runs', skipped.runId, 'output/gate.json'),
+                path.join(tempRoot, '.xpert/memory/.dream/runs', skipped.runId, 'output/gate.json'),
                 'utf8'
             )
         ).resolves.toContain('"passed": false')

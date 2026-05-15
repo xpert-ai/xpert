@@ -18,6 +18,7 @@ import {
 } from './types'
 import { parseFileMemoryMarkdown, renderFileMemoryMarkdown } from './frontmatter'
 import {
+    getLegacyXpertFileMemoryWorkspacePath,
     getXpertFileMemoryWorkspacePath,
     getXpertFileMemoryVolumeScope,
     inferFileMemoryTypeFromPath,
@@ -98,17 +99,25 @@ export type FileMemoryRuntime = {
 export class FileMemoryService {
     private readonly headerManifestCache = new Map<string, { headers: FileMemoryHeader[]; rootMtimeMs: number }>()
     private readonly indexCache = new Map<string, { content: string; rootMtimeMs: number }>()
+    private readonly migratedLegacyRoots = new Set<string>()
 
     constructor(
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {}
 
-    async writeMemory(xpert: { tenantId: string; id: string }, input: FileMemoryWriteInput, runtime: FileMemoryRuntime = {}) {
+    async writeMemory(
+        xpert: { tenantId: string; id: string },
+        input: FileMemoryWriteInput,
+        runtime: FileMemoryRuntime = {}
+    ) {
         const now = new Date().toISOString()
-        const existing = input.memoryId ? await this.findTopicRecordByMemoryId(xpert, input.memoryId, runtime).catch(() => null) : null
+        const existing = input.memoryId
+            ? await this.findTopicRecordByMemoryId(xpert, input.memoryId, runtime).catch(() => null)
+            : null
         const memoryId = existing?.document.frontmatter.id ?? input.memoryId ?? `mem_${randomUUID()}`
-        const relativePath = existing?.relativePath ?? (await this.allocateTopicPath(xpert, input.type, input.title, memoryId, runtime))
+        const relativePath =
+            existing?.relativePath ?? (await this.allocateTopicPath(xpert, input.type, input.title, memoryId, runtime))
         const previousUsage = existing?.document.frontmatter.usage ?? createDefaultFileMemoryUsage()
         const document: FileMemoryDocument = {
             frontmatter: {
@@ -116,7 +125,10 @@ export class FileMemoryService {
                 scopeType: 'xpert',
                 scopeId: xpert.id,
                 type: input.type,
-                status: existing?.document.frontmatter.status === 'archived' ? 'active' : existing?.document.frontmatter.status ?? 'active',
+                status:
+                    existing?.document.frontmatter.status === 'archived'
+                        ? 'active'
+                        : (existing?.document.frontmatter.status ?? 'active'),
                 title: input.title.trim(),
                 summary: input.summary.trim(),
                 confidence: existing?.document.frontmatter.confidence ?? 0.9,
@@ -158,7 +170,13 @@ export class FileMemoryService {
 
     async archiveMemory(
         xpert: { tenantId: string; id: string },
-        input: { memoryId?: string; relativePath?: string; canonicalRef?: string; reason?: string; conversationId?: string },
+        input: {
+            memoryId?: string
+            relativePath?: string
+            canonicalRef?: string
+            reason?: string
+            conversationId?: string
+        },
         runtime: FileMemoryRuntime = {}
     ) {
         const record = await this.resolveTopicRecord(xpert, input, runtime)
@@ -188,7 +206,11 @@ export class FileMemoryService {
         }
     }
 
-    async searchMemory(xpert: { tenantId: string; id: string }, input: FileMemorySearchInput, runtime: FileMemoryRuntime = {}): Promise<FileMemorySearchResult[]> {
+    async searchMemory(
+        xpert: { tenantId: string; id: string },
+        input: FileMemorySearchInput,
+        runtime: FileMemoryRuntime = {}
+    ): Promise<FileMemorySearchResult[]> {
         const query = input.query.trim()
         if (!query) {
             return []
@@ -204,7 +226,12 @@ export class FileMemoryService {
                 score: scoreHeader(header, query)
             }))
             .filter((item) => item.score > 0)
-            .sort((a, b) => b.score - a.score || b.header.mtimeMs - a.header.mtimeMs || a.header.relativePath.localeCompare(b.header.relativePath))
+            .sort(
+                (a, b) =>
+                    b.score - a.score ||
+                    b.header.mtimeMs - a.header.mtimeMs ||
+                    a.header.relativePath.localeCompare(b.header.relativePath)
+            )
             .slice(0, input.limit ?? 5)
 
         const now = new Date().toISOString()
@@ -237,7 +264,11 @@ export class FileMemoryService {
         }))
     }
 
-    async recordRecallHits(xpert: { tenantId: string; id: string }, input: FileMemoryRecallHitInput, runtime: FileMemoryRuntime = {}) {
+    async recordRecallHits(
+        xpert: { tenantId: string; id: string },
+        input: FileMemoryRecallHitInput,
+        runtime: FileMemoryRuntime = {}
+    ) {
         const query = input.query.trim()
         if (!query || !input.headers.length) {
             return
@@ -262,7 +293,11 @@ export class FileMemoryService {
         await this.writeScorecardIndex(xpert, runtime)
     }
 
-    async getMemory(xpert: { tenantId: string; id: string }, input: FileMemoryGetInput, runtime: FileMemoryRuntime = {}) {
+    async getMemory(
+        xpert: { tenantId: string; id: string },
+        input: FileMemoryGetInput,
+        runtime: FileMemoryRuntime = {}
+    ) {
         const record = await this.resolveTopicRecord(xpert, input, runtime)
         const signal = createFileMemorySignal({
             type: 'detail_read',
@@ -284,7 +319,11 @@ export class FileMemoryService {
         }
     }
 
-    async recordWritebackCandidate(xpert: { tenantId: string; id: string }, input: FileMemoryWritebackCandidateInput, runtime: FileMemoryRuntime = {}) {
+    async recordWritebackCandidate(
+        xpert: { tenantId: string; id: string },
+        input: FileMemoryWritebackCandidateInput,
+        runtime: FileMemoryRuntime = {}
+    ) {
         const signal = createFileMemorySignal({
             type: 'writeback_candidate',
             xpertId: xpert.id,
@@ -331,7 +370,12 @@ export class FileMemoryService {
             byType.get(header.type)?.push(header)
         }
 
-        const lines = ['# Xpert Memory', '', 'This file is a managed navigation index. Durable memory lives in topic files.', '']
+        const lines = [
+            '# Xpert Memory',
+            '',
+            'This file is a managed navigation index. Durable memory lives in topic files.',
+            ''
+        ]
         for (const type of FILE_MEMORY_TYPES) {
             const items = (byType.get(type) ?? []).sort((a, b) => a.title.localeCompare(b.title))
             if (!items.length) {
@@ -345,7 +389,12 @@ export class FileMemoryService {
             lines.push('')
         }
 
-        await this.writeTextFile(xpert, FILE_MEMORY_INDEX_FILENAME, `${lines.join('\n').replace(/\s+$/, '')}\n`, runtime)
+        await this.writeTextFile(
+            xpert,
+            FILE_MEMORY_INDEX_FILENAME,
+            `${lines.join('\n').replace(/\s+$/, '')}\n`,
+            runtime
+        )
         await this.invalidateCaches(xpert, runtime)
     }
 
@@ -368,7 +417,7 @@ export class FileMemoryService {
                     const document = parseFileMemoryMarkdown(content)
                     const mtimeMs = runtime.store
                         ? await runtime.store.getMtimeMs(relativePath).catch(() => 0)
-                        : (await fsPromises.stat(path.join(root, relativePath)).catch(() => null))?.mtimeMs ?? 0
+                        : ((await fsPromises.stat(path.join(root, relativePath)).catch(() => null))?.mtimeMs ?? 0)
                     records.push({ relativePath, document, mtimeMs })
                 } catch {
                     continue
@@ -383,14 +432,19 @@ export class FileMemoryService {
         return this.ensureMemoryRoot(xpert)
     }
 
-    private async resolveTopicRecord(xpert: { tenantId: string; id: string }, input: FileMemoryGetInput, runtime: FileMemoryRuntime = {}) {
+    private async resolveTopicRecord(
+        xpert: { tenantId: string; id: string },
+        input: FileMemoryGetInput,
+        runtime: FileMemoryRuntime = {}
+    ) {
         const ref = input.relativePath ?? input.canonicalRef
         if (ref && ref.endsWith('.md')) {
             const relativePath = normalizeFileMemoryRelativePath(ref)
             const content = await this.readTextFile(xpert, relativePath, runtime)
             const mtimeMs = runtime.store
                 ? await runtime.store.getMtimeMs(relativePath).catch(() => 0)
-                : (await fsPromises.stat(this.resolveAbsolutePath(xpert, relativePath)).catch(() => null))?.mtimeMs ?? 0
+                : ((await fsPromises.stat(this.resolveAbsolutePath(xpert, relativePath)).catch(() => null))?.mtimeMs ??
+                  0)
             return {
                 relativePath,
                 document: parseFileMemoryMarkdown(content),
@@ -401,12 +455,18 @@ export class FileMemoryService {
         return this.findTopicRecordByMemoryId(xpert, input.memoryId ?? input.canonicalRef, runtime)
     }
 
-    private async findTopicRecordByMemoryId(xpert: { tenantId: string; id: string }, memoryId?: string | null, runtime: FileMemoryRuntime = {}) {
+    private async findTopicRecordByMemoryId(
+        xpert: { tenantId: string; id: string },
+        memoryId?: string | null,
+        runtime: FileMemoryRuntime = {}
+    ) {
         if (!memoryId) {
             throw new Error('memoryId, relativePath, or canonicalRef is required')
         }
 
-        const matched = (await this.listTopicRecords(xpert, runtime)).find((record) => record.document.frontmatter.id === memoryId)
+        const matched = (await this.listTopicRecords(xpert, runtime)).find(
+            (record) => record.document.frontmatter.id === memoryId
+        )
         if (!matched) {
             throw new Error(`Memory not found: ${memoryId}`)
         }
@@ -430,7 +490,12 @@ export class FileMemoryService {
         return relativePath
     }
 
-    private async updateTopicUsage(xpert: { tenantId: string; id: string }, record: FileMemoryTopicRecord, signal: Parameters<typeof applyFileMemorySignalToUsage>[1], runtime: FileMemoryRuntime = {}) {
+    private async updateTopicUsage(
+        xpert: { tenantId: string; id: string },
+        record: FileMemoryTopicRecord,
+        signal: Parameters<typeof applyFileMemorySignalToUsage>[1],
+        runtime: FileMemoryRuntime = {}
+    ) {
         const memorySignals = (await this.readSignals(xpert, runtime)).filter(
             (item) => item.memoryId === record.document.frontmatter.id || item.relativePath === record.relativePath
         )
@@ -453,7 +518,11 @@ export class FileMemoryService {
         return updated
     }
 
-    private async appendSignal(xpert: { tenantId: string; id: string }, signal: ReturnType<typeof createFileMemorySignal>, runtime: FileMemoryRuntime = {}) {
+    private async appendSignal(
+        xpert: { tenantId: string; id: string },
+        signal: ReturnType<typeof createFileMemorySignal>,
+        runtime: FileMemoryRuntime = {}
+    ) {
         const relativePath = normalizeFileMemoryRelativePath(
             path.posix.join(FILE_MEMORY_DREAM_DIR, 'signals', getSignalDatePath(new Date(signal.createdAt)))
         )
@@ -490,14 +559,23 @@ export class FileMemoryService {
             }),
             candidates: buildCandidateScorecards(signals)
         }
-        await this.writeJsonFile(xpert, path.posix.join(FILE_MEMORY_DREAM_DIR, 'scorecards', 'index.json'), index, runtime)
+        await this.writeJsonFile(
+            xpert,
+            path.posix.join(FILE_MEMORY_DREAM_DIR, 'scorecards', 'index.json'),
+            index,
+            runtime
+        )
     }
 
     private async readSignals(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
         if (runtime.store) {
-            const relativePaths = await runtime.store.listFiles(path.posix.join(FILE_MEMORY_DREAM_DIR, 'signals'), '*.jsonl').catch(() => [])
+            const relativePaths = await runtime.store
+                .listFiles(path.posix.join(FILE_MEMORY_DREAM_DIR, 'signals'), '*.jsonl')
+                .catch(() => [])
             const signals: FileMemorySignal[] = []
-            for (const relativePath of relativePaths.filter((item) => item.endsWith('.jsonl')).sort((a, b) => a.localeCompare(b))) {
+            for (const relativePath of relativePaths
+                .filter((item) => item.endsWith('.jsonl'))
+                .sort((a, b) => a.localeCompare(b))) {
                 const content = await runtime.store.readFile(relativePath).catch(() => '')
                 for (const line of content.split(/\r?\n/)) {
                     if (!line.trim()) {
@@ -515,7 +593,9 @@ export class FileMemoryService {
         const signalsRoot = this.resolveAbsolutePath(xpert, path.posix.join(FILE_MEMORY_DREAM_DIR, 'signals'))
         const entries = await fsPromises.readdir(signalsRoot, { withFileTypes: true }).catch(() => [])
         const signals: FileMemorySignal[] = []
-        for (const entry of entries.filter((item) => item.isFile() && item.name.endsWith('.jsonl')).sort((a, b) => a.name.localeCompare(b.name))) {
+        for (const entry of entries
+            .filter((item) => item.isFile() && item.name.endsWith('.jsonl'))
+            .sort((a, b) => a.name.localeCompare(b.name))) {
             const content = await fsPromises.readFile(path.join(signalsRoot, entry.name), 'utf8').catch(() => '')
             for (const line of content.split(/\r?\n/)) {
                 if (!line.trim()) {
@@ -531,7 +611,12 @@ export class FileMemoryService {
         return signals
     }
 
-    private async writeJsonFile(xpert: { tenantId: string; id: string }, relativePath: string, value: unknown, runtime: FileMemoryRuntime = {}) {
+    private async writeJsonFile(
+        xpert: { tenantId: string; id: string },
+        relativePath: string,
+        value: unknown,
+        runtime: FileMemoryRuntime = {}
+    ) {
         await this.writeTextFile(xpert, relativePath, `${JSON.stringify(value, null, 2)}\n`, runtime)
     }
 
@@ -542,6 +627,7 @@ export class FileMemoryService {
         }
         const root = this.resolveMemoryRoot(xpert)
         await fsPromises.mkdir(root, { recursive: true })
+        await this.migrateLegacyMemoryRoot(xpert, root)
         for (const type of FILE_MEMORY_TYPES) {
             await fsPromises.mkdir(path.join(root, type), { recursive: true })
         }
@@ -550,14 +636,23 @@ export class FileMemoryService {
         return root
     }
 
-    private async readTextFile(xpert: { tenantId: string; id: string }, relativePath: string, runtime: FileMemoryRuntime = {}) {
+    private async readTextFile(
+        xpert: { tenantId: string; id: string },
+        relativePath: string,
+        runtime: FileMemoryRuntime = {}
+    ) {
         if (runtime.store) {
             return runtime.store.readFile(relativePath)
         }
         return await fsPromises.readFile(this.resolveAbsolutePath(xpert, relativePath), 'utf8')
     }
 
-    private async writeTextFile(xpert: { tenantId: string; id: string }, relativePath: string, content: string, runtime: FileMemoryRuntime = {}) {
+    private async writeTextFile(
+        xpert: { tenantId: string; id: string },
+        relativePath: string,
+        content: string,
+        runtime: FileMemoryRuntime = {}
+    ) {
         if (runtime.store) {
             await runtime.store.writeFile(relativePath, content)
             return
@@ -569,14 +664,96 @@ export class FileMemoryService {
 
     private resolveAbsolutePath(xpert: { tenantId: string; id: string }, relativePath: string) {
         const normalized = normalizeFileMemoryRelativePath(relativePath)
-        if (inferFileMemoryTypeFromPath(normalized) === null && normalized !== FILE_MEMORY_INDEX_FILENAME && !normalized.startsWith(`${FILE_MEMORY_DREAM_DIR}/`)) {
+        if (
+            inferFileMemoryTypeFromPath(normalized) === null &&
+            normalized !== FILE_MEMORY_INDEX_FILENAME &&
+            !normalized.startsWith(`${FILE_MEMORY_DREAM_DIR}/`)
+        ) {
             throw new Error(`Invalid file memory path: ${relativePath}`)
         }
         return path.join(this.resolveMemoryRoot(xpert), normalized)
     }
 
     private resolveMemoryRoot(xpert: { tenantId: string; id: string }) {
-        return this.volumeClient.resolve(getXpertFileMemoryVolumeScope(xpert.tenantId, xpert.id)).path(getXpertFileMemoryWorkspacePath(xpert.id))
+        return this.volumeClient
+            .resolve(getXpertFileMemoryVolumeScope(xpert.tenantId, xpert.id))
+            .path(getXpertFileMemoryWorkspacePath(xpert.id))
+    }
+
+    private async migrateLegacyMemoryRoot(xpert: { tenantId: string; id: string }, root: string) {
+        const cacheKey = `${xpert.tenantId}:${xpert.id}`
+        if (this.migratedLegacyRoots.has(cacheKey)) {
+            return
+        }
+
+        const legacyRoot = this.volumeClient
+            .resolve(getXpertFileMemoryVolumeScope(xpert.tenantId, xpert.id))
+            .path(getLegacyXpertFileMemoryWorkspacePath(xpert.id))
+        const legacyStat = await fsPromises.stat(legacyRoot).catch(() => null)
+        if (!legacyStat?.isDirectory()) {
+            this.migratedLegacyRoots.add(cacheKey)
+            return
+        }
+
+        const files = await collectLegacyMemoryFiles(legacyRoot)
+        const copied: string[] = []
+        const skipped: string[] = []
+        for (const filePath of files) {
+            const relativePath = path.relative(legacyRoot, filePath).replace(/\\/g, '/')
+            if (
+                !relativePath ||
+                relativePath.startsWith('..') ||
+                path.isAbsolute(relativePath) ||
+                relativePath.startsWith('xperts/')
+            ) {
+                skipped.push(relativePath)
+                continue
+            }
+
+            const targetPath = path.join(root, relativePath)
+            const targetExists = await fsPromises
+                .stat(targetPath)
+                .then(() => true)
+                .catch(() => false)
+            if (targetExists) {
+                skipped.push(relativePath)
+                continue
+            }
+
+            await fsPromises.mkdir(path.dirname(targetPath), { recursive: true })
+            await fsPromises.copyFile(filePath, targetPath)
+            copied.push(relativePath)
+        }
+
+        if (!copied.length && !skipped.length) {
+            this.migratedLegacyRoots.add(cacheKey)
+            return
+        }
+
+        const reportPath = path.join(
+            root,
+            FILE_MEMORY_DREAM_DIR,
+            'migrations',
+            `${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+        )
+        await fsPromises.mkdir(path.dirname(reportPath), { recursive: true })
+        await fsPromises.writeFile(
+            reportPath,
+            `${JSON.stringify(
+                {
+                    migratedAt: new Date().toISOString(),
+                    xpertId: xpert.id,
+                    legacyRoot,
+                    root,
+                    copied,
+                    skipped
+                },
+                null,
+                2
+            )}\n`,
+            'utf8'
+        )
+        this.migratedLegacyRoots.add(cacheKey)
     }
 
     private async getRootMtimeMs(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
@@ -584,9 +761,15 @@ export class FileMemoryService {
         if (runtime.store) {
             const paths = [
                 FILE_MEMORY_INDEX_FILENAME,
-                ...(await Promise.all(FILE_MEMORY_TYPES.map((type) => runtime.store!.listMarkdownFiles(type).catch(() => [])))).flat()
+                ...(
+                    await Promise.all(
+                        FILE_MEMORY_TYPES.map((type) => runtime.store!.listMarkdownFiles(type).catch(() => []))
+                    )
+                ).flat()
             ]
-            const mtimes = await Promise.all(paths.map((filePath) => runtime.store!.getMtimeMs(filePath).catch(() => 0)))
+            const mtimes = await Promise.all(
+                paths.map((filePath) => runtime.store!.getMtimeMs(filePath).catch(() => 0))
+            )
             return Math.max(0, ...mtimes)
         }
         let latest = (await fsPromises.stat(root).catch(() => ({ mtimeMs: 0 }))).mtimeMs
@@ -628,6 +811,20 @@ function recordToHeader(record: FileMemoryTopicRecord): FileMemoryHeader {
         mtimeMs: record.mtimeMs,
         usefulnessScore: frontmatter.usage.usefulnessScore
     }
+}
+
+async function collectLegacyMemoryFiles(root: string): Promise<string[]> {
+    const entries = await fsPromises.readdir(root, { withFileTypes: true }).catch(() => [])
+    const files: string[] = []
+    for (const entry of entries) {
+        const entryPath = path.join(root, entry.name)
+        if (entry.isDirectory()) {
+            files.push(...(await collectLegacyMemoryFiles(entryPath)))
+        } else if (entry.isFile()) {
+            files.push(entryPath)
+        }
+    }
+    return files
 }
 
 function createScopeKey(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
@@ -696,7 +893,11 @@ function groupSignalsByMemory(signals: FileMemorySignal[]) {
 function buildCandidateScorecards(signals: FileMemorySignal[]): FileMemoryScorecardCandidate[] {
     const groups = new Map<string, FileMemorySignal[]>()
     for (const signal of signals) {
-        if (signal.type !== 'writeback_candidate' && signal.type !== 'user_correction' && signal.type !== 'index_issue') {
+        if (
+            signal.type !== 'writeback_candidate' &&
+            signal.type !== 'user_correction' &&
+            signal.type !== 'index_issue'
+        ) {
             continue
         }
         const key = signal.memoryId ?? signal.sourceRef ?? signal.conversationId ?? signal.relativePath ?? signal.id
@@ -716,7 +917,11 @@ function buildCandidateScorecards(signals: FileMemorySignal[]): FileMemoryScorec
                 sourceQualityScore: calculateSourceQualityScore(group),
                 recencyScore: calculateSignalRecencyScore(latestSignalAt(group)),
                 actionabilityScore: group.some((signal) => Boolean(signal.metadata)) ? 0.8 : 0.4,
-                conflictScore: group.some((signal) => signal.type === 'user_correction' || signal.type === 'index_issue') ? 1 : 0.2,
+                conflictScore: group.some(
+                    (signal) => signal.type === 'user_correction' || signal.type === 'index_issue'
+                )
+                    ? 1
+                    : 0.2,
                 coverageScore: Math.min(1, group.length / 3)
             })
             const latest = [...group].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
@@ -788,7 +993,8 @@ function scoreHeader(header: FileMemoryHeader, query: string) {
     const typeBoost = includesNormalized(query, header.type) ? 0.08 : 0
     const usageBoost = Math.min(0.2, header.usefulnessScore * 0.2)
     const recencyBoost = calculateRecencyBoost(header.mtimeMs)
-    const score = titleScore * 0.46 + summaryScore * 0.28 + tagScore * 0.14 + exactTitle + typeBoost + usageBoost + recencyBoost
+    const score =
+        titleScore * 0.46 + summaryScore * 0.28 + tagScore * 0.14 + exactTitle + typeBoost + usageBoost + recencyBoost
     return Number(Math.min(1, score).toFixed(4))
 }
 
