@@ -1,4 +1,5 @@
 import {
+  getSandboxPreviewTargetFromLogEvent,
   shouldOpenSandboxPreviewFromEffectEvent,
   shouldOpenSandboxPreviewFromLogEvent
 } from './clawxpert-sandbox-preview.utils'
@@ -63,6 +64,30 @@ describe('clawxpert sandbox preview utils', () => {
         name: 'sandbox_service_start'
       })
     ).toBe(true)
+  })
+
+  it('extracts a browser target from sandbox service start results', () => {
+    expect(
+      getSandboxPreviewTargetFromLogEvent({
+        name: 'tool_log',
+        data: {
+          payload: {
+            item: {
+              tool: 'sandbox_service_start',
+              output: JSON.stringify({
+                id: 'service-1',
+                actualPort: 3000,
+                previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
+              })
+            }
+          }
+        }
+      })
+    ).toEqual({
+      displayUrl: 'localhost:3000',
+      serviceId: 'service-1',
+      url: 'localhost:3000'
+    })
   })
 
   it('ignores service names inside unrelated tool args', () => {

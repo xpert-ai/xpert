@@ -8,6 +8,7 @@ jest.mock('../../../@core', () => ({
   })
 }))
 
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
@@ -28,6 +29,29 @@ async function nextAnimationFrame() {
   })
 }
 
+async function openFirstLocalService(fixture: { nativeElement: HTMLElement; detectChanges: () => void }) {
+  const serviceCard = fixture.nativeElement.querySelector(
+    '[data-local-service-card="service-1"]'
+  ) as HTMLButtonElement | null
+  expect(serviceCard).not.toBeNull()
+  serviceCard?.click()
+  fixture.detectChanges()
+  await Promise.resolve()
+  await Promise.resolve()
+  fixture.detectChanges()
+}
+
+function dispatchMouse(target: EventTarget, type: string, clientX: number, clientY: number) {
+  target.dispatchEvent(
+    new MouseEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      clientX,
+      clientY
+    })
+  )
+}
+
 describe('ClawXpertConversationPreviewComponent', () => {
   let sandboxService: {
     listManagedServices: jest.Mock
@@ -36,6 +60,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     restartManagedService: jest.Mock
     stopManagedService: jest.Mock
   }
+  let overlayContainer: OverlayContainer
 
   beforeEach(async () => {
     sandboxService = {
@@ -83,21 +108,40 @@ describe('ClawXpertConversationPreviewComponent', () => {
         }
       ]
     }).compileComponents()
+
+    overlayContainer = TestBed.inject(OverlayContainer)
   })
 
   afterEach(() => {
+    overlayContainer.ngOnDestroy()
     TestBed.resetTestingModule()
     jest.clearAllMocks()
   })
 
-  it('loads managed services and emits element references selected in inspect mode', async () => {
+  it('shows local services before opening a browser iframe', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
 
     expect(sandboxService.listManagedServices).toHaveBeenCalledWith('conversation-1')
+    expect(sandboxService.createManagedServicePreviewSession).not.toHaveBeenCalled()
+    expect(fixture.componentInstance.selectedServiceId()).toBe(null)
+    expect(fixture.nativeElement.textContent).toContain('web')
+    expect(fixture.nativeElement.textContent).toContain('localhost:4173')
+    expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
+  })
+
+  it('opens a local service from the address bar', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+
+    await fixture.componentInstance.navigateToAddress('localhost:4173')
+    await settle(fixture)
+
     expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledWith('conversation-1', 'service-1')
     expect(fixture.componentInstance.selectedServiceId()).toBe('service-1')
+    expect(fixture.componentInstance.displayUrl()).toBe('localhost:4173')
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -105,6 +149,170 @@ describe('ClawXpertConversationPreviewComponent', () => {
       throw new Error('Expected preview iframe to be rendered for a running service.')
     }
     expect(iframe.src).toBe('http://localhost:3000/api/sandbox/conversations/conversation-1/services/service-1/proxy/')
+  })
+
+  it('updates front-end browser toolbar state', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+    await openFirstLocalService(fixture)
+
+    const component = fixture.componentInstance
+    expect(component.zoomLevel()).toBe(100)
+
+    component.zoomIn()
+    expect(component.zoomLevel()).toBe(110)
+
+    component.zoomOut()
+    expect(component.zoomLevel()).toBe(100)
+
+    component.toggleDeviceToolbar()
+    expect(component.deviceToolbar()).toBe(true)
+
+    const reloadBefore = component.reloadNonce()
+    component.clearCache()
+    expect(component.cacheBustNonce()).toBeGreaterThan(0)
+    expect(component.reloadNonce()).toBeGreaterThan(reloadBefore)
+  })
+
+  it('renders a responsive device toolbar with viewport controls', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+    await openFirstLocalService(fixture)
+
+    const component = fixture.componentInstance
+    expect(fixture.nativeElement.querySelector('[data-device-toolbar]')).toBeNull()
+
+    component.toggleDeviceToolbar()
+    fixture.detectChanges()
+
+    const toolbar = fixture.nativeElement.querySelector('[data-device-toolbar]') as HTMLElement | null
+    const widthInput = fixture.nativeElement.querySelector('[data-device-width]') as HTMLInputElement | null
+    const heightInput = fixture.nativeElement.querySelector('[data-device-height]') as HTMLInputElement | null
+    const viewport = fixture.nativeElement.querySelector('[data-device-viewport]') as HTMLElement | null
+
+    expect(toolbar).not.toBeNull()
+    expect(toolbar?.textContent).toContain('PAC.Chat.ClawXpert.Responsive')
+    expect(widthInput?.value).toBe('405')
+    expect(heightInput?.value).toBe('506')
+    expect(viewport?.style.width).toBe('405px')
+    expect(viewport?.style.height).toBe('506px')
+    ;(fixture.nativeElement.querySelector('[data-device-rotate]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+
+    expect(widthInput?.value).toBe('506')
+    expect(heightInput?.value).toBe('405')
+    expect(viewport?.style.width).toBe('506px')
+    expect(viewport?.style.height).toBe('405px')
+    ;(fixture.nativeElement.querySelector('[data-device-toolbar-close]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+
+    expect(component.deviceToolbar()).toBe(false)
+    expect(fixture.nativeElement.querySelector('[data-device-toolbar]')).toBeNull()
+  })
+
+  it('applies fixed device presets from the device toolbar menu', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+    await openFirstLocalService(fixture)
+
+    fixture.componentInstance.toggleDeviceToolbar()
+    fixture.detectChanges()
+    ;(fixture.nativeElement.querySelector('[data-device-preset-trigger]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    const preset = overlayContainer
+      .getContainerElement()
+      .querySelector('[data-device-preset="iphone-15-pro-max"]') as HTMLButtonElement | null
+    expect(preset).not.toBeNull()
+
+    preset?.click()
+    fixture.detectChanges()
+
+    const widthInput = fixture.nativeElement.querySelector('[data-device-width]') as HTMLInputElement | null
+    const heightInput = fixture.nativeElement.querySelector('[data-device-height]') as HTMLInputElement | null
+    const viewport = fixture.nativeElement.querySelector('[data-device-viewport]') as HTMLElement | null
+
+    expect(widthInput?.value).toBe('430')
+    expect(heightInput?.value).toBe('932')
+    expect(viewport?.style.width).toBe('430px')
+    expect(viewport?.style.height).toBe('932px')
+  })
+
+  it('resizes the device viewport by dragging edge handles', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+    await openFirstLocalService(fixture)
+
+    fixture.componentInstance.toggleDeviceToolbar()
+    fixture.detectChanges()
+
+    const widthHandle = fixture.nativeElement.querySelector('[data-device-resize-width]') as HTMLElement | null
+    const heightHandle = fixture.nativeElement.querySelector('[data-device-resize-height]') as HTMLElement | null
+    expect(widthHandle).not.toBeNull()
+    expect(heightHandle).not.toBeNull()
+
+    if (!widthHandle || !heightHandle) {
+      throw new Error('Expected device resize handles to be rendered.')
+    }
+
+    dispatchMouse(widthHandle, 'mousedown', 100, 100)
+    dispatchMouse(document, 'mousemove', 60, 100)
+    dispatchMouse(document, 'mouseup', 60, 100)
+    fixture.detectChanges()
+
+    expect((fixture.nativeElement.querySelector('[data-device-width]') as HTMLInputElement | null)?.value).toBe('445')
+
+    dispatchMouse(heightHandle, 'mousedown', 100, 100)
+    dispatchMouse(document, 'mousemove', 100, 130)
+    dispatchMouse(document, 'mouseup', 100, 130)
+    fixture.detectChanges()
+
+    const viewport = fixture.nativeElement.querySelector('[data-device-viewport]') as HTMLElement | null
+    expect((fixture.nativeElement.querySelector('[data-device-height]') as HTMLInputElement | null)?.value).toBe('536')
+    expect(viewport?.style.width).toBe('445px')
+    expect(viewport?.style.height).toBe('536px')
+  })
+
+  it('labels browser menu toggles with show and hide states', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+    await openFirstLocalService(fixture)
+    ;(fixture.nativeElement.querySelector('[data-browser-menu]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.ShowDeviceToolbar')
+    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.ShowLogs')
+
+    fixture.componentInstance.toggleDeviceToolbar()
+    fixture.componentInstance.toggleLogs()
+    fixture.detectChanges()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.HideDeviceToolbar')
+    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.HideLogs')
+  })
+
+  it('loads managed services and emits element references selected in inspect mode', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+    await openFirstLocalService(fixture)
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for a running service.')
+    }
 
     const previewDocument = document
     const button = previewDocument.createElement('button')
@@ -185,6 +393,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
+    await openFirstLocalService(fixture)
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -257,6 +466,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
+    await openFirstLocalService(fixture)
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -330,6 +540,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
+    await openFirstLocalService(fixture)
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()

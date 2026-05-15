@@ -3,19 +3,27 @@ import { Component, computed, effect, inject, OnDestroy, signal } from '@angular
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, TChatElementReference, TChatFileElementReference } from '@xpert-ai/contracts'
-import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardMenuImports, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
-import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage, injectToastr } from '../../../@core'
+import {
+  AssistantCode,
+  AiThreadService,
+  ChatConversationService,
+  IChatConversation,
+  getErrorMessage,
+  injectToastr
+} from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 import {
-  shouldOpenSandboxPreviewFromEffectEvent,
-  shouldOpenSandboxPreviewFromLogEvent
+  type ClawXpertSandboxPreviewTarget,
+  getSandboxPreviewTargetFromEffectEvent,
+  getSandboxPreviewTargetFromLogEvent
 } from './clawxpert-sandbox-preview.utils'
 import {
   shouldRefreshWorkspaceFilesFromEffectEvent,
@@ -26,7 +34,7 @@ const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_REFRESH_INTERVAL_MS = 1000
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
-  "Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked."
+  'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 
 type ChatKitCodeComposerReference = {
   type: 'code'
@@ -38,7 +46,31 @@ type ChatKitCodeComposerReference = {
 }
 
 type ChatKitComposerReference = ChatKitCodeComposerReference | ChatKitQuoteReference
-type ClawXpertConversationPanel = 'files' | 'computer' | 'preview' | 'terminal'
+type ClawXpertStaticTabId = 'files' | 'computer' | 'terminal'
+type ClawXpertWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
+type ClawXpertToolTab = {
+  id: string
+  kind: ClawXpertStaticTabId
+}
+type ClawXpertBrowserTab = {
+  id: string
+  kind: 'browser'
+  serviceId: string | null
+  url: string | null
+  displayUrl: string | null
+  zoom: number
+  deviceToolbarVisible: boolean
+  reloadKey: number
+}
+type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab
+
+type ClawXpertConversationPanel = ClawXpertStaticTabId | 'preview'
+type ClawXpertBrowserTabChange = Partial<Omit<ClawXpertBrowserTab, 'id' | 'kind'>>
+const DEFAULT_BROWSER_ZOOM = 100
+const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
+  id: 'files-initial',
+  kind: 'files'
+}
 
 type ChatKitReferenceComposerControl = {
   element: unknown
@@ -61,6 +93,7 @@ type ChatKitReferenceComposerControl = {
     ChatKit,
     ZardButtonComponent,
     ZardIconComponent,
+    ...ZardMenuImports,
     ...ZardTabsImports,
     ClawXpertConversationFilesComponent,
     ClawXpertConversationPreviewComponent,
@@ -72,7 +105,10 @@ type ChatKitReferenceComposerControl = {
       <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
         @if (showDetailPanel()) {
           <div class="flex h-full min-h-0 flex-col overflow-hidden">
-            <div class="flex flex-col items-stretch justify-start border-b border-divider-regular px-5 pt-4">
+            <div
+              data-workspace-tab-header
+              class="flex items-start justify-start border-b border-divider-regular px-4 pt-1"
+            >
               <nav
                 z-tab-nav-bar
                 [tabPanel]="tabPanel"
@@ -80,87 +116,133 @@ type ChatKitReferenceComposerControl = {
                 alignTabs="start"
                 stretchTabs="false"
                 disableRipple
-                zSize="default"
-                class="border-0 p-0 m-0"
+                zSize="sm"
+                class="min-w-0 flex-1 border-0 p-0 m-0"
               >
-                <button
-                  z-tab-link
-                  type="button"
-                  data-panel-button="files"
-                  class="flex items-center gap-2"
-                  [active]="activePanel() === 'files'"
-                  (click)="selectPanel('files')"
-                >
-                  <i class="ri-folder-3-line text-base"></i>
-                  <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-                </button>
-
-                <button
-                  z-tab-link
-                  type="button"
-                  data-panel-button="computer"
-                  class="flex items-center gap-2"
-                  [active]="activePanel() === 'computer'"
-                  (click)="selectPanel('computer')"
-                >
-                  <i class="ri-computer-line text-base"></i>
-                  <span>{{ 'PAC.Chat.ClawXpert.Computer' | translate: { Default: 'Computer' } }}</span>
-                </button>
-
-                <button
-                  z-tab-link
-                  type="button"
-                  data-panel-button="preview"
-                  class="flex items-center gap-2"
-                  [active]="activePanel() === 'preview'"
-                  (click)="selectPanel('preview')"
-                >
-                  <i class="ri-global-line text-base"></i>
-                  <span>{{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
-                </button>
-
-                <button
-                  z-tab-link
-                  type="button"
-                  data-panel-button="terminal"
-                  class="flex items-center gap-2"
-                  [active]="activePanel() === 'terminal'"
-                  (click)="selectPanel('terminal')"
-                >
-                  <i class="ri-terminal-window-line text-base"></i>
-                  <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
-                </button>
+                @for (tab of workspaceTabs(); track tab.id) {
+                  <button
+                    z-tab-link
+                    type="button"
+                    [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
+                    [attr.data-tab-id]="tab.id"
+                    class="group/tab flex min-w-0 items-center gap-2"
+                    [active]="activeTabId() === tab.id"
+                    (click)="selectTab(tab.id)"
+                  >
+                    @switch (tab.kind) {
+                      @case ('files') {
+                        <i class="ri-folder-3-line shrink-0 text-base"></i>
+                        <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
+                      }
+                      @case ('computer') {
+                        <i class="ri-computer-line shrink-0 text-base"></i>
+                        <span>{{ 'PAC.Chat.ClawXpert.Computer' | translate: { Default: 'Computer' } }}</span>
+                      }
+                      @case ('terminal') {
+                        <i class="ri-terminal-window-line shrink-0 text-base"></i>
+                        <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
+                      }
+                      @case ('browser') {
+                        <i class="ri-global-line shrink-0 text-base"></i>
+                        <span class="max-w-[12rem] truncate">
+                          {{ tab.displayUrl || ('PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
+                        </span>
+                      }
+                    }
+                    @if (workspaceTabs().length > 1) {
+                      <span
+                        role="button"
+                        tabindex="0"
+                        [attr.data-close-tab]="tab.id"
+                        class="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-text-tertiary opacity-70 transition-colors hover:bg-hover-bg hover:text-text-primary group-hover/tab:opacity-100"
+                        (click)="closeWorkspaceTab($event, tab.id)"
+                        (keydown.enter)="closeWorkspaceTab($event, tab.id)"
+                        (keydown.space)="closeWorkspaceTab($event, tab.id)"
+                      >
+                        <i class="ri-close-line text-sm"></i>
+                      </span>
+                    }
+                  </button>
+                }
               </nav>
+
+              <button
+                z-button
+                type="button"
+                zType="ghost"
+                zSize="icon"
+                data-add-workspace-tab
+                class="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
+                z-menu
+                [zMenuTriggerFor]="workspaceTabMenu"
+              >
+                <i class="ri-add-line text-lg"></i>
+              </button>
+
+              <ng-template #workspaceTabMenu>
+                <div z-menu-content class="w-52">
+                  <button type="button" z-menu-item data-add-files-tab (click)="addWorkspaceTab('files')">
+                    <span class="flex items-center gap-2">
+                      <i class="ri-folder-3-line text-base"></i>
+                      <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
+                    </span>
+                  </button>
+                  <button type="button" z-menu-item data-add-computer-tab (click)="addWorkspaceTab('computer')">
+                    <span class="flex items-center gap-2">
+                      <i class="ri-computer-line text-base"></i>
+                      <span>{{ 'PAC.Chat.ClawXpert.Computer' | translate: { Default: 'Computer' } }}</span>
+                    </span>
+                  </button>
+                  <button type="button" z-menu-item data-add-browser-tab (click)="addWorkspaceTab('browser')">
+                    <span class="flex items-center gap-2">
+                      <i class="ri-global-line text-base"></i>
+                      <span>{{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
+                    </span>
+                  </button>
+                  <button type="button" z-menu-item data-add-terminal-tab (click)="addWorkspaceTab('terminal')">
+                    <span class="flex items-center gap-2">
+                      <i class="ri-terminal-window-line text-base"></i>
+                      <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
+                    </span>
+                  </button>
+                </div>
+              </ng-template>
             </div>
 
             <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div class="min-h-0 flex-1 p-2 pr-0">
                 @if (contextLoading() && !resolvedConversationId()) {
-                  <div class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
-                    {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
+                  <div
+                    class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                  >
+                    {{
+                      'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' }
+                    }}
                   </div>
                 } @else {
                   @if (!resolvedConversationId()) {
-                    <div class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                    <div
+                      class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                    >
                       <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
                       <div class="mt-4 text-base font-medium text-text-primary">
                         {{
                           'PAC.Chat.ClawXpert.DetailPanelEmptyTitle'
-                            | translate
-                              : { Default: 'Start a conversation to unlock workspace tools' }
+                            | translate: { Default: 'Start a conversation to unlock workspace tools' }
                         }}
                       </div>
                       <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                        @if (activePanel() === 'files') {
+                        @if (activeTab()?.kind === 'files') {
                           {{
                             'PAC.Chat.ClawXpert.FilesEmptyDesc'
                               | translate
                                 : {
                                     Default:
-                                  'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
+                                      'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
                                   }
                           }}
-                        } @else if (activePanel() === 'computer') {
+                        } @else if (activeTab()?.kind === 'computer') {
                           {{
                             'PAC.Chat.ClawXpert.ComputerEmptyDesc'
                               | translate
@@ -169,7 +251,7 @@ type ChatKitReferenceComposerControl = {
                                       'Once this ClawXpert thread is created, its computer timeline will appear here as workspace tools start running.'
                                   }
                           }}
-                        } @else if (activePanel() === 'preview') {
+                        } @else if (activeTab()?.kind === 'browser') {
                           {{
                             'PAC.Chat.ClawXpert.PreviewDetailEmptyDesc'
                               | translate
@@ -192,12 +274,14 @@ type ChatKitReferenceComposerControl = {
                     </div>
                   } @else {
                     @if (contextError()) {
-                      <div class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary">
+                      <div
+                        class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
+                      >
                         {{ contextError() }}
                       </div>
                     }
 
-                    @if (activePanel() === 'files') {
+                    @if (activeTab()?.kind === 'files') {
                       <pac-clawxpert-conversation-files
                         class="h-full"
                         [conversationId]="resolvedConversationId()"
@@ -206,16 +290,22 @@ type ChatKitReferenceComposerControl = {
                         [reloadKey]="fileListReloadKey()"
                         (referenceRequest)="handleWorkspaceReference($event)"
                       />
-                    } @else if (activePanel() === 'computer') {
+                    } @else if (activeTab()?.kind === 'computer') {
                       <xp-chat-computer-timeline
                         class="h-full"
                         [conversation]="resolvedConversation()"
                         [projectId]="resolvedConversation()?.projectId ?? null"
                       />
-                    } @else if (activePanel() === 'preview') {
+                    } @else if (activeTab()?.kind === 'browser') {
                       <pac-clawxpert-conversation-preview
                         class="h-full"
                         [conversationId]="resolvedConversationId()"
+                        [serviceId]="activeBrowserTab()?.serviceId"
+                        [url]="activeBrowserTab()?.url"
+                        [zoom]="activeBrowserTab()?.zoom"
+                        [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
+                        [reloadKey]="activeBrowserTab()?.reloadKey"
+                        (browserStateChange)="updateActiveBrowserTab($event)"
                         (referenceRequest)="handleElementReference($event)"
                       />
                     } @else {
@@ -235,24 +325,28 @@ type ChatKitReferenceComposerControl = {
       </section>
 
       <section [class]="chatShellClasses()">
-        <div class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform]"
-          [class]="showDetailPanel() ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border' : ''">
-
+        <div
+          class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform]"
+          [class]="showDetailPanel() ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border' : ''"
+        >
           <div class="min-h-0 flex-1">
             @if (facade.loading()) {
-              <div class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
+              <div
+                class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+              >
                 {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert...' } }}
               </div>
             } @else {
               @switch (facade.viewState()) {
                 @case ('organization-required') {
-                  <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                  <div
+                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
                     <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{
                         'PAC.Chat.ClawXpert.OrganizationRequired'
-                          | translate
-                            : { Default: 'Select an organization to use ClawXpert' }
+                          | translate: { Default: 'Select an organization to use ClawXpert' }
                       }}
                     </div>
                     <div class="mt-2 max-w-sm text-sm text-text-secondary">
@@ -265,7 +359,9 @@ type ChatKitReferenceComposerControl = {
                   </div>
                 }
                 @case ('error') {
-                  <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center">
+                  <div
+                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
                     <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{ 'PAC.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
@@ -279,16 +375,23 @@ type ChatKitReferenceComposerControl = {
                   <xpert-chatkit class="block h-full min-h-0" [control]="control()!" />
                 }
                 @default {
-                  <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                  <div
+                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
                     <z-icon zType="edit_note" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
-                      {{ 'PAC.Chat.ClawXpert.SetupFirstTitle' | translate: { Default: 'Finish setup in overview first' } }}
+                      {{
+                        'PAC.Chat.ClawXpert.SetupFirstTitle' | translate: { Default: 'Finish setup in overview first' }
+                      }}
                     </div>
                     <div class="mt-2 max-w-sm text-sm text-text-secondary">
                       {{
                         'PAC.Chat.ClawXpert.SetupFirstDesc'
                           | translate
-                            : { Default: 'Bind a ClawXpert in the overview page before entering the detail chat workspace.' }
+                            : {
+                                Default:
+                                  'Bind a ClawXpert in the overview page before entering the detail chat workspace.'
+                              }
                       }}
                     </div>
                   </div>
@@ -329,16 +432,18 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
-      if (shouldOpenSandboxPreviewFromEffectEvent(event)) {
-        this.activePanel.set('preview')
+      const previewTarget = getSandboxPreviewTargetFromEffectEvent(event)
+      if (previewTarget) {
+        this.openBrowserTabFromSandboxEvent(previewTarget)
       }
     },
     onLog: (event) => {
       if (shouldRefreshWorkspaceFilesFromLogEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
-      if (shouldOpenSandboxPreviewFromLogEvent(event)) {
-        this.activePanel.set('preview')
+      const previewTarget = getSandboxPreviewTargetFromLogEvent(event)
+      if (previewTarget) {
+        this.openBrowserTabFromSandboxEvent(previewTarget)
       }
     },
     onResponseStart: () => {
@@ -349,12 +454,32 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.#responseActive.set(false)
       this.facade.patchActiveConversationStatus('idle')
 
-      if (this.activePanel() === 'computer' && this.resolvedConversationId()) {
+      if (this.activeTab()?.kind === 'computer' && this.resolvedConversationId()) {
         void this.refreshResolvedConversationDetail()
       }
     }
   })
-  readonly activePanel = signal<ClawXpertConversationPanel | null>('files')
+  readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([{ ...INITIAL_WORKSPACE_TAB }])
+  readonly browserTabs = computed<ClawXpertBrowserTab[]>(() =>
+    this.workspaceTabs().filter((tab): tab is ClawXpertBrowserTab => tab.kind === 'browser')
+  )
+  readonly activeTabId = signal<string>(INITIAL_WORKSPACE_TAB.id)
+  readonly activeTab = computed<ClawXpertWorkspaceTab | null>(() => {
+    const tabs = this.workspaceTabs()
+    return tabs.find((tab) => tab.id === this.activeTabId()) ?? tabs[0] ?? null
+  })
+  readonly activeBrowserTab = computed(() => {
+    const tab = this.activeTab()
+    return tab?.kind === 'browser' ? tab : null
+  })
+  readonly activePanel = computed<ClawXpertConversationPanel | null>(() => {
+    const tab = this.activeTab()
+    if (!tab) {
+      return null
+    }
+
+    return tab.kind === 'browser' ? 'preview' : tab.kind
+  })
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
@@ -429,7 +554,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     effect((onCleanup) => {
       const conversationId = this.resolvedConversationId()
-      const panel = this.activePanel()
+      const panel = this.activeTab()?.kind
       const isConversationBusy = this.#responseActive() || this.facade.activeConversation()?.status === 'busy'
 
       if (panel !== 'computer' || !conversationId || !isConversationBusy) {
@@ -447,34 +572,32 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       })
     })
 
-    effect(
-      (onCleanup) => {
-        const threadId = this.facade.threadId()
-        if (!threadId) {
-          this.#responseActive.set(false)
-          this.contextLoading.set(false)
-          this.contextError.set(null)
-          this.resolvedConversationId.set(null)
-          this.resolvedConversation.set(null)
-          this.facade.setActiveConversation(null)
-          return
-        }
-
-        let cancelled = false
+    effect((onCleanup) => {
+      const threadId = this.facade.threadId()
+      if (!threadId) {
         this.#responseActive.set(false)
-        this.contextLoading.set(true)
+        this.contextLoading.set(false)
         this.contextError.set(null)
         this.resolvedConversationId.set(null)
         this.resolvedConversation.set(null)
         this.facade.setActiveConversation(null)
-
-        void this.resolveConversationContext(threadId, () => cancelled)
-
-        onCleanup(() => {
-          cancelled = true
-        })
+        return
       }
-    )
+
+      let cancelled = false
+      this.#responseActive.set(false)
+      this.contextLoading.set(true)
+      this.contextError.set(null)
+      this.resolvedConversationId.set(null)
+      this.resolvedConversation.set(null)
+      this.facade.setActiveConversation(null)
+
+      void this.resolveConversationContext(threadId, () => cancelled)
+
+      onCleanup(() => {
+        cancelled = true
+      })
+    })
   }
 
   ngOnDestroy() {
@@ -511,7 +634,142 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   selectPanel(panel: ClawXpertConversationPanel) {
-    this.activePanel.set(panel)
+    if (panel === 'preview') {
+      this.openBrowserTabFromSandboxEvent()
+      return
+    }
+
+    const existingTab = this.workspaceTabs().find((tab) => tab.kind === panel)
+    if (existingTab) {
+      this.selectTab(existingTab.id)
+      return
+    }
+
+    this.addWorkspaceTab(panel)
+  }
+
+  selectTab(tabId: string) {
+    if (!this.workspaceTabs().some((tab) => tab.id === tabId)) {
+      return
+    }
+
+    this.activeTabId.set(tabId)
+  }
+
+  addWorkspaceTab(kind: ClawXpertWorkspaceTabKind) {
+    if (kind === 'browser') {
+      return this.addBrowserTab()
+    }
+
+    const tab: ClawXpertToolTab = {
+      id: this.createWorkspaceTabId(kind),
+      kind
+    }
+
+    this.workspaceTabs.update((tabs) => [...tabs, tab])
+    this.activeTabId.set(tab.id)
+    return tab
+  }
+
+  addBrowserTab(initial?: Partial<Pick<ClawXpertBrowserTab, 'serviceId' | 'url' | 'displayUrl'>>) {
+    const tab: ClawXpertBrowserTab = {
+      id: this.createWorkspaceTabId('browser'),
+      kind: 'browser',
+      serviceId: initial?.serviceId ?? null,
+      url: initial?.url ?? null,
+      displayUrl: initial?.displayUrl ?? null,
+      zoom: DEFAULT_BROWSER_ZOOM,
+      deviceToolbarVisible: false,
+      reloadKey: 0
+    }
+
+    this.workspaceTabs.update((tabs) => [...tabs, tab])
+    this.activeTabId.set(tab.id)
+    return tab
+  }
+
+  closeWorkspaceTab(event: Event, tabId: string) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const tabs = this.workspaceTabs()
+    if (tabs.length <= 1) {
+      return
+    }
+
+    const closedIndex = tabs.findIndex((tab) => tab.id === tabId)
+    if (closedIndex < 0) {
+      return
+    }
+
+    const nextTabs = tabs.filter((tab) => tab.id !== tabId)
+    this.workspaceTabs.set(nextTabs)
+    if (this.activeTabId() !== tabId) {
+      return
+    }
+
+    const fallbackTab = nextTabs[Math.min(closedIndex, nextTabs.length - 1)]
+    this.activeTabId.set(fallbackTab?.id ?? '')
+  }
+
+  updateActiveBrowserTab(change: ClawXpertBrowserTabChange) {
+    const tab = this.activeBrowserTab()
+    if (!tab) {
+      return
+    }
+
+    this.updateBrowserTab(tab.id, change)
+  }
+
+  private openBrowserTabFromSandboxEvent(target: ClawXpertSandboxPreviewTarget = {}) {
+    const matchedTab = this.findBrowserTabForPreviewTarget(target)
+    if (matchedTab) {
+      this.updateBrowserTab(matchedTab.id, {
+        ...(target.displayUrl !== undefined ? { displayUrl: target.displayUrl } : {}),
+        ...(target.serviceId !== undefined ? { serviceId: target.serviceId } : {}),
+        ...(target.url !== undefined ? { url: target.url } : {})
+      })
+      this.activeTabId.set(matchedTab.id)
+      return matchedTab
+    }
+
+    const reusableTab = this.browserTabs().find((tab) => !tab.serviceId && !tab.url)
+    if (reusableTab) {
+      this.updateBrowserTab(reusableTab.id, {
+        ...(target.displayUrl !== undefined ? { displayUrl: target.displayUrl } : {}),
+        ...(target.serviceId !== undefined ? { serviceId: target.serviceId } : {}),
+        ...(target.url !== undefined ? { url: target.url } : {})
+      })
+      this.activeTabId.set(reusableTab.id)
+      return reusableTab
+    }
+
+    return this.addBrowserTab({
+      displayUrl: target.displayUrl ?? null,
+      serviceId: target.serviceId ?? null,
+      url: target.url ?? null
+    })
+  }
+
+  private findBrowserTabForPreviewTarget(target: ClawXpertSandboxPreviewTarget) {
+    return this.browserTabs().find((tab) => isMatchingBrowserTab(tab, target)) ?? null
+  }
+
+  private updateBrowserTab(tabId: string, change: ClawXpertBrowserTabChange) {
+    this.workspaceTabs.update((tabs) =>
+      tabs.map((tab) =>
+        tab.kind === 'browser' && tab.id === tabId
+          ? {
+              ...tab,
+              ...change
+            }
+          : tab
+      )
+    )
+  }
+
+  private createWorkspaceTabId(kind: ClawXpertWorkspaceTabKind) {
+    return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
 
   private async attachComposerReferences(references: ChatKitComposerReference[]) {
@@ -580,9 +838,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     try {
       if (!conversationId) {
-        baseConversation = (await firstValueFrom(this.#conversationService.getByThreadId(threadId))) as
-          | IChatConversation
-          | null
+        baseConversation = (await firstValueFrom(
+          this.#conversationService.getByThreadId(threadId)
+        )) as IChatConversation | null
         if (isCancelled() || this.facade.threadId() !== threadId) {
           return
         }
@@ -691,6 +949,17 @@ function resolveConversationId(metadata?: { id?: string }) {
   return typeof conversationId === 'string' && conversationId.trim() ? conversationId : null
 }
 
+function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandboxPreviewTarget) {
+  if (typeof target.serviceId === 'string' && target.serviceId.trim() && tab.serviceId === target.serviceId) {
+    return true
+  }
+
+  const targetUrl = target.url ?? target.displayUrl
+  return typeof targetUrl === 'string' && targetUrl.trim()
+    ? tab.url === targetUrl || tab.displayUrl === targetUrl
+    : false
+}
+
 function toFileElementQuoteReference(reference: TChatFileElementReference): ChatKitQuoteReference {
   const source = formatFileElementSource(reference)
 
@@ -782,9 +1051,7 @@ function formatElementAttributes(attributes: Array<{ name: string; value: string
   return attributes.map((attribute) => `${attribute.name}="${attribute.value}"`).join(' ')
 }
 
-function isFileElementReferenceRequest(
-  request: FileWorkbenchReferenceRequest
-): request is TChatFileElementReference {
+function isFileElementReferenceRequest(request: FileWorkbenchReferenceRequest): request is TChatFileElementReference {
   return 'type' in request && request.type === 'file_element'
 }
 
