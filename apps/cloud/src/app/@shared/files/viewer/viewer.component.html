@@ -2,8 +2,13 @@
   <div class="xp-pane-header gap-3 border-b border-divider-regular pl-2 pr-4 py-2">
     @if (sideMenuToggleVisible()) {
       <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
         type="button"
-        class="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 lg:inline-flex"
+        class="hidden shrink-0 lg:inline-flex"
         data-sidebar-toggle-button="viewer"
         [zTooltip]="
           sideMenuVisible()
@@ -33,7 +38,7 @@
 
     <div class="min-w-0 flex-1">
       <div class="lg:hidden mb-2">
-        <button type="button" class="btn btn-ghost btn-small" (click)="back.emit()">
+        <button z-button zType="ghost" zSize="sm" type="button" (click)="back.emit()">
           <i class="ri-arrow-left-line mr-1"></i>
           {{ 'PAC.Files.BackToTree' | translate: { Default: 'Back to tree' } }}
         </button>
@@ -64,8 +69,10 @@
     <div class="flex flex-wrap items-center gap-2">
       @if (filePath()) {
         <button
+          z-button
+          zType="secondary"
+          zSize="sm"
           type="button"
-          class="btn btn-secondary btn-small"
           data-refresh-button="viewer"
           [disabled]="loading() || saving()"
           (click)="refresh.emit()"
@@ -77,8 +84,10 @@
 
       @if (canReferenceFile()) {
         <button
+          z-button
+          zType="secondary"
+          zSize="sm"
           type="button"
-          class="btn btn-secondary btn-small"
           data-reference-button="file"
           (click)="emitFileReference()"
         >
@@ -89,9 +98,11 @@
 
       @if (canInspectHtmlPreview()) {
         <button
+          z-button
+          zSize="sm"
           type="button"
           data-html-inspect-button="viewer"
-          [class]="htmlInspectMode() ? 'btn btn-primary btn-small' : 'btn btn-secondary btn-small'"
+          [zType]="htmlInspectMode() ? 'default' : 'secondary'"
           (click)="toggleHtmlInspectMode()"
         >
           <i class="ri-focus-3-line mr-1"></i>
@@ -115,10 +126,10 @@
         </z-segmented>
       }
 
-      <button type="button" class="btn btn-secondary btn-small" [disabled]="!dirty()" (click)="discard.emit()">
+      <button z-button zType="secondary" zSize="sm" type="button" [disabled]="!dirty()" (click)="discard.emit()">
         {{ 'PAC.Files.Discard' | translate: { Default: 'Discard' } }}
       </button>
-      <button type="button" class="btn btn-primary btn-small" [disabled]="!dirty() || saving()" (click)="save.emit()">
+      <button z-button zType="default" zSize="sm" type="button" [disabled]="!dirty() || saving()" (click)="save.emit()">
         @if (saving()) {
           <i class="ri-loader-4-line mr-1 animate-spin"></i>
         }
@@ -186,7 +197,7 @@
             </div>
 
             @if (downloadable()) {
-              <button type="button" class="btn btn-primary btn-small mt-6" (click)="download.emit()">
+              <button z-button zType="default" zSize="sm" type="button" class="mt-6" (click)="download.emit()">
                 <i class="ri-download-2-line mr-1"></i>
                 {{ 'PAC.Files.Download' | translate: { Default: 'Download' } }}
               </button>
@@ -199,8 +210,11 @@
 
           @if (markdownPreviewReference(); as previewSelection) {
             <button
+              z-button
+              zType="default"
+              zSize="sm"
               type="button"
-              class="xp-file-preview-reference-button btn btn-primary btn-small absolute z-10"
+              class="xp-file-preview-reference-button absolute z-10"
               [style.left.px]="previewSelection.left"
               [style.top.px]="previewSelection.top"
               (mousedown)="$event.preventDefault()"

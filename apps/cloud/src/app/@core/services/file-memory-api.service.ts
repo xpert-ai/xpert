@@ -47,6 +47,16 @@ export type TFileMemoryDreamRunSummary = {
   gate?: TFileMemoryDreamGateResult
 }
 
+export type TFileMemoryDreamRunArtifactId =
+  | 'status'
+  | 'request'
+  | 'evidence'
+  | 'preflight'
+  | 'gate'
+  | 'dream_report'
+  | 'validation'
+  | 'changed_files'
+
 export type TFileMemoryDreamRunDetail = {
   summary: TFileMemoryDreamRunSummary
   preflight?: string
@@ -76,6 +86,7 @@ export type TFileMemoryDreamRunDetail = {
     }>
   }
   artifacts: Array<{
+    id: TFileMemoryDreamRunArtifactId
     label: string
     path: string
     kind: 'json' | 'markdown' | 'jsonl' | 'directory'
@@ -136,7 +147,10 @@ export class FileMemoryApiService {
     return this.#httpClient.get<TFileMemoryDreamConfig>(`${this.#apiBaseUrl}/${xpertId}/memory/dream/config`)
   }
 
-  saveDreamConfig(xpertId: string, config: Pick<TFileMemoryDreamConfig, 'dreamerXpertId' | 'dreamerAgentKey' | 'gate'>) {
+  saveDreamConfig(
+    xpertId: string,
+    config: Pick<TFileMemoryDreamConfig, 'dreamerXpertId' | 'dreamerAgentKey' | 'gate'>
+  ) {
     return this.#httpClient.put<TFileMemoryDreamConfig>(`${this.#apiBaseUrl}/${xpertId}/memory/dream/config`, config)
   }
 

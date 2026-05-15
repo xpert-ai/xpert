@@ -139,7 +139,14 @@ export type FileMemoryIndexValidationResult = {
 
 export type FileMemoryDreamReason = 'manual' | 'scheduled' | 'signal_threshold'
 
-export type FileMemoryDreamRunStatus = 'queued' | 'running' | 'succeeded' | 'partial' | 'failed' | 'cancelled' | 'skipped'
+export type FileMemoryDreamRunStatus =
+    | 'queued'
+    | 'running'
+    | 'succeeded'
+    | 'partial'
+    | 'failed'
+    | 'cancelled'
+    | 'skipped'
 
 export type FileMemoryDreamRequest = {
     reason?: FileMemoryDreamReason
@@ -204,7 +211,18 @@ export type FileMemoryDreamGateResult = {
     reasons: string[]
 }
 
+export type FileMemoryDreamRunArtifactId =
+    | 'status'
+    | 'request'
+    | 'evidence'
+    | 'preflight'
+    | 'gate'
+    | 'dream_report'
+    | 'validation'
+    | 'changed_files'
+
 export type FileMemoryDreamRunArtifact = {
+    id: FileMemoryDreamRunArtifactId
     label: string
     path: string
     kind: 'json' | 'markdown' | 'jsonl' | 'directory'

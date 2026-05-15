@@ -115,8 +115,12 @@ export class FileMemoryDreamService {
         return this.getRunDetail(xpert, runId)
     }
 
-    async getDreamConfig(xpert: FileMemoryXpertScope): Promise<FileMemoryDreamConfig & { defaults: FileMemoryDreamConfig }> {
-        const saved = await this.readJson<FileMemoryDreamConfig>(await this.getDreamPath(xpert, DREAM_CONFIG_FILENAME)).catch(() => ({}))
+    async getDreamConfig(
+        xpert: FileMemoryXpertScope
+    ): Promise<FileMemoryDreamConfig & { defaults: FileMemoryDreamConfig }> {
+        const saved = await this.readJson<FileMemoryDreamConfig>(
+            await this.getDreamPath(xpert, DREAM_CONFIG_FILENAME)
+        ).catch(() => ({}))
         return {
             ...saved,
             defaults: this.getEnvDreamConfig()
@@ -189,9 +193,9 @@ export class FileMemoryDreamService {
             slot.current = undefined
             if (slot.pending) {
                 this.startSlot(key, xpert, slot)
-                return
+            } else {
+                this.slots.delete(key)
             }
-            this.slots.delete(key)
         }
     }
 
@@ -248,8 +252,16 @@ export class FileMemoryDreamService {
                 await this.releaseLock(xpert, run.runId)
             }
         } catch (error) {
-            this.logger.warn(`File memory dream failed for ${xpert.id}/${run.runId}: ${error instanceof Error ? error.message : String(error)}`)
-            await this.finishRun(xpert, run, 'failed', error instanceof Error ? error.message : String(error), startedAt)
+            this.logger.warn(
+                `File memory dream failed for ${xpert.id}/${run.runId}: ${error instanceof Error ? error.message : String(error)}`
+            )
+            await this.finishRun(
+                xpert,
+                run,
+                'failed',
+                error instanceof Error ? error.message : String(error),
+                startedAt
+            )
         }
     }
 
@@ -269,7 +281,10 @@ export class FileMemoryDreamService {
         })
     }
 
-    private async evaluateDreamGate(xpert: FileMemoryXpertScope, run: FileMemoryDreamRunSummary): Promise<FileMemoryDreamGateResult> {
+    private async evaluateDreamGate(
+        xpert: FileMemoryXpertScope,
+        run: FileMemoryDreamRunSummary
+    ): Promise<FileMemoryDreamGateResult> {
         const config = this.resolveDreamGateConfig(await this.getDreamConfig(xpert))
         const previousRun = await this.findPreviousEffectiveDreamRun(xpert, run.runId)
         if (!config.enabled) {
@@ -282,21 +297,32 @@ export class FileMemoryDreamService {
 
         const now = new Date()
         const sinceTime = Date.parse(since)
-        const elapsedMinutes = Number.isFinite(sinceTime) ? Math.max(0, Math.floor((now.getTime() - sinceTime) / 60_000)) : undefined
+        const elapsedMinutes = Number.isFinite(sinceTime)
+            ? Math.max(0, Math.floor((now.getTime() - sinceTime) / 60_000))
+            : undefined
         const root = await this.fileMemoryService.getMemoryRootPath(xpert)
-        const [records, signals] = await Promise.all([this.fileMemoryService.listTopicRecords(xpert), this.readRecentSignals(root)])
+        const [records, signals] = await Promise.all([
+            this.fileMemoryService.listTopicRecords(xpert),
+            this.readRecentSignals(root)
+        ])
         const newOrUpdatedMemoryCount = records.filter((record) => isRecordChangedSince(record, since)).length
         const conversationCount = countSignalConversationsSince(signals, since)
         const reasons: string[] = []
 
         if (elapsedMinutes !== undefined && elapsedMinutes < config.minIntervalMinutes) {
-            reasons.push(`Need at least ${config.minIntervalMinutes} minute(s) between Dream runs; only ${elapsedMinutes} minute(s) elapsed.`)
+            reasons.push(
+                `Need at least ${config.minIntervalMinutes} minute(s) between Dream runs; only ${elapsedMinutes} minute(s) elapsed.`
+            )
         }
         if (newOrUpdatedMemoryCount < config.minNewOrUpdatedMemories) {
-            reasons.push(`Need at least ${config.minNewOrUpdatedMemories} new or updated memory file(s); found ${newOrUpdatedMemoryCount}.`)
+            reasons.push(
+                `Need at least ${config.minNewOrUpdatedMemories} new or updated memory file(s); found ${newOrUpdatedMemoryCount}.`
+            )
         }
         if (conversationCount < config.minConversationCount) {
-            reasons.push(`Need at least ${config.minConversationCount} conversation(s) with memory signals; found ${conversationCount}.`)
+            reasons.push(
+                `Need at least ${config.minConversationCount} conversation(s) with memory signals; found ${conversationCount}.`
+            )
         }
 
         return {
@@ -315,11 +341,25 @@ export class FileMemoryDreamService {
     private async findPreviousEffectiveDreamRun(xpert: FileMemoryXpertScope, currentRunId: string) {
         const runs = await this.listRuns(xpert)
         return runs
-            .filter((item) => item.runId !== currentRunId && (item.status === 'succeeded' || item.status === 'partial') && Boolean(item.finishedAt ?? item.startedAt ?? item.requestedAt))
-            .sort((a, b) => (b.finishedAt ?? b.startedAt ?? b.requestedAt).localeCompare(a.finishedAt ?? a.startedAt ?? a.requestedAt))[0]
+            .filter(
+                (item) =>
+                    item.runId !== currentRunId &&
+                    (item.status === 'succeeded' || item.status === 'partial') &&
+                    Boolean(item.finishedAt ?? item.startedAt ?? item.requestedAt)
+            )
+            .sort((a, b) =>
+                (b.finishedAt ?? b.startedAt ?? b.requestedAt).localeCompare(
+                    a.finishedAt ?? a.startedAt ?? a.requestedAt
+                )
+            )[0]
     }
 
-    private async skipRunByGate(xpert: FileMemoryXpertScope, run: FileMemoryDreamRunSummary, gate: FileMemoryDreamGateResult, startedAt: string) {
+    private async skipRunByGate(
+        xpert: FileMemoryXpertScope,
+        run: FileMemoryDreamRunSummary,
+        gate: FileMemoryDreamGateResult,
+        startedAt: string
+    ) {
         const validation: DreamValidationResult = {
             ok: true,
             status: 'skipped',
@@ -379,7 +419,10 @@ export class FileMemoryDreamService {
         await fsPromises.rm(beforeRoot, { recursive: true, force: true })
         await fsPromises.mkdir(beforeRoot, { recursive: true })
 
-        await this.copyIfExists(path.join(root, FILE_MEMORY_INDEX_FILENAME), path.join(beforeRoot, FILE_MEMORY_INDEX_FILENAME))
+        await this.copyIfExists(
+            path.join(root, FILE_MEMORY_INDEX_FILENAME),
+            path.join(beforeRoot, FILE_MEMORY_INDEX_FILENAME)
+        )
         for (const type of FILE_MEMORY_TYPES) {
             await this.copyDirectoryIfExists(path.join(root, type), path.join(beforeRoot, type))
         }
@@ -392,7 +435,9 @@ export class FileMemoryDreamService {
         const scorecards = await this.readJson<FileMemoryScorecardIndex>(
             path.join(root, FILE_MEMORY_DREAM_DIR, 'scorecards', 'index.json')
         ).catch(() => null)
-        const indexContent = await fsPromises.readFile(path.join(root, FILE_MEMORY_INDEX_FILENAME), 'utf8').catch(() => '')
+        const indexContent = await fsPromises
+            .readFile(path.join(root, FILE_MEMORY_INDEX_FILENAME), 'utf8')
+            .catch(() => '')
         const validation = validateFileMemoryIndex(indexContent, {
             existingPaths: records.map((record) => record.relativePath),
             archivedPaths: records
@@ -431,7 +476,11 @@ export class FileMemoryDreamService {
             sessionSnippets.map((snippet) => JSON.stringify(snippet)).join('\n') + (sessionSnippets.length ? '\n' : ''),
             'utf8'
         )
-        await fsPromises.writeFile(path.join(runRoot, 'evidence', 'instructions.md'), this.buildDreamInstructions(), 'utf8')
+        await fsPromises.writeFile(
+            path.join(runRoot, 'evidence', 'instructions.md'),
+            this.buildDreamInstructions(),
+            'utf8'
+        )
 
         return {
             manifest,
@@ -464,10 +513,18 @@ export class FileMemoryDreamService {
             ``,
             `Host evidence is ready. The scoped Dreamer runtime must now edit topic files and MEMORY.md in-place.`
         ].join('\n')
-        await fsPromises.writeFile(await this.getOutputPath(xpert, runId, 'preflight-report.md'), `${content}\n`, 'utf8')
+        await fsPromises.writeFile(
+            await this.getOutputPath(xpert, runId, 'preflight-report.md'),
+            `${content}\n`,
+            'utf8'
+        )
     }
 
-    private async runDreamer(xpert: FileMemoryXpertScope, runId: string, dreamerConfig: ResolvedFileMemoryDreamerConfig) {
+    private async runDreamer(
+        xpert: FileMemoryXpertScope,
+        runId: string,
+        dreamerConfig: ResolvedFileMemoryDreamerConfig
+    ) {
         const memoryRoot = await this.fileMemoryService.getMemoryRootPath(xpert)
         const runRoot = await this.getRunRoot(xpert, runId)
         await this.dreamerInvoker.run({
@@ -513,7 +570,9 @@ export class FileMemoryDreamService {
         const malformedTopics = await this.findMalformedTopicFiles(root)
         issues.push(...malformedTopics)
 
-        const indexContent = await fsPromises.readFile(path.join(root, FILE_MEMORY_INDEX_FILENAME), 'utf8').catch(() => '')
+        const indexContent = await fsPromises
+            .readFile(path.join(root, FILE_MEMORY_INDEX_FILENAME), 'utf8')
+            .catch(() => '')
         const indexValidation = validateFileMemoryIndex(indexContent, {
             existingPaths: records.map((record) => record.relativePath),
             archivedPaths: records
@@ -605,7 +664,10 @@ export class FileMemoryDreamService {
     private async diffMemoryRootAgainstBackup(xpert: FileMemoryXpertScope): Promise<FileMemoryDreamChangedFile[]> {
         const root = await this.fileMemoryService.getMemoryRootPath(xpert)
         const beforeRoot = await this.getCurrentBackupRoot(xpert)
-        const [before, after] = await Promise.all([this.collectMemoryFileHashes(beforeRoot), this.collectMemoryFileHashes(root)])
+        const [before, after] = await Promise.all([
+            this.collectMemoryFileHashes(beforeRoot),
+            this.collectMemoryFileHashes(root)
+        ])
         const paths = Array.from(new Set([...before.keys(), ...after.keys()])).sort()
 
         return paths
@@ -626,8 +688,12 @@ export class FileMemoryDreamService {
         const runRoot = await this.getRunRoot(xpert, runId)
         const [preflight, report, validation] = await Promise.all([
             fsPromises.readFile(path.join(runRoot, 'output/preflight-report.md'), 'utf8').catch(() => undefined),
-            this.readJson<FileMemoryDreamRunReport>(path.join(runRoot, 'output/dream-report.json')).catch(() => undefined),
-            this.readJson<FileMemoryDreamRunDetail['validation']>(path.join(runRoot, 'output/validation.json')).catch(() => undefined)
+            this.readJson<FileMemoryDreamRunReport>(path.join(runRoot, 'output/dream-report.json')).catch(
+                () => undefined
+            ),
+            this.readJson<FileMemoryDreamRunDetail['validation']>(path.join(runRoot, 'output/validation.json')).catch(
+                () => undefined
+            )
         ])
 
         return {
@@ -645,20 +711,21 @@ export class FileMemoryDreamService {
 
     private async listRunArtifacts(xpert: FileMemoryXpertScope, runId: string) {
         const relativePaths = [
-            ['Status', `runs/${runId}/status.json`, 'json'],
-            ['Request', `runs/${runId}/request.json`, 'json'],
-            ['Evidence', `runs/${runId}/evidence`, 'directory'],
-            ['Preflight', `runs/${runId}/output/preflight-report.md`, 'markdown'],
-            ['Gate', `runs/${runId}/output/gate.json`, 'json'],
-            ['Dream report', `runs/${runId}/output/dream-report.json`, 'json'],
-            ['Validation', `runs/${runId}/output/validation.json`, 'json'],
-            ['Changed files', `runs/${runId}/output/changed-files.json`, 'json']
+            ['status', 'Status', `runs/${runId}/status.json`, 'json'],
+            ['request', 'Request', `runs/${runId}/request.json`, 'json'],
+            ['evidence', 'Evidence', `runs/${runId}/evidence`, 'directory'],
+            ['preflight', 'Preflight', `runs/${runId}/output/preflight-report.md`, 'markdown'],
+            ['gate', 'Gate', `runs/${runId}/output/gate.json`, 'json'],
+            ['dream_report', 'Dream report', `runs/${runId}/output/dream-report.json`, 'json'],
+            ['validation', 'Validation', `runs/${runId}/output/validation.json`, 'json'],
+            ['changed_files', 'Changed files', `runs/${runId}/output/changed-files.json`, 'json']
         ] as const
 
         return Promise.all(
-            relativePaths.map(async ([label, artifactPath, kind]) => {
+            relativePaths.map(async ([id, label, artifactPath, kind]) => {
                 const fullPath = await this.getDreamPath(xpert, artifactPath)
                 return {
+                    id,
                     label,
                     path: `${FILE_MEMORY_DREAM_DIR}/${artifactPath}`,
                     kind,
@@ -810,8 +877,10 @@ export class FileMemoryDreamService {
 
     private async resolveDreamerConfig(xpert: FileMemoryXpertScope): Promise<ResolvedFileMemoryDreamerConfig> {
         const config = await this.getDreamConfig(xpert)
-        const dreamerXpertId = normalizeOptionalString(config.dreamerXpertId) ?? normalizeOptionalString(config.defaults.dreamerXpertId)
-        const dreamerAgentKey = normalizeOptionalString(config.dreamerAgentKey) ?? normalizeOptionalString(config.defaults.dreamerAgentKey)
+        const dreamerXpertId =
+            normalizeOptionalString(config.dreamerXpertId) ?? normalizeOptionalString(config.defaults.dreamerXpertId)
+        const dreamerAgentKey =
+            normalizeOptionalString(config.dreamerAgentKey) ?? normalizeOptionalString(config.defaults.dreamerAgentKey)
         if (!dreamerXpertId || !dreamerAgentKey) {
             throw new Error('FileMemory Dreamer config requires dreamerXpertId and dreamerAgentKey.')
         }
@@ -900,7 +969,8 @@ function normalizeBoolean(value: unknown) {
 }
 
 function normalizeNonNegativeInteger(value: unknown) {
-    const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN
+    const parsed =
+        typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN
     if (!Number.isFinite(parsed)) {
         return undefined
     }
@@ -923,7 +993,9 @@ function createPassingGateResult(
         checkedSince: previousRun?.finishedAt ?? previousRun?.startedAt ?? previousRun?.requestedAt,
         newOrUpdatedMemoryCount: 0,
         conversationCount: 0,
-        elapsedMinutes: previousRun?.finishedAt ? Math.max(0, Math.floor((Date.now() - Date.parse(previousRun.finishedAt)) / 60_000)) : undefined,
+        elapsedMinutes: previousRun?.finishedAt
+            ? Math.max(0, Math.floor((Date.now() - Date.parse(previousRun.finishedAt)) / 60_000))
+            : undefined,
         config,
         reasons
     }

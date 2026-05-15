@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardButtonComponent, ZardInputDirective, ZardSelectImports, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import {
   FileWorkbenchComponent,
   FileWorkbenchFileDeleter,
@@ -24,10 +26,21 @@ import {
 import { XpertComponent } from '../../xpert.component'
 import { firstValueFrom, interval, Subscription } from 'rxjs'
 
+type ZardSelectValue = string | number | Array<string | number> | null
+
 @Component({
   standalone: true,
   selector: 'xp-xpert-memory-files',
-  imports: [CommonModule, FormsModule, FileWorkbenchComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ZardSwitchComponent,
+    ...ZardSelectImports,
+    FileWorkbenchComponent
+  ],
   templateUrl: './files.component.html',
   styleUrl: './files.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -37,13 +50,19 @@ export class XpertMemoryFilesComponent {
   readonly #xpertAPI = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
+  readonly #translate = inject(TranslateService)
   readonly xpertComponent = inject(XpertComponent)
 
   readonly fileWorkbench = viewChild(FileWorkbenchComponent)
 
   readonly xpertId = this.xpertComponent.paramId
   readonly xpert = computed(() => this.xpertComponent.xpert() ?? this.xpertComponent.latestXpert())
-  readonly rootLabel = computed(() => this.xpert()?.title || this.xpert()?.name || 'Memory files')
+  readonly rootLabel = computed(
+    () =>
+      this.xpert()?.title ||
+      this.xpert()?.name ||
+      this.#translate.instant('PAC.Xpert.FileMemoryFiles', { Default: 'Memory files' })
+  )
   readonly reloadKey = computed(() => this.xpertId() ?? '__hosted__')
   readonly dreaming = signal(false)
   readonly configSaving = signal(false)
@@ -68,7 +87,9 @@ export class XpertMemoryFilesComponent {
   readonly selectedDreamer = computed(() => this.dreamerOptions().find((item) => item.id === this.dreamerXpertId()))
   readonly dreamerAgentOptions = computed(() => getAgentKeys(this.selectedDreamer()))
   readonly latestRun = computed(() => this.dreamRuns()[0] ?? null)
-  readonly selectedRunSummary = computed(() => this.selectedRun()?.summary ?? this.dreamRuns().find((run) => run.runId === this.selectedRunId()))
+  readonly selectedRunSummary = computed(
+    () => this.selectedRun()?.summary ?? this.dreamRuns().find((run) => run.runId === this.selectedRunId())
+  )
   #polling?: Subscription
 
   readonly loadMemoryFiles: FileWorkbenchFilesLoader = (path?: string) => {
@@ -157,7 +178,8 @@ export class XpertMemoryFilesComponent {
     this.#fileMemoryAPI.triggerDream(xpertId).subscribe({
       next: (run) => {
         this.#toastr.success('PAC.Xpert.FileMemoryDreamQueued', {
-          Default: `Dream queued: ${run.runId}`
+          Default: `Dream queued: ${run.runId}`,
+          runId: run.runId
         })
         this.selectedRunId.set(run.runId)
         void this.loadDreamRuns(xpertId)
@@ -207,6 +229,26 @@ export class XpertMemoryFilesComponent {
     if (dreamerXpertId) {
       void this.#router.navigate(['/xpert/x', dreamerXpertId, 'agents'])
     }
+  }
+
+  updateDreamerXpertId(value: ZardSelectValue) {
+    this.dreamerXpertId.set(selectValueToString(value))
+  }
+
+  updateDreamerAgentKey(value: ZardSelectValue) {
+    this.dreamerAgentKey.set(selectValueToString(value))
+  }
+
+  updateGateMinIntervalMinutes(value: string | number | null) {
+    this.gateMinIntervalMinutes.set(toNonNegativeNumber(value))
+  }
+
+  updateGateMinNewOrUpdatedMemories(value: string | number | null) {
+    this.gateMinNewOrUpdatedMemories.set(toNonNegativeNumber(value))
+  }
+
+  updateGateMinConversationCount(value: string | number | null) {
+    this.gateMinConversationCount.set(toNonNegativeNumber(value))
   }
 
   async selectRun(runId: string) {
@@ -348,4 +390,31 @@ function getAgentKeys(xpert?: IXpert | null) {
     }
   }
   return Array.from(keys)
+}
+
+function selectValueToString(value: ZardSelectValue) {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'number') {
+    return String(value)
+  }
+  if (Array.isArray(value)) {
+    const first = value[0]
+    return first == null ? '' : String(first)
+  }
+  return ''
+}
+
+function toNonNegativeNumber(value: string | number | null) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? Math.max(0, value) : 0
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0
+  }
+
+  return 0
 }

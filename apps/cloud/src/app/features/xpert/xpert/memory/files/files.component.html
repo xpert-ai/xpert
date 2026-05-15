@@ -2,39 +2,54 @@
   <div class="grid gap-3 rounded-lg border border-divider-regular bg-components-card-bg p-3">
     <div class="flex flex-wrap items-end gap-3">
       <label class="flex min-w-64 flex-1 flex-col gap-1 text-xs text-text-secondary">
-        <span>Dreamer Xpert</span>
-        <select
-          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
-          [ngModel]="dreamerXpertId()"
-          (ngModelChange)="dreamerXpertId.set($event)"
+        <span>{{ 'PAC.Xpert.FileMemoryDreamerXpert' | translate: { Default: 'Dreamer Xpert' } }}</span>
+        <z-select
+          class="w-full"
+          zSize="sm"
+          [zValue]="dreamerXpertId()"
+          [zPlaceholder]="'PAC.Xpert.FileMemoryDreamerXpert' | translate: { Default: 'Dreamer Xpert' }"
+          (zSelectionChange)="updateDreamerXpertId($event)"
         >
-          <option value="">Use default {{ defaultDreamerXpertId() || '(not configured)' }}</option>
+          <z-select-item [zValue]="''">
+            {{ 'PAC.Xpert.FileMemoryUseDefault' | translate: { Default: 'Use default' } }}
+            {{
+              defaultDreamerXpertId() ||
+                ('PAC.Xpert.FileMemoryNotConfigured' | translate: { Default: '(not configured)' })
+            }}
+          </z-select-item>
           @for (option of dreamerOptions(); track option.id) {
-            <option [value]="option.id">{{ option.title || option.name }} · {{ option.id }}</option>
+            <z-select-item [zValue]="option.id">{{ option.title || option.name }} · {{ option.id }}</z-select-item>
           }
-        </select>
+        </z-select>
       </label>
 
       <label class="flex min-w-48 flex-col gap-1 text-xs text-text-secondary">
-        <span>Dreamer Agent Key</span>
-        <select
-          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
-          [ngModel]="dreamerAgentKey()"
-          (ngModelChange)="dreamerAgentKey.set($event)"
+        <span>{{ 'PAC.Xpert.FileMemoryDreamerAgentKey' | translate: { Default: 'Dreamer Agent Key' } }}</span>
+        <z-select
+          class="w-full"
+          zSize="sm"
+          [zValue]="dreamerAgentKey()"
+          [zPlaceholder]="'PAC.Xpert.FileMemoryDreamerAgentKey' | translate: { Default: 'Dreamer Agent Key' }"
+          (zSelectionChange)="updateDreamerAgentKey($event)"
         >
-          <option value="">Use default {{ defaultDreamerAgentKey() || 'FileMemoryDreamer' }}</option>
+          <z-select-item [zValue]="''">
+            {{ 'PAC.Xpert.FileMemoryUseDefault' | translate: { Default: 'Use default' } }}
+            {{ defaultDreamerAgentKey() || 'FileMemoryDreamer' }}
+          </z-select-item>
           @for (key of dreamerAgentOptions(); track key) {
-            <option [value]="key">{{ key }}</option>
+            <z-select-item [zValue]="key">{{ key }}</z-select-item>
           }
           @if (dreamerAgentKey() && !dreamerAgentOptions().includes(dreamerAgentKey())) {
-            <option [value]="dreamerAgentKey()">{{ dreamerAgentKey() }}</option>
+            <z-select-item [zValue]="dreamerAgentKey()">{{ dreamerAgentKey() }}</z-select-item>
           }
-        </select>
+        </z-select>
       </label>
 
       <button
+        z-button
+        zType="secondary"
+        zSize="sm"
         type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-medium"
         [disabled]="configSaving() || configLoading()"
         (click)="saveDreamConfig()"
       >
@@ -43,56 +58,60 @@
         } @else {
           <i class="ri-save-3-line mr-1"></i>
         }
-        <span>Save</span>
+        <span>{{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
       </button>
 
       <button
+        z-button
+        zType="secondary"
+        zSize="sm"
         type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-medium"
         [disabled]="!dreamerXpertId()"
         (click)="openDreamerStudio()"
       >
         <i class="ri-node-tree mr-1"></i>
-        <span>Open Dreamer</span>
+        <span>{{ 'PAC.Xpert.FileMemoryOpenDreamer' | translate: { Default: 'Open Dreamer' } }}</span>
       </button>
     </div>
 
     <div class="flex flex-wrap items-end gap-3 border-t border-divider-regular pt-3">
-      <label class="flex items-center gap-2 text-sm text-text-secondary">
-        <input type="checkbox" [ngModel]="gateEnabled()" (ngModelChange)="gateEnabled.set($event)" />
-        <span>Enable Dream gate</span>
-      </label>
+      <z-switch zSize="sm" labelPosition="before" [ngModel]="gateEnabled()" (ngModelChange)="gateEnabled.set($event)">
+        {{ 'PAC.Xpert.FileMemoryEnableDreamGate' | translate: { Default: 'Enable Dream gate' } }}
+      </z-switch>
 
       <label class="flex min-w-36 flex-col gap-1 text-xs text-text-secondary">
-        <span>Min interval</span>
+        <span>{{ 'PAC.Xpert.FileMemoryMinInterval' | translate: { Default: 'Min interval' } }}</span>
         <input
+          z-input
           type="number"
           min="0"
-          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
+          class="w-full"
           [ngModel]="gateMinIntervalMinutes()"
-          (ngModelChange)="gateMinIntervalMinutes.set(+$event || 0)"
+          (ngModelChange)="updateGateMinIntervalMinutes($event)"
         />
       </label>
 
       <label class="flex min-w-36 flex-col gap-1 text-xs text-text-secondary">
-        <span>New memories</span>
+        <span>{{ 'PAC.Xpert.FileMemoryNewMemories' | translate: { Default: 'New memories' } }}</span>
         <input
+          z-input
           type="number"
           min="0"
-          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
+          class="w-full"
           [ngModel]="gateMinNewOrUpdatedMemories()"
-          (ngModelChange)="gateMinNewOrUpdatedMemories.set(+$event || 0)"
+          (ngModelChange)="updateGateMinNewOrUpdatedMemories($event)"
         />
       </label>
 
       <label class="flex min-w-36 flex-col gap-1 text-xs text-text-secondary">
-        <span>Conversations</span>
+        <span>{{ 'PAC.Xpert.FileMemoryConversations' | translate: { Default: 'Conversations' } }}</span>
         <input
+          z-input
           type="number"
           min="0"
-          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
+          class="w-full"
           [ngModel]="gateMinConversationCount()"
-          (ngModelChange)="gateMinConversationCount.set(+$event || 0)"
+          (ngModelChange)="updateGateMinConversationCount($event)"
         />
       </label>
     </div>
@@ -103,46 +122,61 @@
       <div class="flex items-center justify-between gap-2">
         <div class="text-sm text-text-secondary">
           @if (latestRun()) {
-            Latest Dream:
-            <span class="font-medium text-text-primary">{{ latestRun().status }}</span>
+            {{ 'PAC.Xpert.FileMemoryLatestDream' | translate: { Default: 'Latest Dream:' } }}
+            <span class="font-medium text-text-primary">
+              {{ 'PAC.Xpert.FileMemoryDreamStatus.' + latestRun().status | translate: { Default: latestRun().status } }}
+            </span>
             <span class="text-text-tertiary"> · {{ latestRun().runId }}</span>
           } @else {
-            No Dream runs yet
+            {{ 'PAC.Xpert.FileMemoryNoDreamRunsYet' | translate: { Default: 'No Dream runs yet' } }}
           }
         </div>
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-medium"
-      [disabled]="!xpertId() || dreaming()"
-      (click)="triggerDream()"
-    >
-      @if (dreaming()) {
-        <i class="ri-loader-4-line mr-1 animate-spin"></i>
-      } @else {
-        <i class="ri-moon-line mr-1"></i>
-      }
-      <span>Dream</span>
-    </button>
-  </div>
 
-  <pac-file-workbench
-    class="min-h-0 flex-1"
-    treeSize="sm"
-    [rootId]="xpertId()"
-    [rootLabel]="rootLabel()"
-    [filesLoader]="loadMemoryFiles"
-    [fileLoader]="loadMemoryFile"
-    [fileSaver]="effectiveFileSaver()"
-    [fileUploader]="effectiveFileUploader()"
-    [fileDeleter]="effectiveFileDeleter()"
-    [reloadKey]="reloadKey()"
-  />
+        <button
+          z-button
+          zType="default"
+          zSize="sm"
+          type="button"
+          [disabled]="!xpertId() || dreaming()"
+          (click)="triggerDream()"
+        >
+          @if (dreaming()) {
+            <i class="ri-loader-4-line mr-1 animate-spin"></i>
+          } @else {
+            <i class="ri-moon-line mr-1"></i>
+          }
+          <span>{{ 'PAC.Xpert.FileMemoryDream' | translate: { Default: 'Dream' } }}</span>
+        </button>
+      </div>
+
+      <pac-file-workbench
+        class="min-h-0 flex-1"
+        treeSize="sm"
+        [rootId]="xpertId()"
+        [rootLabel]="rootLabel()"
+        [filesLoader]="loadMemoryFiles"
+        [fileLoader]="loadMemoryFile"
+        [fileSaver]="effectiveFileSaver()"
+        [fileUploader]="effectiveFileUploader()"
+        [fileDeleter]="effectiveFileDeleter()"
+        [reloadKey]="reloadKey()"
+      />
     </div>
 
     <aside class="flex min-h-0 flex-col gap-3 rounded-lg border border-divider-regular bg-components-card-bg p-3">
       <div class="flex items-center justify-between">
-        <div class="font-medium text-text-primary">Dream Runs</div>
-        <button type="button" class="btn btn-secondary btn-small" [disabled]="runsLoading()" (click)="loadDreamRuns(xpertId())">
+        <div class="font-medium text-text-primary">
+          {{ 'PAC.Xpert.FileMemoryDreamRuns' | translate: { Default: 'Dream Runs' } }}
+        </div>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [disabled]="runsLoading()"
+          [attr.aria-label]="'PAC.ACTIONS.Refresh' | translate: { Default: 'Refresh' }"
+          (click)="loadDreamRuns(xpertId())"
+        >
           @if (runsLoading()) {
             <i class="ri-loader-4-line animate-spin"></i>
           } @else {
@@ -161,22 +195,37 @@
           >
             <div class="flex items-center justify-between gap-2">
               <span class="truncate font-medium text-text-primary">{{ run.runId }}</span>
-              <span class="shrink-0 rounded px-2 py-0.5 text-xs" [class.bg-components-card-bg]="selectedRunId() !== run.runId">
-                {{ run.status }}
+              <span
+                class="shrink-0 rounded px-2 py-0.5 text-xs"
+                [class.bg-components-card-bg]="selectedRunId() !== run.runId"
+              >
+                {{ 'PAC.Xpert.FileMemoryDreamStatus.' + run.status | translate: { Default: run.status } }}
               </span>
             </div>
             <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-tertiary">
-              <span>{{ run.reason }}</span>
+              <span>{{ 'PAC.Xpert.FileMemoryDreamReason.' + run.reason | translate: { Default: run.reason } }}</span>
               <span>{{ run.startedAt || run.requestedAt }}</span>
-              <span>files {{ run.changedFileCount ?? '-' }}</span>
-              <span>issues {{ run.unresolvedConflictCount ?? '-' }}</span>
+              <span>
+                {{
+                  'PAC.Xpert.FileMemoryFilesCount'
+                    | translate: { Default: 'files {{count
+                }}', count: run.changedFileCount ?? '-' } }}
+              </span>
+              <span>
+                {{
+                  'PAC.Xpert.FileMemoryIssuesCount'
+                    | translate: { Default: 'issues {{count
+                }}', count: run.unresolvedConflictCount ?? '-' } }}
+              </span>
             </div>
             @if (run.error) {
               <div class="truncate text-xs text-red-500">{{ run.error }}</div>
             }
           </button>
         } @empty {
-          <div class="px-3 py-6 text-center text-sm text-text-tertiary">No Dream runs</div>
+          <div class="px-3 py-6 text-center text-sm text-text-tertiary">
+            {{ 'PAC.Xpert.FileMemoryNoDreamRuns' | translate: { Default: 'No Dream runs' } }}
+          </div>
         }
       </div>
 
@@ -184,23 +233,55 @@
         @if (runDetailLoading()) {
           <div class="flex items-center gap-2 text-text-secondary">
             <i class="ri-loader-4-line animate-spin"></i>
-            Loading Dream detail
+            {{ 'PAC.Xpert.FileMemoryLoadingDreamDetail' | translate: { Default: 'Loading Dream detail' } }}
           </div>
         } @else if (selectedRun()) {
           <div class="space-y-4">
             <section>
-              <div class="mb-1 font-medium text-text-primary">Summary</div>
+              <div class="mb-1 font-medium text-text-primary">
+                {{ 'PAC.Xpert.FileMemorySummary' | translate: { Default: 'Summary' } }}
+              </div>
               <dl class="grid grid-cols-2 gap-2 text-xs text-text-secondary">
-                <dt>Status</dt><dd class="text-text-primary">{{ selectedRun().summary.status }}</dd>
-                <dt>Started</dt><dd>{{ selectedRun().summary.startedAt || '-' }}</dd>
-                <dt>Finished</dt><dd>{{ selectedRun().summary.finishedAt || '-' }}</dd>
-                <dt>Changed</dt><dd>{{ selectedRun().summary.changedFileCount ?? selectedRun().report?.changedFiles?.length ?? 0 }}</dd>
-                <dt>Issues</dt><dd>{{ selectedRun().summary.unresolvedConflictCount ?? selectedRun().report?.unresolvedConflicts?.length ?? 0 }}</dd>
+                <dt>{{ 'PAC.Xpert.FileMemoryStatus' | translate: { Default: 'Status' } }}</dt>
+                <dd class="text-text-primary">
+                  {{
+                    'PAC.Xpert.FileMemoryDreamStatus.' + selectedRun().summary.status
+                      | translate: { Default: selectedRun().summary.status }
+                  }}
+                </dd>
+                <dt>{{ 'PAC.Xpert.FileMemoryStarted' | translate: { Default: 'Started' } }}</dt>
+                <dd>{{ selectedRun().summary.startedAt || '-' }}</dd>
+                <dt>{{ 'PAC.Xpert.FileMemoryFinished' | translate: { Default: 'Finished' } }}</dt>
+                <dd>{{ selectedRun().summary.finishedAt || '-' }}</dd>
+                <dt>{{ 'PAC.Xpert.FileMemoryChanged' | translate: { Default: 'Changed' } }}</dt>
+                <dd>{{ selectedRun().summary.changedFileCount ?? selectedRun().report?.changedFiles?.length ?? 0 }}</dd>
+                <dt>{{ 'PAC.Xpert.FileMemoryIssues' | translate: { Default: 'Issues' } }}</dt>
+                <dd>
+                  {{
+                    selectedRun().summary.unresolvedConflictCount ??
+                      selectedRun().report?.unresolvedConflicts?.length ??
+                      0
+                  }}
+                </dd>
                 @if (selectedRun().summary.gate) {
-                  <dt>Gate</dt><dd>{{ selectedRun().summary.gate.passed ? 'passed' : 'blocked' }}</dd>
-                  <dt>New memories</dt><dd>{{ selectedRun().summary.gate.newOrUpdatedMemoryCount }}</dd>
-                  <dt>Conversations</dt><dd>{{ selectedRun().summary.gate.conversationCount }}</dd>
-                  <dt>Elapsed</dt><dd>{{ selectedRun().summary.gate.elapsedMinutes ?? '-' }} min</dd>
+                  <dt>{{ 'PAC.Xpert.FileMemoryGate' | translate: { Default: 'Gate' } }}</dt>
+                  <dd>
+                    {{
+                      'PAC.Xpert.FileMemoryGateResult.' + (selectedRun().summary.gate.passed ? 'passed' : 'blocked')
+                        | translate: { Default: selectedRun().summary.gate.passed ? 'passed' : 'blocked' }
+                    }}
+                  </dd>
+                  <dt>{{ 'PAC.Xpert.FileMemoryNewMemories' | translate: { Default: 'New memories' } }}</dt>
+                  <dd>{{ selectedRun().summary.gate.newOrUpdatedMemoryCount }}</dd>
+                  <dt>{{ 'PAC.Xpert.FileMemoryConversations' | translate: { Default: 'Conversations' } }}</dt>
+                  <dd>{{ selectedRun().summary.gate.conversationCount }}</dd>
+                  <dt>{{ 'PAC.Xpert.FileMemoryElapsed' | translate: { Default: 'Elapsed' } }}</dt>
+                  <dd>
+                    {{
+                      'PAC.Xpert.FileMemoryMinutes'
+                        | translate: { Default: '{{value}}
+                    min', value: selectedRun().summary.gate.elapsedMinutes ?? '-' } }}
+                  </dd>
                 }
               </dl>
               @if (selectedRun().summary.error) {
@@ -217,25 +298,38 @@
 
             @if (selectedRun().preflight) {
               <section>
-                <div class="mb-1 font-medium text-text-primary">Preflight</div>
-                <pre class="max-h-44 overflow-auto whitespace-pre-wrap rounded bg-background-default-subtle p-2 text-xs text-text-secondary">{{ selectedRun().preflight }}</pre>
+                <div class="mb-1 font-medium text-text-primary">
+                  {{ 'PAC.Xpert.FileMemoryPreflight' | translate: { Default: 'Preflight' } }}
+                </div>
+                <pre
+                  class="max-h-44 overflow-auto whitespace-pre-wrap rounded bg-background-default-subtle p-2 text-xs text-text-secondary"
+                  >{{ selectedRun().preflight }}</pre
+                >
               </section>
             }
 
             @if (selectedRun().report) {
               <section>
-                <div class="mb-1 font-medium text-text-primary">Dream Report</div>
+                <div class="mb-1 font-medium text-text-primary">
+                  {{ 'PAC.Xpert.FileMemoryDreamReport' | translate: { Default: 'Dream Report' } }}
+                </div>
                 <p class="mb-2 text-xs text-text-secondary">{{ selectedRun().report.dreamDiary }}</p>
                 <div class="space-y-1 text-xs">
                   @for (file of selectedRun().report.changedFiles; track file.path) {
                     <div class="rounded bg-background-default-subtle p-2">
-                      <span class="font-medium">{{ file.changeType }}</span>
+                      <span class="font-medium">
+                        {{
+                          'PAC.Xpert.FileMemoryChangeType.' + file.changeType | translate: { Default: file.changeType }
+                        }}
+                      </span>
                       <span class="ml-1">{{ file.path }}</span>
                     </div>
                   }
                   @for (conflict of selectedRun().report.unresolvedConflicts; track conflict.path + conflict.reason) {
                     <div class="rounded bg-yellow-50 p-2 text-yellow-700">
-                      <span class="font-medium">{{ conflict.path || 'memory root' }}</span>
+                      <span class="font-medium">
+                        {{ conflict.path || ('PAC.Xpert.FileMemoryRoot' | translate: { Default: 'memory root' }) }}
+                      </span>
                       <span class="ml-1">{{ conflict.reason }}</span>
                     </div>
                   }
@@ -245,11 +339,16 @@
 
             @if (selectedRun().validation?.issues?.length) {
               <section>
-                <div class="mb-1 font-medium text-text-primary">Validation</div>
+                <div class="mb-1 font-medium text-text-primary">
+                  {{ 'PAC.Xpert.FileMemoryValidation' | translate: { Default: 'Validation' } }}
+                </div>
                 <div class="space-y-1 text-xs">
                   @for (issue of selectedRun().validation.issues; track issue.type + issue.path + issue.message) {
                     <div class="rounded bg-background-default-subtle p-2">
-                      <div class="font-medium">{{ issue.type }} · {{ issue.path || 'memory root' }}</div>
+                      <div class="font-medium">
+                        {{ issue.type }} ·
+                        {{ issue.path || ('PAC.Xpert.FileMemoryRoot' | translate: { Default: 'memory root' }) }}
+                      </div>
                       <div class="text-text-secondary">{{ issue.message }}</div>
                     </div>
                   }
@@ -258,11 +357,15 @@
             }
 
             <section>
-              <div class="mb-1 font-medium text-text-primary">Artifacts</div>
+              <div class="mb-1 font-medium text-text-primary">
+                {{ 'PAC.Xpert.FileMemoryArtifacts' | translate: { Default: 'Artifacts' } }}
+              </div>
               <div class="space-y-1 text-xs">
                 @for (artifact of selectedRun().artifacts; track artifact.path) {
                   <div class="flex items-center justify-between gap-2 rounded bg-background-default-subtle p-2">
-                    <span>{{ artifact.label }}</span>
+                    <span>
+                      {{ 'PAC.Xpert.FileMemoryArtifact.' + artifact.id | translate: { Default: artifact.label } }}
+                    </span>
                     <span class="truncate text-text-tertiary">{{ artifact.path }}</span>
                   </div>
                 }
@@ -270,7 +373,11 @@
             </section>
           </div>
         } @else {
-          <div class="text-sm text-text-tertiary">Select a Dream run to inspect its report.</div>
+          <div class="text-sm text-text-tertiary">
+            {{
+              'PAC.Xpert.FileMemorySelectDreamRun' | translate: { Default: 'Select a Dream run to inspect its report.' }
+            }}
+          </div>
         }
       </div>
     </aside>

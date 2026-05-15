@@ -83,7 +83,6 @@
                   "zh-hans/guides/chatkit-third-party-integration",
                   "zh-hans/guides/assistant-architecture",
                   "zh-hans/guides/clawxpert-skill-selection",
-                  "zh-hans/guides/file-memory-dream-refactor",
                   "zh-hans/guides/agent-middleware",
                   "zh-hans/guides/workspace-skill-creator",
                   "zh-hans/guides/chatkit-slash-commands",
@@ -97,6 +96,14 @@
                   "zh-hans/guides/features-current",
                   "zh-hans/guides/permissions-current"
                 ]
+              },
+              {
+                "group": "记忆",
+                "pages": ["zh-hans/guides/file-memory-dream-refactor"]
+              },
+              {
+                "group": "知识库",
+                "pages": ["zh-hans/guides/graphrag"]
               }
             ]
           },

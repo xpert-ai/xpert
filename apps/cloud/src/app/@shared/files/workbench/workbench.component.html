@@ -8,7 +8,9 @@
   [title]="'PAC.Files.FileTree' | translate: { Default: 'File Tree' }"
   [zSize]="treeSize()"
   [hasContext]="!!rootId()"
-  [subtitle]="rootLabel() || ('PAC.Files.SelectItemForTree' | translate: { Default: 'Select an item to inspect its files' })"
+  [subtitle]="
+    rootLabel() || ('PAC.Files.SelectItemForTree' | translate: { Default: 'Select an item to inspect its files' })
+  "
   [items]="fileTree()"
   [activePath]="treeActivePath()"
   [loading]="treeLoading()"
@@ -24,8 +26,7 @@
   [emptyTitle]="'PAC.Files.NoFilesFound' | translate: { Default: 'No files found yet.' }"
   [emptyHint]="
     'PAC.Files.NoFilesFoundHint'
-      | translate
-        : { Default: 'This item does not expose any files at the current root, or the tree is still loading.' }
+      | translate: { Default: 'This item does not expose any files at the current root, or the tree is still loading.' }
   "
   [selectTitle]="'PAC.Files.SelectItem' | translate: { Default: 'Select an item' }"
   [selectHint]="'PAC.Files.SelectItemTreeHint' | translate: { Default: 'Choose an item to load its file tree.' }"
@@ -69,7 +70,8 @@
     'PAC.Files.ReadOnlyFileHint'
       | translate
         : {
-            Default: 'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
+            Default:
+              'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
           }
   "
   [unsupportedPreviewTitle]="
@@ -83,7 +85,8 @@
     'PAC.Files.BinaryPreviewHint'
       | translate
         : {
-            Default: 'This file is not a text-based format. Download it to inspect the original contents in another app.'
+            Default:
+              'This file is not a text-based format. Download it to inspect the original contents in another app.'
           }
   "
   (modeChange)="switchPanelMode($event)"
@@ -109,18 +112,19 @@
         'PAC.Files.UnsavedChangesInfo'
           | translate
             : {
-                Default: 'You have unsaved edits in the current file. Save them before switching, or discard the pending changes.'
+                Default:
+                  'You have unsaved edits in the current file. Save them before switching, or discard the pending changes.'
               }
       }}
     </div>
     <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-      <button type="button" class="btn btn-secondary" (click)="resolveDirtyDialog('cancel')">
+      <button z-button zType="secondary" type="button" (click)="resolveDirtyDialog('cancel')">
         {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
-      <button type="button" class="btn btn-secondary" (click)="resolveDirtyDialog('discard')">
+      <button z-button zType="secondary" type="button" (click)="resolveDirtyDialog('discard')">
         {{ 'PAC.Files.Discard' | translate: { Default: 'Discard' } }}
       </button>
-      <button type="button" class="btn btn-primary" (click)="resolveDirtyDialog('save')">
+      <button z-button zType="default" type="button" (click)="resolveDirtyDialog('save')">
         {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
