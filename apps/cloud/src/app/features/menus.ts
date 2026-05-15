@@ -360,18 +360,6 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       ]
     },
     {
-      title: 'Indicator App',
-      icon: 'ri-stock-line',
-      pathMatch: 'prefix',
-      link: '/indicator-app',
-      scopeContext: 'dual-scope',
-      data: {
-        translationKey: 'Indicator App',
-        featureKey: [AnalyticsFeatures.FEATURE_INDICATOR, AnalyticsFeatures.FEATURE_INDICATOR_APP],
-        permissionKeys: [AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW]
-      }
-    },
-    {
       title: 'Settings',
       icon: 'settings',
       link: '/settings',
