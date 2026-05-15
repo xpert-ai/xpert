@@ -4,6 +4,7 @@
  * This test guards the contract that sibling-driven depends resolve from the current model and stay flattened for query serialization.
  */
 import { TestBed } from '@angular/core/testing'
+import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaPropertyComponent } from './property.component'
 
 describe('JSONSchemaPropertyComponent', () => {
@@ -17,7 +18,7 @@ describe('JSONSchemaPropertyComponent', () => {
     })
 
     await TestBed.configureTestingModule({
-      imports: [JSONSchemaPropertyComponent]
+      imports: [JSONSchemaPropertyComponent, TranslateModule.forRoot()]
     }).compileComponents()
   })
 
@@ -38,7 +39,7 @@ describe('JSONSchemaPropertyComponent', () => {
           }
         ]
       }
-    } as any)
+    })
     fixture.componentRef.setInput('context', {
       model: {
         integrationId: 'integration-1'
@@ -49,5 +50,26 @@ describe('JSONSchemaPropertyComponent', () => {
     expect(fixture.componentInstance.depends()).toEqual({
       integration: 'integration-1'
     })
+  })
+
+  it('collapses complex object schema fields by default', () => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+
+    fixture.componentRef.setInput('schema', {
+      type: 'object',
+      properties: {
+        mode: {
+          type: 'string'
+        }
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.collapsibleObject()).toBe(true)
+    expect(fixture.componentInstance.objectCollapsed()).toBe(true)
+
+    fixture.componentInstance.toggleObjectCollapsed()
+
+    expect(fixture.componentInstance.objectCollapsed()).toBe(false)
   })
 })

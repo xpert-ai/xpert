@@ -4,7 +4,7 @@
  * - `depends` reads sibling values from `context.model` and emits flat key/value params for remote selects.
  * - Do not add integration-specific widgets or query-shape exceptions in this layer.
  */
-import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
+import { booleanAttribute, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -25,6 +25,11 @@ import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.com
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
+
+type JsonSchemaTypeWithUi = JsonSchema7Type & {
+  'x-ui'?: JsonSchemaUIExtensions
+}
+
 @Component({
   standalone: true,
   imports: [
@@ -38,7 +43,7 @@ import { CommonModule } from '@angular/common'
     XpertRemoteSelectComponent,
     JsonSchemaWidgetOutletComponent,
     ZardSwitchComponent
-],
+  ],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
   styleUrls: ['property.component.scss'],
@@ -70,7 +75,10 @@ export class JSONSchemaPropertyComponent {
   }
 
   // States
-  readonly type = computed(() => (<any>this.schema())?.type)
+  readonly type = computed<string | undefined>(() => {
+    const schema = this.schema()
+    return schema && 'type' in schema && typeof schema.type === 'string' ? schema.type : undefined
+  })
 
   readonly value$ = this.cva.value$
 
@@ -79,6 +87,7 @@ export class JSONSchemaPropertyComponent {
   readonly arraySchema = computed(() => this.schema() as JsonSchema7ArrayType)
   readonly objectSchema = computed(() => this.schema() as JsonSchema7ObjectType)
   readonly enumSchema = computed(() => this.schema() as JsonSchema7EnumType)
+  readonly objectCollapsed = signal(true)
 
   readonly enum = computed(() => this.enumSchema()?.enum)
   readonly enumOptions = computed(() => {
@@ -108,7 +117,7 @@ export class JSONSchemaPropertyComponent {
   })
 
   // x-ui
-  readonly xUi = computed<JsonSchemaUIExtensions>(() => (this.meta() as any)?.['x-ui'] || {})
+  readonly xUi = computed<JsonSchemaUIExtensions>(() => (this.meta() as JsonSchemaTypeWithUi)?.['x-ui'] || {})
   readonly xUiComponent = computed(() => this.xUi()?.component)
   readonly xUiInputType = computed(() =>
     ['secretInput', 'password'].includes(this.xUi()?.component) ? 'password' : 'text'
@@ -123,6 +132,9 @@ export class JSONSchemaPropertyComponent {
     return typeof rows === 'number' && Number.isFinite(rows) && rows > 0 ? rows : 1
   })
   readonly hasCustomWidget = computed(() => this.widgetRegistry?.has(this.xUiComponent()))
+  readonly collapsibleObject = computed(
+    () => this.type() === 'object' && !this.hasCustomWidget() && Boolean(this.properties()?.length)
+  )
   readonly depends = computed(() =>
     (this.xUi()?.depends ?? []).reduce((acc: Record<string, unknown>, _) => {
       const model = (this.context()?.['model'] as Record<string, unknown> | undefined) ?? undefined
@@ -155,6 +167,10 @@ export class JSONSchemaPropertyComponent {
 
   update(value: unknown) {
     this.value$.set(value)
+  }
+
+  toggleObjectCollapsed() {
+    this.objectCollapsed.update((state) => !state)
   }
 
   updateArray(index: number, value: unknown) {
