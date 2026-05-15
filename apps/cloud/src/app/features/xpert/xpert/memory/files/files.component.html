@@ -1,12 +1,278 @@
-<pac-file-workbench
-  class="h-full min-h-0"
-  treeSize="sm"
-  [rootId]="xpertId()"
-  [rootLabel]="rootLabel()"
-  [filesLoader]="loadMemoryFiles"
-  [fileLoader]="loadMemoryFile"
-  [fileSaver]="effectiveFileSaver()"
-  [fileUploader]="effectiveFileUploader()"
-  [fileDeleter]="effectiveFileDeleter()"
-  [reloadKey]="reloadKey()"
-/>
+<div class="flex h-full min-h-0 flex-col gap-3">
+  <div class="grid gap-3 rounded-lg border border-divider-regular bg-components-card-bg p-3">
+    <div class="flex flex-wrap items-end gap-3">
+      <label class="flex min-w-64 flex-1 flex-col gap-1 text-xs text-text-secondary">
+        <span>Dreamer Xpert</span>
+        <select
+          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
+          [ngModel]="dreamerXpertId()"
+          (ngModelChange)="dreamerXpertId.set($event)"
+        >
+          <option value="">Use default {{ defaultDreamerXpertId() || '(not configured)' }}</option>
+          @for (option of dreamerOptions(); track option.id) {
+            <option [value]="option.id">{{ option.title || option.name }} · {{ option.id }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="flex min-w-48 flex-col gap-1 text-xs text-text-secondary">
+        <span>Dreamer Agent Key</span>
+        <select
+          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
+          [ngModel]="dreamerAgentKey()"
+          (ngModelChange)="dreamerAgentKey.set($event)"
+        >
+          <option value="">Use default {{ defaultDreamerAgentKey() || 'FileMemoryDreamer' }}</option>
+          @for (key of dreamerAgentOptions(); track key) {
+            <option [value]="key">{{ key }}</option>
+          }
+          @if (dreamerAgentKey() && !dreamerAgentOptions().includes(dreamerAgentKey())) {
+            <option [value]="dreamerAgentKey()">{{ dreamerAgentKey() }}</option>
+          }
+        </select>
+      </label>
+
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-medium"
+        [disabled]="configSaving() || configLoading()"
+        (click)="saveDreamConfig()"
+      >
+        @if (configSaving()) {
+          <i class="ri-loader-4-line mr-1 animate-spin"></i>
+        } @else {
+          <i class="ri-save-3-line mr-1"></i>
+        }
+        <span>Save</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-medium"
+        [disabled]="!dreamerXpertId()"
+        (click)="openDreamerStudio()"
+      >
+        <i class="ri-node-tree mr-1"></i>
+        <span>Open Dreamer</span>
+      </button>
+    </div>
+
+    <div class="flex flex-wrap items-end gap-3 border-t border-divider-regular pt-3">
+      <label class="flex items-center gap-2 text-sm text-text-secondary">
+        <input type="checkbox" [ngModel]="gateEnabled()" (ngModelChange)="gateEnabled.set($event)" />
+        <span>Enable Dream gate</span>
+      </label>
+
+      <label class="flex min-w-36 flex-col gap-1 text-xs text-text-secondary">
+        <span>Min interval</span>
+        <input
+          type="number"
+          min="0"
+          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
+          [ngModel]="gateMinIntervalMinutes()"
+          (ngModelChange)="gateMinIntervalMinutes.set(+$event || 0)"
+        />
+      </label>
+
+      <label class="flex min-w-36 flex-col gap-1 text-xs text-text-secondary">
+        <span>New memories</span>
+        <input
+          type="number"
+          min="0"
+          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
+          [ngModel]="gateMinNewOrUpdatedMemories()"
+          (ngModelChange)="gateMinNewOrUpdatedMemories.set(+$event || 0)"
+        />
+      </label>
+
+      <label class="flex min-w-36 flex-col gap-1 text-xs text-text-secondary">
+        <span>Conversations</span>
+        <input
+          type="number"
+          min="0"
+          class="rounded-md border border-divider-regular bg-components-input-bg px-3 py-2 text-sm text-text-primary"
+          [ngModel]="gateMinConversationCount()"
+          (ngModelChange)="gateMinConversationCount.set(+$event || 0)"
+        />
+      </label>
+    </div>
+  </div>
+
+  <div class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div class="flex min-h-0 flex-col gap-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-sm text-text-secondary">
+          @if (latestRun()) {
+            Latest Dream:
+            <span class="font-medium text-text-primary">{{ latestRun().status }}</span>
+            <span class="text-text-tertiary"> · {{ latestRun().runId }}</span>
+          } @else {
+            No Dream runs yet
+          }
+        </div>
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-secondary btn-medium"
+      [disabled]="!xpertId() || dreaming()"
+      (click)="triggerDream()"
+    >
+      @if (dreaming()) {
+        <i class="ri-loader-4-line mr-1 animate-spin"></i>
+      } @else {
+        <i class="ri-moon-line mr-1"></i>
+      }
+      <span>Dream</span>
+    </button>
+  </div>
+
+  <pac-file-workbench
+    class="min-h-0 flex-1"
+    treeSize="sm"
+    [rootId]="xpertId()"
+    [rootLabel]="rootLabel()"
+    [filesLoader]="loadMemoryFiles"
+    [fileLoader]="loadMemoryFile"
+    [fileSaver]="effectiveFileSaver()"
+    [fileUploader]="effectiveFileUploader()"
+    [fileDeleter]="effectiveFileDeleter()"
+    [reloadKey]="reloadKey()"
+  />
+    </div>
+
+    <aside class="flex min-h-0 flex-col gap-3 rounded-lg border border-divider-regular bg-components-card-bg p-3">
+      <div class="flex items-center justify-between">
+        <div class="font-medium text-text-primary">Dream Runs</div>
+        <button type="button" class="btn btn-secondary btn-small" [disabled]="runsLoading()" (click)="loadDreamRuns(xpertId())">
+          @if (runsLoading()) {
+            <i class="ri-loader-4-line animate-spin"></i>
+          } @else {
+            <i class="ri-refresh-line"></i>
+          }
+        </button>
+      </div>
+
+      <div class="max-h-56 overflow-auto rounded-md border border-divider-regular">
+        @for (run of dreamRuns(); track run.runId) {
+          <button
+            type="button"
+            class="flex w-full flex-col gap-1 border-b border-divider-regular px-3 py-2 text-left text-sm hover:bg-hover-bg"
+            [class.bg-hover-bg]="selectedRunId() === run.runId"
+            (click)="selectRun(run.runId)"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="truncate font-medium text-text-primary">{{ run.runId }}</span>
+              <span class="shrink-0 rounded px-2 py-0.5 text-xs" [class.bg-components-card-bg]="selectedRunId() !== run.runId">
+                {{ run.status }}
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-tertiary">
+              <span>{{ run.reason }}</span>
+              <span>{{ run.startedAt || run.requestedAt }}</span>
+              <span>files {{ run.changedFileCount ?? '-' }}</span>
+              <span>issues {{ run.unresolvedConflictCount ?? '-' }}</span>
+            </div>
+            @if (run.error) {
+              <div class="truncate text-xs text-red-500">{{ run.error }}</div>
+            }
+          </button>
+        } @empty {
+          <div class="px-3 py-6 text-center text-sm text-text-tertiary">No Dream runs</div>
+        }
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-auto rounded-md border border-divider-regular p-3 text-sm">
+        @if (runDetailLoading()) {
+          <div class="flex items-center gap-2 text-text-secondary">
+            <i class="ri-loader-4-line animate-spin"></i>
+            Loading Dream detail
+          </div>
+        } @else if (selectedRun()) {
+          <div class="space-y-4">
+            <section>
+              <div class="mb-1 font-medium text-text-primary">Summary</div>
+              <dl class="grid grid-cols-2 gap-2 text-xs text-text-secondary">
+                <dt>Status</dt><dd class="text-text-primary">{{ selectedRun().summary.status }}</dd>
+                <dt>Started</dt><dd>{{ selectedRun().summary.startedAt || '-' }}</dd>
+                <dt>Finished</dt><dd>{{ selectedRun().summary.finishedAt || '-' }}</dd>
+                <dt>Changed</dt><dd>{{ selectedRun().summary.changedFileCount ?? selectedRun().report?.changedFiles?.length ?? 0 }}</dd>
+                <dt>Issues</dt><dd>{{ selectedRun().summary.unresolvedConflictCount ?? selectedRun().report?.unresolvedConflicts?.length ?? 0 }}</dd>
+                @if (selectedRun().summary.gate) {
+                  <dt>Gate</dt><dd>{{ selectedRun().summary.gate.passed ? 'passed' : 'blocked' }}</dd>
+                  <dt>New memories</dt><dd>{{ selectedRun().summary.gate.newOrUpdatedMemoryCount }}</dd>
+                  <dt>Conversations</dt><dd>{{ selectedRun().summary.gate.conversationCount }}</dd>
+                  <dt>Elapsed</dt><dd>{{ selectedRun().summary.gate.elapsedMinutes ?? '-' }} min</dd>
+                }
+              </dl>
+              @if (selectedRun().summary.error) {
+                <div class="mt-2 rounded bg-red-50 p-2 text-xs text-red-600">{{ selectedRun().summary.error }}</div>
+              }
+              @if (selectedRun().summary.gate?.reasons?.length) {
+                <div class="mt-2 rounded bg-background-default-subtle p-2 text-xs text-text-secondary">
+                  @for (reason of selectedRun().summary.gate.reasons; track reason) {
+                    <div>{{ reason }}</div>
+                  }
+                </div>
+              }
+            </section>
+
+            @if (selectedRun().preflight) {
+              <section>
+                <div class="mb-1 font-medium text-text-primary">Preflight</div>
+                <pre class="max-h-44 overflow-auto whitespace-pre-wrap rounded bg-background-default-subtle p-2 text-xs text-text-secondary">{{ selectedRun().preflight }}</pre>
+              </section>
+            }
+
+            @if (selectedRun().report) {
+              <section>
+                <div class="mb-1 font-medium text-text-primary">Dream Report</div>
+                <p class="mb-2 text-xs text-text-secondary">{{ selectedRun().report.dreamDiary }}</p>
+                <div class="space-y-1 text-xs">
+                  @for (file of selectedRun().report.changedFiles; track file.path) {
+                    <div class="rounded bg-background-default-subtle p-2">
+                      <span class="font-medium">{{ file.changeType }}</span>
+                      <span class="ml-1">{{ file.path }}</span>
+                    </div>
+                  }
+                  @for (conflict of selectedRun().report.unresolvedConflicts; track conflict.path + conflict.reason) {
+                    <div class="rounded bg-yellow-50 p-2 text-yellow-700">
+                      <span class="font-medium">{{ conflict.path || 'memory root' }}</span>
+                      <span class="ml-1">{{ conflict.reason }}</span>
+                    </div>
+                  }
+                </div>
+              </section>
+            }
+
+            @if (selectedRun().validation?.issues?.length) {
+              <section>
+                <div class="mb-1 font-medium text-text-primary">Validation</div>
+                <div class="space-y-1 text-xs">
+                  @for (issue of selectedRun().validation.issues; track issue.type + issue.path + issue.message) {
+                    <div class="rounded bg-background-default-subtle p-2">
+                      <div class="font-medium">{{ issue.type }} · {{ issue.path || 'memory root' }}</div>
+                      <div class="text-text-secondary">{{ issue.message }}</div>
+                    </div>
+                  }
+                </div>
+              </section>
+            }
+
+            <section>
+              <div class="mb-1 font-medium text-text-primary">Artifacts</div>
+              <div class="space-y-1 text-xs">
+                @for (artifact of selectedRun().artifacts; track artifact.path) {
+                  <div class="flex items-center justify-between gap-2 rounded bg-background-default-subtle p-2">
+                    <span>{{ artifact.label }}</span>
+                    <span class="truncate text-text-tertiary">{{ artifact.path }}</span>
+                  </div>
+                }
+              </div>
+            </section>
+          </div>
+        } @else {
+          <div class="text-sm text-text-tertiary">Select a Dream run to inspect its report.</div>
+        }
+      </div>
+    </aside>
+  </div>
+</div>
