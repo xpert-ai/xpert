@@ -5,8 +5,8 @@
   }}
 </div>
 
-<div class="flex px-4">
-  <div class="ngm-value-help__available-members resizable-box" ngmResizable>
+<div class="ngm-value-help__content flex px-4">
+  <div class="ngm-value-help__available-members resizable-box" ngmResizable [directions]="memberPaneResizeDirections">
     <div class="ngm-value-help__available">
       <div class="flex justify-between items-center">
         <span class="text-base">
@@ -48,11 +48,7 @@
             <z-form-label>
               {{ 'Ngm.Controls.ValueHelp.Hierarchy' | translate: { Default: 'Hierarchy' } }}
             </z-form-label>
-            <z-select
-              class="w-full"
-              [ngModel]="hierarchy()"
-              (ngModelChange)="setHierarchy($event)"
-            >
+            <z-select class="w-full" [ngModel]="hierarchy()" (ngModelChange)="setHierarchy($event)">
               @for (option of hierarchyOptions(); track option.value) {
                 <z-select-item [zValue]="option.value">
                   {{ option.label }}
@@ -83,7 +79,7 @@
     <div class="ngm-value-help__members pt-2 flex flex-col">
       @if (presentation === PresentationEnum.Hierarchy) {
         <ngm-member-tree
-          class="w-full flex-1"
+          class="w-full min-h-0 min-w-0 flex-1"
           [displayDensity]="appearance?.displayDensity"
           [appearance]="appearance"
           [dataSettings]="dataSettings"
@@ -93,7 +89,7 @@
         />
       } @else {
         <ngm-member-list
-          class="w-full flex-1"
+          class="w-full min-h-0 min-w-0 flex-1"
           [displayDensity]="appearance?.displayDensity"
           [appearance]="appearance"
           [dataSettings]="dataSettings"
@@ -167,10 +163,7 @@
         <z-form-label>
           {{ 'Ngm.Controls.ValueHelp.SelectionType' | translate: { Default: 'Selection Type' } }}
         </z-form-label>
-        <z-select
-          class="w-full"
-          [(ngModel)]="selectionType"
-        >
+        <z-select class="w-full" [(ngModel)]="selectionType">
           @for (option of selectionTypeOptions; track option.value) {
             <z-select-item [zValue]="option.value">
               {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
@@ -183,10 +176,7 @@
         <z-form-label>
           {{ 'Ngm.Controls.ValueHelp.Presentation' | translate: { Default: 'Presentation' } }}
         </z-form-label>
-        <z-select
-          class="w-full"
-          [(ngModel)]="presentation"
-        >
+        <z-select class="w-full" [(ngModel)]="presentation">
           @for (option of presentationOptions; track option.value) {
             <z-select-item [zValue]="option.value">
               {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
@@ -199,10 +189,7 @@
           <z-form-label>
             {{ 'Ngm.Controls.ValueHelp.HierarchySelectionMode' | translate: { Default: 'Hierarchy Selection Mode' } }}
           </z-form-label>
-          <z-select
-            class="w-full"
-            [(ngModel)]="treeSelectionMode"
-          >
+          <z-select class="w-full" [(ngModel)]="treeSelectionMode">
             @for (option of treeSelectionModeOptions; track option.value) {
               <z-select-item [zValue]="option.value">
                 {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
@@ -234,10 +221,7 @@
       <div class="w-full flex items-center gap-4">
         <div class="grow">
           <label>{{ 'Ngm.Controls.ValueHelp.Property' | translate: { Default: 'Property' } }}</label>
-          <z-select
-            class="w-full"
-            formControlName="type"
-          >
+          <z-select class="w-full" formControlName="type">
             @for (option of memberPropertyOptions; track option.value) {
               <z-select-item [zValue]="option.value">
                 {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
@@ -248,10 +232,7 @@
 
         <div class="grow">
           <label>{{ 'Ngm.Controls.ValueHelp.Condition' | translate: { Default: 'Condition' } }}</label>
-          <z-select
-            class="w-full"
-            formControlName="operator"
-          >
+          <z-select class="w-full" formControlName="operator">
             @for (option of memberOperatorOptions; track option.value) {
               <z-select-item [zValue]="option.value">
                 {{ option.i18nKey | translate: { Default: option.defaultLabel } }}

@@ -23,18 +23,18 @@ import {
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { 
-  ZardButtonComponent, 
-  ZardCheckboxComponent, 
-  ZardDialogService, 
-  ZardFormImports, 
-  ZardIconComponent, 
-  ZardInputDirective, 
+import {
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardDialogService,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
   ZardTooltipImports,
   ZardLoaderComponent,
   ZardFlatTreeControl,
   ZardTreeFlatDataSource,
-  ZardTreeFlattener 
+  ZardTreeFlattener
 } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import {
@@ -77,7 +77,7 @@ import {
 } from 'rxjs'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
-import { NgmValueHelpComponent } from '../value-help/value-help.component'
+import { NGM_VALUE_HELP_DIALOG_CONFIG, NgmValueHelpComponent } from '../value-help/value-help.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmTimeFilterEditorComponent } from '../timer'
 
@@ -375,13 +375,11 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       // console.log(this.slicerSignal())
     })
 
-    effect(
-      () => {
-        if (this.dataSettings()) {
-          this.smartFilterService.dataSettings = this.dataSettings()
-        }
+    effect(() => {
+      if (this.dataSettings()) {
+        this.smartFilterService.dataSettings = this.dataSettings()
       }
-    )
+    })
 
     effect(() => {
       this.smartFilterService.options = {
@@ -390,16 +388,14 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       }
     })
 
-    effect(
-      () => {
-        if (this.options()?.defaultMembers) {
-          this.slicerSignal.update((slicer) => ({
-            ...(slicer ?? {}),
-            members: [...this.options().defaultMembers]
-          }))
-        }
+    effect(() => {
+      if (this.options()?.defaultMembers) {
+        this.slicerSignal.update((slicer) => ({
+          ...(slicer ?? {}),
+          members: [...this.options().defaultMembers]
+        }))
       }
-    )
+    })
 
     effect(() => {
       if (this._displayDensity()) {
@@ -424,19 +420,15 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       }
     })
 
-    effect(
-      () => {
-        const dimension = this.dimension()
-        this.hierarchy.set(dimension.hierarchy || dimension.dimension)
-      }
-    )
+    effect(() => {
+      const dimension = this.dimension()
+      this.hierarchy.set(dimension.hierarchy || dimension.dimension)
+    })
 
-    effect(
-      () => {
-        const dimension = this.dimension()
-        this.displayBehaviour.set(dimension.displayBehaviour)
-      }
-    )
+    effect(() => {
+      const dimension = this.dimension()
+      this.displayBehaviour.set(dimension.displayBehaviour)
+    })
   }
 
   writeValue(obj: any): void {
@@ -551,6 +543,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     const slicer = await firstValueFrom(
       this._dialog
         .open(NgmValueHelpComponent, {
+          ...NGM_VALUE_HELP_DIALOG_CONFIG,
           viewContainerRef: this._viewContainerRef,
           data: {
             dataSettings: this.dataSettings(),

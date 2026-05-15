@@ -25,7 +25,7 @@ import {
 } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmCommonModule, NgmResizableDirective } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule, NgmResizableDirective, ResizeDirection } from '@xpert-ai/ocap-angular/common'
 import {
   DisplayDensity,
   NgmAppearance,
@@ -52,6 +52,12 @@ import { filter, map, switchMap } from 'rxjs'
 import { NgmMemberListComponent } from '../member-list/member-list.component'
 import { NgmMemberTreeComponent } from '../member-tree/member-tree.component'
 import { ControlOptions, TreeControlOptions } from '../types'
+
+export const NGM_VALUE_HELP_DIALOG_CONFIG = {
+  width: '960px',
+  maxWidth: 'calc(100vw - 2rem)',
+  maxHeight: 'calc(100vh - 2rem)'
+}
 
 @Component({
   standalone: true,
@@ -86,6 +92,7 @@ export class NgmValueHelpComponent implements OnInit {
   FilterSelectionType = FilterSelectionType
   TreeSelectionMode = TreeSelectionMode
   PresentationEnum = PresentationEnum
+  readonly memberPaneResizeDirections: ResizeDirection[] = ['bottom']
   readonly autoDisplayBehaviour = '__auto__'
   readonly displayBehaviourOptions = [
     { value: DisplayBehaviour.descriptionOnly, label: 'Description' },
