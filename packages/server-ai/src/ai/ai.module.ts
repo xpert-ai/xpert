@@ -29,45 +29,53 @@ import { XpertAgentModule } from '../xpert-agent'
 import { SkillPackageModule } from '../skill-package'
 import { RuntimeCommandService } from './runtime-command.service'
 import { PromptWorkflowModule } from '../prompt-workflow'
+import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 
 @Module({
-	imports: [
-		RouterModule.register([
-			{
-				path: '/ai',
-				module: AIModule
-			}
-		]),
-		TenantModule,
-		SecretTokenModule,
-		RedisModule,
-		CqrsModule,
-		CopilotModule,
-		CopilotUserModule,
-		CopilotOrganizationModule,
-		forwardRef(() => KnowledgebaseModule),
-		forwardRef(() => KnowledgeDocumentModule),
-		forwardRef(() => StorageFileModule),
-		forwardRef(() => XpertModule),
-		forwardRef(() => XpertAgentModule),
-		forwardRef(() => SkillPackageModule),
-		forwardRef(() => PromptWorkflowModule),
-		forwardRef(() => AssistantBindingModule),
-		forwardRef(() => EnvironmentModule),
-		forwardRef(() => ChatConversationModule),
-		forwardRef(() => ChatMessageModule),
-		forwardRef(() => ChatMessageFeedbackModule)
-	],
-	controllers: [
-		AIController,
-		AIV1Controller,
-		ContextsController,
-		KnowledgesController,
-		AssistantsController,
-		ThreadsController,
-		ConversationsController,
-		StoreController
-	],
-	providers: [AiService, RedisSseStreamService, RuntimeCommandService, ...CommandHandlers, ...QueryHandlers]
+    imports: [
+        RouterModule.register([
+            {
+                path: '/ai',
+                module: AIModule
+            }
+        ]),
+        TenantModule,
+        SecretTokenModule,
+        RedisModule,
+        CqrsModule,
+        CopilotModule,
+        CopilotUserModule,
+        CopilotOrganizationModule,
+        forwardRef(() => KnowledgebaseModule),
+        forwardRef(() => KnowledgeDocumentModule),
+        forwardRef(() => StorageFileModule),
+        forwardRef(() => XpertModule),
+        forwardRef(() => XpertAgentModule),
+        forwardRef(() => SkillPackageModule),
+        forwardRef(() => PromptWorkflowModule),
+        forwardRef(() => AssistantBindingModule),
+        forwardRef(() => EnvironmentModule),
+        forwardRef(() => ChatConversationModule),
+        forwardRef(() => ChatMessageModule),
+        forwardRef(() => ChatMessageFeedbackModule)
+    ],
+    controllers: [
+        AIController,
+        AIV1Controller,
+        ContextsController,
+        KnowledgesController,
+        AssistantsController,
+        ThreadsController,
+        ConversationsController,
+        StoreController
+    ],
+    providers: [
+        AiService,
+        RedisSseStreamService,
+        RuntimeCommandService,
+        RuntimeCapabilitiesService,
+        ...CommandHandlers,
+        ...QueryHandlers
+    ]
 })
 export class AIModule {}

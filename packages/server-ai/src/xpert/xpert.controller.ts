@@ -14,7 +14,8 @@ import {
     TXpertCommandProfile,
     TXpertTeamDraft,
     SecretTokenBindingType,
-    xpertLabel
+    xpertLabel,
+    resolveRuntimeXpert
 } from '@xpert-ai/contracts'
 import {
     CrudController,
@@ -63,9 +64,9 @@ import path from 'path'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
-import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@xpert-ai/server-common'
+import { getErrorMessage, keepAlive, parseQueryBoolean, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'
 import { Request, Response } from 'express'
 import { Between, DeleteResult, IsNull, LessThanOrEqual, Like, Not } from 'typeorm'
@@ -122,6 +123,7 @@ import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE, AgentChatDispatchPayload, HandoffMess
 import { HandoffQueueService } from '../handoff/message-queue.service'
 import { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service'
 import { PromptWorkflowService } from '../prompt-workflow'
+import { RUNTIME_CAPABILITY_XPERT_RELATIONS, RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -137,6 +139,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly secretTokenService: SecretTokenService,
         private readonly i18n: I18nService,
         private readonly promptWorkflowService: PromptWorkflowService,
+        private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService,
         private readonly handoffQueue: HandoffQueueService,
         private readonly agentChatRealtime: AgentChatRealtimeService,
         private readonly commandBus: CommandBus,
@@ -343,6 +346,17 @@ export class XpertController extends CrudController<Xpert> {
                 commandProfile: sourceProfile
             })
         }
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/runtime-capabilities')
+    @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
+    async getRuntimeCapabilities(@Param('id') id: string, @Query('isDraft') isDraft?: string | boolean | string[]) {
+        const sourceXpert = await this.service.findOne(id, {
+            relations: RUNTIME_CAPABILITY_XPERT_RELATIONS
+        })
+        const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
+        return this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
     }
 
     @UseGuards(XpertGuard)
