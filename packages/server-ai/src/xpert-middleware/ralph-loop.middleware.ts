@@ -601,16 +601,28 @@ export class RalphLoopMiddleware implements IAgentMiddlewareStrategy {
         slashCommands: [
             {
                 name: 'goal',
-                label: 'Goal',
-                description: 'Run a verifier-first Ralph Loop goal until the objective is complete.',
+                label: {
+                    en_US: 'Goal',
+                    zh_Hans: '目标'
+                },
+                description: {
+                    en_US: 'Run a verifier-first Ralph Loop goal until the objective is complete.',
+                    zh_Hans: '运行验证优先的 Ralph 循环目标，直到目标完成。'
+                },
                 argsHint: '<objective>',
                 category: 'prompt_workflow',
                 kind: 'prompt_workflow',
                 workflow: {
                     type: 'prompt_workflow',
                     name: 'goal',
-                    label: 'Goal',
-                    description: 'Run a verifier-first Ralph Loop goal until the objective is complete.'
+                    label: {
+                        en_US: 'Goal',
+                        zh_Hans: '目标'
+                    },
+                    description: {
+                        en_US: 'Run a verifier-first Ralph Loop goal until the objective is complete.',
+                        zh_Hans: '运行验证优先的 Ralph 循环目标，直到目标完成。'
+                    }
                 },
                 action: {
                     type: 'insert_invocation',

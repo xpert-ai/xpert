@@ -1,5 +1,3 @@
-import { LanguagesEnum } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
 import { RuntimeCommandService } from './runtime-command.service'
 import type { RuntimeSlashCommand } from './runtime-command.guards'
 
@@ -412,8 +410,14 @@ describe('RuntimeCommandService', () => {
             }),
             expect.objectContaining({
                 name: 'compact',
-                label: 'Compress',
-                description: 'Compress this thread context',
+                label: {
+                    en_US: 'Compress',
+                    zh_Hans: '压缩'
+                },
+                description: {
+                    en_US: 'Compress this thread context',
+                    zh_Hans: '压缩此线程的上下文'
+                },
                 category: 'session',
                 aliases: ['compress'],
                 action: {
@@ -442,52 +446,57 @@ describe('RuntimeCommandService', () => {
         ])
     })
 
-    it('localizes middleware runtime command text from i18n objects', () => {
-        const languageSpy = jest
-            .spyOn(RequestContext, 'getLanguageCode')
-            .mockReturnValue(LanguagesEnum.SimplifiedChinese)
+    it('preserves middleware runtime command i18n objects for ChatKit localization', () => {
         const service = new RuntimeCommandService()
 
-        try {
-            expect(
-                service.normalizeMiddlewareRuntimeSlashCommands(
-                    [
-                        {
-                            name: 'compact',
-                            label: {
-                                en_US: 'Compress',
-                                zh_Hans: '压缩'
-                            },
-                            description: {
-                                en_US: 'Compress this thread context',
-                                zh_Hans: '压缩此线程的上下文'
-                            },
-                            action: {
-                                type: 'submit_prompt',
-                                template: '/compact'
-                            }
-                        }
-                    ],
+        expect(
+            service.normalizeMiddlewareRuntimeSlashCommands(
+                [
                     {
-                        provider: 'ContextCompressionMiddleware',
-                        nodeKey: 'middleware-compression',
-                        label: 'Context Compression'
+                        name: 'compact',
+                        label: {
+                            en_US: 'Compress',
+                            zh_Hans: '压缩'
+                        },
+                        description: {
+                            en_US: 'Compress this thread context',
+                            zh_Hans: '压缩此线程的上下文'
+                        },
+                        action: {
+                            type: 'submit_prompt',
+                            template: '/compact'
+                        }
                     }
-                )
-            ).toEqual([
-                expect.objectContaining({
-                    name: 'compact',
-                    label: '压缩',
-                    description: '压缩此线程的上下文',
-                    workflow: expect.objectContaining({
-                        label: '压缩',
-                        description: '压缩此线程的上下文'
-                    })
+                ],
+                {
+                    provider: 'ContextCompressionMiddleware',
+                    nodeKey: 'middleware-compression',
+                    label: 'Context Compression'
+                }
+            )
+        ).toEqual([
+            expect.objectContaining({
+                name: 'compact',
+                label: {
+                    en_US: 'Compress',
+                    zh_Hans: '压缩'
+                },
+                description: {
+                    en_US: 'Compress this thread context',
+                    zh_Hans: '压缩此线程的上下文'
+                },
+                workflow: expect.objectContaining({
+                    label: {
+                        en_US: 'Compress',
+                        zh_Hans: '压缩'
+                    },
+                    description: {
+                        en_US: 'Compress this thread context',
+                        zh_Hans: '压缩此线程的上下文'
+                    }
                 })
-            ])
-        } finally {
-            languageSpy.mockRestore()
-        }
+            })
+        ])
     })
 
     it('merges runtime commands by middleware, xpert, preferred skill, workspace, then skill priority', () => {
