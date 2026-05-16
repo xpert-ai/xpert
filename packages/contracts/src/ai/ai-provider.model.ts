@@ -2,52 +2,52 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 
 export interface IAiProvider extends IBasePerTenantAndOrganizationEntityModel {
   /**
-   * 供应商标识,如 'openai'
+   * Provider identifier, such as 'openai'
    */
   name: string
 
   /**
-   * 供应商展示名称
+   * Provider display name
    */
   label: string
 
   /**
-   * 供应商描述
+   * Provider description
    */
   description: string
 
   /**
-   * 供应商小图标
+   * Provider small icon
    */
   iconSmall: string
 
   /**
-   * 供应商大图标
+   * Provider large icon
    */
   iconLarge: string
 
   /**
-   * 背景颜色
+   * Background color
    */
   background: string
 
   /**
-   * 帮助信息标题
+   * Help information title
    */
   helpTitle: string
 
   /**
-   * 帮助信息URL
+   * Help information URL
    */
   helpUrl: string
 
   /**
-   * 支持的模型类型
+   * Supported model types
    */
   supportedModelTypes: string[]
 
   /**
-   * 配置方式
+   * Configuration methods
    */
   configurateMethods: string[]
 }

@@ -1,14 +1,15 @@
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum } from '@xpert-ai/contracts'
-import { lastValueFrom, of, throwError } from 'rxjs'
+import { lastValueFrom, of, throwError, toArray } from 'rxjs'
 import { RedisSseStreamService } from './redis-sse.service'
 
 describe('RedisSseStreamService', () => {
-    it('stores lock owner metadata when acquiring a stream lock', async () => {
+    it('stores per-connection owner metadata when creating stream readers', async () => {
         const redis = createRedisMock()
-        redis.set.mockResolvedValueOnce('OK').mockResolvedValueOnce('OK')
+        redis.set.mockResolvedValue('OK')
+        redis.sendCommand.mockResolvedValue(1)
 
         const service = new RedisSseStreamService(redis as any)
-        const result = await service.createSseStream({
+        const first = await service.createSseStream({
             threadId: 'thread-1',
             runId: 'run-1',
             mode: 'join',
@@ -19,37 +20,79 @@ describe('RedisSseStreamService', () => {
                 userAgent: 'chatkit'
             }
         })
-
-        expect(result.lockId).toBeTruthy()
-        expect(redis.set).toHaveBeenNthCalledWith(1, 'ai:sse:lock:thread:thread-1:run:run-1', expect.any(String), {
-            PX: 30000,
-            NX: true
+        const second = await service.createSseStream({
+            threadId: 'thread-1',
+            runId: 'run-1',
+            mode: 'join',
+            owner: {
+                mode: 'join',
+                requestId: 'req-2',
+                userId: 'user-2',
+                userAgent: 'chatkit'
+            }
         })
-        expect(redis.set).toHaveBeenNthCalledWith(
-            2,
-            'ai:sse:lockmeta:thread:thread-1:run:run-1',
+
+        expect(first.connectionId).toBeTruthy()
+        expect(second.connectionId).toBeTruthy()
+        expect(first.connectionId).not.toBe(second.connectionId)
+        expect(redis.set).toHaveBeenCalledWith(
+            `ai:sse:connection:thread:thread-1:run:run-1:${first.connectionId}`,
             expect.stringContaining('"userAgent":"chatkit"'),
             { PX: 30000 }
         )
+        expect(redis.set).toHaveBeenCalledWith(
+            `ai:sse:connection:thread:thread-1:run:run-1:${second.connectionId}`,
+            expect.stringContaining('"requestId":"req-2"'),
+            { PX: 30000 }
+        )
+        expect(redis.sendCommand).toHaveBeenCalledWith([
+            'SADD',
+            'ai:sse:connections:thread:thread-1:run:run-1',
+            first.connectionId
+        ])
+        expect(redis.sendCommand).toHaveBeenCalledWith([
+            'SADD',
+            'ai:sse:connections:thread:thread-1:run:run-1',
+            second.connectionId
+        ])
     })
 
-    it('returns current lock owner metadata when the stream is already locked', async () => {
+    it('allows two readers on the same stream to replay the same run events independently', async () => {
         const redis = createRedisMock()
-        redis.set.mockResolvedValueOnce(null)
-        redis.get.mockResolvedValueOnce('lock-1').mockResolvedValueOnce(
-            JSON.stringify({
-                lockId: 'lock-1',
-                connectedAt: '2026-03-07T00:00:00.000Z',
-                mode: 'join',
-                requestId: 'req-existing',
-                userId: 'user-existing',
-                userAgent: 'existing-client'
-            })
-        )
-        redis.pTTL.mockResolvedValueOnce(12000)
+        redis.set.mockResolvedValue('OK')
+        redis.sendCommand.mockImplementation(async (args: string[]) => {
+            if (args[0] === 'SADD') {
+                return 1
+            }
+            if (args[0] === 'XRANGE') {
+                return [
+                    [
+                        '2-0',
+                        [
+                            'data',
+                            JSON.stringify({
+                                type: ChatMessageTypeEnum.MESSAGE,
+                                data: 'hello'
+                            })
+                        ]
+                    ],
+                    [
+                        '3-0',
+                        [
+                            'data',
+                            JSON.stringify({
+                                type: 'complete'
+                            })
+                        ]
+                    ]
+                ]
+            }
+            return null
+        })
+        redis.eval.mockResolvedValue(1)
 
         const service = new RedisSseStreamService(redis as any)
-        const result = await service.createSseStream({
+        const first = await service.createSseStream({
             threadId: 'thread-1',
             runId: 'run-1',
             mode: 'join',
@@ -58,17 +101,47 @@ describe('RedisSseStreamService', () => {
                 requestId: 'req-new'
             }
         })
-
-        expect(result.lockId).toBeNull()
-        expect(result.lock).toEqual({
-            lockId: 'lock-1',
-            ttlMs: 12000,
-            owner: expect.objectContaining({
-                requestId: 'req-existing',
-                userId: 'user-existing',
-                userAgent: 'existing-client'
-            })
+        const second = await service.createSseStream({
+            threadId: 'thread-1',
+            runId: 'run-1',
+            lastEventId: '1-0',
+            mode: 'join',
+            owner: {
+                mode: 'join',
+                requestId: 'req-newer'
+            }
         })
+
+        const [firstEvents, secondEvents] = await Promise.all([
+            lastValueFrom(first.stream.pipe(toArray())),
+            lastValueFrom(second.stream.pipe(toArray()))
+        ])
+
+        expect(first.connectionId).not.toBe(second.connectionId)
+        expect(firstEvents.map((event) => event.id)).toEqual(['2-0', '3-0'])
+        expect(secondEvents.map((event) => event.id)).toEqual(['2-0', '3-0'])
+        expect(firstEvents.at(-1)?.type).toBe('complete')
+        expect(secondEvents.at(-1)?.type).toBe('complete')
+        expect(redis.eval).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+                keys: [
+                    `ai:sse:connection:thread:thread-1:run:run-1:${first.connectionId}`,
+                    'ai:sse:connections:thread:thread-1:run:run-1'
+                ],
+                arguments: [first.connectionId]
+            })
+        )
+        expect(redis.eval).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+                keys: [
+                    `ai:sse:connection:thread:thread-1:run:run-1:${second.connectionId}`,
+                    'ai:sse:connections:thread:thread-1:run:run-1'
+                ],
+                arguments: [second.connectionId]
+            })
+        )
     })
 
     it('persists chat stream events and a complete marker when enabled', async () => {

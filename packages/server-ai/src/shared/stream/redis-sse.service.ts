@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum } from '@xpert-ai/contracts'
 import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
@@ -25,7 +25,7 @@ interface CreateSseStreamOptions {
     runId: string
     lastEventId?: string
     mode: 'create' | 'join'
-    owner?: SseLockOwnerCandidate
+    owner?: SseConnectionOwnerCandidate
 }
 
 export interface RedisStreamPersistenceTarget {
@@ -40,7 +40,7 @@ export interface ChatStreamPersistenceOptions {
     runId?: string | null
 }
 
-export interface SseLockOwnerCandidate {
+export interface SseConnectionOwnerCandidate {
     mode: 'create' | 'join'
     requestId?: string | null
     userId?: string | null
@@ -54,49 +54,27 @@ export interface SseLockOwnerCandidate {
     lastEventId?: string | null
 }
 
-export interface SseLockOwner extends SseLockOwnerCandidate {
-    lockId: string
+export interface SseConnectionOwner extends SseConnectionOwnerCandidate {
+    connectionId: string
     connectedAt: string
 }
 
-export interface SseLockSnapshot {
-    lockId: string | null
-    owner: SseLockOwner | null
-    ttlMs: number | null
-}
-
 @Injectable()
-export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
+export class RedisSseStreamService {
     readonly #logger = new Logger(RedisSseStreamService.name)
-    private readClient?: RedisClientType
 
     constructor(@Inject(REDIS_CLIENT) private readonly redis: RedisClientType) {}
-
-    async onModuleInit() {
-        this.readClient = this.redis.duplicate()
-        await this.readClient.connect()
-    }
-
-    async onModuleDestroy() {
-        try {
-            if (this.readClient) {
-                await this.readClient.quit()
-            }
-        } catch (error) {
-            this.#logger.warn(`Failed to close Redis read client: ${error}`)
-        }
-    }
 
     getStreamKey(threadId: string, runId: string) {
         return `ai:sse:thread:${threadId}:run:${runId}`
     }
 
-    getLockKey(threadId: string, runId: string) {
-        return `ai:sse:lock:thread:${threadId}:run:${runId}`
+    getConnectionSetKey(threadId: string, runId: string) {
+        return `ai:sse:connections:thread:${threadId}:run:${runId}`
     }
 
-    getLockOwnerKey(threadId: string, runId: string) {
-        return `ai:sse:lockmeta:thread:${threadId}:run:${runId}`
+    getConnectionOwnerKey(threadId: string, runId: string, connectionId: string) {
+        return `ai:sse:connection:thread:${threadId}:run:${runId}:${connectionId}`
     }
 
     async appendEvent(threadId: string, runId: string, data: unknown) {
@@ -170,26 +148,16 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
     async createSseStream(options: CreateSseStreamOptions) {
         const { threadId, runId } = options
         const streamKey = this.getStreamKey(threadId, runId)
-        const lockKey = this.getLockKey(threadId, runId)
-        const ownerKey = this.getLockOwnerKey(threadId, runId)
-        const lockTtl = this.getLockTtlMs()
-        const lockId = await this.acquireLock(lockKey, lockTtl)
-
-        if (!lockId) {
-            return {
-                lockId: null,
-                lock: await this.getLockSnapshot(threadId, runId),
-                stream: new Observable<SseMessageEvent>((subscriber) => {
-                    subscriber.error(new Error('STREAM_LOCKED'))
-                })
-            }
-        }
-
-        const owner = this.buildLockOwner(lockId, options)
-        await this.persistLockOwner(ownerKey, owner, lockTtl)
+        const connectionSetKey = this.getConnectionSetKey(threadId, runId)
+        const connectionTtl = this.getConnectionTtlMs()
+        const connectionId = randomUUID()
+        const ownerKey = this.getConnectionOwnerKey(threadId, runId, connectionId)
+        const owner = this.buildConnectionOwner(connectionId, options)
+        await this.persistConnectionOwner(connectionSetKey, ownerKey, owner, connectionTtl)
 
         const stream = new Observable<SseMessageEvent>((subscriber) => {
             let active = true
+            let readClient: RedisClientType | null = null
             let lastId = this.normalizeStartId(options.lastEventId, options.mode)
             const readBlockMs = this.getReadBlockMs()
             const readCount = this.getReadCount()
@@ -214,20 +182,24 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 
             const refreshInterval = setInterval(
                 () => {
-                    this.refreshLock(lockKey, lockId, lockTtl).catch((err) => {
-                        this.#logger.warn(`Failed to refresh SSE lock: ${err}`)
-                    })
-                    this.refreshOwnerLock(ownerKey, lockTtl).catch((err) => {
-                        this.#logger.warn(`Failed to refresh SSE owner lock: ${err}`)
+                    this.refreshConnectionOwner(ownerKey, connectionSetKey, connectionTtl).catch((err) => {
+                        this.#logger.warn(`Failed to refresh SSE connection metadata: ${err}`)
                     })
                 },
-                Math.max(Math.floor(lockTtl / 2), 1000)
+                Math.max(Math.floor(connectionTtl / 2), 1000)
             )
 
             const run = async () => {
                 try {
+                    readClient = await this.createReadClient()
+                    if (!active) {
+                        this.closeReadClient(readClient)
+                        readClient = null
+                        return
+                    }
+                    const client = readClient ?? this.redis
                     if (lastId !== '$') {
-                        const replayEntries = await this.readRange(streamKey, lastId, readCount)
+                        const replayEntries = await this.readRange(client, streamKey, lastId, readCount)
                         for (const entry of replayEntries) {
                             if (!active) return
                             if (emitEntry(entry)) {
@@ -237,7 +209,7 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
                     }
 
                     while (active) {
-                        const entries = await this.readNewEntries(streamKey, lastId, readCount, readBlockMs)
+                        const entries = await this.readNewEntries(client, streamKey, lastId, readCount, readBlockMs)
                         if (!entries.length) {
                             continue
                         }
@@ -260,36 +232,52 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
             return () => {
                 active = false
                 clearInterval(refreshInterval)
+                this.closeReadClient(readClient)
+                this.releaseConnection(threadId, runId, connectionId).catch((err) => {
+                    this.#logger.warn(`Failed to release SSE connection metadata: ${err}`)
+                })
             }
         })
 
-        return { lockId, lock: { lockId, owner, ttlMs: lockTtl }, stream }
+        return { connectionId, owner, ttlMs: connectionTtl, stream }
     }
 
-    async releaseLock(threadId: string, runId: string, lockId: string) {
-        const lockKey = this.getLockKey(threadId, runId)
-        const ownerKey = this.getLockOwnerKey(threadId, runId)
-        return this.releaseLockByKey(lockKey, ownerKey, lockId)
+    async releaseConnection(threadId: string, runId: string, connectionId: string) {
+        const connectionSetKey = this.getConnectionSetKey(threadId, runId)
+        const ownerKey = this.getConnectionOwnerKey(threadId, runId, connectionId)
+        return this.releaseConnectionByKey(ownerKey, connectionSetKey, connectionId)
     }
 
-    async getLockSnapshot(threadId: string, runId: string): Promise<SseLockSnapshot> {
-        const lockKey = this.getLockKey(threadId, runId)
-        const ownerKey = this.getLockOwnerKey(threadId, runId)
-        const [lockId, ownerRaw, ttlMs] = await Promise.all([
-            this.redis.get(lockKey),
-            this.redis.get(ownerKey),
-            this.redis.pTTL(lockKey)
-        ])
+    private async createReadClient(): Promise<RedisClientType | null> {
+        if (typeof this.redis.duplicate !== 'function') {
+            return null
+        }
 
-        return {
-            lockId,
-            owner: this.parseLockOwner(ownerRaw),
-            ttlMs: ttlMs >= 0 ? ttlMs : null
+        try {
+            const client = this.redis.duplicate()
+            await client.connect()
+            return client
+        } catch (error) {
+            this.#logger.warn(`Failed to create dedicated SSE read client: ${error}`)
+            return null
         }
     }
 
-    private async readRange(streamKey: string, lastId: string, count: number): Promise<StreamEntry[]> {
-        const client = this.readClient ?? this.redis
+    private closeReadClient(client: RedisClientType | null) {
+        if (!client) {
+            return
+        }
+        client.quit().catch((error) => {
+            this.#logger.warn(`Failed to close dedicated SSE read client: ${error}`)
+        })
+    }
+
+    private async readRange(
+        client: RedisClientType,
+        streamKey: string,
+        lastId: string,
+        count: number
+    ): Promise<StreamEntry[]> {
         const rangeArgs = ['XRANGE', streamKey, `(${lastId}`, '+', 'COUNT', `${count}`]
         const response = (await client.sendCommand(rangeArgs)) as Array<[string, string[]]> | null
         if (!response || response.length === 0) {
@@ -299,12 +287,12 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async readNewEntries(
+        client: RedisClientType,
         streamKey: string,
         lastId: string,
         count: number,
         blockMs: number
     ): Promise<StreamEntry[]> {
-        const client = this.readClient ?? this.redis
         const args = ['XREAD', 'COUNT', `${count}`, 'BLOCK', `${blockMs}`, 'STREAMS', streamKey, lastId]
         const response = (await client.sendCommand(args)) as Array<[string, Array<[string, string[]]>]> | null
         if (!response || response.length === 0) {
@@ -364,16 +352,10 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
         return 'Unknown chat stream persistence error'
     }
 
-    private async acquireLock(key: string, ttl: number): Promise<string | null> {
-        const lockId = randomUUID()
-        const result = (await this.redis.set(key, lockId, { PX: ttl, NX: true })) as string | null
-        return result ? lockId : null
-    }
-
-    private buildLockOwner(lockId: string, options: CreateSseStreamOptions): SseLockOwner {
+    private buildConnectionOwner(connectionId: string, options: CreateSseStreamOptions): SseConnectionOwner {
         const owner = options.owner ?? { mode: options.mode }
         return {
-            lockId,
+            connectionId,
             connectedAt: new Date().toISOString(),
             mode: owner.mode ?? options.mode,
             requestId: this.normalizeOwnerValue(owner.requestId),
@@ -394,53 +376,34 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
         return normalized ? normalized : null
     }
 
-    private async persistLockOwner(key: string, owner: SseLockOwner, ttl: number) {
+    private async persistConnectionOwner(
+        connectionSetKey: string,
+        ownerKey: string,
+        owner: SseConnectionOwner,
+        ttl: number
+    ) {
         try {
-            await this.redis.set(key, JSON.stringify(owner), { PX: ttl })
+            await this.redis.set(ownerKey, JSON.stringify(owner), { PX: ttl })
+            await this.redis.sendCommand(['SADD', connectionSetKey, owner.connectionId])
+            await this.redis.pExpire(connectionSetKey, ttl)
         } catch (error) {
-            this.#logger.warn(`Failed to persist SSE lock owner metadata: ${error}`)
+            this.#logger.warn(`Failed to persist SSE connection metadata: ${error}`)
         }
     }
 
-    private async refreshLock(key: string, lockId: string, ttl: number) {
-        const script = `
-			if redis.call("get", KEYS[1]) == ARGV[1] then
-				return redis.call("pexpire", KEYS[1], ARGV[2])
-			else
-				return 0
-			end
-		`
-        await this.redis.eval(script, { keys: [key], arguments: [lockId, `${ttl}`] })
+    private async refreshConnectionOwner(ownerKey: string, connectionSetKey: string, ttl: number) {
+        await this.redis.pExpire(ownerKey, ttl)
+        await this.redis.pExpire(connectionSetKey, ttl)
     }
 
-    private async refreshOwnerLock(key: string, ttl: number) {
-        await this.redis.pExpire(key, ttl)
-    }
-
-    private async releaseLockByKey(key: string, ownerKey: string, lockId: string) {
+    private async releaseConnectionByKey(ownerKey: string, connectionSetKey: string, connectionId: string) {
         const script = `
-			if redis.call("get", KEYS[1]) == ARGV[1] then
-				redis.call("del", KEYS[1])
-				redis.call("del", KEYS[2])
-				return 1
-			else
-				return 0
-			end
+			redis.call("del", KEYS[1])
+			redis.call("srem", KEYS[2], ARGV[1])
+			return 1
 		`
-        const result = await this.redis.eval(script, { keys: [key, ownerKey], arguments: [lockId] })
+        const result = await this.redis.eval(script, { keys: [ownerKey, connectionSetKey], arguments: [connectionId] })
         return result === 1
-    }
-
-    private parseLockOwner(raw: string | null): SseLockOwner | null {
-        if (!raw) {
-            return null
-        }
-        try {
-            return JSON.parse(raw) as SseLockOwner
-        } catch (error) {
-            this.#logger.warn(`Failed to parse SSE lock owner metadata: ${error}`)
-            return null
-        }
     }
 
     private getStreamMaxLen() {
@@ -451,7 +414,7 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
         return Number(process.env.AI_SSE_STREAM_TTL_SECONDS ?? 86400)
     }
 
-    private getLockTtlMs() {
+    private getConnectionTtlMs() {
         return Number(process.env.AI_SSE_LOCK_TTL_MS ?? 30000)
     }
 

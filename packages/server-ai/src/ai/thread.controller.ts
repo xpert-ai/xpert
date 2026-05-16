@@ -16,7 +16,6 @@ import {
     Get,
     Header,
     Headers,
-    HttpException,
     HttpCode,
     HttpStatus,
     Logger,
@@ -46,7 +45,7 @@ import { AiService } from './ai.service'
 import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from './commands'
 import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
-import { RedisSseStreamService, SseLockOwnerCandidate, SseLockSnapshot } from '../shared/stream'
+import { RedisSseStreamService, SseConnectionOwnerCandidate } from '../shared/stream'
 import { CancelConversationCommand } from '../chat-conversation'
 import { GetChatConversationQuery } from '../chat-conversation'
 import { CopilotUserUsageQuery } from '../copilot-user/queries'
@@ -214,37 +213,20 @@ export class ThreadsController {
                     console.error('Error in run stream:', err)
                 }
             })
-            const contender = buildSseLockOwner(req, {
+            const owner = buildSseConnectionOwner(req, {
                 mode: 'create',
                 lastEventId
             })
-            const {
-                lockId,
-                lock,
-                stream: sseStream
-            } = await this.redisSseStreamService.createSseStream({
+            const { connectionId, stream: sseStream } = await this.redisSseStreamService.createSseStream({
                 threadId: thread_id,
                 runId: execution.id,
                 lastEventId,
                 mode: 'create',
-                owner: contender
+                owner
             })
 
-            if (!lockId) {
-                this.#logger.warn(
-                    {
-                        threadId: thread_id,
-                        runId: execution.id,
-                        holder: sseStreamOwnerPayload(lock),
-                        contender
-                    },
-                    'SSE run stream lock conflict'
-                )
-                throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
-            }
-
             res.on('close', () => {
-                this.redisSseStreamService.releaseLock(thread_id, execution.id, lockId).catch(() => null)
+                this.redisSseStreamService.releaseConnection(thread_id, execution.id, connectionId).catch(() => null)
             })
 
             return sseStream
@@ -315,33 +297,20 @@ export class ThreadsController {
         @Param('run_id') run_id: string,
         @Headers('last-event-id') lastEventId?: string
     ) {
-        const contender = buildSseLockOwner(req, {
+        const owner = buildSseConnectionOwner(req, {
             mode: 'join',
             lastEventId
         })
-        const { lockId, lock, stream } = await this.redisSseStreamService.createSseStream({
+        const { connectionId, stream } = await this.redisSseStreamService.createSseStream({
             threadId: thread_id,
             runId: run_id,
             lastEventId,
             mode: 'join',
-            owner: contender
+            owner
         })
 
-        if (!lockId) {
-            this.#logger.warn(
-                {
-                    threadId: thread_id,
-                    runId: run_id,
-                    holder: sseStreamOwnerPayload(lock),
-                    contender
-                },
-                'SSE run join lock conflict'
-            )
-            throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
-        }
-
         res.on('close', () => {
-            this.redisSseStreamService.releaseLock(thread_id, run_id, lockId).catch(() => null)
+            this.redisSseStreamService.releaseConnection(thread_id, run_id, connectionId).catch(() => null)
         })
 
         return stream
@@ -417,10 +386,10 @@ function transformThreadState(tuple: CheckpointTuple) {
     } as ThreadState
 }
 
-function buildSseLockOwner(
+function buildSseConnectionOwner(
     req: Request,
-    options: Pick<SseLockOwnerCandidate, 'mode' | 'lastEventId'>
-): SseLockOwnerCandidate {
+    options: Pick<SseConnectionOwnerCandidate, 'mode' | 'lastEventId'>
+): SseConnectionOwnerCandidate {
     return {
         mode: options.mode,
         requestId: readHeader(req, 'x-request-id'),
@@ -433,18 +402,6 @@ function buildSseLockOwner(
         method: req.method,
         endpoint: req.originalUrl || req.url,
         lastEventId: options.lastEventId?.trim() || null
-    }
-}
-
-function sseStreamOwnerPayload(lock?: SseLockSnapshot | null) {
-    if (!lock) {
-        return null
-    }
-
-    return {
-        lockId: lock.lockId,
-        ttlMs: lock.ttlMs,
-        owner: lock.owner
     }
 }
 

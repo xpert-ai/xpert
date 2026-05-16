@@ -36,9 +36,13 @@ import {
   IChatMessageFeedback,
   IStorageFile,
   IXpert,
+  AiThreadService,
   createMessageAppendContextTracker,
   SynthesizeService,
   TChatRequest,
+  TFollowUpConsumedEvent,
+  TChatStreamChatEventData,
+  TChatStreamPayload,
   TXpertChatResumeDecision,
   TInterruptCommand,
   ToastrService,
@@ -207,6 +211,10 @@ type MergedPendingFollowUpGroup = {
   commandSource?: ChatKitCommandSource | null
 }
 
+function isFollowUpConsumedEventPayload(value: TChatStreamChatEventData): value is TFollowUpConsumedEvent {
+  return parseFollowUpConsumedEvent(value) !== null
+}
+
 type ComposerSelectionOffsets = {
   start: number
   end: number
@@ -249,6 +257,7 @@ export class ChatConversationPreviewComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
   readonly xpertService = inject(XpertAPIService)
+  readonly aiThreadService = inject(AiThreadService)
   readonly conversationService = inject(ChatConversationService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
@@ -325,6 +334,7 @@ export class ChatConversationPreviewComponent {
   readonly referenceLabel = getReferenceLabel
   readonly referenceSource = getReferenceSource
   readonly loading = signal(false)
+  readonly joiningRunStream = signal(false)
   readonly pendingFollowUps = signal<PendingFollowUp[]>([])
   readonly followUpBehavior = signal<'queue' | 'steer'>(this.readPersistedFollowUpBehavior())
   readonly planModeEnabled = signal(false)
@@ -453,12 +463,13 @@ export class ChatConversationPreviewComponent {
           ? this.conversationService.getOneById(
               this.conversationId(),
               {
-                relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents']
+                relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents', 'executions']
               },
               this.organizationId() ?? undefined
             )
           : of(null)
-      )
+      ),
+      takeUntilDestroyed(this.#destroyRef)
     )
     .subscribe((conv) => {
       this.conversation.set(conv)
@@ -474,6 +485,8 @@ export class ChatConversationPreviewComponent {
     })
 
   private chatSubscription: Subscription
+  private joinRunStreamSubscription: Subscription
+  private joinedRunStreamKey: string | null = null
   private readonly messageAppendContextTracker = createMessageAppendContextTracker()
   private shouldStartFreshAssistantMessageAfterSteer = false
 
@@ -547,10 +560,21 @@ export class ChatConversationPreviewComponent {
 
     this.#destroyRef.onDestroy(() => {
       this.#destroyed = true
+      this.stopJoinRunStream()
     })
 
     effect(() => {
       this.persistFollowUpBehavior(this.followUpBehavior())
+    })
+
+    effect(() => {
+      const target = this.resolveLiveJoinRunStreamTarget()
+      if (!target) {
+        this.stopJoinRunStream({ finalizeCurrentMessage: true })
+        return
+      }
+
+      this.startJoinRunStream(target.threadId, target.runId)
     })
 
     effect(() => {
@@ -809,92 +833,9 @@ export class ChatConversationPreviewComponent {
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (msg) => {
-          if (msg.event === 'error') {
-            this.onChatError(msg.data)
-          } else {
-            if (msg.data) {
-              // Ignore non-data events
-              if (msg.data.startsWith(':')) {
-                return
-              }
-              const event = JSON.parse(msg.data)
-              if (event.type === ChatMessageTypeEnum.MESSAGE) {
-                const fallbackStreamId = this.currentMessage()?.id ?? this.conversation()?.id ?? 'chat_stream'
-                const { messageContext } = this.messageAppendContextTracker.resolve({
-                  incoming: event.data,
-                  fallbackSource: typeof event.data === 'string' ? 'chat_stream' : undefined,
-                  fallbackStreamId: String(fallbackStreamId)
-                })
-
-                this.currentMessage.update((message) => {
-                  appendMessageContent(message as any, event.data, messageContext)
-                  return { ...message }
-                })
-                if (typeof event.data === 'string') {
-                  // Update last AI message
-                  this.output.update((state) => appendMessagePlainText(state, event.data, messageContext))
-                }
-              } else if (event.type === ChatMessageTypeEnum.EVENT) {
-                this.chatEvent.emit(event)
-                switch (event.event) {
-                  case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
-                  case ChatMessageEventTypeEnum.ON_CONVERSATION_END: {
-                    this.conversation.update((state) => ({
-                      ...(state ?? {}),
-                      ...event.data
-                    }))
-                    break
-                  }
-                  case ChatMessageEventTypeEnum.ON_MESSAGE_START: {
-                    if (this.shouldStartFreshAssistantMessageAfterSteer || !this.currentMessage()) {
-                      this.currentMessage.set({
-                        ...event.data
-                      })
-                    } else {
-                      this.currentMessage.update((state) => ({
-                        ...state,
-                        ...event.data
-                      }))
-                    }
-                    this.shouldStartFreshAssistantMessageAfterSteer = false
-                    break
-                  }
-                  case ChatMessageEventTypeEnum.ON_AGENT_END: {
-                    this.currentMessage.update((message) => ({
-                      ...message,
-                      executionId: event.data.id,
-                      status: event.data.status
-                    }))
-                    break
-                  }
-                  case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
-                    if (isThreadContextUsageEvent(event.data)) {
-                      break
-                    }
-                    const followUpConsumedEvent = parseFollowUpConsumedEvent(event.data)
-                    if (followUpConsumedEvent) {
-                      if (followUpConsumedEvent.mode === 'steer') {
-                        if (this.currentMessage()) {
-                          this.appendMessage({ ...this.currentMessage() })
-                          this.currentMessage.set(null)
-                        }
-                        this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
-                        this.shouldStartFreshAssistantMessageAfterSteer = true
-                      } else {
-                        this.removePendingQueuedFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
-                      }
-                      break
-                    }
-                    this.currentMessage.update((state) => ({
-                      ...state,
-                      events: [...(state.events ?? []), event.data]
-                    }))
-                    break
-                  }
-                }
-              }
-            }
-          }
+          this.handleIncomingStreamMessage(msg, {
+            onError: (message) => this.onChatError(message)
+          })
         },
         error: (err) => {
           this.messageAppendContextTracker.reset()
@@ -952,6 +893,289 @@ export class ChatConversationPreviewComponent {
     this.drainQueuedFollowUps()
     this.currentMessage.set(null)
     this.chatStop.emit()
+  }
+
+  private resolveLiveJoinRunStreamTarget(): { threadId: string; runId: string } | null {
+    if (!this.readonly()) {
+      return null
+    }
+
+    const conversation = this.conversation()
+    if (conversation?.status !== 'busy') {
+      return null
+    }
+
+    const threadId = conversation.threadId?.trim()
+    const runId = this.resolveActiveRunId(conversation)
+    if (!threadId || !runId) {
+      return null
+    }
+
+    return { threadId, runId }
+  }
+
+  private resolveActiveRunId(conversation: Partial<IChatConversation>): string | null {
+    const executions = [...(conversation.executions ?? [])]
+    const rootExecutions = executions.filter((execution) => !execution.parentId)
+    const runExecutions = rootExecutions.length ? rootExecutions : executions
+    const activeExecution = this.sortExecutionsByRecency(runExecutions).find((execution) =>
+      [XpertAgentExecutionStatusEnum.RUNNING, XpertAgentExecutionStatusEnum.PENDING].includes(
+        execution.status as XpertAgentExecutionStatusEnum
+      )
+    )
+    if (activeExecution?.id) {
+      return activeExecution.id
+    }
+
+    const latestExecution = this.sortExecutionsByRecency(runExecutions)[0]
+    if (latestExecution?.id) {
+      return latestExecution.id
+    }
+
+    const latestMessageWithExecution = [...(this._messages() ?? [])].reverse().find((message) => !!message.executionId)
+    return latestMessageWithExecution?.executionId ?? null
+  }
+
+  private sortExecutionsByRecency<T extends { createdAt?: string | Date; updatedAt?: string | Date }>(items: T[]): T[] {
+    return [...items].sort(
+      (a, b) => this.getTime(b.updatedAt ?? b.createdAt) - this.getTime(a.updatedAt ?? a.createdAt)
+    )
+  }
+
+  private getTime(value: string | Date | null | undefined) {
+    if (!value) {
+      return 0
+    }
+
+    const time = value instanceof Date ? value.getTime() : new Date(value).getTime()
+    return Number.isFinite(time) ? time : 0
+  }
+
+  private startJoinRunStream(threadId: string, runId: string) {
+    const streamKey = `${threadId}:${runId}`
+    if (
+      this.joinedRunStreamKey === streamKey &&
+      this.joinRunStreamSubscription &&
+      !this.joinRunStreamSubscription.closed
+    ) {
+      return
+    }
+
+    this.stopJoinRunStream({ clearCurrentMessage: true })
+    this.joinedRunStreamKey = streamKey
+    this.joiningRunStream.set(true)
+    this.messageAppendContextTracker.reset()
+
+    this.joinRunStreamSubscription = this.aiThreadService
+      .joinRunStream(threadId, runId)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (msg) => {
+          this.handleIncomingStreamMessage(msg, {
+            fallbackStreamId: runId,
+            onError: (message) => this.onJoinRunStreamError(message)
+          })
+        },
+        error: (err) => {
+          this.onJoinRunStreamError(getErrorMessage(err))
+        },
+        complete: () => {
+          this.completeJoinRunStream()
+        }
+      })
+  }
+
+  private stopJoinRunStream(options?: { clearCurrentMessage?: boolean; finalizeCurrentMessage?: boolean }) {
+    const hadJoinedStream = !!this.joinedRunStreamKey || !!this.joinRunStreamSubscription
+    if (this.joinRunStreamSubscription && !this.joinRunStreamSubscription.closed) {
+      this.joinRunStreamSubscription.unsubscribe()
+    }
+    this.joinRunStreamSubscription = null
+    this.joinedRunStreamKey = null
+    this.joiningRunStream.set(false)
+    if (options?.finalizeCurrentMessage && hadJoinedStream) {
+      this.finalizeCurrentStreamMessage()
+    } else if (options?.clearCurrentMessage && hadJoinedStream) {
+      this.currentMessage.set(null)
+    }
+  }
+
+  private completeJoinRunStream() {
+    this.joinRunStreamSubscription = null
+    this.joinedRunStreamKey = null
+    this.joiningRunStream.set(false)
+    this.messageAppendContextTracker.reset()
+    this.shouldStartFreshAssistantMessageAfterSteer = false
+
+    if (this.#destroyed) {
+      return
+    }
+
+    this.finalizeCurrentStreamMessage()
+  }
+
+  private onJoinRunStreamError(message: string) {
+    this.joinRunStreamSubscription = null
+    this.joinedRunStreamKey = null
+    this.joiningRunStream.set(false)
+    this.messageAppendContextTracker.reset()
+    this.shouldStartFreshAssistantMessageAfterSteer = false
+    this.chatError.emit(message)
+  }
+
+  private handleIncomingStreamMessage(
+    msg: { event?: string; data?: string | null },
+    options?: {
+      fallbackStreamId?: string | null
+      onError?: (message: string) => void
+    }
+  ) {
+    if (msg.event === 'error') {
+      options?.onError?.(msg.data || this.#translate.instant('PAC.Xpert.Failure', { Default: 'Failure' }))
+      return
+    }
+
+    if (!msg.data || msg.data.startsWith(':')) {
+      return
+    }
+
+    let event: TChatStreamPayload
+    try {
+      event = JSON.parse(msg.data) as TChatStreamPayload
+    } catch (error) {
+      options?.onError?.(getErrorMessage(error))
+      return
+    }
+
+    if (event?.type === 'complete') {
+      return
+    }
+
+    this.applyChatStreamEvent(event, options?.fallbackStreamId)
+  }
+
+  private applyChatStreamEvent(event: TChatStreamPayload, fallbackStreamId?: string | null) {
+    if (!event || typeof event !== 'object') {
+      return
+    }
+
+    if (event.type === ChatMessageTypeEnum.MESSAGE) {
+      const streamId = fallbackStreamId ?? this.currentMessage()?.id ?? this.conversation()?.id ?? 'chat_stream'
+      const { messageContext } = this.messageAppendContextTracker.resolve({
+        incoming: event.data,
+        fallbackSource: typeof event.data === 'string' ? 'chat_stream' : undefined,
+        fallbackStreamId: String(streamId)
+      })
+
+      this.currentMessage.update((message) => {
+        const next = (message ?? {
+          id: uuid(),
+          role: 'ai',
+          content: '',
+          status: 'thinking'
+        }) as Partial<IChatMessage>
+        appendMessageContent(next as Parameters<typeof appendMessageContent>[0], event.data, messageContext)
+        return { ...next }
+      })
+      if (typeof event.data === 'string') {
+        this.output.update((state) => appendMessagePlainText(state, event.data, messageContext))
+      }
+      return
+    }
+
+    if (event.type !== ChatMessageTypeEnum.EVENT) {
+      return
+    }
+
+    this.chatEvent.emit(event)
+    switch (event.event) {
+      case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
+      case ChatMessageEventTypeEnum.ON_CONVERSATION_END: {
+        this.conversation.update((state) => ({
+          ...(state ?? {}),
+          ...event.data
+        }))
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_MESSAGE_START: {
+        const messageId = event.data.id
+        if (messageId) {
+          this.removeBaseMessage(messageId)
+        }
+        if (this.shouldStartFreshAssistantMessageAfterSteer || !this.currentMessage()) {
+          this.currentMessage.set({
+            ...event.data
+          })
+        } else {
+          this.currentMessage.update((state) => ({
+            ...state,
+            ...event.data
+          }))
+        }
+        this.shouldStartFreshAssistantMessageAfterSteer = false
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_MESSAGE_END: {
+        this.currentMessage.update((state) => ({
+          ...state,
+          ...event.data
+        }))
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_AGENT_END: {
+        this.currentMessage.update((message) => ({
+          ...message,
+          executionId: event.data.id,
+          status: event.data.status
+        }))
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_ERROR: {
+        const errorMessage = typeof event.data === 'string' ? event.data : event.data.error
+        this.conversation.update((state) => ({
+          ...(state ?? {}),
+          status: XpertAgentExecutionStatusEnum.ERROR,
+          error: errorMessage ?? this.#translate.instant('PAC.Xpert.Failure', { Default: 'Failure' })
+        }))
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+        const chatEventData = event.data
+        if (isThreadContextUsageEvent(chatEventData)) {
+          break
+        }
+        if (isFollowUpConsumedEventPayload(chatEventData)) {
+          const followUpConsumedEvent = parseFollowUpConsumedEvent(chatEventData) ?? chatEventData
+          if (followUpConsumedEvent.mode === 'steer') {
+            if (this.currentMessage()) {
+              this.appendMessage({ ...this.currentMessage() })
+              this.currentMessage.set(null)
+            }
+            this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
+            this.shouldStartFreshAssistantMessageAfterSteer = true
+          } else {
+            this.removePendingQueuedFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
+          }
+          break
+        }
+        this.currentMessage.update((state) => ({
+          ...state,
+          events: [...(state?.events ?? []), chatEventData]
+        }))
+        break
+      }
+    }
+  }
+
+  private removeBaseMessage(messageId: string) {
+    this._messages.update((state) => (state ? state.filter((message) => message.id !== messageId) : state))
+  }
+
+  private finalizeCurrentStreamMessage() {
+    if (this.currentMessage()) {
+      this.appendMessage({ ...this.currentMessage() })
+      this.currentMessage.set(null)
+    }
   }
 
   // Suggestion Questions
