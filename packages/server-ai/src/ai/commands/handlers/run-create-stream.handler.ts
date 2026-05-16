@@ -13,7 +13,7 @@ import {
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
-import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
@@ -29,6 +29,7 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { serializeRunStreamPayload } from '../../../shared/stream/'
 
 const humanInputSchema = z.object({}).passthrough()
 
@@ -119,6 +120,20 @@ const chatRequestSchema = z.discriminatedUnion('action', [
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export function normalizeRunStreamMessage(message: MessageEvent): MessageEvent {
+    const payload = message.data
+    const nextPayload = serializeRunStreamPayload(payload)
+
+    if (nextPayload !== payload) {
+        return {
+            ...message,
+            data: nextPayload
+        }
+    }
+
+    return message
 }
 
 function isLegacyChatRequest(input: unknown): input is LegacyTChatRequest {
@@ -375,6 +390,8 @@ function applyAssistantScope(xpert: IXpert) {
 
 @CommandHandler(RunCreateStreamCommand)
 export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCommand> {
+    readonly #logger = new Logger(RunCreateStreamHandler.name)
+
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
@@ -499,21 +516,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 }
             })
         )
-        const normalizedStream = stream.pipe(
-            map((message) => {
-                if (typeof message.data.data === 'object') {
-                    return {
-                        ...message,
-                        data: {
-                            ...message.data,
-                            data: omitBy(message.data.data, isNil) // Remove null or undefined values
-                        }
-                    }
-                }
-
-                return message
-            })
-        )
+        const normalizedStream = stream.pipe(map((message) => normalizeRunStreamMessage(message)))
 
         if (chatRequest.action === 'follow_up') {
             return {

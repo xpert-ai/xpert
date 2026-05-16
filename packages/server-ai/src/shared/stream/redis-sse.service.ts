@@ -5,6 +5,7 @@ import type { RedisClientType } from 'redis'
 import { randomUUID } from 'crypto'
 import { Observable } from 'rxjs'
 import { finalize, tap } from 'rxjs/operators'
+import { getChatEventName, isControlledRunStreamEvent, serializeRunStreamPayload } from './run-stream-payload'
 
 const SSE_COMPLETE_EVENT = 'complete'
 
@@ -83,7 +84,8 @@ export class RedisSseStreamService {
         const ttlSeconds = this.getStreamTtlSeconds()
 
         try {
-            const payload = JSON.stringify(data ?? null)
+            const persistedData = serializeRunStreamPayload(data)
+            const payload = JSON.stringify(persistedData ?? null)
             const args = ['XADD', streamKey, 'MAXLEN', '~', `${maxLen}`, '*', 'data', payload]
             const id = (await this.redis.sendCommand(args)) as string
             if (ttlSeconds > 0) {

@@ -138,16 +138,49 @@ export type TChatStreamConversationPayload = {
   data: Partial<IChatConversation>
 }
 
-export type TChatStreamMessageLifecyclePayload = {
+export type TChatStreamMessageEndData = Pick<
+  IChatMessage,
+  'id' | 'conversationId' | 'executionId' | 'role' | 'status' | 'error'
+>
+
+export type TChatStreamMessageStartPayload = {
   type: ChatMessageTypeEnum.EVENT
-  event: ChatMessageEventTypeEnum.ON_MESSAGE_START | ChatMessageEventTypeEnum.ON_MESSAGE_END
+  event: ChatMessageEventTypeEnum.ON_MESSAGE_START
   data: Partial<IChatMessage>
 }
+
+export type TChatStreamMessageEndPayload = {
+  type: ChatMessageTypeEnum.EVENT
+  event: ChatMessageEventTypeEnum.ON_MESSAGE_END
+  data: Partial<TChatStreamMessageEndData>
+}
+
+export type TChatStreamMessageLifecyclePayload = TChatStreamMessageStartPayload | TChatStreamMessageEndPayload
+
+export type TChatStreamAgentEndData = Pick<
+  IXpertAgentExecution,
+  | 'id'
+  | 'agentKey'
+  | 'status'
+  | 'error'
+  | 'elapsedTime'
+  | 'tokens'
+  | 'totalTokens'
+  | 'embedTokens'
+  | 'inputTokens'
+  | 'outputTokens'
+  | 'totalPrice'
+  | 'currency'
+  | 'metadata'
+  | 'responseLatency'
+  | 'parentId'
+  | 'xpertId'
+>
 
 export type TChatStreamAgentEndPayload = {
   type: ChatMessageTypeEnum.EVENT
   event: ChatMessageEventTypeEnum.ON_AGENT_END
-  data: Partial<IXpertAgentExecution>
+  data: Partial<TChatStreamAgentEndData>
 }
 
 export type TChatStreamErrorPayload = {

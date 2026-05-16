@@ -38,12 +38,12 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 }))
 
 import { EMPTY, of } from 'rxjs'
-import { ApiKeyBindingType } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, ChatMessageEventTypeEnum, ChatMessageTypeEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { hydrateSendRequestHumanInput } from '../../../shared/agent/human-input'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
-import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
+import { normalizeRunStreamMessage, RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
 
 const conversation = {
     id: 'conversation-1'
@@ -225,6 +225,185 @@ describe('hydrateSendRequestHumanInput', () => {
                     ]
                 }
             }
+        })
+    })
+})
+
+describe('normalizeRunStreamMessage', () => {
+    it('serializes ON_AGENT_END payloads through the execution summary DTO', () => {
+        const message = {
+            data: {
+                type: ChatMessageTypeEnum.EVENT,
+                event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                data: {
+                    id: 'execution-1',
+                    agentKey: 'agent-1',
+                    status: 'error',
+                    error: 'model failed',
+                    elapsedTime: 123,
+                    tokens: 42,
+                    totalTokens: 64,
+                    embedTokens: 3,
+                    inputTokens: 40,
+                    outputTokens: 21,
+                    totalPrice: '0.1000000',
+                    currency: 'USD',
+                    metadata: {
+                        provider: 'openai',
+                        model: 'gpt-test'
+                    },
+                    responseLatency: 1.25,
+                    parentId: 'parent-execution-1',
+                    xpertId: 'xpert-1',
+                    inputs: {
+                        human: {
+                            input: 'large prompt'
+                        }
+                    },
+                    outputs: {
+                        output: 'large answer'
+                    },
+                    messages: [
+                        {
+                            type: 'human',
+                            data: {
+                                content: 'large human message'
+                            }
+                        }
+                    ],
+                    subExecutions: [
+                        {
+                            id: 'sub-1',
+                            agentKey: 'agent-2',
+                            messages: [{ type: 'ai', data: { content: 'nested message' } }],
+                            subExecutions: [
+                                {
+                                    id: 'sub-2',
+                                    messages: [{ type: 'ai', data: { content: 'deep message' } }]
+                                }
+                            ]
+                        }
+                    ],
+                    createdBy: {
+                        id: 'user-1'
+                    },
+                    xpert: {
+                        id: 'xpert-1',
+                        title: 'Xpert'
+                    },
+                    agent: {
+                        key: 'agent-1',
+                        title: 'Agent'
+                    },
+                    optional: null
+                }
+            }
+        } as MessageEvent
+
+        const normalized = normalizeRunStreamMessage(message)
+
+        expect(normalized.data.data).toEqual({
+            id: 'execution-1',
+            agentKey: 'agent-1',
+            status: 'error',
+            error: 'model failed',
+            elapsedTime: 123,
+            tokens: 42,
+            totalTokens: 64,
+            embedTokens: 3,
+            inputTokens: 40,
+            outputTokens: 21,
+            totalPrice: '0.1000000',
+            currency: 'USD',
+            metadata: {
+                provider: 'openai',
+                model: 'gpt-test'
+            },
+            responseLatency: 1.25,
+            parentId: 'parent-execution-1',
+            xpertId: 'xpert-1'
+        })
+        expect(normalized.data.data).not.toHaveProperty('inputs')
+        expect(normalized.data.data).not.toHaveProperty('outputs')
+        expect(normalized.data.data).not.toHaveProperty('messages')
+        expect(normalized.data.data).not.toHaveProperty('subExecutions')
+        expect(normalized.data.data).not.toHaveProperty('createdBy')
+        expect(normalized.data.data).not.toHaveProperty('xpert')
+        expect(normalized.data.data).not.toHaveProperty('agent')
+        expect(JSON.stringify(normalized.data)).not.toContain('optional')
+    })
+
+    it('serializes ON_MESSAGE_END payloads through the message lifecycle DTO', () => {
+        const message = {
+            data: {
+                type: ChatMessageTypeEnum.EVENT,
+                event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
+                data: {
+                    id: 'message-1',
+                    conversationId: 'conversation-1',
+                    executionId: 'execution-1',
+                    role: 'ai',
+                    status: 'error',
+                    error: 'tool failed',
+                    content: [{ type: 'text', text: 'large content' }],
+                    parent: {
+                        id: 'parent-message-1',
+                        content: 'large human prompt'
+                    },
+                    tenant: {
+                        id: 'tenant-1'
+                    },
+                    organization: {
+                        id: 'organization-1'
+                    },
+                    createdBy: {
+                        id: 'user-1'
+                    },
+                    updatedAt: '2026-05-16T11:09:13.047Z',
+                    optional: null
+                }
+            }
+        } as MessageEvent
+
+        const normalized = normalizeRunStreamMessage(message)
+
+        expect(normalized.data.data).toEqual({
+            id: 'message-1',
+            conversationId: 'conversation-1',
+            executionId: 'execution-1',
+            role: 'ai',
+            status: 'error',
+            error: 'tool failed'
+        })
+        expect(normalized.data.data).not.toHaveProperty('content')
+        expect(normalized.data.data).not.toHaveProperty('parent')
+        expect(normalized.data.data).not.toHaveProperty('tenant')
+        expect(normalized.data.data).not.toHaveProperty('organization')
+        expect(normalized.data.data).not.toHaveProperty('createdBy')
+        expect(normalized.data.data).not.toHaveProperty('updatedAt')
+        expect(JSON.stringify(normalized.data)).not.toContain('optional')
+    })
+
+    it('leaves uncontrolled event payloads unchanged except existing nil cleanup', () => {
+        const message = {
+            data: {
+                type: ChatMessageTypeEnum.EVENT,
+                event: ChatMessageEventTypeEnum.ON_AGENT_START,
+                data: {
+                    id: 'execution-1',
+                    messages: ['kept'],
+                    subExecutions: [{ id: 'kept-sub' }],
+                    optional: null
+                }
+            }
+        } as MessageEvent
+
+        const normalized = normalizeRunStreamMessage(message)
+
+        expect(normalized.data.data).toEqual({
+            id: 'execution-1',
+            messages: ['kept'],
+            subExecutions: [{ id: 'kept-sub' }]
         })
     })
 })

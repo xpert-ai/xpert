@@ -171,6 +171,148 @@ describe('RedisSseStreamService', () => {
         expect(appendCompleteEvent).toHaveBeenCalledWith('thread-1', 'run-1')
     })
 
+    it('serializes ON_AGENT_END events before appending them to Redis', async () => {
+        const redis = createRedisMock()
+        redis.sendCommand.mockResolvedValue('1-0')
+        redis.expire.mockResolvedValue(true)
+        const service = new RedisSseStreamService(redis as never)
+        const data = {
+            type: ChatMessageTypeEnum.EVENT,
+            event: ChatMessageEventTypeEnum.ON_AGENT_END,
+            data: {
+                id: 'execution-1',
+                agentKey: 'agent-1',
+                status: 'success',
+                elapsedTime: 123,
+                tokens: 42,
+                totalTokens: 64,
+                inputTokens: 40,
+                outputTokens: 21,
+                totalPrice: '0.1000000',
+                currency: 'USD',
+                metadata: {
+                    provider: 'openai',
+                    model: 'gpt-test'
+                },
+                responseLatency: 1.25,
+                parentId: 'parent-execution-1',
+                xpertId: 'xpert-1',
+                outputs: {
+                    output: 'large answer'
+                },
+                messages: [{ type: 'human', data: { content: 'large message' } }],
+                subExecutions: [{ id: 'sub-1', messages: [{ type: 'ai', data: { content: 'nested' } }] }],
+                createdBy: {
+                    id: 'user-1'
+                },
+                xpert: {
+                    id: 'xpert-1'
+                },
+                agent: {
+                    key: 'agent-1'
+                }
+            }
+        }
+        const persistedData = {
+            type: ChatMessageTypeEnum.EVENT,
+            event: ChatMessageEventTypeEnum.ON_AGENT_END,
+            data: {
+                id: 'execution-1',
+                agentKey: 'agent-1',
+                status: 'success',
+                elapsedTime: 123,
+                tokens: 42,
+                totalTokens: 64,
+                inputTokens: 40,
+                outputTokens: 21,
+                totalPrice: '0.1000000',
+                currency: 'USD',
+                metadata: {
+                    provider: 'openai',
+                    model: 'gpt-test'
+                },
+                responseLatency: 1.25,
+                parentId: 'parent-execution-1',
+                xpertId: 'xpert-1'
+            }
+        }
+
+        await service.appendEvent('thread-1', 'run-1', data)
+
+        const payload = JSON.stringify(persistedData)
+        expect(redis.sendCommand).toHaveBeenCalledWith([
+            'XADD',
+            'ai:sse:thread:thread-1:run:run-1',
+            'MAXLEN',
+            '~',
+            '10000',
+            '*',
+            'data',
+            payload
+        ])
+    })
+
+    it('serializes ON_MESSAGE_END events before appending them to Redis', async () => {
+        const redis = createRedisMock()
+        redis.sendCommand.mockResolvedValue('1-0')
+        redis.expire.mockResolvedValue(true)
+        const service = new RedisSseStreamService(redis as never)
+        const data = {
+            type: ChatMessageTypeEnum.EVENT,
+            event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
+            data: {
+                id: 'message-1',
+                conversationId: 'conversation-1',
+                executionId: 'execution-1',
+                role: 'ai',
+                status: 'error',
+                error: 'tool failed',
+                content: [{ type: 'text', text: 'large content' }],
+                parent: {
+                    id: 'parent-message-1',
+                    content: 'large prompt'
+                },
+                tenant: {
+                    id: 'tenant-1'
+                },
+                organization: {
+                    id: 'organization-1'
+                },
+                createdBy: {
+                    id: 'user-1'
+                },
+                updatedAt: '2026-05-16T11:09:13.047Z',
+                optional: null
+            }
+        }
+        const persistedData = {
+            type: ChatMessageTypeEnum.EVENT,
+            event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
+            data: {
+                id: 'message-1',
+                conversationId: 'conversation-1',
+                executionId: 'execution-1',
+                role: 'ai',
+                status: 'error',
+                error: 'tool failed'
+            }
+        }
+
+        await service.appendEvent('thread-1', 'run-1', data)
+
+        const payload = JSON.stringify(persistedData)
+        expect(redis.sendCommand).toHaveBeenCalledWith([
+            'XADD',
+            'ai:sse:thread:thread-1:run:run-1',
+            'MAXLEN',
+            '~',
+            '10000',
+            '*',
+            'data',
+            payload
+        ])
+    })
+
     it('persists a chat error event and complete marker when the stream errors', async () => {
         const service = new RedisSseStreamService(createRedisMock() as any)
         const appendEvent = jest.spyOn(service, 'appendEvent').mockResolvedValue('1-0')
@@ -225,6 +367,7 @@ function createRedisMock() {
         get: jest.fn(),
         pTTL: jest.fn(),
         pExpire: jest.fn(),
+        expire: jest.fn(),
         eval: jest.fn(),
         sendCommand: jest.fn()
     }
