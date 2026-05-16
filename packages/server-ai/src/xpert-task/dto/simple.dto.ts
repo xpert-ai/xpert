@@ -1,16 +1,16 @@
 import {
-	generateCronExpression,
-	IChatConversation,
-	IXpert,
-	IXpertTask,
-	LanguagesEnum,
-	TScheduleOptions,
-	ScheduleTaskStatus
+    generateCronExpression,
+    IChatConversation,
+    IXpert,
+    IXpertTask,
+    LanguagesEnum,
+    TScheduleOptions,
+    ScheduleTaskStatus
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { Exclude, Expose, Transform } from 'class-transformer'
+import { Expose, Transform } from 'class-transformer'
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator'
 import cronstrue from 'cronstrue'
 import 'cronstrue/locales/en'
@@ -19,86 +19,85 @@ import { ChatConversation, Xpert } from '../../core/entities/internal'
 import { XpertIdentiDto } from '../../xpert/dto'
 
 export class SimpleXpertTask implements IXpertTask {
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@IsOptional()
-	name?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    name?: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@IsOptional()
-	schedule?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    schedule?: string
 
-	@ApiPropertyOptional({ type: () => Object })
-	@IsObject()
-	@IsOptional()
-	options?: TScheduleOptions
+    @ApiPropertyOptional({ type: () => Object })
+    @IsObject()
+    @IsOptional()
+    options?: TScheduleOptions
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsOptional()
-	@IsString()
-	timeZone?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsOptional()
+    @IsString()
+    timeZone?: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@IsOptional()
-	prompt?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    prompt?: string
 
-	@ApiPropertyOptional({ enum: ScheduleTaskStatus })
-	@IsEnum(ScheduleTaskStatus)
-	@IsOptional()
-	status?: ScheduleTaskStatus
+    @ApiPropertyOptional({ enum: ScheduleTaskStatus })
+    @IsEnum(ScheduleTaskStatus)
+    @IsOptional()
+    status?: ScheduleTaskStatus
 
-	@ApiProperty({ type: () => Xpert })
-	@Transform(({ value }) => value && new XpertIdentiDto(value))
-	xpert?: IXpert
+    @ApiProperty({ type: () => Xpert })
+    @Transform(({ value }) => value && new XpertIdentiDto(value))
+    xpert?: IXpert
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@IsString()
-	xpertId?: string
+    @ApiProperty({ type: () => String, readOnly: true })
+    @IsString()
+    xpertId?: string
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@IsString()
-	agentKey?: string
+    @ApiProperty({ type: () => String, readOnly: true })
+    @IsString()
+    agentKey?: string
 
-	/**
-	 * Soft Delete
-	 */
-	@ApiPropertyOptional({ type: () => 'timestamptz' })
-	deletedAt?: Date
+    /**
+     * Soft Delete
+     */
+    @ApiPropertyOptional({ type: () => 'timestamptz' })
+    deletedAt?: Date
 
-	@Exclude()
-	@ApiPropertyOptional({ type: () => ChatConversation, isArray: true })
-	@IsOptional()
-	conversations?: IChatConversation[]
+    @ApiPropertyOptional({ type: () => ChatConversation, isArray: true })
+    @IsOptional()
+    conversations?: IChatConversation[]
 
-	// Temporary properties
-	@Expose()
-	get scheduleDescription(): string {
-		try {
-			const schedule = this.schedule || generateCronExpression(this.options)
-			return cronstrue.toString(schedule, {
-				locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode()
-			})
-		} catch (err) {
-			return getErrorMessage(err)
-		}
-	}
+    // Temporary properties
+    @Expose()
+    get scheduleDescription(): string {
+        try {
+            const schedule = this.schedule || generateCronExpression(this.options)
+            return cronstrue.toString(schedule, {
+                locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode()
+            })
+        } catch (err) {
+            return getErrorMessage(err)
+        }
+    }
 
-	@Expose()
-	get executionCount(): number {
-		return this.conversations?.length
-	}
+    @Expose()
+    get executionCount(): number {
+        return this.conversations?.length
+    }
 
-	@Expose()
-	get errorCount(): number {
-		return this.conversations?.filter((_) => _.status === 'error').length
-	}
+    @Expose()
+    get errorCount(): number {
+        return this.conversations?.filter((_) => _.status === 'error').length
+    }
 
-	@Expose()
-	get successCount(): number {
-		return this.conversations?.filter((_) => _.status !== 'error').length
-	}
+    @Expose()
+    get successCount(): number {
+        return this.conversations?.filter((_) => _.status !== 'error').length
+    }
 
     constructor(partial: Partial<SimpleXpertTask>) {
         Object.assign(this, partial)
@@ -106,5 +105,5 @@ export class SimpleXpertTask implements IXpertTask {
 }
 
 const CronstrueLocales = {
-	[LanguagesEnum.SimplifiedChinese]: 'zh_CN'
+    [LanguagesEnum.SimplifiedChinese]: 'zh_CN'
 }

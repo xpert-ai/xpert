@@ -1,21 +1,28 @@
-import { LanguagesEnum, ScheduleTaskStatus } from '@xpert-ai/contracts'
+import { I18nObject, LanguagesEnum, ScheduleTaskStatus, TChatOptions } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { CrudController, PaginationParams, ParseJsonPipe, RequestContext, TimeZone, TransformInterceptor } from '@xpert-ai/server-core'
 import {
-	BadRequestException,
-	Body,
-	ClassSerializerInterceptor,
-	Controller,
-	Delete,
-	Get,
-	Logger,
-	Param,
-	Post,
-	Put,
-	Query,
-	UseInterceptors,
-	UsePipes,
-	ValidationPipe
+    CrudController,
+    PaginationParams,
+    ParseJsonPipe,
+    RequestContext,
+    TimeZone,
+    TransformInterceptor
+} from '@xpert-ai/server-core'
+import {
+    BadRequestException,
+    Body,
+    ClassSerializerInterceptor,
+    Controller,
+    Delete,
+    Get,
+    Logger,
+    Param,
+    Post,
+    Put,
+    Query,
+    UseInterceptors,
+    UsePipes,
+    ValidationPipe
 } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -31,249 +38,294 @@ import { SimpleXpertTask } from './dto/simple.dto'
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class XpertTaskController extends CrudController<XpertTask> {
-	readonly #logger = new Logger(XpertTaskController.name)
+    readonly #logger = new Logger(XpertTaskController.name)
 
-	constructor(
-		private readonly service: XpertTaskService,
-		private readonly commandBus: CommandBus
-	) {
-		super(service)
-	}
+    constructor(
+        private readonly service: XpertTaskService,
+        private readonly commandBus: CommandBus
+    ) {
+        super(service)
+    }
 
-	@Post()
-	async create(@Body() entity: XpertTask) {
-		const task = await this.commandBus.execute(new CreateXpertTaskCommand(entity))
-		return task
-	}
+    @Post()
+    async create(@Body() entity: XpertTask) {
+        const task = await this.commandBus.execute(new CreateXpertTaskCommand(entity))
+        return task
+    }
 
-	@Get('my')
-	async getAllMy(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>,) {
-		const result = await super.findMyAll(params)
-		return {
-			...result,
-			items: result.items.map((item) => new SimpleXpertTask(item)),
-		}
-	}
+    @Get('my')
+    async getAllMy(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>) {
+        const result = await super.findMyAll(params)
+        return {
+            ...result,
+            items: result.items.map((item) => new SimpleXpertTask(item))
+        }
+    }
 
-	@Get('total')
-	async getMyTotal(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>,) {
-		const result = await super.findMyAll(params)
-		return result.total
-	}
+    @Get('total')
+    async getMyTotal(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>) {
+        const result = await super.findMyAll(params)
+        return result.total
+    }
 
-	@Get('by-ids')
-	async getAllByIds(@Query('ids') ids: string) {
-		const _ids = ids.split(',')
-		return this.service.findAll({
-			where: {
-				createdById: RequestContext.currentUserId(),
-				id: In(_ids)
-			},
-			relations: ['executions', 'xpert']
-		})
-	}
+    @Get('by-ids')
+    async getAllByIds(@Query('ids') ids: string) {
+        const _ids = ids.split(',')
+        return this.service.findAll({
+            where: {
+                createdById: RequestContext.currentUserId(),
+                id: In(_ids)
+            },
+            relations: ['executions', 'xpert']
+        })
+    }
 
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true, skipMissingProperties: true }))
-	@UseInterceptors(ClassSerializerInterceptor)
-	@Put(':id')
-	async update(@Param('id') id: string, @Body() entity: XpertTask) {
-		try {
-			return await this.service.updateTask(id, entity)
-		} catch (err) {
-			throw new BadRequestException(getErrorMessage(err))
-		}
-	}
+    @Get('templates')
+    async listXpertTaskTemplates(@Query('source') source?: string) {
+        return this.service.listXpertTaskTemplates(source)
+    }
 
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true, skipMissingProperties: true }))
-	@UseInterceptors(ClassSerializerInterceptor)
-	@Put(':id/schedule')
-	async schedule(@Param('id') id: string, @Body() entity: XpertTask) {
-		try {
-			if (entity) {
-				return await this.service.updateTask(id, { ...entity, status: ScheduleTaskStatus.SCHEDULED })
-			}
-			return await this.service.schedule(id)
-		} catch (err) {
-			throw new BadRequestException(getErrorMessage(err))
-		}
-	}
+    @Post('templates')
+    async createXpertTaskTemplate(
+        @Query('source') source: string | undefined,
+        @Body()
+        body: {
+            key?: string
+            title?: string
+            prompt?: string | I18nObject
+            defaultOptions?: XpertTask['options'] | null
+            icon?: string | null
+            source?: string | null
+            builtin?: boolean
+        }
+    ) {
+        return this.service.createXpertTaskTemplate({ ...body, source: body.source ?? source })
+    }
 
-	@Put(':id/pause')
-	async pause(@Param('id') id: string) {
-		return this.service.pause(id)
-	}
+    @Put('templates/:id')
+    async updateXpertTaskTemplate(
+        @Param('id') id: string,
+        @Query('source') source: string | undefined,
+        @Body()
+        body: {
+            key?: string
+            title?: string
+            prompt?: string | I18nObject
+            defaultOptions?: XpertTask['options'] | null
+            icon?: string | null
+        }
+    ) {
+        return this.service.updateXpertTaskTemplate(id, body, source)
+    }
 
-	@Put(':id/archive')
-	async archive(@Param('id') id: string) {
-		return this.service.archive(id)
-	}
+    @Delete('templates/:id')
+    async deleteXpertTaskTemplate(@Param('id') id: string, @Query('source') source?: string) {
+        return this.service.deleteXpertTaskTemplate(id, source)
+    }
 
-	@Post(':id/test')
-	async test(@Param('id') id: string,
-		@I18nLang() language: LanguagesEnum,
-		@TimeZone() timeZone: string,
-	) {
-		await this.service.test(id, {
-			language,
-			timeZone,
-		})
-	}
+    @UsePipes(new ValidationPipe({ whitelist: true, transform: true, skipMissingProperties: true }))
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Put(':id')
+    async update(@Param('id') id: string, @Body() entity: XpertTask) {
+        try {
+            return await this.service.updateTask(id, entity)
+        } catch (err) {
+            throw new BadRequestException(getErrorMessage(err))
+        }
+    }
 
-	@Get('schedule/overview')
-	async getScheduleOverview(
-		@Query('from') from?: string,
-		@Query('to') to?: string,
-	) {
-		return this.service.getScheduleOverview(from, to)
-	}
+    @UsePipes(new ValidationPipe({ whitelist: true, transform: true, skipMissingProperties: true }))
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Put(':id/schedule')
+    async schedule(@Param('id') id: string, @Body() entity: XpertTask) {
+        try {
+            if (entity) {
+                return await this.service.updateTask(id, { ...entity, status: ScheduleTaskStatus.SCHEDULED })
+            }
+            return await this.service.schedule(id)
+        } catch (err) {
+            throw new BadRequestException(getErrorMessage(err))
+        }
+    }
 
-	@Get('schedule/day/:date')
-	async getScheduleDay(@Param('date') date: string) {
-		return this.service.getScheduleDay(date)
-	}
+    @Put(':id/pause')
+    async pause(@Param('id') id: string) {
+        return this.service.pause(id)
+    }
 
-	@Post('schedule/notes')
-	async createScheduleNote(
-		@Body() body: {
-			title: string
-			content?: string | null
-			date: string
-			remindAt?: string | null
-			type?: string
-			status?: string
-			autoTask?: {
-				title?: string
-				description?: string | null
-				prompt?: string
-				repo?: string
-				branch?: string
-				schedule?: string
-				frequency?: string
-				enabled?: boolean
-				templateId?: string | null
-				runAt?: string | null
-				timeZone?: string | null
-				pushChannel?: string | null
-				params?: Record<string, unknown> | null
-			} | null
-		},
-	) {
-		return this.service.createScheduleNoteWithAutoTask(body)
-	}
+    @Put(':id/archive')
+    async archive(@Param('id') id: string) {
+        return this.service.archive(id)
+    }
 
-	@Put('schedule/notes/:id')
-	async updateScheduleNote(
-		@Param('id') id: string,
-		@Body() body: {
-			title?: string
-			content?: string | null
-			date?: string
-			remindAt?: string | null
-			type?: string
-			status?: string
-			autoTask?: {
-				title?: string
-				description?: string | null
-				prompt?: string
-				repo?: string
-				branch?: string
-				schedule?: string
-				frequency?: string
-				enabled?: boolean
-				templateId?: string | null
-				runAt?: string | null
-				timeZone?: string | null
-				pushChannel?: string | null
-				params?: Record<string, unknown> | null
-			} | null
-		},
-	) {
-		return this.service.updateScheduleNote(id, body)
-	}
+    @Post(':id/test')
+    async test(
+        @Param('id') id: string,
+        @I18nLang() language: LanguagesEnum,
+        @TimeZone() timeZone: string,
+        @Body() body?: Pick<TChatOptions, 'context' | 'timeZone'>
+    ) {
+        await this.service.test(id, {
+            language,
+            timeZone: body?.timeZone ?? timeZone,
+            context: body?.context
+        })
+    }
 
-	@Delete('schedule/notes/:id')
-	async deleteScheduleNote(@Param('id') id: string) {
-		return this.service.deleteScheduleNote(id)
-	}
+    @Get('schedule/overview')
+    async getScheduleOverview(@Query('from') from?: string, @Query('to') to?: string) {
+        return this.service.getScheduleOverview(from, to)
+    }
 
-	@Get('auto-tasks')
-	async listAutoTasks() {
-		return this.service.listAutoTasks()
-	}
+    @Get('schedule/day/:date')
+    async getScheduleDay(@Param('date') date: string) {
+        return this.service.getScheduleDay(date)
+    }
 
-	@Post('auto-tasks')
-	async createAutoTask(
-		@Body()
-		body: {
-			title?: string
-			description?: string | null
-			prompt?: string
-			repo?: string
-			branch?: string
-			schedule?: string
-			frequency?: string
-			enabled?: boolean
-			templateId?: string | null
-			runAt?: string | null
-			timeZone?: string | null
-			pushChannel?: string | null
-			params?: Record<string, unknown> | null
-		},
-	) {
-		return this.service.createAutoTask(body)
-	}
+    @Post('schedule/notes')
+    async createScheduleNote(
+        @Body()
+        body: {
+            title: string
+            content?: string | null
+            date: string
+            remindAt?: string | null
+            type?: string
+            status?: string
+            autoTask?: {
+                title?: string
+                description?: string | null
+                prompt?: string
+                repo?: string
+                branch?: string
+                schedule?: string
+                frequency?: string
+                enabled?: boolean
+                templateId?: string | null
+                runAt?: string | null
+                timeZone?: string | null
+                pushChannel?: string | null
+                params?: Record<string, unknown> | null
+            } | null
+        }
+    ) {
+        return this.service.createScheduleNoteWithAutoTask(body)
+    }
 
-	@Put('auto-tasks/:id')
-	async updateAutoTask(
-		@Param('id') id: string,
-		@Body()
-		body: {
-			title?: string
-			description?: string | null
-			prompt?: string
-			repo?: string
-			branch?: string
-			schedule?: string
-			frequency?: string
-			enabled?: boolean
-			templateId?: string | null
-			runAt?: string | null
-			timeZone?: string | null
-			pushChannel?: string | null
-			params?: Record<string, unknown> | null
-		},
-	) {
-		return this.service.updateAutoTask(id, body)
-	}
+    @Put('schedule/notes/:id')
+    async updateScheduleNote(
+        @Param('id') id: string,
+        @Body()
+        body: {
+            title?: string
+            content?: string | null
+            date?: string
+            remindAt?: string | null
+            type?: string
+            status?: string
+            autoTask?: {
+                title?: string
+                description?: string | null
+                prompt?: string
+                repo?: string
+                branch?: string
+                schedule?: string
+                frequency?: string
+                enabled?: boolean
+                templateId?: string | null
+                runAt?: string | null
+                timeZone?: string | null
+                pushChannel?: string | null
+                params?: Record<string, unknown> | null
+            } | null
+        }
+    ) {
+        return this.service.updateScheduleNote(id, body)
+    }
 
-	@Delete('auto-tasks/:id')
-	async deleteAutoTask(@Param('id') id: string) {
-		return this.service.deleteAutoTask(id)
-	}
+    @Delete('schedule/notes/:id')
+    async deleteScheduleNote(@Param('id') id: string) {
+        return this.service.deleteScheduleNote(id)
+    }
 
-	@Get('auto-task-templates')
-	async listAutoTaskTemplates() {
-		return this.service.listAutoTaskTemplates()
-	}
+    @Get('auto-tasks')
+    async listAutoTasks() {
+        return this.service.listAutoTasks()
+    }
 
-	@Post('auto-task-templates')
-	async createAutoTaskTemplate(
-		@Body()
-		body: {
-			key?: string
-			title?: string
-			description?: string | null
-			prompt?: string
-			defaultParams?: Record<string, unknown> | null
-			icon?: string | null
-		},
-	) {
-		return this.service.createAutoTaskTemplate(body)
-	}
+    @Post('auto-tasks')
+    async createAutoTask(
+        @Body()
+        body: {
+            title?: string
+            description?: string | null
+            prompt?: string
+            repo?: string
+            branch?: string
+            schedule?: string
+            frequency?: string
+            enabled?: boolean
+            templateId?: string | null
+            runAt?: string | null
+            timeZone?: string | null
+            pushChannel?: string | null
+            params?: Record<string, unknown> | null
+        }
+    ) {
+        return this.service.createAutoTask(body)
+    }
 
-	@Delete(':id/soft')
-	async softDelete(@Param('id') id: string) {
-		await this.service.pause(id)
-		return this.service.softDelete(id)
-	}
+    @Put('auto-tasks/:id')
+    async updateAutoTask(
+        @Param('id') id: string,
+        @Body()
+        body: {
+            title?: string
+            description?: string | null
+            prompt?: string
+            repo?: string
+            branch?: string
+            schedule?: string
+            frequency?: string
+            enabled?: boolean
+            templateId?: string | null
+            runAt?: string | null
+            timeZone?: string | null
+            pushChannel?: string | null
+            params?: Record<string, unknown> | null
+        }
+    ) {
+        return this.service.updateAutoTask(id, body)
+    }
+
+    @Delete('auto-tasks/:id')
+    async deleteAutoTask(@Param('id') id: string) {
+        return this.service.deleteAutoTask(id)
+    }
+
+    @Get('auto-task-templates')
+    async listAutoTaskTemplates() {
+        return this.service.listAutoTaskTemplates()
+    }
+
+    @Post('auto-task-templates')
+    async createAutoTaskTemplate(
+        @Body()
+        body: {
+            key?: string
+            title?: string
+            description?: string | null
+            prompt?: string
+            defaultParams?: Record<string, unknown> | null
+            icon?: string | null
+        }
+    ) {
+        return this.service.createAutoTaskTemplate(body)
+    }
+
+    @Delete(':id/soft')
+    async softDelete(@Param('id') id: string) {
+        await this.service.pause(id)
+        return this.service.softDelete(id)
+    }
 }
