@@ -273,6 +273,7 @@ export class ChatConversationPreviewComponent {
   readonly input = model<string>()
   readonly environmentId = model<string>()
   readonly parameters = model<TXpertParameter[]>()
+  readonly runtimeCapabilitiesSource = input<'assistant' | 'xpert'>('assistant')
   readonly readonly = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -334,14 +335,37 @@ export class ChatConversationPreviewComponent {
   readonly slashActiveIndex = signal(0)
   readonly expandedSlashGroups = signal<ChatRuntimeCapabilityKind[]>([])
   readonly runtimeCapabilities = toSignal(
-    toObservable(computed(() => this.xpert()?.id ?? this.conversation()?.xpert?.id ?? null)).pipe(
-      switchMap((xpertId) => {
-        if (!xpertId) {
+    toObservable(
+      computed(() => {
+        const xpertId = this.xpert()?.id
+        if (this.runtimeCapabilitiesSource() === 'xpert' && xpertId) {
+          return {
+            id: xpertId,
+            source: 'xpert' as const
+          }
+        }
+
+        const assistantXpertId = xpertId ?? this.conversation()?.xpert?.id
+        return assistantXpertId
+          ? {
+              id: assistantXpertId,
+              source: 'assistant' as const
+            }
+          : null
+      })
+    ).pipe(
+      switchMap((target) => {
+        if (!target) {
           return of(null)
         }
 
         this.runtimeCapabilitiesLoading.set(true)
-        return this.#assistantService.getRuntimeCapabilities(xpertId, { isDraft: true }).pipe(
+        const request$ =
+          target.source === 'xpert'
+            ? this.xpertService.getRuntimeCapabilities(target.id, { isDraft: true })
+            : this.#assistantService.getRuntimeCapabilities(target.id, { isDraft: true })
+
+        return request$.pipe(
           map((capabilities) => normalizeChatRuntimeCapabilities(capabilities)),
           catchError((error) => {
             this.#toastr.error(getErrorMessage(error))

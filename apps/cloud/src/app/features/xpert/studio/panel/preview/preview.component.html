@@ -1,7 +1,10 @@
 @for (conv of conversations(); track conv) {
-  <xp-chat-conversation-preview #preview class="w-[420px] h-full"
+  <xp-chat-conversation-preview
+    #preview
+    class="w-[420px] h-full"
     [(conversationId)]="conversationId"
     [xpert]="xpert()"
+    runtimeCapabilitiesSource="xpert"
     [environmentId]="environmentId()"
     [parameters]="parameters()"
     [(_messages)]="messages"
