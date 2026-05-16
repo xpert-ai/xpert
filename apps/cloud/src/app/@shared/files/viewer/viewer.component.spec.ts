@@ -34,6 +34,20 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
   @Component({
     standalone: true,
+    selector: 'button[z-button], z-button, a[z-button]',
+    template: '<ng-content />'
+  })
+  class ZardButtonComponent {
+    @Input() zType?: unknown
+    @Input() zSize?: unknown
+    @Input() zShape?: unknown
+    @Input() zFull?: unknown
+    @Input() zLoading?: unknown
+    @Input() zDisabled?: unknown
+  }
+
+  @Component({
+    standalone: true,
     selector: 'z-segmented',
     template: '<ng-content />',
     providers: [
@@ -75,6 +89,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 
   return {
+    ZardButtonComponent,
     ZardSegmentedComponent,
     ZardSegmentedItemComponent,
     ZardTooltipImports: [ZardTooltipDirective]
@@ -228,7 +243,6 @@ describe('FileViewerComponent', () => {
     const button = fixture.debugElement.query(By.css('[data-sidebar-toggle-button="viewer"]'))
     expect(button).not.toBeNull()
     expect(button.nativeElement.querySelector('i')?.classList.contains('ri-sidebar-fold-line')).toBe(true)
-
     ;(button.nativeElement as HTMLButtonElement).click()
     expect(toggles).toEqual([1])
 
@@ -248,7 +262,6 @@ describe('FileViewerComponent', () => {
 
     const button = fixture.debugElement.query(By.css('[data-refresh-button="viewer"]'))
     expect(button).not.toBeNull()
-
     ;(button.nativeElement as HTMLButtonElement).click()
     expect(refreshes).toEqual([1])
   })
@@ -261,9 +274,7 @@ describe('FileViewerComponent', () => {
     const pathLabel = fixture.debugElement.query(By.css('[data-file-path-label="viewer"]'))
 
     expect(pathLabel).not.toBeNull()
-    expect((pathLabel.nativeElement as HTMLElement).getAttribute('title')).toBe(
-      'docs/architecture/long-file-name.md'
-    )
+    expect((pathLabel.nativeElement as HTMLElement).getAttribute('title')).toBe('docs/architecture/long-file-name.md')
   })
 
   it('disables the inline selection action in markdown preview while keeping full-file references', () => {
@@ -330,13 +341,13 @@ describe('FileViewerComponent', () => {
     const preview = fixture.debugElement.query(By.css('pac-file-preview-content'))
     expect(component.canInspectHtmlPreview()).toBe(true)
     expect(button).not.toBeNull()
+    expect((button.componentInstance as { zType?: unknown }).zType).toBe('secondary')
     expect(preview.componentInstance.htmlInspectMode).toBe(false)
-
     ;(button.nativeElement as HTMLButtonElement).click()
     fixture.detectChanges()
 
     expect(component.htmlInspectMode()).toBe(true)
-    expect((button.nativeElement as HTMLButtonElement).className).toContain('btn-primary')
+    expect((button.componentInstance as { zType?: unknown }).zType).toBe('default')
     expect(preview.componentInstance.htmlInspectMode).toBe(true)
 
     preview.componentInstance.htmlInspectModeChange.emit(false)
