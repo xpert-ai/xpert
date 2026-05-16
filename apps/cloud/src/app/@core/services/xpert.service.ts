@@ -44,6 +44,7 @@ import {
 import { injectFetchEventSource } from './fetch-event-source'
 import { appendOrganizationIdQueryParam } from './query-params'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
+import type { IAiAssistantRuntimeCapabilities } from './ai-assistant.service'
 
 export type TXpertVariablesOptions = {
   environmentId: string
@@ -123,6 +124,14 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
         skillEntries: unknown[]
       }
     }>(this.apiBaseUrl + `/${id}/commands`)
+  }
+
+  getRuntimeCapabilities(id: string, options?: { isDraft?: boolean }) {
+    const params = options?.isDraft == null ? undefined : new HttpParams().set('isDraft', String(options.isDraft))
+
+    return this.httpClient.get<IAiAssistantRuntimeCapabilities>(this.apiBaseUrl + `/${id}/runtime-capabilities`, {
+      params
+    })
   }
 
   updateCommandProfile(id: string, profile: TXpertCommandProfile) {
