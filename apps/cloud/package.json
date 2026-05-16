@@ -12,6 +12,7 @@
     "tailwindcss": "^4.1.18"
   },
   "dependencies": {
+    "@a2ui/lit": "0.8.3",
     "@foblex/2d": "^1.2.2",
     "@foblex/drag-toolkit": "^1.1.0",
     "@foblex/flow": "^17.5.0",
@@ -22,7 +23,10 @@
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "@xpert-ai/chatkit-angular": "~0.3.0",
-    "@xpert-ai/chatkit-ui": "~0.3.6",
+    "@xpert-ai/chatkit-ui": "~0.3.8",
+    "@xpert-ai/chatkit-types": "~0.3.7",
+    "@xpert-ai/chatkit-web-component": "~0.3.4",
+    "@xpert-ai/chatkit-web-shared": "~0.3.3",
     "crypto-js": "^4.2.0",
     "i18next": "~23.14.0",
     "i18next-browser-languagedetector": "^8.0.5",

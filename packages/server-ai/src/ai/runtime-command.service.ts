@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { compactObject, nonEmptyArray } from '@xpert-ai/server-common'
 import type {
+    I18nText,
     SkillPromptWorkflow,
     SkillSlashCommand,
     SkillSlashCommandAction,
@@ -25,6 +26,7 @@ import {
     RuntimeSlashCommandAction,
     RuntimeSlashCommandSource
 } from './runtime-command.guards'
+import { translate } from '../shared/translate'
 
 @Injectable()
 export class RuntimeCommandService {
@@ -111,7 +113,8 @@ export class RuntimeCommandService {
             return null
         }
 
-        const label = command.label ?? command.name
+        const label = resolveCommandText(command.label, command.name)
+        const description = resolveCommandText(command.description)
         const icon = command.icon ?? skill.metadata.icon
         const kind =
             command.kind ??
@@ -120,7 +123,7 @@ export class RuntimeCommandService {
             kind,
             name: command.name,
             label,
-            description: command.description,
+            description,
             tags: skill.metadata.tags
         })
         const meta = createCommandMeta(command.meta, icon)
@@ -130,7 +133,7 @@ export class RuntimeCommandService {
         return compactObject<RuntimeSlashCommand>({
             name: command.name,
             label,
-            description: command.description,
+            description,
             icon,
             category,
             aliases: nonEmptyArray(command.aliases),
@@ -200,13 +203,16 @@ export class RuntimeCommandService {
             return null
         }
 
-        const label = command.label ?? command.name
-        const kind = command.kind ?? (action.type === 'insert_invocation' ? 'prompt_workflow' : 'command')
+        const label = resolveCommandText(command.label, command.name)
+        const description = resolveCommandText(command.description)
+        const kind =
+            command.kind ??
+            (action.type === 'submit_prompt' || action.type === 'insert_invocation' ? 'prompt_workflow' : 'command')
         const workflow = this.createSkillPromptWorkflow(command.workflow, {
             kind,
             name: command.name,
             label,
-            description: command.description,
+            description,
             tags: []
         })
         const meta = createCommandMeta(command.meta, command.icon)
@@ -216,7 +222,7 @@ export class RuntimeCommandService {
         return compactObject<RuntimeSlashCommand>({
             name: command.name,
             label,
-            description: command.description,
+            description,
             icon: command.icon,
             category,
             aliases: nonEmptyArray(command.aliases),
@@ -240,7 +246,15 @@ export class RuntimeCommandService {
         action: SkillSlashCommandAction,
         runtimeCapabilities: TRuntimeCapabilitiesSelection
     ): RuntimeSlashCommandAction | null {
-        if (action.type === 'insert_text' || action.type === 'insert_invocation' || action.type === 'submit_prompt') {
+        if (action.type === 'submit_prompt') {
+            return {
+                type: 'submit_prompt',
+                template: action.template,
+                runtimeCapabilities
+            }
+        }
+
+        if (action.type === 'insert_text' || action.type === 'insert_invocation') {
             return {
                 type: 'insert_invocation',
                 template: `/${commandName} `,
@@ -408,6 +422,15 @@ function inferArgsHint(action: RuntimeSlashCommandAction): string | undefined {
 
 function inferArgsHintFromTemplate(template: string): string | undefined {
     return /\{\{\s*args\s*\}\}/.test(template) ? '<args>' : undefined
+}
+
+function resolveCommandText(value: I18nText | null | undefined, fallback?: string): string | undefined {
+    if (!value) {
+        return fallback
+    }
+
+    const translated = translate(value)
+    return typeof translated === 'string' ? translated.trim() || fallback : fallback
 }
 
 function isBlockedBuiltinCommand(command: RuntimeSlashCommand): boolean {

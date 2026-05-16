@@ -22,6 +22,7 @@ import {
     mergeRuntimeCapabilitiesSelection,
     normalizeRuntimeCapabilitiesSelection
 } from '../../../shared/agent/runtime-capabilities'
+import { translate } from '../../../shared/translate'
 import { PromptWorkflowService } from '../../prompt-workflow.service'
 import type { RuntimePromptWorkflowCommandSource } from '../../prompt-workflow.service'
 
@@ -57,8 +58,8 @@ type PromptWorkflowCommandSourceMetadata = {
     name: string
     source: 'runtime'
     executionType: TemplateSlashCommandAction['type']
-    kind: 'prompt_workflow'
-    workflow: SkillPromptWorkflow
+    kind?: SkillSlashCommand['kind']
+    workflow?: SkillPromptWorkflow
 }
 
 type PromptWorkflowInvocationDetails = PromptWorkflowInvocationResolution & {
@@ -281,14 +282,15 @@ function createMiddlewareRuntimeCapabilities(nodeKey: string) {
 }
 
 function createMiddlewareCommandSource(source: MiddlewareSlashCommandSource): PromptWorkflowCommandSourceMetadata {
-    return {
+    const kind = source.command.kind ?? (source.action.type === 'insert_text' ? 'command' : 'prompt_workflow')
+    return compactObject<PromptWorkflowCommandSourceMetadata>({
         type: 'slash_command',
         name: source.command.name,
         source: 'runtime',
-        executionType: 'insert_invocation',
-        kind: 'prompt_workflow',
-        workflow: createMiddlewarePromptWorkflowMetadata(source)
-    }
+        executionType: source.action.type,
+        kind,
+        workflow: kind === 'prompt_workflow' ? createMiddlewarePromptWorkflowMetadata(source) : undefined
+    })
 }
 
 function createMiddlewarePromptWorkflowMetadata(source: MiddlewareSlashCommandSource): SkillPromptWorkflow {
@@ -296,10 +298,19 @@ function createMiddlewarePromptWorkflowMetadata(source: MiddlewareSlashCommandSo
     return compactObject<SkillPromptWorkflow>({
         type: 'prompt_workflow',
         name: workflow?.name ?? source.command.name,
-        label: workflow?.label ?? source.command.label ?? source.command.name,
-        description: workflow?.description ?? source.command.description,
+        label: workflow?.label ?? resolveCommandText(source.command.label, source.command.name),
+        description: workflow?.description ?? resolveCommandText(source.command.description),
         tags: nonEmptyArray(workflow?.tags ?? [])
     })
+}
+
+function resolveCommandText(value: SkillSlashCommand['label'] | SkillSlashCommand['description'], fallback?: string) {
+    if (!value) {
+        return fallback
+    }
+
+    const translated = translate(value)
+    return typeof translated === 'string' ? translated.trim() || fallback : fallback
 }
 
 function getPrimaryAgentKey(xpert: Pick<IXpert, 'graph' | 'agent'>): string | undefined {

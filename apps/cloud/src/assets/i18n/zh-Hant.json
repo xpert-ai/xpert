@@ -2294,7 +2294,10 @@
     "Chat": {
       "QuoteSelection": "引用選取內容",
       "RemoveReference": "移除引用",
-      "ContextCompression": "上下文壓縮...",
+      "ContextCompression": "正在自動壓縮上下文",
+      "ContextCompressed": "上下文已自動壓縮",
+      "ContextCompressionSkipped": "上下文無需壓縮",
+      "ContextCompressionFailed": "上下文壓縮失敗",
       "Input": "輸入",
       "Output": "輸出",
       "Terminal": "終端",

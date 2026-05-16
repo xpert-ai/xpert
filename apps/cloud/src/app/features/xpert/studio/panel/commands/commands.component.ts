@@ -18,6 +18,7 @@ import {
   injectToastr,
   IPromptWorkflow,
   ISkillPackage,
+  resolveI18nText,
   SkillSlashCommand,
   SkillSlashCommandAction,
   TXpertCommandProfile,
@@ -113,7 +114,7 @@ export class XpertStudioPanelCommandsComponent {
     this.skills().flatMap((skill) => {
       const commands = Array.isArray(skill.metadata?.commands) ? skill.metadata.commands : []
       return commands
-        .map((command) => normalizeSkillCommand(skill, command))
+        .map((command) => normalizeSkillCommand(skill, command, this.#translate.currentLang))
         .filter((item): item is SkillCommandItem => !!item)
     })
   )
@@ -297,11 +298,15 @@ export class XpertStudioPanelCommandsComponent {
   }
 
   private findWorkspaceEntry(workflow: IPromptWorkflow) {
-    return this.entries().find((entry) => entry.source === 'workspace_prompt_workflow' && entry.workflowId === workflow.id)
+    return this.entries().find(
+      (entry) => entry.source === 'workspace_prompt_workflow' && entry.workflowId === workflow.id
+    )
   }
 
   private findSkillEntry(item: SkillCommandItem) {
-    return this.entries().find((entry) => entry.source === 'skill' && (entry.skillCommandName ?? entry.name) === item.name)
+    return this.entries().find(
+      (entry) => entry.source === 'skill' && (entry.skillCommandName ?? entry.name) === item.name
+    )
   }
 
   private updateEntry(
@@ -382,7 +387,9 @@ export class XpertStudioPanelCommandsComponent {
       }
       const previous = seen.get(name)
       if (previous) {
-        conflicts.push(this.#translate.instant('PAC.PromptWorkflow.CommandNameConflict', { name, previous, source: entry.source }))
+        conflicts.push(
+          this.#translate.instant('PAC.PromptWorkflow.CommandNameConflict', { name, previous, source: entry.source })
+        )
       } else {
         seen.set(name, entry.source)
       }
@@ -391,7 +398,7 @@ export class XpertStudioPanelCommandsComponent {
   }
 }
 
-function normalizeSkillCommand(skill: ISkillPackage, value: unknown): SkillCommandItem | null {
+function normalizeSkillCommand(skill: ISkillPackage, value: unknown, language?: string): SkillCommandItem | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null
   }
@@ -405,8 +412,8 @@ function normalizeSkillCommand(skill: ISkillPackage, value: unknown): SkillComma
     skillId: skill.id,
     skillLabel: skill.name || skill.metadata?.name || skill.id,
     name: command.name,
-    label: command.label,
-    description: command.description,
+    label: resolveI18nText(command.label, language) ?? undefined,
+    description: resolveI18nText(command.description, language) ?? undefined,
     command
   }
 }
