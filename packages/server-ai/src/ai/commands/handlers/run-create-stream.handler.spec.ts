@@ -8,10 +8,6 @@ jest.mock('../../../environment', () => {
     }
 })
 
-jest.mock('../../stream/redis-sse.service', () => ({
-    RedisSseStreamService: class RedisSseStreamService {}
-}))
-
 jest.mock('../../../xpert', () => ({
     PublishedXpertAccessService: class PublishedXpertAccessService {}
 }))
@@ -525,7 +521,6 @@ describe('RunCreateStreamHandler environment resolution', () => {
             {} as any,
             environmentService as any,
             {} as any,
-            {} as any,
             {} as any
         )
 
@@ -623,10 +618,6 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            {
-                appendEvent: jest.fn().mockResolvedValue(undefined),
-                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
-            } as any,
             publishedXpertAccessService as any,
             assistantBindingService as any
         )
@@ -688,6 +679,11 @@ describe('RunCreateStreamHandler execute', () => {
                         value: 'cn'
                     })
                 ])
+            },
+            streamPersistence: {
+                transport: 'redis-stream',
+                threadId: 'thread-1',
+                runId: 'execution-1'
             }
         })
     })
@@ -746,10 +742,6 @@ describe('RunCreateStreamHandler execute', () => {
             queryBus as any,
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
-            } as any,
-            {
-                appendEvent: jest.fn().mockResolvedValue(undefined),
-                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any,
             assistantBindingService as any
@@ -892,10 +884,6 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            {
-                appendEvent: jest.fn().mockResolvedValue(undefined),
-                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
-            } as any,
             publishedXpertAccessService as any,
             assistantBindingService as any
         )
@@ -1009,10 +997,6 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            {
-                appendEvent: jest.fn().mockResolvedValue(undefined),
-                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
-            } as any,
             publishedXpertAccessService as any,
             assistantBindingService as any
         )
@@ -1122,10 +1106,6 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            {
-                appendEvent: jest.fn().mockResolvedValue(undefined),
-                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
-            } as any,
             publishedXpertAccessService as any,
             assistantBindingService as any
         )
@@ -1202,10 +1182,6 @@ describe('RunCreateStreamHandler execute', () => {
             queryBus as any,
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
-            } as any,
-            {
-                appendEvent: jest.fn().mockResolvedValue(undefined),
-                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any,
             assistantBindingService as any
@@ -1286,10 +1262,6 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            {
-                appendEvent: jest.fn().mockResolvedValue(undefined),
-                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
-            } as any,
             publishedXpertAccessService as any,
             assistantBindingService as any
         )
@@ -1316,10 +1288,8 @@ describe('RunCreateStreamHandler execute', () => {
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
     })
 
-    it('does not append a complete SSE event when background follow_up is submitted', async () => {
+    it('returns a direct stream when background follow_up is submitted', async () => {
         ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
-        const appendEvent = jest.fn().mockResolvedValue(undefined)
-        const appendCompleteEvent = jest.fn().mockResolvedValue(undefined)
         const commandBus = {
             execute: jest.fn(async (command) => {
                 if (command instanceof XpertChatCommand) {
@@ -1358,10 +1328,6 @@ describe('RunCreateStreamHandler execute', () => {
             queryBus as any,
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
-            } as any,
-            {
-                appendEvent,
-                appendCompleteEvent
             } as any,
             {
                 getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
@@ -1403,8 +1369,5 @@ describe('RunCreateStreamHandler execute', () => {
                 error: reject
             })
         })
-
-        expect(appendEvent).not.toHaveBeenCalled()
-        expect(appendCompleteEvent).not.toHaveBeenCalled()
     })
 })

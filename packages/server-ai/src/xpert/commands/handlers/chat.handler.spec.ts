@@ -40,6 +40,7 @@ describe('XpertChatHandler', () => {
     }
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
+    let redisSseStreamService: { wrapChatStream: jest.Mock }
     let handler: XpertChatHandler
 
     const xpert = {
@@ -87,12 +88,16 @@ describe('XpertChatHandler', () => {
         queryBus = {
             execute: jest.fn()
         }
+        redisSseStreamService = {
+            wrapChatStream: jest.fn((stream) => stream)
+        }
 
         handler = new XpertChatHandler(
             xpertService as any,
             assistantBindingService as any,
             commandBus as any,
-            queryBus as any
+            queryBus as any,
+            redisSseStreamService as any
         )
     })
 
@@ -177,7 +182,10 @@ describe('XpertChatHandler', () => {
                     }
                 },
                 {
-                    xpertId: 'xpert-1'
+                    xpertId: 'xpert-1',
+                    streamPersistence: {
+                        transport: 'redis-stream'
+                    }
                 } as any
             )
         )
@@ -191,6 +199,16 @@ describe('XpertChatHandler', () => {
                 ChatMessageEventTypeEnum.ON_MESSAGE_END,
                 ChatMessageEventTypeEnum.ON_CONVERSATION_END
             ])
+        )
+        expect(redisSseStreamService.wrapChatStream).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                target: {
+                    transport: 'redis-stream'
+                },
+                threadId: 'thread-1',
+                runId: 'execution-1'
+            })
         )
 
         expect(commands.some((command) => command instanceof ChatConversationUpsertCommand && !command.entity.id)).toBe(

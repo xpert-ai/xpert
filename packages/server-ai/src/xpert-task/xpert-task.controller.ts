@@ -165,7 +165,7 @@ export class XpertTaskController extends CrudController<XpertTask> {
         @TimeZone() timeZone: string,
         @Body() body?: Pick<TChatOptions, 'context' | 'timeZone'>
     ) {
-        await this.service.test(id, {
+        return await this.service.test(id, {
             language,
             timeZone: body?.timeZone ?? timeZone,
             context: body?.context

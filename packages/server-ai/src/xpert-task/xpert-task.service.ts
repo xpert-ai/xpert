@@ -7,7 +7,8 @@ import {
     TChatOptions,
     TScheduleOptions,
     ScheduleTaskStatus,
-    TaskFrequency
+    TaskFrequency,
+    XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
@@ -22,6 +23,8 @@ import { lastValueFrom, toArray } from 'rxjs'
 import { Between, Repository, SelectQueryBuilder } from 'typeorm'
 import { XpertChatCommand } from '../xpert/commands'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatConversationUpsertCommand } from '../chat-conversation'
+import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { AutoTask } from './auto-task.entity'
 import { AutoTaskTemplate } from './auto-task-template.entity'
 import { ScheduleNote, ScheduleNoteStatus, ScheduleNoteType } from './schedule-note.entity'
@@ -70,25 +73,14 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     async executeTask(id: string, options: TChatOptions) {
         const task = await this.findOne(id, { relations: ['xpert'] })
-        const observable = await this.commandBus.execute(
-            new XpertChatCommand(
-                {
-                    action: 'send',
-                    message: {
-                        input: {
-                            input: task.prompt
-                        }
-                    }
-                },
-                {
-                    ...options,
-                    xpertId: task.xpertId,
-                    timeZone: task.timeZone || options.timeZone,
-                    from: 'job',
-                    taskId: task.id
-                }
-            )
-        )
+        const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
+            prompt: task.prompt,
+            xpertId: task.xpertId,
+            taskId: task.id,
+            conversationTaskId: task.id,
+            timeZone: task.timeZone || options.timeZone,
+            chatOptions: options
+        })
         observable.subscribe({
             next: (message) => {
                 // console.log('Test message:', message)
@@ -97,6 +89,74 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 this.#logger.error('Test error:', getErrorMessage(err))
             }
         })
+
+        return {
+            conversationId: conversation.id,
+            threadId: conversation.threadId,
+            runId: execution.id
+        }
+    }
+
+    private async createPersistedTaskChatRun(params: {
+        prompt?: string | null
+        xpertId?: string | null
+        taskId?: string | null
+        conversationTaskId?: string | null
+        timeZone?: string | null
+        chatOptions?: TChatOptions
+    }) {
+        const conversation = await this.commandBus.execute(
+            new ChatConversationUpsertCommand({
+                status: 'busy',
+                taskId: params.conversationTaskId ?? undefined,
+                xpertId: params.xpertId ?? undefined,
+                options: {
+                    parameters: {
+                        input: params.prompt
+                    }
+                },
+                from: 'job'
+            })
+        )
+        const execution = await this.commandBus.execute(
+            new XpertAgentExecutionUpsertCommand({
+                xpert: params.xpertId ? ({ id: params.xpertId } as any) : undefined,
+                status: XpertAgentExecutionStatusEnum.RUNNING,
+                threadId: conversation.threadId
+            })
+        )
+        const observable = await this.commandBus.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    conversationId: conversation.id,
+                    message: {
+                        input: {
+                            input: params.prompt
+                        }
+                    }
+                },
+                {
+                    ...(params.chatOptions ?? {}),
+                    xpertId: params.xpertId ?? undefined,
+                    timeZone: params.timeZone ?? params.chatOptions?.timeZone,
+                    from: 'job',
+                    taskId: params.taskId ?? undefined,
+                    execution: { id: execution.id },
+                    streamPersistence: {
+                        transport: 'redis-stream',
+                        threadId: conversation.threadId,
+                        runId: execution.id
+                    }
+                }
+            )
+        )
+
+        return {
+            observable,
+            conversation,
+            execution
+        }
     }
 
     scheduleCronJob(task: IXpertTask, user: IUser) {
@@ -234,7 +294,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     }
 
     async test(id: string, options: TChatOptions) {
-        await this.executeTask(id, options)
+        return await this.executeTask(id, options)
     }
 
     private resolveScheduleScope() {
@@ -1465,24 +1525,12 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const assistantId = this.requireAutoTaskAssistantId(task.params)
 
         const execute = async () => {
-            const observable = await this.commandBus.execute(
-                new XpertChatCommand(
-                    {
-                        action: 'send',
-                        message: {
-                            input: {
-                                input: task.prompt
-                            }
-                        }
-                    },
-                    {
-                        xpertId: assistantId,
-                        timeZone: task.timeZone ?? undefined,
-                        from: 'job',
-                        taskId: task.id
-                    }
-                )
-            )
+            const { observable } = await this.createPersistedTaskChatRun({
+                prompt: task.prompt,
+                xpertId: assistantId,
+                taskId: task.id,
+                timeZone: task.timeZone ?? undefined
+            })
             await lastValueFrom(observable.pipe(toArray()))
         }
 

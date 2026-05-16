@@ -13,10 +13,10 @@ import {
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
-import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
-import { finalize, map, tap } from 'rxjs/operators'
+import { map } from 'rxjs/operators'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
@@ -27,7 +27,6 @@ import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
-import { RedisSseStreamService } from '../../stream/redis-sse.service'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 
@@ -376,13 +375,10 @@ function applyAssistantScope(xpert: IXpert) {
 
 @CommandHandler(RunCreateStreamCommand)
 export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCommand> {
-    readonly #logger = new Logger(RunCreateStreamHandler.name)
-
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly environmentService: EnvironmentService,
-        private readonly redisSseStreamService: RedisSseStreamService,
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly assistantBindingService: AssistantBindingService
     ) {}
@@ -495,7 +491,12 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
                 ...(runtimeContext ? { context: runtimeContext } : {}),
                 environment,
-                sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId
+                sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId,
+                streamPersistence: {
+                    transport: 'redis-stream',
+                    threadId,
+                    runId: execution.id
+                }
             })
         )
         const normalizedStream = stream.pipe(
@@ -524,18 +525,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         return {
             execution,
-            stream: normalizedStream.pipe(
-                tap((message) => {
-                    this.redisSseStreamService.appendEvent(threadId, execution.id, message.data).catch((error) => {
-                        this.#logger.warn(`Failed to persist SSE event: ${error}`)
-                    })
-                }),
-                finalize(() => {
-                    this.redisSseStreamService.appendCompleteEvent(threadId, execution.id).catch((error) => {
-                        this.#logger.warn(`Failed to persist SSE complete event: ${error}`)
-                    })
-                })
-            ),
+            stream: normalizedStream,
             streamTransport: 'redis' as const
         }
     }
