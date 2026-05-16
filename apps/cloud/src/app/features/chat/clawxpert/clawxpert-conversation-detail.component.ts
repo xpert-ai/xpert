@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
+import { Component, computed, effect, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, TChatElementReference, TChatFileElementReference } from '@xpert-ai/contracts'
@@ -8,7 +8,14 @@ import { firstValueFrom } from 'rxjs'
 import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
-import { AssistantCode, AiThreadService, ChatConversationService, IChatConversation, getErrorMessage, injectToastr } from '../../../@core'
+import {
+  AssistantCode,
+  AiThreadService,
+  ChatConversationService,
+  IChatConversation,
+  getErrorMessage,
+  injectToastr
+} from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
@@ -25,8 +32,9 @@ import {
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_REFRESH_INTERVAL_MS = 1000
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
+const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
-  "Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked."
+  'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 
 type ChatKitCodeComposerReference = {
   type: 'code'
@@ -136,18 +144,23 @@ type ChatKitReferenceComposerControl = {
             <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div class="min-h-0 flex-1 p-2 pr-0">
                 @if (contextLoading() && !resolvedConversationId()) {
-                  <div class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
-                    {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
+                  <div
+                    class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                  >
+                    {{
+                      'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' }
+                    }}
                   </div>
                 } @else {
                   @if (!resolvedConversationId()) {
-                    <div class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                    <div
+                      class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                    >
                       <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
                       <div class="mt-4 text-base font-medium text-text-primary">
                         {{
                           'PAC.Chat.ClawXpert.DetailPanelEmptyTitle'
-                            | translate
-                              : { Default: 'Start a conversation to unlock workspace tools' }
+                            | translate: { Default: 'Start a conversation to unlock workspace tools' }
                         }}
                       </div>
                       <div class="mt-2 max-w-sm text-sm text-text-secondary">
@@ -157,7 +170,7 @@ type ChatKitReferenceComposerControl = {
                               | translate
                                 : {
                                     Default:
-                                  'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
+                                      'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
                                   }
                           }}
                         } @else if (activePanel() === 'computer') {
@@ -192,7 +205,9 @@ type ChatKitReferenceComposerControl = {
                     </div>
                   } @else {
                     @if (contextError()) {
-                      <div class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary">
+                      <div
+                        class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
+                      >
                         {{ contextError() }}
                       </div>
                     }
@@ -235,24 +250,28 @@ type ChatKitReferenceComposerControl = {
       </section>
 
       <section [class]="chatShellClasses()">
-        <div class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform]"
-          [class]="showDetailPanel() ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border' : ''">
-
+        <div
+          class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform]"
+          [class]="chatSurfaceClasses()"
+        >
           <div class="min-h-0 flex-1">
             @if (facade.loading()) {
-              <div class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
+              <div
+                class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+              >
                 {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert...' } }}
               </div>
             } @else {
               @switch (facade.viewState()) {
                 @case ('organization-required') {
-                  <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                  <div
+                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
                     <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{
                         'PAC.Chat.ClawXpert.OrganizationRequired'
-                          | translate
-                            : { Default: 'Select an organization to use ClawXpert' }
+                          | translate: { Default: 'Select an organization to use ClawXpert' }
                       }}
                     </div>
                     <div class="mt-2 max-w-sm text-sm text-text-secondary">
@@ -265,7 +284,9 @@ type ChatKitReferenceComposerControl = {
                   </div>
                 }
                 @case ('error') {
-                  <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center">
+                  <div
+                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
                     <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{ 'PAC.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
@@ -276,19 +297,26 @@ type ChatKitReferenceComposerControl = {
                   </div>
                 }
                 @case ('ready') {
-                  <xpert-chatkit class="block h-full min-h-0" [control]="control()!" />
+                  <xpert-chatkit #chatkitHost class="block h-full min-h-0" [control]="control()!" />
                 }
                 @default {
-                  <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                  <div
+                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
                     <z-icon zType="edit_note" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
-                      {{ 'PAC.Chat.ClawXpert.SetupFirstTitle' | translate: { Default: 'Finish setup in overview first' } }}
+                      {{
+                        'PAC.Chat.ClawXpert.SetupFirstTitle' | translate: { Default: 'Finish setup in overview first' }
+                      }}
                     </div>
                     <div class="mt-2 max-w-sm text-sm text-text-secondary">
                       {{
                         'PAC.Chat.ClawXpert.SetupFirstDesc'
                           | translate
-                            : { Default: 'Bind a ClawXpert in the overview page before entering the detail chat workspace.' }
+                            : {
+                                Default:
+                                  'Bind a ClawXpert in the overview page before entering the detail chat workspace.'
+                              }
                       }}
                     </div>
                   </div>
@@ -360,24 +388,73 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly resolvedConversation = signal<IChatConversation | null>(null)
   readonly contextLoading = signal(false)
   readonly contextError = signal<string | null>(null)
+  readonly isChatMinimizedToPet = signal(false)
+  readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
   readonly showDetailPanel = computed(() => !!this.activePanel())
-  readonly workspaceLayoutClasses = computed(() =>
-    this.showDetailPanel()
+  readonly workspaceLayoutClasses = computed(() => {
+    if (this.isChatMinimizedToPet()) {
+      return this.showDetailPanel()
+        ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[minmax(0,1fr)_0rem] xl:grid-rows-1'
+        : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[0rem_0rem] xl:grid-rows-1'
+    }
+
+    return this.showDetailPanel()
       ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)] xl:grid-rows-1'
       : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[0rem_minmax(0,1fr)] xl:grid-rows-1'
-  )
+  })
   readonly detailPanelShellClasses = computed(() =>
     this.showDetailPanel()
       ? 'min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-[120rem] translate-y-0 opacity-100 xl:translate-x-0 xl:translate-y-0'
       : 'pointer-events-none min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-0 -translate-y-4 opacity-0 xl:max-h-none xl:-translate-x-6 xl:translate-y-0'
   )
-  readonly chatShellClasses = computed(() =>
-    this.showDetailPanel()
+  readonly chatShellClasses = computed(() => {
+    if (this.isChatMinimizedToPet()) {
+      return 'min-h-0 min-w-0 overflow-visible p-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-0 xl:max-w-0 xl:justify-self-end'
+    }
+
+    return this.showDetailPanel()
       ? 'min-h-0 min-w-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-full xl:max-w-[32rem] xl:justify-self-end py-4 px-2'
       : 'min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-full'
+  })
+  readonly chatSurfaceClasses = computed(() =>
+    this.showDetailPanel() && !this.isChatMinimizedToPet()
+      ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border'
+      : ''
   )
 
   constructor() {
+    effect((onCleanup) => {
+      const chatkitHost = this.chatkitHost()?.nativeElement
+      const viewState = this.facade.viewState()
+
+      if (viewState !== 'ready' || !chatkitHost) {
+        this.isChatMinimizedToPet.set(false)
+        return
+      }
+
+      const chatkitElement = resolveEmbeddedChatkitElement(chatkitHost)
+      const syncMinimizedToPetState = () => {
+        this.isChatMinimizedToPet.set(chatkitElement.dataset.chatMinimizedToPet === 'true')
+      }
+
+      syncMinimizedToPetState()
+
+      if (typeof MutationObserver === 'undefined') {
+        return
+      }
+
+      const observer = new MutationObserver(syncMinimizedToPetState)
+      observer.observe(chatkitElement, {
+        attributes: true,
+        attributeFilter: [CHAT_MINIMIZED_TO_PET_ATTRIBUTE]
+      })
+
+      onCleanup(() => {
+        observer.disconnect()
+        this.isChatMinimizedToPet.set(false)
+      })
+    })
+
     effect((onCleanup) => {
       const pendingStartId = this.facade.pendingConversationStartId()
       const control = this.control()
@@ -447,39 +524,38 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       })
     })
 
-    effect(
-      (onCleanup) => {
-        const threadId = this.facade.threadId()
-        if (!threadId) {
-          this.#responseActive.set(false)
-          this.contextLoading.set(false)
-          this.contextError.set(null)
-          this.resolvedConversationId.set(null)
-          this.resolvedConversation.set(null)
-          this.facade.setActiveConversation(null)
-          return
-        }
-
-        let cancelled = false
+    effect((onCleanup) => {
+      const threadId = this.facade.threadId()
+      if (!threadId) {
         this.#responseActive.set(false)
-        this.contextLoading.set(true)
+        this.contextLoading.set(false)
         this.contextError.set(null)
         this.resolvedConversationId.set(null)
         this.resolvedConversation.set(null)
         this.facade.setActiveConversation(null)
-
-        void this.resolveConversationContext(threadId, () => cancelled)
-
-        onCleanup(() => {
-          cancelled = true
-        })
+        return
       }
-    )
+
+      let cancelled = false
+      this.#responseActive.set(false)
+      this.contextLoading.set(true)
+      this.contextError.set(null)
+      this.resolvedConversationId.set(null)
+      this.resolvedConversation.set(null)
+      this.facade.setActiveConversation(null)
+
+      void this.resolveConversationContext(threadId, () => cancelled)
+
+      onCleanup(() => {
+        cancelled = true
+      })
+    })
   }
 
   ngOnDestroy() {
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
+    this.isChatMinimizedToPet.set(false)
     this.facade.setActiveConversation(null)
   }
 
@@ -580,9 +656,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     try {
       if (!conversationId) {
-        baseConversation = (await firstValueFrom(this.#conversationService.getByThreadId(threadId))) as
-          | IChatConversation
-          | null
+        baseConversation = (await firstValueFrom(
+          this.#conversationService.getByThreadId(threadId)
+        )) as IChatConversation | null
         if (isCancelled() || this.facade.threadId() !== threadId) {
           return
         }
@@ -761,6 +837,10 @@ function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQ
   }
 }
 
+function resolveEmbeddedChatkitElement(host: HTMLElement) {
+  return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
+}
+
 function formatFileElementSource(reference: TChatFileElementReference) {
   if (typeof reference.sourceStartLine !== 'number') {
     return reference.filePath
@@ -782,9 +862,7 @@ function formatElementAttributes(attributes: Array<{ name: string; value: string
   return attributes.map((attribute) => `${attribute.name}="${attribute.value}"`).join(' ')
 }
 
-function isFileElementReferenceRequest(
-  request: FileWorkbenchReferenceRequest
-): request is TChatFileElementReference {
+function isFileElementReferenceRequest(request: FileWorkbenchReferenceRequest): request is TChatFileElementReference {
   return 'type' in request && request.type === 'file_element'
 }
 
