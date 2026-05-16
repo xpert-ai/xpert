@@ -9,7 +9,7 @@ import type {
   ChatKitSlashCommandKind
 } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { I18nObject, I18nText, IconDefinition, letterStartSUID } from '../types'
+import { I18nObject, IconDefinition, letterStartSUID } from '../types'
 import { JsonSchemaObjectType } from './types'
 import { IWorkflowNode, WorkflowNodeTypeEnum } from './xpert-workflow.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -41,9 +41,7 @@ export type SkillSlashCommandAction = ChatKitSlashCommandAction
 export type SkillSlashCommandAvailability = ChatKitSlashCommandAvailability
 export type SkillSlashCommandKind = ChatKitSlashCommandKind
 export type SkillPromptWorkflow = ChatKitPromptWorkflow
-export type SkillSlashCommand = Omit<ChatKitSlashCommand, 'description' | 'icon' | 'label'> & {
-  label?: I18nText
-  description?: I18nText
+export type SkillSlashCommand = Omit<ChatKitSlashCommand, 'icon'> & {
   icon?: ChatKitSlashCommand['icon'] | IconDefinition
 }
 

@@ -1,10 +1,11 @@
-import type {
-  ChatKitCommandSource,
-  ChatKitSlashCommand,
-  ChatKitSlashCommandAction,
-  ChatKitSlashCommandCapability,
-  ChatKitSlashCommandExecutionType,
-  RuntimeCapabilitiesSelection
+import {
+  resolveLocalizedText,
+  type ChatKitCommandSource,
+  type ChatKitSlashCommand,
+  type ChatKitSlashCommandAction,
+  type ChatKitSlashCommandCapability,
+  type ChatKitSlashCommandExecutionType,
+  type RuntimeCapabilitiesSelection
 } from '@xpert-ai/chatkit-types'
 
 export type ChatRuntimeCapabilityKind = 'skill' | 'plugin' | 'subAgent'
@@ -337,7 +338,8 @@ export function buildSlashOptions(
   query = '',
   capabilities?: ChatRuntimeCapabilities | null,
   expandedGroups: readonly ChatRuntimeCapabilityKind[] = [],
-  selection?: RuntimeCapabilitiesSelection | null
+  selection?: RuntimeCapabilitiesSelection | null,
+  language?: string | null
 ): ChatComposerSlashOption[] {
   const normalizedQuery = query.trim().toLowerCase()
   const expandedGroupSet = new Set(expandedGroups)
@@ -348,7 +350,7 @@ export function buildSlashOptions(
   )
   const runtimeOptions = (runtimeCommands ?? [])
     .filter((command) => isSupportedRuntimeSlashCommand(command))
-    .map(commandToSlashOption)
+    .map((command) => commandToSlashOption(command, language))
 
   return [...builtinOptions, ...runtimeOptions].filter((option) => matchesSlashQuery(option, normalizedQuery))
 }
@@ -358,7 +360,8 @@ export function buildTriggerOptions(
   range: ChatComposerSlashRange | null | undefined,
   capabilities?: ChatRuntimeCapabilities | null,
   expandedGroups: readonly ChatRuntimeCapabilityKind[] = [],
-  selection?: RuntimeCapabilitiesSelection | null
+  selection?: RuntimeCapabilitiesSelection | null,
+  language?: string | null
 ): ChatComposerSlashOption[] {
   if (!range) {
     return []
@@ -368,7 +371,7 @@ export function buildTriggerOptions(
     return buildCapabilitySlashOptions(capabilities, 'skill', range.query, selection)
   }
 
-  return buildSlashOptions(runtimeCommands, range.query, capabilities, expandedGroups, selection)
+  return buildSlashOptions(runtimeCommands, range.query, capabilities, expandedGroups, selection, language)
 }
 
 export function buildCapabilitySlashOptions(
@@ -472,15 +475,17 @@ export function getCapabilityKindLabelKey(kind: ChatRuntimeCapabilityKind) {
   return 'PAC.Chat.Subagents'
 }
 
-function commandToSlashOption(command: ChatKitSlashCommand): ChatComposerSlashOption {
+function commandToSlashOption(command: ChatKitSlashCommand, language?: string | null): ChatComposerSlashOption {
   const action = command.action
   const disabled = command.availability?.disabled
   const disabledReason = disabled ? command.availability?.reason : undefined
+  const label = resolveLocalizedText(command.label, language ?? undefined) ?? command.name
+  const description = resolveLocalizedText(command.description, language ?? undefined) ?? undefined
   return {
     type: 'command',
     name: command.name,
-    label: command.label ?? command.name,
-    description: command.description,
+    label,
+    description,
     aliases: command.aliases,
     icon: command.icon,
     category: command.category,

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { compactObject, nonEmptyArray } from '@xpert-ai/server-common'
 import type {
-    I18nText,
     SkillPromptWorkflow,
     SkillSlashCommand,
     SkillSlashCommandAction,
@@ -26,7 +25,6 @@ import {
     RuntimeSlashCommandAction,
     RuntimeSlashCommandSource
 } from './runtime-command.guards'
-import { translate } from '../shared/translate'
 
 @Injectable()
 export class RuntimeCommandService {
@@ -113,8 +111,8 @@ export class RuntimeCommandService {
             return null
         }
 
-        const label = resolveCommandText(command.label, command.name)
-        const description = resolveCommandText(command.description)
+        const label = command.label ?? command.name
+        const description = command.description
         const icon = command.icon ?? skill.metadata.icon
         const kind =
             command.kind ??
@@ -203,8 +201,8 @@ export class RuntimeCommandService {
             return null
         }
 
-        const label = resolveCommandText(command.label, command.name)
-        const description = resolveCommandText(command.description)
+        const label = command.label ?? command.name
+        const description = command.description
         const kind =
             command.kind ??
             (action.type === 'submit_prompt' || action.type === 'insert_invocation' ? 'prompt_workflow' : 'command')
@@ -324,8 +322,8 @@ export class RuntimeCommandService {
         defaults: {
             kind: NonNullable<SkillSlashCommand['kind']>
             name: string
-            label: string
-            description?: string
+            label: NonNullable<SkillSlashCommand['label']>
+            description?: SkillSlashCommand['description']
             tags: string[]
         }
     ): SkillPromptWorkflow | undefined {
@@ -422,15 +420,6 @@ function inferArgsHint(action: RuntimeSlashCommandAction): string | undefined {
 
 function inferArgsHintFromTemplate(template: string): string | undefined {
     return /\{\{\s*args\s*\}\}/.test(template) ? '<args>' : undefined
-}
-
-function resolveCommandText(value: I18nText | null | undefined, fallback?: string): string | undefined {
-    if (!value) {
-        return fallback
-    }
-
-    const translated = translate(value)
-    return typeof translated === 'string' ? translated.trim() || fallback : fallback
 }
 
 function isBlockedBuiltinCommand(command: RuntimeSlashCommand): boolean {

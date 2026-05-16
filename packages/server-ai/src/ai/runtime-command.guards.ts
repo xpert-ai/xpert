@@ -1,6 +1,4 @@
-import { resolveI18nText } from '@xpert-ai/contracts'
 import type {
-    I18nText,
     IconDefinition,
     SkillMetadata,
     SkillPromptWorkflow,
@@ -16,7 +14,7 @@ import {
     type TRuntimeCapabilitiesSelection
 } from '../shared/agent/runtime-capabilities'
 
-type NormalizedI18nObject = Exclude<I18nText, string>
+type RuntimeCommandI18nText = NonNullable<SkillSlashCommand['label']>
 
 export const SLASH_COMMAND_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
 
@@ -80,10 +78,9 @@ export type RuntimeSlashCommandSource =
           label?: string
       }
 
-export type RuntimeSlashCommand = Omit<SkillSlashCommand, 'action' | 'description' | 'label' | 'source'> & {
+export type RuntimeSlashCommand = Omit<SkillSlashCommand, 'action' | 'label' | 'source'> & {
     name: string
-    label: string
-    description?: string
+    label: NonNullable<SkillSlashCommand['label']>
     action: RuntimeSlashCommandAction
     source: RuntimeSlashCommandSource
 }
@@ -334,8 +331,8 @@ function parsePromptWorkflow(value: unknown): SkillPromptWorkflow | undefined {
 
     const tags = readStringList(readOwn(value, 'tags'))
     const name = readTrimmedString(readOwn(value, 'name'))
-    const label = readTrimmedString(readOwn(value, 'label'))
-    const description = readTrimmedString(readOwn(value, 'description'))
+    const label = readI18nText(readOwn(value, 'label'))
+    const description = readI18nText(readOwn(value, 'description'))
     return compactObject<SkillPromptWorkflow>({
         type: 'prompt_workflow',
         name,
@@ -361,24 +358,22 @@ function readTrimmedString(value: unknown): string | undefined {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
-function readI18nText(value: unknown): I18nText | undefined {
-    const en_US = resolveI18nText(value, 'en-US')
-    if (!en_US) {
-        return undefined
-    }
+function readI18nText(value: unknown): RuntimeCommandI18nText | undefined {
     if (typeof value === 'string') {
-        return en_US
+        return value.trim() || undefined
     }
     if (!isPlainObject(value)) {
         return undefined
     }
 
-    const zh_Hans = resolveI18nText(value, 'zh-Hans')
+    const localized: Record<string, string> = {}
+    for (const [key, entry] of Object.entries(value)) {
+        if (typeof entry === 'string' && entry.trim()) {
+            localized[key] = entry.trim()
+        }
+    }
 
-    return compactObject<NormalizedI18nObject>({
-        en_US,
-        zh_Hans: zh_Hans && zh_Hans !== en_US ? zh_Hans : undefined
-    })
+    return Object.keys(localized).length ? localized : undefined
 }
 
 function readSlashCommandName(value: unknown): string | null {

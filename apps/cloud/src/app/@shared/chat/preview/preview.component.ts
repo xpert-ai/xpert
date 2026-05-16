@@ -398,7 +398,8 @@ export class ChatConversationPreviewComponent {
       this.slashRange(),
       this.runtimeCapabilities(),
       this.expandedSlashGroups(),
-      this.runtimeSelection()
+      this.runtimeSelection(),
+      this.#translate.currentLang
     )
   )
   readonly visiblePaletteOptions = computed(() => (this.slashRange() ? this.slashOptions() : []))
@@ -1632,7 +1633,14 @@ export class ChatConversationPreviewComponent {
     }
 
     const option = findSlashOptionByInvocation(
-      buildSlashOptions(this.runtimeCapabilities()?.commands, '', this.runtimeCapabilities()),
+      buildSlashOptions(
+        this.runtimeCapabilities()?.commands,
+        '',
+        this.runtimeCapabilities(),
+        [],
+        undefined,
+        this.#translate.currentLang
+      ),
       invocation
     )
     if (!option) {

@@ -156,6 +156,63 @@ describe('chat composer helpers', () => {
     })
   })
 
+  it('resolves runtime command i18n objects for slash options and preserves command source i18n', () => {
+    const option = buildSlashOptions(
+      [
+        {
+          name: 'goal',
+          label: {
+            en_US: 'Goal',
+            zh_Hans: '目标'
+          },
+          description: {
+            en_US: 'Run a verifier-first Ralph Loop goal until the objective is complete.',
+            zh_Hans: '运行验证优先的 Ralph 循环目标，直到目标完成。'
+          },
+          kind: 'prompt_workflow',
+          workflow: {
+            type: 'prompt_workflow',
+            name: 'goal',
+            label: {
+              en_US: 'Goal',
+              zh_Hans: '目标'
+            },
+            description: {
+              en_US: 'Run a verifier-first Ralph Loop goal until the objective is complete.',
+              zh_Hans: '运行验证优先的 Ralph 循环目标，直到目标完成。'
+            }
+          },
+          action: {
+            type: 'insert_invocation',
+            template: '/goal '
+          }
+        }
+      ],
+      'goal',
+      undefined,
+      [],
+      undefined,
+      'zh-CN'
+    ).find((item) => item.name === 'goal')
+
+    expect(option).toMatchObject({
+      label: '目标',
+      description: '运行验证优先的 Ralph 循环目标，直到目标完成。'
+    })
+    expect(option && createChatCommandSource(option)).toMatchObject({
+      workflow: {
+        label: {
+          en_US: 'Goal',
+          zh_Hans: '目标'
+        },
+        description: {
+          en_US: 'Run a verifier-first Ralph Loop goal until the objective is complete.',
+          zh_Hans: '运行验证优先的 Ralph 循环目标，直到目标完成。'
+        }
+      }
+    })
+  })
+
   it('keeps plan builtin and hides unsupported client actions', () => {
     const options = buildSlashOptions(
       [
