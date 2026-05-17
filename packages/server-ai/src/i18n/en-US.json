@@ -11,7 +11,10 @@
         "AIModelInstanceNotFound": "AI model instance for model type '{{modelType}}' not found.",
         "AIModelProviderNotFound": "AI Model Provider '{{name}}' not found.",
         "InvalidToolCalls": "Model returned invalid tool calls:",
-        "HandleLLMTokensNoModel": "Provider '{{provider}}' did not provide a model when handling LLM tokens"
+        "HandleLLMTokensNoModel": "Provider '{{provider}}' did not provide a model when handling LLM tokens",
+        "ManagedImportRequiresPrimaryLlmModel": "Managed xpert import requires an enabled primary LLM copilot model for {{scope}}.",
+        "CurrentOrganizationScope": "the current organization",
+        "TenantScope": "tenant scope"
     },
     "tools": {
         "ListFiles": "List files",

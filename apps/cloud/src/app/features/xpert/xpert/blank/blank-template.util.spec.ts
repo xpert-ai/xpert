@@ -445,6 +445,7 @@ describe('blank template util', () => {
     expect(workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.SKILL)).toHaveLength(0)
     expect(middlewareNodes).toHaveLength(2)
     expect((middlewareNodes[0].entity as any).provider).toBe('guard')
+    expect(middlewareNodes.every((node) => (node.entity as any).required === true)).toBe(true)
     expect(skillsMiddlewareNode).toBeDefined()
     expect((skillsMiddlewareNode!.entity as any).options).toEqual({
       skills: ['rewriter']

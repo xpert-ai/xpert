@@ -29,6 +29,8 @@ describe('XpertAuthoringMiddleware', () => {
         getAvailableSkillsFromContext: jest.Mock
         newXpertFromContext: jest.Mock
         newSkillFromContext: jest.Mock
+        deleteSkillFromContext: jest.Mock
+        editPromptWorkflowFromContext: jest.Mock
         editXpertFromContext: jest.Mock
     }
     let strategy: XpertAuthoringMiddleware
@@ -44,6 +46,8 @@ describe('XpertAuthoringMiddleware', () => {
             getAvailableSkillsFromContext: jest.fn(),
             newXpertFromContext: jest.fn(),
             newSkillFromContext: jest.fn(),
+            deleteSkillFromContext: jest.fn(),
+            editPromptWorkflowFromContext: jest.fn(),
             editXpertFromContext: jest.fn()
         }
         strategy = new XpertAuthoringMiddleware(service as any)
@@ -62,6 +66,8 @@ describe('XpertAuthoringMiddleware', () => {
             'getAvailableSkills',
             'newXpert',
             'newSkill',
+            'deleteSkill',
+            'editPromptWorkflow',
             'editXpert'
         ])
 
@@ -98,6 +104,11 @@ describe('XpertAuthoringMiddleware', () => {
                 ]
             }).success
         ).toBe(true)
+
+        expect((getTool('editPromptWorkflow') as any).description).toContain('substituting only {{args}}')
+        expect((getTool('editPromptWorkflow') as any).description).toContain(
+            'Do not create templates that require named placeholder replacement'
+        )
     })
 
     it('returns a rejected current Xpert payload when targetXpertId is missing', async () => {
@@ -520,13 +531,18 @@ describe('XpertAuthoringMiddleware', () => {
             committedDraftHash: null,
             updatedDraftFragment: {
                 skill: {
+                    operation: 'created',
                     id: 'skill-1',
+                    workspaceId: 'workspace-1',
                     packagePath: 'workspace-skill'
                 }
             },
             warnings: []
         } satisfies AssistantDraftMutationResult
         service.newSkillFromContext.mockResolvedValue(resultPayload)
+        const subscriber = {
+            next: jest.fn()
+        }
 
         const result = await getTool('newSkill').invoke(
             {
@@ -541,7 +557,11 @@ describe('XpertAuthoringMiddleware', () => {
                         env: {
                             workspaceId: 'workspace-1'
                         }
-                    }
+                    },
+                    subscriber,
+                    tool_call_id: 'tool-call-skill-1',
+                    executionId: 'execution-skill-1',
+                    agentKey: 'Agent_Skill_1'
                 }
             } as any
         )
@@ -558,6 +578,170 @@ describe('XpertAuthoringMiddleware', () => {
                 skillName: 'Workspace Skill',
                 skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps the workspace.\n---\n'
             }
+        )
+        expect(subscriber.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    data: expect.objectContaining({
+                        name: 'refresh_workspace_skills',
+                        args: {
+                            workspaceId: 'workspace-1',
+                            skillId: 'skill-1',
+                            operation: 'created'
+                        }
+                    })
+                })
+            })
+        )
+        expect(result).toEqual(resultPayload)
+    })
+
+    it('invokes deleteSkill and emits workspace skill refresh after deletion', async () => {
+        const resultPayload = {
+            status: 'applied',
+            toolName: 'deleteSkill',
+            summary: 'Deleted skill "Workspace Skill" from this workspace.',
+            diagnostics: null,
+            syncMode: 'none',
+            conflictType: null,
+            requiresRefresh: false,
+            committedDraftHash: null,
+            updatedDraftFragment: {
+                skill: {
+                    operation: 'deleted',
+                    id: 'skill-1',
+                    workspaceId: 'workspace-1'
+                }
+            },
+            warnings: []
+        } satisfies AssistantDraftMutationResult
+        service.deleteSkillFromContext.mockResolvedValue(resultPayload)
+        const subscriber = {
+            next: jest.fn()
+        }
+
+        const result = await getTool('deleteSkill').invoke(
+            {
+                skillId: 'skill-1'
+            },
+            {
+                configurable: {
+                    context: {
+                        workspaceId: 'assistant-workspace',
+                        env: {
+                            workspaceId: 'workspace-1'
+                        }
+                    },
+                    subscriber,
+                    tool_call_id: 'tool-call-delete-skill-1',
+                    executionId: 'execution-delete-skill-1',
+                    agentKey: 'Agent_Delete_Skill_1'
+                }
+            } as any
+        )
+
+        expect(service.deleteSkillFromContext).toHaveBeenCalledWith(
+            {
+                workspaceId: 'assistant-workspace',
+                env: {
+                    workspaceId: 'workspace-1'
+                }
+            },
+            {
+                skillId: 'skill-1'
+            }
+        )
+        expect(subscriber.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    data: expect.objectContaining({
+                        name: 'refresh_workspace_skills',
+                        args: {
+                            workspaceId: 'workspace-1',
+                            skillId: 'skill-1',
+                            operation: 'deleted'
+                        }
+                    })
+                })
+            })
+        )
+        expect(result).toEqual(resultPayload)
+    })
+
+    it('invokes editPromptWorkflow with one key-based mutation tool', async () => {
+        const resultPayload = {
+            status: 'applied',
+            toolName: 'editPromptWorkflow',
+            summary: 'Updated prompt workflow "/review".',
+            diagnostics: null,
+            syncMode: 'none',
+            conflictType: null,
+            requiresRefresh: false,
+            committedDraftHash: null,
+            updatedDraftFragment: {
+                promptWorkflow: {
+                    operation: 'updated',
+                    id: 'workflow-1',
+                    workspaceId: 'workspace-1',
+                    key: 'review'
+                }
+            },
+            warnings: []
+        } satisfies AssistantDraftMutationResult
+        service.editPromptWorkflowFromContext.mockResolvedValue(resultPayload)
+        const subscriber = {
+            next: jest.fn()
+        }
+
+        const result = await getTool('editPromptWorkflow').invoke(
+            {
+                key: '/review',
+                label: 'Review',
+                template: 'Review {{args}}.'
+            },
+            {
+                configurable: {
+                    context: {
+                        workspaceId: 'assistant-workspace',
+                        env: {
+                            workspaceId: 'workspace-1'
+                        }
+                    },
+                    subscriber,
+                    tool_call_id: 'tool-call-workflow-1',
+                    executionId: 'execution-workflow-1',
+                    agentKey: 'Agent_Workflow_1'
+                }
+            } as any
+        )
+
+        expect(service.editPromptWorkflowFromContext).toHaveBeenCalledWith(
+            {
+                workspaceId: 'assistant-workspace',
+                env: {
+                    workspaceId: 'workspace-1'
+                }
+            },
+            {
+                key: '/review',
+                label: 'Review',
+                template: 'Review {{args}}.'
+            }
+        )
+        expect(subscriber.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    data: expect.objectContaining({
+                        name: 'refresh_prompt_workflows',
+                        args: {
+                            workspaceId: 'workspace-1',
+                            workflowId: 'workflow-1',
+                            key: 'review',
+                            operation: 'updated'
+                        }
+                    })
+                })
+            })
         )
         expect(result).toEqual(resultPayload)
     })

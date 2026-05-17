@@ -24,6 +24,7 @@ import { SandboxModule } from './sandbox/sandbox.module'
 import { XpertModule } from './xpert'
 import { XpertAgentExecutionModule } from './xpert-agent-execution'
 import { XpertAgentModule } from './xpert-agent/index'
+import { XpertMiddlewareModule } from './xpert-middleware'
 import { XpertProjectModule } from './xpert-project/project.module'
 import { XpertTaskModule } from './xpert-task'
 import { XpertTemplateModule } from './xpert-template/xpert-template.module'
@@ -37,6 +38,7 @@ import { XpertTableModule } from './xpert-table'
 import { HandoffQueueModule } from './handoff/message-queue.module'
 import { SkillRepositoryIndexModule, SkillRepositoryModule } from './skill-repository'
 import { SkillPackageModule } from './skill-package'
+import { PromptWorkflowModule } from './prompt-workflow'
 import { FileUploadTargetsModule } from './shared'
 import { InitializationModule } from './initialization/initialization.module'
 import { TeamBindingModule } from './team-binding/team-binding.module'
@@ -50,6 +52,7 @@ import { ProjectAssistantModule } from './project-assistant/project-assistant.mo
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 import { VolumeModule } from './shared/volume'
 import { XpertEventModule } from './event-system'
+import { FileMemoryModule } from './file-memory'
 
 @Module({
     imports: [
@@ -75,8 +78,10 @@ import { XpertEventModule } from './event-system'
         HandoffQueueModule,
         FileUploadTargetsModule,
         VolumeModule,
+        FileMemoryModule,
         XpertModule,
         XpertAgentModule,
+        XpertMiddlewareModule,
         XpertAgentExecutionModule,
         XpertToolModule,
         XpertToolsetModule,
@@ -86,8 +91,9 @@ import { XpertEventModule } from './event-system'
         XpertTaskModule,
         XpertTableModule,
         SkillRepositoryModule,
-		SkillRepositoryIndexModule,
-		SkillPackageModule,
+        SkillRepositoryIndexModule,
+        SkillPackageModule,
+        PromptWorkflowModule,
         InitializationModule,
         KnowledgebaseModule,
         KnowledgeDocumentModule,

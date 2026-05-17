@@ -1,7 +1,8 @@
-import { IWorkflowNode, WorkflowNodeTypeEnum } from "./xpert-workflow.model"
-import { I18nObject, IconDefinition, letterStartSUID } from "../types"
-import { TXpertFeatureKey, TXpertGraph, TXpertTeamNode } from "./xpert.model"
-import { JsonSchemaObjectType } from "./types"
+import { IWorkflowNode, WorkflowNodeTypeEnum } from './xpert-workflow.model'
+import { I18nObject, IconDefinition, letterStartSUID } from '../types'
+import { TXpertFeatureKey, TXpertGraph, TXpertTeamNode } from './xpert.model'
+import { JsonSchemaObjectType } from './types'
+import type { SkillSlashCommand } from './skill.model'
 
 export const LEGACY_SANDBOX_COMPRESSION_MIDDLEWARE_NAME = 'SandboxCompressionMiddleware'
 export const CONTEXT_COMPRESSION_MIDDLEWARE_NAME = 'ContextCompressionMiddleware'
@@ -75,15 +76,19 @@ export type TAgentMiddlewareMeta = {
   description?: I18nObject
   configSchema?: JsonSchemaObjectType
   features?: TXpertFeatureKey[]
+  slashCommands?: SkillSlashCommand[]
 }
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]
 
 export function getAgentMiddlewareNodes(graph: TXpertGraph, agentKey: string): TXpertTeamNode[] {
-  const middlewares = graph.connections?.filter((conn) => conn.type === 'workflow' && conn.from === agentKey)
-        .map(conn => {
-            const to = normalizeNodeKey(conn.to)
-            return graph.nodes?.find(node => node.key === to)
-        }).filter(node => (node?.entity as unknown as IWorkflowNode).type === WorkflowNodeTypeEnum.MIDDLEWARE) ?? []
+  const middlewares =
+    graph.connections
+      ?.filter((conn) => conn.type === 'workflow' && conn.from === agentKey)
+      .map((conn) => {
+        const to = normalizeNodeKey(conn.to)
+        return graph.nodes?.find((node) => node.key === to)
+      })
+      .filter((node) => (node?.entity as unknown as IWorkflowNode).type === WorkflowNodeTypeEnum.MIDDLEWARE) ?? []
   return middlewares
 }

@@ -10,6 +10,7 @@ import { XpertWorkspaceMCPToolsComponent } from './mcp-tools/tools.component'
 import { XpertWorkspaceXpertsComponent } from './xperts/xperts.component'
 import { XpertWorkspaceDatabaseComponent } from './database/database.component'
 import { XpertWorkspaceSkillsComponent } from './skills/skills.component'
+import { XpertWorkspacePromptWorkflowsComponent } from './prompt-workflows/workflows.component'
 
 function redirectToSelectedWorkspace() {
   const router = inject(Router)
@@ -69,6 +70,10 @@ export default [
       {
         path: 'skills',
         component: XpertWorkspaceSkillsComponent
+      },
+      {
+        path: 'prompt-workflows',
+        component: XpertWorkspacePromptWorkflowsComponent
       }
     ]
   }

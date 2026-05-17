@@ -326,6 +326,65 @@ describe('ClawXpertConversationPreviewComponent', () => {
     }
   })
 
+  it('ignores blocked frame window access while destroying preview listeners', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for a running service.')
+    }
+
+    const previewDocument = document
+    const button = previewDocument.createElement('button')
+    button.id = 'cleanup-target'
+    button.textContent = 'Cleanup target'
+    Object.defineProperty(button, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 70,
+        height: 30,
+        left: 40,
+        right: 160,
+        toJSON: () => undefined,
+        top: 40,
+        width: 120,
+        x: 40,
+        y: 40
+      })
+    })
+
+    try {
+      previewDocument.body.appendChild(button)
+      Object.defineProperty(iframe, 'contentDocument', {
+        configurable: true,
+        value: previewDocument
+      })
+
+      fixture.componentInstance.toggleInspectMode()
+      fixture.componentInstance.handleFrameLoad()
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+      const removeSpy = jest.spyOn(window, 'removeEventListener').mockImplementation(() => {
+        throw new DOMException('Blocked a frame with origin from accessing a cross-origin frame.', 'SecurityError')
+      })
+      const cancelSpy = jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {
+        throw new DOMException('Blocked a frame with origin from accessing a cross-origin frame.', 'SecurityError')
+      })
+
+      try {
+        expect(() => fixture.componentInstance.ngOnDestroy()).not.toThrow()
+      } finally {
+        removeSpy.mockRestore()
+        cancelSpy.mockRestore()
+      }
+    } finally {
+      button.remove()
+    }
+  })
+
   it('does not render a preview iframe for failed services', async () => {
     sandboxService.listManagedServices.mockReturnValueOnce(
       of([

@@ -1,0 +1,343 @@
+# ChatKit Slash Commands
+
+Slash commands are the command orchestration layer inside the ChatKit composer. They convert `/command args` into UI actions, prompt workflows, or one-run runtime capability selections. They do not bypass Xpert permissions, tool preferences, runtime capability allow-lists, or the normal ChatKit submit flow.
+
+## What They Enable
+
+Use slash commands for:
+
+- low-risk UI commands such as `/help`, `/clear`, and `/plan`
+- capability entry points such as `/skills`, `/plugins`, and `/subagents`
+- prompt workflows such as `/review src/app.ts`, `/explain query.sql`, `/test packages/foo`, and `/debug error.log`
+- inserting skills, plugins, and sub-agents into the composer as atomic tokens
+- recording command metadata in `input.commandSource` for audit and debugging
+
+v1 does not execute arbitrary shell commands and does not let commands bypass Xpert server-side access control.
+
+## Core Concepts
+
+Slash commands, prompt workflows, and skill commands are separate layers:
+
+| Concept         | Meaning                                                                 | Example                                             |
+| --------------- | ----------------------------------------------------------------------- | --------------------------------------------------- |
+| Slash command   | The `/name args` trigger in the ChatKit composer.                       | `/review src/app.ts`                                |
+| Prompt workflow | A reusable lightweight prompt orchestration asset.                      | “Review this code and return findings by severity.” |
+| Skill command   | A slash command exposed by a skill package through `metadata.commands`. | A Code Review skill exposing `/review`.             |
+
+Use this mental model:
+
+```text
+Prompt Workflow = what to do
+Slash Command = how the user triggers it
+Skill Command = a trigger bundled with a skill
+```
+
+Prompt workflows are usually exposed as `submit_prompt` or `insert_invocation` slash commands, so users can run them with input such as `/review foo`. Not every slash command is a prompt workflow: `/clear`, `/model`, and `/status` are UI commands, while skill, plugin, and sub-agent selections are capability-selection commands.
+
+A skill command is also different from the skill's own instructions. Skill instructions describe what the skill is and how the model should use it. `metadata.commands[].action.template` describes the prompt submitted when the user triggers `/xxx`. A skill command can set `kind: 'prompt_workflow'` when it represents a prompt workflow entry point provided by that skill.
+
+## User Behavior
+
+Typing `/` at the start of the composer opens the slash palette with:
+
+- ChatKit built-in commands
+- static commands from `composer.slashCommands`
+- dynamic commands from `RuntimeCapabilitiesResponse.commands`
+- available skills, plugins, and sub-agents
+
+Typing `/` after whitespace inside a message shows only skills, plugins, and sub-agents. This keeps mid-message `/skill` selection separate from prompt workflow execution.
+
+Selecting a skill, plugin, or sub-agent inserts an atomic contenteditable token. The token uses the real icon or avatar, cannot be partially edited, is deleted as a whole, appears in the submitted human message, contributes a run-only `runtimeCapabilities` selection, and is cleared after submit.
+
+## Command Sources And Priority
+
+Commands are merged in this order:
+
+1. ChatKit built-ins
+2. host static commands from `ChatKitOptions.composer.slashCommands`
+3. Xpert runtime commands from `RuntimeCapabilitiesResponse.commands`
+
+Built-in names are reserved. Host commands win over runtime commands with the same name. Hidden duplicates produce a browser `console.warn`.
+
+Command names do not include the leading slash and must use lowercase letters, numbers, hyphens, and underscores:
+
+```text
+review
+security-review
+test_file
+```
+
+## Command Shape
+
+```ts
+type ChatKitSlashCommand = {
+  name: string
+  label?: string
+  description?: string
+  icon?: string | Record<string, unknown>
+  category?: string
+  aliases?: string[]
+  argsHint?: string
+  availability?: {
+    disabled?: boolean
+    reason?: string
+    [key: string]: unknown
+  }
+  kind?: 'command' | 'prompt_workflow'
+  workflow?: {
+    type: 'prompt_workflow'
+    name?: string
+    label?: string
+    description?: string
+    tags?: string[]
+  }
+  action: ChatKitSlashCommandAction
+  source?: Record<string, unknown>
+  meta?: Record<string, unknown>
+}
+```
+
+## Action Types
+
+ChatKit supports five public action types:
+
+| Type                | Behavior                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `insert_text`       | Render a template and write it into the composer without submitting.                                        |
+| `insert_invocation` | Insert a slash invocation such as `/review ` and submit the raw `/command args` text for backend expansion. |
+| `submit_prompt`     | Render a template and submit it as a user message.                                                          |
+| `client_action`     | Notify the host through the parent bridge.                                                                  |
+| `select_capability` | Select a skill, plugin, or sub-agent for the next run.                                                      |
+
+`{{args}}` in `insert_text`, `insert_invocation`, and `submit_prompt` templates is replaced by the text after the command name.
+
+## Built-in Commands
+
+| Command          | Behavior                                                               |
+| ---------------- | ---------------------------------------------------------------------- |
+| `/help`          | Opens the command-only palette.                                        |
+| `/clear`         | Clears draft, attachments, references, and run-only capability tokens. |
+| `/plan`          | Toggles plan mode.                                                     |
+| `/plan <prompt>` | Submits `<prompt>` with `planMode: true`.                              |
+| `/skills`        | Opens the skills-only selector.                                        |
+| `/plugins`       | Opens the plugins-only selector.                                       |
+| `/subagents`     | Opens the sub-agents-only selector.                                    |
+| `/model`         | Requests the model selector through the parent bridge.                 |
+| `/effort`        | Requests the reasoning effort selector through the parent bridge.      |
+| `/status`        | Requests the status panel through the parent bridge.                   |
+| `/mention`       | Requests the mention/reference entry point through the parent bridge.  |
+
+`/model`, `/effort`, `/status`, and `/mention` are emitted as `client_action` commands for host-managed panels in the current implementation.
+
+## Prompt Workflows
+
+Prompt workflows are the recommended abstraction for `/review`, `/explain`, `/test`, and `/debug` style commands. Xpert-local and skill prompt workflows can use `submit_prompt`; workspace prompt workflows use `insert_invocation` so ChatKit inserts `/command ` and Xpert expands the final `/command args` input on the backend.
+
+```ts
+{
+  name: 'security-review',
+  label: 'Security Review',
+  description: 'Review code for security issues',
+  category: 'prompt_workflow',
+  argsHint: '<path>',
+  kind: 'prompt_workflow',
+  workflow: {
+    type: 'prompt_workflow',
+    tags: ['security', 'code'],
+  },
+  action: {
+    type: 'insert_invocation',
+    template: '/security-review ',
+  },
+}
+```
+
+### Workspace Library And Xpert Profiles
+
+Xpert supports prompt workflows with a hybrid model:
+
+- Workspace owns the reusable workflow asset.
+- Xpert owns the enabled command profile and local overrides.
+- If an Xpert has no enabled command profile, runtime allows all active workspace prompt workflows and all accessible skill commands by default.
+- Only `commandProfile.enabled: true` turns the Xpert command profile into a whitelist.
+- Publishing an Xpert snapshots the enabled workspace workflows into the published `commandProfile`.
+- Runtime only returns commands that are enabled by the current Xpert and valid for the current user and capability allow-list.
+
+Workspace prompt workflows are stored as `PromptWorkflow` records:
+
+```ts
+type TPromptWorkflow = {
+  name: string
+  label?: string
+  description?: string
+  icon?: string | Record<string, unknown>
+  category?: string
+  aliases?: string[]
+  argsHint?: string
+  template: string
+  tags?: string[]
+  visibility?: 'private' | 'team' | 'tenant'
+  runtimeCapabilities?: unknown
+}
+```
+
+Xpert command profiles enable and configure those workflows:
+
+```ts
+type TXpertCommandProfile = {
+  version: 1
+  enabled?: boolean
+  commands?: Array<{
+    source: 'xpert' | 'workspace_prompt_workflow' | 'skill'
+    enabled?: boolean
+    order?: number
+    workflowId?: string
+    skillCommandName?: string
+    snapshot?: TPromptWorkflow
+    name?: string
+    label?: string
+    description?: string
+    aliases?: string[]
+    argsHint?: string
+    template?: string
+    runtimeCapabilities?: unknown
+  }>
+}
+```
+
+`enabled` means the Xpert command profile whitelist is active. When it is missing or `false`, the profile does not filter commands. When it is `true`, runtime only returns commands enabled by the profile.
+
+Use source types this way:
+
+- `workspace_prompt_workflow`: enable a reusable workspace workflow for this Xpert.
+- `xpert`: define an assistant-specific prompt command directly in the Xpert profile.
+- `skill`: explicitly enable and order a command exposed by an installed skill. Set `priority: 'preferred'` to place that skill command before workspace workflows.
+
+The server exposes workspace workflow management endpoints under `/prompt-workflow` and Xpert command profile endpoints under `/xpert/:id/commands`.
+
+## Skill Metadata Commands
+
+Xpert skills can declare ChatKit slash commands in `metadata.commands`:
+
+```ts
+const metadata = {
+  name: 'workspace/code-review',
+  displayName: { en_US: 'Code Review' },
+  version: '1.0.0',
+  visibility: 'team',
+  icon: {
+    type: 'emoji',
+    value: '🔍'
+  },
+  tags: ['code', 'quality'],
+  commands: [
+    {
+      name: 'review',
+      label: 'Review',
+      description: 'Review selected files',
+      argsHint: '<path>',
+      action: {
+        type: 'submit_prompt',
+        template: 'Review {{args}}. Return actionable findings only.'
+      }
+    }
+  ]
+}
+```
+
+When Xpert returns runtime capabilities, it normalizes these commands:
+
+- commands are collected only from installed skills the current user can access
+- invalid names, unknown actions, and empty templates are filtered
+- `submit_prompt` skill commands become `kind: 'prompt_workflow'`
+- missing prompt workflow categories default to `prompt_workflow`
+- templates containing `{{args}}` default to `argsHint: '<args>'` when no hint is provided
+- command runtime capabilities are restricted to the owning installed skill
+- icons default to the command icon, `meta.icon`, or the skill package `metadata.icon`
+
+## Runtime Capability Endpoint
+
+ChatKit loads commands from:
+
+```http
+GET /ai/assistants/:id/runtime-capabilities
+```
+
+The response can include commands:
+
+```ts
+type RuntimeCapabilitiesResponse = {
+  skills: RuntimeCapabilitySkill[]
+  plugins: RuntimeCapabilityPlugin[]
+  subAgents?: RuntimeCapabilitySubAgent[]
+  commands?: RuntimeSlashCommand[]
+}
+```
+
+Server-side command resolution uses this priority before ChatKit receives `commands`:
+
+1. Xpert-local commands
+2. preferred skill metadata commands
+3. workspace prompt workflow commands
+4. enabled skill metadata commands
+
+Built-in command names remain reserved and are filtered from runtime commands. Same-name conflicts keep the higher-priority command and hide the lower-priority one.
+
+## Submitted Human Input
+
+When a command submits a prompt, ChatKit writes command metadata into request input and `state.human`:
+
+```json
+{
+  "input": {
+    "input": "Review src/app.ts",
+    "commandSource": {
+      "type": "slash_command",
+      "name": "review",
+      "source": "runtime",
+      "executionType": "submit_prompt",
+      "kind": "prompt_workflow",
+      "workflow": {
+        "type": "prompt_workflow",
+        "name": "review",
+        "label": "Review",
+        "description": "Review selected files"
+      }
+    }
+  }
+}
+```
+
+This metadata is informational. The server must still enforce normal assistant, skill, plugin, and runtime capability access rules.
+
+## Validation Rules
+
+`RuntimeCommandService` validates runtime commands:
+
+- `name` must match `^[a-z0-9][a-z0-9_-]{0,63}$`
+- `action.type` must be `insert_text`, `insert_invocation`, `submit_prompt`, `client_action`, or `select_capability`
+- `insert_text`, `insert_invocation`, and `submit_prompt` templates must be non-empty
+- `client_action.action.type` must be non-empty
+- skill `select_capability` commands may only select their owning skill
+- `workflow.type` must be `prompt_workflow`
+- prompt workflow templates must be non-empty
+- prompt workflow runtime capabilities are filtered against the current assistant's available skills, plugins, and sub-agents
+
+These constraints keep slash commands as an interaction and prompt orchestration layer, not a privilege or execution channel.
+
+## Testing Checklist
+
+Recommended coverage:
+
+- `/` at message start shows commands plus capabilities.
+- `/` after whitespace shows capabilities only.
+- built-in names cannot be overridden.
+- host commands win over runtime command conflicts.
+- `/plan foo` submits with plan mode.
+- `/clear` clears draft, attachments, references, and run-only tokens.
+- runtime skill command `/review src/app.ts` submits a prompt and carries the owning skill allow-list.
+- `commandSource.kind` and `workflow` appear in submitted payloads.
+- skill, plugin, and sub-agent tokens show real icons or avatars.
+- contenteditable tokens cannot be partially edited and delete as a whole.
+- IME composition remains stable.
+- palette keyboard navigation scrolls the active item into view.

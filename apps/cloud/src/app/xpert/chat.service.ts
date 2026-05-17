@@ -17,6 +17,7 @@ import {
   IKnowledgebase,
   IStorageFile,
   IXpert,
+  IXpertAgentExecution,
   IXpertProject,
   IXpertToolset,
   shortTitle,
@@ -45,11 +46,9 @@ import { buildResumeDecision, extractInterruptPatch } from '../@shared/chat/inte
 import { createReferenceHumanInput, XpertChatReference } from '../@shared/chat/references'
 import { XpertHomeService } from './home.service'
 import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/chat/context/thread-context-usage'
-import {
-  parseFollowUpConsumedEvent,
-  resolveFollowUpConsumedIds
-} from '../@shared/chat/context/follow-up-consumed'
+import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../@shared/chat/context/follow-up-consumed'
 import { TCopilotChatMessage } from './types'
+import type { ChatKitCommandSource, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
   return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
@@ -70,6 +69,9 @@ export type PendingFollowUp = {
   files?: Partial<IStorageFile>[]
   references?: XpertChatReference[]
   mode: 'queue' | 'steer'
+  planMode?: boolean
+  runtimeCapabilities?: RuntimeCapabilitiesSelection
+  commandSource?: ChatKitCommandSource
 }
 
 /**
@@ -226,44 +228,36 @@ export abstract class ChatService {
       }
     })
 
-    effect(
-      () => {
-        if (this.conversation()?.xpert && !this.xpert()) {
-          this.xpert.set(this.conversation().xpert)
-        }
+    effect(() => {
+      if (this.conversation()?.xpert && !this.xpert()) {
+        this.xpert.set(this.conversation().xpert)
       }
-    )
+    })
 
-    effect(
-      () => {
-        // Update local data when remote conversation loaded
-        const conversation = this.#conversation()?.conversation
-        if (conversation) {
-          if (!this.conversation() || (this.conversation()?.id && this.conversation().id !== conversation.id)) {
-            this.conversation.set(conversation)
-          }
+    effect(() => {
+      // Update local data when remote conversation loaded
+      const conversation = this.#conversation()?.conversation
+      if (conversation) {
+        if (!this.conversation() || (this.conversation()?.id && this.conversation().id !== conversation.id)) {
+          this.conversation.set(conversation)
         }
       }
-    )
+    })
 
-    effect(
-      () => {
-        // Sync feedbacks from remote conversation to local signal
-        const feedbacks = this.#conversation()?.feedbacks
-        if (feedbacks !== undefined) {
-          this.feedbacks.set(feedbacks ?? null)
-        }
+    effect(() => {
+      // Sync feedbacks from remote conversation to local signal
+      const feedbacks = this.#conversation()?.feedbacks
+      if (feedbacks !== undefined) {
+        this.feedbacks.set(feedbacks ?? null)
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (!this.conversationId()) {
-          this.suggestionQuestions.set([])
-          this.contextUsageByAgentKey.set({})
-        }
+    effect(() => {
+      if (!this.conversationId()) {
+        this.suggestionQuestions.set([])
+        this.contextUsageByAgentKey.set({})
       }
-    )
+    })
 
     // effect(() => {
     //   console.log('ChatService: conversation changed', this.conversation(), this.#messages())
@@ -314,6 +308,9 @@ export abstract class ChatService {
     files?: Partial<IStorageFile>[]
     references?: XpertChatReference[]
     followUpMode?: 'queue' | 'steer'
+    planMode?: boolean
+    runtimeCapabilities?: RuntimeCapabilitiesSelection
+    commandSource?: ChatKitCommandSource
   }) {
     const content = options.content?.trim() ?? ''
     const references = options.references ?? []
@@ -326,7 +323,7 @@ export abstract class ChatService {
         ...options,
         content,
         references,
-        mode: options.followUpMode ?? 'steer'
+        mode: options.followUpMode ?? 'queue'
       })
       return
     }
@@ -342,6 +339,13 @@ export abstract class ChatService {
     if (options.files?.length) {
       humanMessage.attachments = options.files as IStorageFile[]
     }
+    if (options.planMode || options.runtimeCapabilities || options.commandSource) {
+      humanMessage.thirdPartyMessage = {
+        ...(options.planMode ? { planMode: true } : {}),
+        ...(options.runtimeCapabilities ? { runtimeCapabilities: options.runtimeCapabilities } : {}),
+        ...(options.commandSource ? { commandSource: options.commandSource } : {})
+      }
+    }
     this.appendMessage(humanMessage)
 
     const request: TChatRequest = {
@@ -356,7 +360,10 @@ export abstract class ChatService {
             content: content ?? '',
             files: options.files,
             references
-          })
+          }),
+          ...(options.planMode ? { planMode: true } : {}),
+          ...(options.runtimeCapabilities ? { runtimeCapabilities: options.runtimeCapabilities } : {}),
+          ...(options.commandSource ? { commandSource: options.commandSource } : {})
         }
       }
     }
@@ -583,14 +590,7 @@ export abstract class ChatService {
                   break
                 case ChatMessageEventTypeEnum.ON_AGENT_START:
                 case ChatMessageEventTypeEnum.ON_AGENT_END: {
-                  const execution = event.data
-                  this.updateLatestMessage((message) => {
-                    const executions = (message.executions ?? []).filter((_) => _.id !== execution.id)
-                    return {
-                      ...message,
-                      executions: executions.concat(execution)
-                    }
-                  })
+                  this.upsertAgentExecution(event.data as IXpertAgentExecution)
                   break
                 }
                 case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
@@ -772,6 +772,40 @@ export abstract class ChatService {
     })
   }
 
+  upsertAgentExecution(execution: IXpertAgentExecution) {
+    this.#messages.update((messages) => {
+      const nextMessages = [...(messages ?? [])]
+      let lastMessageIndex = -1
+      for (let i = nextMessages.length - 1; i >= 0; i--) {
+        if (nextMessages[i]?.role === 'ai') {
+          lastMessageIndex = i
+          break
+        }
+      }
+
+      if (lastMessageIndex < 0) {
+        return [
+          ...nextMessages,
+          {
+            id: uuid(),
+            role: 'ai',
+            content: '',
+            status: 'thinking',
+            executions: [execution]
+          }
+        ]
+      }
+
+      const lastMessage = nextMessages[lastMessageIndex] as TCopilotChatMessage
+      const executions = (lastMessage.executions ?? []).filter((item) => item.id !== execution.id)
+      nextMessages[lastMessageIndex] = {
+        ...lastMessage,
+        executions: executions.concat(execution)
+      }
+      return nextMessages
+    })
+  }
+
   updateLatestMessage(updateFn: (value: TCopilotChatMessage) => TCopilotChatMessage) {
     this.#messages.update((messages) => {
       const nextMessages = [...(messages ?? [])]
@@ -826,9 +860,7 @@ export abstract class ChatService {
       mode: 'steer'
     }
 
-    this.pendingFollowUps.update((state) =>
-      (state ?? []).map((entry) => (entry.id === id ? steerItem : entry))
-    )
+    this.pendingFollowUps.update((state) => (state ?? []).map((entry) => (entry.id === id ? steerItem : entry)))
 
     if (!this.answering() || !this.conversation()?.id) {
       return
@@ -877,7 +909,10 @@ export abstract class ChatService {
             content: item.content,
             files: item.files,
             references: item.references
-          })
+          }),
+          ...(item.planMode ? { planMode: true } : {}),
+          ...(item.runtimeCapabilities ? { runtimeCapabilities: item.runtimeCapabilities } : {}),
+          ...(item.commandSource ? { commandSource: item.commandSource } : {})
         }
       }
     }
@@ -904,15 +939,17 @@ export abstract class ChatService {
     this.pendingFollowUps.set([])
   }
 
+  sendPendingFollowUpNow(id: string) {
+    this.drainQueuedFollowUps(id)
+  }
+
   private flushPendingSteerFollowUps(ids: string[]) {
     if (!ids.length) {
       return
     }
 
     const idSet = new Set(ids)
-    const steerItems = this.pendingFollowUps().filter(
-      (item) => item.mode === 'steer' && idSet.has(item.id ?? '')
-    )
+    const steerItems = this.pendingFollowUps().filter((item) => item.mode === 'steer' && idSet.has(item.id ?? ''))
 
     if (!steerItems.length) {
       return
@@ -929,6 +966,13 @@ export abstract class ChatService {
       }
       if (item.files?.length) {
         message.attachments = item.files as IStorageFile[]
+      }
+      if (item.planMode || item.runtimeCapabilities || item.commandSource) {
+        message.thirdPartyMessage = {
+          ...(item.planMode ? { planMode: true } : {}),
+          ...(item.runtimeCapabilities ? { runtimeCapabilities: item.runtimeCapabilities } : {}),
+          ...(item.commandSource ? { commandSource: item.commandSource } : {})
+        }
       }
       this.appendMessage(message)
     })
@@ -953,12 +997,14 @@ export abstract class ChatService {
     })
   }
 
-  private drainQueuedFollowUps() {
+  private drainQueuedFollowUps(leadItemId?: string) {
     if (this.answering()) {
       return
     }
 
-    const next = this.pendingFollowUps().find((item) => item.mode === 'queue')
+    const next = leadItemId
+      ? this.pendingFollowUps().find((item) => item.id === leadItemId && item.mode === 'queue')
+      : this.pendingFollowUps().find((item) => item.mode === 'queue')
     if (!next) {
       return
     }

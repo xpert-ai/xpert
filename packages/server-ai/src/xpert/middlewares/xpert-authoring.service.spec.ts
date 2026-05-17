@@ -28,6 +28,10 @@ jest.mock('../../assistant-binding/assistant-binding.service', () => ({
     AssistantBindingService: class AssistantBindingService {}
 }))
 
+jest.mock('../../prompt-workflow', () => ({
+    PromptWorkflowService: class PromptWorkflowService {}
+}))
+
 import { RequestContext } from '@xpert-ai/server-core'
 import { AiModelTypeEnum, AssistantBindingScope, AssistantCode, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { FindCopilotModelsQuery } from '../../copilot/queries'
@@ -79,6 +83,7 @@ describe('XpertAuthoringService', () => {
             knowledgebaseService?: Record<string, any>
             skillPackageService?: Record<string, any>
             assistantBindingService?: Record<string, any>
+            promptWorkflowService?: Record<string, any>
         } = {}
     ) => {
         const persistedXpert = buildPersistedXpert()
@@ -132,6 +137,7 @@ describe('XpertAuthoringService', () => {
         }
         const skillPackageService = {
             createWorkspaceSkillPackage: jest.fn(),
+            uninstallSkillPackageInWorkspace: jest.fn(),
             ...overrides.skillPackageService
         }
         const assistantBindingService = {
@@ -139,6 +145,11 @@ describe('XpertAuthoringService', () => {
             getBindingPreference: jest.fn().mockResolvedValue(null),
             upsertBindingPreference: jest.fn().mockResolvedValue({ id: 'pref-1' }),
             ...overrides.assistantBindingService
+        }
+        const promptWorkflowService = {
+            upsertInWorkspaceByKey: jest.fn(),
+            archiveInWorkspaceByKey: jest.fn(),
+            ...overrides.promptWorkflowService
         }
 
         return {
@@ -150,6 +161,7 @@ describe('XpertAuthoringService', () => {
             knowledgebaseService,
             skillPackageService,
             assistantBindingService,
+            promptWorkflowService,
             service: new XpertAuthoringService(
                 xpertService as any,
                 commandBus as any,
@@ -158,7 +170,8 @@ describe('XpertAuthoringService', () => {
                 xpertToolsetService as any,
                 knowledgebaseService as any,
                 skillPackageService as any,
-                assistantBindingService as any
+                assistantBindingService as any,
+                promptWorkflowService as any
             )
         }
     }
@@ -362,6 +375,7 @@ describe('XpertAuthoringService', () => {
                 summary: 'Created skill "Workspace Skill" in this workspace. It will be available from the next round.',
                 updatedDraftFragment: {
                     skill: {
+                        operation: 'created',
                         id: 'skill-1',
                         name: 'Workspace Skill',
                         workspaceId: 'workspace-1',
@@ -408,9 +422,7 @@ describe('XpertAuthoringService', () => {
         )
 
         expect(assistantBindingService.upsertBindingPreference).not.toHaveBeenCalled()
-        expect(result.warnings).toEqual([
-            'ClawXpert binding was not found, so skill preferences were not updated.'
-        ])
+        expect(result.warnings).toEqual(['ClawXpert binding was not found, so skill preferences were not updated.'])
     })
 
     it('rejects workspace skill creation when skillMarkdown is missing', async () => {
@@ -434,6 +446,247 @@ describe('XpertAuthoringService', () => {
             })
         )
         expect(skillPackageService.createWorkspaceSkillPackage).not.toHaveBeenCalled()
+    })
+
+    it('deletes a workspace skill package by id', async () => {
+        const { service, skillPackageService } = createService({
+            skillPackageService: {
+                uninstallSkillPackageInWorkspace: jest.fn().mockResolvedValue({ id: 'skill-1', uninstalled: true })
+            }
+        })
+
+        const result = await service.deleteSkillFromContext(
+            {
+                workspaceId: 'assistant-workspace',
+                env: {
+                    workspaceId: 'workspace-1'
+                }
+            },
+            {
+                skillId: 'skill-1',
+                skillName: 'Workspace Skill'
+            }
+        )
+
+        expect(skillPackageService.uninstallSkillPackageInWorkspace).toHaveBeenCalledWith('workspace-1', 'skill-1')
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: 'applied',
+                toolName: 'deleteSkill',
+                summary: 'Deleted skill "Workspace Skill" from this workspace.',
+                updatedDraftFragment: {
+                    skill: {
+                        operation: 'deleted',
+                        id: 'skill-1',
+                        workspaceId: 'workspace-1'
+                    }
+                }
+            })
+        )
+    })
+
+    it('deletes a workspace skill package by exact name after catalog lookup', async () => {
+        const { service, skillPackageService, queryBus } = createService({
+            skillPackageService: {
+                uninstallSkillPackageInWorkspace: jest.fn().mockResolvedValue({ id: 'skill-1', uninstalled: true })
+            },
+            queryBus: {
+                execute: jest.fn().mockResolvedValue([
+                    {
+                        id: 'skill-1',
+                        name: 'workspace-skill',
+                        metadata: {
+                            name: 'workspace-skill',
+                            displayName: {
+                                en_US: 'Workspace Skill'
+                            }
+                        }
+                    }
+                ])
+            }
+        })
+
+        const result = await service.deleteSkillFromContext(
+            {
+                env: {
+                    workspaceId: 'workspace-1'
+                }
+            },
+            {
+                skillName: 'Workspace Skill'
+            }
+        )
+
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 'workspace-1' }))
+        expect(skillPackageService.uninstallSkillPackageInWorkspace).toHaveBeenCalledWith('workspace-1', 'skill-1')
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: 'applied',
+                toolName: 'deleteSkill',
+                summary: 'Deleted skill "Workspace Skill" from this workspace.'
+            })
+        )
+    })
+
+    it('rejects skill deletion when name lookup is ambiguous', async () => {
+        const { service, skillPackageService } = createService({
+            queryBus: {
+                execute: jest.fn().mockResolvedValue([
+                    {
+                        id: 'skill-1',
+                        name: 'workspace-skill',
+                        metadata: {
+                            displayName: {
+                                en_US: 'Workspace Skill'
+                            }
+                        }
+                    },
+                    {
+                        id: 'skill-2',
+                        name: 'workspace-skill-copy',
+                        metadata: {
+                            displayName: {
+                                en_US: 'Workspace Skill'
+                            }
+                        }
+                    }
+                ])
+            }
+        })
+
+        const result = await service.deleteSkillFromContext(
+            {
+                env: {
+                    workspaceId: 'workspace-1'
+                }
+            },
+            {
+                skillName: 'Workspace Skill'
+            }
+        )
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: 'rejected',
+                toolName: 'deleteSkill',
+                summary:
+                    'Skill name "Workspace Skill" is ambiguous. Call getAvailableSkills first and pass the exact skillId.'
+            })
+        )
+        expect(skillPackageService.uninstallSkillPackageInWorkspace).not.toHaveBeenCalled()
+    })
+
+    it('creates or updates a prompt workflow through one key-based mutation path', async () => {
+        const { service, promptWorkflowService } = createService({
+            promptWorkflowService: {
+                upsertInWorkspaceByKey: jest.fn().mockResolvedValue({
+                    operation: 'updated',
+                    workflow: {
+                        id: 'workflow-1',
+                        workspaceId: 'workspace-1',
+                        name: 'review',
+                        label: 'Review',
+                        template: 'Review {{args}}.',
+                        archivedAt: null
+                    }
+                })
+            }
+        })
+
+        const result = await service.editPromptWorkflowFromContext(
+            {
+                workspaceId: 'assistant-workspace',
+                env: {
+                    workspaceId: 'workspace-1'
+                }
+            },
+            {
+                key: '/review',
+                label: 'Review',
+                template: 'Review {{args}}.',
+                tags: ['code', 'quality']
+            }
+        )
+
+        expect(promptWorkflowService.upsertInWorkspaceByKey).toHaveBeenCalledWith('workspace-1', 'review', {
+            label: 'Review',
+            template: 'Review {{args}}.',
+            tags: ['code', 'quality']
+        })
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: 'applied',
+                toolName: 'editPromptWorkflow',
+                summary: 'Updated prompt workflow "/review".',
+                updatedDraftFragment: {
+                    promptWorkflow: {
+                        operation: 'updated',
+                        id: 'workflow-1',
+                        workspaceId: 'workspace-1',
+                        key: 'review',
+                        label: 'Review',
+                        archivedAt: null
+                    }
+                }
+            })
+        )
+    })
+
+    it('archives a prompt workflow when delete is true', async () => {
+        const { service, promptWorkflowService } = createService({
+            promptWorkflowService: {
+                archiveInWorkspaceByKey: jest.fn().mockResolvedValue({
+                    operation: 'deleted',
+                    workflow: {
+                        id: 'workflow-1',
+                        workspaceId: 'workspace-1',
+                        name: 'review',
+                        label: 'Review',
+                        archivedAt: new Date('2026-05-04T00:00:00.000Z')
+                    }
+                })
+            }
+        })
+
+        const result = await service.editPromptWorkflowFromContext(
+            {
+                workspaceId: 'workspace-1'
+            },
+            {
+                key: 'review',
+                delete: true
+            }
+        )
+
+        expect(promptWorkflowService.archiveInWorkspaceByKey).toHaveBeenCalledWith('workspace-1', 'review')
+        expect(promptWorkflowService.upsertInWorkspaceByKey).not.toHaveBeenCalled()
+        expect(result).toMatchObject({
+            status: 'applied',
+            toolName: 'editPromptWorkflow',
+            summary: 'Deleted prompt workflow "/review".'
+        })
+    })
+
+    it('rejects prompt workflow mutation when workspaceId is missing', async () => {
+        const { service, promptWorkflowService } = createService()
+
+        const result = await service.editPromptWorkflowFromContext(
+            {},
+            {
+                key: 'review',
+                template: 'Review {{args}}.'
+            }
+        )
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: 'rejected',
+                toolName: 'editPromptWorkflow',
+                summary: 'Missing workspaceId for prompt workflow mutation.'
+            })
+        )
+        expect(promptWorkflowService.upsertInWorkspaceByKey).not.toHaveBeenCalled()
+        expect(promptWorkflowService.archiveInWorkspaceByKey).not.toHaveBeenCalled()
     })
 
     it('falls back to top-level workspaceId when env.workspaceId is absent', async () => {
@@ -1098,7 +1351,9 @@ connections: []`
             }
         )
 
-        const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+        const importCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof XpertImportCommand
+        )?.[0]
 
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(FindCopilotModelsQuery))
         expect(importCommand.draft.team.copilotModel).toEqual(
@@ -1368,7 +1623,8 @@ connections:
                 expect.objectContaining({
                     kind: 'model',
                     source: 'structure',
-                    message: 'middleware node "Middleware_Summarization" uses SummarizationMiddleware and must specify options.model.'
+                    message:
+                        'middleware node "Middleware_Summarization" uses SummarizationMiddleware and must specify options.model.'
                 })
             ])
         )
@@ -1730,7 +1986,9 @@ connections: []`
                 toolName: 'editXpert'
             })
         )
-        const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+        const importCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof XpertImportCommand
+        )?.[0]
         const kbNode = importCommand.draft.nodes.find((node) => node.key === 'KnowledgeBase_1')
         expect(kbNode.entity.copilotModel).toEqual(
             expect.objectContaining({
@@ -1901,7 +2159,9 @@ connections: []`
             }
         )
 
-        const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+        const importCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof XpertImportCommand
+        )?.[0]
         const middlewareNode = importCommand.draft.nodes.find((node) => node.key === 'Middleware_Summarization')
         expect(middlewareNode.entity.options.model).toEqual(
             expect.objectContaining({
@@ -2062,7 +2322,9 @@ connections: []`
             }
         )
 
-        const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+        const importCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof XpertImportCommand
+        )?.[0]
         const middlewareNode = importCommand.draft.nodes.find((node) => node.key === 'Middleware_Custom')
         expect(middlewareNode.entity.options.model).toEqual(
             expect.objectContaining({
@@ -2383,7 +2645,8 @@ connections:
             expect.objectContaining({
                 kind: 'validation',
                 source: 'structure',
-                message: 'Connection "Agent_current/Workflow_Code" targets "Workflow_Code" with unsupported type "workflow".'
+                message:
+                    'Connection "Agent_current/Workflow_Code" targets "Workflow_Code" with unsupported type "workflow".'
             })
         ])
         expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
@@ -2435,10 +2698,7 @@ connections:
                 validateName: jest.fn().mockResolvedValue(false),
                 validate: jest.fn().mockResolvedValue([]),
                 repository: {
-                    findOne: jest
-                        .fn()
-                        .mockResolvedValueOnce(persistedXpert)
-                        .mockResolvedValueOnce(persistedXpert)
+                    findOne: jest.fn().mockResolvedValueOnce(persistedXpert).mockResolvedValueOnce(persistedXpert)
                 }
             },
             commandBus
@@ -2468,7 +2728,9 @@ connections: []`
             }
         )
 
-        const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+        const importCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof XpertImportCommand
+        )?.[0]
 
         expect(importCommand.draft.team).toEqual(
             expect.objectContaining({

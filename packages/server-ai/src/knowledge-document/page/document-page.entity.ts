@@ -10,58 +10,58 @@ import { Knowledgebase } from '../../core/entities/internal'
 
 @Entity('knowledge_document_page')
 export class KnowledgeDocumentPage
-	extends TenantOrganizationBaseEntity
-	implements IKnowledgeDocumentPage<ChunkMetadata>
+    extends TenantOrganizationBaseEntity
+    implements IKnowledgeDocumentPage<ChunkMetadata>
 {
-	@ApiProperty({ type: () => Knowledgebase, readOnly: true })
-	@ManyToOne(() => Knowledgebase, {
-		nullable: true,
-		onUpdate: 'CASCADE',
-		onDelete: 'CASCADE'
-	})
-	@JoinColumn()
-	@IsOptional()
-	knowledgebase?: IKnowledgebase
+    @ApiProperty({ type: () => Knowledgebase, readOnly: true })
+    @ManyToOne(() => Knowledgebase, {
+        nullable: true,
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    })
+    @JoinColumn()
+    @IsOptional()
+    knowledgebase?: IKnowledgebase
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((it: KnowledgeDocumentPage) => it.knowledgebase)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	knowledgebaseId?: string
+    @ApiProperty({ type: () => String, readOnly: true })
+    @RelationId((it: KnowledgeDocumentPage) => it.knowledgebase)
+    @IsString()
+    @IsOptional()
+    @Column({ nullable: true })
+    knowledgebaseId?: string
 
-	@ApiProperty({ type: () => KnowledgeDocument, readOnly: true })
-	@ManyToOne(() => KnowledgeDocument, {
-		nullable: true,
-		onUpdate: 'CASCADE',
-		onDelete: 'CASCADE'
-	})
-	@JoinColumn()
-	@IsOptional()
-	document?: IKnowledgeDocument
+    @ApiProperty({ type: () => KnowledgeDocument, readOnly: true })
+    @ManyToOne(() => KnowledgeDocument, {
+        nullable: true,
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    })
+    @JoinColumn()
+    @IsOptional()
+    document?: IKnowledgeDocument
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((it: KnowledgeDocumentPage) => it.document)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	documentId?: string
+    @ApiProperty({ type: () => String, readOnly: true })
+    @RelationId((it: KnowledgeDocumentPage) => it.document)
+    @IsString()
+    @IsOptional()
+    @Column({ nullable: true })
+    documentId?: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	pageContent: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    pageContent: string
 
-	@ApiPropertyOptional({ type: () => Object })
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	metadata: ChunkMetadata
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    metadata: ChunkMetadata
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	status?: 'wasted' | 'validate' | 'running' | 'cancel' | 'finish' | 'error'
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ type: 'varchar', nullable: true })
+    status?: 'wasted' | 'validate' | 'running' | 'cancel' | 'finish' | 'error'
 }

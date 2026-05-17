@@ -7,6 +7,7 @@ import {
     IXpert,
     ModelFeature,
     ProviderModel,
+    TPromptWorkflow,
     TXpertTeamDraft,
     TXpertTeamNode,
     TXpertTeamConnection,
@@ -19,7 +20,7 @@ import {
     letterStartSUID,
     omitXpertRelations
 } from '@xpert-ai/contracts'
-import { yaml } from '@xpert-ai/server-common'
+import { compactObject, yaml } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -28,6 +29,7 @@ import { createHash } from 'crypto'
 import { AssistantBindingService } from '../../assistant-binding/assistant-binding.service'
 import { KnowledgebaseService } from '../../knowledgebase/knowledgebase.service'
 import { SkillPackageService } from '../../skill-package'
+import { PromptWorkflowKeyMutationResult, PromptWorkflowService } from '../../prompt-workflow'
 import { FindCopilotModelsQuery } from '../../copilot/queries'
 import { XpertAgentService } from '../../xpert-agent/xpert-agent.service'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
@@ -49,6 +51,8 @@ import {
     CopilotModelCatalogResult,
     CopilotModelCatalogSnapshot,
     CurrentXpertDslResult,
+    DeleteSkillPayload,
+    EditPromptWorkflowPayload,
     EditXpertPayload,
     KnowledgebaseCatalogItem,
     NewSkillPayload,
@@ -66,6 +70,11 @@ const WORKFLOW_TOP_INPUT_TYPES = new Set([
     WorkflowNodeTypeEnum.SKILL,
     WorkflowNodeTypeEnum.TASK
 ])
+
+type SkillNameResolution = {
+    status: 'missing' | 'ambiguous'
+    summary: string
+}
 const WORKFLOW_EDGE_INPUT_DISABLED_TYPES = new Set([
     WorkflowNodeTypeEnum.AGENT_TOOL,
     WorkflowNodeTypeEnum.MIDDLEWARE,
@@ -126,7 +135,8 @@ export class XpertAuthoringService {
         private readonly xpertToolsetService: XpertToolsetService,
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly skillPackageService: SkillPackageService,
-        private readonly assistantBindingService: AssistantBindingService
+        private readonly assistantBindingService: AssistantBindingService,
+        private readonly promptWorkflowService: PromptWorkflowService
     ) {}
 
     async getCurrentXpertFromContext(context: AuthoringAssistantRequestContext): Promise<CurrentXpertDslResult> {
@@ -473,6 +483,86 @@ export class XpertAuthoringService {
         }
     }
 
+    async deleteSkillFromContext(
+        context: AuthoringAssistantRequestContext,
+        payload: DeleteSkillPayload
+    ): Promise<AssistantDraftMutationResult> {
+        const toolName: AuthoringToolName = 'deleteSkill'
+        const workspaceId = this.requireWorkspaceId(context)
+        if (!workspaceId) {
+            return this.buildRejectedResult(toolName, 'Missing workspaceId for workspace skill deletion.', null, [
+                this.createDiagnostic('request', 'Missing workspaceId for workspace skill deletion.')
+            ])
+        }
+
+        const skillId = payload?.skillId?.trim()
+        const skillName = payload?.skillName?.trim()
+        if (!skillId && !skillName) {
+            return this.buildRejectedResult(
+                toolName,
+                'Missing skillId or skillName for workspace skill deletion.',
+                null,
+                [this.createDiagnostic('request', 'Missing skillId or skillName for workspace skill deletion.')]
+            )
+        }
+
+        const resolvedSkill = skillId
+            ? {
+                  id: skillId,
+                  label: skillName || skillId
+              }
+            : await this.resolveWorkspaceSkillForDeletion(workspaceId, skillName!)
+
+        if ('status' in resolvedSkill) {
+            return this.buildRejectedResult(toolName, resolvedSkill.summary, null, [
+                this.createDiagnostic('request', resolvedSkill.summary)
+            ])
+        }
+
+        try {
+            await this.skillPackageService.uninstallSkillPackageInWorkspace(workspaceId, resolvedSkill.id)
+
+            return this.buildAppliedDeletedSkillResult(workspaceId, resolvedSkill.id, resolvedSkill.label)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to delete workspace skill.'
+            return this.buildRejectedResult(toolName, message, null, [this.createDiagnostic('request', message)])
+        }
+    }
+
+    async editPromptWorkflowFromContext(
+        context: AuthoringAssistantRequestContext,
+        payload: EditPromptWorkflowPayload
+    ): Promise<AssistantDraftMutationResult> {
+        const toolName: AuthoringToolName = 'editPromptWorkflow'
+        const key = this.normalizePromptWorkflowKey(payload?.key)
+        if (!key) {
+            return this.buildRejectedResult(toolName, 'Missing or invalid prompt workflow key.', null, [
+                this.createDiagnostic('request', 'Missing or invalid prompt workflow key.')
+            ])
+        }
+
+        const workspaceId = this.requireWorkspaceId(context)
+        if (!workspaceId) {
+            return this.buildRejectedResult(toolName, 'Missing workspaceId for prompt workflow mutation.', null, [
+                this.createDiagnostic('request', 'Missing workspaceId for prompt workflow mutation.')
+            ])
+        }
+
+        try {
+            const result = payload?.delete
+                ? await this.promptWorkflowService.archiveInWorkspaceByKey(workspaceId, key)
+                : await this.promptWorkflowService.upsertInWorkspaceByKey(
+                      workspaceId,
+                      key,
+                      this.buildPromptWorkflowMutationInput(payload)
+                  )
+            return this.buildAppliedPromptWorkflowResult(result)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to mutate prompt workflow.'
+            return this.buildRejectedResult(toolName, message, null, [this.createDiagnostic('validation', message)])
+        }
+    }
+
     async editXpertFromContext(
         context: AuthoringAssistantRequestContext,
         payload: EditXpertPayload,
@@ -684,6 +774,7 @@ export class XpertAuthoringService {
             committedDraftHash: null,
             updatedDraftFragment: {
                 skill: {
+                    operation: 'created',
                     id: result.skillPackage.id ?? null,
                     name: packageName,
                     workspaceId: result.skillPackage.workspaceId ?? null,
@@ -693,6 +784,76 @@ export class XpertAuthoringService {
             },
             warnings
         }
+    }
+
+    private buildAppliedDeletedSkillResult(
+        workspaceId: string,
+        skillId: string,
+        label: string
+    ): AssistantDraftMutationResult {
+        return {
+            status: 'applied',
+            toolName: 'deleteSkill',
+            summary: `Deleted skill "${label}" from this workspace.`,
+            diagnostics: null,
+            syncMode: 'none',
+            conflictType: null,
+            requiresRefresh: false,
+            committedDraftHash: null,
+            updatedDraftFragment: {
+                skill: {
+                    operation: 'deleted',
+                    id: skillId,
+                    workspaceId
+                }
+            },
+            warnings: []
+        }
+    }
+
+    private buildAppliedPromptWorkflowResult(result: PromptWorkflowKeyMutationResult): AssistantDraftMutationResult {
+        const workflow = result.workflow
+        const key = workflow.name ? `/${workflow.name}` : 'prompt workflow'
+        const operationLabel =
+            result.operation === 'created' ? 'Created' : result.operation === 'updated' ? 'Updated' : 'Deleted'
+
+        return {
+            status: 'applied',
+            toolName: 'editPromptWorkflow',
+            summary: `${operationLabel} prompt workflow "${key}".`,
+            diagnostics: null,
+            syncMode: 'none',
+            conflictType: null,
+            requiresRefresh: false,
+            committedDraftHash: null,
+            updatedDraftFragment: {
+                promptWorkflow: {
+                    operation: result.operation,
+                    id: workflow.id ?? null,
+                    workspaceId: workflow.workspaceId ?? null,
+                    key: workflow.name ?? null,
+                    label: workflow.label ?? null,
+                    archivedAt: workflow.archivedAt ?? null
+                }
+            },
+            warnings: []
+        }
+    }
+
+    private buildPromptWorkflowMutationInput(
+        payload: EditPromptWorkflowPayload
+    ): Partial<Omit<TPromptWorkflow, 'name'>> {
+        return compactObject<Partial<Omit<TPromptWorkflow, 'name'>>>({
+            label: this.normalizeOptionalText(payload?.label),
+            description: this.normalizeOptionalText(payload?.description),
+            icon: payload?.icon,
+            category: this.normalizeOptionalText(payload?.category),
+            aliases: this.normalizeOptionalTextList(payload?.aliases),
+            argsHint: this.normalizeOptionalText(payload?.argsHint),
+            template: this.normalizeOptionalText(payload?.template),
+            tags: this.normalizeOptionalTextList(payload?.tags),
+            visibility: payload?.visibility
+        })
     }
 
     private buildCatalogResult<T>(
@@ -761,6 +922,60 @@ export class XpertAuthoringService {
 
         const workspaceId = typeof context.workspaceId === 'string' ? context.workspaceId.trim() : ''
         return workspaceId || null
+    }
+
+    private async resolveWorkspaceSkillForDeletion(
+        workspaceId: string,
+        skillName: string
+    ): Promise<SkillNameResolution | { id: string; label: string }> {
+        const normalizedName = skillName.trim().toLowerCase()
+        const skills = await this.queryBus.execute<ListWorkspaceSkillsQuery, ISkillPackage[]>(
+            new ListWorkspaceSkillsQuery(workspaceId)
+        )
+        const matches = skills.filter((skill) => this.skillMatchesName(skill, normalizedName))
+
+        if (!matches.length) {
+            return {
+                status: 'missing',
+                summary: `Skill "${skillName}" was not found in this workspace. Call getAvailableSkills first and pass skillId when possible.`
+            }
+        }
+
+        if (matches.length > 1) {
+            return {
+                status: 'ambiguous',
+                summary: `Skill name "${skillName}" is ambiguous. Call getAvailableSkills first and pass the exact skillId.`
+            }
+        }
+
+        const skill = matches[0]
+        if (!skill.id) {
+            return {
+                status: 'missing',
+                summary: `Skill "${skillName}" does not have a deletable skillId.`
+            }
+        }
+
+        return {
+            id: skill.id,
+            label: this.skillLabel(skill)
+        }
+    }
+
+    private skillMatchesName(skill: ISkillPackage, normalizedName: string) {
+        return this.skillSearchNames(skill).some((item) => item.toLowerCase() === normalizedName)
+    }
+
+    private skillSearchNames(skill: ISkillPackage) {
+        return [skill.id, skill.name, skill.metadata?.name, this.pickI18nText(skill.metadata?.displayName)].filter(
+            (item): item is string => typeof item === 'string' && Boolean(item.trim())
+        )
+    }
+
+    private skillLabel(skill: ISkillPackage) {
+        return (
+            this.pickI18nText(skill.metadata?.displayName) || skill.metadata?.name || skill.name || skill.id || 'Skill'
+        )
     }
 
     private async ensureClawXpertWorkspaceSkillPreference(workspaceId: string): Promise<string[]> {
@@ -1123,6 +1338,22 @@ export class XpertAuthoringService {
 
     private asRecord(value: unknown): Record<string, unknown> | null {
         return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
+    }
+
+    private normalizePromptWorkflowKey(value: unknown) {
+        return typeof value === 'string' && value.replace(/^\/+/, '').trim() ? value.replace(/^\/+/, '').trim() : null
+    }
+
+    private normalizeOptionalText(value: unknown) {
+        return typeof value === 'string' && value.trim() ? value.trim() : undefined
+    }
+
+    private normalizeOptionalTextList(value: unknown) {
+        if (!Array.isArray(value)) {
+            return undefined
+        }
+
+        return Array.from(new Set(value.map((item) => (typeof item === 'string' ? item.trim() : '')).filter(Boolean)))
     }
 
     private didConfiguredModelSelectionsChange(currentModelSelections: string[], candidateModelSelections: string[]) {

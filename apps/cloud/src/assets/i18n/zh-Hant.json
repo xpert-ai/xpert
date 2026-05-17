@@ -2294,7 +2294,10 @@
     "Chat": {
       "QuoteSelection": "引用選取內容",
       "RemoveReference": "移除引用",
-      "ContextCompression": "上下文壓縮...",
+      "ContextCompression": "正在自動壓縮上下文",
+      "ContextCompressed": "上下文已自動壓縮",
+      "ContextCompressionSkipped": "上下文無需壓縮",
+      "ContextCompressionFailed": "上下文壓縮失敗",
       "Input": "輸入",
       "Output": "輸出",
       "Terminal": "終端",
@@ -2765,8 +2768,11 @@
       "NewDocuments": "新增文檔",
       "EmbeddingModel": "嵌入模型",
       "ChangeEmbeddingModelDraftNotice": "換模型要重建，保存後會創建待重建模型。",
-      "ModelConfigurationManagedInSettings": "嵌入模型、視覺模型和重排模型請在知識庫配置頁統一設置。",
+      "ModelConfigurationManagedInSettings": "對話模型、嵌入模型、視覺模型和重排模型請在知識庫配置頁統一設置。",
       "OpenConfiguration": "打開配置頁",
+      "ChatModel": "對話模型",
+      "GraphChatModel": "對話模型",
+      "GraphChatModelFallback": "回退到主模型",
       "RerankModel": "重新排序模型",
       "VisionModel": "視覺模型",
       "Chunks": "分塊",
@@ -2933,6 +2939,7 @@
       "AddIntegrationHelp": "了解更多關於自定義集成的信息"
     },
     "Xpert": {
+      "AgentRunStatusReplied": "已回覆",
       "ExportXpertDSL": "導出數字專家 DSL",
       "UseDraft": "使用草稿",
       "UseDraftTooltip": "使用草稿版本導出",

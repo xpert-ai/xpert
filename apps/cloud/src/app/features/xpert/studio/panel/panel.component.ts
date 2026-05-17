@@ -14,6 +14,7 @@ import { XpertStudioPanelWorkflowComponent } from './workflow/workflow.component
 import { XpertStudioPanelAgentComponent } from './xpert-agent/agent.component'
 import { XpertStudioPanelXpertComponent } from './xpert/xpert.component'
 import { XpertStudioPanelEnvironmentComponent } from './environment/environment.component'
+import { XpertStudioPanelCommandsComponent } from './commands/commands.component'
 
 @Component({
   selector: 'xpert-studio-panel',
@@ -29,7 +30,8 @@ import { XpertStudioPanelEnvironmentComponent } from './environment/environment.
     XpertStudioPanelExecutionComponent,
     XpertStudioPanelVariablesComponent,
     XpertStudioPanelWorkflowComponent,
-    XpertStudioPanelEnvironmentComponent
+    XpertStudioPanelEnvironmentComponent,
+    XpertStudioPanelCommandsComponent
   ],
   templateUrl: './panel.component.html',
   styleUrl: './panel.component.scss',
@@ -41,7 +43,7 @@ export class XpertStudioPanelComponent {
   readonly executionService = inject(XpertExecutionService)
 
   // Inputs
-  readonly sidePanel = model<'preview' | 'variables' | 'environments'>(null)
+  readonly sidePanel = model<'preview' | 'variables' | 'environments' | 'commands'>(null)
   readonly executionId = this.executionService.panelExecutionId
 
   // States
@@ -81,7 +83,8 @@ export class XpertStudioPanelComponent {
     if (this.isResizing) {
       const offset = this.startX - event.clientX
       this.panelWidth.set(this.startWidth + offset)
-      if (this.panelWidth() < this.minPanelWidth) { // Set minimum width
+      if (this.panelWidth() < this.minPanelWidth) {
+        // Set minimum width
         this.panelWidth.set(this.minPanelWidth)
       }
       if (this.panelWidth() > this.maxPanelWidth) {

@@ -274,7 +274,7 @@ export class XpertStudioComponent {
   // Agent Execution Running status
   readonly executions = this.executionService.executions
   readonly toolMessages = this.executionService.toolMessages
-  readonly sidePanel = model<'preview' | 'variables'>()
+  readonly sidePanel = model<'preview' | 'variables' | 'environments' | 'commands'>()
   readonly showFeatures = model(false)
 
   readonly runningToolsets = computed<Array<{ key: string; agentKey: string; running: boolean }>>(
@@ -306,13 +306,11 @@ export class XpertStudioComponent {
       this.#assistantFacade?.clearStudioContext()
     })
 
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.xpertService.paramId.set(this.paramId())
-        }
+    effect(() => {
+      if (this.paramId()) {
+        this.xpertService.paramId.set(this.paramId())
       }
-    )
+    })
 
     effect(() => {
       if (!this.#assistantFacade) {
@@ -731,7 +729,9 @@ export class XpertStudioComponent {
   }
 
   private isCanvasGroupTarget(node: TXpertTeamNode | undefined): boolean {
-    return !!node && (node.type === 'xpert' || (node.type === 'workflow' && GROUP_NODE_TYPES.includes(node.entity.type)))
+    return (
+      !!node && (node.type === 'xpert' || (node.type === 'workflow' && GROUP_NODE_TYPES.includes(node.entity.type)))
+    )
   }
 
   private releaseInvalidParentNodes(): void {

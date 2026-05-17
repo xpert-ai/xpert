@@ -3,8 +3,6 @@
     class="flex items-center gap-0.5 bg-components-input-bg-normal rounded-lg p-1 border-[0.5px] border-solid border-transparent z-10"
     [style.margin-left.px]="(item.path.length - 1) * 10"
     [class.!border-orange-500]="!item.param.name"
-    [zTooltip]="item.param.title || item.param.description | i18n"
-    zPosition="left"
   >
     <xpert-parameter-icon [type]="item.param.type" />
     <input
@@ -15,6 +13,15 @@
       [ngModel]="item.param.name"
       (ngModelChange)="updateAttr(item, { name: $event })"
     />
+    @if (item.param.title || item.param.description) {
+      <div
+        class="w-6 h-6 shrink-0 rounded-lg flex justify-center items-center text-text-tertiary hover:bg-hover-bg"
+        [zTooltip]="item.param.title || item.param.description | i18n"
+        zPosition="top"
+      >
+        <i class="ri-question-line"></i>
+      </div>
+    }
     @if (item.param.type === eXpertParameterTypeEnum.OBJECT || item.param.type === eXpertParameterTypeEnum.ARRAY) {
       <div
         class="w-6 h-6 shrink-0 pressable cursor-pointer rounded-lg flex justify-center items-center hover:bg-hover-bg"

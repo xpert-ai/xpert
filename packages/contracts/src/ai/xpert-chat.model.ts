@@ -1,23 +1,14 @@
-import type { TChatRequestHuman, TInterruptCommand } from '@xpert-ai/chatkit-types'
-import { STATE_VARIABLE_HUMAN } from '@xpert-ai/chatkit-types'
+import type {
+  FollowUpBehavior,
+  TChatRequestHuman,
+  TXpertChatInterruptPatch,
+  TXpertChatResumeDecision,
+  TXpertChatResumeRequest,
+  TXpertChatState,
+  TXpertChatTarget
+} from '@xpert-ai/chatkit-types'
 
-export type TXpertFollowUpMode = 'queue' | 'steer'
-
-export type TXpertChatState = {
-  [STATE_VARIABLE_HUMAN]?: TChatRequestHuman
-} & Record<string, any>
-
-export type TXpertChatResumeDecision = {
-  type: 'confirm' | 'reject'
-  payload?: unknown
-}
-
-export type TXpertChatInterruptPatch = Pick<TInterruptCommand, 'agentKey' | 'toolCalls' | 'update'>
-
-export type TXpertChatTarget = {
-  aiMessageId?: string
-  executionId?: string
-}
+export type TXpertFollowUpMode = FollowUpBehavior
 
 export type TXpertChatSource = {
   aiMessageId?: string
@@ -34,15 +25,6 @@ export type TXpertChatSendRequest = {
     clientMessageId?: string
     input: TChatRequestHuman
   }
-  state?: TXpertChatState
-}
-
-export type TXpertChatResumeRequest = {
-  action: 'resume'
-  conversationId: string
-  target: TXpertChatTarget
-  decision: TXpertChatResumeDecision
-  patch?: TXpertChatInterruptPatch
   state?: TXpertChatState
 }
 

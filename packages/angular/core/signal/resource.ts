@@ -26,40 +26,38 @@ export function myResource<TReq, TRes>(options: ResourceOptions<TReq, TRes>) {
   })
 
   // Automatic effect monitors requestSig changes and executes loader
-  effect(
-    () => {
-      const requestVal = requestSig()
-      statusSig.set('loading')
-      errorSig.set(null)
-      options
-        .loader({ request: untracked(() => requestVal) }) // 避免循环依赖
-        .then((res) => {
-          valueSig.set(res)
-          statusSig.set('success')
-        })
-        .catch((err) => {
-          errorSig.set(err)
-          statusSig.set('error')
-        })
-    }
-  )
+  effect(() => {
+    const requestVal = requestSig()
+    statusSig.set('loading')
+    errorSig.set(null)
+    options
+      .loader({ request: untracked(() => requestVal) }) // 避免循环依赖
+      .then((res) => {
+        valueSig.set(res)
+        statusSig.set('success')
+      })
+      .catch((err) => {
+        errorSig.set(err)
+        statusSig.set('error')
+      })
+  })
 
   return {
     value: computed(() => valueSig()),
     error: computed(() => errorSig()),
     status: computed(() => statusSig()),
-    reload: () => refreshTrigger.set(refreshTrigger() + 1)
+    reload: () => untracked(() => refreshTrigger.set(refreshTrigger() + 1))
   }
 }
 
 interface RxResourceOptions<TReq, TRes> {
   request: () => TReq
-  options?: CreateComputedOptions<TReq> & {debounceTime?: number}
+  options?: CreateComputedOptions<TReq> & { debounceTime?: number }
   loader: (args: { request: TReq }) => Observable<TRes>
 }
 
 /**
- * 
+ *
  * @deprecated Will be replaced by the official `Resource` after upgrading to Angular 19
  */
 export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>) {
@@ -78,35 +76,33 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
   // Guaranteed resource release (avoiding subscription leaks)
   const destroyRef = inject(DestroyRef)
 
-  effect(
-    () => {
-      refreshTrigger()
-      const req = requestSig()
-      errorSig.set(null)
+  effect(() => {
+    refreshTrigger()
+    const req = requestSig()
+    errorSig.set(null)
 
-      // Cancel the previous subscription
-      if (currentSub) {
-        currentSub.unsubscribe()
-      }
-
-      const obs$ = options.loader({ request: untracked(() => req) })
-      if (!obs$) {
-        return
-      }
-
-      statusSig.set('loading')
-      currentSub = obs$.subscribe({
-        next: (res) => {
-          valueSig.set(res)
-          statusSig.set('success')
-        },
-        error: (err) => {
-          errorSig.set(err)
-          statusSig.set('error')
-        }
-      })
+    // Cancel the previous subscription
+    if (currentSub) {
+      currentSub.unsubscribe()
     }
-  )
+
+    const obs$ = options.loader({ request: untracked(() => req) })
+    if (!obs$) {
+      return
+    }
+
+    statusSig.set('loading')
+    currentSub = obs$.subscribe({
+      next: (res) => {
+        valueSig.set(res)
+        statusSig.set('success')
+      },
+      error: (err) => {
+        errorSig.set(err)
+        statusSig.set('error')
+      }
+    })
+  })
 
   // Guaranteed resource release (avoiding subscription leaks)
   destroyRef.onDestroy(() => {
@@ -119,6 +115,6 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
     value: computed(() => valueSig()),
     error: computed(() => getErrorMessage(errorSig())),
     status: computed(() => statusSig()),
-    reload: () => refreshTrigger.set(refreshTrigger() + 1)
+    reload: () => untracked(() => refreshTrigger.set(refreshTrigger() + 1))
   }
 }

@@ -1,0 +1,336 @@
+<div class="h-full flex flex-col gap-4 py-4 overflow-hidden">
+  <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+    <div>
+      <div class="text-2xl font-semibold text-text-primary">
+        {{ 'PAC.PromptWorkflow.Title' | translate: { Default: 'Prompt Workflows' } }}
+      </div>
+      <div class="mt-1 text-sm text-text-tertiary">
+        {{
+          'PAC.PromptWorkflow.Description'
+            | translate
+              : {
+                  Default:
+                    'Create reusable slash-command prompt workflows for this workspace, then enable and override them per Xpert.'
+                }
+        }}
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <button z-button type="button" zType="secondary" zSize="lg" [zDisabled]="loading()" (click)="refresh()">
+        <z-icon zType="refresh"></z-icon>
+        {{ 'PAC.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+      </button>
+      <button
+        z-button
+        type="button"
+        zType="default"
+        zSize="lg"
+        [zDisabled]="!canWriteWorkspace()"
+        (click)="createFromTemplate()"
+      >
+        <z-icon zType="plus"></z-icon>
+        {{ 'PAC.PromptWorkflow.NewWorkflow' | translate: { Default: 'New Workflow' } }}
+      </button>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-2">
+    @for (template of templates; track template.name) {
+      <button
+        z-button
+        type="button"
+        zType="outline"
+        [zDisabled]="!canWriteWorkspace()"
+        (click)="createFromTemplate(template)"
+      >
+        <z-icon zType="zap"></z-icon>
+        {{ displayTemplateLabel(template) }}
+      </button>
+    }
+  </div>
+
+  <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
+    <z-card
+      class="min-h-0 gap-0 overflow-hidden rounded-3xl border border-divider-regular bg-components-panel-bg py-0 shadow-none"
+    >
+      <div class="flex items-center justify-between gap-3 px-4 py-4">
+        <div>
+          <div class="text-sm font-semibold text-text-primary">
+            {{ 'PAC.PromptWorkflow.Library' | translate: { Default: 'Library' } }}
+          </div>
+          <div class="text-xs text-text-tertiary">
+            {{ filteredWorkflows().length }}
+            {{ 'PAC.PromptWorkflow.ActiveWorkflows' | translate: { Default: 'active workflows' } }}
+          </div>
+        </div>
+      </div>
+
+      <div class="min-h-0 max-h-full overflow-auto px-4 pb-4">
+        @if (filteredWorkflows().length) {
+          <div class="flex flex-col gap-3">
+            @for (workflow of filteredWorkflows(); track workflow.id) {
+              <article
+                class="group relative rounded-2xl border px-4 py-3 transition"
+                [class]="
+                  selectedId() === workflow.id
+                    ? 'border-components-input-border-active bg-hover-bg'
+                    : 'border-divider-regular bg-background-default hover:bg-background-default-subtle'
+                "
+              >
+                <button type="button" class="w-full text-left" (click)="selectWorkflow(workflow)">
+                  <div class="flex items-start gap-3">
+                    <div
+                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-components-card-bg"
+                    >
+                      <z-icon zType="message-circle-more" class="text-primary-500"></z-icon>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2">
+                        <div class="truncate text-sm font-semibold text-text-primary">/{{ workflow.name }}</div>
+                        <z-badge zType="secondary" class="text-[11px]">
+                          {{ displayVisibility(workflow.visibility) }}
+                        </z-badge>
+                      </div>
+                      <div class="mt-1 line-clamp-2 text-xs text-text-tertiary">
+                        {{ workflow.description || workflow.label || workflow.template }}
+                      </div>
+                      @if (workflow.tags?.length) {
+                        <div class="mt-2 flex flex-wrap gap-1">
+                          @for (tag of workflow.tags; track tag) {
+                            <z-badge zType="outline" class="text-[11px]">
+                              {{ tag }}
+                            </z-badge>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </button>
+              </article>
+            }
+          </div>
+        } @else {
+          <z-empty
+            class="min-h-[260px] rounded-2xl border border-dashed border-divider-regular"
+            zIcon="message-circle-more"
+            [zTitle]="'PAC.PromptWorkflow.EmptyTitle' | translate: { Default: 'No prompt workflows yet' }"
+            [zDescription]="
+              'PAC.PromptWorkflow.EmptyDesc'
+                | translate: { Default: 'Start from a template or create a workflow manually.' }
+            "
+          ></z-empty>
+        }
+      </div>
+    </z-card>
+
+    <z-card
+      class="min-h-0 gap-0 overflow-auto rounded-3xl border border-divider-regular bg-components-panel-bg py-0 shadow-none"
+    >
+      <div
+        class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-divider-regular bg-components-panel-bg px-5 py-4"
+      >
+        <div>
+          <div class="text-sm font-semibold text-text-primary">
+            {{
+              selectedId()
+                ? ('PAC.PromptWorkflow.EditWorkflow' | translate: { Default: 'Edit Workflow' })
+                : ('PAC.PromptWorkflow.CreateWorkflow' | translate: { Default: 'Create Workflow' })
+            }}
+          </div>
+          <div class="text-xs text-text-tertiary">
+            {{
+              'PAC.PromptWorkflow.EditorDesc'
+                | translate: { Default: 'Command names are stored without the leading slash.' }
+            }}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          @if (selectedWorkflow(); as selected) {
+            <button z-button type="button" zType="secondary" zSize="sm" (click)="loadUsage(selected)">
+              <z-icon zType="link"></z-icon>
+              {{ 'PAC.PromptWorkflow.Usage' | translate: { Default: 'Usage' } }}
+            </button>
+            <button z-button type="button" zType="secondary" zSize="sm" (click)="copySkillCommand(selected)">
+              <z-icon zType="copy"></z-icon>
+              {{ 'PAC.PromptWorkflow.ExportSkillCommand' | translate: { Default: 'Export Skill Command' } }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="grid gap-4 p-5">
+        <div class="grid gap-4 md:grid-cols-2">
+          <label class="field">
+            <span>{{ 'PAC.PromptWorkflow.Name' | translate: { Default: 'Name' } }}</span>
+            <input
+              z-input
+              [ngModel]="draft().name"
+              (ngModelChange)="updateDraft({ name: $event })"
+              [placeholder]="'PAC.PromptWorkflow.NameExample' | translate: { Default: 'review' }"
+            />
+          </label>
+          <label class="field">
+            <span>{{ 'PAC.PromptWorkflow.Label' | translate: { Default: 'Label' } }}</span>
+            <input
+              z-input
+              [ngModel]="draft().label"
+              (ngModelChange)="updateDraft({ label: $event })"
+              [placeholder]="'PAC.PromptWorkflow.LabelExample' | translate: { Default: 'Review' }"
+            />
+          </label>
+          <label class="field">
+            <span>{{ 'PAC.PromptWorkflow.Category' | translate: { Default: 'Category' } }}</span>
+            <input
+              z-input
+              [ngModel]="draft().category"
+              (ngModelChange)="updateDraft({ category: $event })"
+              [placeholder]="'PAC.PromptWorkflow.CategoryExample' | translate: { Default: 'prompt_workflow' }"
+            />
+          </label>
+          <label class="field">
+            <span>{{ 'PAC.PromptWorkflow.ArgsHint' | translate: { Default: 'Args Hint' } }}</span>
+            <input
+              z-input
+              [ngModel]="draft().argsHint"
+              (ngModelChange)="updateDraft({ argsHint: $event })"
+              [placeholder]="'PAC.PromptWorkflow.ArgsHintExample' | translate: { Default: '<args>' }"
+            />
+          </label>
+        </div>
+
+        <label class="field">
+          <span>{{ 'PAC.PromptWorkflow.DescriptionLabel' | translate: { Default: 'Description' } }}</span>
+          <input z-input [ngModel]="draft().description" (ngModelChange)="updateDraft({ description: $event })" />
+        </label>
+
+        <div class="grid gap-4 md:grid-cols-3">
+          <label class="field">
+            <span>{{ 'PAC.PromptWorkflow.VisibilityLabel' | translate: { Default: 'Visibility' } }}</span>
+            <z-select
+              [ngModel]="draft().visibility"
+              (ngModelChange)="updateDraft({ visibility: $event })"
+              [zPlaceholder]="'PAC.PromptWorkflow.VisibilityTeam' | translate: { Default: 'team' }"
+            >
+              <z-select-item zValue="private">{{
+                'PAC.PromptWorkflow.VisibilityPrivate' | translate: { Default: 'private' }
+              }}</z-select-item>
+              <z-select-item zValue="team">{{
+                'PAC.PromptWorkflow.VisibilityTeam' | translate: { Default: 'team' }
+              }}</z-select-item>
+              <z-select-item zValue="tenant">{{
+                'PAC.PromptWorkflow.VisibilityTenant' | translate: { Default: 'tenant' }
+              }}</z-select-item>
+            </z-select>
+          </label>
+          <label class="field md:col-span-2">
+            <span>{{ 'PAC.PromptWorkflow.Aliases' | translate: { Default: 'Aliases' } }}</span>
+            <input
+              z-input
+              [ngModel]="draft().aliasesText"
+              (ngModelChange)="updateDraft({ aliasesText: $event })"
+              [placeholder]="'PAC.PromptWorkflow.AliasesExample' | translate: { Default: 'audit, check' }"
+            />
+          </label>
+        </div>
+
+        <label class="field">
+          <span>{{ 'PAC.PromptWorkflow.Tags' | translate: { Default: 'Tags' } }}</span>
+          <input
+            z-input
+            [ngModel]="draft().tagsText"
+            (ngModelChange)="updateDraft({ tagsText: $event })"
+            [placeholder]="'PAC.PromptWorkflow.TagsExample' | translate: { Default: 'code, quality' }"
+          />
+        </label>
+
+        <label class="field">
+          <span>{{ 'PAC.PromptWorkflow.PromptTemplate' | translate: { Default: 'Prompt Template' } }}</span>
+          <textarea
+            z-input
+            class="min-h-[180px]"
+            [ngModel]="draft().template"
+            (ngModelChange)="updateDraft({ template: $event })"
+            [placeholder]="
+              'PAC.PromptWorkflow.PromptTemplatePlaceholder'
+                | translate: { args: '{{args}}', Default: 'Review {{args}}. Return actionable findings only.' }
+            "
+          ></textarea>
+        </label>
+
+        @if (validationMessage(); as message) {
+          <z-alert zType="destructive" [zDescription]="message"></z-alert>
+        }
+
+        @if (usage(); as usageItems) {
+          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle p-4">
+            <div class="text-sm font-semibold text-text-primary">
+              {{ 'PAC.PromptWorkflow.UsedBy' | translate: { Default: 'Used by Xperts' } }}
+            </div>
+            @if (usageItems.length) {
+              <div class="mt-3 flex flex-col gap-2">
+                @for (item of usageItems; track item.id) {
+                  <z-card
+                    class="flex-row items-center justify-between gap-2 bg-components-card-bg px-3 py-2 text-sm shadow-none"
+                  >
+                    <span class="truncate">{{ item.title || item.name }}</span>
+                    <z-badge zType="secondary">{{ displayUsageVersion(item.version) }}</z-badge>
+                  </z-card>
+                }
+              </div>
+            } @else {
+              <div class="mt-2 text-sm text-text-tertiary">
+                {{ 'PAC.PromptWorkflow.NotUsed' | translate: { Default: 'No Xpert is using this workflow yet.' } }}
+              </div>
+            }
+          </div>
+        }
+
+        <div class="flex flex-wrap justify-between gap-2 border-t border-divider-regular pt-4">
+          <div class="flex gap-2">
+            @if (selectedWorkflow(); as selected) {
+              <button
+                z-button
+                type="button"
+                zType="secondary"
+                zSize="sm"
+                [zDisabled]="!canWriteWorkspace()"
+                (click)="duplicate(selected)"
+              >
+                <z-icon zType="copy"></z-icon>
+                {{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}
+              </button>
+              <button
+                z-button
+                type="button"
+                zType="destructive"
+                zSize="sm"
+                [zDisabled]="!canWriteWorkspace()"
+                (click)="archive(selected)"
+              >
+                <z-icon zType="archive"></z-icon>
+                {{ 'PAC.ACTIONS.Archive' | translate: { Default: 'Archive' } }}
+              </button>
+            }
+          </div>
+          <button
+            z-button
+            type="button"
+            zType="default"
+            zSize="lg"
+            [zDisabled]="!canWriteWorkspace() || !!validationMessage() || saving()"
+            [zLoading]="saving()"
+            (click)="save()"
+          >
+            <z-icon zType="save"></z-icon>
+            {{
+              saving()
+                ? ('PAC.ACTIONS.Saving' | translate: { Default: 'Saving' })
+                : ('PAC.ACTIONS.Save' | translate: { Default: 'Save' })
+            }}
+          </button>
+        </div>
+      </div>
+    </z-card>
+  </div>
+</div>

@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
-import { RedisModule, TenantModule, UserGroupModule, UserModule } from '@xpert-ai/server-core'
+import { RedisModule, SecretTokenModule, TenantModule, UserGroupModule, UserModule } from '@xpert-ai/server-core'
 import { XpertController } from './xpert.controller'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
@@ -27,6 +27,10 @@ import { AssistantBindingModule } from '../assistant-binding/assistant-binding.m
 import { AgentViewHostDefinition } from '../view-extension/hosts/agent-view-host.definition'
 import { SkillPackageModule } from '../skill-package'
 import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
+import { PromptWorkflowModule } from '../prompt-workflow'
+import { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
+import { RuntimeCommandService } from '../ai/runtime-command.service'
+import { SseStreamModule } from '../shared/stream'
 
 @Module({
     imports: [
@@ -34,6 +38,7 @@ import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
         TypeOrmModule.forFeature([Xpert]),
         DiscoveryModule,
         TenantModule,
+        SecretTokenModule,
         CqrsModule,
         RedisModule,
         forwardRef(() => KnowledgebaseModule),
@@ -46,10 +51,12 @@ import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
         forwardRef(() => AssistantBindingModule),
         XpertTemplateModule,
         SkillPackageModule,
+        PromptWorkflowModule,
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,
-        HandoffQueueModule
+        HandoffQueueModule,
+        SseStreamModule
     ],
     controllers: [XpertController],
     providers: [
@@ -61,6 +68,8 @@ import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
         PublishedXpertAccessService,
         XpertAuthoringService,
         XpertAuthoringMiddleware,
+        RuntimeCommandService,
+        RuntimeCapabilitiesService,
         ...CommandHandlers,
         ...QueryHandlers
     ],

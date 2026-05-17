@@ -18,6 +18,7 @@ import {
     TXpertAgentConfig,
     TXpertExportedTemplate,
     TXpertFeatures,
+    TXpertCommandProfile,
     TXpertGraph,
     TXpertOptions,
     TXpertTeamDraft,
@@ -133,6 +134,12 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
     @IsOptional()
     @Column({ type: 'json', nullable: true })
     features?: TXpertFeatures
+
+    @ApiPropertyOptional({ type: () => Object })
+    @IsObject()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    commandProfile?: TXpertCommandProfile
 
     // Versions
     @ApiPropertyOptional({ type: () => String })

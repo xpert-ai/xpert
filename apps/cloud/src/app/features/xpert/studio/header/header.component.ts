@@ -53,7 +53,7 @@ import { OverlayAnimations } from '@xpert-ai/core'
     ZardSliderComponent,
     TranslateModule,
     NgmSpinComponent,
-    ChecklistComponent,
+    ChecklistComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
@@ -73,7 +73,7 @@ export class XpertStudioHeaderComponent {
   readonly #viewContainerRef = inject(ViewContainerRef)
 
   // Inputs
-  readonly sidePanel = model<'preview' | 'variables' | 'environments'>(null)
+  readonly sidePanel = model<'preview' | 'variables' | 'environments' | 'commands'>(null)
   readonly showFeatures = model(false)
 
   readonly team = computed(() => this.xpertStudioComponent.team())
@@ -178,6 +178,10 @@ export class XpertStudioHeaderComponent {
   }
   toggleEnvs() {
     this.sidePanel.update((state) => (state === 'environments' ? null : 'environments'))
+  }
+
+  toggleCommands() {
+    this.sidePanel.update((state) => (state === 'commands' ? null : 'commands'))
   }
 
   toggleFeatures() {

@@ -1,4 +1,5 @@
 import { SecretTokenStrategy } from './secret-token.strategy'
+import { SecretTokenBindingType } from '@xpert-ai/contracts'
 
 jest.mock('../api-key/api-key.service', () => ({
 	ApiKeyService: class ApiKeyService {}
@@ -37,26 +38,31 @@ describe('SecretTokenStrategy', () => {
 				principalType: 'client_secret'
 			})
 		}
+		const userService = {
+			findOneByIdWithinTenant: jest.fn().mockResolvedValue({
+				id: 'end-user-1',
+				tenantId: 'tenant-1',
+				type: 'communication'
+			})
+		}
 
 		return {
-			strategy: new SecretTokenStrategy(
-				secretTokenService as any,
-				apiKeyService as any
-			),
+			strategy: new SecretTokenStrategy(secretTokenService as any, apiKeyService as any, userService as any),
 			secretTokenService,
-			apiKeyService
+			apiKeyService,
+			userService
 		}
 	}
 
 	async function authenticate(strategy: SecretTokenStrategy, req: Record<string, unknown>) {
 		return new Promise<unknown>((resolve, reject) => {
-			jest.spyOn(strategy as any, 'success').mockImplementation((principal: unknown) => {
+			;(strategy as any).success = jest.fn((principal: unknown) => {
 				resolve(principal)
 			})
-			jest.spyOn(strategy as any, 'fail').mockImplementation((error: unknown) => {
+			;(strategy as any).fail = jest.fn((error: unknown) => {
 				reject(error)
 			})
-			jest.spyOn(strategy as any, 'error').mockImplementation((error: unknown) => {
+			;(strategy as any).error = jest.fn((error: unknown) => {
 				reject(error)
 			})
 
@@ -106,5 +112,57 @@ describe('SecretTokenStrategy', () => {
 
 		expect(req.headers['organization-id']).toBeUndefined()
 		expect(req.headers['x-scope-level']).toBe(TENANT_SCOPE)
+	})
+
+	it('resolves public xpert client secrets without loading an api key', async () => {
+		const { strategy, secretTokenService, apiKeyService, userService } = createStrategy(null)
+		secretTokenService.findOneByOptions.mockResolvedValue({
+			id: 'secret-token-1',
+			type: SecretTokenBindingType.PUBLIC_XPERT,
+			entityId: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			createdById: 'anonymous-user-1',
+			validUntil: new Date(Date.now() + 60_000),
+			expired: false
+		})
+		userService.findOneByIdWithinTenant.mockResolvedValue({
+			id: 'anonymous-user-1',
+			tenantId: 'tenant-1',
+			type: 'communication'
+		})
+		const req = {
+			headers: {
+				'x-client-secret': 'cs-x-public',
+				'organization-id': 'org-other'
+			}
+		}
+
+		const principal = await authenticate(strategy, req)
+
+		expect(apiKeyService.findOneOrFailByIdString).not.toHaveBeenCalled()
+		expect(userService.findOneByIdWithinTenant).toHaveBeenCalledWith(
+			'anonymous-user-1',
+			'tenant-1',
+			expect.objectContaining({
+				relations: ['role', 'role.rolePermissions', 'employee']
+			})
+		)
+		expect(principal).toMatchObject({
+			id: 'anonymous-user-1',
+			tenantId: 'tenant-1',
+			principalType: 'client_secret',
+			clientSecretBindingType: 'public_xpert',
+			clientSecretId: 'secret-token-1',
+			requestedOrganizationId: 'org-1',
+			apiKey: {
+				type: 'assistant',
+				entityId: 'xpert-1'
+			}
+		})
+		expect(req.headers).toMatchObject({
+			'organization-id': 'org-1',
+			'x-scope-level': ORGANIZATION_SCOPE
+		})
 	})
 })

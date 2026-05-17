@@ -22,6 +22,7 @@ import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
 import { Strategies, Validators as PluginValidators } from './plugins'
 import { SkillPackageModule } from '../skill-package'
+import { PromptWorkflowModule } from '../prompt-workflow'
 
 @Module({
     imports: [
@@ -37,7 +38,8 @@ import { SkillPackageModule } from '../skill-package'
         forwardRef(() => XpertModule),
         forwardRef(() => EnvironmentModule),
         ExecutionCancelModule,
-        SkillPackageModule
+        SkillPackageModule,
+        forwardRef(() => PromptWorkflowModule)
     ],
     controllers: [XpertAgentController],
     providers: [

@@ -15,66 +15,68 @@ import { XpertTool } from './xpert-tool.entity'
 
 @Injectable()
 export class XpertToolService extends TenantOrganizationAwareCrudService<XpertTool> {
-	readonly #logger = new Logger(XpertToolService.name)
+    readonly #logger = new Logger(XpertToolService.name)
 
-	constructor(
-		@InjectRepository(XpertTool)
-		repository: Repository<XpertTool>,
-		private readonly toolsetService: XpertToolsetService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {
-		super(repository)
-	}
+    constructor(
+        @InjectRepository(XpertTool)
+        repository: Repository<XpertTool>,
+        private readonly toolsetService: XpertToolsetService,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus
+    ) {
+        super(repository)
+    }
 
-	async getTool(id: string, options?: Partial<PaginationParams<XpertTool>>) {
-		let { relations } = options ?? {}
-		relations ??= []
-		relations.push('toolset')
+    async getTool(id: string, options?: Partial<PaginationParams<XpertTool>>) {
+        let { relations } = options ?? {}
+        relations ??= []
+        relations.push('toolset')
 
-		const tool = await this.findOne(id, { relations: uniq(relations) })
+        const tool = await this.findOne(id, { relations: uniq(relations) })
 
-		if (tool.toolset.category === XpertToolsetCategoryEnum.BUILTIN) {
-			const toolDetails = await this.queryBus.execute<ListBuiltinToolsQuery, IBuiltinTool[]>(
-				new ListBuiltinToolsQuery(tool.toolset.type, [tool.name])
-			)
-			tool.provider = toolDetails[0]
-		}
+        if (tool.toolset.category === XpertToolsetCategoryEnum.BUILTIN) {
+            const toolDetails = await this.queryBus.execute<ListBuiltinToolsQuery, IBuiltinTool[]>(
+                new ListBuiltinToolsQuery(tool.toolset.type, [tool.name])
+            )
+            tool.provider = toolDetails[0]
+        }
 
-		return tool
-	}
+        return tool
+    }
 
-	async testTool(tool: Partial<IXpertTool>) {
-		let toolset = null
-		if (tool.toolsetId) {
-			toolset = await this.toolsetService.findOne(tool.toolsetId)
-		}
-		let toolDetail = null
-		if (tool.id) {
-			toolDetail = await this.findOne(tool.id)
-		}
+    async testTool(tool: Partial<IXpertTool>) {
+        let toolset = null
+        if (tool.toolsetId) {
+            toolset = await this.toolsetService.findOne(tool.toolsetId)
+        }
+        let toolDetail = null
+        if (tool.id) {
+            toolDetail = await this.findOne(tool.id)
+        }
 
-		return await this.commandBus.execute(
-			new ToolInvokeCommand({
-				...(toolDetail ?? {}),
-				...omit(tool, 'toolset'),
-				toolset: toolset ?? tool.toolset
-			})
-		)
-	}
+        return await this.commandBus.execute(
+            new ToolInvokeCommand({
+                ...(toolDetail ?? {}),
+                ...omit(tool, 'toolset'),
+                toolset: toolset ?? tool.toolset
+            })
+        )
+    }
 
-	async getParamsFaker(id: string) {
-		const tool = await this.getTool(id, { relations: ['toolset'] })
-		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
-			new ToolsetGetToolsCommand([tool.toolsetId])
-		)
-		const toolset = toolsets[0]
-		await toolset.initTools()
-		const toolInstance = toolset.getTool(tool.name)
-		const jsonSchema =
-			(<DynamicStructuredTool>toolInstance).lc_kwargs?.schema ??
-			ToolSchemaParser.parseZodToJsonSchema(toolInstance.schema)
-		const sample = JSONSchemaFaker.generate(jsonSchema as Schema)
-		return sample
-	}
+    async getParamsFaker(id: string) {
+        const tool = await this.getTool(id, { relations: ['toolset'] })
+        const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
+            new ToolsetGetToolsCommand([tool.toolsetId], {
+                workspaceId: tool.toolset?.workspaceId
+            })
+        )
+        const toolset = toolsets[0]
+        await toolset.initTools()
+        const toolInstance = toolset.getTool(tool.name)
+        const jsonSchema =
+            (<DynamicStructuredTool>toolInstance).lc_kwargs?.schema ??
+            ToolSchemaParser.parseZodToJsonSchema(toolInstance.schema)
+        const sample = JSONSchemaFaker.generate(jsonSchema as Schema)
+        return sample
+    }
 }

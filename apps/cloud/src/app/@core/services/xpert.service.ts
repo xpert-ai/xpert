@@ -36,6 +36,7 @@ import {
   TChatRequest,
   TDeleteResult,
   TXpertExportedTemplate,
+  TXpertCommandProfile,
   TWorkflowVarGroup,
   TXpertTeamDraft,
   XpertTypeEnum
@@ -43,6 +44,7 @@ import {
 import { injectFetchEventSource } from './fetch-event-source'
 import { appendOrganizationIdQueryParam } from './query-params'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
+import type { IAiAssistantRuntimeCapabilities } from './ai-assistant.service'
 
 export type TXpertVariablesOptions = {
   environmentId: string
@@ -53,6 +55,7 @@ export type TXpertVariablesOptions = {
   isDraft?: boolean
   connections: string[]
   inputs?: string[]
+  revision?: number
 }
 
 export type TSandboxProvider = {
@@ -108,6 +111,31 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   saveDraft(id: string, draft: TXpertTeamDraft) {
     return this.httpClient.post<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
+  }
+
+  getCommandProfile(id: string) {
+    return this.httpClient.get<{
+      profile: TXpertCommandProfile
+      runtime: {
+        hasProfile: boolean
+        xpertCommands: unknown[]
+        workspaceCommands: unknown[]
+        preferredSkillEntries?: unknown[]
+        skillEntries: unknown[]
+      }
+    }>(this.apiBaseUrl + `/${id}/commands`)
+  }
+
+  getRuntimeCapabilities(id: string, options?: { isDraft?: boolean }) {
+    const params = options?.isDraft == null ? undefined : new HttpParams().set('isDraft', String(options.isDraft))
+
+    return this.httpClient.get<IAiAssistantRuntimeCapabilities>(this.apiBaseUrl + `/${id}/runtime-capabilities`, {
+      params
+    })
+  }
+
+  updateCommandProfile(id: string, profile: TXpertCommandProfile) {
+    return this.httpClient.put<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/commands`, profile)
   }
 
   upadteDraft(id: string, draft: TXpertTeamDraft) {

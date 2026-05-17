@@ -1,4 +1,3 @@
-
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -12,9 +11,11 @@ import {
   AiModelTypeEnum,
   DateRelativePipe,
   DocumentMetadata,
+  GraphRagRetrievalMode,
   IKnowledgeRetrievalLog,
   KnowledgebaseService,
   OrderTypeEnum,
+  TKBRetrievalSettings,
   ToastrService,
   getErrorMessage,
   injectHelpWebsite,
@@ -38,7 +39,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     DateRelativePipe,
     KnowledgeChunkComponent,
     KnowledgeRetrievalSettingsComponent
-],
+  ],
   animations: [routeAnimations]
 })
 export class KnowledgeTestComponent {
@@ -54,6 +55,18 @@ export class KnowledgeTestComponent {
   readonly recall = computed(() => this.knowledgebase()?.recall)
   readonly score = computed(() => this.recall()?.score)
   readonly topK = computed(() => this.recall()?.topK)
+  readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'graph', 'hybrid']
+  readonly retrievalMode = model<GraphRagRetrievalMode>('vector')
+  readonly retrievalSettings = computed<TKBRetrievalSettings>(() => {
+    const graphRag = this.knowledgebase()?.graphRag
+    return {
+      mode: this.retrievalMode(),
+      entityTopK: graphRag?.entityTopK,
+      neighborHops: graphRag?.neighborHops,
+      graphWeight: graphRag?.graphWeight,
+      communityTopK: graphRag?.communityTopK
+    }
+  })
 
   readonly query = model<string>('')
   readonly results = signal<DocumentInterface<DocumentMetadata>[]>(null)
@@ -84,7 +97,12 @@ export class KnowledgeTestComponent {
     this.#loading.set(true)
     this.error.set(null)
     this.knowledgebaseAPI
-      .test(this.knowledgebase().id, { query: this.query(), k: this.topK() ?? 10, score: this.score() })
+      .test(this.knowledgebase().id, {
+        query: this.query(),
+        k: this.topK() ?? 10,
+        score: this.score(),
+        retrieval: this.retrievalSettings()
+      })
       .subscribe({
         next: (results) => {
           this.results.set(results)

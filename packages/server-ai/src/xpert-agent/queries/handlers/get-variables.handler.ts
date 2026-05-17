@@ -40,6 +40,7 @@ import {
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { getXpertAgent } from '../../../xpert/utils'
 import { _BaseToolset, ARRAY_FILE_ITEMS } from '../../../shared'
+import { refreshWorkflowInputVariableGroups } from './get-variables.utils'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -222,6 +223,46 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                         }
                     },
                     {
+                        name: 'workspace_root',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Workspace Root',
+                            zh_Hans: '工作区根路径'
+                        }
+                    },
+                    {
+                        name: 'shared_workspace_path',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Shared Workspace Path',
+                            zh_Hans: '共享工作区路径'
+                        }
+                    },
+                    {
+                        name: 'agent_workspace_path',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Agent Workspace Path',
+                            zh_Hans: 'Agent 工作区路径'
+                        }
+                    },
+                    {
+                        name: 'session_workspace_path',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Session Workspace Path',
+                            zh_Hans: '会话工作区路径'
+                        }
+                    },
+                    {
+                        name: 'memory_workspace_path',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Xpert Memory Workspace Path',
+                            zh_Hans: 'Xpert 记忆工作区路径'
+                        }
+                    },
+                    {
                         name: 'workspace_url',
                         type: XpertParameterTypeEnum.STRING,
                         description: {
@@ -293,6 +334,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
         const processedAgentKeys = new Set<string>()
         const processedWorkflowKeys = new Set<string>()
+        const workflowEntitiesByKey = new Map<string, IWorkflowNode>()
 
         for await (const graph of graphsForVariables) {
             const isCurrentGraph = graph === currentGraph
@@ -324,7 +366,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
                     // Add toolset's states into global variables
                     const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
-                        new ToolsetGetToolsCommand(agent.toolsetIds)
+                        new ToolsetGetToolsCommand(agent.toolsetIds, {
+                            workspaceId: agent.team?.workspaceId
+                        })
                     )
                     for await (const toolset of toolsets) {
                         const toolVars = await toolset.getVariables()
@@ -358,6 +402,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                     processedWorkflowKeys.add(node.key)
 
                     const entity = node.entity as IWorkflowNode
+                    workflowEntitiesByKey.set(entity.key, entity)
                     const variables: TXpertParameter[] = []
                     const varGroup: TWorkflowVarGroup = {
                         group: {
@@ -443,6 +488,10 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
             }
         }
 
+        if (type === 'output' && inputKeys.size) {
+            refreshWorkflowInputVariableGroups(varGroups, workflowEntitiesByKey, inputKeys, this.nodeRegistry)
+        }
+
         return varGroups
     }
 
@@ -459,7 +508,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
         }
 
         const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
-            new ToolsetGetToolsCommand(agent.toolsetIds)
+            new ToolsetGetToolsCommand(agent.toolsetIds, {
+                workspaceId: agent.team?.workspaceId
+            })
         )
 
         if (agent.parameters) {

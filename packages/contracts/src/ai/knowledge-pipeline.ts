@@ -10,7 +10,7 @@ export interface IDocumentNodeProvider {
   icon?: IconDefinition
   description?: I18nObject
   helpUrl?: string
-  configSchema: any;
+  configSchema: any
 }
 
 /**
@@ -55,47 +55,44 @@ export interface IDocumentProcessorProvider extends IDocumentNodeProvider {}
 export interface IDocumentChunkerProvider extends IDocumentNodeProvider {}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface IDocumentUnderstandingProvider extends IDocumentNodeProvider {
-
-}
-
+export interface IDocumentUnderstandingProvider extends IDocumentNodeProvider {}
 
 /**
  * Knowledge Pipeline Source Node
  */
 export interface IWFNSource<T = any> extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.SOURCE,
+  type: WorkflowNodeTypeEnum.SOURCE
   provider: string
-  parameters?: TXpertParameter[];
-  config: T;
+  parameters?: TXpertParameter[]
+  config: T
   integrationId?: string
 }
 
 export interface IWFNProcessor extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.PROCESSOR,
+  type: WorkflowNodeTypeEnum.PROCESSOR
   provider: string
-  config: any;
+  config: any
   input: string
   integrationId?: string
 }
 
 export interface IWFNChunker extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.CHUNKER,
+  type: WorkflowNodeTypeEnum.CHUNKER
   provider: string
-  config: any;
+  config: any
   input: string
 }
 
 export interface IWFNUnderstanding extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.UNDERSTANDING,
+  type: WorkflowNodeTypeEnum.UNDERSTANDING
   provider: string
-  config: any;
+  config: any
   input: string
   visionModel?: ICopilotModel
 }
 
 export interface IWFNKnowledgeBase extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
+  type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE
   /**
    * @deprecated
    */
@@ -112,6 +109,11 @@ export interface IWFNKnowledgeBase extends IWorkflowNode {
    * @deprecated Configure rerank model on the knowledgebase.
    */
   rerankModel?: ICopilotModel
+
+  /**
+   * @deprecated Configure chat model on the knowledgebase.
+   */
+  chatModel?: ICopilotModel
 
   /**
    * @deprecated Configure vision model on the knowledgebase.

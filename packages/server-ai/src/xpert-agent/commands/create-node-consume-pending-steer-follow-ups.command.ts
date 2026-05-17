@@ -1,5 +1,5 @@
 import type { RunnableLambda } from '@langchain/core/runnables'
-import { IXpertAgent } from '@xpert-ai/contracts'
+import { IXpert, IXpertAgent } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from '../../shared'
@@ -7,6 +7,7 @@ import { AgentStateAnnotation } from '../../shared'
 export type TCreateNodeConsumePendingSteerFollowUpsCommandInput = {
     agentKey: string
     agentChannel: string
+    xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile'>
     subscriber?: Subscriber<MessageEvent>
     attachmentOptions?: IXpertAgent['options']['attachment'] | IXpertAgent['options']['vision']
 }

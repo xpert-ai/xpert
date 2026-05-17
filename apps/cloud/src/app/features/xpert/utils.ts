@@ -6,8 +6,7 @@ import { letterStartSUID, OrderTypeEnum, WorkflowNodeTypeEnum, XpertAPIService }
 
 type EventDetail<T> = T extends CustomEvent<infer Detail> ? Detail : never
 
-export type ChatKitEffectEvent =
-  Parameters<NonNullable<ChatKitEventHandlers['onEffect']>>[0] &
+export type ChatKitEffectEvent = Parameters<NonNullable<ChatKitEventHandlers['onEffect']>>[0] &
   EventDetail<ChatKitEvents['chatkit.effect']>
 
 export function getChatKitEffectData(event: ChatKitEffectEvent): Record<string, unknown> | null {
@@ -25,6 +24,54 @@ export function getChatKitEffectXpertId(event: ChatKitEffectEvent): string | nul
   return typeof xpertId === 'string' && xpertId.trim() ? xpertId.trim() : null
 }
 
+export type ChatKitPromptWorkflowEffect = {
+  workspaceId: string
+  workflowId: string | null
+  key: string | null
+  operation: 'created' | 'updated' | 'deleted' | null
+}
+
+export function getChatKitPromptWorkflowEffect(event: ChatKitEffectEvent): ChatKitPromptWorkflowEffect | null {
+  const data = getChatKitEffectData(event)
+  const workspaceId = data?.['workspaceId']
+  if (typeof workspaceId !== 'string' || !workspaceId.trim()) {
+    return null
+  }
+
+  const workflowId = data?.['workflowId']
+  const key = data?.['key']
+  const operation = data?.['operation']
+
+  return {
+    workspaceId: workspaceId.trim(),
+    workflowId: typeof workflowId === 'string' && workflowId.trim() ? workflowId.trim() : null,
+    key: typeof key === 'string' && key.trim() ? key.trim() : null,
+    operation: operation === 'created' || operation === 'updated' || operation === 'deleted' ? operation : null
+  }
+}
+
+export type ChatKitWorkspaceSkillEffect = {
+  workspaceId: string
+  skillId: string | null
+  operation: 'created' | 'deleted' | null
+}
+
+export function getChatKitWorkspaceSkillEffect(event: ChatKitEffectEvent): ChatKitWorkspaceSkillEffect | null {
+  const data = getChatKitEffectData(event)
+  const workspaceId = data?.['workspaceId']
+  if (typeof workspaceId !== 'string' || !workspaceId.trim()) {
+    return null
+  }
+
+  const skillId = data?.['skillId']
+  const operation = data?.['operation']
+  return {
+    workspaceId: workspaceId.trim(),
+    skillId: typeof skillId === 'string' && skillId.trim() ? skillId.trim() : null,
+    operation: operation === 'created' || operation === 'deleted' ? operation : null
+  }
+}
+
 export function injectGetXpertTeam() {
   const xpertService = inject(XpertAPIService)
 
@@ -39,7 +86,7 @@ export function injectGetXpertTeam() {
         'executors.agent',
         'executors.copilotModel',
         'copilotModel',
-        'knowledgebase',
+        'knowledgebase'
       ]
     })
   }

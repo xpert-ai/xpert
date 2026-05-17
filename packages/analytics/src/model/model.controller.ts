@@ -51,13 +51,17 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { Request, Response } from 'express'
 import { Between, FindOneOptions } from 'typeorm'
 import { VisitCreateCommand } from '../visit/commands'
-import { SemanticModelCacheDeleteCommand, SemanticModelCreateCommand, SemanticModelPublishCommand, SemanticModelUpdateCommand } from './commands'
+import {
+	SemanticModelCacheDeleteCommand,
+	SemanticModelCreateCommand,
+	SemanticModelPublishCommand,
+	SemanticModelUpdateCommand
+} from './commands'
 import { CreateSemanticModelDTO, SemanticModelDTO, SemanticModelPublicDTO, UpdateSemanticModelDTO } from './dto/index'
 import { SemanticModel } from './model.entity'
 import { SemanticModelService } from './model.service'
 import { SemanticModelCache, SemanticModelQueryLog } from '../core/entities/internal'
 import { SemanticModelCacheService } from './cache/cache.service'
-
 
 @ApiTags('SemanticModel')
 @ApiBearerAuth()
@@ -67,7 +71,7 @@ export class ModelController extends CrudController<SemanticModel> {
 	constructor(
 		private readonly modelService: SemanticModelService,
 		private readonly cacheService: SemanticModelCacheService,
-		private readonly commandBus: CommandBus,
+		private readonly commandBus: CommandBus
 	) {
 		super(modelService)
 	}
@@ -77,12 +81,14 @@ export class ModelController extends CrudController<SemanticModel> {
 	@Roles(RolesEnum.ADMIN)
 	@Get()
 	async findAll(@Query('$query', ParseJsonPipe) data: any): Promise<IPagination<SemanticModel>> {
-		const { relations, findInput, order } = data
+		const { relations, findInput, where, order, orderBy, take, skip } = data ?? {}
 
 		return await this.modelService.findAll({
-			where: findInput,
+			where: findInput ?? where,
 			relations,
-			order
+			order: order ?? orderBy,
+			take,
+			skip
 		})
 	}
 
@@ -107,18 +113,22 @@ export class ModelController extends CrudController<SemanticModel> {
 		@Query('$query', ParseJsonPipe) data: any,
 		@Query('businessAreaId') businessAreaId: string
 	): Promise<IPagination<SemanticModel>> {
-		const { relations, findInput, order, select } = data
+		const { relations, findInput, where: inputWhere, order, orderBy, select, take, skip } = data ?? {}
 
-		const where = findInput ?? {}
+		let where = findInput ?? inputWhere ?? {}
 		if (businessAreaId) {
-			where.businessAreaId = businessAreaId
+			where = Array.isArray(where)
+				? where.map((item) => ({ ...item, businessAreaId }))
+				: { ...where, businessAreaId }
 		}
 
 		const { items, total } = await this.modelService.findMy({
 			select,
 			where,
 			relations,
-			order
+			order: order ?? orderBy,
+			take,
+			skip
 		})
 
 		return {
@@ -174,12 +184,12 @@ export class ModelController extends CrudController<SemanticModel> {
 		const model = await this.commandBus.execute(
 			new SemanticModelUpdateCommand({ id, ...entity }, relations?.split(','))
 		)
-		
+
 		return model
 	}
 
 	@Get(':id/cubes')
-	async getCubes(@Param('id', UUIDValidationPipe) modelId: string, ) {
+	async getCubes(@Param('id', UUIDValidationPipe) modelId: string) {
 		return this.modelService.getCubes(modelId)
 	}
 
@@ -192,13 +202,15 @@ export class ModelController extends CrudController<SemanticModel> {
 	}
 
 	@Post(':id/publish')
-	async publish(
-		@Param('id') id: string, 
-		@Body() body: {releaseNotes: string}
-	) {
+	async publish(@Param('id') id: string, @Body() body: { releaseNotes: string }) {
 		return await this.commandBus.execute(new SemanticModelPublishCommand(id, body.releaseNotes))
 	}
 
+	@Post('query')
+	@HttpCode(200)
+	async queryUose(@Body() body: any, @Headers('Accept-Language') acceptLanguage: string): Promise<any> {
+		return this.modelService.queryUose(body, { acceptLanguage })
+	}
 
 	@Post('/:id/query')
 	async query(
@@ -211,18 +223,18 @@ export class ModelController extends CrudController<SemanticModel> {
 				acceptLanguage,
 				id: body.id
 			})
-		}catch(err) {
+		} catch (err) {
 			throw new ForbiddenException(err.message)
 		}
 	}
 
 	/**
 	 * Create table and import data into the table
-	 * 
-	 * @param modelId 
-	 * @param body 
-	 * @param acceptLanguage 
-	 * @returns 
+	 *
+	 * @param modelId
+	 * @param body
+	 * @param acceptLanguage
+	 * @returns
 	 */
 	@Post('/:id/import')
 	async import(
@@ -232,19 +244,16 @@ export class ModelController extends CrudController<SemanticModel> {
 	) {
 		try {
 			return await this.modelService.import(modelId, body)
-		}catch(err) {
+		} catch (err) {
 			throw new ForbiddenException(err.message)
 		}
 	}
 
 	@Delete('/:id/table/:name')
-	async dropTable(
-		@Param('id', UUIDValidationPipe) modelId: string,
-		@Param('name') tableName: string
-	) {
+	async dropTable(@Param('id', UUIDValidationPipe) modelId: string, @Param('name') tableName: string) {
 		try {
 			return await this.modelService.dropTable(modelId, tableName)
-		}catch(err) {
+		} catch (err) {
 			throw new HttpException(err, HttpStatus.FORBIDDEN)
 		}
 	}
@@ -319,7 +328,10 @@ export class ModelController extends CrudController<SemanticModel> {
 	@UseGuards(PermissionGuard)
 	@Permissions(AnalyticsPermissionsEnum.MODELS_EDIT)
 	@Delete('/:id/cache/:cacheId')
-	async removeCache(@Param('id', UUIDValidationPipe) modelId: string, @Param('cacheId', UUIDValidationPipe) cacheId: string) {
+	async removeCache(
+		@Param('id', UUIDValidationPipe) modelId: string,
+		@Param('cacheId', UUIDValidationPipe) cacheId: string
+	) {
 		return this.cacheService.delete({
 			id: cacheId,
 			modelId
@@ -339,36 +351,38 @@ export class ModelController extends CrudController<SemanticModel> {
 	}
 
 	@Get(':id/logs')
-	async getLogs(@Param('id') id: string, 
+	async getLogs(
+		@Param('id') id: string,
 		@Query('data', ParseJsonPipe) data: PaginationParams<SemanticModelQueryLog>,
 		@Query('start') start: string,
-		@Query('end') end: string) {
-		
-		const {where} = data
+		@Query('end') end: string
+	) {
+		const { where } = data
 		return this.modelService.getLogs({
 			...data,
 			where: {
 				...(where ?? {}),
 				modelId: id,
 				createdAt: Between(start, end)
-			},
+			}
 		})
 	}
 
 	@Get(':id/caches')
-	async getCaches(@Param('id') id: string, 
+	async getCaches(
+		@Param('id') id: string,
 		@Query('data', ParseJsonPipe) data: PaginationParams<SemanticModelCache>,
 		@Query('start') start: string,
-		@Query('end') end: string) {
-		
-		const {where} = data
+		@Query('end') end: string
+	) {
+		const { where } = data
 		return this.modelService.getCaches({
 			...data,
 			where: {
 				...(where ?? {}),
 				modelId: id,
 				createdAt: Between(start, end)
-			},
+			}
 		})
 	}
 

@@ -2,11 +2,18 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
-import { AssistantCode, XpertAPIService } from 'apps/cloud/src/app/@core'
-import { AppService } from 'apps/cloud/src/app/app.service'
+import { ChatKitPetOptions } from '@xpert-ai/chatkit-types'
+import { AssistantCode, XpertAPIService } from '../../../@core'
 import { distinctUntilChanged, EMPTY, filter, map, startWith, switchMap } from 'rxjs'
 import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit.runtime'
-import { ChatKitEffectEvent, getChatKitEffectXpertId } from '../utils'
+import {
+  type ChatKitEffectEvent,
+  type ChatKitPromptWorkflowEffect,
+  type ChatKitWorkspaceSkillEffect,
+  getChatKitEffectXpertId,
+  getChatKitPromptWorkflowEffect,
+  getChatKitWorkspaceSkillEffect
+} from '../utils'
 
 type AssistantRouteState = {
   workspaceRouteId: string | null
@@ -29,15 +36,32 @@ type StudioRefreshEvent = {
   nonce: number
 }
 
+export type PromptWorkflowRefreshEvent = ChatKitPromptWorkflowEffect & {
+  nonce: number
+}
+
+export type WorkspaceSkillRefreshEvent = ChatKitWorkspaceSkillEffect & {
+  nonce: number
+}
+
+const SHARED_ASSISTANT_PET: ChatKitPetOptions = {
+  behavior: 'auto' as const,
+  position: {
+    pin: 'bottom-right' as const,
+    draggable: true,
+    persist: true,
+    boundsPadding: 16,
+    zIndex: 70,
+    scale: 1
+  }
+}
+
 @Injectable()
 export class XpertAssistantFacade {
   readonly #router = inject(Router)
-  readonly #appService = inject(AppService)
   readonly #xpertService = inject(XpertAPIService)
   readonly #selectedWorkspace = injectWorkspace()
 
-  readonly open = signal(false)
-  readonly isMobile = this.#appService.isMobile
   readonly assistantCode = signal(AssistantCode.XPERT_SHARED)
 
   readonly #routeState = toSignal(
@@ -51,11 +75,15 @@ export class XpertAssistantFacade {
   readonly #xpertWorkspaceCache = signal<Record<string, string | null>>({})
   readonly #studioRuntimeContext = signal<AssistantStudioRuntimeContext | null>(null)
   readonly #studioRefresh = signal<StudioRefreshEvent | null>(null)
+  readonly #promptWorkflowRefresh = signal<PromptWorkflowRefreshEvent | null>(null)
+  readonly #workspaceSkillRefresh = signal<WorkspaceSkillRefreshEvent | null>(null)
   readonly xpertId = computed(() => this.#routeState().xpertRouteId)
   readonly workspaceId = computed(() => {
     const routeState = this.#routeState()
     const selectedWorkspaceId = this.#selectedWorkspace()?.id ?? null
-    const cachedWorkspaceId = routeState.xpertRouteId ? this.#xpertWorkspaceCache()[routeState.xpertRouteId] ?? null : null
+    const cachedWorkspaceId = routeState.xpertRouteId
+      ? (this.#xpertWorkspaceCache()[routeState.xpertRouteId] ?? null)
+      : null
 
     return routeState.workspaceRouteId ?? cachedWorkspaceId ?? (!routeState.xpertRouteId ? selectedWorkspaceId : null)
   })
@@ -70,6 +98,8 @@ export class XpertAssistantFacade {
   readonly runtime = injectAssistantChatkitRuntime({
     assistantCode: this.assistantCode.asReadonly(),
     requestContext: this.requestContext,
+    displayMode: 'pet',
+    pet: SHARED_ASSISTANT_PET,
     titleKey: 'PAC.Xpert.Assistant',
     titleDefault: 'Assistant',
     onEffect: (event) => {
@@ -87,6 +117,8 @@ export class XpertAssistantFacade {
   readonly status = this.runtime.status
 
   readonly studioRefresh = this.#studioRefresh.asReadonly()
+  readonly promptWorkflowRefresh = this.#promptWorkflowRefresh.asReadonly()
+  readonly workspaceSkillRefresh = this.#workspaceSkillRefresh.asReadonly()
 
   constructor() {
     effect(() => {
@@ -102,13 +134,23 @@ export class XpertAssistantFacade {
     this.watchXpertWorkspace()
   }
 
-  setOpen(open: boolean) {
-    this.open.set(open)
-  }
-
   emitStudioRefresh(xpertId: string | null) {
     this.#studioRefresh.set({
       xpertId,
+      nonce: Date.now()
+    })
+  }
+
+  emitPromptWorkflowRefresh(effect: ChatKitPromptWorkflowEffect) {
+    this.#promptWorkflowRefresh.set({
+      ...effect,
+      nonce: Date.now()
+    })
+  }
+
+  emitWorkspaceSkillRefresh(effect: ChatKitWorkspaceSkillEffect) {
+    this.#workspaceSkillRefresh.set({
+      ...effect,
       nonce: Date.now()
     })
   }
@@ -147,12 +189,29 @@ export class XpertAssistantFacade {
           return
         }
 
-        this.setOpen(false)
         void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
         return
       }
       case 'refresh_studio': {
         this.emitStudioRefresh(getChatKitEffectXpertId(event) ?? this.context().xpertId)
+        return
+      }
+      case 'refresh_prompt_workflows': {
+        const effect = getChatKitPromptWorkflowEffect(event)
+        if (!effect) {
+          return
+        }
+
+        void this.navigateToPromptWorkflows(effect)
+        return
+      }
+      case 'refresh_workspace_skills': {
+        const effect = getChatKitWorkspaceSkillEffect(event)
+        if (!effect) {
+          return
+        }
+
+        void this.navigateToWorkspaceSkills(effect)
         return
       }
       default: {
@@ -190,6 +249,22 @@ export class XpertAssistantFacade {
           }))
         }
       })
+  }
+
+  private async navigateToPromptWorkflows(effect: ChatKitPromptWorkflowEffect) {
+    try {
+      await this.#router.navigate(['/xpert/w', effect.workspaceId, 'prompt-workflows'])
+    } finally {
+      this.emitPromptWorkflowRefresh(effect)
+    }
+  }
+
+  private async navigateToWorkspaceSkills(effect: ChatKitWorkspaceSkillEffect) {
+    try {
+      await this.#router.navigate(['/xpert/w', effect.workspaceId, 'skills'])
+    } finally {
+      this.emitWorkspaceSkillRefresh(effect)
+    }
   }
 
   private readRouteState(): AssistantRouteState {

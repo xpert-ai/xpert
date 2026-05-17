@@ -25,6 +25,7 @@ import { XpertPublishCommand } from '../publish.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 import { XpertAgentService } from '../../../xpert-agent'
 import { EventName_XpertPublished } from '../../types'
+import { PromptWorkflowService } from '../../../prompt-workflow'
 
 @CommandHandler(XpertPublishCommand)
 export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand> {
@@ -35,7 +36,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         private readonly xpertAgentService: XpertAgentService,
         private readonly i18nService: I18nService,
         private readonly commandBus: CommandBus,
-        private readonly eventEmitter: EventEmitter2
+        private readonly eventEmitter: EventEmitter2,
+        private readonly promptWorkflowService?: PromptWorkflowService
     ) {}
 
     public async execute(command: XpertPublishCommand): Promise<Xpert> {
@@ -92,7 +94,21 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         }
 
         // Check
-        const draft = xpert.draft
+        const draft = {
+            ...xpert.draft,
+            team: {
+                ...(xpert.draft.team ?? {})
+            }
+        } as TXpertTeamDraft
+        if (this.promptWorkflowService) {
+            const commandProfile = draft.team.commandProfile ?? xpert.commandProfile
+            if (commandProfile) {
+                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(
+                    xpert.workspaceId,
+                    commandProfile
+                )
+            }
+        }
         this.check(draft)
 
         // Back up the current version
@@ -320,6 +336,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             xpert.memory = draft.team.memory
             xpert.summarize = draft.team.summarize
             xpert.features = draft.team.features
+            xpert.commandProfile = draft.team.commandProfile
             xpert.options = xpertOptions
         }
 

@@ -2,11 +2,11 @@ import { IChatConversation, SandboxTerminalErrorCode } from '@xpert-ai/contracts
 import type { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import type { SandboxBackendProtocol } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/server-core'
 import { ChatConversationService } from '../chat-conversation'
-import { VOLUME_CLIENT, VolumeClient, WorkspacePathMapperFactory } from '../shared'
+import { VolumeScope, WorkspaceBinding, XpertWorkAreaResolver } from '../shared'
 import { SandboxAcquireBackendCommand } from './commands'
 
 export type ResolvedConversationSandboxContext = {
@@ -20,6 +20,8 @@ export type ResolvedConversationSandboxContext = {
     tenantId: string
     userId: string
     volumePath: string
+    volumeScope: VolumeScope
+    workspaceBinding: WorkspaceBinding
     workingDirectory: string
 }
 
@@ -28,15 +30,13 @@ export class SandboxConversationContextService {
     constructor(
         private readonly commandBus: CommandBus,
         private readonly conversationService: ChatConversationService,
-        @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient,
-        private readonly workspacePathMapperFactory: WorkspacePathMapperFactory
+        private readonly workAreaResolver: XpertWorkAreaResolver
     ) {}
 
-	async resolveConversationSandbox(params: {
-		conversationId: string
-		projectId?: string | null
-	}): Promise<ResolvedConversationSandboxContext> {
+    async resolveConversationSandbox(params: {
+        conversationId: string
+        projectId?: string | null
+    }): Promise<ResolvedConversationSandboxContext> {
         const conversationId = params.conversationId?.trim()
         if (!conversationId) {
             throw new ForbiddenException({
@@ -91,44 +91,26 @@ export class SandboxConversationContextService {
         const effectiveProjectId = effectiveSandboxEnvironmentId
             ? null
             : (params.projectId ?? conversation.projectId ?? null)
-        const volumeScope = effectiveSandboxEnvironmentId
-            ? {
-                  tenantId,
-                  catalog: 'environment' as const,
-                  environmentId: effectiveSandboxEnvironmentId,
-                  userId
-              }
-            : effectiveProjectId
-              ? {
-                    tenantId,
-                    catalog: 'projects' as const,
-                    projectId: effectiveProjectId,
-                    userId
-                }
-              : conversation.xpertId
-                ? {
-                      tenantId,
-                      catalog: 'xperts' as const,
-                      xpertId: conversation.xpertId,
-                      userId,
-                      isolateByUser: true
-                  }
-                : null
-        const volume = volumeScope ? await this.volumeClient.resolve(volumeScope).ensureRoot() : null
-
-        if (!volume) {
+        if (!effectiveSandboxEnvironmentId && !effectiveProjectId && !conversation.xpertId) {
             throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
         }
-        const workspaceBinding = this.workspacePathMapperFactory.forProvider(provider).mapVolumeToWorkspace(volume)
-        const workingDirectory = workspaceBinding.workspacePath
+        const workArea = await this.workAreaResolver.resolve({
+            tenantId,
+            userId,
+            provider,
+            xpertId: conversation.xpertId,
+            projectId: effectiveProjectId,
+            conversationId,
+            environmentId: effectiveSandboxEnvironmentId
+        })
 
         const sandbox = await this.commandBus.execute(
             new SandboxAcquireBackendCommand({
                 tenantId,
                 provider,
-                workingDirectory,
-                workspaceBinding,
-                volumeScope: volumeScope ?? undefined,
+                workingDirectory: workArea.workingDirectory,
+                workspaceBinding: workArea.workspaceBinding,
+                volumeScope: workArea.volumeScope,
                 workFor: effectiveSandboxEnvironmentId
                     ? { type: 'environment', id: effectiveSandboxEnvironmentId }
                     : effectiveProjectId
@@ -144,7 +126,7 @@ export class SandboxConversationContextService {
             })
         }
 
-        const resolvedWorkspacePath = sandbox.workingDirectory ?? workingDirectory
+        const resolvedWorkspacePath = sandbox.workingDirectory ?? workArea.workingDirectory
 
         return {
             backend,
@@ -156,7 +138,9 @@ export class SandboxConversationContextService {
             sandbox,
             tenantId,
             userId,
-            volumePath: volume.serverRoot,
+            volumePath: workArea.volumePath,
+            volumeScope: workArea.volumeScope,
+            workspaceBinding: workArea.workspaceBinding,
             workingDirectory: resolvedWorkspacePath
         }
     }

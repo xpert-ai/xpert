@@ -3,21 +3,27 @@ import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { FindOptionsWhere } from 'typeorm'
 import { FindChatConversationQuery } from '../../../chat-conversation'
 import { ThreadDTO } from '../../dto'
+import { getPublicXpertSessionConversationScope } from '../../public-xpert-principal'
 import { SearchThreadsQuery } from '../thread-search.query'
 
 @QueryHandler(SearchThreadsQuery)
 export class SearchThreadsHandler implements IQueryHandler<SearchThreadsQuery> {
-	constructor(private readonly queryBus: QueryBus) {}
+    constructor(private readonly queryBus: QueryBus) {}
 
-	public async execute(command: SearchThreadsQuery): Promise<ThreadDTO> {
-		const request = command.request
+    public async execute(command: SearchThreadsQuery): Promise<ThreadDTO> {
+        const request = command.request
 
-		const conditions = {} as FindOptionsWhere<IChatConversation>
-		if (request.metadata?.assistant_id) {
-			conditions.xpertId = request.metadata.assistant_id
-		}
-		const { items } = await this.queryBus.execute(new FindChatConversationQuery(conditions))
+        const conditions = {} as FindOptionsWhere<IChatConversation>
+        if (request.metadata?.assistant_id) {
+            conditions.xpertId = request.metadata.assistant_id
+        }
+        const publicScope = getPublicXpertSessionConversationScope()
+        if (publicScope) {
+            conditions.createdById = publicScope.createdById
+            conditions.xpertId = publicScope.xpertId
+        }
+        const { items } = await this.queryBus.execute(new FindChatConversationQuery(conditions))
 
-		return items.map((_) => new ThreadDTO(_))
-	}
+        return items.map((_) => new ThreadDTO(_))
+    }
 }

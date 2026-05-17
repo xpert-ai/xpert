@@ -25,6 +25,11 @@ export const STATE_SYS_WORKSPACE_PATH = 'workspace_path'
  * URL for workspace files in sandbox environment
  */
 export const STATE_SYS_WORKSPACE_URL = 'workspace_url'
+export const STATE_SYS_WORKSPACE_ROOT = 'workspace_root'
+export const STATE_SYS_SHARED_WORKSPACE_PATH = 'shared_workspace_path'
+export const STATE_SYS_AGENT_WORKSPACE_PATH = 'agent_workspace_path'
+export const STATE_SYS_SESSION_WORKSPACE_PATH = 'session_workspace_path'
+export const STATE_SYS_MEMORY_WORKSPACE_PATH = 'memory_workspace_path'
 /**
  * Current runtime thread id
  */

@@ -1,0 +1,41 @@
+@reference "../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply inline-flex;
+}
+
+.composer-menu-trigger {
+  @apply h-9 w-9 shrink-0 border border-divider-deep text-text-secondary hover:bg-hover-bg hover:text-text-primary;
+}
+
+.composer-menu-panel {
+  @apply z-50 flex max-h-[min(32rem,70vh)] w-[320px] max-w-[calc(100vw-2rem)] flex-col gap-1 overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg p-2 text-text-primary shadow-xl;
+}
+
+.composer-menu-row {
+  @apply flex h-auto min-h-10 w-full items-center justify-start gap-3 rounded-xl px-2 py-2 text-left text-sm text-text-primary hover:bg-hover-bg;
+}
+
+.composer-menu-section {
+  @apply mt-1 border-t border-divider-regular pt-2;
+}
+
+.composer-menu-section-title {
+  @apply flex items-center gap-2 px-2 pb-1 text-xs font-semibold uppercase tracking-normal text-text-tertiary;
+}
+
+.composer-menu-empty {
+  @apply px-2 py-3 text-sm text-text-tertiary;
+}
+
+.composer-menu-empty-state {
+  @apply rounded-xl border border-dashed border-divider-regular py-4;
+}
+
+.composer-capability-list {
+  @apply ml-3 flex flex-col gap-1 border-l border-divider-regular pl-2;
+}
+
+.composer-capability-option {
+  @apply rounded-xl px-2 py-2 hover:bg-hover-bg;
+}

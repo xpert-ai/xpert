@@ -89,24 +89,30 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
     async findAllAvailablesCopilots(
         tenantId?: string | null,
         organizationId?: string | null,
-        where?: FindOptionsWhere<Copilot>
+        where?: FindOptionsWhere<Copilot>,
+        relations?: string[]
     ) {
         tenantId = tenantId ?? RequestContext.currentTenantId()
         organizationId = organizationId ?? RequestContext.getOrganizationId()
+        const resolvedRelations = this.mergeCopilotRelations(relations)
         const items = await this.repository.find({
-            where: { ...(where ?? {}), tenantId, organizationId, enabled: true },
-            relations: ['modelProvider']
+            where: { ...(where ?? {}), tenantId, organizationId: organizationId ?? IsNull(), enabled: true },
+            relations: resolvedRelations
         })
-        if (items.length) {
+        if (items.length || !organizationId) {
             return this.hydrateVisibleModelProviders(items, tenantId, organizationId)
         }
 
         const tenantItems = await this.repository.find({
             where: { ...(where ?? {}), tenantId, organizationId: IsNull(), enabled: true },
-            relations: ['modelProvider']
+            relations: resolvedRelations
         })
 
         return this.hydrateVisibleModelProviders(tenantItems, tenantId, organizationId)
+    }
+
+    private mergeCopilotRelations(relations?: string[]) {
+        return ['modelProvider', ...(relations ?? []).filter((relation) => relation !== 'modelProvider')]
     }
 
     /**

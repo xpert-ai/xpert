@@ -5,8 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@a2ui/lit': 0.8.3
-  '@xpert-ai/chatkit-types': 0.2.3
   '@xpert-ai/plugin-sdk': workspace:*
   '@langchain/core': 0.3.72
   langchain: 0.3.31
@@ -629,6 +627,9 @@ importers:
 
   apps/cloud:
     dependencies:
+      '@a2ui/lit':
+        specifier: 0.8.3
+        version: 0.8.3(signal-polyfill@0.2.2)
       '@foblex/2d':
         specifier: ^1.2.2
         version: 1.2.2(@angular/common@21.1.4(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2)
@@ -651,11 +652,20 @@ importers:
         specifier: ^0.3.26
         version: 0.3.34(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(zod@3.25.67)
       '@xpert-ai/chatkit-angular':
-        specifier: ~0.1.2
-        version: 0.1.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+        specifier: ~0.3.0
+        version: 0.3.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types':
+        specifier: ~0.3.8
+        version: 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-ui':
-        specifier: ~0.2.4
-        version: 0.2.4(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
+        specifier: ~0.3.9
+        version: 0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
+      '@xpert-ai/chatkit-web-component':
+        specifier: ~0.3.4
+        version: 0.3.4(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-shared':
+        specifier: ~0.3.3
+        version: 0.3.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xterm/addon-fit':
         specifier: ^0.10.0
         version: 0.10.0(@xterm/xterm@5.5.0)
@@ -1093,8 +1103,8 @@ importers:
   packages/contracts:
     dependencies:
       '@xpert-ai/chatkit-types':
-        specifier: 0.2.3
-        version: 0.2.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+        specifier: ~0.3.8
+        version: 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
     publishDirectory: dist
 
   packages/core:
@@ -1194,9 +1204,6 @@ importers:
       '@nestjs/core':
         specifier: '>=10'
         version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
-      '@xpert-ai/chatkit-types':
-        specifier: 0.2.3
-        version: 0.2.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/contracts':
         specifier: workspace:*
         version: link:../../contracts/dist
@@ -1222,8 +1229,8 @@ importers:
         specifier: '*'
         version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@xpert-ai/chatkit-types':
-        specifier: 0.2.3
-        version: 0.2.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+        specifier: ~0.3.8
+        version: 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/contracts':
         specifier: workspace:*
         version: link:../../contracts/dist
@@ -1720,6 +1727,9 @@ importers:
       '@sap_oss/odata-library':
         specifier: 2.4.0
         version: 2.4.0
+      '@xpert-ai/chatkit-types':
+        specifier: 0.3.8
+        version: 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       cronstrue:
         specifier: 2.53.0
         version: 2.53.0
@@ -9229,6 +9239,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@unrs/resolver-binding-android-arm-eabi@1.11.1':
     resolution: {integrity: sha512-ppLRUgHVaGRWUx0R0Ut06Mjo9gBaBkg3v/8AxusGLhsIotbBLuRk51rAzqLC8gq6NyyAojEXglNjzf6R948DNw==}
@@ -9501,31 +9512,37 @@ packages:
       react-dom: ^18.0.0
       tailwindcss: ^3.4.0
 
-  '@xpert-ai/chatkit-angular@0.1.2':
-    resolution: {integrity: sha512-F28xE62yq6e11X1i3NO4QHEYrA+cq0oW2W2cZnmQ9fpD8BWjNDniCNxDHF3Qk7jgPYWJoZBNp60gaFJ9j742Og==}
+  '@xpert-ai/chatkit-angular@0.3.0':
+    resolution: {integrity: sha512-RjByCUSe6sDowIWMD823Kgv1SAwb5B42aKirQYeDtn+qM6e/y3LJOLyAOkQrXoB+VguqFPYlSf3ndvyScHFSyA==}
     peerDependencies:
       '@angular/core': '>=17 <22'
 
-  '@xpert-ai/chatkit-types@0.2.3':
-    resolution: {integrity: sha512-WfHxHBB7gD6hr/jQa+NoNQVziLJjUyzDaYgNsRcg+HdG/EEtqoWpiROk8zStuDZr07j/Dlp8fNbsdazmcVZUag==}
+  '@xpert-ai/chatkit-types@0.0.12':
+    resolution: {integrity: sha512-YLAG8asj/PpplKwH3+GfiswTDzk8m9pqcy3dsHA7Qow3WrzMk0G8pZya11MaFBMG3ynAsGV3oRHlikvaZJmtmQ==}
     peerDependencies:
-      '@a2ui/lit': 0.8.3
+      '@a2ui/lit': ^0.8.1
       '@langchain/core': 0.3.72
 
-  '@xpert-ai/chatkit-ui@0.2.4':
-    resolution: {integrity: sha512-Y3gW3WGtAKRoo76pgOfKMgfxhqYgeFuWgMgseDtNPue/udXzXYjKZfaKpBL8mtk30v6jglo3KvmVkZMlsoXFng==}
+  '@xpert-ai/chatkit-types@0.3.8':
+    resolution: {integrity: sha512-led+MsncMIEaIcMee/kd7Xzli8WPELKHATanG8N0d207Vk8VRW2xl1vgAgqa3XP9HZ2nvnIsch1ox3o6NJBoLw==}
+    peerDependencies:
+      '@a2ui/lit': ^0.8.1
+      '@langchain/core': 0.3.72
+
+  '@xpert-ai/chatkit-ui@0.3.9':
+    resolution: {integrity: sha512-/H8dGcGki4QTs5FrocErhpIZAnEijA76YXDugwiazoyTEHo6uQsi0mHFXTKqB2sSEyx2EBEpBr9NODLpdYirfQ==}
     peerDependencies:
       react: '>=19'
       react-dom: '>=19'
 
-  '@xpert-ai/chatkit-web-component@0.2.1':
-    resolution: {integrity: sha512-pi8nY1ROd+CQDZX1UB4L89hRw0f+fSMtiZvhDz5aQ5hdeWFoEXHciJJ+becK/m6dlJ44KVEsLDl3M9A9bsboSw==}
+  '@xpert-ai/chatkit-web-component@0.3.4':
+    resolution: {integrity: sha512-Z+DDl44eRnQFTSx8AnFv/Hm8BKtP1M4EVoPU3Dxylxk16goDyVkPmA7hgI8fpHemnb6A6yeDWltfjjXMe8+cfA==}
 
-  '@xpert-ai/chatkit-web-shared@0.1.1':
-    resolution: {integrity: sha512-bl9EmlXrpKHdtTnwIUjdGlUmcXzzUuG8YZp5csjTdouksEhzgW2iPKId7omDCfYt4CxWLhqjrqRCe5GGChmOyw==}
+  '@xpert-ai/chatkit-web-shared@0.3.3':
+    resolution: {integrity: sha512-qo+B3WAwbW7DHYDp5I6sSRFP24JriHc7/J/jWJgY3Hjp7vrtqeAMAkgDnnz0VHVMIG46z/Ck7O+Bz4Y4MgRZJQ==}
 
-  '@xpert-ai/xpert-sdk@0.0.10':
-    resolution: {integrity: sha512-Wd0I8C9ByMw4hkV9VnP+M6ZMdShZrcgQyI1UbFZae9Ux5wltu6iRNTIUMpHtMEDdnSPLjgMJpxC0iVYR9yh84Q==}
+  '@xpert-ai/xpert-sdk@0.0.11':
+    resolution: {integrity: sha512-+h+SH/GjAqRLtSteF9XIdp2ihBMbGF2TGScsrJZjyRxaNfego8iu+rJ6mPXzPT586RV8rbSOyrcr8KoFRblDDw==}
 
   '@xterm/addon-fit@0.10.0':
     resolution: {integrity: sha512-UFYkDm4HUahf2lnEyHvio51TNGiLK66mqP2JoATy7hRZeXaGMRDr00JiSF7m63vR5WKATF605yEggJKsw0JpMQ==}
@@ -15344,6 +15361,7 @@ packages:
 
   lucide-angular@0.544.0:
     resolution: {integrity: sha512-CA77Jt4CitGYEEUiESnhKfgX3giOoOeYlZ6gm6mSh5hVEG8Z3Un+L3eAkZMg4EKPlXZCKMBsR6AsZg6u03xPHg==}
+    deprecated: Package deprecated. Please use @lucide/angular instead.
     peerDependencies:
       '@angular/common': 13.x - 20.x
       '@angular/core': 13.x - 20.x
@@ -26592,7 +26610,7 @@ snapshots:
   '@metad/contracts@3.8.4(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(signal-polyfill@0.2.2)':
     dependencies:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
-      '@xpert-ai/chatkit-types': 0.2.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.0.12(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
     transitivePeerDependencies:
       - '@langchain/core'
       - signal-polyfill
@@ -31564,22 +31582,27 @@ snapshots:
     transitivePeerDependencies:
       - signal-polyfill
 
-  '@xpert-ai/chatkit-angular@0.1.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-angular@0.3.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
       '@angular/core': 21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0)
-      '@xpert-ai/chatkit-types': 0.2.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
-      '@xpert-ai/chatkit-web-component': 0.2.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-component': 0.3.4(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       tslib: 2.8.1
     transitivePeerDependencies:
       - '@a2ui/lit'
       - '@langchain/core'
 
-  '@xpert-ai/chatkit-types@0.2.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-types@0.0.12(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
 
-  '@xpert-ai/chatkit-ui@0.2.4(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))':
+  '@xpert-ai/chatkit-types@0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
+    dependencies:
+      '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
+      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
+
+  '@xpert-ai/chatkit-ui@0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))':
     dependencies:
       '@fontsource-variable/geist': 5.2.8
       '@fontsource-variable/inter': 5.2.8
@@ -31593,9 +31616,9 @@ snapshots:
       '@radix-ui/react-tooltip': 1.2.8(@types/react@19.2.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tailwindcss/vite': 4.2.2(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
       '@xpert-ai/a2ui-react': 0.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(tailwindcss@4.2.2)
-      '@xpert-ai/chatkit-types': 0.2.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
-      '@xpert-ai/chatkit-web-shared': 0.1.1
-      '@xpert-ai/xpert-sdk': 0.0.10
+      '@xpert-ai/chatkit-types': 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-shared': 0.3.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/xpert-sdk': 0.0.11
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       framer-motion: 12.38.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -31643,19 +31666,23 @@ snapshots:
       - typescript
       - vite
 
-  '@xpert-ai/chatkit-web-component@0.2.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-web-component@0.3.4(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
-      '@xpert-ai/chatkit-types': 0.2.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
-      '@xpert-ai/chatkit-web-shared': 0.1.1
+      '@xpert-ai/chatkit-types': 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-shared': 0.3.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
     transitivePeerDependencies:
       - '@a2ui/lit'
       - '@langchain/core'
 
-  '@xpert-ai/chatkit-web-shared@0.1.1':
+  '@xpert-ai/chatkit-web-shared@0.3.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
       '@microsoft/fetch-event-source': 2.0.1
+      '@xpert-ai/chatkit-types': 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+    transitivePeerDependencies:
+      - '@a2ui/lit'
+      - '@langchain/core'
 
-  '@xpert-ai/xpert-sdk@0.0.10':
+  '@xpert-ai/xpert-sdk@0.0.11':
     dependencies:
       p-queue: 6.6.2
       p-retry: 4.6.2

@@ -1,26 +1,10 @@
-export type {
-  TMessageContentText,
-  TMessageContent,
-  TMessageContentComponent,
-  TMessageContentReasoning,
-  TMessageContentComplex,
-  TMessageContentMemory,
-  TMessageComponent,
-  TMessageComponentIframe,
-  TMessageComponentStep,
-  TChatMessageStep,
-  TChatRequestHuman,
-  TChatEventMessage,
-  TInterruptCommand,
-  TThreadContextUsageEvent,
-  ChatKitCodeReference,
-  ChatKitImageReference,
-  ChatKitQuoteReference,
-  ChatKitReference,
-  TFollowUpConsumedEvent
-} from '@xpert-ai/chatkit-types'
-export { STATE_VARIABLE_HUMAN, CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED, ChatMessageEventTypeEnum, ChatMessageTypeEnum, ChatMessageStepCategory } from '@xpert-ai/chatkit-types'
+export const STATE_VARIABLE_HUMAN = 'human'
+
+export { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum } from './ai.model'
+
+export type * from '@xpert-ai/chatkit-types'
 export type { TChatRequest } from './xpert-chat.model'
+export { CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED } from './chat-event.model'
 export * from './assistant-binding.model'
 export * from './ai-model.model'
 export * from './ai.model'
@@ -67,7 +51,9 @@ export * from './knowledgebase-task.model'
 export * from './knowledge-pipeline'
 export * from './knowledge-retrieval-log.model'
 export * from './knowledge-doc-chunk.model'
+export * from './knowledge-graph.model'
 export * from './skill.model'
+export * from './prompt-workflow.model'
 export * from './middleware.model'
 export * from './context-compression.model'
 export * from './sandbox'

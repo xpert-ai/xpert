@@ -1,5 +1,24 @@
 # @xpert-ai/contracts
 
+## 3.9.4
+
+### Patch Changes
+
+- 07057a6: pet of chatkit
+
+## 3.9.3
+
+### Patch Changes
+
+- ea234e5: skills & middleware selection
+- 4920c48: Add runtime-selectable sub-agent connection metadata.
+
+## 3.9.2
+
+### Patch Changes
+
+- 8187f99: Update chatkit
+
 ## 3.9.1
 
 ### Patch Changes

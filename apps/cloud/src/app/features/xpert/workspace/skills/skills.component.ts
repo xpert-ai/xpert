@@ -1,7 +1,17 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  model,
+  signal,
+  TemplateRef,
+  viewChild
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
@@ -33,6 +43,7 @@ import {
   ISkillRepository,
   ISkillRepositoryIndex
 } from '../../../../@core'
+import { XpertAssistantFacade } from '../../assistant-shell/assistant.facade'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertSkillUploadDialogComponent } from './skill-upload-dialog.component'
 import { cx } from '@xpert-ai/headless-ui'
@@ -63,7 +74,7 @@ type MobilePane = 'skills' | 'tree' | 'file'
 })
 export class XpertWorkspaceSkillsComponent {
   readonly cx = cx
-  
+
   readonly defaultSkillIcon: IconDefinition = {
     type: 'emoji',
     value: '🧩',
@@ -73,6 +84,7 @@ export class XpertWorkspaceSkillsComponent {
   readonly #translate = inject(TranslateService)
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
+  readonly #assistantFacade = inject(XpertAssistantFacade, { optional: true })
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
   readonly skillPackageAPI = injectSkillPackageAPI()
   readonly confirmDelete = injectConfirmDelete()
@@ -87,12 +99,10 @@ export class XpertWorkspaceSkillsComponent {
 
   readonly workspace = this.homeComponent.workspace
   readonly #skillsResource = myRxResource({
-    request: () => ({
-      workspaceId: this.workspace()?.id
-    }),
-    loader: ({ request }) =>
-      request.workspaceId
-        ? this.skillPackageAPI.getAllByWorkspace(request.workspaceId, {
+    request: () => this.workspace()?.id,
+    loader: ({ request: workspaceId }) =>
+      workspaceId
+        ? this.skillPackageAPI.getAllByWorkspace(workspaceId, {
             relations: ['skillIndex', 'skillIndex.repository']
           })
         : null
@@ -108,7 +118,10 @@ export class XpertWorkspaceSkillsComponent {
 
   readonly selectedSkillIds = signal<Set<string>>(new Set())
   readonly activeSkillId = signal<string | null>(null)
-  readonly activeSkill = computed(() => this.skills().find((skill) => skill.id && skill.id === this.activeSkillId()) ?? null)
+  readonly #pendingAssistantSkillId = signal<string | null>(null)
+  readonly activeSkill = computed(
+    () => this.skills().find((skill) => skill.id && skill.id === this.activeSkillId()) ?? null
+  )
   readonly filteredSkills = computed(() => {
     const term = this.search().trim().toLowerCase()
     if (!term) {
@@ -133,7 +146,9 @@ export class XpertWorkspaceSkillsComponent {
     )
   })
   readonly hasSelection = computed(() => this.selectedSkillIds().size > 0)
-  readonly allSelected = computed(() => this.skills().length > 0 && this.selectedSkillIds().size === this.skills().length)
+  readonly allSelected = computed(
+    () => this.skills().length > 0 && this.selectedSkillIds().size === this.skills().length
+  )
   readonly partialSelected = computed(() => {
     const total = this.skills().length
     const selected = this.selectedSkillIds().size
@@ -143,6 +158,47 @@ export class XpertWorkspaceSkillsComponent {
   readonly registering = signal(false)
   #registerDialogRef: DialogRef<unknown, unknown> | null = null
   #githubInstallDialogRef: DialogRef<unknown, unknown> | null = null
+  #lastAssistantSkillRefreshKey: string | null = null
+
+  readonly #refreshFromAssistantTool = effect(
+    () => {
+      const refreshEvent = this.#assistantFacade?.workspaceSkillRefresh()
+      const workspaceId = this.workspace()?.id
+      if (!refreshEvent || !workspaceId || refreshEvent.workspaceId !== workspaceId) {
+        return
+      }
+      const refreshKey = `${workspaceId}:${refreshEvent.nonce}`
+      if (refreshKey === this.#lastAssistantSkillRefreshKey) {
+        return
+      }
+
+      this.#lastAssistantSkillRefreshKey = refreshKey
+      if (refreshEvent.skillId && refreshEvent.operation !== 'deleted') {
+        this.#pendingAssistantSkillId.set(refreshEvent.skillId)
+      }
+      this.#skillsResource.reload()
+    },
+    { allowSignalWrites: true }
+  )
+
+  readonly #selectAssistantToolSkill = effect(
+    () => {
+      const pendingSkillId = this.#pendingAssistantSkillId()
+      if (!pendingSkillId) {
+        return
+      }
+
+      const skill = this.skills().find((item) => item.id === pendingSkillId)
+      if (!skill) {
+        return
+      }
+
+      this.activeSkillId.set(pendingSkillId)
+      this.mobilePane.set('tree')
+      this.#pendingAssistantSkillId.set(null)
+    },
+    { allowSignalWrites: true }
+  )
 
   readonly loadActiveSkillFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const workspaceId = this.workspace()?.id
@@ -208,7 +264,11 @@ export class XpertWorkspaceSkillsComponent {
 
   readonly #syncSelectionWithData = effect(
     () => {
-      const ids = new Set(this.skills().map((skill) => skill.id).filter((id): id is string => !!id))
+      const ids = new Set(
+        this.skills()
+          .map((skill) => skill.id)
+          .filter((id): id is string => !!id)
+      )
       this.selectedSkillIds.update((selected) => {
         const next = new Set<string>()
         selected.forEach((id) => {
@@ -216,6 +276,9 @@ export class XpertWorkspaceSkillsComponent {
             next.add(id)
           }
         })
+        if (next.size === selected.size) {
+          return selected
+        }
         return next
       })
     },
@@ -264,7 +327,10 @@ export class XpertWorkspaceSkillsComponent {
       return skill.skillIndex.repository.provider
     }
 
-    return readGithubProvenanceText(skill?.metadata, 'sourceProvider') || this.translateDefault('PAC.Skill.LocalProvider', 'local')
+    return (
+      readGithubProvenanceText(skill?.metadata, 'sourceProvider') ||
+      this.translateDefault('PAC.Skill.LocalProvider', 'local')
+    )
   }
 
   publisherLabel(skill: ISkillPackage | null | undefined): string {
@@ -442,7 +508,13 @@ export class XpertWorkspaceSkillsComponent {
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked
     this.selectedSkillIds.set(
-      checked ? new Set(this.skills().map((skill) => skill.id).filter((id): id is string => !!id)) : new Set()
+      checked
+        ? new Set(
+            this.skills()
+              .map((skill) => skill.id)
+              .filter((id): id is string => !!id)
+          )
+        : new Set()
     )
   }
 

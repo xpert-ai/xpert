@@ -57,6 +57,39 @@
       <span>{{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}</span>
       <i class="ri-corner-right-up-line"></i>
     </a>
+    @if (knowledgebase()?.graphRag?.enabled) {
+      <span class="mx-2 h-3 w-px bg-divider-regular"></span>
+      <span class="inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs">
+        <i class="ri-node-tree"></i>
+        @switch (knowledgebase()?.graphStatus) {
+          @case (eKnowledgeGraphStatus.INDEXING) {
+            <span class="text-text-accent">
+              {{ 'PAC.Knowledgebase.GraphStatus_Indexing' | translate: { Default: 'Graph indexing' } }}
+            </span>
+          }
+          @case (eKnowledgeGraphStatus.READY) {
+            <span class="text-text-success">
+              {{ 'PAC.Knowledgebase.GraphStatus_Ready' | translate: { Default: 'Graph ready' } }}
+            </span>
+          }
+          @case (eKnowledgeGraphStatus.FAILED) {
+            <span class="text-text-danger" [zTooltip]="knowledgebase()?.graphIndexError" zPosition="top">
+              {{ 'PAC.Knowledgebase.GraphStatus_Failed' | translate: { Default: 'Graph failed' } }}
+            </span>
+          }
+          @case (eKnowledgeGraphStatus.REBUILD_REQUIRED) {
+            <span class="text-text-warning">
+              {{ 'PAC.Knowledgebase.GraphStatus_RebuildRequired' | translate: { Default: 'Graph rebuild required' } }}
+            </span>
+          }
+          @default {
+            <span>
+              {{ 'PAC.Knowledgebase.GraphStatus_Pending' | translate: { Default: 'Graph pending' } }}
+            </span>
+          }
+        }
+      </span>
+    }
   </div>
 </div>
 
@@ -139,7 +172,7 @@
             }
           }
         }
-        <th scope="col" class="px-6 py-3 w-28">
+        <th scope="col" class="px-6 py-3 w-48">
           {{ 'PAC.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing Progress' } }}
         </th>
         <th scope="col" class="px-6 py-3 w-28">
@@ -204,9 +237,9 @@
           }
 
           <!-- progress Column -->
-          <td class="px-6 py-2 w-36">
+          <td class="px-6 py-2 w-48">
             @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
-              <div class="cursor-pointer" (click)="openTask(element)">
+              <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
                 @switch (knowledgebase()?.status) {
                   @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
                     <ngm-tags
@@ -226,9 +259,7 @@
                       class="text-sm"
                       [tags]="[
                         {
-                          caption:
-                            'PAC.Knowledgebase.Status_Rebuilding'
-                            | translate: { Default: 'Vector rebuilding' }
+                          caption: 'PAC.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' }
                         }
                       ]"
                       color="blue"
@@ -242,8 +273,7 @@
                       [tags]="[
                         {
                           caption:
-                            'PAC.Knowledgebase.Status_RebuildFailed'
-                            | translate: { Default: 'Vector rebuild failed' }
+                            'PAC.Knowledgebase.Status_RebuildFailed' | translate: { Default: 'Vector rebuild failed' }
                         }
                       ]"
                       color="red"
@@ -254,18 +284,14 @@
                       @case (eKBDocumentStatusEnum.RUNNING) {
                         <ngm-tags
                           class="text-sm"
-                          [tags]="[
-                            { caption: 'PAC.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }
-                          ]"
+                          [tags]="[{ caption: 'PAC.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }]"
                           color="blue"
                         />
                       }
                       @case (eKBDocumentStatusEnum.FINISH) {
                         <ngm-tags
                           class="text-sm"
-                          [tags]="[
-                            { caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }
-                          ]"
+                          [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }]"
                           color="green"
                         />
                       }
@@ -281,9 +307,7 @@
                       @case (eKBDocumentStatusEnum.WAITING) {
                         <ngm-tags
                           class="text-sm"
-                          [tags]="[
-                            { caption: 'PAC.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }
-                          ]"
+                          [tags]="[{ caption: 'PAC.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }]"
                           color="orange"
                         />
                       }
@@ -292,9 +316,7 @@
                           class="text-sm"
                           [tags]="[
                             {
-                              caption:
-                                'PAC.Knowledgebase.Status_Transformed'
-                                | translate: { Default: 'Transformed' }
+                              caption: 'PAC.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' }
                             }
                           ]"
                           color="orange"
@@ -314,8 +336,7 @@
                           class="text-sm"
                           [tags]="[
                             {
-                              caption:
-                                'PAC.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
+                              caption: 'PAC.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
                             }
                           ]"
                           color="orange"
@@ -338,6 +359,33 @@
                       }
                     }
                   }
+                }
+                @if (graphJobStatus(element.id); as graphJob) {
+                  <div
+                    class="mt-1 inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs text-text-tertiary"
+                  >
+                    <i class="ri-node-tree"></i>
+                    @switch (graphJob.status) {
+                      @case (eKnowledgeGraphIndexJobStatus.QUEUED) {
+                        <span>{{ 'PAC.Knowledgebase.GraphJob_Queued' | translate: { Default: 'Graph queued' } }}</span>
+                      }
+                      @case (eKnowledgeGraphIndexJobStatus.RUNNING) {
+                        <span class="text-text-accent">
+                          {{ 'PAC.Knowledgebase.GraphJob_Running' | translate: { Default: 'Graph indexing' } }}
+                        </span>
+                      }
+                      @case (eKnowledgeGraphIndexJobStatus.SUCCESS) {
+                        <span class="text-text-success">
+                          {{ 'PAC.Knowledgebase.GraphJob_Success' | translate: { Default: 'Graph indexed' } }}
+                        </span>
+                      }
+                      @case (eKnowledgeGraphIndexJobStatus.FAILED) {
+                        <span class="text-text-danger" [zTooltip]="graphJob.error" zPosition="left">
+                          {{ 'PAC.Knowledgebase.GraphJob_Failed' | translate: { Default: 'Graph failed' } }}
+                        </span>
+                      }
+                    }
+                  </div>
                 }
               </div>
             }

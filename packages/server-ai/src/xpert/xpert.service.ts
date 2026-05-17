@@ -15,13 +15,7 @@ import {
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import {
-    OptionParams,
-    PaginationParams,
-    RequestContext,
-    transformWhere,
-    UserGroupService
-} from '@xpert-ai/server-core'
+import { OptionParams, PaginationParams, RequestContext, transformWhere, UserGroupService } from '@xpert-ai/server-core'
 import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -38,6 +32,8 @@ import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
 import { GetXpertMemoryEmbeddingsQuery } from './queries'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 import { FreeNodeValidator } from './validators'
 import { Xpert } from './xpert.entity'
 
@@ -385,7 +381,9 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             throw new NotFoundException('Some user groups were not found in the current organization.')
         }
 
-        const preservedGroups = (xpert.userGroups ?? []).filter((group) => group.organizationId !== resolvedOrganizationId)
+        const preservedGroups = (xpert.userGroups ?? []).filter(
+            (group) => group.organizationId !== resolvedOrganizationId
+        )
         xpert.userGroups = [...preservedGroups, ...groups]
         await this.repository.save(xpert)
         return this.getUserGroups(id, resolvedOrganizationId)
@@ -400,6 +398,35 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             },
             relations: uniq((relations ?? []).concat(['user', 'createdBy', 'organization']))
         })
+    }
+
+    async findPublicChatAppXpert(identifier: string, relations?: string[]) {
+        const normalized = identifier?.trim()
+        if (!normalized) {
+            throw new NotFoundException(`Not found public xpert '${identifier}'`)
+        }
+
+        const where = UUID_PATTERN.test(normalized)
+            ? {
+                  id: normalized,
+                  publishAt: Not(IsNull())
+              }
+            : {
+                  slug: normalized,
+                  latest: true,
+                  publishAt: Not(IsNull())
+              }
+
+        const xpert = await this.repository.findOne({
+            where,
+            relations: uniq((relations ?? []).concat(['user', 'createdBy', 'organization', 'workspace']))
+        })
+
+        if (!xpert?.app?.enabled || !xpert.app.public) {
+            throw new NotFoundException(`Not found public xpert '${identifier}'`)
+        }
+
+        return xpert
     }
 
     async createMemory(xpertId: string, body: { type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile }) {
@@ -534,19 +561,18 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return this.sandboxService.listProviders()
     }
 
-    private createWorkspaceVolumeClient(tenantId: string, userId: string, xpertId: string) {
-        return new VolumeSubtreeClient(this.createVolumeHandle(tenantId, userId, xpertId), {
+    private createWorkspaceVolumeClient(tenantId: string, _userId: string, xpertId: string) {
+        return new VolumeSubtreeClient(this.createVolumeHandle(tenantId, xpertId), {
             allowRootWorkspace: true
         })
     }
 
-    private createVolumeHandle(tenantId: string, userId: string, xpertId: string) {
+    private createVolumeHandle(tenantId: string, xpertId: string) {
         return this.volumeClient.resolve({
             tenantId,
             catalog: 'xperts',
-            userId,
             xpertId,
-            isolateByUser: true
+            isolateByUser: false
         })
     }
 }

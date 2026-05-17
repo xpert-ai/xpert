@@ -1,5 +1,18 @@
 <div class="flex justify-between items-center px-2 py-1">
-  <div class="uppercase font-semibold">{{ message().type }}</div>
+  <div class="flex items-center gap-1 uppercase font-semibold">
+    <span>{{ message().type }}</span>
+    @if (responseMetadataText(); as metadataTooltip) {
+      <z-icon
+        zType="info"
+        zSize="sm"
+        class="message-metadata-icon cursor-help text-text-tertiary hover:text-text-primary"
+        [attr.aria-label]="'PAC.Xpert.ResponseMetadata' | translate: { Default: 'Response metadata' }"
+        [zTooltip]="metadataTooltip"
+        zTooltipClass="max-w-lg max-h-80 whitespace-pre-wrap overflow-auto text-left"
+        zPosition="top"
+      />
+    }
+  </div>
 
   <copy2
     #copy

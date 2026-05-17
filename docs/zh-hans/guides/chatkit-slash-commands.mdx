@@ -1,0 +1,565 @@
+# ChatKit Slash Commands
+
+Slash command 是 ChatKit composer 内的一层命令编排能力，用于把用户输入的 `/command args` 转换成 UI 行为、prompt workflow，或一次运行态能力选择。它不会绕过 Xpert 的权限、工具偏好、runtime capability allow-list 或正常消息提交链路。
+
+本文面向 Xpert 接入方、Skill 作者和后端维护者，说明 ChatKit + Xpert 中 slash command 的完整功能边界。
+
+## 适用场景
+
+Slash command 适合下面这些场景：
+
+- `/help`、`/clear`、`/plan` 这类低风险 UI 命令
+- `/skills`、`/plugins`、`/subagents` 这类能力选择入口
+- `/review src/app.ts`、`/explain query.sql`、`/test packages/foo` 这类 prompt workflow
+- 将 Skill、Plugin、Sub-agent 插入 composer，并作为原子 token 展示和删除
+- 通过 `input.commandSource` 记录命令来源，便于审计和调试
+
+v1 不支持任意 shell command，也不允许 command 直接绕过 Xpert 服务端访问控制执行工具。
+
+## 核心概念关系
+
+Slash command、Prompt Workflow 和 Skill command 是三层不同概念：
+
+| 概念            | 代表什么                                                               | 例子                                        |
+| --------------- | ---------------------------------------------------------------------- | ------------------------------------------- |
+| Slash command   | ChatKit composer 中的 `/name args` 触发入口                            | `/review src/app.ts`                        |
+| Prompt Workflow | 可复用的轻量 prompt 编排资产                                           | “对这段代码做 review，并按严重程度返回问题” |
+| Skill command   | Skill package 通过 `metadata.commands` 暴露给 ChatKit 的 slash command | Code Review Skill 自带 `/review`            |
+
+可以这样理解：
+
+```text
+Prompt Workflow = 要做什么
+Slash Command = 怎么触发
+Skill Command = 某个 Skill 自带的触发入口
+```
+
+Prompt Workflow 通常会被包装成 `submit_prompt` 或 `insert_invocation` 类型的 slash command，因此用户可以输入 `/review foo` 来执行它。但 slash command 不一定是 prompt workflow：`/clear`、`/model`、`/status` 更像 UI command；选择 skill、plugin、sub-agent 的命令则是 capability selection。
+
+Skill 里的 command 也不等同于 Skill 本身的 instructions。Skill instructions 描述“这个技能是什么、模型应该如何使用它”；`metadata.commands[].action.template` 描述“用户触发 `/xxx` 后要提交什么 prompt”。一个 Skill command 可以是 `kind: 'prompt_workflow'`，表示它是由 Skill 提供的 prompt workflow 类入口。
+
+## 用户侧行为
+
+当用户在 composer 开头输入 `/` 时，ChatKit 打开 command palette，展示：
+
+- ChatKit 内置命令
+- 宿主通过 `composer.slashCommands` 注入的静态命令
+- Xpert runtime capability 接口返回的动态命令
+- 当前 assistant 可用的 skills、plugins、sub-agents
+
+当用户在文本中间的空白后输入 `/` 时，palette 只展示 skills、plugins、sub-agents。这保留了“临时选择一个运行态能力”的体验，不会在正文中间误触发 `/review` 这类命令。
+
+选中 skill、plugin 或 sub-agent 后，ChatKit 会在 `contenteditable` composer 中插入一个原子 token：
+
+- token 使用真实 `icon` 或 `avatar` 展示
+- 不能被部分编辑
+- Backspace / Delete 会整体删除
+- 发送后的 human message 中继续展示同一个 token
+- token 会合并成下一次请求的 run-only `runtimeCapabilities`
+- 请求发送后，run-only token 会被清空
+
+## 命令来源与优先级
+
+命令合并顺序固定为：
+
+1. ChatKit built-in commands
+2. Host static commands：`ChatKitOptions.composer.slashCommands`
+3. Xpert runtime commands：`RuntimeCapabilitiesResponse.commands`
+
+内置命令名是保留名，不能覆盖。Host command 与 runtime command 同名时保留 host command，隐藏 runtime command，并在浏览器控制台输出 `console.warn`。
+
+命令名不包含 `/`，合法格式为小写字母、数字、短横线和下划线：
+
+```text
+review
+security-review
+test_file
+```
+
+## Command 数据结构
+
+Host 静态命令和 Xpert runtime command 使用同一套 shape：
+
+```ts
+type ChatKitSlashCommand = {
+  name: string
+  label?: string
+  description?: string
+  icon?: string | Record<string, unknown>
+  category?: string
+  aliases?: string[]
+  argsHint?: string
+  availability?: {
+    disabled?: boolean
+    reason?: string
+    [key: string]: unknown
+  }
+  kind?: 'command' | 'prompt_workflow'
+  workflow?: {
+    type: 'prompt_workflow'
+    name?: string
+    label?: string
+    description?: string
+    tags?: string[]
+  }
+  action: ChatKitSlashCommandAction
+  source?: Record<string, unknown>
+  meta?: Record<string, unknown>
+}
+```
+
+说明：
+
+- `category` 用于分类和搜索。
+- `aliases` 参与 palette 搜索。
+- `argsHint` 用于提示参数，例如 `<path>` 或 `[prompt]`。
+- `kind: 'prompt_workflow'` 表示该命令是 prompt workflow 类命令。
+- `workflow` 是可审计、可搜索、可扩展的 workflow 元数据。
+
+## 五种执行类型
+
+### `insert_text`
+
+渲染模板后写回 composer，不自动发送。
+
+```ts
+{
+  name: 'draft-review',
+  action: {
+    type: 'insert_text',
+    template: 'Please review {{args}} for correctness.',
+  },
+}
+```
+
+### `insert_invocation`
+
+把 `/review ` 这样的 slash invocation 写入 composer，不在前端展开 prompt。用户继续输入参数并发送后，Xpert 后端会根据开头的 `/command args` 匹配 prompt workflow 并展开。
+
+```ts
+{
+  name: 'review',
+  kind: 'prompt_workflow',
+  action: {
+    type: 'insert_invocation',
+    template: '/review ',
+  },
+}
+```
+
+### `submit_prompt`
+
+渲染模板后作为用户消息提交。模板中的 `{{args}}` 会替换为命令名后的参数。
+
+```ts
+{
+  name: 'review',
+  kind: 'prompt_workflow',
+  action: {
+    type: 'submit_prompt',
+    template: 'Review {{args}}',
+  },
+}
+```
+
+输入：
+
+```text
+/review src/app.ts
+```
+
+实际提交：
+
+```text
+Review src/app.ts
+```
+
+如果 action 上包含 `runtimeCapabilities`，ChatKit 会把它合并进本次提交的 run-only allow-list。
+
+### `client_action`
+
+通过 parent bridge 通知宿主执行 UI 行为。
+
+```ts
+{
+  name: 'open-ticket',
+  action: {
+    type: 'client_action',
+    action: {
+      type: 'tickets.open',
+      payload: { source: 'chat' },
+    },
+  },
+}
+```
+
+ChatKit 会通过 `onWidgetAction` 发出 action，并把 widget 标记为 `slash_command`。内置 UI 命令也使用 `client_action` 的 shape，但 ChatKit 会在本地直接处理这些低风险行为。
+
+### `select_capability`
+
+选择 skill、plugin 或 sub-agent。
+
+```ts
+{
+  name: 'code-reviewer',
+  action: {
+    type: 'select_capability',
+    capability: {
+      type: 'skill',
+      id: 'skill-review',
+    },
+  },
+}
+```
+
+如果该 capability 已存在于当前 runtime capability 列表中，ChatKit 会插入原子 token；否则只更新 run-only allow-list。
+
+## 内置命令
+
+| 命令             | 行为                                                                     |
+| ---------------- | ------------------------------------------------------------------------ |
+| `/help`          | 打开 command-only palette                                                |
+| `/clear`         | 清空 composer draft、attachments、references、run-only capability tokens |
+| `/plan`          | 切换 plan mode                                                           |
+| `/plan <prompt>` | 以 `planMode: true` 提交 `<prompt>`                                      |
+| `/skills`        | 打开 skills-only selector                                                |
+| `/plugins`       | 打开 plugins-only selector                                               |
+| `/subagents`     | 打开 sub-agents-only selector                                            |
+| `/model`         | 通过 parent bridge 请求打开 model selector                               |
+| `/effort`        | 通过 parent bridge 请求打开 reasoning effort selector                    |
+| `/status`        | 通过 parent bridge 请求打开 status panel                                 |
+| `/mention`       | 通过 parent bridge 请求打开 mention/reference 入口                       |
+
+当前实现中，`/model`、`/effort`、`/status`、`/mention` 作为 `client_action` 发给宿主，由宿主管理对应面板。
+
+## Prompt Workflow 类命令
+
+Prompt workflow 是 `/review`、`/explain`、`/test`、`/debug` 这类命令的推荐抽象。Xpert-local 和 skill prompt workflow 可以使用 `submit_prompt`；workspace prompt workflow 使用 `insert_invocation`，让 ChatKit 只插入 `/command `，最终由 Xpert 后端展开 `/command args`。
+
+```ts
+{
+  name: 'security-review',
+  label: 'Security Review',
+  description: 'Review code for security issues',
+  category: 'prompt_workflow',
+  argsHint: '<path>',
+  kind: 'prompt_workflow',
+  workflow: {
+    type: 'prompt_workflow',
+    tags: ['security', 'code'],
+  },
+  action: {
+    type: 'insert_invocation',
+    template: '/security-review ',
+  },
+}
+```
+
+推荐规则：
+
+- workspace prompt workflow 使用 `insert_invocation`，需要前端立即展开的本地命令才使用 `submit_prompt`。
+- 用 `{{args}}` 表达命令参数。
+- 为用户可见参数补充 `argsHint`。
+- 对需要特定 skill 的 workflow，在 action 上携带 `runtimeCapabilities`。
+- 将审计、分类、搜索相关信息放在 `kind` 和 `workflow` 中。
+
+### Workspace Library 与 Xpert Command Profile
+
+Xpert 采用混合模型来承载 Prompt Workflow 类命令：
+
+- Workspace 负责创建和管理可复用的 workflow 资产。
+- Xpert 负责启用、排序、覆盖和发布 command profile。
+- 如果 Xpert 没有启用 command profile，运行时默认放行该 workspace 下所有 active prompt workflows 和所有可访问 Skill commands。
+- 只有当 `commandProfile.enabled: true` 时，Xpert command profile 才作为白名单生效。
+- 发布 Xpert 时，会把已启用的 workspace workflow snapshot 到发布版本的 `commandProfile` 中。
+- 运行时只返回当前 Xpert 已启用、当前用户有权限、且 runtime capability allow-list 合法的 commands。
+
+Workspace prompt workflow 的核心结构：
+
+```ts
+type TPromptWorkflow = {
+  name: string
+  label?: string
+  description?: string
+  icon?: string | Record<string, unknown>
+  category?: string
+  aliases?: string[]
+  argsHint?: string
+  template: string
+  tags?: string[]
+  visibility?: 'private' | 'team' | 'tenant'
+  runtimeCapabilities?: unknown
+}
+```
+
+Xpert command profile 用来启用和配置 workflow：
+
+```ts
+type TXpertCommandProfile = {
+  version: 1
+  enabled?: boolean
+  commands?: Array<{
+    source: 'xpert' | 'workspace_prompt_workflow' | 'skill'
+    enabled?: boolean
+    order?: number
+    workflowId?: string
+    skillCommandName?: string
+    snapshot?: TPromptWorkflow
+    name?: string
+    label?: string
+    description?: string
+    aliases?: string[]
+    argsHint?: string
+    template?: string
+    runtimeCapabilities?: unknown
+  }>
+}
+```
+
+`enabled` 代表“启用 Xpert command profile 白名单”。未设置或为 `false` 时，profile 不过滤 commands；设置为 `true` 后，运行时只返回 profile 中启用的 commands。
+
+三类来源的定位：
+
+- `workspace_prompt_workflow`：从 workspace library 启用一个可复用 workflow。
+- `xpert`：直接在当前 Xpert 内定义一个 assistant 专属 prompt command。
+- `skill`：显式启用并排序某个已安装 skill 暴露的 command。设置 `priority: 'preferred'` 时，该 skill command 会排在 workspace workflow 之前。
+
+Workspace workflow 管理接口位于 `/prompt-workflow`；Xpert command profile 接口位于 `/xpert/:id/commands`。
+
+## SkillMetadata.commands
+
+Xpert Skill 可以在 `metadata.commands` 中声明 ChatKit slash commands：
+
+```ts
+const metadata = {
+  name: 'workspace/code-review',
+  displayName: { zh_Hans: '代码审查' },
+  version: '1.0.0',
+  visibility: 'team',
+  icon: {
+    type: 'emoji',
+    value: '🔍'
+  },
+  tags: ['code', 'quality'],
+  commands: [
+    {
+      name: 'review',
+      label: 'Review',
+      description: 'Review selected files',
+      argsHint: '<path>',
+      action: {
+        type: 'submit_prompt',
+        template: 'Review {{args}}. Return actionable findings only.'
+      }
+    }
+  ]
+}
+```
+
+服务端返回 runtime capabilities 时会自动处理这些 command：
+
+- 只从当前 workspace 已安装、当前用户可访问的 skill packages 中收集。
+- 非法 command 会被过滤。
+- `submit_prompt` command 默认归一化为 `kind: 'prompt_workflow'`。
+- 未显式提供 `category` 时，prompt workflow 默认使用 `category: 'prompt_workflow'`。
+- 模板包含 `{{args}}` 且未提供 `argsHint` 时，默认补 `argsHint: '<args>'`。
+- command action 的 `runtimeCapabilities` 会被限制为 owning skill allow-list。
+- command 的 `icon` 默认复用 command icon、`meta.icon` 或 skill `metadata.icon`。
+
+## Runtime Capability Endpoint
+
+ChatKit 通过下面的接口加载 runtime capabilities 和 commands：
+
+```http
+GET /ai/assistants/:id/runtime-capabilities
+```
+
+返回结构：
+
+```ts
+type RuntimeCapabilitiesResponse = {
+  skills: RuntimeCapabilitySkill[]
+  plugins: RuntimeCapabilityPlugin[]
+  subAgents?: RuntimeCapabilitySubAgent[]
+  commands?: RuntimeSlashCommand[]
+}
+```
+
+示例：
+
+```json
+{
+  "skills": [
+    {
+      "id": "skill-review",
+      "workspaceId": "workspace-1",
+      "label": "Review Skill",
+      "meta": {
+        "icon": {
+          "type": "emoji",
+          "value": "🔍"
+        }
+      }
+    }
+  ],
+  "plugins": [],
+  "subAgents": [],
+  "commands": [
+    {
+      "name": "review",
+      "label": "Review",
+      "description": "Review selected files",
+      "category": "prompt_workflow",
+      "argsHint": "<args>",
+      "kind": "prompt_workflow",
+      "workflow": {
+        "type": "prompt_workflow",
+        "name": "review",
+        "label": "Review",
+        "description": "Review selected files",
+        "tags": ["code", "quality"]
+      },
+      "action": {
+        "type": "submit_prompt",
+        "template": "Review {{args}}. Return actionable findings only.",
+        "runtimeCapabilities": {
+          "mode": "allowlist",
+          "skills": {
+            "workspaceId": "workspace-1",
+            "ids": ["skill-review"]
+          },
+          "plugins": {
+            "nodeKeys": []
+          },
+          "subAgents": {
+            "nodeKeys": []
+          }
+        }
+      },
+      "source": {
+        "type": "skill",
+        "skillId": "skill-review",
+        "workspaceId": "workspace-1",
+        "label": "Review Skill"
+      }
+    }
+  ]
+}
+```
+
+服务端在返回给 ChatKit 前，会先按下面的优先级解析 runtime commands：
+
+1. Xpert-local commands
+2. Preferred SkillMetadata.commands
+3. Workspace prompt workflow commands
+4. 已启用的 SkillMetadata.commands
+
+Built-in command 名称始终保留，会从 runtime commands 中过滤。同名冲突时保留高优先级命令，隐藏低优先级命令。
+
+## 提交后的 Human Input
+
+当 command 产生提交时，ChatKit 会把 `commandSource` 写入 request input 和 `state.human`。
+
+```json
+{
+  "input": {
+    "input": "Review src/app.ts",
+    "runtimeCapabilities": {
+      "mode": "allowlist",
+      "skills": {
+        "workspaceId": "workspace-1",
+        "ids": ["skill-review"]
+      },
+      "plugins": {
+        "nodeKeys": []
+      },
+      "subAgents": {
+        "nodeKeys": []
+      }
+    },
+    "commandSource": {
+      "type": "slash_command",
+      "name": "review",
+      "source": "runtime",
+      "executionType": "submit_prompt",
+      "kind": "prompt_workflow",
+      "workflow": {
+        "type": "prompt_workflow",
+        "name": "review",
+        "label": "Review",
+        "description": "Review selected files"
+      }
+    }
+  }
+}
+```
+
+后端可以用这些字段做审计、日志、调试或分析，但不能因为 `commandSource` 存在就跳过权限校验。
+
+## 后端校验规则
+
+`RuntimeCommandService` 会对白名单字段做归一化和过滤：
+
+- `name` 必须匹配 `^[a-z0-9][a-z0-9_-]{0,63}$`
+- `action.type` 只能是 `insert_text`、`insert_invocation`、`submit_prompt`、`client_action`、`select_capability`
+- `insert_text` / `insert_invocation` / `submit_prompt` 的 `template` 不能为空
+- `client_action.action.type` 不能为空
+- skill 暴露的 `select_capability` 只能选择 owning skill，不能借 command 选择任意 plugin 或 sub-agent
+- `icon` 只能是字符串或对象
+- `availability.disabled` 只接受 boolean
+- `workflow.type` 只能是 `prompt_workflow`
+- prompt workflow 的 `template` 不能为空
+- prompt workflow 的 runtime capabilities 会按当前 assistant 可用的 skills、plugins、sub-agents 过滤
+
+这些规则保证 slash command 只是交互和 prompt 编排层，不是权限或执行通道。
+
+## 宿主静态命令
+
+第三方宿主可以直接在 ChatKit options 中注入静态命令：
+
+```ts
+const chatkitOptions = {
+  composer: {
+    slashCommands: [
+      {
+        name: 'open-ticket',
+        label: 'Open Ticket',
+        description: 'Open the current ticket in host app',
+        action: {
+          type: 'client_action',
+          action: {
+            type: 'tickets.open'
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+宿主静态命令适合操作宿主 UI，例如打开侧边栏、跳转页面、注入模板文本。需要模型执行的轻量 workflow 更推荐放到 workspace Prompt Workflow Library；强绑定 skill 能力的 workflow 则放到 Skill `metadata.commands`。
+
+## 兼容性
+
+- 老的 ChatKit host 不配置 `composer.slashCommands` 也能继续使用内置命令和 runtime capability 选择。
+- 老的 Xpert server 不返回 `commands` 时，ChatKit 仍显示 built-in 和 host commands。
+- Programmatic `sendUserMessage` 行为不变，除非调用方主动传入 command metadata。
+- 现有 follow-up、retry、planMode、runtime capability persistence 不受 command 机制影响。
+
+## 测试建议
+
+建议覆盖：
+
+- 开头 `/` 显示 commands + capabilities。
+- 文本中间 `/` 只显示 capabilities。
+- built-in command 名称不能被覆盖。
+- host/runtime command 冲突时 host 胜出。
+- `/plan foo` 以 plan mode 提交。
+- `/clear` 清空 draft、附件、references、run-only tokens。
+- `/skills`、`/plugins`、`/subagents` 打开对应 selector。
+- runtime skill command `/review src/app.ts` 提交 prompt，并携带 owning skill allow-list。
+- `commandSource.kind` 和 `workflow` 出现在提交 payload 中。
+- skill/plugin/sub-agent token 在 composer 和 human message 中显示真实 icon/avatar。
+- contenteditable token 不能部分编辑，删除时整体删除。
+- 中文输入法 composition 不破坏输入。
+- palette 上下键选择时列表跟随滚动。

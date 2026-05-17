@@ -345,7 +345,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('toggles the files panel and resolves the current conversation context from the thread', async () => {
+  it('renders the files panel and resolves the current conversation context from the thread', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -356,11 +356,17 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
+  })
+
+  it('keeps the active panel open when its tab is clicked again', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
     fixture.detectChanges()
 
-    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+    expect(fixture.componentInstance.activePanel()).toBe('files')
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
   })
 
   it('renders the terminal panel with the resolved conversation and project context', async () => {
@@ -408,22 +414,67 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.componentInstance.selectPanel('files')
-    await settle(fixture)
-
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[0rem_minmax(0,1fr)]')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('rounded-none')
-    expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-0')
-
-    fixture.componentInstance.selectPanel('files')
-    await settle(fixture)
-
     const chatShell = fixture.nativeElement.querySelectorAll('section')[1]?.querySelector('div') as HTMLElement | null
 
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+    )
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)]'
+    )
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-rows-1')
     expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
     expect(chatShell?.className).toContain('rounded-3xl')
+  })
+
+  it('collapses the chat shell when ChatKit minimizes into the pet overlay', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    expect(chatkit).not.toBeNull()
+    if (!chatkit) {
+      throw new Error('Expected xpert-chatkit to render')
+    }
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+    )
+    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-3xl')
+
+    chatkit.dataset.chatMinimizedToPet = 'true'
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:w-0')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-0')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
+
+    delete chatkit.dataset.chatMinimizedToPet
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+    )
+    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-3xl')
+  })
+
+  it('allows the embedded chatkit to shrink within compact viewport heights', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    const chatkitClasses = Array.from(chatkit?.classList ?? [])
+
+    expect(chatkit).not.toBeNull()
+    expect(chatkitClasses).toEqual(expect.arrayContaining(['block', 'h-full', 'min-h-0']))
+    expect(chatkitClasses).not.toContain('min-h-[32rem]')
   })
 
   it('shows the empty detail-panel state when no thread conversation can be resolved', async () => {
@@ -531,7 +582,6 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
-
     ;(filesPanel.componentInstance as ClawXpertConversationFilesComponent).referenceRequest.emit({
       type: 'file_path',
       path: 'screenshots/home.png'
@@ -569,7 +619,6 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
-
     ;(filesPanel.componentInstance as ClawXpertConversationFilesComponent).referenceRequest.emit({
       path: 'src/app.ts',
       text: 'const y = 2',
@@ -612,7 +661,6 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
-
     ;(filesPanel.componentInstance as ClawXpertConversationFilesComponent).referenceRequest.emit({
       type: 'file_element',
       attributes: [{ name: 'id', value: 'hero' }],
@@ -671,7 +719,6 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
     expect(preview).not.toBeNull()
-
     ;(preview.componentInstance as ClawXpertConversationPreviewComponent).referenceRequest.emit({
       attributes: [
         {

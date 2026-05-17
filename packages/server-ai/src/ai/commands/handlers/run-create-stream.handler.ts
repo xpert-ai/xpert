@@ -8,6 +8,7 @@ import {
     IXpert,
     isTenantSharedXpertWorkspace,
     RequestScopeLevel,
+    SecretTokenBindingType,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
@@ -15,7 +16,7 @@ import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
 import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
-import { finalize, map, tap } from 'rxjs/operators'
+import { map } from 'rxjs/operators'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
@@ -26,8 +27,9 @@ import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
-import { RedisSseStreamService } from '../../stream/redis-sse.service'
+import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { serializeRunStreamPayload } from '../../../shared/stream/'
 
 const humanInputSchema = z.object({}).passthrough()
 
@@ -118,6 +120,20 @@ const chatRequestSchema = z.discriminatedUnion('action', [
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export function normalizeRunStreamMessage(message: MessageEvent): MessageEvent {
+    const payload = message.data
+    const nextPayload = serializeRunStreamPayload(payload)
+
+    if (nextPayload !== payload) {
+        return {
+            ...message,
+            data: nextPayload
+        }
+    }
+
+    return message
 }
 
 function isLegacyChatRequest(input: unknown): input is LegacyTChatRequest {
@@ -337,6 +353,13 @@ function applyAssistantPrincipalToCurrentRequest(
         return
     }
 
+    if (
+        currentUser?.principalType === 'client_secret' &&
+        currentUser.clientSecretBindingType === SecretTokenBindingType.PUBLIC_XPERT
+    ) {
+        return
+    }
+
     // An explicit x-principal-user-id represents the business user for this
     // request and must not be overwritten by the xpert technical principal.
     if (currentUser?.requestedUserId) {
@@ -373,7 +396,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly environmentService: EnvironmentService,
-        private readonly redisSseStreamService: RedisSseStreamService,
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly assistantBindingService: AssistantBindingService
     ) {}
@@ -421,6 +443,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         // Find thread (conversation) and assistant (xpert)
         const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
+        assertPublicXpertSessionConversationAccess(conversation)
         const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
         applyAssistantScope(xpert)
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
@@ -485,46 +508,28 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
                 ...(runtimeContext ? { context: runtimeContext } : {}),
                 environment,
-                sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId
-            })
-        )
-        const normalizedStream = stream.pipe(
-            map((message) => {
-                if (typeof message.data.data === 'object') {
-                    return {
-                        ...message,
-                        data: {
-                            ...message.data,
-                            data: omitBy(message.data.data, isNil) // Remove null or undefined values
-                        }
-                    }
+                sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId,
+                streamPersistence: {
+                    transport: 'redis-stream',
+                    threadId,
+                    runId: execution.id
                 }
-
-                return message
             })
         )
+        const normalizedStream = stream.pipe(map((message) => normalizeRunStreamMessage(message)))
 
         if (chatRequest.action === 'follow_up') {
             return {
                 execution,
-                stream: normalizedStream
+                stream: normalizedStream,
+                streamTransport: 'direct' as const
             }
         }
 
         return {
             execution,
-            stream: normalizedStream.pipe(
-                tap((message) => {
-                    this.redisSseStreamService.appendEvent(threadId, execution.id, message.data).catch((error) => {
-                        this.#logger.warn(`Failed to persist SSE event: ${error}`)
-                    })
-                }),
-                finalize(() => {
-                    this.redisSseStreamService.appendCompleteEvent(threadId, execution.id).catch((error) => {
-                        this.#logger.warn(`Failed to persist SSE complete event: ${error}`)
-                    })
-                })
-            )
+            stream: normalizedStream,
+            streamTransport: 'redis' as const
         }
     }
 }

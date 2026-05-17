@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
+import { SecretTokenBindingType } from './secret-token.model'
 import { IUser } from './user.model'
 
 /**
@@ -53,8 +54,16 @@ export enum ApiKeyBindingType {
 export type ApiPrincipalType = 'api_key' | 'client_secret'
 
 export interface IApiPrincipal extends IUser {
-  apiKey: IApiKey
   principalType: ApiPrincipalType
+  apiKey?: IApiKey
+  /**
+   * Binding target kind for short-lived client_secret principals.
+   * Examples:
+   * - api_key => secret_token.entityId is the backing ApiKey id
+   * - public_xpert => secret_token.entityId is the public xpert id
+   */
+  clientSecretBindingType?: SecretTokenBindingType | null
+  clientSecretId?: string | null
   /**
    * Resource owner / key creator. Used for audit and ownership metadata.
    */

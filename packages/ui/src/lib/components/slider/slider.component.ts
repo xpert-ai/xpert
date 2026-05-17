@@ -1,4 +1,4 @@
-import { DOCUMENT } from '@angular/common';
+import { DOCUMENT } from '@angular/common'
 import {
   type AfterViewInit,
   booleanAttribute,
@@ -18,15 +18,15 @@ import {
   type SimpleChanges,
   viewChild,
   viewChildren,
-  ViewEncapsulation,
-} from '@angular/core';
-import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+  ViewEncapsulation
+} from '@angular/core'
+import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 
-import type { ClassValue } from 'clsx';
-import { type Observable, filter, fromEvent, map, merge, Subject, switchMap, takeUntil, tap } from 'rxjs';
+import type { ClassValue } from 'clsx'
+import { type Observable, filter, fromEvent, map, merge, Subject, switchMap, takeUntil, tap } from 'rxjs'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
-import { clamp, convertValueToPercentage, roundToStep } from '@/shared/utils/number';
+import { mergeClasses } from '@/shared/utils/merge-classes'
+import { clamp, convertValueToPercentage, roundToStep } from '@/shared/utils/number'
 
 import {
   sliderLabelVariants,
@@ -35,25 +35,28 @@ import {
   sliderThumbVariants,
   sliderTickVariants,
   sliderTrackVariants,
-  sliderVariants,
-} from './slider.variants';
+  sliderVariants
+} from './slider.variants'
 
-export type ZardSliderMode = 'single' | 'range';
-export type ZardSliderValue = number | readonly [number, number];
+export type ZardSliderMode = 'single' | 'range'
+export type ZardSliderValue = number | readonly [number, number]
 
-type SliderTuple = readonly [number, number];
+type SliderTuple = readonly [number, number]
 type SliderTick = {
-  key: string;
-  percent: number;
-};
-type SliderInputSource = 'pointer' | 'mouse';
+  key: string
+  percent: number
+}
+type SliderInputSource = 'pointer' | 'mouse'
 type SliderInputEvent = {
-  event: PointerEvent | MouseEvent;
-  source: SliderInputSource;
-};
-type OnTouchedType = () => void;
-type OnChangeType = (value: ZardSliderValue) => void;
-const defaultSliderValueFormatter = (value: number) => `${value}`;
+  event: PointerEvent | MouseEvent
+  source: SliderInputSource
+}
+type OnTouchedType = () => void
+type OnChangeType = (value: ZardSliderValue) => void
+const defaultSliderValueFormatter = (value: number) => `${value}`
+const sliderMinAttribute = (value: unknown) => numberAttribute(value, 0)
+const sliderMaxAttribute = (value: unknown) => numberAttribute(value, 100)
+const sliderStepAttribute = (value: unknown) => numberAttribute(value, 1)
 
 @Component({
   selector: 'z-slider-track',
@@ -67,21 +70,21 @@ const defaultSliderValueFormatter = (value: number) => `${value}`;
   encapsulation: ViewEncapsulation.None,
   host: {
     '[class]': '"data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full"',
-    '[attr.data-orientation]': 'orientation()',
-  },
+    '[attr.data-orientation]': 'orientation()'
+  }
 })
 export class ZSliderTrackComponent {
-  readonly orientation = input<'horizontal' | 'vertical'>('horizontal');
-  readonly class = input<ClassValue>('');
+  readonly orientation = input<'horizontal' | 'vertical'>('horizontal')
+  readonly class = input<ClassValue>('')
 
   protected readonly classes = computed(() =>
-    mergeClasses(sliderTrackVariants({ zOrientation: this.orientation() }), this.class()),
-  );
+    mergeClasses(sliderTrackVariants({ zOrientation: this.orientation() }), this.class())
+  )
 
-  private readonly trackEl = viewChild.required<ElementRef<HTMLElement>>('track');
+  private readonly trackEl = viewChild.required<ElementRef<HTMLElement>>('track')
 
   get nativeElement(): HTMLElement {
-    return this.trackEl().nativeElement;
+    return this.trackEl().nativeElement
   }
 }
 
@@ -98,18 +101,18 @@ export class ZSliderTrackComponent {
     '[style.left]': 'orientation() === "horizontal" ? startPercent() + "%" : null',
     '[style.right]': 'orientation() === "horizontal" ? 100 - endPercent() + "%" : null',
     '[style.bottom]': 'orientation() === "vertical" ? startPercent() + "%" : null',
-    '[style.top]': 'orientation() === "vertical" ? 100 - endPercent() + "%" : null',
-  },
+    '[style.top]': 'orientation() === "vertical" ? 100 - endPercent() + "%" : null'
+  }
 })
 export class ZSliderRangeComponent {
-  readonly startPercent = input(0);
-  readonly endPercent = input(0);
-  readonly orientation = input<'horizontal' | 'vertical'>('horizontal');
-  readonly class = input<ClassValue>('');
+  readonly startPercent = input(0)
+  readonly endPercent = input(0)
+  readonly orientation = input<'horizontal' | 'vertical'>('horizontal')
+  readonly class = input<ClassValue>('')
 
   protected readonly classes = computed(() =>
-    mergeClasses(sliderRangeVariants({ zOrientation: this.orientation() }), this.class()),
-  );
+    mergeClasses(sliderRangeVariants({ zOrientation: this.orientation() }), this.class())
+  )
 }
 
 @Component({
@@ -141,40 +144,40 @@ export class ZSliderRangeComponent {
   host: {
     '[class]': 'orientationClasses()',
     '[style.left]': 'orientation() === "horizontal" ? percent() + "%" : null',
-    '[style.bottom]': 'orientation() === "vertical" ? percent() + "%" : null',
-  },
+    '[style.bottom]': 'orientation() === "vertical" ? percent() + "%" : null'
+  }
 })
 export class ZSliderThumbComponent {
-  readonly index = input(0);
-  readonly value = input(0);
-  readonly min = input(0);
-  readonly max = input(100);
-  readonly disabled = input(false);
-  readonly percent = input(0);
-  readonly active = input(false);
-  readonly showLabel = input(false);
-  readonly label = input('');
-  readonly orientation = input<'horizontal' | 'vertical'>('horizontal');
-  readonly class = input<ClassValue>('');
+  readonly index = input(0)
+  readonly value = input(0)
+  readonly min = input(0)
+  readonly max = input(100)
+  readonly disabled = input(false)
+  readonly percent = input(0)
+  readonly active = input(false)
+  readonly showLabel = input(false)
+  readonly label = input('')
+  readonly orientation = input<'horizontal' | 'vertical'>('horizontal')
+  readonly class = input<ClassValue>('')
 
   protected readonly classes = computed(() =>
-    mergeClasses(sliderThumbVariants({ disabled: this.disabled(), active: this.active() }), this.class()),
-  );
+    mergeClasses(sliderThumbVariants({ disabled: this.disabled(), active: this.active() }), this.class())
+  )
 
   protected readonly labelClasses = computed(() =>
-    mergeClasses(sliderLabelVariants({ zOrientation: this.orientation() })),
-  );
+    mergeClasses(sliderLabelVariants({ zOrientation: this.orientation() }))
+  )
 
   protected readonly orientationClasses = computed(() =>
-    mergeClasses(sliderOrientationVariants({ zOrientation: this.orientation() })),
-  );
+    mergeClasses(sliderOrientationVariants({ zOrientation: this.orientation() }))
+  )
 
-  protected readonly ariaValueText = computed(() => this.label() || `${this.value()}`);
+  protected readonly ariaValueText = computed(() => this.label() || `${this.value()}`)
 
-  private readonly thumbEl = viewChild.required<ElementRef<HTMLElement>>('thumb');
+  private readonly thumbEl = viewChild.required<ElementRef<HTMLElement>>('thumb')
 
   get nativeElement(): HTMLElement {
-    return this.thumbEl().nativeElement;
+    return this.thumbEl().nativeElement
   }
 }
 
@@ -231,8 +234,8 @@ export class ZSliderThumbComponent {
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => ZardSliderComponent),
-      multi: true,
-    },
+      multi: true
+    }
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
@@ -240,161 +243,162 @@ export class ZSliderThumbComponent {
     '[class]': 'classes()',
     '[attr.data-orientation]': 'orientation()',
     '[attr.aria-disabled]': 'disabled() ? true : null',
-    '[attr.data-disabled]': 'disabled() ? true : null',
+    '[attr.data-disabled]': 'disabled() ? true : null'
   },
-  exportAs: 'zSlider',
+  exportAs: 'zSlider'
 })
 export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit, OnChanges, OnDestroy {
-  readonly min = input(0, { transform: numberAttribute });
-  readonly max = input(100, { transform: numberAttribute });
-  readonly defaultValue = input<ZardSliderValue | null>(null);
-  readonly value = input<ZardSliderValue | null>(null);
-  readonly step = input(1, { transform: numberAttribute });
-  readonly disabledInput = input(false, { transform: booleanAttribute });
-  readonly mode = input<ZardSliderMode>('single');
-  readonly orientation = input<'horizontal' | 'vertical'>('horizontal');
-  readonly showTickMarks = input(false, { transform: booleanAttribute });
-  readonly showValueLabel = input(false, { transform: booleanAttribute });
-  readonly formatValue = input<(value: number) => string>(defaultSliderValueFormatter);
-  readonly class = input<ClassValue>('');
+  readonly min = input(0, { transform: sliderMinAttribute })
+  readonly max = input(100, { transform: sliderMaxAttribute })
+  readonly defaultValue = input<ZardSliderValue | null>(null)
+  readonly value = input<ZardSliderValue | null>(null)
+  readonly step = input(1, { transform: sliderStepAttribute })
+  readonly disabledInput = input(false, { transform: booleanAttribute })
+  readonly mode = input<ZardSliderMode>('single')
+  readonly orientation = input<'horizontal' | 'vertical'>('horizontal')
+  readonly showTickMarks = input(false, { transform: booleanAttribute })
+  readonly showValueLabel = input(false, { transform: booleanAttribute })
+  readonly formatValue = input<(value: number) => string>(defaultSliderValueFormatter)
+  readonly class = input<ClassValue>('')
 
-  readonly valueChange = output<ZardSliderValue>();
-  readonly changeEnd = output<ZardSliderValue>();
+  readonly valueChange = output<ZardSliderValue>()
+  readonly changeEnd = output<ZardSliderValue>()
 
-  readonly trackRef = viewChild.required(ZSliderTrackComponent);
-  readonly thumbRefs = viewChildren(ZSliderThumbComponent);
+  readonly trackRef = viewChild.required(ZSliderTrackComponent)
+  readonly thumbRefs = viewChildren(ZSliderThumbComponent)
 
-  private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly document = inject(DOCUMENT);
+  private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef)
+  private readonly document = inject(DOCUMENT)
 
   protected readonly classes = computed(() =>
     mergeClasses(
       sliderVariants({
         orientation: this.orientation(),
-        disabled: this.disabled(),
+        disabled: this.disabled()
       }),
-      this.class(),
-    ),
-  );
+      this.class()
+    )
+  )
 
   protected readonly tickClasses = computed(() =>
-    mergeClasses(sliderTickVariants({ zOrientation: this.orientation() })),
-  );
+    mergeClasses(sliderTickVariants({ zOrientation: this.orientation() }))
+  )
 
-  protected readonly disabled = linkedSignal(() => this.disabledInput());
-  protected readonly dragging = signal(false);
-  protected readonly activeThumbIndex = signal(0);
-  protected readonly focusedThumbIndex = signal<number | null>(null);
+  protected readonly disabled = linkedSignal(() => this.disabledInput())
+  protected readonly dragging = signal(false)
+  protected readonly activeThumbIndex = signal(0)
+  protected readonly focusedThumbIndex = signal<number | null>(null)
 
-  private readonly internalValue = signal<SliderTuple>([0, 0]);
-  private readonly cvaValue = signal<ZardSliderValue | null>(null);
-  private readonly destroy$ = new Subject<void>();
+  private readonly internalValue = signal<SliderTuple>([0, 0])
+  private readonly cvaValue = signal<ZardSliderValue | null>(null)
+  private readonly destroy$ = new Subject<void>()
 
-  private pendingChangeEnd = false;
-  private activeInputSource: SliderInputSource | null = null;
+  private pendingChangeEnd = false
+  private activeInputSource: SliderInputSource | null = null
 
   protected readonly thumbViewModels = computed(() => {
-    const [start, end] = this.internalValue();
-    const values = this.mode() === 'range' ? [start, end] : [start];
+    const [start, end] = this.internalValue()
+    const values = this.mode() === 'range' ? [start, end] : [start]
     return values.map((value, index) => ({
       index,
       value,
-      percent: this.valueToPercent(value),
-    }));
-  });
+      percent: this.valueToPercent(value)
+    }))
+  })
 
   protected readonly rangeStartPercent = computed(() =>
-    this.mode() === 'range' ? this.valueToPercent(this.internalValue()[0]) : 0,
-  );
+    this.mode() === 'range' ? this.valueToPercent(this.internalValue()[0]) : 0
+  )
   protected readonly rangeEndPercent = computed(() => {
-    const [, end] = this.internalValue();
-    return this.valueToPercent(this.mode() === 'range' ? end : this.internalValue()[0]);
-  });
+    const [, end] = this.internalValue()
+    return this.valueToPercent(this.mode() === 'range' ? end : this.internalValue()[0])
+  })
 
   protected readonly ticks = computed<SliderTick[]>(() => {
-    const [min, max] = this.bounds();
-    const step = this.safeStep();
-    const delta = max - min;
+    const [min, max] = this.bounds()
+    const step = this.safeStep()
+    const delta = max - min
 
     if (delta <= 0) {
-      return [{ key: '0', percent: 0 }];
+      return [{ key: '0', percent: 0 }]
     }
 
-    const theoreticalCount = Math.floor(delta / step) + 1;
-    const count = theoreticalCount <= 51 ? theoreticalCount : 51;
-    const ticks: SliderTick[] = [];
+    const theoreticalCount = Math.floor(delta / step) + 1
+    const count = theoreticalCount <= 51 ? theoreticalCount : 51
+    const ticks: SliderTick[] = []
 
     for (let index = 0; index < count; index += 1) {
-      const ratio = count === 1 ? 0 : index / (count - 1);
-      const value =
-        theoreticalCount <= 51 ? min + step * index : min + (delta * index) / Math.max(1, count - 1);
+      const ratio = count === 1 ? 0 : index / (count - 1)
+      const value = theoreticalCount <= 51 ? min + step * index : min + (delta * index) / Math.max(1, count - 1)
       ticks.push({
         key: `${index}-${Math.round(ratio * 1000)}`,
-        percent: theoreticalCount <= 51 ? this.valueToPercent(value) : ratio * 100,
-      });
+        percent: theoreticalCount <= 51 ? this.valueToPercent(value) : ratio * 100
+      })
     }
 
-    return ticks;
-  });
+    return ticks
+  })
 
-  private onTouched: OnTouchedType = () => {};
-  private onChange: OnChangeType = () => {};
+  private onTouched: OnTouchedType = () => {}
+  private onChange: OnChangeType = () => {}
 
   ngAfterViewInit(): void {
     const inputStart$: Observable<SliderInputEvent> = merge(
       fromEvent<PointerEvent>(this.elementRef.nativeElement, 'pointerdown').pipe(
-        map(event => ({ event, source: 'pointer' as const })),
+        map((event) => ({ event, source: 'pointer' as const }))
       ),
       fromEvent<MouseEvent>(this.elementRef.nativeElement, 'mousedown').pipe(
-        map(event => ({ event, source: 'mouse' as const })),
-      ),
-    );
+        map((event) => ({ event, source: 'mouse' as const }))
+      )
+    )
     const inputMove$: Observable<SliderInputEvent> = merge(
-      fromEvent<PointerEvent>(this.document, 'pointermove').pipe(map(event => ({ event, source: 'pointer' as const }))),
-      fromEvent<MouseEvent>(this.document, 'mousemove').pipe(map(event => ({ event, source: 'mouse' as const }))),
-    );
-    const inputEnd$: Observable<SliderInputEvent> = merge(
-      fromEvent<PointerEvent>(this.document, 'pointerup').pipe(map(event => ({ event, source: 'pointer' as const }))),
-      fromEvent<PointerEvent>(this.document, 'pointercancel').pipe(
-        map(event => ({ event, source: 'pointer' as const })),
+      fromEvent<PointerEvent>(this.document, 'pointermove').pipe(
+        map((event) => ({ event, source: 'pointer' as const }))
       ),
-      fromEvent<MouseEvent>(this.document, 'mouseup').pipe(map(event => ({ event, source: 'mouse' as const }))),
-    );
+      fromEvent<MouseEvent>(this.document, 'mousemove').pipe(map((event) => ({ event, source: 'mouse' as const })))
+    )
+    const inputEnd$: Observable<SliderInputEvent> = merge(
+      fromEvent<PointerEvent>(this.document, 'pointerup').pipe(map((event) => ({ event, source: 'pointer' as const }))),
+      fromEvent<PointerEvent>(this.document, 'pointercancel').pipe(
+        map((event) => ({ event, source: 'pointer' as const }))
+      ),
+      fromEvent<MouseEvent>(this.document, 'mouseup').pipe(map((event) => ({ event, source: 'mouse' as const })))
+    )
 
     inputStart$
       .pipe(
         filter(() => !this.disabled()),
         filter(({ source }) => !(source === 'mouse' && this.activeInputSource === 'pointer')),
         tap(({ event, source }) => {
-          this.activeInputSource = source;
-          this.handlePointerDown(event);
+          this.activeInputSource = source
+          this.handlePointerDown(event)
         }),
         switchMap(({ source }) =>
           inputMove$.pipe(
-            filter(move => move.source === source),
-            takeUntil(inputEnd$.pipe(filter(end => end.source === source))),
-            tap(({ event }) => this.handlePointerMove(event)),
-          ),
+            filter((move) => move.source === source),
+            takeUntil(inputEnd$.pipe(filter((end) => end.source === source))),
+            tap(({ event }) => this.handlePointerMove(event))
+          )
         ),
-        takeUntil(this.destroy$),
+        takeUntil(this.destroy$)
       )
-      .subscribe();
+      .subscribe()
 
     inputEnd$.pipe(takeUntil(this.destroy$)).subscribe(({ source }) => {
       if (this.activeInputSource !== source) {
-        return;
+        return
       }
 
-      this.activeInputSource = null;
+      this.activeInputSource = null
       if (!this.dragging()) {
-        return;
+        return
       }
 
-      this.dragging.set(false);
-      this.emitPendingChangeEnd();
-    });
+      this.dragging.set(false)
+      this.emitPendingChangeEnd()
+    })
 
-    this.syncFromInputs();
+    this.syncFromInputs()
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -406,285 +410,292 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
       'value' in changes ||
       'defaultValue' in changes
     ) {
-      this.syncFromInputs();
+      this.syncFromInputs()
     }
 
     if ('disabledInput' in changes) {
-      this.disabled.set(this.disabledInput());
+      this.disabled.set(this.disabledInput())
     }
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+    this.destroy$.next()
+    this.destroy$.complete()
   }
 
   writeValue(value: ZardSliderValue | null): void {
-    this.cvaValue.set(value);
+    this.cvaValue.set(value)
 
     if (this.value() == null) {
-      this.syncFromInputs();
+      this.syncFromInputs()
     }
   }
 
   registerOnChange(fn: (value: ZardSliderValue) => void): void {
-    this.onChange = fn;
+    this.onChange = fn
   }
 
   registerOnTouched(fn: () => void): void {
-    this.onTouched = fn;
+    this.onTouched = fn
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this.disabled.set(isDisabled);
+    this.disabled.set(isDisabled)
   }
 
   handleThumbFocus(index: number): void {
-    this.activeThumbIndex.set(index);
-    this.focusedThumbIndex.set(index);
+    this.activeThumbIndex.set(index)
+    this.focusedThumbIndex.set(index)
   }
 
   handleThumbBlur(index: number, event: FocusEvent): void {
     if (this.focusedThumbIndex() === index) {
-      this.focusedThumbIndex.set(null);
+      this.focusedThumbIndex.set(null)
     }
 
-    const nextTarget = event.relatedTarget as Node | null;
+    const nextTarget = event.relatedTarget as Node | null
     if (nextTarget && this.elementRef.nativeElement.contains(nextTarget)) {
-      return;
+      return
     }
 
-    this.emitChangeEnd();
+    this.emitChangeEnd()
   }
 
   handleKeydown(index: number, event: KeyboardEvent): void {
     if (this.disabled()) {
-      return;
+      return
     }
 
-    const key = event.key;
+    const key = event.key
     if (!['Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
-      return;
+      return
     }
 
-    event.preventDefault();
-    this.activeThumbIndex.set(index);
+    event.preventDefault()
+    this.activeThumbIndex.set(index)
 
-    const nextTuple = [...this.internalValue()] as [number, number];
-    const step = this.safeStep();
-    const [min, max] = this.bounds();
-    const current = nextTuple[index];
-    let nextValue = current;
+    const nextTuple = [...this.internalValue()] as [number, number]
+    const step = this.safeStep()
+    const [min, max] = this.bounds()
+    const current = nextTuple[index]
+    let nextValue = current
 
     switch (key) {
       case 'Home':
-        nextValue = min;
-        break;
+        nextValue = min
+        break
       case 'End':
-        nextValue = max;
-        break;
+        nextValue = max
+        break
       case 'ArrowLeft':
       case 'ArrowDown':
-        nextValue = current - step;
-        break;
+        nextValue = current - step
+        break
       case 'ArrowRight':
       case 'ArrowUp':
-        nextValue = current + step;
-        break;
+        nextValue = current + step
+        break
       default:
-        return;
+        return
     }
 
-    const changed = this.applyNormalizedTuple(this.updateThumbValue(nextTuple, index, nextValue));
+    const changed = this.applyNormalizedTuple(this.updateThumbValue(nextTuple, index, nextValue))
     if (!changed) {
-      return;
+      return
     }
 
-    this.onTouched();
-    this.emitChangeEnd();
+    this.onTouched()
+    this.emitChangeEnd()
   }
 
   private handlePointerDown(event: PointerEvent | MouseEvent): void {
-    const target = event.target as HTMLElement;
-    const directThumbIndex = this.findThumbIndex(target);
-    const thumbIndex = directThumbIndex ?? this.findClosestThumbIndex(this.coordinateToValue(event));
+    const target = event.target as HTMLElement
+    const directThumbIndex = this.findThumbIndex(target)
+    const thumbIndex = directThumbIndex ?? this.findClosestThumbIndex(this.coordinateToValue(event))
 
-    this.activeThumbIndex.set(thumbIndex);
-    this.dragging.set(true);
-    this.focusThumb(thumbIndex);
+    this.activeThumbIndex.set(thumbIndex)
+    this.dragging.set(true)
+    this.focusThumb(thumbIndex)
 
     if (directThumbIndex == null) {
       this.pendingChangeEnd = this.applyNormalizedTuple(
-        this.updateThumbValue(this.internalValue(), thumbIndex, this.coordinateToValue(event)),
-      );
-      this.onTouched();
+        this.updateThumbValue(this.internalValue(), thumbIndex, this.coordinateToValue(event))
+      )
+      this.onTouched()
     }
 
-    event.preventDefault();
+    event.preventDefault()
   }
 
   private handlePointerMove(event: PointerEvent | MouseEvent): void {
     if (this.disabled()) {
-      return;
+      return
     }
 
     const changed = this.applyNormalizedTuple(
-      this.updateThumbValue(this.internalValue(), this.activeThumbIndex(), this.coordinateToValue(event)),
-    );
+      this.updateThumbValue(this.internalValue(), this.activeThumbIndex(), this.coordinateToValue(event))
+    )
 
     if (changed) {
-      this.pendingChangeEnd = true;
-      this.onTouched();
+      this.pendingChangeEnd = true
+      this.onTouched()
     }
   }
 
   private focusThumb(index: number): void {
     requestAnimationFrame(() => {
-      this.thumbRefs()[index]?.nativeElement.focus();
-    });
+      this.thumbRefs()[index]?.nativeElement.focus()
+    })
   }
 
   private syncFromInputs(): void {
-    const nextTuple = this.normalizeValue(this.resolveSourceValue());
-    this.internalValue.set(nextTuple);
-    this.activeThumbIndex.set(this.mode() === 'range' ? this.activeThumbIndex() : 0);
+    const nextTuple = this.normalizeValue(this.resolveSourceValue())
+    this.internalValue.set(nextTuple)
+    this.activeThumbIndex.set(this.mode() === 'range' ? this.activeThumbIndex() : 0)
   }
 
   private resolveSourceValue(): ZardSliderValue | null {
-    return this.value() ?? this.cvaValue() ?? this.defaultValue();
+    return this.value() ?? this.cvaValue() ?? this.defaultValue()
   }
 
   private normalizeValue(value: ZardSliderValue | null | undefined): SliderTuple {
-    const [min, max] = this.bounds();
-    const step = this.safeStep();
+    const [min, max] = this.bounds()
+    const step = this.safeStep()
 
     if (this.mode() === 'range') {
-      const tuple = Array.isArray(value) ? value : [value ?? min, value ?? min];
-      const start = roundToStep(clamp(Number(tuple[0] ?? min), [min, max]), min, step);
-      const end = roundToStep(clamp(Number(tuple[1] ?? start), [min, max]), min, step);
-      return start <= end ? [start, end] : [end, start];
+      const tuple = Array.isArray(value) ? value : [value ?? min, value ?? min]
+      const rawStart = this.toFiniteNumber(tuple[0], min)
+      const start = roundToStep(clamp(rawStart, [min, max]), min, step)
+      const rawEnd = this.toFiniteNumber(tuple[1], start)
+      const end = roundToStep(clamp(rawEnd, [min, max]), min, step)
+      return start <= end ? [start, end] : [end, start]
     }
 
-    const scalar = Array.isArray(value) ? value[0] : value;
-    const normalized = roundToStep(clamp(Number(scalar ?? min), [min, max]), min, step);
-    return [normalized, normalized];
+    const scalar = Array.isArray(value) ? value[0] : value
+    const normalized = roundToStep(clamp(this.toFiniteNumber(scalar, min), [min, max]), min, step)
+    return [normalized, normalized]
   }
 
   private updateThumbValue(tuple: SliderTuple, index: number, rawValue: number): SliderTuple {
-    const [min, max] = this.bounds();
-    const step = this.safeStep();
-    const normalized = roundToStep(clamp(rawValue, [min, max]), min, step);
+    const [min, max] = this.bounds()
+    const step = this.safeStep()
+    const normalized = roundToStep(clamp(rawValue, [min, max]), min, step)
 
     if (this.mode() !== 'range') {
-      return [normalized, normalized];
+      return [normalized, normalized]
     }
 
-    const nextTuple = [...tuple] as [number, number];
+    const nextTuple = [...tuple] as [number, number]
 
     if (index === 0) {
-      nextTuple[0] = Math.min(normalized, nextTuple[1]);
+      nextTuple[0] = Math.min(normalized, nextTuple[1])
     } else {
-      nextTuple[1] = Math.max(normalized, nextTuple[0]);
+      nextTuple[1] = Math.max(normalized, nextTuple[0])
     }
 
-    return nextTuple;
+    return nextTuple
   }
 
   private applyNormalizedTuple(nextTuple: SliderTuple): boolean {
-    const currentTuple = this.internalValue();
+    const currentTuple = this.internalValue()
     if (currentTuple[0] === nextTuple[0] && currentTuple[1] === nextTuple[1]) {
-      return false;
+      return false
     }
 
-    this.internalValue.set(nextTuple);
-    const emittedValue = this.toOutputValue(nextTuple);
-    this.onChange(emittedValue);
-    this.valueChange.emit(emittedValue);
+    this.internalValue.set(nextTuple)
+    const emittedValue = this.toOutputValue(nextTuple)
+    this.onChange(emittedValue)
+    this.valueChange.emit(emittedValue)
 
-    return true;
+    return true
   }
 
   private emitPendingChangeEnd(): void {
     if (!this.pendingChangeEnd) {
-      return;
+      return
     }
 
-    this.pendingChangeEnd = false;
-    this.emitChangeEnd();
+    this.pendingChangeEnd = false
+    this.emitChangeEnd()
   }
 
   private emitChangeEnd(): void {
-    this.changeEnd.emit(this.toOutputValue(this.internalValue()));
+    this.changeEnd.emit(this.toOutputValue(this.internalValue()))
   }
 
   private toOutputValue(tuple: SliderTuple): ZardSliderValue {
-    return this.mode() === 'range' ? tuple : tuple[0];
+    return this.mode() === 'range' ? tuple : tuple[0]
   }
 
   private findThumbIndex(target: HTMLElement | null): number | null {
     if (!target) {
-      return null;
+      return null
     }
 
-    const thumbs = this.thumbRefs();
+    const thumbs = this.thumbRefs()
     for (let index = 0; index < thumbs.length; index += 1) {
       if (thumbs[index].nativeElement.contains(target)) {
-        return index;
+        return index
       }
     }
 
-    return null;
+    return null
   }
 
   private findClosestThumbIndex(value: number): number {
     if (this.mode() !== 'range') {
-      return 0;
+      return 0
     }
 
-    const [start, end] = this.internalValue();
-    return Math.abs(value - start) <= Math.abs(value - end) ? 0 : 1;
+    const [start, end] = this.internalValue()
+    return Math.abs(value - start) <= Math.abs(value - end) ? 0 : 1
   }
 
   private coordinateToValue(event: PointerEvent | MouseEvent): number {
-    const rect = this.trackRef().nativeElement.getBoundingClientRect();
+    const rect = this.trackRef().nativeElement.getBoundingClientRect()
     if (!rect.width || !rect.height) {
-      return this.internalValue()[this.activeThumbIndex()];
+      return this.internalValue()[this.activeThumbIndex()]
     }
 
     const ratio =
       this.orientation() === 'vertical'
         ? clamp(1 - (event.clientY - rect.top) / rect.height, [0, 1])
-        : clamp((event.clientX - rect.left) / rect.width, [0, 1]);
+        : clamp((event.clientX - rect.left) / rect.width, [0, 1])
 
-    const [min, max] = this.bounds();
-    return min + (max - min) * ratio;
+    const [min, max] = this.bounds()
+    return min + (max - min) * ratio
   }
 
   private valueToPercent(value: number): number {
-    const [min, max] = this.bounds();
+    const [min, max] = this.bounds()
     if (max === min) {
-      return 0;
+      return 0
     }
 
-    return convertValueToPercentage(value, min, max);
+    return convertValueToPercentage(value, min, max)
   }
 
   private bounds(): [number, number] {
-    const min = this.min();
-    const max = this.max();
-    return min <= max ? [min, max] : [max, min];
+    const min = this.min()
+    const max = this.max()
+    return min <= max ? [min, max] : [max, min]
   }
 
   private safeStep(): number {
-    const step = this.step();
-    return Number.isFinite(step) && step > 0 ? step : 1;
+    const step = this.step()
+    return Number.isFinite(step) && step > 0 ? step : 1
+  }
+
+  private toFiniteNumber(value: unknown, fallback: number): number {
+    const number = Number(value)
+    return Number.isFinite(number) ? number : fallback
   }
 
   protected formatDisplayValue(value: number): string {
     if (this.formatValue() !== defaultSliderValueFormatter) {
-      return this.formatValue()(value);
+      return this.formatValue()(value)
     }
 
-    return `${roundToStep(value, this.min(), this.safeStep())}`;
+    return `${roundToStep(value, this.min(), this.safeStep())}`
   }
 }

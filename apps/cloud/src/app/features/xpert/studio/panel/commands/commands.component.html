@@ -1,0 +1,276 @@
+<z-card
+  class="h-full w-[420px] gap-0 overflow-hidden rounded-2xl border-[0.5px] border-components-panel-border bg-components-panel-bg py-0 shadow-lg 2xl:w-[460px]"
+>
+  <div class="flex items-center gap-3 border-b border-divider-regular px-4 py-3">
+    <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-500/10 text-primary-500">
+      <z-icon zType="message-circle-more"></z-icon>
+    </div>
+    <div class="min-w-0 flex-1">
+      <div class="truncate text-base font-semibold text-text-primary">
+        {{ 'PAC.PromptWorkflow.Commands' | translate: { Default: 'Commands' } }}
+      </div>
+      <div class="truncate text-xs text-text-tertiary">
+        {{
+          'PAC.PromptWorkflow.CommandsPanelDesc'
+            | translate: { Default: 'Enable workspace workflows and skill commands for this Xpert.' }
+        }}
+      </div>
+    </div>
+    <button z-button type="button" zType="ghost" zSize="icon-sm" (click)="close()">
+      <z-icon zType="x"></z-icon>
+    </button>
+  </div>
+
+  <div class="h-[calc(100%-64px)] overflow-auto p-4">
+    @if (loading()) {
+      <div class="flex min-h-[220px] items-center justify-center text-sm text-text-tertiary">
+        {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+      </div>
+    } @else {
+      <div class="flex flex-col gap-5">
+        @if (conflicts().length) {
+          <z-alert zType="default" zIcon="triangle-alert" [zDescription]="conflictDescription()"></z-alert>
+        }
+        @if (!profileConfigured()) {
+          <z-alert
+            zType="default"
+            zIcon="info"
+            [zDescription]="
+              'PAC.PromptWorkflow.DefaultAllCommandsEnabled'
+                | translate
+                  : {
+                      Default:
+                        'No command profile is configured. All workspace prompt workflows and skill commands are enabled by default; changing this panel creates a whitelist profile.'
+                    }
+            "
+          ></z-alert>
+        }
+
+        <section class="panel-section">
+          <div class="section-title">
+            {{ 'PAC.PromptWorkflow.EnabledCommands' | translate: { Default: 'Enabled Commands' } }}
+          </div>
+          @if (entries().length) {
+            <div class="flex flex-col gap-3">
+              @for (entry of entries(); track $index; let index = $index) {
+                <z-card
+                  class="gap-0 rounded-2xl border border-divider-regular bg-background-default p-3 py-3 shadow-none"
+                >
+                  <div class="flex items-start gap-3">
+                    <div
+                      class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-components-card-bg text-text-secondary"
+                    >
+                      @switch (entry.source) {
+                        @case ('xpert') {
+                          <z-icon zType="user"></z-icon>
+                        }
+                        @case ('workspace_prompt_workflow') {
+                          <z-icon zType="message-circle-more"></z-icon>
+                        }
+                        @case ('skill') {
+                          <z-icon zType="hammer"></z-icon>
+                        }
+                      }
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2">
+                        <div class="truncate text-sm font-semibold text-text-primary">
+                          /{{ displayEntryName(entry) }}
+                        </div>
+                        <z-badge zType="secondary" class="text-[11px]">
+                          {{ entry.source }}
+                        </z-badge>
+                      </div>
+                      <div class="mt-1 line-clamp-2 text-xs text-text-tertiary">
+                        {{ displayEntryDescription(entry) }}
+                      </div>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-1">
+                      <button
+                        z-button
+                        type="button"
+                        zType="ghost"
+                        zSize="icon-sm"
+                        [zDisabled]="index === 0"
+                        (click)="moveEntry(index, -1)"
+                      >
+                        <z-icon zType="arrow_upward"></z-icon>
+                      </button>
+                      <button
+                        z-button
+                        type="button"
+                        zType="ghost"
+                        zSize="icon-sm"
+                        [zDisabled]="index === entries().length - 1"
+                        (click)="moveEntry(index, 1)"
+                      >
+                        <z-icon zType="arrow_downward"></z-icon>
+                      </button>
+                      <button z-button type="button" zType="destructive" zSize="icon-sm" (click)="removeEntry(index)">
+                        <z-icon zType="trash"></z-icon>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 grid gap-2">
+                    <div class="mini-field">
+                      <z-checkbox
+                        [ngModel]="entry.enabled !== false"
+                        (ngModelChange)="updateEntryValue(index, { enabled: $event })"
+                      >
+                        {{ 'PAC.PromptWorkflow.Enabled' | translate: { Default: 'Enabled' } }}
+                      </z-checkbox>
+                    </div>
+                    @if (entry.source === 'skill') {
+                      <div class="mini-field">
+                        <z-checkbox
+                          [ngModel]="entry.priority === 'preferred'"
+                          (ngModelChange)="updateEntryValue(index, { priority: $event ? 'preferred' : 'normal' })"
+                        >
+                          {{ 'PAC.PromptWorkflow.Preferred' | translate: { Default: 'Preferred' } }}
+                        </z-checkbox>
+                      </div>
+                    }
+                    @if (entry.source !== 'skill') {
+                      <input
+                        z-input
+                        [ngModel]="entry.name"
+                        (ngModelChange)="updateEntryValue(index, { name: $event })"
+                        [placeholder]="'PAC.PromptWorkflow.OverrideName' | translate: { Default: 'Override name' }"
+                      />
+                      <input
+                        z-input
+                        [ngModel]="entry.label"
+                        (ngModelChange)="updateEntryValue(index, { label: $event })"
+                        [placeholder]="'PAC.PromptWorkflow.OverrideLabel' | translate: { Default: 'Override label' }"
+                      />
+                      <textarea
+                        z-input
+                        class="min-h-[86px]"
+                        [ngModel]="entry.template"
+                        (ngModelChange)="updateEntryValue(index, { template: $event })"
+                        [placeholder]="
+                          'PAC.PromptWorkflow.OverridePromptTemplate'
+                            | translate: { Default: 'Override prompt template' }
+                        "
+                      ></textarea>
+                    }
+                  </div>
+                </z-card>
+              }
+            </div>
+          } @else {
+            <z-empty
+              class="rounded-2xl border border-dashed border-divider-regular"
+              zIcon="message-circle-more"
+              [zTitle]="'PAC.PromptWorkflow.NoCommandsEnabled' | translate: { Default: 'No commands enabled yet.' }"
+            ></z-empty>
+          }
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title">
+            {{ 'PAC.PromptWorkflow.WorkspaceLibrary' | translate: { Default: 'Workspace Prompt Workflows' } }}
+          </div>
+          <div class="flex flex-col gap-2">
+            @for (workflow of activeWorkflows(); track workflow.id) {
+              <z-checkbox
+                class="command-option"
+                labelClass="min-w-0 flex-1"
+                [ngModel]="isWorkspaceEnabled(workflow)"
+                (ngModelChange)="toggleWorkspace(workflow, $event)"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="truncate text-sm font-semibold text-text-primary">/{{ workflow.name }}</div>
+                  <div class="truncate text-xs text-text-tertiary">{{ workflow.description || workflow.template }}</div>
+                </div>
+              </z-checkbox>
+            }
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title">
+            {{ 'PAC.PromptWorkflow.SkillCommands' | translate: { Default: 'Skill Commands' } }}
+          </div>
+          <div class="flex flex-col gap-2">
+            @for (item of skillCommands(); track item.skillId + item.name) {
+              <z-checkbox
+                class="command-option"
+                labelClass="min-w-0 flex-1"
+                [ngModel]="isSkillEnabled(item)"
+                (ngModelChange)="toggleSkill(item, $event)"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="truncate text-sm font-semibold text-text-primary">/{{ item.name }}</div>
+                  <div class="truncate text-xs text-text-tertiary">{{ item.description || item.skillLabel }}</div>
+                </div>
+              </z-checkbox>
+            }
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title">
+            {{ 'PAC.PromptWorkflow.LocalCommand' | translate: { Default: 'Xpert-local Command' } }}
+          </div>
+          <div class="grid gap-2">
+            <input
+              z-input
+              [ngModel]="localDraft().name"
+              (ngModelChange)="updateLocalDraft({ name: $event })"
+              [placeholder]="'PAC.PromptWorkflow.NamePlaceholder' | translate: { Default: 'name' }"
+            />
+            <input
+              z-input
+              [ngModel]="localDraft().label"
+              (ngModelChange)="updateLocalDraft({ label: $event })"
+              [placeholder]="'PAC.PromptWorkflow.LabelPlaceholder' | translate: { Default: 'label' }"
+            />
+            <input
+              z-input
+              [ngModel]="localDraft().description"
+              (ngModelChange)="updateLocalDraft({ description: $event })"
+              [placeholder]="'PAC.PromptWorkflow.DescriptionPlaceholder' | translate: { Default: 'description' }"
+            />
+            <textarea
+              z-input
+              class="min-h-[96px]"
+              [ngModel]="localDraft().template"
+              (ngModelChange)="updateLocalDraft({ template: $event })"
+              [placeholder]="
+                'PAC.PromptWorkflow.PromptTemplateWithArgs'
+                  | translate: { Default: 'Prompt template with args placeholder' }
+              "
+            ></textarea>
+            <button z-button type="button" zType="secondary" class="justify-center" (click)="addLocalCommand()">
+              <z-icon zType="plus"></z-icon>
+              {{ 'PAC.PromptWorkflow.AddLocalCommand' | translate: { Default: 'Add Local Command' } }}
+            </button>
+          </div>
+        </section>
+
+        <div
+          class="sticky bottom-0 -mx-4 -mb-4 flex justify-end border-t border-divider-regular bg-components-panel-bg px-4 py-3"
+        >
+          <button
+            z-button
+            type="button"
+            zType="default"
+            zSize="lg"
+            [zDisabled]="saving()"
+            [zLoading]="saving()"
+            (click)="save()"
+          >
+            <z-icon zType="save"></z-icon>
+            {{
+              saving()
+                ? ('PAC.ACTIONS.Saving' | translate: { Default: 'Saving' })
+                : ('PAC.ACTIONS.Save' | translate: { Default: 'Save' })
+            }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</z-card>

@@ -1,5 +1,29 @@
 # @xpert-ai/plugin-sdk
 
+## 3.9.4
+
+### Patch Changes
+
+- Updated dependencies [07057a6]
+  - @xpert-ai/contracts@3.9.4
+
+## 3.9.3
+
+### Patch Changes
+
+- ea234e5: skills & middleware selection
+- Updated dependencies [ea234e5]
+- Updated dependencies [4920c48]
+  - @xpert-ai/contracts@3.9.3
+
+## 3.9.2
+
+### Patch Changes
+
+- 8187f99: Update chatkit
+- Updated dependencies [8187f99]
+  - @xpert-ai/contracts@3.9.2
+
 ## 3.9.1
 
 ### Patch Changes

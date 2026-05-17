@@ -20,6 +20,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - In NestJS services, do not hand-roll repeated helpers like `normalizeRequiredProjectId()` for each field. Prefer the shared branded-id normalizers in `packages/server-ai/src/shared/utils/branded-id.ts`, then pass branded values into TypeORM create/update/query calls.
 - Be especially careful with `QueryDeepPartialEntity` and `FindOptionsWhere`: branded IDs should be normalized before building these objects, rather than trimmed or narrowed inline on the TypeORM generic payload.
 - In TypeORM entities, any branded string ID field must declare an explicit column type like `@Column({ type: 'uuid' })`. Do not rely on reflected metadata for branded fields, because Nest/TypeORM will see them as `Object`.
+- Keep property-level readers and structural checks at trust boundaries only, such as API bodies, external package metadata, and JSON columns read from persistence. After a boundary parser/type guard returns a concrete shared-contract type, downstream services should use typed fields directly instead of continuing to call `read*()` helpers. If a service still needs property-level readers, move that parsing earlier or introduce a typed boundary parser first.
 - Never guess types, categories, or payload meaning from names, display text, localized copy, sample data, or incidental field combinations. Logic that depends on machine-readable distinctions must use explicit typed fields defined in shared contracts, such as discriminated unions or a stable `type`.
 - If the required discriminator or type is missing, do not invent one locally and do not hard-code heuristic detection. Add the type to the shared contract first, or pause and confirm the new type before implementing downstream filtering, routing, rendering, or business logic.
 
@@ -39,6 +40,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Patterns: entities in `packages/server-ai/src/**`, services extend `TenantOrganizationAwareCrudService` or base classes, controllers extend `CrudController` when possible.
 - Register modules in `packages/server-ai/src/index.ts` and wire into `app.module.ts` as needed.
 - Keep TypeORM entities aligned with contract interfaces in `packages/contracts`.
+- TypeORM entity columns must not rely on decorator metadata for unsafe property types. If an `@Column` property uses a union, literal union, imported type alias, enum-like type reference, object/interface shape, array, `Record`, `unknown`, or `any`, the decorator must explicitly declare `type`. Use `type: 'varchar'` for string unions, `type: 'int'` for numeric unions, and `type: 'json'` or `type: 'jsonb'` for structured data.
 - Complex, independent logic can be implemented using CQRS.
 - Ensure clearer boundaries of responsibilities.
 

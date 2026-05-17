@@ -1,9 +1,22 @@
-<table z-table [zSize]="tableSize" [displayDensity]="displayDensity" [class.ngm-table-grid]="grid" [class.striped]="striped">
+<table
+  z-table
+  [zSize]="tableSize"
+  [displayDensity]="displayDensity"
+  [class.ngm-table-grid]="grid"
+  [class.striped]="striped"
+>
   <thead z-table-header>
     <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
       <th z-table-head [ngClass]="stickyHeaders ? 'sticky top-0 z-20 bg-background' : ''">
         <div class="flex items-center">
-          <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity" (click)="toggleUnfold()">
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            [displayDensity]="displayDensity"
+            (click)="toggleUnfold()"
+          >
             @if (!unfold) {
               <z-icon zType="unfold_more"></z-icon>
             }
@@ -11,14 +24,14 @@
               <z-icon zType="unfold_less"></z-icon>
             }
           </button>
-          <span> {{nameLabel}} </span>
+          <span> {{ nameLabel }} </span>
         </div>
       </th>
 
       @for (column of columns; track column.name) {
         <th
           z-table-head
-          [ngClass]="[stickyHeaders ? 'sticky top-0 z-20 bg-background' : '', column.headerClass]"
+          [ngClass]="[stickyHeaders ? 'sticky top-0 z-20 bg-background' : '', column.headerClass ?? '']"
           [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
           [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
           [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 5 : 1"
@@ -27,7 +40,7 @@
           [style.max-width]="column.maxWidth || null"
         >
           <div class="min-w-0" [style.max-width]="column.maxWidth || null">
-            {{column.caption || column.name}}
+            {{ column.caption || column.name }}
           </div>
         </th>
       }
@@ -49,13 +62,16 @@
               [style.marginLeft.px]="data.level * treeNodePadding"
               (click)="toggleNode(data)"
             >
-              <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(data) ? 'expand_more' : 'chevron_right'"></z-icon>
+              <z-icon
+                class="z-icon-rtl-mirror"
+                [zType]="treeControl.isExpanded(data) ? 'expand_more' : 'chevron_right'"
+              ></z-icon>
             </button>
             @if (nameCellTemplate) {
               <ng-container *ngTemplateOutlet="nameCellTemplate; context: data"></ng-container>
             }
             @if (!nameCellTemplate) {
-              {{data.caption || data.name}}
+              {{ data.caption || data.name }}
             }
           </div>
         </td>
@@ -66,7 +82,7 @@
             [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
             [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
             [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 4 : 1"
-            [ngClass]="column.cellClass"
+            [ngClass]="column.cellClass ?? ''"
             [style.width]="column.width || null"
             [style.min-width]="column.minWidth || null"
             [style.max-width]="column.maxWidth || null"
@@ -80,7 +96,7 @@
                 <ng-container *ngTemplateOutlet="column.cellTemplate; context: data"></ng-container>
               }
               @if (!column.cellTemplate) {
-                {{displayValue(data, column)}}
+                {{ displayValue(data, column) }}
               }
             </div>
           </td>

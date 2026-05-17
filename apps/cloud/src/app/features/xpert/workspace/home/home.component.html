@@ -43,20 +43,6 @@
           }
           {{ 'PAC.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' } }}
         </li>
-        <!-- <li
-        [cdkOption]="XpertRoleTypeEnum.Copilot"
-        class="xpert-list-option"
-        [ngClass]="{active: type() === XpertRoleTypeEnum.Copilot }"
-        [routerLink]="['xperts']"
-      >
-        @if (type() === XpertRoleTypeEnum.Copilot) {
-          <i class="ri-robot-3-fill text-lg mr-1"></i>
-        } @else {
-          <i class="ri-robot-3-line text-lg mr-1"></i>
-        }
-        
-        {{ 'PAC.Xpert.Copilot' | translate: {Default: 'Copilot'} }}
-      </li> -->
 
         <li
           [cdkOption]="XpertToolsetCategory.BUILTIN"
@@ -180,20 +166,35 @@
           {{ 'PAC.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
         </li>
 
-        <li class="xpert-list-option"
-          [routerLink]="['skills']"
-          routerLinkActive="active"
-          #rla7="routerLinkActive">
+        <li class="xpert-list-option" [routerLink]="['skills']" routerLinkActive="active" #rla7="routerLinkActive">
           @if (rla7.isActive) {
             <i class="ri-pencil-ruler-fill text-lg mr-1"></i>
           } @else {
             <i class="ri-pencil-ruler-line text-lg mr-1"></i>
           }
-          
-          {{ 'PAC.KEY_WORDS.Skills' | translate: {Default: 'Skills'} }}
+
+          {{ 'PAC.KEY_WORDS.Skills' | translate: { Default: 'Skills' } }}
         </li>
 
-        <li [class]="canWriteWorkspace() ? 'xpert-list-option' : 'xpert-list-option opacity-50 cursor-not-allowed'" (click)="openEnvs()">
+        <li
+          class="xpert-list-option"
+          [routerLink]="['prompt-workflows']"
+          routerLinkActive="active"
+          #rla8="routerLinkActive"
+        >
+          @if (rla8.isActive) {
+            <i class="ri-message-3-fill text-lg mr-1"></i>
+          } @else {
+            <i class="ri-message-3-line text-lg mr-1"></i>
+          }
+
+          {{ 'PAC.PromptWorkflow.ShortTitle' | translate: { Default: 'Prompt Workflows' } }}
+        </li>
+
+        <li
+          [class]="canWriteWorkspace() ? 'xpert-list-option' : 'xpert-list-option opacity-50 cursor-not-allowed'"
+          (click)="openEnvs()"
+        >
           <svg
             width="16"
             height="16"
@@ -282,7 +283,7 @@
     <div class="max-h-96 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
       @for (item of filteredWorkspaces(); track item.id) {
         <div
-          class="workspace-item group/item flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
+          class="workspace-item group/item relative flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
           [class.active]="item.id === selectedWorkspace()?.id"
           (click)="selectWorkspace(item)"
         >
@@ -314,7 +315,7 @@
           } @else {
             <button
               type="button"
-              class="inline-flex shrink-0 items-center gap-1 rounded-full border border-transparent px-2 py-1 text-[11px] font-medium text-text-tertiary hover:border-divider-regular hover:bg-background-default-subtle hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60 opacity-0 group-hover/item:opacity-100 transition-opacity"
+              class="absolute right-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-transparent px-2 py-1 text-[11px] font-medium text-text-tertiary bg-background hover:border-divider-regular hover:bg-background-default-subtle hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60 opacity-0 group-hover/item:opacity-100 transition-opacity"
               [disabled]="settingDefaultWorkspaceId() === item.id"
               (click)="setDefaultWorkspace($event, item)"
             >

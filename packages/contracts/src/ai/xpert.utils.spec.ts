@@ -1,5 +1,6 @@
-import { IXpertAgent, TXpertTeamDraft } from './xpert.model'
-import { replaceAgentInDraft } from './xpert.utils'
+import { IXpertAgent } from './xpert-agent.model'
+import { IXpert, TXpertTeamDraft } from './xpert.model'
+import { replaceAgentInDraft, resolveRuntimeXpert } from './xpert.utils'
 
 describe('xpert utils', () => {
   it('replaces the primary agent key and rewrites related connections', () => {
@@ -119,5 +120,69 @@ describe('xpert utils', () => {
         key: 'Agent_current/Node_1'
       })
     ])
+  })
+
+  it('resolves runtime xpert from draft graph and primary agent node', () => {
+    const xpert = {
+      id: 'xpert-1',
+      tenantId: 'tenant-1',
+      organizationId: 'organization-1',
+      workspaceId: 'workspace-1',
+      title: 'Published Xpert',
+      agent: {
+        key: 'published-agent'
+      },
+      graph: {
+        nodes: [],
+        connections: []
+      },
+      draft: {
+        team: {
+          workspaceId: 'draft-workspace',
+          title: 'Draft Xpert',
+          agent: {
+            key: 'draft-agent',
+            title: 'Draft Team Agent'
+          },
+          agentConfig: {
+            recursionLimit: 20
+          }
+        },
+        nodes: [
+          {
+            key: 'draft-agent',
+            type: 'agent',
+            entity: {
+              key: 'draft-agent',
+              title: 'Draft Node Agent'
+            }
+          }
+        ],
+        connections: [{ type: 'agent', from: 'draft-agent', to: 'sub-agent' }]
+      }
+    } as unknown as IXpert
+
+    const resolved = resolveRuntimeXpert(xpert, true)
+
+    expect(resolved).toEqual(
+      expect.objectContaining({
+        id: 'xpert-1',
+        tenantId: 'tenant-1',
+        organizationId: 'organization-1',
+        workspaceId: 'draft-workspace',
+        title: 'Draft Xpert',
+        agent: expect.objectContaining({
+          key: 'draft-agent',
+          title: 'Draft Node Agent'
+        }),
+        graph: {
+          nodes: xpert.draft.nodes,
+          connections: xpert.draft.connections
+        },
+        agentConfig: {
+          recursionLimit: 20
+        }
+      })
+    )
   })
 })

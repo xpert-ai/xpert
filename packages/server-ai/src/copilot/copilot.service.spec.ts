@@ -168,6 +168,52 @@ describe('CopilotService', () => {
         expect(result[0].id).toBe('copilot-2')
         expect(result[0].modelProvider?.id).toBe('tenant-provider')
     })
+
+    it('uses only tenant-global copilots when no organization scope is provided', async () => {
+        repository.find.mockResolvedValue([
+            createCopilot({
+                id: 'tenant-copilot',
+                role: AiProviderRole.Primary,
+                modelProvider: createProvider({
+                    id: 'tenant-provider',
+                    providerName: 'openai'
+                })
+            })
+        ])
+        copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(
+            new Map([
+                [
+                    'tenant-copilot',
+                    createProvider({
+                        id: 'tenant-provider',
+                        copilotId: 'tenant-copilot',
+                        providerName: 'openai'
+                    })
+                ]
+            ])
+        )
+
+        const result = await service.findAllAvailablesCopilots('tenant-1', null, {
+            role: AiProviderRole.Primary
+        })
+
+        expect(repository.find).toHaveBeenCalledTimes(1)
+        expect(repository.find).toHaveBeenCalledWith({
+            where: expect.objectContaining({
+                tenantId: 'tenant-1',
+                enabled: true,
+                role: AiProviderRole.Primary
+            }),
+            relations: ['modelProvider']
+        })
+        const where = repository.find.mock.calls[0][0].where
+        if (Array.isArray(where)) {
+            throw new Error('Expected tenant-scope copilot query to use a single where object')
+        }
+        expect(where.organizationId).toBeDefined()
+        expect(result).toHaveLength(1)
+        expect(result[0].id).toBe('tenant-copilot')
+    })
 })
 
 function createCopilot(overrides: Partial<Copilot>): Copilot {

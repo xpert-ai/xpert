@@ -13,6 +13,7 @@ import {
   model,
   output,
   signal,
+  untracked,
   viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -35,9 +36,13 @@ import {
   IChatMessageFeedback,
   IStorageFile,
   IXpert,
+  AiThreadService,
   createMessageAppendContextTracker,
   SynthesizeService,
   TChatRequest,
+  TFollowUpConsumedEvent,
+  TChatStreamChatEventData,
+  TChatStreamPayload,
   TXpertChatResumeDecision,
   TInterruptCommand,
   ToastrService,
@@ -48,22 +53,25 @@ import {
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
   XpertAPIService,
-  Store
+  Store,
+  AiAssistantService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, Observable, of, timer, switchMap, tap, Subscription } from 'rxjs'
+import { catchError, finalize, map, Observable, of, timer, switchMap, tap, Subscription } from 'rxjs'
 import { effectAction } from '@xpert-ai/ocap-angular/core'
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
-import { CdkMenuModule } from '@angular/cdk/menu'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { ChatAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatHumanMessageComponent } from './human-message/message.component'
+import { ChatFollowUpsComponent } from '../follow-ups/follow-ups.component'
+import { ChatComposerMenuComponent } from '../composer/composer-menu.component'
+import { ChatSlashPaletteComponent } from '../composer/slash-palette.component'
 import { XpertAgentOperationComponent } from '../../agent'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { filterLatestMessages } from '../filter-latest-messages'
 import { buildResumeDecision, extractInterruptPatch } from '../interrupt-request'
 import { isThreadContextUsageEvent } from '../context/thread-context-usage'
@@ -77,6 +85,31 @@ import {
   XpertQuoteReference
 } from '../references'
 import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../context/follow-up-consumed'
+import { getBusyComposerFollowUpMode, readFollowUpBehaviorStorageValue } from '../follow-ups/follow-ups'
+import {
+  buildSlashOptions,
+  buildTriggerOptions,
+  ChatComposerSlashOption,
+  ChatRuntimeCapabilityKind,
+  ChatRuntimeCapabilityOption,
+  createChatCommandSource,
+  findSlashOptionByInvocation,
+  flattenSlashOptions,
+  getSelectedRuntimeCapabilityOptions,
+  getSlashCommandActionRuntimeCapabilities,
+  mergeRuntimeCapabilitiesSelections,
+  normalizeChatRuntimeCapabilities,
+  parseSlashInvocation,
+  renderSlashCommandTemplate,
+  resolveSlashTrigger,
+  runtimeCapabilityOptionFromCapability,
+  setRuntimeCapabilitySelected,
+  shouldSubmitRawSlashInvocation
+} from '../composer/composer'
+import type { ChatFollowUpRailItem } from '../follow-ups/follow-ups'
+import type { ChatKitCommandSource, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+
+const LONG_TEXT_REFERENCE_THRESHOLD = 5000
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
   return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
@@ -99,7 +132,10 @@ function sortPendingFollowUps(items: PendingFollowUp[]): PendingFollowUp[] {
   return [...items]
 }
 
-function getQueuedFollowUpGroup(items: PendingFollowUp[], target: PendingFollowUp | null | undefined): PendingFollowUp[] {
+function getQueuedFollowUpGroup(
+  items: PendingFollowUp[],
+  target: PendingFollowUp | null | undefined
+): PendingFollowUp[] {
   if (!target || target.mode !== 'queue') {
     return []
   }
@@ -129,14 +165,27 @@ function mergeQueuedFollowUpGroup(
     .join('\n\n')
   const files = groupedItems.flatMap((item) => item.files ?? [])
   const references = groupedItems.flatMap((item) => item.references ?? [])
+  const runtimeCapabilities = mergeRuntimeCapabilitiesSelections(
+    ...groupedItems.map((item) => item.runtimeCapabilities)
+  )
+  const commandSource = leadItem.commandSource ?? groupedItems.find((item) => item.commandSource)?.commandSource
 
   return {
     items: groupedItems,
     input: mergedInput,
     ...(files.length ? { files } : {}),
     ...(references.length ? { references } : {}),
+    ...(groupedItems.some((item) => item.planMode) ? { planMode: true } : {}),
+    ...(runtimeCapabilities ? { runtimeCapabilities } : {}),
+    ...(commandSource ? { commandSource } : {}),
     targetExecutionId: resolvePendingFollowUpTargetExecutionId(leadItem)
   }
+}
+
+type PreviewSendMetadata = {
+  planMode?: boolean
+  runtimeCapabilities?: RuntimeCapabilitiesSelection | null
+  commandSource?: ChatKitCommandSource | null
 }
 
 type PendingFollowUp = {
@@ -146,6 +195,9 @@ type PendingFollowUp = {
   references?: XpertChatReference[]
   mode: 'queue' | 'steer'
   targetExecutionId?: string | null
+  planMode?: boolean
+  runtimeCapabilities?: RuntimeCapabilitiesSelection | null
+  commandSource?: ChatKitCommandSource | null
 }
 
 type MergedPendingFollowUpGroup = {
@@ -154,6 +206,18 @@ type MergedPendingFollowUpGroup = {
   files?: IStorageFile[]
   references?: XpertChatReference[]
   targetExecutionId?: string | null
+  planMode?: boolean
+  runtimeCapabilities?: RuntimeCapabilitiesSelection | null
+  commandSource?: ChatKitCommandSource | null
+}
+
+function isFollowUpConsumedEventPayload(value: TChatStreamChatEventData): value is TFollowUpConsumedEvent {
+  return parseFollowUpConsumedEvent(value) !== null
+}
+
+type ComposerSelectionOffsets = {
+  start: number
+  end: number
 }
 
 type QuoteSelectionState = {
@@ -167,16 +231,20 @@ type QuoteSelectionState = {
   imports: [
     CommonModule,
     FormsModule,
-    CdkMenuModule,
     TranslateModule,
     TextFieldModule,
     ...ZardTooltipImports,
+    ZardButtonComponent,
+    ZardIconComponent,
     MarkdownModule,
     EmojiAvatarComponent,
     XpertParametersCardComponent,
     XpertPreviewAiMessageComponent,
     XpertAgentOperationComponent,
     ChatAttachmentsComponent,
+    ChatFollowUpsComponent,
+    ChatComposerMenuComponent,
+    ChatSlashPaletteComponent,
     ChatHumanMessageComponent
   ],
   selector: 'xp-chat-conversation-preview',
@@ -189,11 +257,13 @@ export class ChatConversationPreviewComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
   readonly xpertService = inject(XpertAPIService)
+  readonly aiThreadService = inject(AiThreadService)
   readonly conversationService = inject(ChatConversationService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly chatMessageService = inject(ChatMessageService)
   readonly chatService = inject(ChatService)
+  readonly #assistantService = inject(AiAssistantService)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly #clipboard = inject(Clipboard)
@@ -212,6 +282,7 @@ export class ChatConversationPreviewComponent {
   readonly input = model<string>()
   readonly environmentId = model<string>()
   readonly parameters = model<TXpertParameter[]>()
+  readonly runtimeCapabilitiesSource = input<'assistant' | 'xpert'>('assistant')
   readonly readonly = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -229,6 +300,7 @@ export class ChatConversationPreviewComponent {
 
   // Children
   readonly canvasRef = viewChild('waveCanvas', { read: ElementRef })
+  readonly userInputRef = viewChild('userInput', { read: ElementRef })
 
   // States
   readonly conversation = signal<Partial<IChatConversation>>(null)
@@ -262,8 +334,77 @@ export class ChatConversationPreviewComponent {
   readonly referenceLabel = getReferenceLabel
   readonly referenceSource = getReferenceSource
   readonly loading = signal(false)
+  readonly joiningRunStream = signal(false)
   readonly pendingFollowUps = signal<PendingFollowUp[]>([])
   readonly followUpBehavior = signal<'queue' | 'steer'>(this.readPersistedFollowUpBehavior())
+  readonly planModeEnabled = signal(false)
+  readonly runtimeSelection = signal<RuntimeCapabilitiesSelection | null>(null)
+  readonly runtimeSelectionOwnerId = signal<string | null>(null)
+  readonly runtimeCapabilitiesLoading = signal(false)
+  readonly slashRange = signal<ReturnType<typeof resolveSlashTrigger>>(null)
+  readonly slashActiveIndex = signal(0)
+  readonly expandedSlashGroups = signal<ChatRuntimeCapabilityKind[]>([])
+  readonly runtimeCapabilities = toSignal(
+    toObservable(
+      computed(() => {
+        const xpertId = this.xpert()?.id
+        if (this.runtimeCapabilitiesSource() === 'xpert' && xpertId) {
+          return {
+            id: xpertId,
+            source: 'xpert' as const
+          }
+        }
+
+        const assistantXpertId = xpertId ?? this.conversation()?.xpert?.id
+        return assistantXpertId
+          ? {
+              id: assistantXpertId,
+              source: 'assistant' as const
+            }
+          : null
+      })
+    ).pipe(
+      switchMap((target) => {
+        if (!target) {
+          return of(null)
+        }
+
+        this.runtimeCapabilitiesLoading.set(true)
+        const request$ =
+          target.source === 'xpert'
+            ? this.xpertService.getRuntimeCapabilities(target.id, { isDraft: true })
+            : this.#assistantService.getRuntimeCapabilities(target.id, { isDraft: true })
+
+        return request$.pipe(
+          map((capabilities) => normalizeChatRuntimeCapabilities(capabilities)),
+          catchError((error) => {
+            this.#toastr.error(getErrorMessage(error))
+            return of(null)
+          }),
+          finalize(() => this.runtimeCapabilitiesLoading.set(false))
+        )
+      })
+    ),
+    {
+      initialValue: null
+    }
+  )
+  readonly selectedRuntimeCapabilityOptions = computed(() =>
+    getSelectedRuntimeCapabilityOptions(this.runtimeCapabilities(), this.runtimeSelection())
+  )
+  readonly slashOptions = computed(() =>
+    buildTriggerOptions(
+      this.runtimeCapabilities()?.commands,
+      this.slashRange(),
+      this.runtimeCapabilities(),
+      this.expandedSlashGroups(),
+      this.runtimeSelection(),
+      this.#translate.currentLang
+    )
+  )
+  readonly visiblePaletteOptions = computed(() => (this.slashRange() ? this.slashOptions() : []))
+  readonly visiblePaletteFlatOptions = computed(() => flattenSlashOptions(this.visiblePaletteOptions()))
+  readonly showSlashPalette = computed(() => Boolean(this.slashRange()))
 
   readonly output = signal('')
 
@@ -320,11 +461,16 @@ export class ChatConversationPreviewComponent {
     .pipe(
       switchMap((id) =>
         id
-          ? this.conversationService.getOneById(this.conversationId(), {
-              relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents']
-            }, this.organizationId() ?? undefined)
+          ? this.conversationService.getOneById(
+              this.conversationId(),
+              {
+                relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents', 'executions']
+              },
+              this.organizationId() ?? undefined
+            )
           : of(null)
-      )
+      ),
+      takeUntilDestroyed(this.#destroyRef)
     )
     .subscribe((conv) => {
       this.conversation.set(conv)
@@ -340,6 +486,8 @@ export class ChatConversationPreviewComponent {
     })
 
   private chatSubscription: Subscription
+  private joinRunStreamSubscription: Subscription
+  private joinedRunStreamKey: string | null = null
   private readonly messageAppendContextTracker = createMessageAppendContextTracker()
   private shouldStartFreshAssistantMessageAfterSteer = false
 
@@ -362,25 +510,39 @@ export class ChatConversationPreviewComponent {
     return '*/*'
   })
   readonly attachments = signal<{ file?: File; url?: string; storageFile?: IStorageFile }[]>([])
-  readonly files = computed(() => this.attachments()?.map(({ storageFile }) => storageFile))
+  readonly files = computed(() =>
+    (this.attachments() ?? [])
+      .map(({ storageFile }) => storageFile)
+      .filter((file): file is IStorageFile => Boolean(file))
+  )
 
   constructor() {
-    effect(
-      () => {
-        if (this.#feedbacks()) {
-          this.feedbacks.set(
-            this.#feedbacks().reduce((acc, curr) => {
-              acc[curr.messageId] = curr
-              return acc
-            }, {})
-          )
-        }
+    effect(() => {
+      if (this.#feedbacks()) {
+        this.feedbacks.set(
+          this.#feedbacks().reduce((acc, curr) => {
+            acc[curr.messageId] = curr
+            return acc
+          }, {})
+        )
       }
-    )
+    })
 
     effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()))
     effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert))
-    effect(() => this.input.set(this.#audioRecorder.text()))
+    effect(() => {
+      const speechText = this.#audioRecorder.text()
+      if (!speechText) {
+        return
+      }
+      this.input.set(speechText)
+      untracked(() =>
+        this.updateSlashPalette(speechText, {
+          start: speechText.length,
+          end: speechText.length
+        })
+      )
+    })
 
     if (typeof document !== 'undefined') {
       const selectionHandler = () => this.updateQuoteSelection()
@@ -399,10 +561,34 @@ export class ChatConversationPreviewComponent {
 
     this.#destroyRef.onDestroy(() => {
       this.#destroyed = true
+      this.stopJoinRunStream()
     })
 
     effect(() => {
       this.persistFollowUpBehavior(this.followUpBehavior())
+    })
+
+    effect(() => {
+      const target = this.resolveLiveJoinRunStreamTarget()
+      if (!target) {
+        this.stopJoinRunStream({ finalizeCurrentMessage: true })
+        return
+      }
+
+      this.startJoinRunStream(target.threadId, target.runId)
+    })
+
+    effect(() => {
+      const xpertId = this.xpert()?.id ?? this.conversation()?.xpert?.id ?? null
+      if (this.runtimeSelectionOwnerId() !== xpertId) {
+        this.runtimeSelectionOwnerId.set(xpertId)
+        this.runtimeSelection.set(null)
+        this.closePalettes()
+      }
+    })
+
+    effect(() => {
+      console.log(this.runtimeCapabilities())
     })
   }
 
@@ -422,7 +608,14 @@ export class ChatConversationPreviewComponent {
     })
   }
 
-  sendMessage(input: string | null | undefined, options?: { references?: XpertChatReference[]; followUpBehavior?: 'queue' | 'steer' }) {
+  sendMessage(
+    input: string | null | undefined,
+    options?: { references?: XpertChatReference[]; followUpBehavior?: 'queue' | 'steer' } & PreviewSendMetadata
+  ) {
+    if ((input ?? '') === (this.input() ?? '') && this.executeSlashCommandFromDraft()) {
+      return
+    }
+
     const content = input?.trim() ?? ''
     const references = options?.references ?? []
     if (!content && !references.length) {
@@ -432,38 +625,54 @@ export class ChatConversationPreviewComponent {
     this.chat({
       input: content,
       references,
-      followUpBehavior: options?.followUpBehavior
+      followUpBehavior: options?.followUpBehavior,
+      planMode: options?.planMode,
+      runtimeCapabilities: options?.runtimeCapabilities,
+      commandSource: options?.commandSource
     })
   }
 
-  chat(options?: {
-    input?: string
-    confirm?: boolean
-    files?: IStorageFile[]
-    references?: XpertChatReference[]
-    messageId?: string
-    queuedFollowUpGroup?: MergedPendingFollowUpGroup | null
-    command?: TInterruptCommand
-    /**
-     * @deprecated use confirm with command resume instead
-     */
-    reject?: boolean
-    retry?: boolean
-    checkpointId?: string
-    followUpBehavior?: 'queue' | 'steer'
-  }) {
+  chat(
+    options?: {
+      input?: string
+      confirm?: boolean
+      files?: IStorageFile[]
+      references?: XpertChatReference[]
+      messageId?: string
+      queuedFollowUpGroup?: MergedPendingFollowUpGroup | null
+      command?: TInterruptCommand
+      /**
+       * @deprecated use confirm with command resume instead
+       */
+      reject?: boolean
+      retry?: boolean
+      checkpointId?: string
+      followUpBehavior?: 'queue' | 'steer'
+    } & PreviewSendMetadata
+  ) {
     if (this.loading()) {
-      if ((!options?.input && !options?.references?.length) || this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+      if (
+        (!options?.input && !options?.references?.length) ||
+        this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED
+      ) {
         return
       }
 
+      const runtimeCapabilities =
+        options?.runtimeCapabilities === undefined
+          ? this.getRuntimeCapabilitiesForSubmit()
+          : options.runtimeCapabilities
+      const planMode = options?.planMode ?? this.planModeEnabled()
       void this.enqueueFollowUp({
         id: options?.messageId ?? uuid(),
         input: options.input ?? '',
         files: options?.files ?? this.files(),
         references: options?.references,
         mode: options?.followUpBehavior ?? this.followUpBehavior(),
-        targetExecutionId: this.currentMessage()?.executionId ?? this.lastMessage()?.executionId ?? null
+        targetExecutionId: this.currentMessage()?.executionId ?? this.lastMessage()?.executionId ?? null,
+        ...(planMode ? { planMode: true } : {}),
+        ...(runtimeCapabilities ? { runtimeCapabilities } : {}),
+        ...(options?.commandSource ? { commandSource: options.commandSource } : {})
       })
       return
     }
@@ -476,6 +685,10 @@ export class ChatConversationPreviewComponent {
     const shouldClearAttachments = !options?.files
     const references = options?.references ?? []
     const queuedFollowUpGroup = options?.queuedFollowUpGroup
+    const runtimeCapabilities =
+      options?.runtimeCapabilities === undefined ? this.getRuntimeCapabilitiesForSubmit() : options.runtimeCapabilities
+    const planMode = options?.planMode ?? this.planModeEnabled()
+    const commandSource = options?.commandSource ?? null
 
     const shouldAppendHuman = !!options?.input?.trim() || references.length > 0
     if (shouldAppendHuman) {
@@ -490,7 +703,16 @@ export class ChatConversationPreviewComponent {
                   references: item.references
                 }
               : {}),
-            attachments: item.files
+            attachments: item.files,
+            ...(item.planMode || item.runtimeCapabilities || item.commandSource
+              ? {
+                  thirdPartyMessage: {
+                    ...(item.planMode ? { planMode: true } : {}),
+                    ...(item.runtimeCapabilities ? { runtimeCapabilities: item.runtimeCapabilities } : {}),
+                    ...(item.commandSource ? { commandSource: item.commandSource } : {})
+                  }
+                }
+              : {})
           })
         })
       } else {
@@ -504,11 +726,22 @@ export class ChatConversationPreviewComponent {
                 references
               }
             : {}),
-          attachments: requestFiles
+          attachments: requestFiles,
+          ...(planMode || runtimeCapabilities || commandSource
+            ? {
+                thirdPartyMessage: {
+                  ...(planMode ? { planMode: true } : {}),
+                  ...(runtimeCapabilities ? { runtimeCapabilities } : {}),
+                  ...(commandSource ? { commandSource } : {})
+                }
+              }
+            : {})
         })
       }
       this.input.set('')
       this.references.set([])
+      this.runtimeSelection.set(null)
+      this.closePalettes()
       this.currentMessage.set({
         id: uuid(),
         role: 'ai',
@@ -584,7 +817,10 @@ export class ChatConversationPreviewComponent {
                 size: file.size,
                 extension: file.originalName.split('.').pop()
               }))
-            })
+            }),
+            ...(planMode ? { planMode: true } : {}),
+            ...(runtimeCapabilities ? { runtimeCapabilities } : {}),
+            ...(commandSource ? { commandSource } : {})
           }
         }
       } as TChatRequest
@@ -598,92 +834,9 @@ export class ChatConversationPreviewComponent {
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (msg) => {
-          if (msg.event === 'error') {
-            this.onChatError(msg.data)
-          } else {
-            if (msg.data) {
-              // Ignore non-data events
-              if (msg.data.startsWith(':')) {
-                return
-              }
-              const event = JSON.parse(msg.data)
-              if (event.type === ChatMessageTypeEnum.MESSAGE) {
-                const fallbackStreamId = this.currentMessage()?.id ?? this.conversation()?.id ?? 'chat_stream'
-                const { messageContext } = this.messageAppendContextTracker.resolve({
-                  incoming: event.data,
-                  fallbackSource: typeof event.data === 'string' ? 'chat_stream' : undefined,
-                  fallbackStreamId: String(fallbackStreamId)
-                })
-
-                this.currentMessage.update((message) => {
-                  appendMessageContent(message as any, event.data, messageContext)
-                  return { ...message }
-                })
-                if (typeof event.data === 'string') {
-                  // Update last AI message
-                  this.output.update((state) => appendMessagePlainText(state, event.data, messageContext))
-                }
-              } else if (event.type === ChatMessageTypeEnum.EVENT) {
-                this.chatEvent.emit(event)
-                switch (event.event) {
-                  case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
-                  case ChatMessageEventTypeEnum.ON_CONVERSATION_END: {
-                    this.conversation.update((state) => ({
-                      ...(state ?? {}),
-                      ...event.data
-                    }))
-                    break
-                  }
-                  case ChatMessageEventTypeEnum.ON_MESSAGE_START: {
-                    if (this.shouldStartFreshAssistantMessageAfterSteer || !this.currentMessage()) {
-                      this.currentMessage.set({
-                        ...event.data
-                      })
-                    } else {
-                      this.currentMessage.update((state) => ({
-                        ...state,
-                        ...event.data
-                      }))
-                    }
-                    this.shouldStartFreshAssistantMessageAfterSteer = false
-                    break
-                  }
-                  case ChatMessageEventTypeEnum.ON_AGENT_END: {
-                    this.currentMessage.update((message) => ({
-                      ...message,
-                      executionId: event.data.id,
-                      status: event.data.status
-                    }))
-                    break
-                  }
-                  case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
-                    if (isThreadContextUsageEvent(event.data)) {
-                      break
-                    }
-                    const followUpConsumedEvent = parseFollowUpConsumedEvent(event.data)
-                    if (followUpConsumedEvent) {
-                      if (followUpConsumedEvent.mode === 'steer') {
-                        if (this.currentMessage()) {
-                          this.appendMessage({ ...this.currentMessage() })
-                          this.currentMessage.set(null)
-                        }
-                        this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
-                        this.shouldStartFreshAssistantMessageAfterSteer = true
-                      } else {
-                        this.removePendingQueuedFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
-                      }
-                      break
-                    }
-                    this.currentMessage.update((state) => ({
-                      ...state,
-                      events: [...(state.events ?? []), event.data]
-                    }))
-                    break
-                  }
-                }
-              }
-            }
-          }
+          this.handleIncomingStreamMessage(msg, {
+            onError: (message) => this.onChatError(message)
+          })
         },
         error: (err) => {
           this.messageAppendContextTracker.reset()
@@ -741,6 +894,289 @@ export class ChatConversationPreviewComponent {
     this.drainQueuedFollowUps()
     this.currentMessage.set(null)
     this.chatStop.emit()
+  }
+
+  private resolveLiveJoinRunStreamTarget(): { threadId: string; runId: string } | null {
+    if (!this.readonly()) {
+      return null
+    }
+
+    const conversation = this.conversation()
+    if (conversation?.status !== 'busy') {
+      return null
+    }
+
+    const threadId = conversation.threadId?.trim()
+    const runId = this.resolveActiveRunId(conversation)
+    if (!threadId || !runId) {
+      return null
+    }
+
+    return { threadId, runId }
+  }
+
+  private resolveActiveRunId(conversation: Partial<IChatConversation>): string | null {
+    const executions = [...(conversation.executions ?? [])]
+    const rootExecutions = executions.filter((execution) => !execution.parentId)
+    const runExecutions = rootExecutions.length ? rootExecutions : executions
+    const activeExecution = this.sortExecutionsByRecency(runExecutions).find((execution) =>
+      [XpertAgentExecutionStatusEnum.RUNNING, XpertAgentExecutionStatusEnum.PENDING].includes(
+        execution.status as XpertAgentExecutionStatusEnum
+      )
+    )
+    if (activeExecution?.id) {
+      return activeExecution.id
+    }
+
+    const latestExecution = this.sortExecutionsByRecency(runExecutions)[0]
+    if (latestExecution?.id) {
+      return latestExecution.id
+    }
+
+    const latestMessageWithExecution = [...(this._messages() ?? [])].reverse().find((message) => !!message.executionId)
+    return latestMessageWithExecution?.executionId ?? null
+  }
+
+  private sortExecutionsByRecency<T extends { createdAt?: string | Date; updatedAt?: string | Date }>(items: T[]): T[] {
+    return [...items].sort(
+      (a, b) => this.getTime(b.updatedAt ?? b.createdAt) - this.getTime(a.updatedAt ?? a.createdAt)
+    )
+  }
+
+  private getTime(value: string | Date | null | undefined) {
+    if (!value) {
+      return 0
+    }
+
+    const time = value instanceof Date ? value.getTime() : new Date(value).getTime()
+    return Number.isFinite(time) ? time : 0
+  }
+
+  private startJoinRunStream(threadId: string, runId: string) {
+    const streamKey = `${threadId}:${runId}`
+    if (
+      this.joinedRunStreamKey === streamKey &&
+      this.joinRunStreamSubscription &&
+      !this.joinRunStreamSubscription.closed
+    ) {
+      return
+    }
+
+    this.stopJoinRunStream({ clearCurrentMessage: true })
+    this.joinedRunStreamKey = streamKey
+    this.joiningRunStream.set(true)
+    this.messageAppendContextTracker.reset()
+
+    this.joinRunStreamSubscription = this.aiThreadService
+      .joinRunStream(threadId, runId)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (msg) => {
+          this.handleIncomingStreamMessage(msg, {
+            fallbackStreamId: runId,
+            onError: (message) => this.onJoinRunStreamError(message)
+          })
+        },
+        error: (err) => {
+          this.onJoinRunStreamError(getErrorMessage(err))
+        },
+        complete: () => {
+          this.completeJoinRunStream()
+        }
+      })
+  }
+
+  private stopJoinRunStream(options?: { clearCurrentMessage?: boolean; finalizeCurrentMessage?: boolean }) {
+    const hadJoinedStream = !!this.joinedRunStreamKey || !!this.joinRunStreamSubscription
+    if (this.joinRunStreamSubscription && !this.joinRunStreamSubscription.closed) {
+      this.joinRunStreamSubscription.unsubscribe()
+    }
+    this.joinRunStreamSubscription = null
+    this.joinedRunStreamKey = null
+    this.joiningRunStream.set(false)
+    if (options?.finalizeCurrentMessage && hadJoinedStream) {
+      this.finalizeCurrentStreamMessage()
+    } else if (options?.clearCurrentMessage && hadJoinedStream) {
+      this.currentMessage.set(null)
+    }
+  }
+
+  private completeJoinRunStream() {
+    this.joinRunStreamSubscription = null
+    this.joinedRunStreamKey = null
+    this.joiningRunStream.set(false)
+    this.messageAppendContextTracker.reset()
+    this.shouldStartFreshAssistantMessageAfterSteer = false
+
+    if (this.#destroyed) {
+      return
+    }
+
+    this.finalizeCurrentStreamMessage()
+  }
+
+  private onJoinRunStreamError(message: string) {
+    this.joinRunStreamSubscription = null
+    this.joinedRunStreamKey = null
+    this.joiningRunStream.set(false)
+    this.messageAppendContextTracker.reset()
+    this.shouldStartFreshAssistantMessageAfterSteer = false
+    this.chatError.emit(message)
+  }
+
+  private handleIncomingStreamMessage(
+    msg: { event?: string; data?: string | null },
+    options?: {
+      fallbackStreamId?: string | null
+      onError?: (message: string) => void
+    }
+  ) {
+    if (msg.event === 'error') {
+      options?.onError?.(msg.data || this.#translate.instant('PAC.Xpert.Failure', { Default: 'Failure' }))
+      return
+    }
+
+    if (!msg.data || msg.data.startsWith(':')) {
+      return
+    }
+
+    let event: TChatStreamPayload
+    try {
+      event = JSON.parse(msg.data) as TChatStreamPayload
+    } catch (error) {
+      options?.onError?.(getErrorMessage(error))
+      return
+    }
+
+    if (event?.type === 'complete') {
+      return
+    }
+
+    this.applyChatStreamEvent(event, options?.fallbackStreamId)
+  }
+
+  private applyChatStreamEvent(event: TChatStreamPayload, fallbackStreamId?: string | null) {
+    if (!event || typeof event !== 'object') {
+      return
+    }
+
+    if (event.type === ChatMessageTypeEnum.MESSAGE) {
+      const streamId = fallbackStreamId ?? this.currentMessage()?.id ?? this.conversation()?.id ?? 'chat_stream'
+      const { messageContext } = this.messageAppendContextTracker.resolve({
+        incoming: event.data,
+        fallbackSource: typeof event.data === 'string' ? 'chat_stream' : undefined,
+        fallbackStreamId: String(streamId)
+      })
+
+      this.currentMessage.update((message) => {
+        const next = (message ?? {
+          id: uuid(),
+          role: 'ai',
+          content: '',
+          status: 'thinking'
+        }) as Partial<IChatMessage>
+        appendMessageContent(next as Parameters<typeof appendMessageContent>[0], event.data, messageContext)
+        return { ...next }
+      })
+      if (typeof event.data === 'string') {
+        this.output.update((state) => appendMessagePlainText(state, event.data, messageContext))
+      }
+      return
+    }
+
+    if (event.type !== ChatMessageTypeEnum.EVENT) {
+      return
+    }
+
+    this.chatEvent.emit(event)
+    switch (event.event) {
+      case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
+      case ChatMessageEventTypeEnum.ON_CONVERSATION_END: {
+        this.conversation.update((state) => ({
+          ...(state ?? {}),
+          ...event.data
+        }))
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_MESSAGE_START: {
+        const messageId = event.data.id
+        if (messageId) {
+          this.removeBaseMessage(messageId)
+        }
+        if (this.shouldStartFreshAssistantMessageAfterSteer || !this.currentMessage()) {
+          this.currentMessage.set({
+            ...event.data
+          })
+        } else {
+          this.currentMessage.update((state) => ({
+            ...state,
+            ...event.data
+          }))
+        }
+        this.shouldStartFreshAssistantMessageAfterSteer = false
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_MESSAGE_END: {
+        this.currentMessage.update((state) => ({
+          ...state,
+          ...event.data
+        }))
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_AGENT_END: {
+        this.currentMessage.update((message) => ({
+          ...message,
+          executionId: event.data.id,
+          status: event.data.status
+        }))
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_ERROR: {
+        const errorMessage = typeof event.data === 'string' ? event.data : event.data.error
+        this.conversation.update((state) => ({
+          ...(state ?? {}),
+          status: XpertAgentExecutionStatusEnum.ERROR,
+          error: errorMessage ?? this.#translate.instant('PAC.Xpert.Failure', { Default: 'Failure' })
+        }))
+        break
+      }
+      case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+        const chatEventData = event.data
+        if (isThreadContextUsageEvent(chatEventData)) {
+          break
+        }
+        if (isFollowUpConsumedEventPayload(chatEventData)) {
+          const followUpConsumedEvent = parseFollowUpConsumedEvent(chatEventData) ?? chatEventData
+          if (followUpConsumedEvent.mode === 'steer') {
+            if (this.currentMessage()) {
+              this.appendMessage({ ...this.currentMessage() })
+              this.currentMessage.set(null)
+            }
+            this.flushPendingSteerFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
+            this.shouldStartFreshAssistantMessageAfterSteer = true
+          } else {
+            this.removePendingQueuedFollowUps(resolveFollowUpConsumedIds(followUpConsumedEvent))
+          }
+          break
+        }
+        this.currentMessage.update((state) => ({
+          ...state,
+          events: [...(state?.events ?? []), chatEventData]
+        }))
+        break
+      }
+    }
+  }
+
+  private removeBaseMessage(messageId: string) {
+    this._messages.update((state) => (state ? state.filter((message) => message.id !== messageId) : state))
+  }
+
+  private finalizeCurrentStreamMessage() {
+    if (this.currentMessage()) {
+      this.appendMessage({ ...this.currentMessage() })
+      this.currentMessage.set(null)
+    }
   }
 
   // Suggestion Questions
@@ -809,46 +1245,224 @@ export class ChatConversationPreviewComponent {
   )
 
   onKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      if (event.isComposing) {
-        return
-      }
-
-      if (event.shiftKey && (event.metaKey || event.ctrlKey)) {
-        if (!this.input() && !this.hasReferences()) {
-          return
-        }
-        this.sendMessage(this.input(), {
-          references: this.references(),
-          followUpBehavior: this.followUpBehavior() === 'queue' ? 'steer' : 'queue'
-        })
-        event.preventDefault()
-        return
-      }
-
-      if (event.shiftKey) {
-        return
-      }
-
-      this.sendMessage(this.input(), { references: this.references() })
-      event.preventDefault()
+    if (event.isComposing) {
+      return
     }
+
+    if (this.showSlashPalette() && this.handlePaletteKeydown(event)) {
+      return
+    }
+
+    if (
+      (event.key === 'Backspace' || event.key === 'Delete') &&
+      !this.input() &&
+      this.selectedRuntimeCapabilityOptions().length
+    ) {
+      event.preventDefault()
+      const option =
+        event.key === 'Backspace'
+          ? this.selectedRuntimeCapabilityOptions()[this.selectedRuntimeCapabilityOptions().length - 1]
+          : this.selectedRuntimeCapabilityOptions()[0]
+      this.removeRuntimeCapability(option)
+      return
+    }
+
+    if (event.key !== 'Enter' || event.shiftKey) {
+      return
+    }
+
+    event.preventDefault()
+    if (this.executeSlashCommandFromDraft()) {
+      return
+    }
+
+    if (!this.input()?.trim() && !this.hasReferences()) {
+      return
+    }
+
+    this.sendMessage(this.input(), {
+      references: this.references(),
+      followUpBehavior: this.loading() ? getBusyComposerFollowUpMode(event) : this.followUpBehavior()
+    })
+  }
+
+  onInputChange(event?: Event) {
+    const target = event?.target as HTMLTextAreaElement | null | undefined
+    const textarea =
+      target && typeof target.value === 'string' && typeof target.selectionStart === 'number'
+        ? target
+        : (this.userInputRef()?.nativeElement as HTMLTextAreaElement | undefined)
+    const text = textarea?.value ?? this.input() ?? ''
+    if (text !== (this.input() ?? '')) {
+      this.input.set(text)
+    }
+
+    this.updateSlashPalette(
+      text,
+      textarea
+        ? {
+            start: textarea.selectionStart,
+            end: textarea.selectionEnd
+          }
+        : null
+    )
+  }
+
+  onInputSelectionChange() {
+    this.updateSlashPalette()
+  }
+
+  onInputPaste(event: ClipboardEvent) {
+    const clipboardData = event.clipboardData
+    if (!clipboardData) {
+      return
+    }
+
+    const imageFiles = Array.from(clipboardData.items ?? [])
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file))
+
+    if (imageFiles.length) {
+      event.preventDefault()
+      this.addFiles(imageFiles)
+      return
+    }
+
+    const pastedText = clipboardData.getData('text/plain')
+    if (!pastedText) {
+      return
+    }
+
+    if (pastedText.trim().length <= LONG_TEXT_REFERENCE_THRESHOLD) {
+      return
+    }
+
+    event.preventDefault()
+    this.addReferences([
+      {
+        type: 'quote',
+        source: this.#translate.instant('PAC.Chat.PastedText', { Default: 'Pasted text' }),
+        text: pastedText
+      }
+    ])
+  }
+
+  setPlanMode(enabled: boolean) {
+    this.planModeEnabled.set(enabled)
+    this.focusInput()
+  }
+
+  setRuntimeSelection(selection: RuntimeCapabilitiesSelection | null) {
+    this.runtimeSelection.set(selection)
+    this.focusInput()
+  }
+
+  removeRuntimeCapability(option: ChatRuntimeCapabilityOption) {
+    this.runtimeSelection.set(setRuntimeCapabilitySelected(this.runtimeSelection(), option, false, option.workspaceId))
+    this.focusInput()
+  }
+
+  choosePaletteOption(option: ChatComposerSlashOption) {
+    if (option.type === 'capability' && option.capability) {
+      this.runtimeSelection.set(
+        setRuntimeCapabilitySelected(this.runtimeSelection(), option.capability, true, option.capability.workspaceId)
+      )
+      const slashRange = this.slashRange()
+      if (slashRange) {
+        this.replaceInputRange(slashRange, '')
+      }
+      this.closePalettes()
+      this.focusInput()
+      return
+    }
+
+    if (option.builtin?.group) {
+      this.toggleSlashGroup(option.builtin.group)
+      return
+    }
+
+    this.executeSlashOption(option, '', this.slashRange())
+  }
+
+  setSlashActiveIndex(index: number) {
+    this.slashActiveIndex.set(index)
   }
 
   setFollowUpBehavior(behavior: 'queue' | 'steer') {
     this.followUpBehavior.set(behavior)
   }
 
-  private async enqueueFollowUp(item: PendingFollowUp) {
+  removePendingFollowUp(id: string) {
+    this.pendingFollowUps.update((state) => (state ?? []).filter((item) => item.id !== id))
+  }
+
+  sendPendingFollowUpNow(id: string) {
+    this.drainQueuedFollowUps(id)
+  }
+
+  promotePendingFollowUpToSteer(id: string) {
+    const item = this.pendingFollowUps().find((entry) => entry.id === id)
+    if (!item || item.mode === 'steer') {
+      return
+    }
+
+    const steerItem: PendingFollowUp = {
+      ...item,
+      mode: 'steer'
+    }
+    this.pendingFollowUps.update((state) => (state ?? []).map((entry) => (entry.id === id ? steerItem : entry)))
+
+    if (this.loading() && this.conversation()?.id) {
+      this.requestSteerFollowUp(steerItem)
+    }
+  }
+
+  editPendingFollowUp(item?: ChatFollowUpRailItem) {
+    const content = (item?.input ?? item?.content ?? '').trim()
+    if (!item || (!content && !item.references?.length)) {
+      return
+    }
+
+    this.followUpBehavior.set(item.mode)
+    const pendingItem = item as PendingFollowUp
+    if (pendingItem.planMode) {
+      this.planModeEnabled.set(true)
+    }
+    if (pendingItem.runtimeCapabilities) {
+      this.runtimeSelection.set(pendingItem.runtimeCapabilities)
+    }
+    this.input.set(content)
+    this.references.set(item.references ?? [])
+    if (item.id) {
+      this.pendingFollowUps.update((state) => (state ?? []).filter((entry) => entry.id !== item.id))
+    }
+
+    queueMicrotask(() => {
+      const textarea = this.userInputRef()?.nativeElement as HTMLTextAreaElement | undefined
+      textarea?.focus()
+      textarea?.setSelectionRange(textarea.value.length, textarea.value.length)
+    })
+  }
+
+  turnOffFollowUpQueueing() {
+    this.setFollowUpBehavior('steer')
+  }
+
+  private enqueueFollowUp(item: PendingFollowUp) {
     this.pendingFollowUps.update((state) => [...(state ?? []).filter((entry) => entry.id !== item.id), item])
     this.input.set('')
     this.attachments.set([])
     this.references.set([])
+    this.runtimeSelection.set(null)
+    this.closePalettes()
 
-    if (item.mode !== 'steer') {
-      return
+    if (item.mode === 'steer') {
+      this.requestSteerFollowUp(item)
     }
+  }
 
+  private requestSteerFollowUp(item: PendingFollowUp) {
     const request: TChatRequest = {
       action: 'follow_up',
       conversationId: this.conversation()?.id,
@@ -874,7 +1488,10 @@ export class ChatConversationPreviewComponent {
               size: file.size,
               extension: file.originalName.split('.').pop()
             }))
-          })
+          }),
+          ...(item.planMode ? { planMode: true } : {}),
+          ...(item.runtimeCapabilities ? { runtimeCapabilities: item.runtimeCapabilities } : {}),
+          ...(item.commandSource ? { commandSource: item.commandSource } : {})
         }
       }
     } as TChatRequest
@@ -900,9 +1517,7 @@ export class ChatConversationPreviewComponent {
     }
 
     const idSet = new Set(ids)
-    const steerItems = this.pendingFollowUps().filter(
-      (item) => item.mode === 'steer' && idSet.has(item.id)
-    )
+    const steerItems = this.pendingFollowUps().filter((item) => item.mode === 'steer' && idSet.has(item.id))
 
     if (!steerItems.length) {
       return
@@ -915,7 +1530,16 @@ export class ChatConversationPreviewComponent {
         content: item.input,
         conversationId: this.conversation()?.id,
         ...(item.references?.length ? { references: item.references } : {}),
-        attachments: item.files
+        attachments: item.files,
+        ...(item.planMode || item.runtimeCapabilities || item.commandSource
+          ? {
+              thirdPartyMessage: {
+                ...(item.planMode ? { planMode: true } : {}),
+                ...(item.runtimeCapabilities ? { runtimeCapabilities: item.runtimeCapabilities } : {}),
+                ...(item.commandSource ? { commandSource: item.commandSource } : {})
+              }
+            }
+          : {})
       })
     })
     this.pendingFollowUps.update((state) =>
@@ -940,12 +1564,14 @@ export class ChatConversationPreviewComponent {
     )
   }
 
-  private drainQueuedFollowUps() {
+  private drainQueuedFollowUps(leadItemId?: string) {
     if (this.loading()) {
       return
     }
 
-    const next = this.pendingFollowUps().find((item) => item.mode === 'queue')
+    const next = leadItemId
+      ? this.pendingFollowUps().find((item) => item.id === leadItemId && item.mode === 'queue')
+      : this.pendingFollowUps().find((item) => item.mode === 'queue')
     if (!next) {
       return
     }
@@ -963,8 +1589,215 @@ export class ChatConversationPreviewComponent {
       files: mergedGroup.files,
       references: mergedGroup.references,
       messageId: next.id,
-      queuedFollowUpGroup: mergedGroup
+      queuedFollowUpGroup: mergedGroup,
+      planMode: mergedGroup.planMode ?? false,
+      runtimeCapabilities: mergedGroup.runtimeCapabilities ?? null,
+      commandSource: mergedGroup.commandSource ?? null
     })
+  }
+
+  private handlePaletteKeydown(event: KeyboardEvent) {
+    const options = this.visiblePaletteFlatOptions()
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      this.closePalettes()
+      return true
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'Tab') {
+      event.preventDefault()
+      this.slashActiveIndex.set(options.length ? (this.slashActiveIndex() + 1) % options.length : 0)
+      return true
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      this.slashActiveIndex.set(options.length ? (this.slashActiveIndex() - 1 + options.length) % options.length : 0)
+      return true
+    }
+
+    if (event.key === 'Enter' && !event.shiftKey && options.length) {
+      event.preventDefault()
+      this.choosePaletteOption(options[Math.min(this.slashActiveIndex(), options.length - 1)])
+      return true
+    }
+
+    return false
+  }
+
+  private executeSlashCommandFromDraft() {
+    const draft = this.input()?.trim() ?? ''
+    const invocation = parseSlashInvocation(draft)
+    if (!invocation) {
+      return false
+    }
+
+    const option = findSlashOptionByInvocation(
+      buildSlashOptions(
+        this.runtimeCapabilities()?.commands,
+        '',
+        this.runtimeCapabilities(),
+        [],
+        undefined,
+        this.#translate.currentLang
+      ),
+      invocation
+    )
+    if (!option) {
+      return false
+    }
+
+    if (shouldSubmitRawSlashInvocation(option)) {
+      return false
+    }
+
+    return this.executeSlashOption(option, invocation.args, {
+      trigger: '/',
+      start: 0,
+      end: this.input()?.length ?? 0,
+      query: invocation.name
+    })
+  }
+
+  private executeSlashOption(
+    option: ChatComposerSlashOption,
+    args: string,
+    range: ReturnType<typeof resolveSlashTrigger>
+  ) {
+    if (option.disabled || option.disabledReason || option.disabledReasonKey) {
+      return true
+    }
+
+    const commandSource = createChatCommandSource(option)
+    if (option.builtin?.command === 'plan') {
+      if (args) {
+        this.chat({
+          input: args,
+          references: this.references(),
+          followUpBehavior: this.followUpBehavior(),
+          planMode: true,
+          commandSource
+        })
+      } else {
+        this.planModeEnabled.update((enabled) => !enabled)
+        this.replaceInputRange(range ?? { start: 0, end: this.input()?.length ?? 0 }, '')
+        this.closePalettes()
+      }
+      return true
+    }
+
+    if (option.builtin?.group) {
+      this.toggleSlashGroup(option.builtin.group)
+      return true
+    }
+
+    const action = option.command?.action
+    if (!action || action.type === 'client_action') {
+      return true
+    }
+
+    const actionRuntimeCapabilities = getSlashCommandActionRuntimeCapabilities(action)
+    if (actionRuntimeCapabilities) {
+      this.runtimeSelection.set(mergeRuntimeCapabilitiesSelections(this.runtimeSelection(), actionRuntimeCapabilities))
+    }
+
+    if (action.type === 'insert_text' || action.type === 'insert_invocation') {
+      this.replaceInputRange(
+        range ?? { start: 0, end: this.input()?.length ?? 0 },
+        renderSlashCommandTemplate(action.template, args)
+      )
+      this.closePalettes()
+      return true
+    }
+
+    if (action.type === 'submit_prompt') {
+      this.chat({
+        input: renderSlashCommandTemplate(action.template, args),
+        references: this.references(),
+        followUpBehavior: this.followUpBehavior(),
+        runtimeCapabilities: this.getRuntimeCapabilitiesForSubmit(actionRuntimeCapabilities),
+        commandSource
+      })
+      return true
+    }
+
+    if (action.type === 'select_capability') {
+      const capability = runtimeCapabilityOptionFromCapability(this.runtimeCapabilities(), action.capability)
+      if (capability) {
+        this.runtimeSelection.set(
+          setRuntimeCapabilitySelected(this.runtimeSelection(), capability, true, capability.workspaceId)
+        )
+      }
+      this.replaceInputRange(range ?? { start: 0, end: this.input()?.length ?? 0 }, '')
+      this.closePalettes()
+      return true
+    }
+
+    return true
+  }
+
+  private getRuntimeCapabilitiesForSubmit(extra?: RuntimeCapabilitiesSelection | null) {
+    return mergeRuntimeCapabilitiesSelections(this.runtimeSelection(), extra)
+  }
+
+  private updateSlashPalette(textOverride?: string, selectionOverride?: ComposerSelectionOffsets | null) {
+    const selection = selectionOverride === undefined ? this.getInputSelectionOffsets() : selectionOverride
+    const text = textOverride ?? this.input() ?? ''
+    const nextRange = resolveSlashTrigger(text, selection?.start ?? text.length)
+    const previousRange = this.slashRange()
+    this.slashRange.set(nextRange)
+    if (previousRange?.trigger !== nextRange?.trigger || previousRange?.query !== nextRange?.query) {
+      this.slashActiveIndex.set(0)
+      this.expandedSlashGroups.set([])
+    }
+  }
+
+  private closePalettes() {
+    this.slashRange.set(null)
+    this.expandedSlashGroups.set([])
+    this.slashActiveIndex.set(0)
+  }
+
+  private toggleSlashGroup(group: ChatRuntimeCapabilityKind) {
+    this.expandedSlashGroups.update((groups) =>
+      groups.includes(group) ? groups.filter((item) => item !== group) : [...groups, group]
+    )
+    this.slashActiveIndex.set(0)
+  }
+
+  private replaceInputRange(range: ComposerSelectionOffsets, text: string) {
+    const current = this.input() ?? ''
+    const start = Math.max(0, Math.min(range.start, current.length))
+    const end = Math.max(start, Math.min(range.end, current.length))
+    const next = `${current.slice(0, start)}${text}${current.slice(end)}`
+    this.input.set(next)
+    this.updateSlashPalette()
+    queueMicrotask(() => {
+      this.focusInput()
+      this.setInputSelection(start + text.length, start + text.length)
+    })
+  }
+
+  private focusInput() {
+    const textarea = this.userInputRef()?.nativeElement as HTMLTextAreaElement | undefined
+    textarea?.focus()
+  }
+
+  private getInputSelectionOffsets(): ComposerSelectionOffsets | null {
+    const textarea = this.userInputRef()?.nativeElement as HTMLTextAreaElement | undefined
+    if (!textarea || typeof textarea.selectionStart !== 'number' || typeof textarea.selectionEnd !== 'number') {
+      return null
+    }
+
+    return {
+      start: textarea.selectionStart,
+      end: textarea.selectionEnd
+    }
+  }
+
+  private setInputSelection(start: number, end: number) {
+    const textarea = this.userInputRef()?.nativeElement as HTMLTextAreaElement | undefined
+    textarea?.setSelectionRange(start, end)
   }
 
   private getFollowUpStorageKey() {
@@ -976,7 +1809,7 @@ export class ChatConversationPreviewComponent {
       return 'queue'
     }
 
-    return localStorage.getItem(this.getFollowUpStorageKey()) === 'steer' ? 'steer' : 'queue'
+    return readFollowUpBehaviorStorageValue(localStorage.getItem(this.getFollowUpStorageKey()))
   }
 
   private persistFollowUpBehavior(behavior: 'queue' | 'steer') {
@@ -1248,28 +2081,57 @@ export class ChatConversationPreviewComponent {
   fileBrowseHandler(event: EventTarget & { files?: FileList }) {
     this.onFileDropped(event.files)
   }
-  onFileDropped(event: FileList) {
-    const filesArray = Array.from(event)
+  onFileDropped(event?: FileList | null) {
+    this.addFiles(event ? Array.from(event) : [])
+  }
+  onAttachCreated(file: IStorageFile) {
+    void file
+  }
+  onAttachDeleted(fileId: string) {
+    void fileId
+  }
+  addAttachment(file: IStorageFile) {
     this.attachments.update((state) => {
-      while (state.length <= this.attachment_maxNum() && filesArray.length > 0) {
-        if (state.length >= this.attachment_maxNum()) {
+      const attachments = state ?? []
+      if (attachments.some((attachment) => attachment.storageFile?.id === file.id)) {
+        return attachments
+      }
+
+      return [...attachments, { storageFile: file }]
+    })
+  }
+
+  private addFiles(files: File[]) {
+    if (!files.length) {
+      return
+    }
+
+    const filesArray = [...files]
+    this.attachments.update((state) => {
+      const attachments = [...(state ?? [])]
+      while (attachments.length <= this.attachment_maxNum() && filesArray.length > 0) {
+        if (attachments.length >= this.attachment_maxNum()) {
           this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {
             Default: 'Attachments exceed the maximum number allowed.'
           })
-          return [...state]
+          return attachments
         }
         const file = filesArray.shift()
-        if (state.some((_) => _.file.name === file.name)) {
+        if (!file) {
+          continue
+        }
+        if (
+          attachments.some(
+            (attachment) => attachment.file?.name === file.name || attachment.storageFile?.originalName === file.name
+          )
+        ) {
           this.#toastr.error('PAC.Chat.AttachmentsAlreadyExists', '', { Default: 'Attachment already exists.' })
           continue
         }
-        state.push({ file })
+        attachments.push({ file })
       }
-      return [...state]
+      return attachments
     })
-  }
-  onAttachCreated(file: IStorageFile) {
-    //
   }
 }
 

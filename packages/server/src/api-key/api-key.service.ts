@@ -50,7 +50,7 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 		return buildApiKeyPrincipal(apiKey, {
 			actingUser: principalUser,
 			requestedUserId: options?.requestedUserId ?? null,
-			requestedOrganizationId: options?.requestedOrganizationId ?? null,
+			requestedOrganizationId: options?.requestedOrganizationId ?? apiKey.organizationId ?? null,
 			principalType: options?.principalType
 		})
 	}

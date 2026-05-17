@@ -154,14 +154,17 @@ function tryParseWithFormats(dat: string, formats: string[], baseDate: Date): Da
 export function reformat(currentDate: Date, dat: string, granularity: TimeGranularity, target: string) {
   switch (granularity) {
     case TimeGranularity.Year:
-      return format(tryParseWithFormats(dat, ['yyyy'], currentDate), target)
+      return format(
+        tryParseWithFormats(dat, ['yyyy', 'yyyyMM', 'yyyy-MM', 'yyyyMMdd', 'yyyy-MM-dd'], currentDate),
+        target
+      )
     case TimeGranularity.Month:
-      return format(tryParseWithFormats(dat, ['yyyyMM', 'yyyy-MM'], currentDate), target)
+      return format(tryParseWithFormats(dat, ['yyyyMM', 'yyyy-MM', 'yyyyMMdd', 'yyyy-MM-dd'], currentDate), target)
     case TimeGranularity.Quarter:
       return format(tryParseWithFormats(dat, [`yyyy'Q'Q`, `yyyy-Q`], currentDate), target)
     // Not supported yet
     // case TimeGranularity.Week:
-      // return format(parse(dat, `yyyyw`, currentDate), target)
+    // return format(parse(dat, `yyyyw`, currentDate), target)
     case TimeGranularity.Day:
       return format(tryParseWithFormats(dat, ['yyyyMMdd', 'yyyy-MM-dd'], currentDate), target)
   }
@@ -170,8 +173,8 @@ export function reformat(currentDate: Date, dat: string, granularity: TimeGranul
 
 /**
  * Calculate relative offset time
- * 
- * @param currentDate 
+ *
+ * @param currentDate
  * @param param1 direction granularity amount
  * @returns Date
  */
@@ -224,7 +227,7 @@ export function formatRangeCurrentPeriod(current: Date, range: TimeRange) {
 export function calcStartEndRange(current: Date, range: TimeRange) {
   return [
     reformat(current, range.start, range.granularity, range.formatter),
-    range.end ? reformat(current, range.end, range.granularity, range.formatter) : null,
+    range.end ? reformat(current, range.end, range.granularity, range.formatter) : null
   ]
 }
 
@@ -282,18 +285,31 @@ export function workOutTimeRangeSlicers(
     const targetFormatter = range.formatter || calendarLevel?.semantics?.formatter
     if (!targetFormatter) {
       if (!calendarLevel) {
-        throw new Error(t('Error.NoTimeLevelInDimension', {ns: 'core', dimension: getPropertyHierarchy(timeSlicer.dimension), granularity: range.granularity}))
+        throw new Error(
+          t('Error.NoTimeLevelInDimension', {
+            ns: 'core',
+            dimension: getPropertyHierarchy(timeSlicer.dimension),
+            granularity: range.granularity
+          })
+        )
       }
-      throw new Error(t('Error.TargetFormatterNotSet', {ns: 'core', dimension: timeSlicer.dimension?.dimension, granularity: range.granularity}))
+      throw new Error(
+        t('Error.TargetFormatterNotSet', {
+          ns: 'core',
+          dimension: timeSlicer.dimension?.dimension,
+          granularity: range.granularity
+        })
+      )
     }
-    const results = range.start ? calcStartEndRange(currentDate || new Date(), {
-        ...range,
-        formatter: targetFormatter
-      })
+    const results = range.start
+      ? calcStartEndRange(currentDate || new Date(), {
+          ...range,
+          formatter: targetFormatter
+        })
       : calcOffsetRange(currentDate || new Date(), {
-        ...range,
-        formatter: targetFormatter
-      })
+          ...range,
+          formatter: targetFormatter
+        })
 
     if (!results[1] || results[0] === results[1]) {
       return {
@@ -334,9 +350,7 @@ export function getCalendarDimension(entityType: EntityType): Property {
     (property) => property.semantics?.semantic === Semantics.Calendar
   )
   if (!timeDim) {
-    throw new Error(
-      t('Error.CalendarDimensionNotFound', {ns: 'core', cube: entityType.name})
-    )
+    throw new Error(t('Error.CalendarDimensionNotFound', { ns: 'core', cube: entityType.name }))
   }
   return timeDim
 }
@@ -346,9 +360,7 @@ export function getCalendarHierarchy(entityType: EntityType): PropertyHierarchy 
   const timeHierarchy = getDefaultHierarchy(timeDim)
 
   if (!timeHierarchy) {
-    throw new Error(
-      t('Error.CalendarHierarchyNotFound', {ns: 'core', dimension: timeDim?.name})
-    )
+    throw new Error(t('Error.CalendarHierarchyNotFound', { ns: 'core', dimension: timeDim?.name }))
   }
 
   return timeHierarchy

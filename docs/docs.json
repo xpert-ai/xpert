@@ -36,6 +36,8 @@
                   "en/guides/minio-file-storage",
                   "en/guides/rustfs-file-storage",
                   "en/guides/agent-middleware",
+                  "en/guides/workspace-skill-creator",
+                  "en/guides/chatkit-slash-commands",
                   "en/guides/handoff",
                   "en/guides/icon-schema",
                   "en/guides/release",
@@ -80,7 +82,10 @@
                   "zh-hans/guides/rustfs-file-storage",
                   "zh-hans/guides/chatkit-third-party-integration",
                   "zh-hans/guides/assistant-architecture",
+                  "zh-hans/guides/clawxpert-skill-selection",
                   "zh-hans/guides/agent-middleware",
+                  "zh-hans/guides/workspace-skill-creator",
+                  "zh-hans/guides/chatkit-slash-commands",
                   "zh-hans/guides/handoff",
                   "zh-hans/guides/icon-schema",
                   "zh-hans/guides/release",
@@ -92,6 +97,14 @@
                   "zh-hans/guides/permissions-current",
                   "zh-hans/guides/event-system"
                 ]
+              },
+              {
+                "group": "记忆",
+                "pages": ["zh-hans/guides/file-memory-dream-refactor"]
+              },
+              {
+                "group": "知识库",
+                "pages": ["zh-hans/guides/graphrag"]
               }
             ]
           },
@@ -105,10 +118,9 @@
               {
                 "group": "快速开始",
                 "pages": [
-                  
                   "zh-hans/solutions/declarative-extended-view-system",
                   "zh-hans/solutions/acp",
-                ,
+                  ,
                   "zh-hans/solutions/user-me-loading-optimization"
                 ]
               }

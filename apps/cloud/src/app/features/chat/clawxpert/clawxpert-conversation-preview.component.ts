@@ -66,6 +66,52 @@ function readTargetElement(value: EventTarget | null): Element | null {
   return value as Element
 }
 
+function ignoreBlockedFrameAccess(callback: () => void) {
+  try {
+    callback()
+  } catch {
+    // A preview iframe can navigate cross-origin before Angular destroys the component.
+  }
+}
+
+function safelyAddFrameWindowEventListener(
+  frameWindow: Window | null,
+  type: string,
+  listener: EventListenerOrEventListenerObject,
+  options?: boolean | AddEventListenerOptions
+) {
+  ignoreBlockedFrameAccess(() => {
+    frameWindow?.addEventListener(type, listener, options)
+  })
+}
+
+function safelyRemoveFrameWindowEventListener(
+  frameWindow: Window | null,
+  type: string,
+  listener: EventListenerOrEventListenerObject,
+  options?: boolean | EventListenerOptions
+) {
+  ignoreBlockedFrameAccess(() => {
+    frameWindow?.removeEventListener(type, listener, options)
+  })
+}
+
+function safelyRequestFrameAnimationFrame(frameWindow: Window | null, callback: FrameRequestCallback): number | null {
+  let requestId: number | null = null
+
+  ignoreBlockedFrameAccess(() => {
+    requestId = frameWindow?.requestAnimationFrame(callback) ?? null
+  })
+
+  return requestId
+}
+
+function safelyCancelFrameAnimationFrame(frameWindow: Window | null, requestId: number) {
+  ignoreBlockedFrameAccess(() => {
+    frameWindow?.cancelAnimationFrame(requestId)
+  })
+}
+
 function truncateValue(value: string, limit: number): string {
   return value.length <= limit ? value : `${value.slice(0, Math.max(0, limit - 3))}...`
 }
@@ -187,7 +233,9 @@ function buildElementReference(service: ISandboxManagedService, element: Element
   selector: 'pac-clawxpert-conversation-preview',
   imports: [CommonModule, TranslateModule, ZardButtonComponent],
   template: `
-    <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg">
+    <div
+      class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg"
+    >
       <div class="border-b border-divider-regular px-4 py-3">
         <div class="flex flex-col gap-3">
           <div class="flex flex-wrap items-start gap-3">
@@ -251,9 +299,7 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                     (change)="handleServiceSelection($event)"
                   >
                     @for (service of services(); track service.id) {
-                      <option [value]="service.id">
-                        {{ service.name }} - {{ service.status }}
-                      </option>
+                      <option [value]="service.id">{{ service.name }} - {{ service.status }}</option>
                     }
                   </select>
                 </label>
@@ -329,7 +375,9 @@ function buildElementReference(service: ISandboxManagedService, element: Element
             {{ 'PAC.Chat.ClawXpert.PreviewLoading' | translate: { Default: 'Loading sandbox services...' } }}
           </div>
         } @else if (error()) {
-          <div class="m-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary">
+          <div
+            class="m-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
+          >
             {{ error() }}
           </div>
         } @else if (!services().length) {
@@ -356,12 +404,13 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                 @if (previewSessionLoading()) {
                   <div class="flex h-full min-h-[20rem] items-center justify-center px-6 text-sm text-text-secondary">
                     {{
-                      'PAC.Chat.ClawXpert.PreviewAuthorizing'
-                        | translate: { Default: 'Authorizing sandbox browser...' }
+                      'PAC.Chat.ClawXpert.PreviewAuthorizing' | translate: { Default: 'Authorizing sandbox browser...' }
                     }}
                   </div>
                 } @else if (previewSessionError()) {
-                  <div class="m-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary">
+                  <div
+                    class="m-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
+                  >
                     {{ previewSessionError() }}
                   </div>
                 } @else if (previewResourceUrl()) {
@@ -416,19 +465,33 @@ function buildElementReference(service: ISandboxManagedService, element: Element
             }
 
             @if (showLogs()) {
-              <div class="grid max-h-[18rem] grid-cols-1 gap-3 border-t border-divider-regular px-4 py-3 lg:grid-cols-2">
-                <div class="min-h-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle">
-                  <div class="border-b border-divider-regular px-3 py-2 text-xs uppercase tracking-[0.16em] text-text-tertiary">
+              <div
+                class="grid max-h-[18rem] grid-cols-1 gap-3 border-t border-divider-regular px-4 py-3 lg:grid-cols-2"
+              >
+                <div
+                  class="min-h-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle"
+                >
+                  <div
+                    class="border-b border-divider-regular px-3 py-2 text-xs uppercase tracking-[0.16em] text-text-tertiary"
+                  >
                     {{ 'PAC.Chat.ClawXpert.Stdout' | translate: { Default: 'Stdout' } }}
                   </div>
-                  <pre class="max-h-[14rem] overflow-auto px-3 py-3 text-xs text-text-secondary">{{ logs()?.stdout || '' }}</pre>
+                  <pre class="max-h-[14rem] overflow-auto px-3 py-3 text-xs text-text-secondary">{{
+                    logs()?.stdout || ''
+                  }}</pre>
                 </div>
 
-                <div class="min-h-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle">
-                  <div class="border-b border-divider-regular px-3 py-2 text-xs uppercase tracking-[0.16em] text-text-tertiary">
+                <div
+                  class="min-h-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle"
+                >
+                  <div
+                    class="border-b border-divider-regular px-3 py-2 text-xs uppercase tracking-[0.16em] text-text-tertiary"
+                  >
                     {{ 'PAC.Chat.ClawXpert.Stderr' | translate: { Default: 'Stderr' } }}
                   </div>
-                  <pre class="max-h-[14rem] overflow-auto px-3 py-3 text-xs text-text-secondary">{{ logs()?.stderr || '' }}</pre>
+                  <pre class="max-h-[14rem] overflow-auto px-3 py-3 text-xs text-text-secondary">{{
+                    logs()?.stderr || ''
+                  }}</pre>
                 </div>
               </div>
             }
@@ -675,16 +738,16 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     documentRef.addEventListener('mouseleave', clearHover, true)
     documentRef.addEventListener('click', selectElement, true)
     documentRef.addEventListener('scroll', syncOverlays, true)
-    frameWindow?.addEventListener('scroll', syncOverlays, true)
-    frameWindow?.addEventListener('resize', syncOverlays)
+    safelyAddFrameWindowEventListener(frameWindow, 'scroll', syncOverlays, true)
+    safelyAddFrameWindowEventListener(frameWindow, 'resize', syncOverlays)
 
     this.#frameCleanup = () => {
       documentRef.removeEventListener('mousemove', updateHover, true)
       documentRef.removeEventListener('mouseleave', clearHover, true)
       documentRef.removeEventListener('click', selectElement, true)
       documentRef.removeEventListener('scroll', syncOverlays, true)
-      frameWindow?.removeEventListener('scroll', syncOverlays, true)
-      frameWindow?.removeEventListener('resize', syncOverlays)
+      safelyRemoveFrameWindowEventListener(frameWindow, 'scroll', syncOverlays, true)
+      safelyRemoveFrameWindowEventListener(frameWindow, 'resize', syncOverlays)
     }
   }
 
@@ -761,10 +824,16 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
         return
       }
 
-      this.#frameSyncRequestId = frameWindow.requestAnimationFrame(tick)
+      this.#frameSyncRequestId = safelyRequestFrameAnimationFrame(frameWindow, tick)
+      if (this.#frameSyncRequestId === null) {
+        this.#frameSyncWindow = null
+      }
     }
 
-    this.#frameSyncRequestId = frameWindow.requestAnimationFrame(tick)
+    this.#frameSyncRequestId = safelyRequestFrameAnimationFrame(frameWindow, tick)
+    if (this.#frameSyncRequestId === null) {
+      this.#frameSyncWindow = null
+    }
   }
 
   private refreshTrackedOverlays() {
@@ -793,7 +862,7 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
 
   private stopOverlaySyncLoop() {
     if (this.#frameSyncRequestId !== null) {
-      this.#frameSyncWindow?.cancelAnimationFrame(this.#frameSyncRequestId)
+      safelyCancelFrameAnimationFrame(this.#frameSyncWindow, this.#frameSyncRequestId)
       this.#frameSyncRequestId = null
     }
 

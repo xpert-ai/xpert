@@ -48,6 +48,16 @@
   <button
     type="button"
     class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium p-2"
+    [ngClass]="sidePanel() === 'commands' ? 'text-primary-500' : ''"
+    [zTooltip]="'PAC.PromptWorkflow.Commands' | translate: { Default: 'Commands' }"
+    (click)="toggleCommands()"
+  >
+    <i class="ri-message-3-line text-lg text-components-button-secondary-text"></i>
+  </button>
+
+  <button
+    type="button"
+    class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium p-2"
     [ngClass]="sidePanel() === 'variables' ? 'text-primary-500' : ''"
     (click)="toggleVariables()"
   >

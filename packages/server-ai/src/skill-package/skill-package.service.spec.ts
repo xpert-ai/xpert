@@ -1,146 +1,147 @@
 jest.mock('@xpert-ai/server-common', () => ({
-	getErrorMessage: (error: Error) => error?.message ?? String(error),
-	urlJoin: (...parts: string[]) =>
-		parts
-			.filter((part) => part.length > 0)
-			.map((part, index) => (index === 0 ? part.replace(/\/+$/g, '') : part.replace(/^\/+|\/+$/g, '')))
-			.join('/'),
-	yaml: {
-		parse: (value: string) => {
-			const lines = value.split('\n')
-			const result: {
-				name?: string
-				description?: string
-				version?: string
-				license?: string
-				tags?: string[]
-			} = {}
-			let currentArrayKey: 'tags' | null = null
+    getErrorMessage: (error: Error) => error?.message ?? String(error),
+    urlJoin: (...parts: string[]) =>
+        parts
+            .filter((part) => part.length > 0)
+            .map((part, index) => (index === 0 ? part.replace(/\/+$/g, '') : part.replace(/^\/+|\/+$/g, '')))
+            .join('/'),
+    yaml: {
+        parse: (value: string) => {
+            const lines = value.split('\n')
+            const result: {
+                name?: string
+                description?: string
+                version?: string
+                license?: string
+                tags?: string[]
+                [key: string]: unknown
+            } = {}
+            let currentArrayKey: 'tags' | null = null
 
-			for (const rawLine of lines) {
-				const line = rawLine.trimEnd()
-				const trimmed = line.trim()
-				if (!trimmed) {
-					continue
-				}
-				if (currentArrayKey && trimmed.startsWith('- ')) {
-					result.tags = [...(result.tags ?? []), trimmed.slice(2).trim()]
-					continue
-				}
-				currentArrayKey = null
+            for (const rawLine of lines) {
+                const line = rawLine.trimEnd()
+                const trimmed = line.trim()
+                if (!trimmed) {
+                    continue
+                }
+                if (currentArrayKey && trimmed.startsWith('- ')) {
+                    result.tags = [...(result.tags ?? []), trimmed.slice(2).trim()]
+                    continue
+                }
+                currentArrayKey = null
 
-				const colonIndex = line.indexOf(':')
-				if (colonIndex === -1) {
-					continue
-				}
+                const colonIndex = line.indexOf(':')
+                if (colonIndex === -1) {
+                    continue
+                }
 
-				const key = line.slice(0, colonIndex).trim()
-				const parsedValue = line.slice(colonIndex + 1).trim()
-				if (key === 'tags' && !parsedValue) {
-					currentArrayKey = 'tags'
-					result.tags = []
-					continue
-				}
+                const key = line.slice(0, colonIndex).trim()
+                const parsedValue = line.slice(colonIndex + 1).trim()
+                if (key === 'tags' && !parsedValue) {
+                    currentArrayKey = 'tags'
+                    result.tags = []
+                    continue
+                }
 
-				if (key === 'name' || key === 'description' || key === 'version' || key === 'license') {
-					result[key] = parsedValue
-				}
-			}
+                result[key] = parsedValue
+            }
 
-			return result
-		}
-	}
+            return result
+        }
+    }
 }))
 
 jest.mock('@nestjs/typeorm', () => ({
-	InjectRepository: () => () => undefined,
-	TypeOrmModule: {
-		forFeature: () => ({}),
-		forFeatureAsync: () => ({}),
-		forRoot: () => ({}),
-		forRootAsync: () => ({})
-	}
+    InjectRepository: () => () => undefined,
+    TypeOrmModule: {
+        forFeature: () => ({}),
+        forFeatureAsync: () => ({}),
+        forRoot: () => ({}),
+        forRootAsync: () => ({})
+    }
 }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
-	RequestContext: {
-		currentTenantId: jest.fn(),
-		getOrganizationId: jest.fn(),
-		getLanguageCode: jest.fn(),
-		currentUserId: jest.fn(),
-		currentUser: jest.fn()
-	},
-	SkillSourceProviderStrategy: () => () => undefined,
-	SkillSourceProviderRegistry: class SkillSourceProviderRegistry {}
+    RequestContext: {
+        currentTenantId: jest.fn(),
+        getOrganizationId: jest.fn(),
+        getLanguageCode: jest.fn(),
+        currentUserId: jest.fn(),
+        currentUser: jest.fn()
+    },
+    SkillSourceProviderStrategy: () => () => undefined,
+    SkillSourceProviderRegistry: class SkillSourceProviderRegistry {}
 }))
 
 jest.mock('../skill-repository/types', () => ({
-	getWorkspaceSkillsRoot: jest.fn().mockReturnValue('/tmp/workspace-skills'),
-	getOrganizationSharedSkillsRoot: jest.fn().mockReturnValue('/tmp/shared-skills'),
-	getOrganizationSharedSkillPath: jest.fn((_tenantId: string, _organizationId: string, sharedSkillId: string) => `/tmp/shared-skills/${sharedSkillId}`),
-	isWorkspacePublicSkillRepositoryProvider: jest.fn((provider: string) => provider === 'workspace-public')
+    getWorkspaceSkillsRoot: jest.fn().mockReturnValue('/tmp/workspace-skills'),
+    getOrganizationSharedSkillsRoot: jest.fn().mockReturnValue('/tmp/shared-skills'),
+    getOrganizationSharedSkillPath: jest.fn(
+        (_tenantId: string, _organizationId: string, sharedSkillId: string) => `/tmp/shared-skills/${sharedSkillId}`
+    ),
+    isWorkspacePublicSkillRepositoryProvider: jest.fn((provider: string) => provider === 'workspace-public')
 }))
 
 jest.mock('../skill-repository/repository-index/skill-repository-index.service', () => ({
-	SkillRepositoryIndexService: class SkillRepositoryIndexService {}
+    SkillRepositoryIndexService: class SkillRepositoryIndexService {}
 }))
 
 jest.mock('../skill-repository/skill-repository.service', () => ({
-	SkillRepositoryService: class SkillRepositoryService {}
+    SkillRepositoryService: class SkillRepositoryService {}
 }))
 
 jest.mock('../xpert-template/xpert-template.service', () => ({
-	XpertTemplateService: class XpertTemplateService {}
+    XpertTemplateService: class XpertTemplateService {}
 }))
 
 jest.mock('../xpert-workspace', () => ({
-	XpertWorkspaceBaseService: class XpertWorkspaceBaseService<T> {
-		protected repository: any
+    XpertWorkspaceBaseService: class XpertWorkspaceBaseService<T> {
+        protected repository: any
 
-		constructor(repository: any) {
-			this.repository = repository
-		}
+        constructor(repository: any) {
+            this.repository = repository
+        }
 
-		async create(entity: T) {
-			return entity
-		}
+        async create(entity: T) {
+            return entity
+        }
 
-		async findOne() {
-			return null
-		}
+        async findOne() {
+            return null
+        }
 
-		async update() {
-			return null
-		}
+        async update() {
+            return null
+        }
 
-		async assertWorkspaceAccess() {
-			return undefined
-		}
+        async assertWorkspaceAccess() {
+            return undefined
+        }
 
-		async assertWorkspaceReadAccess() {
-			return undefined
-		}
+        async assertWorkspaceReadAccess() {
+            return undefined
+        }
 
-		async assertWorkspaceWriteAccess() {
-			return undefined
-		}
-	}
+        async assertWorkspaceWriteAccess() {
+            return undefined
+        }
+    }
 }))
 
 jest.mock('../xpert-workspace/workspace.entity', () => ({
-	XpertWorkspace: class XpertWorkspace {}
+    XpertWorkspace: class XpertWorkspace {}
 }))
 
 jest.mock('./skill-package.entity', () => ({
-	SkillPackage: class SkillPackage {}
+    SkillPackage: class SkillPackage {}
 }))
 
 jest.mock('../skill-repository/plugins/zip', () => ({
-	FILE_SKILL_SOURCE_PROVIDER: 'file',
-	cleanupExtractedSkillArchive: jest.fn().mockResolvedValue(undefined),
-	extractSkillsFromZip: jest.fn(),
-	installUploadedSkills: jest.fn(),
-	normalizeUploadedSkillPath: jest.fn((value: string) => value.trim().replace(/^\/+/, ''))
+    FILE_SKILL_SOURCE_PROVIDER: 'file',
+    cleanupExtractedSkillArchive: jest.fn().mockResolvedValue(undefined),
+    extractSkillsFromZip: jest.fn(),
+    installUploadedSkills: jest.fn(),
+    normalizeUploadedSkillPath: jest.fn((value: string) => value.trim().replace(/^\/+/, ''))
 }))
 
 import { getOrganizationSharedSkillPath, getWorkspaceSkillsRoot } from '../skill-repository/types'
@@ -150,1158 +151,1366 @@ import { join } from 'path'
 import { SkillPackageService } from './skill-package.service'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
-	cleanupExtractedSkillArchive,
-	extractSkillsFromZip,
-	installUploadedSkills
+    cleanupExtractedSkillArchive,
+    extractSkillsFromZip,
+    installUploadedSkills
 } from '../skill-repository/plugins/zip'
 
 describe('SkillPackageService', () => {
-	let service: SkillPackageService
-	let repository: {
-		findOne: jest.Mock
-		softDelete: jest.Mock
-	}
-	let skillIndexService: {
-		findOneInOrganizationOrTenant: jest.Mock
-		findAll: jest.Mock
-		create: jest.Mock
-		softDelete: jest.Mock
-	}
-	let skillRepositoryService: {
-		ensureWorkspacePublicRepository: jest.Mock
-		findAll: jest.Mock
-		findOneInOrganizationOrTenant: jest.Mock
-	}
-	let xpertTemplateService: {
-		getTemplateSkillBundles: jest.Mock
-	}
-	let workspaceRepository: {
-		create: jest.Mock
-		createQueryBuilder: jest.Mock
-		findOne: jest.Mock
-		save: jest.Mock
-		update: jest.Mock
-	}
-	let strategy: {
-		installSkillPackage: jest.Mock
-		uninstallSkillPackage: jest.Mock
-	}
-	let createSpy: jest.SpiedFunction<SkillPackageService['create']>
-	let tempRoot: string | null
-
-	beforeEach(() => {
-		;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
-		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
-		;(RequestContext.getLanguageCode as jest.Mock).mockReturnValue('zh-Hans')
-		;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
-		;(RequestContext.currentUser as jest.Mock).mockReturnValue({
-			id: 'user-1',
-			firstName: 'Workspace',
-			lastName: 'Owner'
-		})
-
-		skillIndexService = {
-			findOneInOrganizationOrTenant: jest.fn(),
-			findAll: jest.fn().mockResolvedValue({ items: [] }),
-			create: jest.fn().mockImplementation(async (item: any) => item),
-			softDelete: jest.fn().mockResolvedValue({ affected: 1 })
-		}
-		skillRepositoryService = {
-			ensureWorkspacePublicRepository: jest.fn().mockResolvedValue({
-				id: 'repo-public',
-				provider: 'workspace-public'
-			}),
-			findAll: jest.fn().mockResolvedValue({ items: [] }),
-			findOneInOrganizationOrTenant: jest.fn()
-		}
-		xpertTemplateService = {
-			getTemplateSkillBundles: jest.fn().mockResolvedValue([])
-		}
-		strategy = {
-			installSkillPackage: jest.fn().mockResolvedValue('clawhub/weather'),
-			uninstallSkillPackage: jest.fn().mockResolvedValue(undefined)
-		}
-
-		repository = {
-			findOne: jest.fn().mockResolvedValue(null),
-			softDelete: jest.fn().mockResolvedValue({ affected: 1 })
-		}
-
-		workspaceRepository = {
-			create: jest.fn((entity) => entity),
-			createQueryBuilder: jest.fn(() => ({
-				where: jest.fn().mockReturnThis(),
-				andWhere: jest.fn().mockReturnThis(),
-				getOne: jest.fn().mockResolvedValue(null)
-			})),
-			findOne: jest.fn().mockResolvedValue(null),
-			save: jest.fn(async (entity) => ({
-				id: 'workspace-org-default',
-				...entity
-			})),
-			update: jest.fn().mockResolvedValue({ affected: 1 })
-		}
-
-		service = new SkillPackageService(
-			repository as any,
-			{} as any,
-			skillRepositoryService as any,
-			skillIndexService as any,
-			workspaceRepository as any,
-			xpertTemplateService as any
-		)
-		;(service as any).skillSourceProviderRegistry = {
-			get: jest.fn().mockReturnValue(strategy)
-		}
-		tempRoot = null
-
-		jest.spyOn(service as any, 'assertWorkspaceAccess').mockResolvedValue(undefined)
-		createSpy = jest.spyOn(service, 'create').mockImplementation(async (item: any) => item)
-		jest.spyOn(service, 'update').mockResolvedValue({ affected: 1 } as any)
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue('/tmp/workspace-skills')
-	})
-
-	afterEach(async () => {
-		if (tempRoot) {
-			await rm(tempRoot, { recursive: true, force: true })
-			tempRoot = null
-		}
-		jest.clearAllMocks()
-	})
-
-	it('persists the selected index version into skill package metadata during install', async () => {
-		skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
-			id: 'index-1',
-			name: 'Weather',
-			skillPath: 'weather',
-			description: 'Forecasts',
-			tags: ['marketplace', 'clawhub'],
-			version: '1.2.3',
-			repository: {
-				provider: 'clawhub',
-				tenantId: 'tenant-1'
-			}
-		})
-
-		const result = await service.installSkillPackage('workspace-1', 'index-1')
-
-		expect(getWorkspaceSkillsRoot).toHaveBeenCalledWith('tenant-1', 'workspace-1')
-		expect(strategy.installSkillPackage).toHaveBeenCalledWith(
-			expect.objectContaining({
-				id: 'index-1',
-				version: '1.2.3'
-			}),
-			'/tmp/workspace-skills'
-		)
-		expect(createSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				workspaceId: 'workspace-1',
-				name: 'Weather',
-				skillIndexId: 'index-1',
-				packagePath: 'clawhub/weather',
-				metadata: expect.objectContaining({
-					version: '1.2.3',
-					tags: ['marketplace', 'clawhub']
-				})
-			})
-		)
-		expect(result).toMatchObject({
-			metadata: expect.objectContaining({
-				version: '1.2.3'
-			})
-		})
-	})
-
-	it('keeps installs working when the repository index has no version', async () => {
-		skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
-			id: 'index-2',
-			name: 'Calendar',
-			skillPath: 'calendar',
-			description: 'Calendar helper',
-			tags: ['marketplace'],
-			repository: {
-				provider: 'clawhub',
-				tenantId: 'tenant-1'
-			}
-		})
-
-		const result = await service.installSkillPackage('workspace-1', 'index-2')
-		const createArg = createSpy.mock.calls[0][0] as any
-
-		expect(strategy.installSkillPackage).toHaveBeenCalledWith(
-			expect.objectContaining({
-				id: 'index-2'
-			}),
-			'/tmp/workspace-skills'
-		)
-		expect(createArg.metadata.version).toBeUndefined()
-		expect(result.metadata.version).toBeUndefined()
-	})
-
-	it('reuses an existing installed marketplace skill when the same version is already present', async () => {
-		skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
-			id: 'index-1',
-			repositoryId: 'repo-1',
-			skillId: 'weather',
-			name: 'Weather',
-			skillPath: 'weather',
-			version: '1.2.3',
-			repository: {
-				id: 'repo-1',
-				provider: 'clawhub',
-				tenantId: 'tenant-1'
-			}
-		})
-		repository.findOne.mockResolvedValue({
-			id: 'skill-existing-1',
-			tenantId: 'tenant-1',
-			workspaceId: 'workspace-1',
-			skillIndexId: 'index-1',
-			metadata: {
-				name: 'weather',
-				displayName: {
-					en_US: 'Weather',
-					zh_Hans: 'Weather'
-				},
-				version: '1.2.3',
-				visibility: 'private'
-			},
-			skillIndex: {
-				id: 'index-1',
-				repositoryId: 'repo-1',
-				skillId: 'weather',
-				repository: {
-					id: 'repo-1',
-					provider: 'clawhub',
-					tenantId: 'tenant-1'
-				}
-			}
-		})
-
-		const result = await service.installSkillPackage('workspace-1', 'index-1')
-
-		expect(repository.findOne).toHaveBeenCalledWith({
-			where: {
-				workspaceId: 'workspace-1',
-				skillIndexId: 'index-1'
-			},
-			relations: ['skillIndex', 'skillIndex.repository']
-		})
-		expect(strategy.installSkillPackage).not.toHaveBeenCalled()
-		expect(createSpy).not.toHaveBeenCalled()
-		expect(service.update).not.toHaveBeenCalled()
-		expect(result).toMatchObject({
-			id: 'skill-existing-1',
-			skillIndexId: 'index-1',
-			metadata: {
-				version: '1.2.3'
-			}
-		})
-	})
-
-	it('updates an installed marketplace skill in place when a newer version is installed for the same skill id', async () => {
-		skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
-			id: 'index-2',
-			repositoryId: 'repo-1',
-			skillId: 'weather',
-			name: 'Weather',
-			skillPath: 'weather',
-			version: '2.0.0',
-			repository: {
-				id: 'repo-1',
-				provider: 'clawhub',
-				tenantId: 'tenant-1'
-			}
-		})
-		repository.findOne
-			.mockResolvedValueOnce(null)
-			.mockResolvedValueOnce({
-				id: 'skill-existing-1',
-				tenantId: 'tenant-1',
-				workspaceId: 'workspace-1',
-				skillIndexId: 'index-1',
-				packagePath: 'clawhub/weather',
-				metadata: {
-					name: 'weather',
-					version: '1.2.3',
-					visibility: 'private'
-				},
-				skillIndex: {
-					id: 'index-1',
-					repositoryId: 'repo-1',
-					skillId: 'weather',
-					repository: {
-						id: 'repo-1',
-						provider: 'clawhub',
-						tenantId: 'tenant-1'
-					}
-				}
-			})
-
-		const result = await service.installSkillPackage('workspace-1', 'index-2')
-
-		expect(repository.findOne).toHaveBeenNthCalledWith(1, {
-			where: {
-				workspaceId: 'workspace-1',
-				skillIndexId: 'index-2'
-			},
-			relations: ['skillIndex', 'skillIndex.repository']
-		})
-		expect(repository.findOne).toHaveBeenNthCalledWith(2, {
-			where: {
-				workspaceId: 'workspace-1',
-				skillIndex: {
-					repositoryId: 'repo-1',
-					skillId: 'weather'
-				}
-			},
-			relations: ['skillIndex', 'skillIndex.repository'],
-			order: {
-				updatedAt: 'DESC'
-			}
-		})
-		expect(strategy.uninstallSkillPackage).toHaveBeenCalledWith('/tmp/workspace-skills/clawhub/weather')
-		expect(strategy.installSkillPackage).toHaveBeenCalledWith(
-			expect.objectContaining({
-				id: 'index-2',
-				skillId: 'weather',
-				version: '2.0.0'
-			}),
-			'/tmp/workspace-skills'
-		)
-		expect(service.update).toHaveBeenCalledWith(
-			'skill-existing-1',
-			expect.objectContaining({
-				workspaceId: 'workspace-1',
-				skillIndexId: 'index-2',
-				packagePath: 'clawhub/weather',
-				metadata: expect.objectContaining({
-					version: '2.0.0'
-				})
-			})
-		)
-		expect(createSpy).not.toHaveBeenCalled()
-		expect(result).toMatchObject({
-			id: 'skill-existing-1',
-			skillIndexId: 'index-2',
-			packagePath: 'clawhub/weather',
-			metadata: expect.objectContaining({
-				version: '2.0.0'
-			}),
-			skillIndex: expect.objectContaining({
-				id: 'index-2',
-				skillId: 'weather',
-				version: '2.0.0'
-			})
-		})
-	})
-
-	it('reuses an existing installed skill package for the same workspace and index', async () => {
-		repository.findOne.mockResolvedValue({
-			id: 'skill-existing-1',
-			workspaceId: 'workspace-1',
-			skillIndexId: 'index-1'
-		})
-		const installSpy = jest.spyOn(service, 'installSkillPackage')
-
-		const result = await service.ensureInstalledSkillPackage('workspace-1', 'index-1')
-
-		expect(repository.findOne).toHaveBeenCalledWith({
-			where: {
-				workspaceId: 'workspace-1',
-				skillIndexId: 'index-1'
-			},
-			relations: ['skillIndex', 'skillIndex.repository']
-		})
-		expect(installSpy).not.toHaveBeenCalled()
-		expect(result).toEqual({
-			id: 'skill-existing-1',
-			workspaceId: 'workspace-1',
-			skillIndexId: 'index-1'
-		})
-	})
-
-	it('installs the skill package when no workspace copy exists yet', async () => {
-		repository.findOne.mockResolvedValue(null)
-		const installSpy = jest.spyOn(service, 'installSkillPackage').mockResolvedValue({
-			id: 'skill-installed-1'
-		} as any)
-
-		const result = await service.ensureInstalledSkillPackage('workspace-1', 'index-1')
-
-		expect(installSpy).toHaveBeenCalledWith('workspace-1', 'index-1')
-		expect(result).toEqual({
-			id: 'skill-installed-1'
-		})
-	})
-
-	it('installs every package from a repository into the workspace', async () => {
-		skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
-			id: 'repo-public',
-			provider: 'workspace-public'
-		})
-		skillIndexService.findAll.mockResolvedValue({
-			items: [{ id: 'index-1' }, { id: 'index-2' }]
-		})
-		const ensureInstalledSkillPackage = jest
-			.spyOn(service, 'ensureInstalledSkillPackage')
-			.mockResolvedValueOnce({ id: 'package-1' } as any)
-			.mockResolvedValueOnce({ id: 'package-2' } as any)
-
-		const result = await service.installRepositorySkillPackages('workspace-1', 'repo-public')
-
-		expect(skillRepositoryService.findOneInOrganizationOrTenant).toHaveBeenCalledWith('repo-public')
-		expect(skillIndexService.findAll).toHaveBeenCalledWith(
-			expect.objectContaining({
-				where: {
-					repositoryId: 'repo-public'
-				}
-			})
-		)
-		expect(ensureInstalledSkillPackage).toHaveBeenNthCalledWith(1, 'workspace-1', 'index-1')
-		expect(ensureInstalledSkillPackage).toHaveBeenNthCalledWith(2, 'workspace-1', 'index-2')
-		expect(result).toEqual([{ id: 'package-1' }, { id: 'package-2' }])
-	})
-
-	it('uploads zip packages only to the workspace public repository and publishes them from the org default workspace', async () => {
-		skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
-			id: 'repo-public',
-			provider: 'workspace-public'
-		})
-		;(extractSkillsFromZip as jest.Mock).mockResolvedValue({
-			tempDir: '/tmp/skill-archive',
-			skills: [
-				{
-					name: 'Weather Skill',
-					description: 'Shareable weather skill',
-					absolutePath: '/tmp/uploaded/weather',
-					skillPath: 'weather'
-				}
-			]
-		})
-		const publishUploadedWorkspacePublicSkill = jest
-			.spyOn(service as any, 'publishUploadedWorkspacePublicSkill')
-			.mockResolvedValue({ id: 'index-public-1' })
-
-		const result = await service.uploadWorkspacePublicRepositoryPackages('repo-public', {
-			buffer: Buffer.from('zip-file')
-		} as Express.Multer.File)
-
-		expect(skillRepositoryService.findOneInOrganizationOrTenant).toHaveBeenCalledWith('repo-public')
-		expect(workspaceRepository.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				name: '组织工作空间',
-				organizationId: 'org-1',
-				ownerId: 'user-1',
-				tenantId: 'tenant-1'
-			})
-		)
-		expect(publishUploadedWorkspacePublicSkill).toHaveBeenCalledWith(
-			expect.objectContaining({
-				installDir: '/tmp/workspace-skills',
-				organizationId: 'org-1',
-				repositoryId: 'repo-public',
-				tenantId: 'tenant-1',
-				workspaceId: 'workspace-org-default'
-			})
-		)
-		expect(cleanupExtractedSkillArchive).toHaveBeenCalledWith('/tmp/skill-archive')
-		expect(result).toEqual([{ id: 'index-public-1' }])
-	})
-
-	it('uploads zip packages to the tenant-scoped workspace public repository without organization context', async () => {
-		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
-		skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
-			id: 'repo-public-tenant',
-			provider: 'workspace-public',
-			organizationId: null
-		})
-		;(extractSkillsFromZip as jest.Mock).mockResolvedValue({
-			tempDir: '/tmp/skill-archive-tenant',
-			skills: [
-				{
-					name: 'Tenant Skill',
-					description: 'Tenant scope skill',
-					absolutePath: '/tmp/uploaded/tenant-skill',
-					skillPath: 'tenant-skill'
-				}
-			]
-		})
-		const publishUploadedWorkspacePublicSkill = jest
-			.spyOn(service as any, 'publishUploadedWorkspacePublicSkill')
-			.mockResolvedValue({ id: 'index-public-tenant-1' })
-
-		const result = await service.uploadWorkspacePublicRepositoryPackages('repo-public-tenant', {
-			buffer: Buffer.from('zip-file')
-		} as Express.Multer.File)
-
-		expect(workspaceRepository.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				name: 'Tenant Skills Workspace',
-				organizationId: null,
-				ownerId: 'user-1',
-				tenantId: 'tenant-1',
-				settings: {
-					system: {
-						kind: 'tenant-default'
-					}
-				}
-			})
-		)
-		expect(publishUploadedWorkspacePublicSkill).toHaveBeenCalledWith(
-			expect.objectContaining({
-				installDir: '/tmp/workspace-skills',
-				organizationId: null,
-				repositoryId: 'repo-public',
-				tenantId: 'tenant-1',
-				workspaceId: 'workspace-org-default'
-			})
-		)
-		expect(cleanupExtractedSkillArchive).toHaveBeenCalledWith('/tmp/skill-archive-tenant')
-		expect(result).toEqual([{ id: 'index-public-tenant-1' }])
-	})
-
-	it('rejects direct zip uploads for non workspace-public repositories', async () => {
-		skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
-			id: 'repo-github',
-			provider: 'github'
-		})
-
-		await expect(
-			service.uploadWorkspacePublicRepositoryPackages('repo-github', {
-				buffer: Buffer.from('zip-file')
-			} as Express.Multer.File)
-		).rejects.toThrow('Only workspace public repositories support direct zip uploads')
-		expect(extractSkillsFromZip).not.toHaveBeenCalled()
-		expect(installUploadedSkills).not.toHaveBeenCalled()
-	})
-
-	it('initializes the tenant-scoped workspace public repository and imports template bundles into the default source workspace', async () => {
-		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
-		xpertTemplateService.getTemplateSkillBundles.mockResolvedValue([
-			{
-				directoryPath: '/tmp/template-skill-bundles/claude-api-bundle',
-				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
-			},
-			{
-				directoryPath: '/tmp/template-skill-bundles/github-bundle',
-				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fgithub'
-			}
-		])
-		const syncTemplateSkillBundle = jest.spyOn(service, 'syncTemplateSkillBundle').mockResolvedValue({
-			status: 'created',
-			hash: 'bundle-hash',
-			sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api',
-			index: { id: 'index-public-1' }
-		})
-
-		const result = await service.initializeWorkspacePublicRepository()
-
-		expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalledTimes(1)
-		expect(workspaceRepository.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				name: 'Tenant Skills Workspace',
-				organizationId: null,
-				ownerId: 'user-1',
-				tenantId: 'tenant-1',
-				settings: {
-					system: {
-						kind: 'tenant-default'
-					}
-				}
-			})
-		)
-		expect(syncTemplateSkillBundle).toHaveBeenNthCalledWith(
-			1,
-			'workspace-org-default',
-			{
-				bundleRootPath: '/tmp/template-skill-bundles/claude-api-bundle',
-				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
-			},
-			{
-				skipAccessCheck: true
-			}
-		)
-		expect(syncTemplateSkillBundle).toHaveBeenNthCalledWith(
-			2,
-			'workspace-org-default',
-			{
-				bundleRootPath: '/tmp/template-skill-bundles/github-bundle',
-				sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fgithub'
-			},
-			{
-				skipAccessCheck: true
-			}
-		)
-		expect(result).toEqual({
-			id: 'repo-public',
-			provider: 'workspace-public'
-		})
-	})
-
-	it('creates a workspace skill package with a single SKILL.md file and persisted metadata', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-'))
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-		createSpy.mockImplementationOnce(async (item: any) => ({
-			id: 'skill-created-1',
-			...item
-		}))
-
-		const result = await service.createWorkspaceSkillPackage('workspace-1', {
-			userIntent: 'Create a workspace helper',
-			skillName: 'Workspace Skill',
-			skillMarkdown:
-				'---\nname: Workspace Skill\ndescription: Helps this workspace.\nversion: 1.0.0\ntags:\n  - workspace\n---\n# Workspace Skill\n'
-		})
-
-		expect(createSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				workspaceId: 'workspace-1',
-				name: 'Workspace Skill',
-				visibility: 'private',
-				packagePath: 'workspace-skill',
-				metadata: expect.objectContaining({
-					name: 'Workspace Skill',
-					version: '1.0.0',
-					tags: ['workspace'],
-					source: 'file',
-					skillPath: 'workspace-skill',
-					skillMdPath: join(tempRoot, 'workspace-skill', 'SKILL.md')
-				})
-			})
-		)
-		await expect(readFile(join(tempRoot, 'workspace-skill', 'SKILL.md'), 'utf8')).resolves.toContain(
-			'# Workspace Skill\n'
-		)
-		expect(result).toEqual(
-			expect.objectContaining({
-				packagePath: 'workspace-skill',
-				skillMdPath: join(tempRoot, 'workspace-skill', 'SKILL.md'),
-				skillPackage: expect.objectContaining({
-					id: 'skill-created-1',
-					workspaceId: 'workspace-1'
-				})
-			})
-		)
-	})
-
-	it('adds a numeric suffix when creating a workspace skill package with an existing slug', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-dup-'))
-		await mkdir(join(tempRoot, 'workspace-skill'), { recursive: true })
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-		createSpy.mockImplementationOnce(async (item: any) => item)
-
-		const result = await service.createWorkspaceSkillPackage('workspace-1', {
-			userIntent: 'Create a workspace helper',
-			skillName: 'Workspace Skill',
-			skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n'
-		})
-
-		expect(result.packagePath).toBe('workspace-skill-2')
-		await expect(readFile(join(tempRoot, 'workspace-skill-2', 'SKILL.md'), 'utf8')).resolves.toContain(
-			'# Workspace Skill\n'
-		)
-	})
-
-	it('rejects workspace skill creation when SKILL.md frontmatter is missing required fields', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-invalid-'))
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-
-		await expect(
-			service.createWorkspaceSkillPackage('workspace-1', {
-				userIntent: 'Create a workspace helper',
-				skillName: 'Workspace Skill',
-				skillMarkdown: '---\nname: Workspace Skill\n---\n# Workspace Skill\n'
-			})
-		).rejects.toThrow('SKILL.md frontmatter must include name and description')
-		expect(createSpy).not.toHaveBeenCalled()
-	})
-
-	it('publishes a template skill bundle from a directory and excludes bundle.yaml from installed files', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-'))
-		const workspaceRoot = join(tempRoot, 'workspace')
-		const sharedRoot = join(tempRoot, 'shared')
-		const bundleRoot = join(tempRoot, 'bundle')
-		const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
-		await mkdir(bundleRoot, { recursive: true })
-		await writeFile(
-			join(bundleRoot, 'bundle.yaml'),
-			'provider: github\nrepositoryName: anthropics/skills\nskillId: skills/claude-api\n',
-			'utf8'
-		)
-		await writeFile(
-			join(bundleRoot, 'SKILL.md'),
-			'---\nname: Claude API\ndescription: Bundle skill.\nversion: 1.0.0\ntags:\n  - api\n---\n# Claude API\n',
-			'utf8'
-		)
-		await writeFile(join(bundleRoot, 'guide.md'), 'bundle guide\n', 'utf8')
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
-		;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
-			(_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
-		)
-		createSpy.mockImplementationOnce(async (item: any) => ({
-			id: 'skill-created-1',
-			...item
-		}))
-
-		await service.ensureSharedSkillPackageFromTemplateBundle('workspace-1', {
-			bundleRootPath: bundleRoot,
-			sharedSkillId
-		})
-
-		expect(createSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				workspaceId: 'workspace-1',
-				name: 'Claude API',
-				packagePath: 'claude-api',
-				metadata: expect.objectContaining({
-					name: 'Claude API',
-					version: '1.0.0',
-					tags: ['api']
-				})
-			})
-		)
-		await expect(readFile(join(workspaceRoot, 'claude-api', 'SKILL.md'), 'utf8')).resolves.toContain('# Claude API\n')
-		await expect(readFile(join(workspaceRoot, 'claude-api', 'bundle.yaml'), 'utf8')).rejects.toThrow()
-		await expect(readFile(join(sharedRoot, sharedSkillId, 'guide.md'), 'utf8')).resolves.toBe('bundle guide\n')
-		await expect(readFile(join(sharedRoot, sharedSkillId, 'bundle.yaml'), 'utf8')).rejects.toThrow()
-		expect(skillIndexService.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				repositoryId: 'repo-public',
-				skillId: sharedSkillId,
-				name: 'Claude API',
-				description: 'Bundle skill.'
-			})
-		)
-	})
-
-	it('skips template bundle republish when the stored bundle hash is still current', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-current-'))
-		const bundleRoot = join(tempRoot, 'bundle')
-		const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
-		await mkdir(bundleRoot, { recursive: true })
-		await writeFile(
-			join(bundleRoot, 'SKILL.md'),
-			'---\nname: Claude API\ndescription: Bundle skill.\nversion: 1.0.0\ntags:\n  - api\n---\n# Claude API\n',
-			'utf8'
-		)
-
-		skillRepositoryService.findAll.mockResolvedValue({
-			items: [{ id: 'repo-public', provider: 'workspace-public' }]
-		})
-		const validationResult = await service.syncTemplateSkillBundle(
-			'workspace-1',
-			{
-				bundleRootPath: bundleRoot,
-				sharedSkillId
-			},
-			{
-				validateOnly: true
-			}
-		)
-
-		repository.findOne.mockResolvedValue({
-			id: 'skill-existing-1',
-			workspaceId: 'workspace-1',
-			sharedSkillId,
-			packagePath: 'claude-api',
-			metadata: {
-				name: 'Claude API',
-				provenance: {
-					templateBundleHash: validationResult.hash
-				}
-			}
-		})
-		skillIndexService.findAll.mockResolvedValue({
-			items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
-		})
-
-		const result = await service.syncTemplateSkillBundle('workspace-1', {
-			bundleRootPath: bundleRoot,
-			sharedSkillId
-		})
-
-		expect(result).toEqual({
-			status: 'unchanged',
-			hash: validationResult.hash,
-			sharedSkillId,
-			index: {
-				id: 'index-existing-1',
-				repositoryId: 'repo-public',
-				skillId: sharedSkillId
-			}
-		})
-		expect(createSpy).not.toHaveBeenCalled()
-		expect(service.update).not.toHaveBeenCalled()
-		expect(skillIndexService.create).not.toHaveBeenCalled()
-	})
-
-	it('republishes a template bundle when the bundle contents change but the shared skill id stays the same', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-update-'))
-		const workspaceRoot = join(tempRoot, 'workspace')
-		const sharedRoot = join(tempRoot, 'shared')
-		const bundleRoot = join(tempRoot, 'bundle')
-		const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
-		await mkdir(bundleRoot, { recursive: true })
-		await writeFile(
-			join(bundleRoot, 'SKILL.md'),
-			'---\nname: Claude API\ndescription: Updated bundle skill.\nversion: 2.0.0\ntags:\n  - api\n  - updated\n---\n# Claude API\n',
-			'utf8'
-		)
-		await writeFile(join(bundleRoot, 'guide.md'), 'updated guide\n', 'utf8')
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
-		;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
-			(_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
-		)
-
-		skillIndexService.findAll.mockResolvedValue({
-			items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
-		})
-		repository.findOne.mockResolvedValue({
-			id: 'skill-existing-1',
-			workspaceId: 'workspace-1',
-			sharedSkillId,
-			packagePath: 'claude-api',
-			metadata: {
-				name: 'Claude API',
-				provenance: {
-					templateBundleHash: 'stale-hash'
-				}
-			}
-		})
-
-		const result = await service.syncTemplateSkillBundle('workspace-1', {
-			bundleRootPath: bundleRoot,
-			sharedSkillId
-		})
-
-		expect(result.status).toBe('updated')
-		expect(result.sharedSkillId).toBe(sharedSkillId)
-		expect(createSpy).not.toHaveBeenCalled()
-		expect(service.update).toHaveBeenCalledWith(
-			'skill-existing-1',
-			expect.objectContaining({
-				workspaceId: 'workspace-1',
-				packagePath: 'claude-api',
-				metadata: expect.objectContaining({
-					version: '2.0.0',
-					provenance: expect.objectContaining({
-						templateBundleHash: expect.any(String)
-					})
-				})
-			})
-		)
-		expect(skillIndexService.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				id: 'index-existing-1',
-				repositoryId: 'repo-public',
-				skillId: sharedSkillId,
-				description: 'Updated bundle skill.',
-				version: '2.0.0'
-			})
-		)
-		await expect(readFile(join(sharedRoot, sharedSkillId, 'guide.md'), 'utf8')).resolves.toBe('updated guide\n')
-	})
-
-	it('lists workspace skill files from the installed package root', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-files-'))
-		const skillRoot = join(tempRoot, 'weather')
-		await mkdir(join(skillRoot, 'docs'), { recursive: true })
-		await writeFile(join(skillRoot, 'SKILL.md'), '# Weather\n', 'utf8')
-		await writeFile(join(skillRoot, 'docs', 'readme.md'), 'hello', 'utf8')
-
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-		;(service as any).findOne = jest.fn().mockResolvedValue({
-			id: 'skill-1',
-			tenantId: 'tenant-1',
-			workspaceId: 'workspace-1',
-			packagePath: 'weather'
-		})
-
-		const result = await service.getSkillPackageFiles('workspace-1', 'skill-1')
-
-		expect(result).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({
-					filePath: 'SKILL.md',
-					fullPath: 'SKILL.md'
-				}),
-				expect.objectContaining({
-					filePath: 'docs',
-					fullPath: 'docs',
-					hasChildren: true,
-					children: null
-				})
-			])
-		)
-	})
-
-	it('reads and saves editable skill files', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-read-save-'))
-		const skillRoot = join(tempRoot, 'weather')
-		await mkdir(skillRoot, { recursive: true })
-		await writeFile(join(skillRoot, 'SKILL.md'), '# Before\n', 'utf8')
-
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-		;(service as any).findOne = jest.fn().mockResolvedValue({
-			id: 'skill-1',
-			tenantId: 'tenant-1',
-			workspaceId: 'workspace-1',
-			packagePath: 'weather'
-		})
-
-		const readResult = await service.readSkillPackageFile('workspace-1', 'skill-1', 'SKILL.md')
-		expect(readResult.contents).toBe('# Before\n')
-
-		const saveResult = await service.saveSkillPackageFile('workspace-1', 'skill-1', 'SKILL.md', '# After\n')
-		expect(saveResult.contents).toBe('# After\n')
-		await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# After\n')
-	})
-
-	it('deletes workspace skill folders recursively', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-delete-folder-'))
-		const skillRoot = join(tempRoot, 'weather')
-		await mkdir(join(skillRoot, 'docs', 'nested'), { recursive: true })
-		await writeFile(join(skillRoot, 'SKILL.md'), '# Weather\n', 'utf8')
-		await writeFile(join(skillRoot, 'docs', 'nested', 'readme.md'), 'hello', 'utf8')
-
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-		;(service as any).findOne = jest.fn().mockResolvedValue({
-			id: 'skill-1',
-			tenantId: 'tenant-1',
-			workspaceId: 'workspace-1',
-			packagePath: 'weather'
-		})
-
-		await service.deleteSkillPackageFile('workspace-1', 'skill-1', 'docs')
-
-		await expect(readFile(join(skillRoot, 'docs', 'nested', 'readme.md'), 'utf8')).rejects.toMatchObject({
-			code: 'ENOENT'
-		})
-		await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# Weather\n')
-	})
-
-	it('allows editing .env files from the supported text whitelist', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-env-'))
-		const skillRoot = join(tempRoot, 'weather')
-		await mkdir(skillRoot, { recursive: true })
-		await writeFile(join(skillRoot, '.env'), 'TOKEN=before\n', 'utf8')
-
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-		;(service as any).findOne = jest.fn().mockResolvedValue({
-			id: 'skill-1',
-			tenantId: 'tenant-1',
-			workspaceId: 'workspace-1',
-			packagePath: 'weather'
-		})
-
-		const saveResult = await service.saveSkillPackageFile('workspace-1', 'skill-1', '.env', 'TOKEN=after\n')
-		expect(saveResult.contents).toBe('TOKEN=after\n')
-	})
-
-	it('rejects skill file path traversal attempts', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-path-'))
-		const skillRoot = join(tempRoot, 'weather')
-		await mkdir(skillRoot, { recursive: true })
-
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-		;(service as any).findOne = jest.fn().mockResolvedValue({
-			id: 'skill-1',
-			tenantId: 'tenant-1',
-			workspaceId: 'workspace-1',
-			packagePath: 'weather'
-		})
-
-		await expect(service.readSkillPackageFile('workspace-1', 'skill-1', '../secret.txt')).rejects.toThrow(
-			'Invalid skill file path'
-		)
-	})
-
-	it('rejects saving non-editable skill files', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-binary-'))
-		const skillRoot = join(tempRoot, 'weather')
-		await mkdir(skillRoot, { recursive: true })
-		await writeFile(join(skillRoot, 'icon.png'), 'binary', 'utf8')
-
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
-		;(service as any).findOne = jest.fn().mockResolvedValue({
-			id: 'skill-1',
-			tenantId: 'tenant-1',
-			workspaceId: 'workspace-1',
-			packagePath: 'weather'
-		})
-
-		await expect(service.saveSkillPackageFile('workspace-1', 'skill-1', 'icon.png', 'test')).rejects.toThrow(
-			'This file type cannot be edited'
-		)
-	})
-
-	it('shares a workspace uploaded skill into the organization market and reuses the same shared skill id on republish', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-share-'))
-		const workspaceRoot = join(tempRoot, 'workspace')
-		const sourceRoot = join(workspaceRoot, 'weather')
-		const sharedRoot = join(tempRoot, 'shared')
-		await mkdir(sourceRoot, { recursive: true })
-		await writeFile(join(sourceRoot, 'SKILL.md'), '# Weather\n', 'utf8')
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
-		;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
-			(_tenantId: string, _organizationId: string, sharedSkillId: string) => join(sharedRoot, sharedSkillId)
-		)
-
-		const skillPackage = {
-			id: 'skill-local-1',
-			tenantId: 'tenant-1',
-			organizationId: 'org-1',
-			workspaceId: 'workspace-1',
-			name: 'weather',
-			packagePath: 'weather',
-			metadata: {
-				name: 'weather',
-				visibility: 'private'
-			}
-		}
-
-		;(service as any).findOne = jest
-			.fn()
-			.mockResolvedValueOnce(skillPackage)
-			.mockResolvedValueOnce({
-				...skillPackage,
-				publishAt: new Date('2026-04-09T12:00:00.000Z'),
-				sharedSkillId: 'shared-skill-123'
-			})
-			.mockResolvedValueOnce({
-				...skillPackage,
-				sharedSkillId: 'shared-skill-123',
-				publishAt: new Date('2026-04-09T12:30:00.000Z')
-			})
-
-		await service.shareSkillPackage('workspace-1', 'skill-local-1', {
-			displayName: 'Weather Helper',
-			description: 'Shareable weather helper',
-			tags: ['weather', 'ops'],
-			version: '1.0.0',
-			license: 'MIT'
-		})
-
-		expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalled()
-		expect(skillIndexService.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				repositoryId: 'repo-public',
-				name: 'Weather Helper',
-				description: 'Shareable weather helper',
-				tags: ['weather', 'ops'],
-				version: '1.0.0'
-			})
-		)
-		expect(service.update).toHaveBeenCalledWith(
-			'skill-local-1',
-			expect.objectContaining({
-				sharedSkillId: expect.stringMatching(/^shared-skill-/),
-				sharedPackagePath: expect.stringMatching(/^shared-skill-/),
-				publishAt: expect.any(Date)
-			})
-		)
-
-		const firstSharedSkillId = (service.update as jest.Mock).mock.calls[0][1].sharedSkillId
-		await expect(readFile(join(sharedRoot, firstSharedSkillId, 'SKILL.md'), 'utf8')).resolves.toBe('# Weather\n')
-
-		;(service as any).findOne = jest
-			.fn()
-			.mockResolvedValueOnce({
-				...skillPackage,
-				sharedSkillId: firstSharedSkillId,
-				sharedPackagePath: firstSharedSkillId,
-				publishAt: new Date('2026-04-09T12:00:00.000Z')
-			})
-			.mockResolvedValueOnce({
-				...skillPackage,
-				sharedSkillId: firstSharedSkillId,
-				sharedPackagePath: firstSharedSkillId,
-				publishAt: new Date('2026-04-09T13:00:00.000Z')
-			})
-		skillIndexService.findAll.mockResolvedValueOnce({
-			items: [{ id: 'shared-index-1' }]
-		})
-		await writeFile(join(sourceRoot, 'SKILL.md'), '# Weather v2\n', 'utf8')
-
-		await service.shareSkillPackage('workspace-1', 'skill-local-1', {
-			displayName: 'Weather Helper',
-			description: 'Shareable weather helper v2',
-			tags: ['weather', 'ops'],
-			version: '1.1.0',
-			license: 'MIT'
-		})
-
-		expect(skillIndexService.create).toHaveBeenLastCalledWith(
-			expect.objectContaining({
-				id: 'shared-index-1',
-				skillId: firstSharedSkillId,
-				version: '1.1.0'
-			})
-		)
-		expect((service.update as jest.Mock).mock.calls[1][1].sharedSkillId).toBe(firstSharedSkillId)
-		await expect(readFile(join(sharedRoot, firstSharedSkillId, 'SKILL.md'), 'utf8')).resolves.toBe('# Weather v2\n')
-	})
-
-	it('rejects sharing a repository installed skill', async () => {
-		;(service as any).findOne = jest.fn().mockResolvedValue({
-			id: 'skill-indexed',
-			tenantId: 'tenant-1',
-			organizationId: 'org-1',
-			workspaceId: 'workspace-1',
-			skillIndexId: 'index-1',
-			metadata: {
-				name: 'indexed-skill',
-				visibility: 'private'
-			}
-		})
-
-		await expect(
-			service.shareSkillPackage('workspace-1', 'skill-indexed', {
-				displayName: 'Indexed Skill',
-				description: 'Cannot share again',
-				tags: []
-			})
-		).rejects.toThrow('Only workspace uploaded skills can be shared')
-	})
-
-	it('removes shared snapshot and public index when uninstalling a shared source skill', async () => {
-		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-uninstall-share-'))
-		const workspaceRoot = join(tempRoot, 'workspace')
-		const installRoot = join(workspaceRoot, 'weather')
-		const sharedRoot = join(tempRoot, 'shared')
-		const sharedSkillId = 'shared-skill-keep'
-		await mkdir(installRoot, { recursive: true })
-		await mkdir(join(sharedRoot, sharedSkillId), { recursive: true })
-		await writeFile(join(sharedRoot, sharedSkillId, 'SKILL.md'), '# Shared\n', 'utf8')
-		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
-		;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
-			(_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
-		)
-
-		;(service as any).findOne = jest.fn().mockResolvedValue({
-			id: 'skill-local-1',
-			tenantId: 'tenant-1',
-			organizationId: 'org-1',
-			workspaceId: 'workspace-1',
-			packagePath: 'weather',
-			sharedSkillId,
-			sharedPackagePath: sharedSkillId,
-			metadata: {
-				name: 'weather',
-				visibility: 'private'
-			}
-		})
-		skillRepositoryService.findAll.mockResolvedValueOnce({
-			items: [{ id: 'repo-public', provider: 'workspace-public' }]
-		})
-		skillIndexService.findAll.mockResolvedValueOnce({
-			items: [{ id: 'shared-index-1' }]
-		})
-
-		await service.uninstallSkillPackageInWorkspace('workspace-1', 'skill-local-1')
-
-		expect(skillIndexService.softDelete).toHaveBeenCalledWith('shared-index-1')
-		await expect(readFile(join(sharedRoot, sharedSkillId, 'SKILL.md'), 'utf8')).rejects.toThrow()
-	})
+    let service: SkillPackageService
+    let repository: {
+        findOne: jest.Mock
+        softDelete: jest.Mock
+    }
+    let skillIndexService: {
+        findOneInOrganizationOrTenant: jest.Mock
+        findAll: jest.Mock
+        create: jest.Mock
+        softDelete: jest.Mock
+    }
+    let skillRepositoryService: {
+        ensureWorkspacePublicRepository: jest.Mock
+        findAll: jest.Mock
+        findOneInOrganizationOrTenant: jest.Mock
+    }
+    let xpertTemplateService: {
+        getTemplateSkillBundles: jest.Mock
+    }
+    let workspaceRepository: {
+        create: jest.Mock
+        createQueryBuilder: jest.Mock
+        findOne: jest.Mock
+        save: jest.Mock
+        update: jest.Mock
+    }
+    let strategy: {
+        installSkillPackage: jest.Mock
+        uninstallSkillPackage: jest.Mock
+    }
+    let createSpy: jest.SpiedFunction<SkillPackageService['create']>
+    let tempRoot: string | null
+
+    beforeEach(() => {
+        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
+        ;(RequestContext.getLanguageCode as jest.Mock).mockReturnValue('zh-Hans')
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        ;(RequestContext.currentUser as jest.Mock).mockReturnValue({
+            id: 'user-1',
+            firstName: 'Workspace',
+            lastName: 'Owner'
+        })
+
+        skillIndexService = {
+            findOneInOrganizationOrTenant: jest.fn(),
+            findAll: jest.fn().mockResolvedValue({ items: [] }),
+            create: jest.fn().mockImplementation(async (item: any) => item),
+            softDelete: jest.fn().mockResolvedValue({ affected: 1 })
+        }
+        skillRepositoryService = {
+            ensureWorkspacePublicRepository: jest.fn().mockResolvedValue({
+                id: 'repo-public',
+                provider: 'workspace-public'
+            }),
+            findAll: jest.fn().mockResolvedValue({ items: [] }),
+            findOneInOrganizationOrTenant: jest.fn()
+        }
+        xpertTemplateService = {
+            getTemplateSkillBundles: jest.fn().mockResolvedValue([])
+        }
+        strategy = {
+            installSkillPackage: jest.fn().mockResolvedValue('clawhub/weather'),
+            uninstallSkillPackage: jest.fn().mockResolvedValue(undefined)
+        }
+
+        repository = {
+            findOne: jest.fn().mockResolvedValue(null),
+            softDelete: jest.fn().mockResolvedValue({ affected: 1 })
+        }
+
+        workspaceRepository = {
+            create: jest.fn((entity) => entity),
+            createQueryBuilder: jest.fn(() => ({
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                getOne: jest.fn().mockResolvedValue(null)
+            })),
+            findOne: jest.fn().mockResolvedValue(null),
+            save: jest.fn(async (entity) => ({
+                id: 'workspace-org-default',
+                ...entity
+            })),
+            update: jest.fn().mockResolvedValue({ affected: 1 })
+        }
+
+        service = new SkillPackageService(
+            repository as any,
+            {} as any,
+            skillRepositoryService as any,
+            skillIndexService as any,
+            workspaceRepository as any,
+            xpertTemplateService as any
+        )
+        ;(service as any).skillSourceProviderRegistry = {
+            get: jest.fn().mockReturnValue(strategy)
+        }
+        tempRoot = null
+
+        jest.spyOn(service as any, 'assertWorkspaceAccess').mockResolvedValue(undefined)
+        createSpy = jest.spyOn(service, 'create').mockImplementation(async (item: any) => item)
+        jest.spyOn(service, 'update').mockResolvedValue({ affected: 1 } as any)
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue('/tmp/workspace-skills')
+    })
+
+    afterEach(async () => {
+        if (tempRoot) {
+            await rm(tempRoot, { recursive: true, force: true })
+            tempRoot = null
+        }
+        jest.clearAllMocks()
+    })
+
+    it('persists the selected index version into skill package metadata during install', async () => {
+        skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'index-1',
+            name: 'Weather',
+            skillPath: 'weather',
+            description: 'Forecasts',
+            tags: ['marketplace', 'clawhub'],
+            version: '1.2.3',
+            repository: {
+                provider: 'clawhub',
+                tenantId: 'tenant-1'
+            }
+        })
+
+        const result = await service.installSkillPackage('workspace-1', 'index-1')
+
+        expect(getWorkspaceSkillsRoot).toHaveBeenCalledWith('tenant-1', 'workspace-1')
+        expect(strategy.installSkillPackage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'index-1',
+                version: '1.2.3'
+            }),
+            '/tmp/workspace-skills'
+        )
+        expect(createSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                name: 'Weather',
+                skillIndexId: 'index-1',
+                packagePath: 'clawhub/weather',
+                metadata: expect.objectContaining({
+                    version: '1.2.3',
+                    tags: ['marketplace', 'clawhub']
+                })
+            })
+        )
+        expect(result).toMatchObject({
+            metadata: expect.objectContaining({
+                version: '1.2.3'
+            })
+        })
+    })
+
+    it('keeps installs working when the repository index has no version', async () => {
+        skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'index-2',
+            name: 'Calendar',
+            skillPath: 'calendar',
+            description: 'Calendar helper',
+            tags: ['marketplace'],
+            repository: {
+                provider: 'clawhub',
+                tenantId: 'tenant-1'
+            }
+        })
+
+        const result = await service.installSkillPackage('workspace-1', 'index-2')
+        const createArg = createSpy.mock.calls[0][0] as any
+
+        expect(strategy.installSkillPackage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'index-2'
+            }),
+            '/tmp/workspace-skills'
+        )
+        expect(createArg.metadata.version).toBeUndefined()
+        expect(result.metadata.version).toBeUndefined()
+    })
+
+    it('reuses an existing installed marketplace skill when the same version is already present', async () => {
+        skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'index-1',
+            repositoryId: 'repo-1',
+            skillId: 'weather',
+            name: 'Weather',
+            skillPath: 'weather',
+            version: '1.2.3',
+            repository: {
+                id: 'repo-1',
+                provider: 'clawhub',
+                tenantId: 'tenant-1'
+            }
+        })
+        repository.findOne.mockResolvedValue({
+            id: 'skill-existing-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            skillIndexId: 'index-1',
+            metadata: {
+                name: 'weather',
+                displayName: {
+                    en_US: 'Weather',
+                    zh_Hans: 'Weather'
+                },
+                version: '1.2.3',
+                visibility: 'private'
+            },
+            skillIndex: {
+                id: 'index-1',
+                repositoryId: 'repo-1',
+                skillId: 'weather',
+                repository: {
+                    id: 'repo-1',
+                    provider: 'clawhub',
+                    tenantId: 'tenant-1'
+                }
+            }
+        })
+
+        const result = await service.installSkillPackage('workspace-1', 'index-1')
+
+        expect(repository.findOne).toHaveBeenCalledWith({
+            where: {
+                workspaceId: 'workspace-1',
+                skillIndexId: 'index-1'
+            },
+            relations: ['skillIndex', 'skillIndex.repository']
+        })
+        expect(strategy.installSkillPackage).not.toHaveBeenCalled()
+        expect(createSpy).not.toHaveBeenCalled()
+        expect(service.update).not.toHaveBeenCalled()
+        expect(result).toMatchObject({
+            id: 'skill-existing-1',
+            skillIndexId: 'index-1',
+            metadata: {
+                version: '1.2.3'
+            }
+        })
+    })
+
+    it('updates an installed marketplace skill in place when a newer version is installed for the same skill id', async () => {
+        skillIndexService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'index-2',
+            repositoryId: 'repo-1',
+            skillId: 'weather',
+            name: 'Weather',
+            skillPath: 'weather',
+            version: '2.0.0',
+            repository: {
+                id: 'repo-1',
+                provider: 'clawhub',
+                tenantId: 'tenant-1'
+            }
+        })
+        repository.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
+            id: 'skill-existing-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            skillIndexId: 'index-1',
+            packagePath: 'clawhub/weather',
+            metadata: {
+                name: 'weather',
+                version: '1.2.3',
+                visibility: 'private'
+            },
+            skillIndex: {
+                id: 'index-1',
+                repositoryId: 'repo-1',
+                skillId: 'weather',
+                repository: {
+                    id: 'repo-1',
+                    provider: 'clawhub',
+                    tenantId: 'tenant-1'
+                }
+            }
+        })
+
+        const result = await service.installSkillPackage('workspace-1', 'index-2')
+
+        expect(repository.findOne).toHaveBeenNthCalledWith(1, {
+            where: {
+                workspaceId: 'workspace-1',
+                skillIndexId: 'index-2'
+            },
+            relations: ['skillIndex', 'skillIndex.repository']
+        })
+        expect(repository.findOne).toHaveBeenNthCalledWith(2, {
+            where: {
+                workspaceId: 'workspace-1',
+                skillIndex: {
+                    repositoryId: 'repo-1',
+                    skillId: 'weather'
+                }
+            },
+            relations: ['skillIndex', 'skillIndex.repository'],
+            order: {
+                updatedAt: 'DESC'
+            }
+        })
+        expect(strategy.uninstallSkillPackage).toHaveBeenCalledWith('/tmp/workspace-skills/clawhub/weather')
+        expect(strategy.installSkillPackage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'index-2',
+                skillId: 'weather',
+                version: '2.0.0'
+            }),
+            '/tmp/workspace-skills'
+        )
+        expect(service.update).toHaveBeenCalledWith(
+            'skill-existing-1',
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                skillIndexId: 'index-2',
+                packagePath: 'clawhub/weather',
+                metadata: expect.objectContaining({
+                    version: '2.0.0'
+                })
+            })
+        )
+        expect(createSpy).not.toHaveBeenCalled()
+        expect(result).toMatchObject({
+            id: 'skill-existing-1',
+            skillIndexId: 'index-2',
+            packagePath: 'clawhub/weather',
+            metadata: expect.objectContaining({
+                version: '2.0.0'
+            }),
+            skillIndex: expect.objectContaining({
+                id: 'index-2',
+                skillId: 'weather',
+                version: '2.0.0'
+            })
+        })
+    })
+
+    it('reuses an existing installed skill package for the same workspace and index', async () => {
+        repository.findOne.mockResolvedValue({
+            id: 'skill-existing-1',
+            workspaceId: 'workspace-1',
+            skillIndexId: 'index-1'
+        })
+        const installSpy = jest.spyOn(service, 'installSkillPackage')
+
+        const result = await service.ensureInstalledSkillPackage('workspace-1', 'index-1')
+
+        expect(repository.findOne).toHaveBeenCalledWith({
+            where: {
+                workspaceId: 'workspace-1',
+                skillIndexId: 'index-1'
+            },
+            relations: ['skillIndex', 'skillIndex.repository']
+        })
+        expect(installSpy).not.toHaveBeenCalled()
+        expect(result).toEqual({
+            id: 'skill-existing-1',
+            workspaceId: 'workspace-1',
+            skillIndexId: 'index-1'
+        })
+    })
+
+    it('installs the skill package when no workspace copy exists yet', async () => {
+        repository.findOne.mockResolvedValue(null)
+        const installSpy = jest.spyOn(service, 'installSkillPackage').mockResolvedValue({
+            id: 'skill-installed-1'
+        } as any)
+
+        const result = await service.ensureInstalledSkillPackage('workspace-1', 'index-1')
+
+        expect(installSpy).toHaveBeenCalledWith('workspace-1', 'index-1')
+        expect(result).toEqual({
+            id: 'skill-installed-1'
+        })
+    })
+
+    it('installs every package from a repository into the workspace', async () => {
+        skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'repo-public',
+            provider: 'workspace-public'
+        })
+        skillIndexService.findAll.mockResolvedValue({
+            items: [{ id: 'index-1' }, { id: 'index-2' }]
+        })
+        const ensureInstalledSkillPackage = jest
+            .spyOn(service, 'ensureInstalledSkillPackage')
+            .mockResolvedValueOnce({ id: 'package-1' } as any)
+            .mockResolvedValueOnce({ id: 'package-2' } as any)
+
+        const result = await service.installRepositorySkillPackages('workspace-1', 'repo-public')
+
+        expect(skillRepositoryService.findOneInOrganizationOrTenant).toHaveBeenCalledWith('repo-public')
+        expect(skillIndexService.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {
+                    repositoryId: 'repo-public'
+                }
+            })
+        )
+        expect(ensureInstalledSkillPackage).toHaveBeenNthCalledWith(1, 'workspace-1', 'index-1')
+        expect(ensureInstalledSkillPackage).toHaveBeenNthCalledWith(2, 'workspace-1', 'index-2')
+        expect(result).toEqual([{ id: 'package-1' }, { id: 'package-2' }])
+    })
+
+    it('uploads zip packages only to the workspace public repository and publishes them from the org default workspace', async () => {
+        skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'repo-public',
+            provider: 'workspace-public'
+        })
+        ;(extractSkillsFromZip as jest.Mock).mockResolvedValue({
+            tempDir: '/tmp/skill-archive',
+            skills: [
+                {
+                    name: 'Weather Skill',
+                    description: 'Shareable weather skill',
+                    absolutePath: '/tmp/uploaded/weather',
+                    skillPath: 'weather'
+                }
+            ]
+        })
+        const publishUploadedWorkspacePublicSkill = jest
+            .spyOn(service as any, 'publishUploadedWorkspacePublicSkill')
+            .mockResolvedValue({ id: 'index-public-1' })
+
+        const result = await service.uploadWorkspacePublicRepositoryPackages('repo-public', {
+            buffer: Buffer.from('zip-file')
+        } as Express.Multer.File)
+
+        expect(skillRepositoryService.findOneInOrganizationOrTenant).toHaveBeenCalledWith('repo-public')
+        expect(workspaceRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: '组织工作空间',
+                organizationId: 'org-1',
+                ownerId: 'user-1',
+                tenantId: 'tenant-1'
+            })
+        )
+        expect(publishUploadedWorkspacePublicSkill).toHaveBeenCalledWith(
+            expect.objectContaining({
+                installDir: '/tmp/workspace-skills',
+                organizationId: 'org-1',
+                repositoryId: 'repo-public',
+                tenantId: 'tenant-1',
+                workspaceId: 'workspace-org-default'
+            })
+        )
+        expect(cleanupExtractedSkillArchive).toHaveBeenCalledWith('/tmp/skill-archive')
+        expect(result).toEqual([{ id: 'index-public-1' }])
+    })
+
+    it('uploads zip packages to the tenant-scoped workspace public repository without organization context', async () => {
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+        skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'repo-public-tenant',
+            provider: 'workspace-public',
+            organizationId: null
+        })
+        ;(extractSkillsFromZip as jest.Mock).mockResolvedValue({
+            tempDir: '/tmp/skill-archive-tenant',
+            skills: [
+                {
+                    name: 'Tenant Skill',
+                    description: 'Tenant scope skill',
+                    absolutePath: '/tmp/uploaded/tenant-skill',
+                    skillPath: 'tenant-skill'
+                }
+            ]
+        })
+        const publishUploadedWorkspacePublicSkill = jest
+            .spyOn(service as any, 'publishUploadedWorkspacePublicSkill')
+            .mockResolvedValue({ id: 'index-public-tenant-1' })
+
+        const result = await service.uploadWorkspacePublicRepositoryPackages('repo-public-tenant', {
+            buffer: Buffer.from('zip-file')
+        } as Express.Multer.File)
+
+        expect(workspaceRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'Tenant Skills Workspace',
+                organizationId: null,
+                ownerId: 'user-1',
+                tenantId: 'tenant-1',
+                settings: {
+                    system: {
+                        kind: 'tenant-default'
+                    }
+                }
+            })
+        )
+        expect(publishUploadedWorkspacePublicSkill).toHaveBeenCalledWith(
+            expect.objectContaining({
+                installDir: '/tmp/workspace-skills',
+                organizationId: null,
+                repositoryId: 'repo-public',
+                tenantId: 'tenant-1',
+                workspaceId: 'workspace-org-default'
+            })
+        )
+        expect(cleanupExtractedSkillArchive).toHaveBeenCalledWith('/tmp/skill-archive-tenant')
+        expect(result).toEqual([{ id: 'index-public-tenant-1' }])
+    })
+
+    it('rejects direct zip uploads for non workspace-public repositories', async () => {
+        skillRepositoryService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'repo-github',
+            provider: 'github'
+        })
+
+        await expect(
+            service.uploadWorkspacePublicRepositoryPackages('repo-github', {
+                buffer: Buffer.from('zip-file')
+            } as Express.Multer.File)
+        ).rejects.toThrow('Only workspace public repositories support direct zip uploads')
+        expect(extractSkillsFromZip).not.toHaveBeenCalled()
+        expect(installUploadedSkills).not.toHaveBeenCalled()
+    })
+
+    it('initializes the tenant-scoped workspace public repository and imports template bundles into the default source workspace', async () => {
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+        xpertTemplateService.getTemplateSkillBundles.mockResolvedValue([
+            {
+                directoryPath: '/tmp/template-skill-bundles/claude-api-bundle',
+                sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+            },
+            {
+                directoryPath: '/tmp/template-skill-bundles/github-bundle',
+                sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fgithub'
+            }
+        ])
+        const syncTemplateSkillBundle = jest.spyOn(service, 'syncTemplateSkillBundle').mockResolvedValue({
+            status: 'created',
+            hash: 'bundle-hash',
+            sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api',
+            index: { id: 'index-public-1' }
+        })
+
+        const result = await service.initializeWorkspacePublicRepository()
+
+        expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalledTimes(1)
+        expect(workspaceRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'Tenant Skills Workspace',
+                organizationId: null,
+                ownerId: 'user-1',
+                tenantId: 'tenant-1',
+                settings: {
+                    system: {
+                        kind: 'tenant-default'
+                    }
+                }
+            })
+        )
+        expect(syncTemplateSkillBundle).toHaveBeenNthCalledWith(
+            1,
+            'workspace-org-default',
+            {
+                bundleRootPath: '/tmp/template-skill-bundles/claude-api-bundle',
+                sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+            },
+            {
+                skipAccessCheck: true
+            }
+        )
+        expect(syncTemplateSkillBundle).toHaveBeenNthCalledWith(
+            2,
+            'workspace-org-default',
+            {
+                bundleRootPath: '/tmp/template-skill-bundles/github-bundle',
+                sharedSkillId: 'template-bundle__github__anthropics%2Fskills__skills%2Fgithub'
+            },
+            {
+                skipAccessCheck: true
+            }
+        )
+        expect(result).toEqual({
+            id: 'repo-public',
+            provider: 'workspace-public'
+        })
+    })
+
+    it('creates a workspace skill package with a single SKILL.md file and persisted metadata', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-'))
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        createSpy.mockImplementationOnce(async (item: any) => ({
+            id: 'skill-created-1',
+            ...item
+        }))
+
+        const result = await service.createWorkspaceSkillPackage('workspace-1', {
+            userIntent: 'Create a workspace helper',
+            skillName: 'Workspace Skill',
+            skillMarkdown:
+                '---\nname: Workspace Skill\ndescription: Helps this workspace.\nversion: 1.0.0\ntags:\n  - workspace\n---\n# Workspace Skill\n'
+        })
+
+        expect(createSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                name: 'Workspace Skill',
+                visibility: 'private',
+                packagePath: 'workspace-skill',
+                metadata: expect.objectContaining({
+                    name: 'Workspace Skill',
+                    version: '1.0.0',
+                    tags: ['workspace'],
+                    source: 'file',
+                    skillPath: 'workspace-skill',
+                    skillMdPath: join(tempRoot, 'workspace-skill', 'SKILL.md')
+                })
+            })
+        )
+        await expect(readFile(join(tempRoot, 'workspace-skill', 'SKILL.md'), 'utf8')).resolves.toContain(
+            '# Workspace Skill\n'
+        )
+        expect(result).toEqual(
+            expect.objectContaining({
+                packagePath: 'workspace-skill',
+                skillMdPath: join(tempRoot, 'workspace-skill', 'SKILL.md'),
+                skillPackage: expect.objectContaining({
+                    id: 'skill-created-1',
+                    workspaceId: 'workspace-1'
+                })
+            })
+        )
+    })
+
+    it('creates a workspace skill package with bundled agents, scripts, references, and assets', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-complex-'))
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        createSpy.mockImplementationOnce(async (item: any) => ({
+            id: 'skill-created-1',
+            ...item
+        }))
+
+        const result = await service.createWorkspaceSkillPackage('workspace-1', {
+            userIntent: 'Create image editor skill',
+            skillName: 'Image Editor',
+            skillMarkdown: '---\nname: image-editor\ndescription: Edit images.\n---\n# Image Editor\n',
+            files: [
+                {
+                    path: 'agents/openai.yaml',
+                    content: 'display_name: Image Editor\nshort_description: Edit images\n'
+                },
+                {
+                    path: 'scripts/rotate.py',
+                    content: 'print("rotate")\n',
+                    executable: true
+                },
+                {
+                    path: 'references/workflows.md',
+                    content: '# Workflows\n'
+                },
+                {
+                    path: 'assets/icon.png',
+                    contentBase64: 'aWNvbg=='
+                }
+            ]
+        })
+
+        expect(createSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                skillIndexId: null,
+                visibility: 'private',
+                packagePath: 'image-editor'
+            })
+        )
+        await expect(readFile(join(tempRoot, 'image-editor', 'SKILL.md'), 'utf8')).resolves.toContain(
+            '# Image Editor\n'
+        )
+        await expect(readFile(join(tempRoot, 'image-editor', 'agents/openai.yaml'), 'utf8')).resolves.toContain(
+            'display_name: Image Editor'
+        )
+        await expect(readFile(join(tempRoot, 'image-editor', 'scripts/rotate.py'), 'utf8')).resolves.toBe(
+            'print("rotate")\n'
+        )
+        await expect(readFile(join(tempRoot, 'image-editor', 'references/workflows.md'), 'utf8')).resolves.toBe(
+            '# Workflows\n'
+        )
+        await expect(readFile(join(tempRoot, 'image-editor', 'assets/icon.png'))).resolves.toEqual(Buffer.from('icon'))
+        expect(result.files).toEqual([
+            expect.objectContaining({ path: 'SKILL.md' }),
+            expect.objectContaining({ path: 'agents/openai.yaml' }),
+            expect.objectContaining({ path: 'scripts/rotate.py' }),
+            expect.objectContaining({ path: 'references/workflows.md' }),
+            expect.objectContaining({ path: 'assets/icon.png' })
+        ])
+    })
+
+    it('adds a numeric suffix when creating a workspace skill package with an existing slug', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-dup-'))
+        await mkdir(join(tempRoot, 'workspace-skill'), { recursive: true })
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        createSpy.mockImplementationOnce(async (item: any) => item)
+
+        const result = await service.createWorkspaceSkillPackage('workspace-1', {
+            userIntent: 'Create a workspace helper',
+            skillName: 'Workspace Skill',
+            skillMarkdown: '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n'
+        })
+
+        expect(result.packagePath).toBe('workspace-skill-2')
+        await expect(readFile(join(tempRoot, 'workspace-skill-2', 'SKILL.md'), 'utf8')).resolves.toContain(
+            '# Workspace Skill\n'
+        )
+    })
+
+    it('rejects workspace skill creation when SKILL.md frontmatter is missing required fields', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-invalid-'))
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+        await expect(
+            service.createWorkspaceSkillPackage('workspace-1', {
+                userIntent: 'Create a workspace helper',
+                skillName: 'Workspace Skill',
+                skillMarkdown: '---\nname: Workspace Skill\n---\n# Workspace Skill\n'
+            })
+        ).rejects.toThrow('SKILL.md frontmatter must include name and description')
+        expect(createSpy).not.toHaveBeenCalled()
+    })
+
+    it('rejects strict workspace skill creation when SKILL.md frontmatter has extra fields', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-strict-invalid-'))
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+        await expect(
+            service.createWorkspaceSkillPackage('workspace-1', {
+                userIntent: 'Create a workspace helper',
+                skillName: 'Workspace Skill',
+                skillMarkdown:
+                    '---\nname: Workspace Skill\ndescription: Helps this workspace.\nversion: 1.0.0\n---\n# Workspace Skill\n',
+                strictFrontmatter: true
+            })
+        ).rejects.toThrow('SKILL.md frontmatter may only include name, description')
+        expect(createSpy).not.toHaveBeenCalled()
+    })
+
+    it('rejects workspace skill creation when bundled files try to replace SKILL.md', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-file-invalid-'))
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+        await expect(
+            service.createWorkspaceSkillPackage('workspace-1', {
+                userIntent: 'Create a workspace helper',
+                skillName: 'Workspace Skill',
+                skillMarkdown:
+                    '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+                files: [{ path: 'SKILL.md', content: '# Replacement\n' }]
+            })
+        ).rejects.toThrow('SKILL.md must be provided with skillMarkdown')
+        expect(createSpy).not.toHaveBeenCalled()
+        await expect(readFile(join(tempRoot, 'workspace-skill', 'SKILL.md'), 'utf8')).rejects.toThrow()
+    })
+
+    it('rejects workspace skill creation when bundled files use unsafe or duplicate paths', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-path-invalid-'))
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+        await expect(
+            service.createWorkspaceSkillPackage('workspace-1', {
+                userIntent: 'Create a workspace helper',
+                skillName: 'Workspace Skill',
+                skillMarkdown:
+                    '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+                files: [{ path: '../secret.txt', content: 'secret\n' }]
+            })
+        ).rejects.toThrow('Invalid skill file path')
+
+        await expect(
+            service.createWorkspaceSkillPackage('workspace-1', {
+                userIntent: 'Create a workspace helper',
+                skillName: 'Workspace Skill',
+                skillMarkdown:
+                    '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+                files: [
+                    { path: 'references/guide.md', content: '# Guide\n' },
+                    { path: 'references/guide.md', content: '# Duplicate\n' }
+                ]
+            })
+        ).rejects.toThrow('Duplicate skill file path')
+        expect(createSpy).not.toHaveBeenCalled()
+    })
+
+    it('rejects workspace skill creation when bundled files include invalid base64', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-base64-invalid-'))
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+
+        await expect(
+            service.createWorkspaceSkillPackage('workspace-1', {
+                userIntent: 'Create a workspace helper',
+                skillName: 'Workspace Skill',
+                skillMarkdown:
+                    '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+                files: [{ path: 'assets/icon.png', contentBase64: 'not-base64???' }]
+            })
+        ).rejects.toThrow('invalid base64 content')
+        expect(createSpy).not.toHaveBeenCalled()
+    })
+
+    it('cleans up the package directory when database creation fails after staged write', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-create-db-fail-'))
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        createSpy.mockRejectedValueOnce(new Error('db failed'))
+
+        await expect(
+            service.createWorkspaceSkillPackage('workspace-1', {
+                userIntent: 'Create a workspace helper',
+                skillName: 'Workspace Skill',
+                skillMarkdown:
+                    '---\nname: Workspace Skill\ndescription: Helps this workspace.\n---\n# Workspace Skill\n',
+                files: [{ path: 'references/guide.md', content: '# Guide\n' }]
+            })
+        ).rejects.toThrow('db failed')
+        await expect(readFile(join(tempRoot, 'workspace-skill', 'SKILL.md'), 'utf8')).rejects.toThrow()
+        await expect(readFile(join(tempRoot, 'workspace-skill', 'references/guide.md'), 'utf8')).rejects.toThrow()
+    })
+
+    it('publishes a template skill bundle from a directory and excludes bundle.yaml from installed files', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-'))
+        const workspaceRoot = join(tempRoot, 'workspace')
+        const sharedRoot = join(tempRoot, 'shared')
+        const bundleRoot = join(tempRoot, 'bundle')
+        const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+        await mkdir(bundleRoot, { recursive: true })
+        await writeFile(
+            join(bundleRoot, 'bundle.yaml'),
+            'provider: github\nrepositoryName: anthropics/skills\nskillId: skills/claude-api\n',
+            'utf8'
+        )
+        await writeFile(
+            join(bundleRoot, 'SKILL.md'),
+            '---\nname: Claude API\ndescription: Bundle skill.\nversion: 1.0.0\ntags:\n  - api\n---\n# Claude API\n',
+            'utf8'
+        )
+        await writeFile(join(bundleRoot, 'guide.md'), 'bundle guide\n', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
+        ;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
+            (_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
+        )
+        createSpy.mockImplementationOnce(async (item: any) => ({
+            id: 'skill-created-1',
+            ...item
+        }))
+
+        await service.ensureSharedSkillPackageFromTemplateBundle('workspace-1', {
+            bundleRootPath: bundleRoot,
+            sharedSkillId
+        })
+
+        expect(createSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                name: 'Claude API',
+                packagePath: 'claude-api',
+                metadata: expect.objectContaining({
+                    name: 'Claude API',
+                    version: '1.0.0',
+                    tags: ['api']
+                })
+            })
+        )
+        await expect(readFile(join(workspaceRoot, 'claude-api', 'SKILL.md'), 'utf8')).resolves.toContain(
+            '# Claude API\n'
+        )
+        await expect(readFile(join(workspaceRoot, 'claude-api', 'bundle.yaml'), 'utf8')).rejects.toThrow()
+        await expect(readFile(join(sharedRoot, sharedSkillId, 'guide.md'), 'utf8')).resolves.toBe('bundle guide\n')
+        await expect(readFile(join(sharedRoot, sharedSkillId, 'bundle.yaml'), 'utf8')).rejects.toThrow()
+        expect(skillIndexService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                repositoryId: 'repo-public',
+                skillId: sharedSkillId,
+                name: 'Claude API',
+                description: 'Bundle skill.'
+            })
+        )
+    })
+
+    it('skips template bundle republish when the stored bundle hash is still current', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-current-'))
+        const bundleRoot = join(tempRoot, 'bundle')
+        const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+        await mkdir(bundleRoot, { recursive: true })
+        await writeFile(
+            join(bundleRoot, 'SKILL.md'),
+            '---\nname: Claude API\ndescription: Bundle skill.\nversion: 1.0.0\ntags:\n  - api\n---\n# Claude API\n',
+            'utf8'
+        )
+
+        skillRepositoryService.findAll.mockResolvedValue({
+            items: [{ id: 'repo-public', provider: 'workspace-public' }]
+        })
+        const validationResult = await service.syncTemplateSkillBundle(
+            'workspace-1',
+            {
+                bundleRootPath: bundleRoot,
+                sharedSkillId
+            },
+            {
+                validateOnly: true
+            }
+        )
+
+        repository.findOne.mockResolvedValue({
+            id: 'skill-existing-1',
+            workspaceId: 'workspace-1',
+            sharedSkillId,
+            packagePath: 'claude-api',
+            metadata: {
+                name: 'Claude API',
+                provenance: {
+                    templateBundleHash: validationResult.hash
+                }
+            }
+        })
+        skillIndexService.findAll.mockResolvedValue({
+            items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
+        })
+
+        const result = await service.syncTemplateSkillBundle('workspace-1', {
+            bundleRootPath: bundleRoot,
+            sharedSkillId
+        })
+
+        expect(result).toEqual({
+            status: 'unchanged',
+            hash: validationResult.hash,
+            sharedSkillId,
+            index: {
+                id: 'index-existing-1',
+                repositoryId: 'repo-public',
+                skillId: sharedSkillId
+            }
+        })
+        expect(createSpy).not.toHaveBeenCalled()
+        expect(service.update).not.toHaveBeenCalled()
+        expect(skillIndexService.create).not.toHaveBeenCalled()
+    })
+
+    it('republishes a template bundle when the bundle contents change but the shared skill id stays the same', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-update-'))
+        const workspaceRoot = join(tempRoot, 'workspace')
+        const sharedRoot = join(tempRoot, 'shared')
+        const bundleRoot = join(tempRoot, 'bundle')
+        const sharedSkillId = 'template-bundle__github__anthropics%2Fskills__skills%2Fclaude-api'
+        await mkdir(bundleRoot, { recursive: true })
+        await writeFile(
+            join(bundleRoot, 'SKILL.md'),
+            '---\nname: Claude API\ndescription: Updated bundle skill.\nversion: 2.0.0\ntags:\n  - api\n  - updated\n---\n# Claude API\n',
+            'utf8'
+        )
+        await writeFile(join(bundleRoot, 'guide.md'), 'updated guide\n', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
+        ;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
+            (_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
+        )
+
+        skillIndexService.findAll.mockResolvedValue({
+            items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
+        })
+        repository.findOne.mockResolvedValue({
+            id: 'skill-existing-1',
+            workspaceId: 'workspace-1',
+            sharedSkillId,
+            packagePath: 'claude-api',
+            metadata: {
+                name: 'Claude API',
+                provenance: {
+                    templateBundleHash: 'stale-hash'
+                }
+            }
+        })
+
+        const result = await service.syncTemplateSkillBundle('workspace-1', {
+            bundleRootPath: bundleRoot,
+            sharedSkillId
+        })
+
+        expect(result.status).toBe('updated')
+        expect(result.sharedSkillId).toBe(sharedSkillId)
+        expect(createSpy).not.toHaveBeenCalled()
+        expect(service.update).toHaveBeenCalledWith(
+            'skill-existing-1',
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                packagePath: 'claude-api',
+                metadata: expect.objectContaining({
+                    version: '2.0.0',
+                    provenance: expect.objectContaining({
+                        templateBundleHash: expect.any(String)
+                    })
+                })
+            })
+        )
+        expect(skillIndexService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'index-existing-1',
+                repositoryId: 'repo-public',
+                skillId: sharedSkillId,
+                description: 'Updated bundle skill.',
+                version: '2.0.0'
+            })
+        )
+        await expect(readFile(join(sharedRoot, sharedSkillId, 'guide.md'), 'utf8')).resolves.toBe('updated guide\n')
+    })
+
+    it('lists workspace skill files from the installed package root', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-files-'))
+        const skillRoot = join(tempRoot, 'weather')
+        await mkdir(join(skillRoot, 'docs'), { recursive: true })
+        await writeFile(join(skillRoot, 'SKILL.md'), '# Weather\n', 'utf8')
+        await writeFile(join(skillRoot, 'docs', 'readme.md'), 'hello', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather'
+        })
+
+        const result = await service.getSkillPackageFiles('workspace-1', 'skill-1')
+
+        expect(result).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    filePath: 'SKILL.md',
+                    fullPath: 'SKILL.md'
+                }),
+                expect.objectContaining({
+                    filePath: 'docs',
+                    fullPath: 'docs',
+                    hasChildren: true,
+                    children: null
+                })
+            ])
+        )
+    })
+
+    it('reads and saves editable skill files', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-read-save-'))
+        const skillRoot = join(tempRoot, 'weather')
+        await mkdir(skillRoot, { recursive: true })
+        await writeFile(join(skillRoot, 'SKILL.md'), '# Before\n', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather'
+        })
+
+        const readResult = await service.readSkillPackageFile('workspace-1', 'skill-1', 'SKILL.md')
+        expect(readResult.contents).toBe('# Before\n')
+
+        const saveResult = await service.saveSkillPackageFile('workspace-1', 'skill-1', 'SKILL.md', '# After\n')
+        expect(saveResult.contents).toBe('# After\n')
+        await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# After\n')
+    })
+
+    it('saves workspace SKILL.md with strict frontmatter validation and refreshes metadata', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-save-skill-md-'))
+        const skillRoot = join(tempRoot, 'weather')
+        await mkdir(skillRoot, { recursive: true })
+        await writeFile(
+            join(skillRoot, 'SKILL.md'),
+            '---\nname: Weather\ndescription: Before.\n---\n# Weather\n',
+            'utf8'
+        )
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        ;(service as any).findOne = jest.fn().mockImplementation(async () => ({
+            id: 'skill-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather',
+            visibility: 'private',
+            metadata: {
+                name: 'Weather',
+                skillMdPath: join(skillRoot, 'SKILL.md')
+            }
+        }))
+
+        const result = await service.saveWorkspaceSkillMarkdown(
+            'workspace-1',
+            'skill-1',
+            '---\nname: Weather\ndescription: After.\n---\n# Weather\n',
+            { strictFrontmatter: true }
+        )
+
+        expect(result.file.contents).toContain('description: After.')
+        expect(service.update).toHaveBeenCalledWith(
+            'skill-1',
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                name: 'Weather',
+                metadata: expect.objectContaining({
+                    name: 'Weather',
+                    description: expect.objectContaining({ en_US: 'After.' }),
+                    source: 'file',
+                    skillPath: 'weather',
+                    skillMdPath: join(skillRoot, 'SKILL.md')
+                })
+            })
+        )
+    })
+
+    it('rejects strict workspace SKILL.md updates with extra frontmatter fields', async () => {
+        await expect(
+            service.saveWorkspaceSkillMarkdown(
+                'workspace-1',
+                'skill-1',
+                '---\nname: Weather\ndescription: After.\nversion: 1.0.0\n---\n# Weather\n',
+                { strictFrontmatter: true }
+            )
+        ).rejects.toThrow('SKILL.md frontmatter may only include name, description')
+    })
+
+    it('deletes workspace skill folders recursively', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-delete-folder-'))
+        const skillRoot = join(tempRoot, 'weather')
+        await mkdir(join(skillRoot, 'docs', 'nested'), { recursive: true })
+        await writeFile(join(skillRoot, 'SKILL.md'), '# Weather\n', 'utf8')
+        await writeFile(join(skillRoot, 'docs', 'nested', 'readme.md'), 'hello', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather'
+        })
+
+        await service.deleteSkillPackageFile('workspace-1', 'skill-1', 'docs')
+
+        await expect(readFile(join(skillRoot, 'docs', 'nested', 'readme.md'), 'utf8')).rejects.toMatchObject({
+            code: 'ENOENT'
+        })
+        await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# Weather\n')
+    })
+
+    it('allows editing .env files from the supported text whitelist', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-env-'))
+        const skillRoot = join(tempRoot, 'weather')
+        await mkdir(skillRoot, { recursive: true })
+        await writeFile(join(skillRoot, '.env'), 'TOKEN=before\n', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather'
+        })
+
+        const saveResult = await service.saveSkillPackageFile('workspace-1', 'skill-1', '.env', 'TOKEN=after\n')
+        expect(saveResult.contents).toBe('TOKEN=after\n')
+    })
+
+    it('rejects skill file path traversal attempts', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-path-'))
+        const skillRoot = join(tempRoot, 'weather')
+        await mkdir(skillRoot, { recursive: true })
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather'
+        })
+
+        await expect(service.readSkillPackageFile('workspace-1', 'skill-1', '../secret.txt')).rejects.toThrow(
+            'Invalid skill file path'
+        )
+    })
+
+    it('rejects saving non-editable skill files', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-binary-'))
+        const skillRoot = join(tempRoot, 'weather')
+        await mkdir(skillRoot, { recursive: true })
+        await writeFile(join(skillRoot, 'icon.png'), 'binary', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather'
+        })
+
+        await expect(service.saveSkillPackageFile('workspace-1', 'skill-1', 'icon.png', 'test')).rejects.toThrow(
+            'This file type cannot be edited'
+        )
+    })
+
+    it('shares a workspace uploaded skill into the organization market and reuses the same shared skill id on republish', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-share-'))
+        const workspaceRoot = join(tempRoot, 'workspace')
+        const sourceRoot = join(workspaceRoot, 'weather')
+        const sharedRoot = join(tempRoot, 'shared')
+        await mkdir(sourceRoot, { recursive: true })
+        await writeFile(join(sourceRoot, 'SKILL.md'), '# Weather\n', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
+        ;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
+            (_tenantId: string, _organizationId: string, sharedSkillId: string) => join(sharedRoot, sharedSkillId)
+        )
+
+        const skillPackage = {
+            id: 'skill-local-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            name: 'weather',
+            packagePath: 'weather',
+            metadata: {
+                name: 'weather',
+                visibility: 'private'
+            }
+        }
+
+        ;(service as any).findOne = jest
+            .fn()
+            .mockResolvedValueOnce(skillPackage)
+            .mockResolvedValueOnce({
+                ...skillPackage,
+                publishAt: new Date('2026-04-09T12:00:00.000Z'),
+                sharedSkillId: 'shared-skill-123'
+            })
+            .mockResolvedValueOnce({
+                ...skillPackage,
+                sharedSkillId: 'shared-skill-123',
+                publishAt: new Date('2026-04-09T12:30:00.000Z')
+            })
+
+        await service.shareSkillPackage('workspace-1', 'skill-local-1', {
+            displayName: 'Weather Helper',
+            description: 'Shareable weather helper',
+            tags: ['weather', 'ops'],
+            version: '1.0.0',
+            license: 'MIT'
+        })
+
+        expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalled()
+        expect(skillIndexService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                repositoryId: 'repo-public',
+                name: 'Weather Helper',
+                description: 'Shareable weather helper',
+                tags: ['weather', 'ops'],
+                version: '1.0.0'
+            })
+        )
+        expect(service.update).toHaveBeenCalledWith(
+            'skill-local-1',
+            expect.objectContaining({
+                sharedSkillId: expect.stringMatching(/^shared-skill-/),
+                sharedPackagePath: expect.stringMatching(/^shared-skill-/),
+                publishAt: expect.any(Date)
+            })
+        )
+
+        const firstSharedSkillId = (service.update as jest.Mock).mock.calls[0][1].sharedSkillId
+        await expect(readFile(join(sharedRoot, firstSharedSkillId, 'SKILL.md'), 'utf8')).resolves.toBe('# Weather\n')
+        ;(service as any).findOne = jest
+            .fn()
+            .mockResolvedValueOnce({
+                ...skillPackage,
+                sharedSkillId: firstSharedSkillId,
+                sharedPackagePath: firstSharedSkillId,
+                publishAt: new Date('2026-04-09T12:00:00.000Z')
+            })
+            .mockResolvedValueOnce({
+                ...skillPackage,
+                sharedSkillId: firstSharedSkillId,
+                sharedPackagePath: firstSharedSkillId,
+                publishAt: new Date('2026-04-09T13:00:00.000Z')
+            })
+        skillIndexService.findAll.mockResolvedValueOnce({
+            items: [{ id: 'shared-index-1' }]
+        })
+        await writeFile(join(sourceRoot, 'SKILL.md'), '# Weather v2\n', 'utf8')
+
+        await service.shareSkillPackage('workspace-1', 'skill-local-1', {
+            displayName: 'Weather Helper',
+            description: 'Shareable weather helper v2',
+            tags: ['weather', 'ops'],
+            version: '1.1.0',
+            license: 'MIT'
+        })
+
+        expect(skillIndexService.create).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                id: 'shared-index-1',
+                skillId: firstSharedSkillId,
+                version: '1.1.0'
+            })
+        )
+        expect((service.update as jest.Mock).mock.calls[1][1].sharedSkillId).toBe(firstSharedSkillId)
+        await expect(readFile(join(sharedRoot, firstSharedSkillId, 'SKILL.md'), 'utf8')).resolves.toBe('# Weather v2\n')
+    })
+
+    it('rejects sharing a repository installed skill', async () => {
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-indexed',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            skillIndexId: 'index-1',
+            metadata: {
+                name: 'indexed-skill',
+                visibility: 'private'
+            }
+        })
+
+        await expect(
+            service.shareSkillPackage('workspace-1', 'skill-indexed', {
+                displayName: 'Indexed Skill',
+                description: 'Cannot share again',
+                tags: []
+            })
+        ).rejects.toThrow('Only workspace uploaded skills can be shared')
+    })
+
+    it('removes shared snapshot and public index when uninstalling a shared source skill', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-uninstall-share-'))
+        const workspaceRoot = join(tempRoot, 'workspace')
+        const installRoot = join(workspaceRoot, 'weather')
+        const sharedRoot = join(tempRoot, 'shared')
+        const sharedSkillId = 'shared-skill-keep'
+        await mkdir(installRoot, { recursive: true })
+        await mkdir(join(sharedRoot, sharedSkillId), { recursive: true })
+        await writeFile(join(sharedRoot, sharedSkillId, 'SKILL.md'), '# Shared\n', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(workspaceRoot)
+        ;(getOrganizationSharedSkillPath as jest.Mock).mockImplementation(
+            (_tenantId: string, _organizationId: string, id: string) => join(sharedRoot, id)
+        )
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-local-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather',
+            sharedSkillId,
+            sharedPackagePath: sharedSkillId,
+            metadata: {
+                name: 'weather',
+                visibility: 'private'
+            }
+        })
+        skillRepositoryService.findAll.mockResolvedValueOnce({
+            items: [{ id: 'repo-public', provider: 'workspace-public' }]
+        })
+        skillIndexService.findAll.mockResolvedValueOnce({
+            items: [{ id: 'shared-index-1' }]
+        })
+
+        await service.uninstallSkillPackageInWorkspace('workspace-1', 'skill-local-1')
+
+        expect(skillIndexService.softDelete).toHaveBeenCalledWith('shared-index-1')
+        await expect(readFile(join(sharedRoot, sharedSkillId, 'SKILL.md'), 'utf8')).rejects.toThrow()
+    })
 })

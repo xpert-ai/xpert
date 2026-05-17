@@ -15,22 +15,29 @@ import { ScheduleNote } from './schedule-note.entity'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { AutoTask } from './auto-task.entity'
 import { AutoTaskTemplate } from './auto-task-template.entity'
-
+import { XpertTaskTemplate } from './xpert-task-template.entity'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/xpert-task', module: XpertTaskModule }]),
-		TypeOrmModule.forFeature([XpertTask, ScheduleNote, ChatConversation, AutoTask, AutoTaskTemplate]),
-		TenantModule,
-		CqrsModule,
-		forwardRef(() => XpertAgentModule),
+    imports: [
+        RouterModule.register([{ path: '/xpert-task', module: XpertTaskModule }]),
+        TypeOrmModule.forFeature([
+            XpertTask,
+            ScheduleNote,
+            ChatConversation,
+            AutoTask,
+            AutoTaskTemplate,
+            XpertTaskTemplate
+        ]),
+        TenantModule,
+        CqrsModule,
+        forwardRef(() => XpertAgentModule),
 
-		BullModule.registerQueue({
-			name: 'xpert-task-scheduler'
-		}),
-	],
-	controllers: [XpertTaskController],
-	providers: [XpertTaskService, TaskSchedulerProcessor, ...CommandHandlers, ...Strategies],
-	exports: [XpertTaskService]
+        BullModule.registerQueue({
+            name: 'xpert-task-scheduler'
+        })
+    ],
+    controllers: [XpertTaskController],
+    providers: [XpertTaskService, TaskSchedulerProcessor, ...CommandHandlers, ...Strategies],
+    exports: [XpertTaskService]
 })
 export class XpertTaskModule {}

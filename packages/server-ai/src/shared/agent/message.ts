@@ -1,6 +1,6 @@
 import { Document } from '@langchain/core/documents'
 import { HumanMessage } from '@langchain/core/messages'
-import { _TFile, IStorageFile, TXpertAgentOptions } from '@xpert-ai/contracts'
+import { _TFile, IStorageFile, IXpert, TXpertAgentOptions } from '@xpert-ai/contracts'
 import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import fs from 'fs'
@@ -9,8 +9,14 @@ import sharp from 'sharp'
 import { LoadFileCommand } from '../commands'
 import { AgentStateAnnotation } from './state'
 import { buildReferencedPrompt, normalizeReferences } from './human-input'
+import { isPromptWorkflowInvocationCandidate } from './prompt-workflow-invocation'
+import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
 
 type ResolvedFile = _TFile & { id?: string }
+
+type CreateHumanMessageOptions = {
+    xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile' | 'graph' | 'agent'>
+}
 
 async function resolveStorageFile(queryBus: QueryBus, fileId: string): Promise<ResolvedFile | null> {
     const storageFiles = await queryBus.execute(new GetStorageFileQuery([fileId]))
@@ -68,11 +74,13 @@ export async function createHumanMessage(
     commandBus: CommandBus,
     queryBus: QueryBus,
     state: Partial<typeof AgentStateAnnotation.State>,
-    attachment?: TXpertAgentOptions['attachment'] | TXpertAgentOptions['vision']
+    attachment?: TXpertAgentOptions['attachment'] | TXpertAgentOptions['vision'],
+    options?: CreateHumanMessageOptions
 ) {
     const { human } = state
-    const input = typeof human?.input === 'string' ? human.input : JSON.stringify(human?.input ?? '')
-    const references = normalizeReferences(human?.references)
+    const agentHuman = await resolvePromptWorkflowHumanInput(queryBus, human, options?.xpert)
+    const input = typeof agentHuman?.input === 'string' ? agentHuman.input : JSON.stringify(agentHuman?.input ?? '')
+    const references = normalizeReferences(agentHuman?.references)
     const referencePrompt = buildReferencedPrompt(references)
     const finalText =
         input.trim().length > 0 && referencePrompt.trim().length > 0
@@ -90,8 +98,8 @@ export async function createHumanMessage(
     if (attachment?.enabled && attachment.variable) {
         const variableFiles = get(state, attachment.variable, []) as Array<_TFile> | _TFile
         _files = Array.isArray(variableFiles) ? variableFiles : variableFiles ? [variableFiles] : []
-    } else if (attachment?.enabled && human.files?.length) {
-        _files = human.files as Array<ResolvedFile>
+    } else if (attachment?.enabled && agentHuman.files?.length) {
+        _files = agentHuman.files as Array<ResolvedFile>
     }
     const files: Array<_TFile> = (
         await Promise.all(
@@ -176,4 +184,17 @@ export async function createHumanMessage(
     }
 
     return new HumanMessage(finalText)
+}
+
+async function resolvePromptWorkflowHumanInput(
+    queryBus: QueryBus,
+    human: Partial<typeof AgentStateAnnotation.State>['human'],
+    xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile' | 'graph' | 'agent'>
+) {
+    if (!xpert || !human?.input || !isPromptWorkflowInvocationCandidate(human.input)) {
+        return human
+    }
+
+    const resolution = await queryBus.execute(new ResolvePromptWorkflowInvocationQuery(xpert, human))
+    return resolution?.input ?? human
 }

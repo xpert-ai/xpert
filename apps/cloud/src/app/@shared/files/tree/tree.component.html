@@ -74,11 +74,7 @@
               }
 
               @if (item.hasChildren) {
-                <button
-                  type="button"
-                  [class]="toggleClasses()"
-                  (click)="onDirectoryToggle($event, item)"
-                >
+                <button type="button" [class]="toggleClasses()" (click)="onDirectoryToggle($event, item)">
                   @if (isDirectoryLoading(item.fullPath || item.filePath)) {
                     <i class="ri-loader-4-line animate-spin"></i>
                   } @else if (item.expanded) {
@@ -91,7 +87,15 @@
                 <span [class]="togglePlaceholderClasses()"></span>
               }
 
-              <button type="button" [class]="itemContentClasses()" (click)="onItemClick(item)">
+              <button
+                type="button"
+                data-file-tree-item-content
+                [class]="itemContentClasses()"
+                [zTooltip]="item.fullPath || item.filePath"
+                zPosition="top"
+                [title]="item.fullPath || item.filePath"
+                (click)="onItemClick(item)"
+              >
                 <i
                   [class]="itemIconClasses()"
                   [class.ri-folder-open-line]="item.hasChildren && item.expanded"
@@ -105,7 +109,7 @@
 
               @if (showActions(item)) {
                 <div
-                  class="absolute right-1 ml-auto flex shrink-0 items-center gap-1 p-0.5 rounded-lg opacity-100 transition-opacity bg-components-panel-bg md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto "
+                  class="absolute right-1 ml-auto flex shrink-0 items-center gap-1 p-0.5 rounded-lg opacity-100 transition-opacity bg-components-panel-bg md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto"
                 >
                   @if (!item.hasChildren && canDownload()) {
                     <button
@@ -166,5 +170,4 @@
       </div>
     }
   </div>
-
 </section>

@@ -1,4 +1,11 @@
-import { IChatConversation, IKnowledgebase, IKnowledgebaseTask, IKnowledgeDocument, IXpertAgentExecution, TaskStep } from '@xpert-ai/contracts'
+import {
+    IChatConversation,
+    IKnowledgebase,
+    IKnowledgebaseTask,
+    IKnowledgeDocument,
+    IXpertAgentExecution,
+    TaskStep
+} from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
@@ -8,98 +15,98 @@ import { ChatConversation, Knowledgebase, KnowledgeDocument, XpertAgentExecution
 
 @Entity('knowledgebase_task')
 export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements IKnowledgebaseTask {
-	@ApiProperty({ type: () => Knowledgebase, readOnly: true })
-	@ManyToOne(() => Knowledgebase, {
-		nullable: true,
-		onUpdate: 'CASCADE',
-		onDelete: 'CASCADE'
-	})
-	@JoinColumn()
-	@IsOptional()
-	knowledgebase?: IKnowledgebase
+    @ApiProperty({ type: () => Knowledgebase, readOnly: true })
+    @ManyToOne(() => Knowledgebase, {
+        nullable: true,
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    })
+    @JoinColumn()
+    @IsOptional()
+    knowledgebase?: IKnowledgebase
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((it: KnowledgebaseTask) => it.knowledgebase)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	knowledgebaseId?: string
+    @ApiProperty({ type: () => String, readOnly: true })
+    @RelationId((it: KnowledgebaseTask) => it.knowledgebase)
+    @IsString()
+    @IsOptional()
+    @Column({ nullable: true })
+    knowledgebaseId?: string
 
-	@ApiProperty({ type: () => ChatConversation, readOnly: true })
-	@ManyToOne(() => ChatConversation, {
-		nullable: true,
-		onUpdate: 'CASCADE',
-		onDelete: 'CASCADE'
-	})
-	@JoinColumn()
-	@IsOptional()
-	conversation?: IChatConversation
+    @ApiProperty({ type: () => ChatConversation, readOnly: true })
+    @ManyToOne(() => ChatConversation, {
+        nullable: true,
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    })
+    @JoinColumn()
+    @IsOptional()
+    conversation?: IChatConversation
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((it: KnowledgebaseTask) => it.conversation)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	conversationId?: string
+    @ApiProperty({ type: () => String, readOnly: true })
+    @RelationId((it: KnowledgebaseTask) => it.conversation)
+    @IsString()
+    @IsOptional()
+    @Column({ nullable: true })
+    conversationId?: string
 
-	@ApiProperty({ type: () => String })
-	@Column({ type: 'varchar', length: 50, default: 'embedding' })
-	taskType: string // preprocess / re-embed / cleanup ...
+    @ApiProperty({ type: () => String })
+    @Column({ type: 'varchar', length: 50, default: 'embedding' })
+    taskType: string // preprocess / re-embed / cleanup ...
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ type: 'varchar', nullable: true })
+    status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
 
-	@Column({ type: 'jsonb', nullable: true })
-	steps: TaskStep[]
+    @Column({ type: 'jsonb', nullable: true })
+    steps: TaskStep[]
 
-	@Column({ type: 'text', nullable: true })
-	error?: string
+    @Column({ type: 'text', nullable: true })
+    error?: string
 
-	@ApiProperty({
-		type: 'string',
-		format: 'date-time',
-		example: '2018-11-21T06:20:32.232Z'
-	})
-	@Column({
-		type: 'timestamptz',
-		nullable: true
-	})
-	finishedAt?: Date
+    @ApiProperty({
+        type: 'string',
+        format: 'date-time',
+        example: '2018-11-21T06:20:32.232Z'
+    })
+    @Column({
+        type: 'timestamptz',
+        nullable: true
+    })
+    finishedAt?: Date
 
     @Optional()
     @IsObject()
-	@Column({ type: 'jsonb', nullable: true })
-	context?: {
-		documents?: Partial<IKnowledgeDocument>[]
-	}
+    @Column({ type: 'jsonb', nullable: true })
+    context?: {
+        documents?: Partial<IKnowledgeDocument>[]
+    }
 
-	/*
+    /*
 	|--------------------------------------------------------------------------
 	| @ManyToMany 
 	|--------------------------------------------------------------------------
 	*/
-	@ManyToMany(() => KnowledgeDocument, {
-		cascade: true,
-		onDelete: 'CASCADE',
-	})
-	@JoinTable({
-		name: 'knowledgebase_task_document'
-	})
-	documents?: IKnowledgeDocument[] | null
+    @ManyToMany(() => KnowledgeDocument, {
+        cascade: true,
+        onDelete: 'CASCADE'
+    })
+    @JoinTable({
+        name: 'knowledgebase_task_document'
+    })
+    documents?: IKnowledgeDocument[] | null
 
-	@ApiProperty({ type: () => XpertAgentExecution })
-	@ManyToOne(() => XpertAgentExecution, {
-		onDelete: 'CASCADE'
-	})
-	@JoinColumn()
-	execution?: IXpertAgentExecution
+    @ApiProperty({ type: () => XpertAgentExecution })
+    @ManyToOne(() => XpertAgentExecution, {
+        onDelete: 'CASCADE'
+    })
+    @JoinColumn()
+    execution?: IXpertAgentExecution
 
-	@ApiProperty({ type: () => String })
-	@RelationId((it: KnowledgebaseTask) => it.execution)
-	@IsString()
-	@Column({ nullable: true })
-	executionId?: string
+    @ApiProperty({ type: () => String })
+    @RelationId((it: KnowledgebaseTask) => it.execution)
+    @IsString()
+    @Column({ nullable: true })
+    executionId?: string
 }

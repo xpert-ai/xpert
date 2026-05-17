@@ -3,13 +3,14 @@ import {
     I18nObject,
     ISkillPackage,
     ModelFeature,
+    TPromptWorkflow,
     TAgentMiddlewareMeta,
     TAvatar
 } from '@xpert-ai/contracts'
 
 export const Icon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bot-icon lucide-bot"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>`
 
-export type AuthoringToolName = 'newXpert' | 'newSkill' | 'editXpert'
+export type AuthoringToolName = 'newXpert' | 'newSkill' | 'deleteSkill' | 'editPromptWorkflow' | 'editXpert'
 export type AuthoringCatalogStatus = 'available' | 'rejected'
 export type AuthoringConflictType = 'unsaved-local' | 'stale-server'
 
@@ -157,13 +158,46 @@ export type NewSkillPayload = {
     skillMarkdown: string
 }
 
+export type DeleteSkillPayload = {
+    skillId?: string
+    skillName?: string
+}
+
+export type EditPromptWorkflowPayload = Partial<
+    Pick<
+        TPromptWorkflow,
+        'label' | 'description' | 'icon' | 'category' | 'aliases' | 'argsHint' | 'template' | 'tags' | 'visibility'
+    >
+> & {
+    key: string
+    delete?: boolean
+}
+
 export type EditXpertPayload = {
     dslYaml: string
 }
 
-export type AuthoringAssistantEffect = {
-    name: 'navigate_to_studio' | 'refresh_studio'
-    data: {
-        xpertId: string
-    }
-}
+export type AuthoringAssistantEffect =
+    | {
+          name: 'navigate_to_studio' | 'refresh_studio'
+          data: {
+              xpertId: string
+          }
+      }
+    | {
+          name: 'refresh_prompt_workflows'
+          data: {
+              workspaceId: string
+              workflowId?: string | null
+              key?: string | null
+              operation?: 'created' | 'updated' | 'deleted' | null
+          }
+      }
+    | {
+          name: 'refresh_workspace_skills'
+          data: {
+              workspaceId: string
+              skillId?: string | null
+              operation?: 'created' | 'deleted' | null
+          }
+      }

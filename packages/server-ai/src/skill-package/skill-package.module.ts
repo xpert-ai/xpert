@@ -11,19 +11,21 @@ import { XpertWorkspaceModule } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { Strategies } from './plugins'
+import { CommandHandlers } from './commands/handlers'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
-	imports: [
-		TypeOrmModule.forFeature([SkillPackage, XpertWorkspace]),
-		TenantModule,
-		CqrsModule,
-		forwardRef(() => XpertWorkspaceModule),
-		forwardRef(() => SkillRepositoryModule),
-		SkillRepositoryIndexModule,
-		forwardRef(() => XpertTemplateModule)
-	],
-	controllers: [SkillPackageController],
-	providers: [SkillPackageService, ...Strategies],
-	exports: [SkillPackageService]
+    imports: [
+        TypeOrmModule.forFeature([SkillPackage, XpertWorkspace]),
+        TenantModule,
+        CqrsModule,
+        forwardRef(() => XpertWorkspaceModule),
+        forwardRef(() => SkillRepositoryModule),
+        SkillRepositoryIndexModule,
+        forwardRef(() => XpertTemplateModule)
+    ],
+    controllers: [SkillPackageController],
+    providers: [SkillPackageService, ...Strategies, ...CommandHandlers, ...QueryHandlers],
+    exports: [SkillPackageService]
 })
 export class SkillPackageModule {}

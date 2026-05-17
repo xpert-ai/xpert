@@ -42,7 +42,7 @@
         #rla1="routerLinkActive"
         [class.active]="rla1.isActive"
       >
-        <i class="ri-file-text-line mr-2 text-xl"></i>
+        <z-icon zType="file-text" zSize="xl" class="mr-2" />
         @if (sideMenuOpened()) {
           {{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
         }
@@ -57,9 +57,22 @@
         #rla4="routerLinkActive"
         [class.active]="rla4.isActive"
       >
-        <i class="ri-robot-2-line mr-2 text-xl"></i>
+        <z-icon zType="robot_2" zSize="xl" class="mr-2" />
         @if (sideMenuOpened()) {
           {{ 'PAC.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}
+        }
+      </a>
+
+      <a
+        class="router-menu-item"
+        title=""
+        [routerLink]="['./', 'graph']"
+        [routerLinkActiveOptions]="{ exact: false }"
+        routerLinkActive="active"
+      >
+        <z-icon zType="hub" zSize="xl" class="mr-2" />
+        @if (sideMenuOpened()) {
+          {{ 'PAC.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}
         }
       </a>
     }
@@ -72,7 +85,7 @@
       #rla2="routerLinkActive"
       [class.active]="rla2.isActive"
     >
-      <i class="ri-focus-2-line mr-2 text-xl"></i>
+      <z-icon zType="center_focus_strong" zSize="xl" class="mr-2" />
       @if (sideMenuOpened()) {
         {{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}
       }
@@ -87,7 +100,7 @@
       #rla3="routerLinkActive"
       [class.active]="rla3.isActive"
     >
-      <i class="ri-equalizer-2-line mr-2 text-xl"></i>
+      <z-icon zType="tune" zSize="xl" class="mr-2" />
       @if (sideMenuOpened()) {
         {{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
       }

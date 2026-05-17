@@ -11,8 +11,11 @@ import {
     TMemoryQA,
     TMemoryUserProfile,
     TChatRequest,
+    TXpertCommandProfile,
     TXpertTeamDraft,
-    xpertLabel
+    SecretTokenBindingType,
+    xpertLabel,
+    resolveRuntimeXpert
 } from '@xpert-ai/contracts'
 import {
     CrudController,
@@ -26,6 +29,7 @@ import {
     UseValidationPipe,
     UUIDValidationPipe,
     Public,
+    SecretTokenService,
     TimeZone,
     UserService
 } from '@xpert-ai/server-core'
@@ -60,14 +64,15 @@ import path from 'path'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
-import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@xpert-ai/server-common'
+import { getErrorMessage, keepAlive, parseQueryBoolean, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'
 import { Request, Response } from 'express'
 import { Between, DeleteResult, IsNull, LessThanOrEqual, Like, Not } from 'typeorm'
 import { I18nLang, I18nService } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
+import { randomBytes } from 'crypto'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
 import {
@@ -114,9 +119,11 @@ import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { EnvironmentService } from '../environment'
 import { XpertDeleteCommand } from './commands/delete.command'
-import { EnqueueAgentChatMessageCommand } from '../handoff/commands'
-import { XPERT_HANDOFF_QUEUE } from '../handoff/constants'
-import { AGENT_CHAT_MESSAGE_TYPE } from '../handoff/local-sync-task.service'
+import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE, AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
+import { HandoffQueueService } from '../handoff/message-queue.service'
+import { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service'
+import { PromptWorkflowService } from '../prompt-workflow'
+import { RUNTIME_CAPABILITY_XPERT_RELATIONS, RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -129,7 +136,12 @@ export class XpertController extends CrudController<Xpert> {
         private readonly storeService: CopilotStoreService,
         private readonly environmentService: EnvironmentService,
         private readonly userService: UserService,
+        private readonly secretTokenService: SecretTokenService,
         private readonly i18n: I18nService,
+        private readonly promptWorkflowService: PromptWorkflowService,
+        private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService,
+        private readonly handoffQueue: HandoffQueueService,
+        private readonly agentChatRealtime: AgentChatRealtimeService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {
@@ -187,6 +199,31 @@ export class XpertController extends CrudController<Xpert> {
         } catch (error) {
             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
         }
+    }
+
+    /**
+     * Imports a new xpert DSL through the managed normalization path so primary
+     * and middleware LLM copilot models are resolved before persistence.
+     */
+    @UseValidationPipe({ transform: true })
+    @Post('import/managed')
+    async importManagedDSL(@Body() dsl: XpertDraftDslDTO) {
+        return await this.commandBus.execute(new XpertImportCommand(dsl, { normalizeCopilotModels: true }))
+    }
+
+    /**
+     * Imports a DSL into an existing xpert through the same managed normalization
+     * path while preserving overwrite-protected fields on the target xpert.
+     */
+    @UseValidationPipe({ transform: true })
+    @Post(':id/import/managed')
+    async importManagedDSLIntoXpert(@Param('id') id: string, @Body() dsl: XpertDraftDslDTO) {
+        return await this.commandBus.execute(
+            new XpertImportCommand(dsl, {
+                targetXpertId: id,
+                normalizeCopilotModels: true
+            })
+        )
     }
 
     @UseGuards(PermissionGuard)
@@ -294,6 +331,44 @@ export class XpertController extends CrudController<Xpert> {
         draft.savedAt = new Date()
         // Save draft
         return await this.service.updateDraft(id, draft)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/commands')
+    async getCommandProfile(@Param('id') id: string) {
+        const xpert = await this.service.findOne(id)
+        const sourceProfile = xpert.draft?.team?.commandProfile ?? xpert.commandProfile
+        const profile = sourceProfile ?? { version: 1, commands: [] }
+        return {
+            profile,
+            runtime: await this.promptWorkflowService.resolveRuntimeCommandProfile({
+                ...xpert,
+                commandProfile: sourceProfile
+            })
+        }
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/runtime-capabilities')
+    @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
+    async getRuntimeCapabilities(@Param('id') id: string, @Query('isDraft') isDraft?: string | boolean | string[]) {
+        const sourceXpert = await this.service.findOne(id, {
+            relations: RUNTIME_CAPABILITY_XPERT_RELATIONS
+        })
+        const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
+        return this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
+    }
+
+    @UseGuards(XpertGuard)
+    @Put(':id/commands')
+    async updateCommandProfile(@Param('id') id: string, @Body() body: TXpertCommandProfile) {
+        const xpert = await this.service.findOne(id)
+        const profile = await this.promptWorkflowService.validateCommandProfile(xpert.workspaceId, body)
+        return this.service.updateDraft(id, {
+            team: {
+                commandProfile: profile
+            }
+        } as Partial<TXpertTeamDraft>)
     }
 
     @UseGuards(XpertGuard)
@@ -438,10 +513,7 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Get(':id/memory/file')
-    async getMemoryFile(
-        @Param('id', UUIDValidationPipe) id: string,
-        @Query('path') path: string
-    ) {
+    async getMemoryFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return await this.service.getMemoryFile(id, path)
     }
 
@@ -471,10 +543,7 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Delete(':id/memory/file')
-    async deleteMemoryFile(
-        @Param('id', UUIDValidationPipe) id: string,
-        @Query('path') path: string
-    ) {
+    async deleteMemoryFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return await this.service.deleteMemoryFile(id, path)
     }
 
@@ -851,6 +920,82 @@ export class XpertController extends CrudController<Xpert> {
     // Public App
 
     @Public()
+    @Post(':identifier/chatkit-session')
+    async createPublicChatkitSession(
+        @Param('identifier') identifier: string,
+        @Body()
+        body: {
+            expires_after?: number
+            currentClientSecret?: string
+        },
+        @Res({ passthrough: true }) res: Response
+    ) {
+        const xpert = await this.service.findPublicChatAppXpert(identifier)
+        const anonymousId = this.getOrSetAnonymousId(res)
+        const anonymousUser = await this.userService.ensureCommunicationUser({
+            tenantId: xpert.tenantId,
+            thirdPartyId: `public-xpert:${xpert.id}:anonymous:${anonymousId}`,
+            username: `${xpert.slug || xpert.id}:${anonymousId}`
+        })
+
+        const token = `cs-x-${randomBytes(32).toString('hex')}`
+        const expiresAfter = this.normalizeChatkitSessionExpiresAfter(body?.expires_after)
+        const validUntil = new Date(Date.now() + 1000 * expiresAfter)
+
+        await this.secretTokenService.create({
+            entityId: xpert.id,
+            type: SecretTokenBindingType.PUBLIC_XPERT,
+            tenantId: xpert.tenantId,
+            organizationId: xpert.organizationId ?? null,
+            createdById: anonymousUser.id,
+            token,
+            validUntil
+        })
+
+        return {
+            client_secret: token,
+            expires_at: validUntil,
+            expires_after: expiresAfter,
+            xpertId: xpert.id,
+            assistantId: xpert.id,
+            organizationId: xpert.organizationId ?? null
+        }
+    }
+
+    private getOrSetAnonymousId(res: Response) {
+        const req = RequestContext.currentRequest() as unknown as Request
+        const existing = req?.cookies?.['anonymous.id']
+        if (typeof existing === 'string' && existing.trim()) {
+            return existing.trim()
+        }
+
+        const anonymousId = uuidv4()
+        const forwardedProto = req?.headers?.['x-forwarded-proto']
+        const isSecure =
+            req?.secure ||
+            forwardedProto === 'https' ||
+            (Array.isArray(forwardedProto) && forwardedProto.includes('https'))
+
+        res.cookie('anonymous.id', anonymousId, {
+            httpOnly: true,
+            maxAge: 365 * 24 * 60 * 60 * 1000,
+            sameSite: isSecure ? 'none' : 'lax',
+            secure: Boolean(isSecure)
+        })
+
+        return anonymousId
+    }
+
+    private normalizeChatkitSessionExpiresAfter(value: unknown) {
+        const parsed = typeof value === 'number' ? value : Number(value)
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return 600
+        }
+
+        return Math.min(Math.floor(parsed), 3600)
+    }
+
+    @Public()
     @UseGuards(AnonymousXpertAuthGuard)
     @Get(':name/app')
     async getChatApp(@Param('name') name: string) {
@@ -1006,26 +1151,46 @@ export class XpertController extends CrudController<Xpert> {
     ) {
         const queueTaskId = `xpert-chat-${uuidv4()}`
         const sessionKey = request.conversationId ?? options.messageId ?? queueTaskId
+        const tenantId = RequestContext.currentTenantId()
+        if (!tenantId) {
+            throw new Error(`Missing tenantId for xpert chat handoff task "${queueTaskId}"`)
+        }
 
-        return this.commandBus.execute(
-            new EnqueueAgentChatMessageCommand(
-                {
-                    id: queueTaskId,
-                    messageType: AGENT_CHAT_MESSAGE_TYPE,
-                    tenantId: RequestContext.currentTenantId(),
-                    organizationId: RequestContext.getOrganizationId(),
-                    userId: RequestContext.currentUserId(),
-                    sessionKey,
-                    conversationId: request.conversationId,
-                    executionId: options.execution?.id,
-                    source: 'chat',
-                    queueName: XPERT_HANDOFF_QUEUE,
-                    businessKey: sessionKey,
-                    traceId: options.messageId ?? queueTaskId
+        const organizationId = RequestContext.getOrganizationId()
+        const userId = RequestContext.currentUserId()
+        const language = RequestContext.getLanguageCode() ?? options.language
+        const now = Date.now()
+        const message: HandoffMessage<AgentChatDispatchPayload> = {
+            id: queueTaskId,
+            type: AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
+            version: 1,
+            tenantId,
+            sessionKey,
+            businessKey: sessionKey,
+            attempt: 1,
+            maxAttempts: 1,
+            enqueuedAt: now,
+            traceId: options.messageId ?? queueTaskId,
+            payload: {
+                request,
+                options,
+                callback: {
+                    transport: 'redis-pubsub'
                 },
-                async () => this.commandBus.execute(new XpertChatCommand(request, options))
-            )
-        )
+                ...(options.execution?.id ? { executionId: options.execution.id } : {})
+            },
+            headers: {
+                ...(organizationId ? { organizationId } : {}),
+                ...(userId ? { userId } : {}),
+                ...(language ? { language } : {}),
+                ...(request.conversationId ? { conversationId: request.conversationId } : {}),
+                source: 'chat'
+            }
+        }
+
+        return this.agentChatRealtime.createStream(queueTaskId, async () => {
+            await this.handoffQueue.enqueue(message)
+        })
     }
 
     // Statistics

@@ -22,6 +22,11 @@ export type TChatConversationOptions = {
   features?: Array<'timeline' | 'sandbox' | 'files'>
   workspacePath?: string
   workspaceUrl?: string
+  workspaceRoot?: string
+  sharedWorkspacePath?: string
+  agentWorkspacePath?: string
+  sessionWorkspacePath?: string
+  memoryWorkspacePath?: string
   sandboxEnvironmentId?: string
   runtimeCapabilities?: RuntimeCapabilitiesSelection
 }

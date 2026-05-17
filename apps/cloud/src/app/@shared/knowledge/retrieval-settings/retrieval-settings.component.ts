@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { booleanAttribute, Component, inject, input, output, signal } from '@angular/core'
+import { booleanAttribute, Component, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, KnowledgebaseService } from '@cloud/app/@core'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
@@ -8,7 +8,7 @@ import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { AiModelTypeEnum, IKnowledgebase } from '../../../@core/types'
+import { AiModelTypeEnum, GraphRagRetrievalMode, IKnowledgebase, TKBRetrievalSettings } from '../../../@core/types'
 import { CopilotModelSelectComponent } from '../../copilot'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
@@ -24,7 +24,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     ZardSwitchComponent,
     NgmCommonModule,
     CopilotModelSelectComponent
-],
+  ],
   selector: 'xp-knowledge-retrieval-settings',
   templateUrl: 'retrieval-settings.component.html',
   styleUrls: ['retrieval-settings.component.scss'],
@@ -33,7 +33,8 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export class KnowledgeRetrievalSettingsComponent {
   eAiModelTypeEnum = AiModelTypeEnum
 
-  protected cva = inject<NgxControlValueAccessor<Partial<IKnowledgebase>>>(NgxControlValueAccessor)
+  protected cva =
+    inject<NgxControlValueAccessor<Partial<IKnowledgebase & TKBRetrievalSettings>>>(NgxControlValueAccessor)
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly #toastrService = injectToastr()
@@ -52,6 +53,14 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly recall = attrModel(this.knowledgebase, 'recall')
   readonly score = attrModel(this.recall, 'score', null)
   readonly topK = attrModel(this.recall, 'topK', null)
+  readonly mode = attrModel(this.knowledgebase, 'mode', 'vector' as GraphRagRetrievalMode)
+  readonly graphRag = attrModel(this.knowledgebase, 'graphRag', {})
+  readonly graphEnabled = attrModel(this.graphRag, 'enabled', false)
+  readonly entityTopK = attrModel(this.graphRag, 'entityTopK', 8)
+  readonly neighborHops = attrModel(this.graphRag, 'neighborHops', 1)
+  readonly graphWeight = attrModel(this.graphRag, 'graphWeight', 0.35)
+  readonly graphControlsVisible = computed(() => this.graphEnabled() || this.mode() !== 'vector')
+  readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'graph', 'hybrid']
   readonly useScore = linkedModel({
     initialValue: false,
     compute: () => !isNil(this.score()),
@@ -76,7 +85,8 @@ export class KnowledgeRetrievalSettingsComponent {
       .update(this.knowledgebase().id, {
         recall: this.recall(),
         rerankModelId: this.useRerank() ? this.knowledgebase().rerankModelId : null,
-        rerankModel: this.useRerank() ? this.rerankModel() : null
+        rerankModel: this.useRerank() ? this.rerankModel() : null,
+        graphRag: this.graphRag()
       })
       .subscribe({
         next: (kb) => {

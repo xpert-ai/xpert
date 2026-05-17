@@ -27,6 +27,8 @@ import {
     AuthoringAssistantState,
     CopilotModelCatalogResult,
     CopilotModelCatalogSnapshot,
+    DeleteSkillPayload,
+    EditPromptWorkflowPayload,
     EditXpertPayload,
     Icon,
     NewSkillPayload,
@@ -34,6 +36,16 @@ import {
 } from './xpert-authoring.types'
 
 const XPERT_AUTHORING_MIDDLEWARE_NAME = 'XpertAuthoringMiddleware'
+const EDIT_PROMPT_WORKFLOW_TOOL_DESCRIPTION = [
+    'Create, edit, or delete a workspace Prompt Workflow slash command by key.',
+    'The key is the slash command name without the leading slash. If key exists, update it; if key does not exist, create it.',
+    'Template is required when creating. Set delete=true to archive the workflow for that key.',
+    'Important: ChatKit currently renders Prompt Workflow templates by substituting only {{args}}.',
+    'Do not create templates that require named placeholder replacement such as {{skill_1}}, {{stage_1_goal}}, or {{source_format}}.',
+    'For workflows with many parameters, put the expected parameter shape in argsHint as JSON, YAML, or a compact field list, and write the template so the model parses those fields from {{args}}.',
+    'Example argsHint: {"skill_1":"...","stage_1_goal":"...","skill_2":"...","stage_2_goal":"...","source_format":"...","target_format":"...","conversion_rule":"..."}.',
+    'Example template pattern: "Use the structured workflow parameters below: {{args}}\\nThen perform the staged workflow..."'
+].join(' ')
 
 const requestContextSchema = z
     .object({
@@ -119,6 +131,8 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
             this.createGetAvailableSkillsTool(),
             this.createNewXpertTool(),
             this.createNewSkillTool(),
+            this.createDeleteSkillTool(),
+            this.createEditPromptWorkflowTool(),
             this.createEditXpertTool()
         ]
     }
@@ -246,7 +260,11 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
             async (input, config) => {
                 const runtimeState = this.readState()
                 const context = this.resolveContext(this.readContext(config), runtimeState)
-                return this.authoringService.newSkillFromContext(context, input as NewSkillPayload)
+                const result = await this.authoringService.newSkillFromContext(context, input as NewSkillPayload)
+
+                this.emitWorkspaceSkillEffect(config?.configurable, result, context)
+
+                return result
             },
             {
                 name: 'newSkill',
@@ -256,6 +274,76 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
                     userIntent: z.string(),
                     skillName: z.string().optional(),
                     skillMarkdown: z.string()
+                })
+            }
+        )
+    }
+
+    private createDeleteSkillTool() {
+        return tool(
+            async (input, config) => {
+                const runtimeState = this.readState()
+                const context = this.resolveContext(this.readContext(config), runtimeState)
+                const result = await this.authoringService.deleteSkillFromContext(context, input as DeleteSkillPayload)
+
+                this.emitWorkspaceSkillEffect(config?.configurable, result, context)
+
+                return result
+            },
+            {
+                name: 'deleteSkill',
+                description:
+                    'Delete or uninstall a workspace skill package. Prefer calling getAvailableSkills first and passing skillId. If only skillName is provided, it must exactly match one available skill.',
+                schema: z.object({
+                    skillId: z.string().optional().describe('Exact skill package id from getAvailableSkills.'),
+                    skillName: z
+                        .string()
+                        .optional()
+                        .describe('Exact skill name or display name. Use only when skillId is not available.')
+                })
+            }
+        )
+    }
+
+    private createEditPromptWorkflowTool() {
+        return tool(
+            async (input, config) => {
+                const runtimeState = this.readState()
+                const context = this.resolveContext(this.readContext(config), runtimeState)
+                const result = await this.authoringService.editPromptWorkflowFromContext(
+                    context,
+                    input as EditPromptWorkflowPayload
+                )
+
+                this.emitPromptWorkflowEffect(config?.configurable, result, context)
+
+                return result
+            },
+            {
+                name: 'editPromptWorkflow',
+                description: EDIT_PROMPT_WORKFLOW_TOOL_DESCRIPTION,
+                schema: z.object({
+                    key: z.string().describe('Slash command key, without the leading slash. Example: review.'),
+                    delete: z.boolean().optional().describe('Set true to archive the workflow identified by key.'),
+                    label: z.string().optional().describe('Human-readable command label.'),
+                    description: z.string().optional().describe('Short command description for the slash palette.'),
+                    icon: z.any().optional(),
+                    category: z.string().optional(),
+                    aliases: z.array(z.string()).optional(),
+                    argsHint: z
+                        .string()
+                        .optional()
+                        .describe(
+                            'Describe the single {{args}} input shape. For complex workflows, use JSON/YAML/field-list examples instead of creating extra template placeholders.'
+                        ),
+                    template: z
+                        .string()
+                        .optional()
+                        .describe(
+                            'Prompt template. Runtime substitution only replaces {{args}}; named placeholders such as {{skill_1}} are not replaced.'
+                        ),
+                    tags: z.array(z.string()).optional(),
+                    visibility: z.enum(['private', 'team', 'tenant']).optional()
                 })
             }
         )
@@ -641,7 +729,7 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
               })
             | undefined
 
-        if (!effect.data?.xpertId) {
+        if (!this.hasEffectTarget(effect)) {
             return
         }
 
@@ -661,4 +749,138 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
             }
         } as MessageEvent)
     }
+
+    private emitPromptWorkflowEffect(
+        configurable: unknown,
+        result: AssistantDraftMutationResult,
+        context: AuthoringAssistantRequestContext
+    ) {
+        const workflow = this.readPromptWorkflowMutationFragment(result)
+        const workspaceId = workflow?.workspaceId ?? this.readWorkspaceId(context)
+        if (!workspaceId) {
+            return
+        }
+
+        this.emitEffect(configurable, result, {
+            name: 'refresh_prompt_workflows',
+            data: {
+                workspaceId,
+                workflowId: workflow?.id ?? null,
+                key: workflow?.key ?? null,
+                operation: workflow?.operation ?? null
+            }
+        })
+    }
+
+    private emitWorkspaceSkillEffect(
+        configurable: unknown,
+        result: AssistantDraftMutationResult,
+        context: AuthoringAssistantRequestContext
+    ) {
+        const skill = this.readWorkspaceSkillMutationFragment(result)
+        const workspaceId = skill?.workspaceId ?? this.readWorkspaceId(context)
+        if (!workspaceId) {
+            return
+        }
+
+        this.emitEffect(configurable, result, {
+            name: 'refresh_workspace_skills',
+            data: {
+                workspaceId,
+                skillId: skill?.id ?? null,
+                operation: skill?.operation ?? null
+            }
+        })
+    }
+
+    private readWorkspaceId(context: AuthoringAssistantRequestContext) {
+        const envWorkspaceId = context.env?.['workspaceId']
+        if (typeof envWorkspaceId === 'string' && envWorkspaceId.trim()) {
+            return envWorkspaceId.trim()
+        }
+
+        return context.workspaceId?.trim() || null
+    }
+
+    private readPromptWorkflowMutationFragment(result: AssistantDraftMutationResult) {
+        const fragment = result.updatedDraftFragment?.['promptWorkflow']
+        if (!isPromptWorkflowMutationFragment(fragment)) {
+            return null
+        }
+
+        return fragment
+    }
+
+    private readWorkspaceSkillMutationFragment(result: AssistantDraftMutationResult) {
+        const fragment = result.updatedDraftFragment?.['skill']
+        if (!isWorkspaceSkillMutationFragment(fragment)) {
+            return null
+        }
+
+        return fragment
+    }
+
+    private hasEffectTarget(effect: AuthoringAssistantEffect) {
+        switch (effect.name) {
+            case 'navigate_to_studio':
+            case 'refresh_studio':
+                return Boolean(effect.data.xpertId)
+            case 'refresh_prompt_workflows':
+                return Boolean(effect.data.workspaceId)
+            case 'refresh_workspace_skills':
+                return Boolean(effect.data.workspaceId)
+        }
+    }
+}
+
+type PromptWorkflowMutationFragment = {
+    operation?: 'created' | 'updated' | 'deleted' | null
+    id?: string | null
+    workspaceId?: string | null
+    key?: string | null
+}
+
+type WorkspaceSkillMutationFragment = {
+    operation?: 'created' | 'deleted' | null
+    id?: string | null
+    workspaceId?: string | null
+}
+
+function isPromptWorkflowMutationFragment(value: unknown): value is PromptWorkflowMutationFragment {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+
+    const fragment = value as Record<string, unknown>
+    return (
+        isOptionalString(fragment['id']) &&
+        isOptionalString(fragment['workspaceId']) &&
+        isOptionalString(fragment['key']) &&
+        isOptionalPromptWorkflowOperation(fragment['operation'])
+    )
+}
+
+function isWorkspaceSkillMutationFragment(value: unknown): value is WorkspaceSkillMutationFragment {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+
+    const fragment = value as Record<string, unknown>
+    return (
+        isOptionalString(fragment['id']) &&
+        isOptionalString(fragment['workspaceId']) &&
+        isOptionalSkillOperation(fragment['operation'])
+    )
+}
+
+function isOptionalString(value: unknown): value is string | null | undefined {
+    return value === undefined || value === null || typeof value === 'string'
+}
+
+function isOptionalPromptWorkflowOperation(value: unknown): value is PromptWorkflowMutationFragment['operation'] {
+    return value === undefined || value === null || value === 'created' || value === 'updated' || value === 'deleted'
+}
+
+function isOptionalSkillOperation(value: unknown): value is WorkspaceSkillMutationFragment['operation'] {
+    return value === undefined || value === null || value === 'created' || value === 'deleted'
 }

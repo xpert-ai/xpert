@@ -12,11 +12,24 @@ import {
   IDocumentSourceProvider,
   IDocumentUnderstandingProvider,
   IKnowledgebase,
+  IKnowledgeGraphEntity,
+  IKnowledgeGraphMention,
+  IKnowledgeGraphRelation,
   IKnowledgebaseTask,
   IKnowledgeDocument,
   IKnowledgeRetrievalLog,
   IXpert,
+  KnowledgeGraphEntityCreateInput,
+  KnowledgeGraphEntityUpdateInput,
+  KnowledgeGraphMentionListQuery,
+  KnowledgeGraphRelationCreateInput,
+  KnowledgeGraphRelationUpdateInput,
+  KnowledgeDocumentMetadata,
+  KnowledgeGraphStatusResponse,
+  KnowledgeGraphVisualizationQuery,
+  KnowledgeGraphViewResponse,
   PaginationParams,
+  TKBRetrievalSettings,
   toHttpParams
 } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
@@ -27,6 +40,10 @@ import { getErrorMessage, uuid } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
 const API_KNOWLEDGEBASE = API_PREFIX + '/knowledgebase'
+
+function toGraphHttpParams(query?: KnowledgeGraphVisualizationQuery | KnowledgeGraphMentionListQuery | null) {
+  return query ? new HttpParams().append('data', JSON.stringify(query)) : null
+}
 
 @Injectable({ providedIn: 'root' })
 export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowledgebase> {
@@ -104,8 +121,94 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     )
   }
 
-  test(id: string, options: { query: string; k: number; score: number; filter?: Record<string, unknown> }) {
+  test(
+    id: string,
+    options: {
+      query: string
+      k: number
+      score: number
+      filter?: KnowledgeDocumentMetadata
+      retrieval?: TKBRetrievalSettings
+    }
+  ) {
     return this.httpClient.post<DocumentInterface<DocumentMetadata>[]>(this.apiBaseUrl + '/' + id + '/test', options)
+  }
+
+  getGraphStatus(id: string) {
+    return this.httpClient.get<KnowledgeGraphStatusResponse>(this.apiBaseUrl + `/${id}/graph/status`)
+  }
+
+  rebuildGraph(id: string) {
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/graph/rebuild`, {})
+  }
+
+  getGraphEntities(id: string, params?: PaginationParams<IKnowledgeGraphEntity>) {
+    return this.httpClient.get<{ items: IKnowledgeGraphEntity[]; total: number }>(
+      this.apiBaseUrl + `/${id}/graph/entities`,
+      {
+        params: params ? toHttpParams(params) : null
+      }
+    )
+  }
+
+  getGraphNeighborhood(id: string, entityId: string) {
+    return this.httpClient.get<{
+      entity: IKnowledgeGraphEntity
+      relations: IKnowledgeGraphRelation[]
+      connectedEntities: IKnowledgeGraphEntity[]
+      mentions: IKnowledgeGraphMention[]
+    }>(this.apiBaseUrl + `/${id}/graph/entities/${entityId}/neighborhood`)
+  }
+
+  getGraphVisualization(id: string, query?: KnowledgeGraphVisualizationQuery) {
+    return this.httpClient.get<KnowledgeGraphViewResponse>(this.apiBaseUrl + `/${id}/graph/visualization`, {
+      params: toGraphHttpParams(query)
+    })
+  }
+
+  getGraphRelations(id: string, query?: KnowledgeGraphVisualizationQuery) {
+    return this.httpClient.get<{ items: IKnowledgeGraphRelation[]; total: number }>(
+      this.apiBaseUrl + `/${id}/graph/relations`,
+      {
+        params: toGraphHttpParams(query)
+      }
+    )
+  }
+
+  getGraphMentions(id: string, query?: KnowledgeGraphMentionListQuery) {
+    return this.httpClient.get<{ items: IKnowledgeGraphMention[]; total: number }>(
+      this.apiBaseUrl + `/${id}/graph/mentions`,
+      {
+        params: toGraphHttpParams(query)
+      }
+    )
+  }
+
+  createGraphEntity(id: string, body: KnowledgeGraphEntityCreateInput) {
+    return this.httpClient.post<IKnowledgeGraphEntity>(this.apiBaseUrl + `/${id}/graph/entities`, body)
+  }
+
+  updateGraphEntity(id: string, entityId: string, body: KnowledgeGraphEntityUpdateInput) {
+    return this.httpClient.patch<IKnowledgeGraphEntity>(this.apiBaseUrl + `/${id}/graph/entities/${entityId}`, body)
+  }
+
+  deleteGraphEntity(id: string, entityId: string) {
+    return this.httpClient.delete<IKnowledgeGraphEntity>(this.apiBaseUrl + `/${id}/graph/entities/${entityId}`)
+  }
+
+  createGraphRelation(id: string, body: KnowledgeGraphRelationCreateInput) {
+    return this.httpClient.post<IKnowledgeGraphRelation>(this.apiBaseUrl + `/${id}/graph/relations`, body)
+  }
+
+  updateGraphRelation(id: string, relationId: string, body: KnowledgeGraphRelationUpdateInput) {
+    return this.httpClient.patch<IKnowledgeGraphRelation>(
+      this.apiBaseUrl + `/${id}/graph/relations/${relationId}`,
+      body
+    )
+  }
+
+  deleteGraphRelation(id: string, relationId: string) {
+    return this.httpClient.delete<IKnowledgeGraphRelation>(this.apiBaseUrl + `/${id}/graph/relations/${relationId}`)
   }
 
   similaritySearch(

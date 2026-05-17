@@ -32,7 +32,7 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHa
     ) {}
 
     async execute(command: CreateNodeConsumePendingSteerFollowUpsCommand) {
-        const { agentKey, agentChannel, subscriber, attachmentOptions } = command.input
+        const { agentKey, agentChannel, xpert, subscriber, attachmentOptions } = command.input
 
         return new RunnableLambda({
             func: async (
@@ -61,7 +61,8 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHa
                     this.commandBus,
                     this.queryBus,
                     humanState,
-                    attachmentOptions
+                    attachmentOptions,
+                    { xpert }
                 )
                 const configurable = (config?.configurable ?? {}) as Partial<TAgentRunnableConfigurable>
                 const rootAgentKey = configurable.rootAgentKey ?? agentKey

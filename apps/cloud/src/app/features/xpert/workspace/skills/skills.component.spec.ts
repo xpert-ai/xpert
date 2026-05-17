@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core'
+import { Component, EventEmitter, forwardRef, Input, Output, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { FileWorkbenchComponent } from '@cloud/app/@shared/files'
@@ -7,13 +7,15 @@ import { XpertSkillIndexesComponent, XpertSkillRepositoriesComponent } from '@cl
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { ISkillPackage, SkillPackageService, ToastrService } from '../../../../@core'
+import { XpertAssistantFacade } from '../../assistant-shell/assistant.facade'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertWorkspaceSkillsComponent } from './skills.component'
 
 @Component({
   standalone: true,
   selector: 'pac-file-workbench',
-  template: ''
+  template: '',
+  providers: [{ provide: FileWorkbenchComponent, useExisting: forwardRef(() => MockFileWorkbenchComponent) }]
 })
 class MockFileWorkbenchComponent {
   @Input() rootId: string | null = null
@@ -21,6 +23,9 @@ class MockFileWorkbenchComponent {
   @Input() filesLoader?: unknown
   @Input() fileLoader?: unknown
   @Input() fileSaver?: unknown
+  @Input() fileUploader?: unknown
+  @Input() fileDeleter?: unknown
+  @Input() fileDownloader?: unknown
   @Input() mobilePane: 'tree' | 'file' = 'tree'
   @Output() readonly mobilePaneChange = new EventEmitter<'tree' | 'file'>()
 
@@ -112,7 +117,15 @@ function createLocalSkill(id = 'skill-2'): ISkillPackage {
   } as ISkillPackage
 }
 
-async function setup(skills: ISkillPackage[] = [createRepositorySkill(), createLocalSkill()]) {
+async function setup(
+  skills: ISkillPackage[] = [createRepositorySkill(), createLocalSkill()],
+  options?: {
+    assistantFacade?: Partial<XpertAssistantFacade>
+  }
+) {
+  const workspace = signal({
+    id: 'workspace-1'
+  })
   const skillPackageService = {
     getAllByWorkspace: jest.fn(() => of({ items: skills })),
     installPackage: jest.fn(() => of(createRepositorySkill('skill-3'))),
@@ -149,11 +162,17 @@ async function setup(skills: ISkillPackage[] = [createRepositorySkill(), createL
       {
         provide: XpertWorkspaceHomeComponent,
         useValue: {
-          workspace: signal({
-            id: 'workspace-1'
-          })
+          workspace
         }
       },
+      ...(options?.assistantFacade
+        ? [
+            {
+              provide: XpertAssistantFacade,
+              useValue: options.assistantFacade
+            }
+          ]
+        : []),
       {
         provide: SkillPackageService,
         useValue: skillPackageService
@@ -174,12 +193,14 @@ async function setup(skills: ISkillPackage[] = [createRepositorySkill(), createL
   await fixture.whenStable()
   fixture.detectChanges()
 
-  const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent)).componentInstance as MockFileWorkbenchComponent
+  const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent))
+    .componentInstance as MockFileWorkbenchComponent
 
   return {
     fixture,
     component: fixture.componentInstance,
     skillPackageService,
+    workspace,
     workbench
   }
 }
@@ -216,5 +237,44 @@ describe('XpertWorkspaceSkillsComponent', () => {
     expect(component.publisherLabel(createLocalSkill())).toBe('Workspace Owner')
     expect(component.repositoryLabel(createLocalSkill())).toBeTruthy()
     expect(fixture.nativeElement.textContent).toContain('Custom Skill')
+  })
+
+  it('processes each assistant skill refresh event once', async () => {
+    const workspaceSkillRefresh = signal<ReturnType<XpertAssistantFacade['workspaceSkillRefresh']>>(null)
+    const { fixture, skillPackageService, workspace } = await setup(undefined, {
+      assistantFacade: {
+        workspaceSkillRefresh: workspaceSkillRefresh.asReadonly()
+      } as Partial<XpertAssistantFacade>
+    })
+
+    expect(skillPackageService.getAllByWorkspace).toHaveBeenCalledTimes(1)
+
+    workspaceSkillRefresh.set({
+      workspaceId: 'workspace-1',
+      skillId: 'skill-1',
+      operation: 'created',
+      nonce: 1
+    })
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(skillPackageService.getAllByWorkspace).toHaveBeenCalledTimes(2)
+
+    workspace.set({ id: 'workspace-1' })
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(skillPackageService.getAllByWorkspace).toHaveBeenCalledTimes(2)
+
+    workspaceSkillRefresh.set({
+      workspaceId: 'workspace-1',
+      skillId: 'skill-1',
+      operation: 'created',
+      nonce: 2
+    })
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(skillPackageService.getAllByWorkspace).toHaveBeenCalledTimes(3)
   })
 })

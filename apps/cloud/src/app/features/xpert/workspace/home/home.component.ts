@@ -129,7 +129,7 @@ export class XpertWorkspaceHomeComponent {
   #defaultWorkspaceQueryVersion = 0
 
   // Xpert or tool type filter
-  readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase'>>(null)
+  readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase' | 'prompt_workflow'>>(null)
   readonly type = computed(() => this.types()?.[0])
 
   // TagFilter's state
@@ -213,10 +213,10 @@ export class XpertWorkspaceHomeComponent {
       }
 
       const routedWorkspace = routeWorkspaceId
-        ? workspaces.find((workspace) => workspace.id === routeWorkspaceId) ?? null
+        ? (workspaces.find((workspace) => workspace.id === routeWorkspaceId) ?? null)
         : null
       const matchedSelectedWorkspace = selectedWorkspace
-        ? workspaces.find((workspace) => workspace.id === selectedWorkspace.id) ?? null
+        ? (workspaces.find((workspace) => workspace.id === selectedWorkspace.id) ?? null)
         : null
 
       if (routedWorkspace) {
@@ -303,7 +303,11 @@ export class XpertWorkspaceHomeComponent {
   async setDefaultWorkspace(event: Event, workspace: IXpertWorkspace) {
     event.stopPropagation()
 
-    if (!workspace?.id || this.defaultWorkspaceId() === workspace.id || this.settingDefaultWorkspaceId() === workspace.id) {
+    if (
+      !workspace?.id ||
+      this.defaultWorkspaceId() === workspace.id ||
+      this.settingDefaultWorkspaceId() === workspace.id
+    ) {
       return
     }
 

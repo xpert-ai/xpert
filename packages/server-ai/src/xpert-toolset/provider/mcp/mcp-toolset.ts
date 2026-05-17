@@ -8,84 +8,90 @@ import { createMCPClient } from './types'
 import { _BaseToolset, TBuiltinToolsetParams } from '../../../shared'
 
 export class MCPToolset extends _BaseToolset {
-	providerName = 'mcp'
-	providerType = XpertToolsetCategoryEnum.MCP
+    providerName = 'mcp'
+    providerType = XpertToolsetCategoryEnum.MCP
 
-	readonly #logger = new Logger(MCPToolset.name)
+    readonly #logger = new Logger(MCPToolset.name)
 
-	// MCP Client
-	protected client: MultiServerMCPClient = null
-	constructor(
-		protected toolset: IXpertToolset,
-		protected params?: TBuiltinToolsetParams
-	) {
-		super(params)
-	}
+    // MCP Client
+    protected client: MultiServerMCPClient = null
+    constructor(
+        protected toolset: IXpertToolset,
+        protected params?: TBuiltinToolsetParams
+    ) {
+        super(params)
+    }
 
-	getId(): string {
-		return this.toolset.id
-	}
-	getName(): string {
-		return this.toolset.name
-	}
+    getId(): string {
+        return this.toolset.id
+    }
+    getName(): string {
+        return this.toolset.name
+    }
 
-	async initTools() {
-		const { client } = environment.pro
-			? await createProMCPClient(
-					this.toolset,
-					this.params?.signal,
-					this.params.commandBus,
-					JSON.parse(this.toolset.schema),
-					this.params.env
-				)
-			: await createMCPClient(this.toolset, JSON.parse(this.toolset.schema), this.params.env)
-		this.client = client
-		const tools = await this.client.getTools()
-		// Filter tools by custom instance config
-		const disableToolDefault = this.toolset.options?.disableToolDefault
-		this.tools = tools.filter((tool) => {
-			const config = this.toolset.tools?.find((_) => _.name === tool.name)
-			if (config) {
-				return isToolEnabled(config, disableToolDefault)
-			}
-			return disableToolDefault
-		})
-		this.tools.forEach((tool) => (<DynamicStructuredTool>tool).verboseParsingErrors = true)
-		return this.tools
-	}
+    async initTools() {
+        const { client } = environment.pro
+            ? await createProMCPClient(
+                  this.toolset,
+                  this.params?.signal,
+                  this.params.commandBus,
+                  JSON.parse(this.toolset.schema),
+                  this.params.env,
+                  this.params?.xpertId
+              )
+            : await createMCPClient(
+                  this.toolset,
+                  JSON.parse(this.toolset.schema),
+                  this.params.env,
+                  this.params?.xpertId
+              )
+        this.client = client
+        const tools = await this.client.getTools()
+        // Filter tools by custom instance config
+        const disableToolDefault = this.toolset.options?.disableToolDefault
+        this.tools = tools.filter((tool) => {
+            const config = this.toolset.tools?.find((_) => _.name === tool.name)
+            if (config) {
+                return isToolEnabled(config, disableToolDefault)
+            }
+            return disableToolDefault
+        })
+        this.tools.forEach((tool) => ((<DynamicStructuredTool>tool).verboseParsingErrors = true))
+        return this.tools
+    }
 
-	getTools() {
-		return this.tools
-	}
+    getTools() {
+        return this.tools
+    }
 
-	getTool(toolName: string) {
-		if (!this.tools) {
-			this.getTools()
-		}
+    getTool(toolName: string) {
+        if (!this.tools) {
+            this.getTools()
+        }
 
-		for (const tool of this.tools) {
-			if (tool.name === toolName) {
-				return tool
-			}
-		}
+        for (const tool of this.tools) {
+            if (tool.name === toolName) {
+                return tool
+            }
+        }
 
-		throw new Error(`tool ${toolName} not found`)
-	}
+        throw new Error(`tool ${toolName} not found`)
+    }
 
-	/**
-	 * @todo
-	 */
-	getToolTitle(name: string): string | I18nObject {
-		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
-		const identity = tool?.schema?.entity
-		if (identity) {
-			return identity
-		}
-		return null
-	}
+    /**
+     * @todo
+     */
+    getToolTitle(name: string): string | I18nObject {
+        const tool = this.toolset?.tools?.find((tool) => tool.name === name)
+        const identity = tool?.schema?.entity
+        if (identity) {
+            return identity
+        }
+        return null
+    }
 
-	async close() {
-		await this.client.close()
-		this.#logger.debug(`closed mcp toolset '${this.toolset.name}'.`)
-	}
+    async close() {
+        await this.client.close()
+        this.#logger.debug(`closed mcp toolset '${this.toolset.name}'.`)
+    }
 }
