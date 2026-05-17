@@ -1,7 +1,10 @@
 @if (from() === 'chat') {
-  <xp-chat-conversation-preview #preview class="w-full h-full"
+  <xp-chat-conversation-preview
+    #preview
+    class="w-full h-full"
     [(conversationId)]="conversationId"
     [xpert]="xpert()"
+    runtimeCapabilitiesSource="xpert"
     [environmentId]="environmentId()"
     [parameters]="parameters()"
     [(_messages)]="messages"
@@ -13,6 +16,4 @@
     (chatStop)="onChatStop($event)"
     (execution)="openExecution($event)"
   />
-} @else {
-  
-}
+} @else {}

@@ -57,8 +57,8 @@ type PromptWorkflowCommandSourceMetadata = {
     name: string
     source: 'runtime'
     executionType: TemplateSlashCommandAction['type']
-    kind: 'prompt_workflow'
-    workflow: SkillPromptWorkflow
+    kind?: SkillSlashCommand['kind']
+    workflow?: SkillPromptWorkflow
 }
 
 type PromptWorkflowInvocationDetails = PromptWorkflowInvocationResolution & {
@@ -281,14 +281,15 @@ function createMiddlewareRuntimeCapabilities(nodeKey: string) {
 }
 
 function createMiddlewareCommandSource(source: MiddlewareSlashCommandSource): PromptWorkflowCommandSourceMetadata {
-    return {
+    const kind = source.command.kind ?? (source.action.type === 'insert_text' ? 'command' : 'prompt_workflow')
+    return compactObject<PromptWorkflowCommandSourceMetadata>({
         type: 'slash_command',
         name: source.command.name,
         source: 'runtime',
-        executionType: 'insert_invocation',
-        kind: 'prompt_workflow',
-        workflow: createMiddlewarePromptWorkflowMetadata(source)
-    }
+        executionType: source.action.type,
+        kind,
+        workflow: kind === 'prompt_workflow' ? createMiddlewarePromptWorkflowMetadata(source) : undefined
+    })
 }
 
 function createMiddlewarePromptWorkflowMetadata(source: MiddlewareSlashCommandSource): SkillPromptWorkflow {

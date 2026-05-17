@@ -34,6 +34,23 @@
       <i class="ri-add-line"></i>
     </button>
   }
+  @if (collapsibleObject()) {
+    @let collapseLabel =
+      objectCollapsed()
+        ? ('PAC.KEY_WORDS.Expand' | translate: { Default: 'Expand' })
+        : ('PAC.KEY_WORDS.Collapse' | translate: { Default: 'Collapse' });
+    <button
+      type="button"
+      class="btn btn-ghost btn-small flex h-6 w-6 shrink-0 items-center justify-center"
+      [attr.aria-label]="collapseLabel"
+      [attr.aria-expanded]="!objectCollapsed()"
+      [zTooltip]="collapseLabel"
+      zPosition="top"
+      (click)="toggleObjectCollapsed()"
+    >
+      <i [class]="objectCollapsed() ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'"></i>
+    </button>
+  }
 </div>
 
 @if (hasCustomWidget()) {
@@ -201,7 +218,9 @@
                   </div>
                 </div>
               } @empty {
-                <div class="flex justify-center text-sm rounded-lg p-2 text-text-secondary bg-background-default-subtle">
+                <div
+                  class="flex justify-center text-sm rounded-lg p-2 text-text-secondary bg-background-default-subtle"
+                >
                   {{ 'PAC.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
                 </div>
               }
@@ -223,21 +242,26 @@
             </z-switch>
           }
           @case ('object') {
-            <div class="rounded-lg border border-divider-regular px-2" [ngClass]="xUiCols() ? 'grid gap-2 grid-cols-' + xUiCols() : 'flex flex-col gap-2'">
-              @for (param of properties(); track param.name) {
-                <!-- Nested object children need the current object as context.model for sibling-based depends. -->
-                <json-schema-property
-                  class="mb-1"
-                  [schema]="param"
-                  [name]="param.name"
-                  [required]="isRequired(param.name)"
-                  [variables]="variables()"
-                  [context]="{ ...(context() ?? {}), model: value$() }"
-                  [ngModel]="value$()?.[param.name]"
-                  [ngModelOptions]="{ standalone: true }"
-                  (ngModelChange)="updateValue(param.name, $event)"
-                />
-              }
+            <div [class]="collapsibleObject() && objectCollapsed() ? 'hidden' : ''">
+              <div
+                class="rounded-lg border border-divider-regular px-2"
+                [ngClass]="xUiCols() ? 'grid gap-2 grid-cols-' + xUiCols() : 'flex flex-col gap-2'"
+              >
+                @for (param of properties(); track param.name) {
+                  <!-- Nested object children need the current object as context.model for sibling-based depends. -->
+                  <json-schema-property
+                    class="mb-1"
+                    [schema]="param"
+                    [name]="param.name"
+                    [required]="isRequired(param.name)"
+                    [variables]="variables()"
+                    [context]="{ ...(context() ?? {}), model: value$() }"
+                    [ngModel]="value$()?.[param.name]"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="updateValue(param.name, $event)"
+                  />
+                }
+              </div>
             </div>
           }
           @default {

@@ -43,6 +43,15 @@ export type TAgentStateSystem = {
     common_times: string
     soul?: string | null
     profile?: string | null
+    volume?: string | null
+    workspace_path?: string | null
+    workspace_url?: string | null
+    workspace_root?: string | null
+    shared_workspace_path?: string | null
+    agent_workspace_path?: string | null
+    session_workspace_path?: string | null
+    memory_workspace_path?: string | null
+    thread_id?: string | null
 }
 
 export const STATE_VARIABLE_PENDING_FOLLOW_UPS = 'pending_follow_ups'

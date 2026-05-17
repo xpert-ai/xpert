@@ -45,7 +45,7 @@ describe('ThreadsController', () => {
         }
         const redisSseStreamService = {
             createSseStream: jest.fn(),
-            releaseLock: jest.fn()
+            releaseConnection: jest.fn()
         }
         const controller = new ThreadsController({} as any, {} as any, commandBus as any, redisSseStreamService as any)
 
@@ -59,6 +59,69 @@ describe('ThreadsController', () => {
         expect(result).toBe(stream)
         expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(RunCreateStreamCommand)
         expect(redisSseStreamService.createSseStream).not.toHaveBeenCalled()
-        expect(redisSseStreamService.releaseLock).not.toHaveBeenCalled()
+        expect(redisSseStreamService.releaseConnection).not.toHaveBeenCalled()
+    })
+
+    it('allows multiple clients to join the same run stream', async () => {
+        const firstStream = EMPTY
+        const secondStream = EMPTY
+        const redisSseStreamService = {
+            createSseStream: jest
+                .fn()
+                .mockResolvedValueOnce({
+                    connectionId: 'connection-1',
+                    stream: firstStream
+                })
+                .mockResolvedValueOnce({
+                    connectionId: 'connection-2',
+                    stream: secondStream
+                }),
+            releaseConnection: jest.fn().mockResolvedValue(true)
+        }
+        const controller = new ThreadsController({} as any, {} as any, {} as any, redisSseStreamService as any)
+        const firstResponse = new EventEmitter()
+        const secondResponse = new EventEmitter()
+
+        const firstResult = await controller.joinRunStream(
+            { headers: {} } as any,
+            firstResponse as any,
+            'thread-1',
+            'run-1'
+        )
+        const secondResult = await controller.joinRunStream(
+            { headers: {}, method: 'GET', originalUrl: '/threads/thread-1/runs/run-1/stream' } as any,
+            secondResponse as any,
+            'thread-1',
+            'run-1',
+            '1-0'
+        )
+
+        expect(firstResult).toBe(firstStream)
+        expect(secondResult).toBe(secondStream)
+        expect(redisSseStreamService.createSseStream).toHaveBeenCalledTimes(2)
+        expect(redisSseStreamService.createSseStream).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                threadId: 'thread-1',
+                runId: 'run-1',
+                mode: 'join'
+            })
+        )
+        expect(redisSseStreamService.createSseStream).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                threadId: 'thread-1',
+                runId: 'run-1',
+                lastEventId: '1-0',
+                mode: 'join'
+            })
+        )
+
+        firstResponse.emit('close')
+        expect(redisSseStreamService.releaseConnection).toHaveBeenCalledWith('thread-1', 'run-1', 'connection-1')
+        expect(redisSseStreamService.releaseConnection).not.toHaveBeenCalledWith('thread-1', 'run-1', 'connection-2')
+
+        secondResponse.emit('close')
+        expect(redisSseStreamService.releaseConnection).toHaveBeenCalledWith('thread-1', 'run-1', 'connection-2')
     })
 })

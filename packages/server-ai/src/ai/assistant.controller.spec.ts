@@ -14,7 +14,31 @@ jest.mock('../prompt-workflow', () => ({
 }))
 
 import { AssistantsController } from './assistant.controller'
+import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 import { RuntimeCommandService } from './runtime-command.service'
+
+function createController(
+    publishedXpertAccessService: unknown,
+    assistantBindingService: unknown,
+    agentMiddlewareRegistry: unknown,
+    skillPackageService: unknown,
+    runtimeCommandService: RuntimeCommandService,
+    promptWorkflowService: unknown
+) {
+    const runtimeCapabilitiesService = new RuntimeCapabilitiesService(
+        agentMiddlewareRegistry as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
+        skillPackageService as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
+        runtimeCommandService,
+        promptWorkflowService as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
+        assistantBindingService as ConstructorParameters<typeof RuntimeCapabilitiesService>[4]
+    )
+
+    return new AssistantsController(
+        publishedXpertAccessService as ConstructorParameters<typeof AssistantsController>[0],
+        assistantBindingService as ConstructorParameters<typeof AssistantsController>[1],
+        runtimeCapabilitiesService
+    )
+}
 
 describe('AssistantsController', () => {
     it('hides required middleware nodes from runtime plugin capabilities', async () => {
@@ -303,13 +327,13 @@ describe('AssistantsController', () => {
             }))
         }
 
-        const controller = new AssistantsController(
-            publishedXpertAccessService as any,
-            assistantBindingService as any,
-            agentMiddlewareRegistry as any,
-            skillPackageService as any,
+        const controller = createController(
+            publishedXpertAccessService,
+            assistantBindingService,
+            agentMiddlewareRegistry,
+            skillPackageService,
             new RuntimeCommandService(),
-            promptWorkflowService as any
+            promptWorkflowService
         )
 
         await expect(controller.getRuntimeCapabilities('assistant-1')).resolves.toEqual({
@@ -557,15 +581,15 @@ describe('AssistantsController', () => {
                 skillEntries: []
             }))
         }
-        const controller = new AssistantsController(
-            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
-            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+        const controller = createController(
+            publishedXpertAccessService,
+            assistantBindingService,
             {
                 get: jest.fn()
-            } as unknown as ConstructorParameters<typeof AssistantsController>[2],
-            skillPackageService as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            },
+            skillPackageService,
             new RuntimeCommandService(),
-            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+            promptWorkflowService
         )
 
         const result = await controller.getRuntimeCapabilities('assistant-1', 'true')
@@ -608,9 +632,9 @@ describe('AssistantsController', () => {
         expect(skillPackageService.getAllByWorkspace).toHaveBeenCalled()
         expect(skillPackageService.getAllByWorkspace.mock.calls[0].slice(0, 3)).toEqual([
             'workspace-1',
-            {
+            expect.objectContaining({
                 relations: ['skillIndex', 'skillIndex.repository']
-            },
+            }),
             false
         ])
         expect(promptWorkflowService.resolveRuntimeCommandProfile).toHaveBeenCalledWith(
@@ -737,15 +761,15 @@ describe('AssistantsController', () => {
                 skillEntries: []
             }))
         }
-        const controller = new AssistantsController(
-            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
-            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+        const controller = createController(
+            publishedXpertAccessService,
+            assistantBindingService,
             {
                 get: jest.fn()
-            } as unknown as ConstructorParameters<typeof AssistantsController>[2],
-            skillPackageService as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            },
+            skillPackageService,
             new RuntimeCommandService(),
-            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+            promptWorkflowService
         )
 
         const result = await controller.getRuntimeCapabilities('assistant-1')
@@ -844,15 +868,15 @@ describe('AssistantsController', () => {
                 skillEntries: []
             }))
         }
-        const controller = new AssistantsController(
-            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
-            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
-            agentMiddlewareRegistry as unknown as ConstructorParameters<typeof AssistantsController>[2],
+        const controller = createController(
+            publishedXpertAccessService,
+            assistantBindingService,
+            agentMiddlewareRegistry,
             {
                 getAllByWorkspace: jest.fn()
-            } as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            },
             new RuntimeCommandService(),
-            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+            promptWorkflowService
         )
 
         const result = await controller.getRuntimeCapabilities('assistant-1')
@@ -914,17 +938,17 @@ describe('AssistantsController', () => {
                 skillEntries: []
             }))
         }
-        const controller = new AssistantsController(
-            publishedXpertAccessService as unknown as ConstructorParameters<typeof AssistantsController>[0],
-            assistantBindingService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+        const controller = createController(
+            publishedXpertAccessService,
+            assistantBindingService,
             {
                 get: jest.fn()
-            } as unknown as ConstructorParameters<typeof AssistantsController>[2],
+            },
             {
                 getAllByWorkspace: jest.fn()
-            } as unknown as ConstructorParameters<typeof AssistantsController>[3],
+            },
             new RuntimeCommandService(),
-            promptWorkflowService as unknown as ConstructorParameters<typeof AssistantsController>[5]
+            promptWorkflowService
         )
 
         const result = await controller.getRuntimeCapabilities('assistant-1')

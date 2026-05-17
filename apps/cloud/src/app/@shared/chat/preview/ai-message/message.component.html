@@ -54,7 +54,7 @@
     @case ('component') {
       @if (chunk.data.category === 'Tool') {
         @if (chunk.data.type === contextCompressionComponentType) {
-          <chat-context-compression-chunk />
+          <chat-context-compression-chunk [chunk]="chunk.data" />
         } @else {
           <chat-tool-call-chunk [chunk]="chunk.data" [conversationStatus]="conversationStatus()" />
         }

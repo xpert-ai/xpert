@@ -1,10 +1,13 @@
 import ShortUniqueId from 'short-unique-id'
-import type * as z3 from "zod/v3";
-import type * as z4 from "zod/v4/core";
+import type * as z3 from 'zod/v3'
+import type * as z4 from 'zod/v4/core'
+import type { I18nObject } from './i18n.model'
+
+export type { I18nObject, I18nText } from './i18n.model'
+export { resolveI18nText } from './i18n.model'
 
 const uuidGenerator = new ShortUniqueId({ length: 10 })
-export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) =>
-  uuidGenerator.randomUUID(...args)
+export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) => uuidGenerator.randomUUID(...args)
 
 /**
  * @description
@@ -13,12 +16,7 @@ export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) 
  * @docsCategory Type Definitions
  * @docsSubcategory Identifiers
  */
-export type ID = string;
-
-export interface I18nObject {
-  en_US: string
-  zh_Hans?: string
-}
+export type ID = string
 
 export type TAvatar = {
   emoji?: {
@@ -40,22 +38,27 @@ export type TDeleteResult = {
   /**
    * Raw SQL result returned by executed query.
    */
-  raw: any;
+  raw: any
   /**
    * Number of affected rows/documents
    * Not all drivers support this
    */
-  affected?: number | null;
+  affected?: number | null
 }
 
 export type TranslateOptions = {
-	lang?: string;
-  args?: ({
-      [k: string]: any;
-  } | string)[] | {
-      [k: string]: any;
-  };
-  debug?: boolean;
+  lang?: string
+  args?:
+    | (
+        | {
+            [k: string]: any
+          }
+        | string
+      )[]
+    | {
+        [k: string]: any
+      }
+  debug?: boolean
 }
 
 /**
@@ -87,8 +90,8 @@ export type TParameterOption = {
 }
 
 export type TParameterHelpInfo = {
-  title: I18nObject;
-  url: I18nObject;
+  title: I18nObject
+  url: I18nObject
 }
 
 export type TParameter = {
@@ -137,13 +140,13 @@ export interface ISize {
 }
 
 export type _TFile = {
-  filePath: string;
-  fileUrl?: string;
-  mimeType?: string;
+  filePath: string
+  fileUrl?: string
+  mimeType?: string
   /**
    * @deprecated use fileUrl instead
    */
-  url?: string;
+  url?: string
 }
 
 /**
@@ -160,34 +163,34 @@ export type DeepPartial<T> = {
 
 export interface ChecklistItem {
   node?: string
-	field?: string // Incorrect field name, such as role, hierarchy
+  field?: string // Incorrect field name, such as role, hierarchy
   value?: string // Optional: value of the field, such as role name
-	message: I18nObject
-	level: 'error' | 'warning'
-	ruleCode?: string // Optional: unique internal rule number (such as DIM_ROLE_INVALID)
+  message: I18nObject
+  level: 'error' | 'warning'
+  ruleCode?: string // Optional: unique internal rule number (such as DIM_ROLE_INVALID)
 }
 
 export interface RuleValidator {
-	validate(input: any, params?: any): Promise<ChecklistItem[]>
+  validate(input: any, params?: any): Promise<ChecklistItem[]>
 }
 
 export function letterStartSUID(start: string) {
   return start + uuid()
 }
 
-/** 
- * The type of icon to render.  
+/**
+ * The type of icon to render.
  * Determines how the `value` field should be interpreted.
  */
 export type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
 
 /**
- * Defines a unified structure for representing different kinds of icons 
+ * Defines a unified structure for representing different kinds of icons
  * in the frontend (image, SVG, font icon, emoji, Lottie animation, etc.).
- * 
+ *
  * ---
  * 🧩 Supported icon types:
- * 
+ *
  * | Type     | Description                      | Example `value` |
  * |-----------|----------------------------------|-----------------|
  * | `image`  | Raster or Base64-encoded image    | `"https://cdn.example.com/logo.png"` or `"data:image/png;base64,..."` |
@@ -195,10 +198,10 @@ export type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
  * | `font`   | Font icon class name              | `"fa-solid fa-user"` or `"ri-home-line"` |
  * | `emoji`  | Unicode emoji character           | `"🚀"` |
  * | `lottie` | Lottie animation JSON URL         | `"https://assets.lottiefiles.com/packages/lf20_abc123.json"` |
- * 
+ *
  * ---
  * 🧠 Example usages:
- * 
+ *
  * ```json
  * {
  *   "icon": {
@@ -207,14 +210,14 @@ export type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
  *     "alt": "Company logo"
  *   }
  * }
- * 
+ *
  * {
  *   "icon": {
  *     "type": "svg",
  *     "value": "<svg xmlns='http://www.w3.org/2000/svg'><path d='M12 2l4 20H8z'/></svg>"
  *   }
  * }
- * 
+ *
  * {
  *   "icon": {
  *     "type": "font",
@@ -223,7 +226,7 @@ export type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
  *     "size": 20
  *   }
  * }
- * 
+ *
  * {
  *   "icon": {
  *     "type": "emoji",
@@ -231,7 +234,7 @@ export type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
  *     "size": 32
  *   }
  * }
- * 
+ *
  * {
  *   "icon": {
  *     "type": "lottie",
@@ -242,45 +245,45 @@ export type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
  * ---
  */
 export interface IconDefinition {
-  /** 
-   * The type of icon to render.  
+  /**
+   * The type of icon to render.
    * Determines how the `value` field should be interpreted.
    */
   type: IconType
 
-  /** 
+  /**
    * The icon content or resource reference.
    * Can be a URL, Base64 data, SVG markup, emoji, or animation file.
    */
   value: string
 
-  /** 
-   * Optional color for the icon.  
+  /**
+   * Optional color for the icon.
    * Typically used for font, SVG, or emoji icons.
    */
   color?: string
 
-  /** 
-   * Optional size of the icon, in pixels.  
+  /**
+   * Optional size of the icon, in pixels.
    * Defines the intended rendered size (e.g. 24 → 24px).
    */
   size?: number
 
-  /** 
-   * Alternative text for accessibility.  
+  /**
+   * Alternative text for accessibility.
    * Useful for image or SVG icons.
    */
   alt?: string
 
-  /** 
-   * Optional inline style definitions.  
-   * Can include any CSS-compatible properties 
+  /**
+   * Optional inline style definitions.
+   * Can include any CSS-compatible properties
    * (e.g. `{ "borderRadius": "50%", "backgroundColor": "#f0f0f0" }`).
    */
   style?: Record<string, string>
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ZodObjectV3 = z3.ZodObject<any, any, any, any>;
-export type ZodObjectV4 = z4.$ZodObject;
-export type InteropZodObject = ZodObjectV3 | ZodObjectV4;
+export type ZodObjectV3 = z3.ZodObject<any, any, any, any>
+export type ZodObjectV4 = z4.$ZodObject
+export type InteropZodObject = ZodObjectV3 | ZodObjectV4

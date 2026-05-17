@@ -8,6 +8,7 @@ import type { I18nService } from 'nestjs-i18n'
 import { EMPTY, Observable } from 'rxjs'
 import type { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import type { EnvironmentService } from '../environment'
+import type { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 import { XpertController } from './xpert.controller'
 import type { XpertService } from './xpert.service'
 
@@ -79,6 +80,11 @@ jest.mock('../prompt-workflow', () => ({
     PromptWorkflowService: class {}
 }))
 
+jest.mock('../ai/runtime-capabilities.service', () => ({
+    RUNTIME_CAPABILITY_XPERT_RELATIONS: ['agent', 'agent.copilotModel', 'copilotModel'],
+    RuntimeCapabilitiesService: class {}
+}))
+
 jest.mock('../core/entities/internal', () => ({
     ChatConversation: class {},
     XpertAgentExecution: class {}
@@ -127,10 +133,15 @@ type ControllerPrivateAccess = {
     enqueueXpertChatTask(request: TChatRequest, options: EnqueueOptions): Promise<Observable<unknown>>
 }
 
+type RuntimeCapabilitiesControllerAccess = {
+    getRuntimeCapabilities(id: string, isDraft?: string | boolean | string[]): Promise<unknown>
+}
+
 describe('XpertController', () => {
     let controller: XpertController
     let xpertService: {
         findBySlug: jest.Mock
+        findOne: jest.Mock
     }
     let environmentService: {
         findOne: jest.Mock
@@ -141,6 +152,9 @@ describe('XpertController', () => {
     let agentChatRealtime: {
         createStream: jest.Mock
     }
+    let runtimeCapabilitiesService: {
+        getRuntimeCapabilities: jest.Mock
+    }
     let commandBus: {
         execute: jest.Mock
     }
@@ -150,7 +164,8 @@ describe('XpertController', () => {
 
     beforeEach(() => {
         xpertService = {
-            findBySlug: jest.fn()
+            findBySlug: jest.fn(),
+            findOne: jest.fn()
         }
         environmentService = {
             findOne: jest.fn()
@@ -160,6 +175,14 @@ describe('XpertController', () => {
         }
         agentChatRealtime = {
             createStream: jest.fn()
+        }
+        runtimeCapabilitiesService = {
+            getRuntimeCapabilities: jest.fn(async () => ({
+                skills: [],
+                plugins: [],
+                subAgents: [],
+                commands: []
+            }))
         }
         commandBus = {
             execute: jest.fn()
@@ -176,6 +199,7 @@ describe('XpertController', () => {
             {} as any,
             {} as unknown as I18nService,
             {} as any,
+            runtimeCapabilitiesService as unknown as RuntimeCapabilitiesService,
             handoffQueue as any,
             agentChatRealtime as any,
             commandBus as unknown as CommandBus,
@@ -341,5 +365,64 @@ describe('XpertController', () => {
 
         expect(enqueueSpy).not.toHaveBeenCalled()
         expect(environmentService.findOne).not.toHaveBeenCalled()
+    })
+
+    it('loads runtime capabilities from an unpublished xpert draft', async () => {
+        const controllerAccess = controller as unknown as RuntimeCapabilitiesControllerAccess
+
+        xpertService.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            workspaceId: 'workspace-1',
+            publishAt: null,
+            name: 'Published Xpert',
+            title: 'Published Xpert',
+            agent: {
+                key: 'published-agent'
+            },
+            graph: {
+                nodes: [],
+                connections: []
+            },
+            draft: {
+                team: {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1',
+                    name: 'Draft Xpert',
+                    title: 'Draft Xpert',
+                    agent: {
+                        key: 'draft-agent'
+                    }
+                },
+                nodes: [],
+                connections: []
+            }
+        })
+
+        await expect(controllerAccess.getRuntimeCapabilities('xpert-1', 'true')).resolves.toEqual({
+            skills: [],
+            plugins: [],
+            subAgents: [],
+            commands: []
+        })
+
+        expect(xpertService.findOne).toHaveBeenCalledWith('xpert-1', {
+            relations: ['agent', 'agent.copilotModel', 'copilotModel']
+        })
+        expect(runtimeCapabilitiesService.getRuntimeCapabilities).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'xpert-1',
+                workspaceId: 'workspace-1',
+                name: 'Draft Xpert',
+                title: 'Draft Xpert',
+                agent: {
+                    key: 'draft-agent'
+                },
+                graph: {
+                    nodes: [],
+                    connections: []
+                }
+            }),
+            'xpert-1'
+        )
     })
 })

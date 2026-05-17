@@ -1,11 +1,14 @@
 import {
     generateCronExpression,
+    I18nObject,
     IUser,
     IXpertTask,
     RolesEnum,
     TChatOptions,
+    TScheduleOptions,
     ScheduleTaskStatus,
-    TaskFrequency
+    TaskFrequency,
+    XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
@@ -17,13 +20,16 @@ import { InjectRepository } from '@nestjs/typeorm'
 import chalk from 'chalk'
 import { CronJob } from 'cron'
 import { lastValueFrom, toArray } from 'rxjs'
-import { Between, Repository } from 'typeorm'
+import { Between, Repository, SelectQueryBuilder } from 'typeorm'
 import { XpertChatCommand } from '../xpert/commands'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatConversationUpsertCommand } from '../chat-conversation'
+import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { AutoTask } from './auto-task.entity'
 import { AutoTaskTemplate } from './auto-task-template.entity'
 import { ScheduleNote, ScheduleNoteStatus, ScheduleNoteType } from './schedule-note.entity'
 import { XpertTask } from './xpert-task.entity'
+import { XpertTaskTemplate } from './xpert-task-template.entity'
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
@@ -44,6 +50,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         private readonly autoTaskRepository: Repository<AutoTask>,
         @InjectRepository(AutoTaskTemplate)
         private readonly autoTaskTemplateRepository: Repository<AutoTaskTemplate>,
+        @InjectRepository(XpertTaskTemplate)
+        private readonly xpertTaskTemplateRepository: Repository<XpertTaskTemplate>,
         private readonly schedulerRegistry: SchedulerRegistry,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
@@ -65,25 +73,14 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     async executeTask(id: string, options: TChatOptions) {
         const task = await this.findOne(id, { relations: ['xpert'] })
-        const observable = await this.commandBus.execute(
-            new XpertChatCommand(
-                {
-                    action: 'send',
-                    message: {
-                        input: {
-                            input: task.prompt
-                        }
-                    }
-                },
-                {
-                    ...options,
-                    xpertId: task.xpertId,
-                    timeZone: task.timeZone || options.timeZone,
-                    from: 'job',
-                    taskId: task.id
-                }
-            )
-        )
+        const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
+            prompt: task.prompt,
+            xpertId: task.xpertId,
+            taskId: task.id,
+            conversationTaskId: task.id,
+            timeZone: task.timeZone || options.timeZone,
+            chatOptions: options
+        })
         observable.subscribe({
             next: (message) => {
                 // console.log('Test message:', message)
@@ -92,6 +89,74 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 this.#logger.error('Test error:', getErrorMessage(err))
             }
         })
+
+        return {
+            conversationId: conversation.id,
+            threadId: conversation.threadId,
+            runId: execution.id
+        }
+    }
+
+    private async createPersistedTaskChatRun(params: {
+        prompt?: string | null
+        xpertId?: string | null
+        taskId?: string | null
+        conversationTaskId?: string | null
+        timeZone?: string | null
+        chatOptions?: TChatOptions
+    }) {
+        const conversation = await this.commandBus.execute(
+            new ChatConversationUpsertCommand({
+                status: 'busy',
+                taskId: params.conversationTaskId ?? undefined,
+                xpertId: params.xpertId ?? undefined,
+                options: {
+                    parameters: {
+                        input: params.prompt
+                    }
+                },
+                from: 'job'
+            })
+        )
+        const execution = await this.commandBus.execute(
+            new XpertAgentExecutionUpsertCommand({
+                xpert: params.xpertId ? ({ id: params.xpertId } as any) : undefined,
+                status: XpertAgentExecutionStatusEnum.RUNNING,
+                threadId: conversation.threadId
+            })
+        )
+        const observable = await this.commandBus.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    conversationId: conversation.id,
+                    message: {
+                        input: {
+                            input: params.prompt
+                        }
+                    }
+                },
+                {
+                    ...(params.chatOptions ?? {}),
+                    xpertId: params.xpertId ?? undefined,
+                    timeZone: params.timeZone ?? params.chatOptions?.timeZone,
+                    from: 'job',
+                    taskId: params.taskId ?? undefined,
+                    execution: { id: execution.id },
+                    streamPersistence: {
+                        transport: 'redis-stream',
+                        threadId: conversation.threadId,
+                        runId: execution.id
+                    }
+                }
+            )
+        )
+
+        return {
+            observable,
+            conversation,
+            execution
+        }
     }
 
     scheduleCronJob(task: IXpertTask, user: IUser) {
@@ -105,21 +170,23 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 timeZone: task.timeZone,
 
                 onTick: () => {
-                    runs += 1
-                    this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
-                    if (task.xpertId) {
-                        // Trial account limit
-                        if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
-                            this.pause(task.id).catch((err) => {
+                    this.runWithTaskRequestContext(task, user, () => {
+                        runs += 1
+                        this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
+                        if (task.xpertId) {
+                            // Trial account limit
+                            if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
+                                this.pause(task.id).catch((err) => {
+                                    this.#logger.error(err)
+                                })
+                                return
+                            }
+
+                            this.executeTask(task.id, { timeZone: task.timeZone }).catch((err) => {
                                 this.#logger.error(err)
                             })
-                            return
                         }
-
-                        this.executeTask(task.id, { timeZone: task.timeZone }).catch((err) => {
-                            this.#logger.error(err)
-                        })
-                    }
+                    })
                 }
             })
             if (task.options.frequency === TaskFrequency.Once) {
@@ -142,6 +209,15 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         }
 
         this.#logger.warn(`job ${task.name} added for '${cronTime}' and timezone '${task.timeZone}'!`)
+    }
+
+    private runWithTaskRequestContext(task: IXpertTask, user: IUser, callback: () => void) {
+        if (!user) {
+            callback()
+            return
+        }
+
+        runWithRequestContext({ user, headers: { ['organization-id']: task.organizationId } }, callback)
     }
 
     async removeTasks(tasks: XpertTask[]) {
@@ -218,7 +294,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     }
 
     async test(id: string, options: TChatOptions) {
-        await this.executeTask(id, options)
+        return await this.executeTask(id, options)
     }
 
     private resolveScheduleScope() {
@@ -233,7 +309,79 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         return {
             tenantId,
             organizationId: organizationId ?? null,
-            userId,
+            userId
+        }
+    }
+
+    private createScopedXpertTaskTemplateQuery(scope: {
+        tenantId: string
+        organizationId: string | null
+        userId: string
+        source?: string | null
+    }): SelectQueryBuilder<XpertTaskTemplate> {
+        const query = this.xpertTaskTemplateRepository
+            .createQueryBuilder('template')
+            .where('template."tenantId" = :tenantId', { tenantId: scope.tenantId })
+            .andWhere('template."createdById" = :createdById', { createdById: scope.userId })
+
+        if (scope.organizationId) {
+            query.andWhere('template."organizationId" = :organizationId', {
+                organizationId: scope.organizationId
+            })
+        } else {
+            query.andWhere('template."organizationId" IS NULL')
+        }
+
+        if (scope.source) {
+            query.andWhere('template."source" = :source', { source: scope.source })
+        }
+
+        return query
+    }
+
+    private applyTenantXpertTaskTemplateScope(
+        query: SelectQueryBuilder<XpertTaskTemplate>,
+        tenantId: string
+    ): SelectQueryBuilder<XpertTaskTemplate> {
+        query.andWhere('template."tenantId" = :tenantId', { tenantId }).andWhere('template."organizationId" IS NULL')
+        return query
+    }
+
+    private async assertXpertTaskTemplateKeyAvailable(
+        key: string,
+        scope: {
+            tenantId: string
+            organizationId: string | null
+            userId: string
+            source?: string | null
+        },
+        excludedId?: string
+    ) {
+        const builtinQuery = this.xpertTaskTemplateRepository
+            .createQueryBuilder('template')
+            .where('template."key" = :key', { key })
+            .andWhere('template."builtin" = true')
+            .andWhere('template."createdById" IS NULL')
+        this.applyTenantXpertTaskTemplateScope(builtinQuery, scope.tenantId)
+        if (scope.source) {
+            builtinQuery.andWhere('template."source" = :source', { source: scope.source })
+        }
+
+        const builtinExists = await builtinQuery.getOne()
+        if (builtinExists) {
+            throw new BadRequestException('Template key already exists')
+        }
+
+        const query = this.createScopedXpertTaskTemplateQuery(scope)
+            .andWhere('template."builtin" = false')
+            .andWhere('template."key" = :key', { key })
+        if (excludedId) {
+            query.andWhere('template.id != :id', { id: excludedId })
+        }
+
+        const exists = await query.getOne()
+        if (exists) {
+            throw new BadRequestException('Template key already exists')
         }
     }
 
@@ -302,9 +450,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 tenantId,
                 organizationId,
                 createdById: userId,
-                date: Between(fromDate, toDate),
+                date: Between(fromDate, toDate)
             },
-            order: { date: 'ASC' },
+            order: { date: 'ASC' }
         })
 
         const conversations = await this.chatConversationRepository
@@ -315,7 +463,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             .andWhere('conversation."organizationId" IS NOT DISTINCT FROM :organizationId', { organizationId })
             .andWhere('conversation."createdById" = :createdById', { createdById: userId })
             .andWhere('conversation."createdAt" >= :fromDate', { fromDate: `${fromDate}T00:00:00.000Z` })
-            .andWhere('conversation."createdAt" < :toExclusive', { toExclusive: `${this.addDays(toDate, 1)}T00:00:00.000Z` })
+            .andWhere('conversation."createdAt" < :toExclusive', {
+                toExclusive: `${this.addDays(toDate, 1)}T00:00:00.000Z`
+            })
             .groupBy('date')
             .getRawMany<{ date: string; total: string }>()
 
@@ -364,7 +514,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 customCount,
                 codexpertCount,
                 completedCount,
-                intensity: 0,
+                intensity: 0
             })
             cursor = this.addDays(cursor, 1)
         }
@@ -383,9 +533,14 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             metrics: {
                 totalCount,
                 activeDays,
-                completionRate: totalCount > 0 ? Number(((days.reduce((sum, day) => sum + day.completedCount, 0) / totalCount) * 100).toFixed(2)) : 0,
-                peakDate,
-            },
+                completionRate:
+                    totalCount > 0
+                        ? Number(
+                              ((days.reduce((sum, day) => sum + day.completedCount, 0) / totalCount) * 100).toFixed(2)
+                          )
+                        : 0,
+                peakDate
+            }
         }
     }
 
@@ -400,9 +555,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     tenantId,
                     organizationId,
                     createdById: userId,
-                    date: targetDate,
+                    date: targetDate
                 },
-                order: { createdAt: 'ASC' },
+                order: { createdAt: 'ASC' }
             }),
             this.chatConversationRepository
                 .createQueryBuilder('conversation')
@@ -413,7 +568,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 .andWhere('conversation."createdAt" < :endDate', { endDate: `${nextDate}T00:00:00.000Z` })
                 .orderBy('conversation."createdAt"', 'ASC')
                 .getMany(),
-            this.listAutoTasks(),
+            this.listAutoTasks()
         ])
 
         const autoTaskByNoteId = new Map<string, AutoTask>()
@@ -432,7 +587,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             if (autoTaskByNoteId.has(noteId)) {
                 continue
             }
-            const fallbackMatch = remainingAutoTasks.find((task) => this.matchesScheduleNoteFallback(task, note, targetDate))
+            const fallbackMatch = remainingAutoTasks.find((task) =>
+                this.matchesScheduleNoteFallback(task, note, targetDate)
+            )
             if (fallbackMatch) {
                 autoTaskByNoteId.set(noteId, fallbackMatch)
                 remainingAutoTasks.splice(remainingAutoTasks.indexOf(fallbackMatch), 1)
@@ -449,11 +606,14 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             date: note.date,
             time: this.resolveScheduleItemTime(note, autoTaskByNoteId.get(note.id as string)),
             remindAt: note.remindAt ? note.remindAt.toISOString() : null,
-            autoTask: this.serializeScheduleAutoTask(autoTaskByNoteId.get(note.id as string)),
+            autoTask: this.serializeScheduleAutoTask(autoTaskByNoteId.get(note.id as string))
         }))
 
         const conversationItems = conversations.map((conversation) => {
-            const titleText = typeof conversation.title === 'string' && conversation.title.trim() ? conversation.title.trim() : 'Conversation'
+            const titleText =
+                typeof conversation.title === 'string' && conversation.title.trim()
+                    ? conversation.title.trim()
+                    : 'Conversation'
             return {
                 id: conversation.id as string,
                 source: 'codexpert' as const,
@@ -462,14 +622,18 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 title: titleText,
                 content: null,
                 date: targetDate,
-                time: conversation.createdAt ? `${String(conversation.createdAt.getHours()).padStart(2, '0')}:${String(conversation.createdAt.getMinutes()).padStart(2, '0')}` : null,
-                remindAt: null,
+                time: conversation.createdAt
+                    ? `${String(conversation.createdAt.getHours()).padStart(2, '0')}:${String(conversation.createdAt.getMinutes()).padStart(2, '0')}`
+                    : null,
+                remindAt: null
             }
         })
 
         return {
             date: targetDate,
-            items: [...noteItems, ...conversationItems].sort((left, right) => (left.time ?? '').localeCompare(right.time ?? '')),
+            items: [...noteItems, ...conversationItems].sort((left, right) =>
+                (left.time ?? '').localeCompare(right.time ?? '')
+            )
         }
     }
 
@@ -495,7 +659,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             date: this.parseDateOnly(payload.date),
             remindAt: this.parseReminder(payload.remindAt),
             type: this.normalizeNoteType(payload.type),
-            status: this.normalizeNoteStatus(payload.status),
+            status: this.normalizeNoteStatus(payload.status)
         })
         return this.scheduleNoteRepository.save(note)
     }
@@ -534,8 +698,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 ...payload.autoTask,
                 params: {
                     ...(payload.autoTask.params ?? {}),
-                    scheduleNoteId: note.id,
-                },
+                    scheduleNoteId: note.id
+                }
             })
             createdAutoTaskId = autoTask.id as string
             note.remindAt = this.resolveScheduleNoteReminder(autoTask, note.date)
@@ -546,7 +710,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 try {
                     await this.deleteAutoTask(createdAutoTaskId)
                 } catch (rollbackError) {
-                    this.#logger.error(`Failed to rollback auto task ${createdAutoTaskId}: ${getErrorMessage(rollbackError)}`)
+                    this.#logger.error(
+                        `Failed to rollback auto task ${createdAutoTaskId}: ${getErrorMessage(rollbackError)}`
+                    )
                 }
             }
             try {
@@ -582,7 +748,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 pushChannel?: string | null
                 params?: Record<string, unknown> | null
             } | null
-        },
+        }
     ) {
         const { tenantId, organizationId, userId } = this.resolveScheduleScope()
         const note = await this.scheduleNoteRepository.findOne({
@@ -590,8 +756,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 id,
                 tenantId,
                 organizationId,
-                createdById: userId,
-            },
+                createdById: userId
+            }
         })
         if (!note) {
             throw new BadRequestException('Schedule note not found')
@@ -648,21 +814,21 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 } else {
                     const nextAutoTask = existingAutoTask
                         ? await this.updateAutoTask(existingAutoTask.id, {
-                            ...payload.autoTask,
-                            params: {
-                                ...(payload.autoTask.params ?? {}),
-                                date: savedNote.date,
-                                scheduleNoteId: savedNote.id,
-                            },
-                        })
+                              ...payload.autoTask,
+                              params: {
+                                  ...(payload.autoTask.params ?? {}),
+                                  date: savedNote.date,
+                                  scheduleNoteId: savedNote.id
+                              }
+                          })
                         : await this.createAutoTask({
-                            ...payload.autoTask,
-                            params: {
-                                ...(payload.autoTask.params ?? {}),
-                                date: savedNote.date,
-                                scheduleNoteId: savedNote.id,
-                            },
-                        })
+                              ...payload.autoTask,
+                              params: {
+                                  ...(payload.autoTask.params ?? {}),
+                                  date: savedNote.date,
+                                  scheduleNoteId: savedNote.id
+                              }
+                          })
                     if (existingAutoTask) {
                         autoTaskUpdated = true
                     } else {
@@ -680,7 +846,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 originalAutoTaskPayload,
                 createdAutoTaskId,
                 autoTaskDeleted,
-                autoTaskUpdated,
+                autoTaskUpdated
             })
             throw error
         }
@@ -693,8 +859,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 id,
                 tenantId,
                 organizationId,
-                createdById: userId,
-            },
+                createdById: userId
+            }
         })
         if (!note) {
             throw new BadRequestException('Schedule note not found')
@@ -716,7 +882,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     note.remindAt = this.resolveScheduleNoteReminder(restored, note.date)
                     await this.scheduleNoteRepository.save(note)
                 } catch (rollbackError) {
-                    this.#logger.error(`Failed to rollback auto task for schedule note ${note.id}: ${getErrorMessage(rollbackError)}`)
+                    this.#logger.error(
+                        `Failed to rollback auto task for schedule note ${note.id}: ${getErrorMessage(rollbackError)}`
+                    )
                 }
             }
             throw error
@@ -751,7 +919,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             date: note.date,
             remindAt: note.remindAt ?? null,
             type: note.type,
-            status: note.status,
+            status: note.status
         }
     }
 
@@ -769,7 +937,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             runAt: task.runAt ? task.runAt.toISOString() : null,
             timeZone: task.timeZone ?? null,
             pushChannel: task.pushChannel ?? null,
-            params: task.params ?? null,
+            params: task.params ?? null
         }
     }
 
@@ -789,9 +957,10 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             createdAutoTaskId: string | null
             autoTaskDeleted: boolean
             autoTaskUpdated: boolean
-        },
+        }
     ) {
-        const { existingAutoTaskId, originalAutoTaskPayload, createdAutoTaskId, autoTaskDeleted, autoTaskUpdated } = options
+        const { existingAutoTaskId, originalAutoTaskPayload, createdAutoTaskId, autoTaskDeleted, autoTaskUpdated } =
+            options
 
         try {
             if (createdAutoTaskId) {
@@ -802,7 +971,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 await this.updateAutoTask(existingAutoTaskId, originalAutoTaskPayload)
             }
         } catch (rollbackError) {
-            this.#logger.error(`Failed to rollback auto task state for schedule note ${noteId}: ${getErrorMessage(rollbackError)}`)
+            this.#logger.error(
+                `Failed to rollback auto task state for schedule note ${noteId}: ${getErrorMessage(rollbackError)}`
+            )
         }
 
         try {
@@ -838,7 +1009,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 return parsed
             }
         }
-        return note.remindAt ? `${String(note.remindAt.getHours()).padStart(2, '0')}:${String(note.remindAt.getMinutes()).padStart(2, '0')}` : null
+        return note.remindAt
+            ? `${String(note.remindAt.getHours()).padStart(2, '0')}:${String(note.remindAt.getMinutes()).padStart(2, '0')}`
+            : null
     }
 
     private serializeScheduleAutoTask(autoTask?: AutoTask) {
@@ -857,7 +1030,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             runAt: autoTask.runAt ? autoTask.runAt.toISOString() : null,
             templateId: autoTask.templateId ?? null,
             timeZone: autoTask.timeZone ?? null,
-            assistantId: this.resolveAutoTaskAssistantId(autoTask.params),
+            assistantId: this.resolveAutoTaskAssistantId(autoTask.params)
         }
     }
 
@@ -895,11 +1068,11 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             where: {
                 tenantId,
                 organizationId,
-                createdById: userId,
+                createdById: userId
             },
             order: {
-                updatedAt: 'DESC',
-            },
+                updatedAt: 'DESC'
+            }
         })
     }
 
@@ -928,7 +1101,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const params = payload.params ?? null
         this.requireAutoTaskAssistantId(params)
         const templateId = await this.resolveAutoTaskTemplateId(payload.templateId)
-        const timeZone = this.resolveAutoTaskTimeZone(payload.timeZone ?? RequestContext.currentUser()?.timeZone ?? null)
+        const timeZone = this.resolveAutoTaskTimeZone(
+            payload.timeZone ?? RequestContext.currentUser()?.timeZone ?? null
+        )
 
         const task = this.autoTaskRepository.create({
             tenantId,
@@ -946,7 +1121,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             runAt: this.parseReminder(payload.runAt),
             timeZone,
             pushChannel: this.normalizeOptionalText(payload.pushChannel),
-            params,
+            params
         })
         task.nextRunAt = this.computeAutoTaskNextRunAt(task)
         return this.autoTaskRepository.save(task)
@@ -968,7 +1143,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             timeZone?: string | null
             pushChannel?: string | null
             params?: Record<string, unknown> | null
-        },
+        }
     ) {
         const { tenantId, organizationId, userId } = this.resolveScheduleScope()
         const task = await this.autoTaskRepository.findOne({
@@ -976,8 +1151,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 id,
                 tenantId,
                 organizationId,
-                createdById: userId,
-            },
+                createdById: userId
+            }
         })
         if (!task) {
             throw new BadRequestException('Auto task not found')
@@ -1034,8 +1209,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 id,
                 tenantId,
                 organizationId,
-                createdById: userId,
-            },
+                createdById: userId
+            }
         })
         if (!task) {
             throw new BadRequestException('Auto task not found')
@@ -1052,7 +1227,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             .where('template.builtin = true')
             .orWhere(
                 'template.tenantId = :tenantId and template.organizationId = :organizationId and template.createdById = :createdById',
-                { tenantId, organizationId, createdById: userId },
+                { tenantId, organizationId, createdById: userId }
             )
             .orderBy('template.builtin', 'DESC')
             .addOrderBy('template.createdAt', 'DESC')
@@ -1077,7 +1252,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             .where('template.key = :key', { key })
             .andWhere(
                 '(template.builtin = true or (template.tenantId = :tenantId and template.organizationId = :organizationId and template.createdById = :createdById))',
-                { tenantId, organizationId, createdById: userId },
+                { tenantId, organizationId, createdById: userId }
             )
             .getOne()
         if (exists) {
@@ -1094,9 +1269,198 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             prompt,
             defaultParams: payload.defaultParams ?? null,
             icon: this.normalizeOptionalText(payload.icon),
-            builtin: false,
+            builtin: false
         })
         return this.autoTaskTemplateRepository.save(template)
+    }
+
+    async listXpertTaskTemplates(source?: string | null) {
+        const scope = this.resolveScheduleScope()
+        const normalizedSource = this.normalizeTemplateSource(source)
+
+        const builtinTemplateQuery = this.xpertTaskTemplateRepository
+            .createQueryBuilder('template')
+            .where('template."builtin" = true')
+            .andWhere('template."createdById" IS NULL')
+            .orderBy('template."createdAt"', 'ASC')
+        this.applyTenantXpertTaskTemplateScope(builtinTemplateQuery, scope.tenantId)
+        if (normalizedSource) {
+            builtinTemplateQuery.andWhere('template."source" = :source', { source: normalizedSource })
+        }
+        const builtinTemplates = await builtinTemplateQuery.getMany()
+
+        const personalTemplates = await this.createScopedXpertTaskTemplateQuery({
+            ...scope,
+            source: normalizedSource
+        })
+            .andWhere('template."builtin" = false')
+            .orderBy('template."createdAt"', 'DESC')
+            .getMany()
+
+        return [...builtinTemplates, ...personalTemplates]
+    }
+
+    async createXpertTaskTemplate(payload: {
+        key?: string
+        title?: string
+        prompt?: string | I18nObject
+        defaultOptions?: TScheduleOptions | null
+        icon?: string | null
+        source?: string | null
+        builtin?: boolean
+    }) {
+        const { tenantId, organizationId, userId } = this.resolveScheduleScope()
+        const source = this.normalizeTemplateSource(payload.source)
+        const title = this.requireText(payload.title, 'title')
+        const prompt = this.normalizeTaskTemplatePrompt(payload.prompt)
+        const key = this.normalizeTemplateKey(payload.key || title)
+
+        if (payload.builtin === true) {
+            return this.upsertBuiltinXpertTaskTemplate({
+                source,
+                key,
+                title,
+                prompt,
+                defaultOptions: this.normalizeTaskTemplateOptions(payload.defaultOptions),
+                icon: this.normalizeOptionalText(payload.icon)
+            })
+        }
+
+        await this.assertXpertTaskTemplateKeyAvailable(key, {
+            tenantId,
+            organizationId,
+            userId,
+            source
+        })
+
+        const template = this.xpertTaskTemplateRepository.create({
+            tenantId,
+            organizationId,
+            createdById: RequestContext.currentUserId(),
+            source,
+            key,
+            title,
+            prompt,
+            defaultOptions: this.normalizeTaskTemplateOptions(payload.defaultOptions),
+            icon: this.normalizeOptionalText(payload.icon),
+            builtin: false
+        })
+        return this.xpertTaskTemplateRepository.save(template)
+    }
+
+    private async upsertBuiltinXpertTaskTemplate(payload: {
+        source: string | null
+        key: string
+        title: string
+        prompt: string | I18nObject
+        defaultOptions: TScheduleOptions | null
+        icon: string | null
+    }) {
+        if (!payload.source) {
+            throw new BadRequestException('Template source is required for builtin templates')
+        }
+        const { tenantId } = this.resolveScheduleScope()
+
+        const templateQuery = this.xpertTaskTemplateRepository
+            .createQueryBuilder('template')
+            .where('template."builtin" = true')
+            .andWhere('template."source" = :source', { source: payload.source })
+            .andWhere('template."key" = :key', { key: payload.key })
+            .andWhere('template."createdById" IS NULL')
+        this.applyTenantXpertTaskTemplateScope(templateQuery, tenantId)
+        const existingTemplate = await templateQuery.getOne()
+
+        if (existingTemplate) {
+            existingTemplate.title = payload.title
+            existingTemplate.prompt = payload.prompt
+            existingTemplate.defaultOptions = payload.defaultOptions
+            existingTemplate.icon = payload.icon
+            return this.xpertTaskTemplateRepository.save(existingTemplate)
+        }
+
+        return this.xpertTaskTemplateRepository.save(
+            this.xpertTaskTemplateRepository.create({
+                tenantId,
+                organizationId: null,
+                createdById: null,
+                source: payload.source,
+                key: payload.key,
+                title: payload.title,
+                prompt: payload.prompt,
+                defaultOptions: payload.defaultOptions,
+                icon: payload.icon,
+                builtin: true
+            })
+        )
+    }
+
+    async updateXpertTaskTemplate(
+        id: string,
+        payload: {
+            key?: string
+            title?: string
+            prompt?: string | I18nObject
+            defaultOptions?: TScheduleOptions | null
+            icon?: string | null
+        },
+        source?: string | null
+    ) {
+        const { tenantId, organizationId, userId } = this.resolveScheduleScope()
+        const normalizedSource = this.normalizeTemplateSource(source)
+        const scope = {
+            tenantId,
+            organizationId,
+            userId,
+            source: normalizedSource
+        }
+        const template = await this.createScopedXpertTaskTemplateQuery(scope)
+            .andWhere('template.id = :id', { id })
+            .andWhere('template."builtin" = false')
+            .getOne()
+        if (!template) {
+            throw new BadRequestException('Xpert task template not found')
+        }
+
+        if (payload.key !== undefined) {
+            const key = this.normalizeTemplateKey(payload.key)
+            if (key !== template.key) {
+                await this.assertXpertTaskTemplateKeyAvailable(key, scope, id)
+                template.key = key
+            }
+        }
+        if (payload.title !== undefined) {
+            template.title = this.requireText(payload.title, 'title')
+        }
+        if (payload.prompt !== undefined) {
+            template.prompt = this.normalizeTaskTemplatePrompt(payload.prompt)
+        }
+        if (payload.defaultOptions !== undefined) {
+            template.defaultOptions = this.normalizeTaskTemplateOptions(payload.defaultOptions)
+        }
+        if (payload.icon !== undefined) {
+            template.icon = this.normalizeOptionalText(payload.icon)
+        }
+
+        return this.xpertTaskTemplateRepository.save(template)
+    }
+
+    async deleteXpertTaskTemplate(id: string, source?: string | null) {
+        const { tenantId, organizationId, userId } = this.resolveScheduleScope()
+        const normalizedSource = this.normalizeTemplateSource(source)
+        const template = await this.createScopedXpertTaskTemplateQuery({
+            tenantId,
+            organizationId,
+            userId,
+            source: normalizedSource
+        })
+            .andWhere('template.id = :id', { id })
+            .andWhere('template."builtin" = false')
+            .getOne()
+        if (!template) {
+            throw new BadRequestException('Xpert task template not found')
+        }
+        await this.xpertTaskTemplateRepository.remove(template)
+        return { success: true }
     }
 
     @Cron('0 * * * * *')
@@ -1131,7 +1495,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     private async acquireAutoTaskCronLock(): Promise<boolean> {
         try {
-            const rows = await this.autoTaskRepository.query('select pg_try_advisory_lock($1) as locked', [this.#autoTaskCronLockKey])
+            const rows = await this.autoTaskRepository.query('select pg_try_advisory_lock($1) as locked', [
+                this.#autoTaskCronLockKey
+            ])
             if (!Array.isArray(rows) || rows.length === 0) {
                 return false
             }
@@ -1159,24 +1525,12 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const assistantId = this.requireAutoTaskAssistantId(task.params)
 
         const execute = async () => {
-            const observable = await this.commandBus.execute(
-                new XpertChatCommand(
-                    {
-                        action: 'send',
-                        message: {
-                            input: {
-                                input: task.prompt,
-                            },
-                        },
-                    },
-                    {
-                        xpertId: assistantId,
-                        timeZone: task.timeZone ?? undefined,
-                        from: 'job',
-                        taskId: task.id,
-                    },
-                ),
-            )
+            const { observable } = await this.createPersistedTaskChatRun({
+                prompt: task.prompt,
+                xpertId: assistantId,
+                taskId: task.id,
+                timeZone: task.timeZone ?? undefined
+            })
             await lastValueFrom(observable.pipe(toArray()))
         }
 
@@ -1188,7 +1542,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 { user: createdBy, headers: { ['organization-id']: task.organizationId } },
                 async () => {
                     await execute()
-                },
+                }
             )
         } else {
             throw new BadRequestException('Missing createdBy context for auto task execution')
@@ -1227,7 +1581,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     this.addAutoTaskDaysInTimeZone(now, timeZone, 1),
                     timeZone,
                     safeHour,
-                    safeMinute,
+                    safeMinute
                 )
             }
             return next
@@ -1243,7 +1597,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 this.addAutoTaskDaysInTimeZone(now, timeZone, delta),
                 timeZone,
                 safeHour,
-                safeMinute,
+                safeMinute
             )
         }
         if (next <= now) {
@@ -1251,7 +1605,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 this.addAutoTaskDaysInTimeZone(now, timeZone, 7),
                 timeZone,
                 safeHour,
-                safeMinute,
+                safeMinute
             )
         }
         return next
@@ -1289,29 +1643,25 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     private createAutoTaskZonedDate(base: Date, timeZone: string, hour: number, minute: number): Date {
         const zoned = this.toAutoTaskZonedDate(base, timeZone)
-        const candidate = new Date(Date.UTC(
-            zoned.getUTCFullYear(),
-            zoned.getUTCMonth(),
-            zoned.getUTCDate(),
-            hour,
-            minute,
-            0,
-            0,
-        ))
+        const candidate = new Date(
+            Date.UTC(zoned.getUTCFullYear(), zoned.getUTCMonth(), zoned.getUTCDate(), hour, minute, 0, 0)
+        )
         return this.autoTaskZonedTimeToUtc(candidate, timeZone)
     }
 
     private addAutoTaskDaysInTimeZone(base: Date, timeZone: string, days: number): Date {
         const zoned = this.toAutoTaskZonedDate(base, timeZone)
-        const next = new Date(Date.UTC(
-            zoned.getUTCFullYear(),
-            zoned.getUTCMonth(),
-            zoned.getUTCDate() + days,
-            zoned.getUTCHours(),
-            zoned.getUTCMinutes(),
-            zoned.getUTCSeconds(),
-            zoned.getUTCMilliseconds(),
-        ))
+        const next = new Date(
+            Date.UTC(
+                zoned.getUTCFullYear(),
+                zoned.getUTCMonth(),
+                zoned.getUTCDate() + days,
+                zoned.getUTCHours(),
+                zoned.getUTCMinutes(),
+                zoned.getUTCSeconds(),
+                zoned.getUTCMilliseconds()
+            )
+        )
         return this.autoTaskZonedTimeToUtc(next, timeZone)
     }
 
@@ -1321,15 +1671,17 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     }
 
     private autoTaskZonedTimeToUtc(value: Date, timeZone: string): Date {
-        const utcGuess = new Date(Date.UTC(
-            value.getUTCFullYear(),
-            value.getUTCMonth(),
-            value.getUTCDate(),
-            value.getUTCHours(),
-            value.getUTCMinutes(),
-            value.getUTCSeconds(),
-            value.getUTCMilliseconds(),
-        ))
+        const utcGuess = new Date(
+            Date.UTC(
+                value.getUTCFullYear(),
+                value.getUTCMonth(),
+                value.getUTCDate(),
+                value.getUTCHours(),
+                value.getUTCMinutes(),
+                value.getUTCSeconds(),
+                value.getUTCMilliseconds()
+            )
+        )
         const offset = this.getAutoTaskTimeZoneOffset(utcGuess, timeZone)
         return new Date(utcGuess.getTime() - offset)
     }
@@ -1344,7 +1696,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             day: '2-digit',
             hour: '2-digit',
             minute: '2-digit',
-            second: '2-digit',
+            second: '2-digit'
         })
         const parts = formatter.formatToParts(value)
         const data = parts.reduce<Record<string, number>>((acc, part) => {
@@ -1360,7 +1712,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             data.day ?? 1,
             normalizedHour,
             data.minute ?? 0,
-            data.second ?? 0,
+            data.second ?? 0
         )
         return utcMillis - value.getTime()
     }
@@ -1375,11 +1727,11 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             .createQueryBuilder('template')
             .where('(template.id = :templateId or template.key = :templateKey)', {
                 templateId: normalizedTemplateId,
-                templateKey: normalizedTemplateId,
+                templateKey: normalizedTemplateId
             })
             .andWhere(
                 '(template.builtin = true or (template.tenantId = :tenantId and template.organizationId = :organizationId and template.createdById = :createdById))',
-                { tenantId, organizationId, createdById: userId },
+                { tenantId, organizationId, createdById: userId }
             )
             .getOne()
         if (!template) {
@@ -1416,6 +1768,87 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         return normalized
     }
 
+    private normalizeTemplateSource(value?: string | null): string | null {
+        const normalized = this.normalizeOptionalText(value)
+        if (!normalized) {
+            return null
+        }
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(normalized)) {
+            throw new BadRequestException('Template source is invalid')
+        }
+        return normalized
+    }
+
+    private normalizeTaskTemplatePrompt(value: string | I18nObject | undefined): string | I18nObject {
+        if (typeof value === 'string') {
+            return this.requireText(value, 'prompt')
+        }
+        if (typeof value !== 'object' || Array.isArray(value)) {
+            throw new BadRequestException('prompt is required')
+        }
+
+        const normalized: Record<string, string> = {}
+        for (const [locale, prompt] of Object.entries(value)) {
+            const localeKey = this.normalizeOptionalText(locale)
+            if (!localeKey || !/^[a-zA-Z]{2,3}([_-][a-zA-Z0-9]{2,8})*$/.test(localeKey)) {
+                throw new BadRequestException('prompt locale is invalid')
+            }
+            const promptText = typeof prompt === 'string' ? prompt.trim() : ''
+            if (promptText) {
+                normalized[localeKey.replace(/-/g, '_')] = promptText
+            }
+        }
+
+        if (Object.keys(normalized).length === 0) {
+            throw new BadRequestException('prompt is required')
+        }
+
+        const defaultPrompt = normalized.en_US
+        if (!defaultPrompt) {
+            throw new BadRequestException('prompt.en_US is required')
+        }
+
+        return { ...normalized, en_US: defaultPrompt }
+    }
+
+    private normalizeTaskTemplateOptions(value: TScheduleOptions | null | undefined): TScheduleOptions | null {
+        if (!value) {
+            return null
+        }
+        if (typeof value !== 'object' || Array.isArray(value)) {
+            throw new BadRequestException('defaultOptions must be an object')
+        }
+        if (!Object.values(TaskFrequency).includes(value.frequency)) {
+            throw new BadRequestException('defaultOptions.frequency is invalid')
+        }
+        const time = typeof value.time === 'string' ? value.time.trim() : ''
+        if (!/^\d{2}:\d{2}$/.test(time)) {
+            throw new BadRequestException('defaultOptions.time must use HH:mm format')
+        }
+        const [hourText, minuteText] = time.split(':')
+        const hour = Number(hourText)
+        const minute = Number(minuteText)
+        if (
+            !Number.isInteger(hour) ||
+            !Number.isInteger(minute) ||
+            hour < 0 ||
+            hour > 23 ||
+            minute < 0 ||
+            minute > 59
+        ) {
+            throw new BadRequestException('defaultOptions.time is invalid')
+        }
+
+        return {
+            frequency: value.frequency,
+            time,
+            ...(value.dayOfWeek !== undefined ? { dayOfWeek: value.dayOfWeek } : {}),
+            ...(value.dayOfMonth !== undefined ? { dayOfMonth: value.dayOfMonth } : {}),
+            ...(value.month !== undefined ? { month: value.month } : {}),
+            ...(value.date ? { date: value.date } : {})
+        }
+    }
+
     private async seedBuiltinAutoTaskTemplates() {
         const templates = [
             {
@@ -1428,8 +1861,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     frequency: 'daily',
                     schedule: '0 9 * * *',
                     time: '09:00',
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'weekly-risk-review',
@@ -1442,36 +1875,36 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 10 * * 1',
                     time: '10:00',
                     weekday: 1,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'weekly-pr-summary',
                 title: 'Weekly PR summary',
                 description: 'Summarize merged, open, and blocked pull requests for the week.',
-                prompt: 'Summarize this week\'s pull requests. Highlight merged work, blocked reviews, and PRs that need follow-up.',
+                prompt: "Summarize this week's pull requests. Highlight merged work, blocked reviews, and PRs that need follow-up.",
                 icon: 'git-pull-request',
                 defaultParams: {
                     frequency: 'weekly',
                     schedule: '0 10 * * 1',
                     time: '10:00',
                     weekday: 1,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'weekly-org-update',
                 title: 'Weekly engineering update',
-                description: 'Synthesize this week\'s PRs, rollouts, incidents, and reviews into an engineering update.',
-                prompt: 'Synthesize this week\'s PRs, rollouts, incidents, and reviews into a weekly update. Group updates by theme and include only evidence-backed facts and links.',
+                description: "Synthesize this week's PRs, rollouts, incidents, and reviews into an engineering update.",
+                prompt: "Synthesize this week's PRs, rollouts, incidents, and reviews into a weekly update. Group updates by theme and include only evidence-backed facts and links.",
                 icon: 'newspaper',
                 defaultParams: {
                     frequency: 'weekly',
                     schedule: '0 10 * * 1',
                     time: '10:00',
                     weekday: 1,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'release-notes-draft',
@@ -1484,8 +1917,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 11 * * 5',
                     time: '11:00',
                     weekday: 5,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'pre-tag-checklist',
@@ -1498,8 +1931,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 15 * * 4',
                     time: '15:00',
                     weekday: 4,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'changelog-update',
@@ -1512,8 +1945,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 16 * * 5',
                     time: '16:00',
                     weekday: 5,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'flaky-ci-summary',
@@ -1525,8 +1958,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     frequency: 'daily',
                     schedule: '30 9 * * *',
                     time: '09:30',
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'issue-triage',
@@ -1538,8 +1971,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     frequency: 'daily',
                     schedule: '0 13 * * *',
                     time: '13:00',
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'ci-root-cause-grouping',
@@ -1551,8 +1984,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     frequency: 'daily',
                     schedule: '0 11 * * *',
                     time: '11:00',
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'recent-bug-scan',
@@ -1564,8 +1997,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     frequency: 'daily',
                     schedule: '0 14 * * *',
                     time: '14:00',
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'untested-path-detection',
@@ -1577,8 +2010,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     frequency: 'daily',
                     schedule: '0 15 * * *',
                     time: '15:00',
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'regression-early-warning',
@@ -1590,8 +2023,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     frequency: 'daily',
                     schedule: '0 16 * * *',
                     time: '16:00',
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'dependency-sdk-drift',
@@ -1604,8 +2037,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 9 * * 2',
                     time: '09:00',
                     weekday: 2,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'outdated-dependency-scan',
@@ -1618,8 +2051,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 10 * * 2',
                     time: '10:00',
                     weekday: 2,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'agents-doc-update',
@@ -1632,8 +2065,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 11 * * 3',
                     time: '11:00',
                     weekday: 3,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'next-skill-recommendation',
@@ -1646,8 +2079,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 14 * * 3',
                     time: '14:00',
                     weekday: 3,
-                    branch: 'main',
-                },
+                    branch: 'main'
+                }
             },
             {
                 key: 'performance-leverage-audit',
@@ -1660,9 +2093,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     schedule: '0 15 * * 3',
                     time: '15:00',
                     weekday: 3,
-                    branch: 'main',
-                },
-            },
+                    branch: 'main'
+                }
+            }
         ]
 
         for (const item of templates) {
@@ -1675,7 +2108,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 organizationId: '00000000-0000-0000-0000-000000000000',
                 createdById: null,
                 ...item,
-                builtin: true,
+                builtin: true
             })
             await this.autoTaskTemplateRepository.save(entity)
         }

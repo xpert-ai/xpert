@@ -21,11 +21,10 @@ import { JSONSchemaPropertyComponent } from '../json-schema-property/property.co
   styleUrls: ['form.component.scss'],
   hostDirectives: [NgxControlValueAccessor],
   host: {
-    '[class]': `xUiSpan() ? 'gap-4 grid grid-cols-' + xUiSpan() : ''`
+    '[class]': `xUiSpan() ? 'gap-2 grid grid-cols-' + xUiSpan() : ''`
   }
 })
 export class JSONSchemaFormComponent {
-
   protected cva = inject<NgxControlValueAccessor<Record<string, unknown>>>(NgxControlValueAccessor)
   readonly i18n = new NgmI18nPipe()
 
@@ -33,8 +32,8 @@ export class JSONSchemaFormComponent {
   readonly schema = input<JsonSchemaObjectType>()
   readonly variables = input<TWorkflowVarGroup[]>()
   readonly readonly = input<boolean, string | boolean>(false, {
-      transform: booleanAttribute
-    })
+    transform: booleanAttribute
+  })
   readonly context = input<Record<string, unknown> | undefined>(undefined)
 
   // Attrs
@@ -43,10 +42,14 @@ export class JSONSchemaFormComponent {
   }
 
   // States
-  readonly properties = computed(() => this.schema()?.properties && Object.entries(this.schema().properties).map(([name, value]) => ({
-    ...value,
-    name,
-  })) )
+  readonly properties = computed(
+    () =>
+      this.schema()?.properties &&
+      Object.entries(this.schema().properties).map(([name, value]) => ({
+        ...value,
+        name
+      }))
+  )
 
   readonly xUi = computed(() => this.schema()?.['x-ui'] || {})
   readonly xUiSpan = computed(() => this.xUi()?.cols)

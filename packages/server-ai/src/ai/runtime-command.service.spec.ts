@@ -333,8 +333,26 @@ describe('RuntimeCommandService', () => {
                         description: 'Run a goal loop',
                         argsHint: '<objective>',
                         action: {
-                            type: 'submit_prompt',
+                            type: 'insert_invocation',
                             template: 'Goal: {{args}}'
+                        }
+                    },
+                    {
+                        name: 'compact',
+                        label: {
+                            en_US: 'Compress',
+                            zh_Hans: '压缩'
+                        },
+                        description: {
+                            en_US: 'Compress this thread context',
+                            zh_Hans: '压缩此线程的上下文'
+                        },
+                        category: 'session',
+                        kind: 'command',
+                        aliases: ['compress'],
+                        action: {
+                            type: 'submit_prompt',
+                            template: '/compact'
                         }
                     },
                     {
@@ -389,6 +407,94 @@ describe('RuntimeCommandService', () => {
                     nodeKey: 'middleware-goal',
                     label: 'Goal Loop'
                 }
+            }),
+            expect.objectContaining({
+                name: 'compact',
+                label: {
+                    en_US: 'Compress',
+                    zh_Hans: '压缩'
+                },
+                description: {
+                    en_US: 'Compress this thread context',
+                    zh_Hans: '压缩此线程的上下文'
+                },
+                category: 'session',
+                aliases: ['compress'],
+                action: {
+                    type: 'submit_prompt',
+                    template: '/compact',
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: {
+                            ids: []
+                        },
+                        plugins: {
+                            nodeKeys: ['middleware-goal']
+                        },
+                        subAgents: {
+                            nodeKeys: []
+                        }
+                    }
+                },
+                source: {
+                    type: 'middleware',
+                    provider: 'goal-loop-provider',
+                    nodeKey: 'middleware-goal',
+                    label: 'Goal Loop'
+                }
+            })
+        ])
+    })
+
+    it('preserves middleware runtime command i18n objects for ChatKit localization', () => {
+        const service = new RuntimeCommandService()
+
+        expect(
+            service.normalizeMiddlewareRuntimeSlashCommands(
+                [
+                    {
+                        name: 'compact',
+                        label: {
+                            en_US: 'Compress',
+                            zh_Hans: '压缩'
+                        },
+                        description: {
+                            en_US: 'Compress this thread context',
+                            zh_Hans: '压缩此线程的上下文'
+                        },
+                        action: {
+                            type: 'submit_prompt',
+                            template: '/compact'
+                        }
+                    }
+                ],
+                {
+                    provider: 'ContextCompressionMiddleware',
+                    nodeKey: 'middleware-compression',
+                    label: 'Context Compression'
+                }
+            )
+        ).toEqual([
+            expect.objectContaining({
+                name: 'compact',
+                label: {
+                    en_US: 'Compress',
+                    zh_Hans: '压缩'
+                },
+                description: {
+                    en_US: 'Compress this thread context',
+                    zh_Hans: '压缩此线程的上下文'
+                },
+                workflow: expect.objectContaining({
+                    label: {
+                        en_US: 'Compress',
+                        zh_Hans: '压缩'
+                    },
+                    description: {
+                        en_US: 'Compress this thread context',
+                        zh_Hans: '压缩此线程的上下文'
+                    }
+                })
             })
         ])
     })

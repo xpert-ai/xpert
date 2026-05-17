@@ -112,6 +112,7 @@ export class RuntimeCommandService {
         }
 
         const label = command.label ?? command.name
+        const description = command.description
         const icon = command.icon ?? skill.metadata.icon
         const kind =
             command.kind ??
@@ -120,7 +121,7 @@ export class RuntimeCommandService {
             kind,
             name: command.name,
             label,
-            description: command.description,
+            description,
             tags: skill.metadata.tags
         })
         const meta = createCommandMeta(command.meta, icon)
@@ -130,7 +131,7 @@ export class RuntimeCommandService {
         return compactObject<RuntimeSlashCommand>({
             name: command.name,
             label,
-            description: command.description,
+            description,
             icon,
             category,
             aliases: nonEmptyArray(command.aliases),
@@ -201,12 +202,15 @@ export class RuntimeCommandService {
         }
 
         const label = command.label ?? command.name
-        const kind = command.kind ?? (action.type === 'insert_invocation' ? 'prompt_workflow' : 'command')
+        const description = command.description
+        const kind =
+            command.kind ??
+            (action.type === 'submit_prompt' || action.type === 'insert_invocation' ? 'prompt_workflow' : 'command')
         const workflow = this.createSkillPromptWorkflow(command.workflow, {
             kind,
             name: command.name,
             label,
-            description: command.description,
+            description,
             tags: []
         })
         const meta = createCommandMeta(command.meta, command.icon)
@@ -216,7 +220,7 @@ export class RuntimeCommandService {
         return compactObject<RuntimeSlashCommand>({
             name: command.name,
             label,
-            description: command.description,
+            description,
             icon: command.icon,
             category,
             aliases: nonEmptyArray(command.aliases),
@@ -240,7 +244,15 @@ export class RuntimeCommandService {
         action: SkillSlashCommandAction,
         runtimeCapabilities: TRuntimeCapabilitiesSelection
     ): RuntimeSlashCommandAction | null {
-        if (action.type === 'insert_text' || action.type === 'insert_invocation' || action.type === 'submit_prompt') {
+        if (action.type === 'submit_prompt') {
+            return {
+                type: 'submit_prompt',
+                template: action.template,
+                runtimeCapabilities
+            }
+        }
+
+        if (action.type === 'insert_text' || action.type === 'insert_invocation') {
             return {
                 type: 'insert_invocation',
                 template: `/${commandName} `,
@@ -310,8 +322,8 @@ export class RuntimeCommandService {
         defaults: {
             kind: NonNullable<SkillSlashCommand['kind']>
             name: string
-            label: string
-            description?: string
+            label: NonNullable<SkillSlashCommand['label']>
+            description?: SkillSlashCommand['description']
             tags: string[]
         }
     ): SkillPromptWorkflow | undefined {

@@ -14,7 +14,7 @@
         <chat-component-message-iframe [data]="data()" />
       }
       @case ('Tasks') {
-        <chat-component-schedule-tasks [tasks]="tasks()" class="dark"/>
+        <chat-component-schedule-tasks [tasks]="tasks()" class="dark" />
       }
       @default {
         @if (step(); as step) {
@@ -26,19 +26,21 @@
   @case ('Tool') {
     @switch (data().type) {
       @case (contextCompressionComponentType) {
-        <chat-context-compression-chunk />
+        <chat-context-compression-chunk [chunk]="$any(data())" />
       }
       @case (eChatMessageStepCategory.Memory) {
         <chat-component-memories [message]="data()" />
       }
       @default {
         @if (step(); as step) {
-          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()"/>
+          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" />
         }
       }
-    } 
+    }
   }
   @default {
-    <div class="text-text-secondary text-sm">Unsupported category: {{data().category}} from message: {{data() | json}}</div>
+    <div class="text-text-secondary text-sm">
+      Unsupported category: {{ data().category }} from message: {{ data() | json }}
+    </div>
   }
 }

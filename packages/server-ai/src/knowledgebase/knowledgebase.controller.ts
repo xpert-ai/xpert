@@ -45,11 +45,12 @@ import { StatisticsKnowledgebasesQuery } from './queries'
 import { WorkspaceGuard } from '../xpert-workspace'
 import { KnowledgebasePublicDTO } from './dto'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { join } from 'path'
+import path from 'node:path'
 import { KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 import moment from 'moment'
+import { KnowledgeWorkAreaResolver } from '../shared'
 
 @ApiTags('Knowledgebase')
 @ApiBearerAuth()
@@ -63,6 +64,9 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 
     @Inject(KnowledgeRetrievalLogService)
     private readonly retrievalLogService: KnowledgeRetrievalLogService
+
+    @Inject(KnowledgeWorkAreaResolver)
+    private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
 
     constructor(
         private readonly service: KnowledgebaseService,
@@ -297,7 +301,14 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
             parentFolder = parents.map((i) => i.name).join('/')
         }
 
-        const targetFolder = join(parentFolder || '', subpath || '')
+        await this.knowledgeWorkAreaResolver.resolve({
+            tenantId: RequestContext.currentTenantId(),
+            userId: RequestContext.currentUserId(),
+            knowledgebaseId: id
+        })
+        const targetFolder = this.knowledgeWorkAreaResolver.getFilesPath(
+            path.posix.join(parentFolder || '', subpath || '')
+        )
 
         // Filename
         let originalname = ''
