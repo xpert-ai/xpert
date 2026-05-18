@@ -310,25 +310,22 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     },
     {
         name: 'host_page_select',
-        description: 'Select one or more values in a select element on the host page.',
+        description:
+            'Select one or more values in a select element on the host page. Use a one-item values array for single-select.',
         schema: stringifySchema({
             type: 'object',
             additionalProperties: false,
             properties: {
                 ...TARGET_PROPERTIES,
-                value: {
-                    type: 'string',
-                    description: 'Single option value to select.'
-                },
                 values: {
                     type: 'array',
                     items: {
                         type: 'string'
                     },
-                    description: 'Multiple option values to select.'
+                    description: 'Option value(s) to select. Use a one-item array for single-select.'
                 }
             },
-            oneOf: [{ required: ['value'] }, { required: ['values'] }]
+            required: ['values']
         })
     },
     {
