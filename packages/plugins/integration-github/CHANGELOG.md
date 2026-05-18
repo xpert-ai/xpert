@@ -1,5 +1,12 @@
 # @xpert-ai/plugin-integration-github
 
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [2558760]
+  - @xpert-ai/plugin-sdk@3.9.8
+
 ## 0.0.7
 
 ### Patch Changes

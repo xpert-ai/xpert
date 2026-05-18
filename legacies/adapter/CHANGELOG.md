@@ -1,5 +1,13 @@
 # @xpert-ai/adapter
 
+## 3.9.6
+
+### Patch Changes
+
+- Updated dependencies [2558760]
+  - @xpert-ai/contracts@3.9.8
+  - @xpert-ai/plugin-sdk@3.9.8
+
 ## 3.9.5
 
 ### Patch Changes
