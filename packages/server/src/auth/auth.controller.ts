@@ -13,6 +13,7 @@ import {
 	ValidationPipe,
 	BadRequestException,
 	Session,
+	ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
@@ -34,6 +35,7 @@ import { ChangePasswordRequestDTO, ResetPasswordRequestDTO } from '../password-r
 import { RegisterUserDTO } from '../user/dto';
 import { randomUUID } from 'crypto';
 import { UseValidationPipe } from '../shared/pipes';
+import { environment as env } from '@xpert-ai/server-config';
 
 @ApiTags('Auth')
 // @UseInterceptors(TransformInterceptor)
@@ -71,6 +73,10 @@ export class AuthController {
 		@Req() request: Request,
 		@I18nLang() languageCode: LanguagesEnum,
 	): Promise<void> {
+		if (env.deploymentTarget === 'customer-onprem') {
+			throw new ForbiddenException('Public signup is disabled for this deployment.');
+		}
+
 		await this.commandBus.execute(
 			new AuthTrialCommand({originalUrl: request.get('Origin'), ...entity}, languageCode)
 		)

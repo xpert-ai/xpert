@@ -5,7 +5,7 @@
 import 'dotenv/config'
 
 import { FileStorageProviderEnum, VectorTypeEnum } from '@xpert-ai/contracts'
-import { IEnvironment, IPACFeatures, LogLevel } from './ienvironment'
+import { IEnvironment, IPACFeatures, LogLevel, normalizeDeploymentTarget } from './ienvironment'
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
 
@@ -16,6 +16,7 @@ export const devEnvironment: IEnvironment = {
   clientBaseUrl: process.env.CLIENT_BASE_URL || 'http://localhost:4200',
   production: false,
   envName: 'dev',
+  deploymentTarget: normalizeDeploymentTarget(process.env.DEPLOYMENT_TARGET, 'local'),
 
   env: {
     ...process.env,
