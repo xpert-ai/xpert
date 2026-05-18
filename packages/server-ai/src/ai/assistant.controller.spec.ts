@@ -35,8 +35,7 @@ function createController(
 
     return new AssistantsController(
         publishedXpertAccessService as ConstructorParameters<typeof AssistantsController>[0],
-        assistantBindingService as ConstructorParameters<typeof AssistantsController>[1],
-        runtimeCapabilitiesService
+        runtimeCapabilitiesService as ConstructorParameters<typeof AssistantsController>[1]
     )
 }
 
@@ -215,7 +214,6 @@ describe('AssistantsController', () => {
             }))
         }
         const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn(async () => false),
             getUserPreferenceByAssistantId: jest.fn(async () => null)
         }
         const agentMiddlewareRegistry = {
@@ -555,7 +553,6 @@ describe('AssistantsController', () => {
             }))
         }
         const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn(async () => false),
             getUserPreferenceByAssistantId: jest.fn(async () => null)
         }
         const skillPackageService = {
@@ -689,7 +686,6 @@ describe('AssistantsController', () => {
             }))
         }
         const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn(async () => false),
             getUserPreferenceByAssistantId: jest.fn(async () => ({
                 toolPreferences: {
                     version: 1,
@@ -837,7 +833,6 @@ describe('AssistantsController', () => {
             }))
         }
         const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn(async () => false),
             getUserPreferenceByAssistantId: jest.fn(async () => null)
         }
         const agentMiddlewareRegistry = {
@@ -926,7 +921,6 @@ describe('AssistantsController', () => {
             }))
         }
         const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn(async () => false),
             getUserPreferenceByAssistantId: jest.fn(async () => null)
         }
         const promptWorkflowService = {
