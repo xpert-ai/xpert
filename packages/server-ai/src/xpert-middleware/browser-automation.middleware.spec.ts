@@ -162,15 +162,30 @@ describe('BrowserAutomationMiddleware', () => {
         }
     })
 
+    it('keeps declared client tool schemas compatible with OpenAI function parameters', () => {
+        const unsupportedTopLevelKeywords = ['oneOf', 'anyOf', 'allOf', 'enum', 'not'] as const
+
+        for (const toolItem of BROWSER_AUTOMATION_CLIENT_TOOLS) {
+            const schema = JSON.parse(toolItem.schema ?? '{}')
+
+            expect(schema.type).toBe('object')
+            for (const keyword of unsupportedTopLevelKeywords) {
+                expect(schema).not.toHaveProperty(keyword)
+            }
+        }
+    })
+
     it('exposes rich browser automation targeting schemas', () => {
         const clickTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_click')
         const fillTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_fill')
+        const selectTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_select')
         const screenshotTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_screenshot')
         const pointerTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_pointer')
         const waitForTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_wait_for')
 
         expect(clickTool).toBeDefined()
         expect(fillTool).toBeDefined()
+        expect(selectTool).toBeDefined()
         expect(screenshotTool).toBeDefined()
         expect(pointerTool).toBeDefined()
         expect(waitForTool).toBeDefined()
@@ -196,6 +211,19 @@ describe('BrowserAutomationMiddleware', () => {
             })
         )
         expect(fillSchema.required).toEqual(expect.arrayContaining(['value', 'message']))
+        const selectSchema = JSON.parse(selectTool?.schema ?? '{}')
+        expect(selectSchema.properties).toEqual(
+            expect.objectContaining({
+                values: expect.objectContaining({
+                    type: 'array',
+                    items: expect.objectContaining({
+                        type: 'string'
+                    })
+                })
+            })
+        )
+        expect(selectSchema.properties).not.toHaveProperty('value')
+        expect(selectSchema.required).toEqual(['values'])
         const pointerSchema = JSON.parse(pointerTool?.schema ?? '{}')
         expect(pointerSchema.properties.button).toEqual(
             expect.objectContaining({

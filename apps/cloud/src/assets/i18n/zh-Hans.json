@@ -968,7 +968,7 @@
       },
       "ChatBI": {
         "Label": "ChatBI 助手",
-        "Description": "用于 ChatBI 页面的嵌入式助手。"
+        "Description": "在 ChatBI 页面与你的数据分析助手对话。"
       },
       "ClawXpert": {
         "Label": "ClawXpert",
@@ -1336,6 +1336,10 @@
       "Certification": "认证",
       "Skills Repository": "技能库",
       "Chat": "聊天",
+      "ChatBI Assistant": "ChatBI 助手",
+      "CodeXpert": "编码专家",
+      "DeepResearch": "深度研究",
+      "Data & Ontology": "数据与本体",
       "Assistants": "助手",
       "Copilot": "智能助理",
       "AI Copilot": "模型提供商",
@@ -3121,6 +3125,11 @@
         "OrganizationRequiredDesc": "ClawXpert 会按用户和组织维度保存一份助手绑定。",
         "LoadFailed": "ClawXpert 加载失败。",
         "LoadFailedDesc": "请检查助手访问权限后重试。",
+        "ReferenceUnavailable": "聊天输入框还未准备好，请稍后重试。",
+        "ReferenceAttachFailed": "附加所选引用失败。",
+        "ServiceRestartFailed": "重启沙箱服务失败。",
+        "ServiceStopFailed": "停止沙箱服务失败。",
+        "ServiceLogsFailed": "加载沙箱服务日志失败。",
         "Wizard": "绑定向导",
         "WizardTitle": "请选择一个已发布的 Xpert，用作当前 ClawXpert 的智能体。",
         "WizardDesc": "这个页面只需要一个绑定，后续你可以随时切换。",
@@ -3277,6 +3286,35 @@
         "WorkspaceFiles": "工作区文件",
         "Computer": "电脑",
         "Browser": "浏览器",
+        "NewWorkspaceTab": "新增工作区标签",
+        "EnterUrl": "输入 URL",
+        "LocalServices": "本地",
+        "Zoom": "缩放",
+        "ForceReload": "强制重新加载",
+        "ShowDeviceToolbar": "显示设备工具栏",
+        "HideDeviceToolbar": "隐藏设备工具栏",
+        "Responsive": "响应式",
+        "DeviceWidth": "设备宽度",
+        "DeviceHeight": "设备高度",
+        "RotateDevice": "旋转设备",
+        "CloseDeviceToolbar": "关闭设备工具栏",
+        "DevicePreset4K": "4K",
+        "DevicePresetLaptopL": "Laptop L",
+        "DevicePresetLaptop": "笔记本电脑",
+        "DevicePresetSurfacePro7": "Surface Pro 7",
+        "DevicePresetIPadAir": "iPad Air",
+        "DevicePresetIPadMini": "iPad Mini",
+        "DevicePresetSurfaceDuo": "Surface Duo",
+        "DevicePresetIPhone15ProMax": "iPhone 15 Pro Max",
+        "DevicePresetPixel8": "Pixel 8",
+        "DevicePresetIPhone15Pro": "iPhone 15 Pro",
+        "DevicePresetSamsungGalaxyS24Ultra": "Samsung Galaxy S24 Ultra",
+        "DevicePresetIPhoneSE": "iPhone SE",
+        "ShowLogs": "显示日志",
+        "HideLogs": "隐藏日志",
+        "ClearCookie": "清除 Cookie",
+        "ClearCache": "清除缓存",
+        "InvalidUrl": "请输入有效的 URL。",
         "PreviewDesc": "浏览托管的沙箱服务，并附加页面元素。",
         "PreviewLoading": "正在加载沙箱服务…",
         "PreviewEmptyTitle": "还没有托管服务",
@@ -3336,6 +3374,16 @@
       "LiveSignals": "实时信号",
       "PendingEvents": "待处理事件流",
       "AssistantShell": "助手面板",
+      "ComputerTrace": "线程活动",
+      "TraceLoading": "正在加载线程活动...",
+      "TraceLoadFailed": "加载线程活动失败",
+      "TraceEmpty": "暂无线程活动",
+      "TraceEmptyDesc": "当助手构建图表、探索文件、运行程序并生成结构化操作时，此 ChatBI 线程中的仪表板输出和计算机端步骤会显示在这里。",
+      "PinDashboard": "固定快照",
+      "UnpinDashboard": "取消固定快照",
+      "DataOntologyGuidePrefix": "建议直接使用",
+      "DataOntologySystem": "数据&本体",
+      "DataOntologyGuideSuffix": "系统的智能体来完成数据分析需求。",
       "QuestionTimeline": "问题时间线",
       "QuestionTimelineDesc": "跟踪分析流程中产生的提示里程碑、模型动作和事件节点。",
       "ToolInvocations": "工具调用",
@@ -3620,15 +3668,19 @@
         },
         "FEATURE_XPERT_CHATBI": {
           "Name": "ChatBI",
-          "Description": "在聊天左侧边栏中显示 ChatBI 入口。"
+          "Description": "在主导航中显示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
-          "Description": "在聊天左侧边栏中显示 CodeXpert 入口。"
+          "Description": "在主导航中显示 CodeXpert 入口。"
         },
         "FEATURE_XPERT_DEEP_RESEARCH": {
           "Name": "DeepResearch",
-          "Description": "在聊天左侧边栏中显示 DeepResearch 入口。"
+          "Description": "在主导航中显示 DeepResearch 入口。"
+        },
+        "FEATURE_XPERT_DATA_ONTOLOGY": {
+          "Name": "Data & Ontology",
+          "Description": "在主导航中显示 Data & Ontology 入口。"
         }
       }
     },

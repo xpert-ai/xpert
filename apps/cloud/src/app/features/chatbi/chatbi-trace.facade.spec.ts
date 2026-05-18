@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing'
 import { of, throwError } from 'rxjs'
-import { AiThreadService, ChatConversationService } from '../../../@core'
+import { AiThreadService, ChatConversationService } from '../../@core'
 import { ChatBiTraceFacade } from './chatbi-trace.facade'
 
 describe('ChatBiTraceFacade', () => {

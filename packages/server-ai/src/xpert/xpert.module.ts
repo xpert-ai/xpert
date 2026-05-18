@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { RedisModule, SecretTokenModule, TenantModule, UserGroupModule, UserModule } from '@xpert-ai/server-core'
 import { XpertController } from './xpert.controller'
+import { XpertAccessController } from './xpert-access.controller'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 import { CommandHandlers } from './commands/handlers/index'
@@ -58,7 +59,7 @@ import { SseStreamModule } from '../shared/stream'
         HandoffQueueModule,
         SseStreamModule
     ],
-    controllers: [XpertController],
+    controllers: [XpertController, XpertAccessController],
     providers: [
         XpertService,
         XpertTriggerBootstrapRecoveryService,

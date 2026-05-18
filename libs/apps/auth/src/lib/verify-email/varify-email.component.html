@@ -34,6 +34,8 @@
   <!-- Links -->
   <div class="flex justify-between items-center">
     <a routerLink="/auth/login" class="text-blue-600 dark:text-blue-400 hover:underline">{{ 'Auth.Signin' | translate: {Default: 'Sign-in'} }}</a>
-    <a routerLink="/auth/register" class="text-blue-600 dark:text-blue-400 hover:underline">{{ 'Auth.Signup' | translate: {Default: 'Signup'} }}</a>
+    @if (enablePublicSignup) {
+      <a routerLink="/auth/register" class="text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 hover:underline">{{ 'Auth.Signup' | translate: {Default: 'Signup'} }}</a>
+    }
   </div>
 </div>

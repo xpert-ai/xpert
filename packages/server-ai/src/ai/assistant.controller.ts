@@ -6,7 +6,6 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { normalizeContextSize } from '@xpert-ai/plugin-sdk'
 import { parseQueryBoolean } from '@xpert-ai/server-common'
 import { isNil, omitBy, pick } from 'lodash-es'
-import { AssistantBindingService } from '../assistant-binding'
 import { PublishedXpertAccessService } from '../xpert'
 import {
     getRuntimePrimaryAgentKey,
@@ -27,7 +26,6 @@ export class AssistantsController {
 
     constructor(
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
-        private readonly assistantBindingService: AssistantBindingService,
         private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService
     ) {}
 
@@ -55,26 +53,18 @@ export class AssistantsController {
 
     @Get(':id')
     async getOne(@Param('id') id: string) {
-        const item = (await this.assistantBindingService.isEffectiveSystemAssistantId(id))
-            ? await this.publishedXpertAccessService.getPublishedXpertInTenant(id, {
-                  relations: ASSISTANT_RELATIONS
-              })
-            : await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
-                  relations: ASSISTANT_RELATIONS
-              })
+        const item = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
+            relations: ASSISTANT_RELATIONS
+        })
         return transformAssistant(item)
     }
 
     @Get(':id/runtime-capabilities')
     @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
     async getRuntimeCapabilities(@Param('id') id: string, @Query('isDraft') isDraft?: string | boolean | string[]) {
-        const sourceXpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(id))
-            ? await this.publishedXpertAccessService.getPublishedXpertInTenant(id, {
-                  relations: ASSISTANT_RELATIONS
-              })
-            : await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
-                  relations: ASSISTANT_RELATIONS
-              })
+        const sourceXpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
+            relations: ASSISTANT_RELATIONS
+        })
         const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
         return this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
     }
