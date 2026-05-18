@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-retriever-common
 
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies [9e37ff9]
+  - @xpert-ai/plugin-sdk@3.9.5
+  - @xpert-ai/contracts@3.9.5
+
 ## 0.0.6
 
 ### Patch Changes
