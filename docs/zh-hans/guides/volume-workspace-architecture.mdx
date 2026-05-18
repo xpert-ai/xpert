@@ -222,8 +222,9 @@ Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 
 
 设计原则：
 
-- 默认工作目录是“当前用户在当前上下文中的私有操作区”。
-- 共享目录必须通过显式路径使用，不能把默认 cwd 当成共享区。
+- 默认工作目录是当前 Xpert / project 的 Volume 根。
+- Xpert / project 的根目录就是默认共享工作区；多人共用同一个 Xpert 时，共用文件是预期行为。
+- `shared` 仍作为显式共享子目录保留，用于兼容旧逻辑和需要固定共享路径的工具。
 - Xpert 长期 FileMemory 是 Xpert 级共享状态，不按用户隔离。
 - Agent invoke、terminal、sandbox upload、conversation workspace files、managed sandbox service 都应该使用同一套 resolver 结果，避免 Agent cwd 和终端 cwd 不一致。
 
@@ -233,14 +234,12 @@ Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 
 /sandbox/<tenantId>/
   project/<projectId>/
     shared/
-    users/<userId>/
     agents/<xpertId>/
     sessions/<conversationId>/
     .xpert/
 
   xpert/<xpertId>/
     shared/
-    users/<userId>/
     .xpert/memory/
 
   user/<userId>/
@@ -264,8 +263,8 @@ Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 
 
 | 用途                          | Volume 内相对路径           |
 | ----------------------------- | --------------------------- |
-| 默认 cwd                      | `users/<userId>`            |
-| 项目共享工作区                | `shared`                    |
+| 默认 cwd                      | Volume 根                   |
+| 项目显式共享子目录            | `shared`                    |
 | Xpert 在项目下的 agent 工作区 | `agents/<xpertId>`          |
 | 单次会话临时区                | `sessions/<conversationId>` |
 | 项目内部状态                  | `.xpert`                    |
@@ -273,13 +272,13 @@ Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 
 本地 shell sandbox 中，`workspace_path` 会是 server 可见路径，例如：
 
 ```text
-/sandbox/<tenantId>/project/<projectId>/users/<userId>
+/sandbox/<tenantId>/project/<projectId>
 ```
 
 Docker sandbox 中，同一目录会映射为：
 
 ```text
-/workspace/users/<userId>
+/workspace
 ```
 
 ### 非项目 Xpert 对话
@@ -300,14 +299,14 @@ Docker sandbox 中，同一目录会映射为：
 
 | 用途                  | Volume 内相对路径 |
 | --------------------- | ----------------- |
-| 默认 cwd              | `users/<userId>`  |
-| Xpert 共享文件区      | `shared`          |
+| 默认 cwd              | Volume 根         |
+| Xpert 显式共享子目录  | `shared`          |
 | Xpert 长期 FileMemory | `.xpert/memory`   |
 
 因此，多个用户与同一个 Xpert 对话时：
 
-- 文件操作默认落到各自的 `xpert/<xpertId>/users/<userId>`。
-- 明确需要共享时使用 `xpert/<xpertId>/shared`。
+- 文件操作默认落到同一个 `xpert/<xpertId>` 工作区根目录。
+- 需要稳定共享子目录时仍可使用 `xpert/<xpertId>/shared`。
 - `memory_write`、Dream、memory 文件 API 都读写同一个 `xpert/<xpertId>/.xpert/memory`。
 
 ### Docker 容器运行示例
@@ -324,23 +323,22 @@ API 服务容器看到的 server-side Volume 目录是：
 
 ```text
 /sandbox/tenant-1/xpert/xpert-X/
-  users/user-A/
   shared/
   .xpert/memory/
 ```
 
 各目录含义：
 
-| 目录                                            | 用途                                     |
-| ----------------------------------------------- | ---------------------------------------- |
-| `/sandbox/tenant-1/xpert/xpert-X/users/user-A`  | user A 与 Xpert X 对话的默认文件操作目录 |
-| `/sandbox/tenant-1/xpert/xpert-X/shared`        | Xpert X 的共享文件区，需要显式使用       |
-| `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | Xpert X 的长期 FileMemory，所有用户共享  |
+| 目录                                            | 用途                                    |
+| ----------------------------------------------- | --------------------------------------- |
+| `/sandbox/tenant-1/xpert/xpert-X`               | Xpert X 的默认工作目录                  |
+| `/sandbox/tenant-1/xpert/xpert-X/shared`        | Xpert X 的显式共享子目录                |
+| `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | Xpert X 的长期 FileMemory，所有用户共享 |
 
 同一个 Volume 在 sandbox Docker 容器里会挂载为 `/workspace`，因此 Agent、terminal 和 sandbox tools 看到的是：
 
 ```text
-/workspace/users/user-A
+/workspace
 /workspace/shared
 /workspace/.xpert/memory
 ```
@@ -349,15 +347,15 @@ API 服务容器看到的 server-side Volume 目录是：
 
 | API 服务容器路径                                | Sandbox Docker 路径        | 说明                                                   |
 | ----------------------------------------------- | -------------------------- | ------------------------------------------------------ |
-| `/sandbox/tenant-1/xpert/xpert-X/users/user-A`  | `/workspace/users/user-A`  | 默认 cwd，普通文件生成、文件上传和终端命令默认写入这里 |
-| `/sandbox/tenant-1/xpert/xpert-X/shared`        | `/workspace/shared`        | 显式共享目录                                           |
+| `/sandbox/tenant-1/xpert/xpert-X`               | `/workspace`               | 默认 cwd，普通文件生成、文件上传和终端命令默认写入这里 |
+| `/sandbox/tenant-1/xpert/xpert-X/shared`        | `/workspace/shared`        | 显式共享子目录                                         |
 | `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | `/workspace/.xpert/memory` | `memory_write`、Dream、memory 文件 API 的长期记忆目录  |
 
-如果 user B 也与同一个 Xpert X 对话，则默认文件目录变为：
+如果 user B 也与同一个 Xpert X 对话，则默认文件目录仍然是同一个 Xpert 工作区：
 
 ```text
-/sandbox/tenant-1/xpert/xpert-X/users/user-B
-/workspace/users/user-B
+/sandbox/tenant-1/xpert/xpert-X
+/workspace
 ```
 
 但 user A 和 user B 共享同一个 Xpert 记忆目录：
@@ -370,8 +368,8 @@ API 服务容器看到的 server-side Volume 目录是：
 如果这次对话属于项目 `project-1`，默认目录会切换到项目 Volume：
 
 ```text
-/sandbox/tenant-1/project/project-1/users/user-A
-/workspace/users/user-A
+/sandbox/tenant-1/project/project-1
+/workspace
 ```
 
 项目共享、agent 和 session 目录分别是：
