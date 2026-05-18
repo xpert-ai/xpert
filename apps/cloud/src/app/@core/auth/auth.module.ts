@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { PacAuthModule } from '@xpert-ai/cloud/auth'
 import { AuthService } from '@xpert-ai/cloud/state'
+import { environment } from 'apps/cloud/src/environments/environment'
 import { AuthStrategy } from './auth-strategy.service'
 import { NoAuthGuard } from './no-auth.guard'
 import { SignInSuccessComponent } from './signin-success/sign-in-success.component'
@@ -37,6 +38,8 @@ const socialLinks = [
   // }
 ]
 
+const enablePublicSignup = environment.deploymentTarget !== 'customer-onprem'
+
 @NgModule({
   declarations: [SignInSuccessComponent],
   imports: [CommonModule],
@@ -46,7 +49,7 @@ const socialLinks = [
       strategies: [AuthStrategy.setup({ name: 'email' })],
       forms: {
         login: { socialLinks },
-        register: { socialLinks }
+        register: { socialLinks, enablePublicSignup }
       }
     }).providers,
     NoAuthGuard,

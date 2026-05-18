@@ -21,6 +21,7 @@ export class ForgotPasswordComponent {
   private _cdr = inject(ChangeDetectorRef)
 
   strategy = this.getConfigValue('forms.login.strategy')
+  enablePublicSignup = this.getConfigValue('forms.register.enablePublicSignup') !== false
   form = new FormGroup({
     email: new FormControl<string>(null, [Validators.required])
   })

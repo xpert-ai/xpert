@@ -1,12 +1,14 @@
-import { IEnvironment, VERSION } from "./types"
+import { IEnvironment, normalizeDeploymentTarget, VERSION } from "./types"
 
 const API_BASE_URL = getEnvValue('VITE_API_BASE_URL') || 'http://localhost:3000'
 const CHATKIT_FRAME_URL = getEnvValue('VITE_CHATKIT_FRAME_URL') || '/chatkit'
+const DEPLOYMENT_TARGET = normalizeDeploymentTarget(getEnvValue('VITE_DEPLOYMENT_TARGET', 'DEPLOYMENT_TARGET'), 'local')
 
 export const environment: IEnvironment = {
 	version: VERSION,
 	production: false,
 	DEMO: false,
+	deploymentTarget: DEPLOYMENT_TARGET,
 	API_BASE_URL: API_BASE_URL,
 	CHATKIT_FRAME_URL,
 	/**

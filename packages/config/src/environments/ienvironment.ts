@@ -18,6 +18,15 @@ import {
 } from '@xpert-ai/server-common'
 
 export type LogLevel = 'verbose' | 'debug' | 'log' | 'warn' | 'error'
+export type DeploymentTarget = 'cloud' | 'customer-onprem' | 'local'
+
+export function normalizeDeploymentTarget(value: string | undefined, fallback: DeploymentTarget): DeploymentTarget {
+  if (value === 'cloud' || value === 'customer-onprem' || value === 'local') {
+    return value
+  }
+
+  return fallback
+}
 
 /**
  * environment variables that goes into process.env
@@ -56,6 +65,7 @@ export interface IEnvironment {
    * - prod: Production environment
    */
   envName: string
+  deploymentTarget: DeploymentTarget
 
   env?: Env
   pro?: boolean

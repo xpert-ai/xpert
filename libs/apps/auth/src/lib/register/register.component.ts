@@ -30,6 +30,7 @@ export class UserRegisterComponent implements OnDestroy {
   messages: string[] = []
   socialLinks: NbAuthSocialLink[] = []
   ssoTicket = ''
+  enablePublicSignup = true
 
   constructor(
     protected service: PacAuthService,
@@ -63,6 +64,11 @@ export class UserRegisterComponent implements OnDestroy {
     this.strategy = this.getConfigValue('forms.register.strategy')
     this.socialLinks = this.getConfigValue('forms.login.socialLinks')
     this.ssoTicket = this.route.snapshot.queryParamMap.get('ticket')?.trim() ?? ''
+    this.enablePublicSignup = this.getConfigValue('forms.register.enablePublicSignup') !== false
+
+    if (!this.ssoTicket && !this.enablePublicSignup) {
+      void this.router.navigate(['/auth/login'])
+    }
   }
 
   // #region fields

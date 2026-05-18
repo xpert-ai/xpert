@@ -4,6 +4,8 @@ import { TranslateService } from '@ngx-translate/core'
 import { AuthService } from '@xpert-ai/cloud/state'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { PAC_AUTH_OPTIONS } from '../auth.options'
+import { getDeepFromObject } from '../helpers'
 
 @Component({
   standalone: false,
@@ -23,9 +25,11 @@ export class VarifyEmailComponent {
   private readonly route = inject(ActivatedRoute)
   private readonly translateService = inject(TranslateService)
   private readonly _cdr = inject(ChangeDetectorRef)
+  private readonly options = inject(PAC_AUTH_OPTIONS)
 
   messages = []
   errors = []
+  enablePublicSignup = this.getConfigValue('forms.register.enablePublicSignup') !== false
 
   private tokenSub = this.route.queryParams
     .pipe(
@@ -50,5 +54,9 @@ export class VarifyEmailComponent {
 
   getTranslation(key: string, params: any) {
     return this.translateService.instant(key, params)
+  }
+
+  getConfigValue(key: string): any {
+    return getDeepFromObject(this.options, key, null)
   }
 }

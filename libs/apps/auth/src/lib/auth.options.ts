@@ -45,6 +45,7 @@ export const defaultAuthOptions: any = {
         error: true
       },
       terms: true,
+      enablePublicSignup: true,
       socialLinks: socialLinks
     },
     requestPassword: {
