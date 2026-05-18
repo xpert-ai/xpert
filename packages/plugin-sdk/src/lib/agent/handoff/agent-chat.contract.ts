@@ -25,6 +25,11 @@ export interface AgentChatDispatchPayload extends Record<string, unknown> {
     from?: string
     fromEndUserId?: string
     execution?: { id: string }
+    streamPersistence?: {
+      transport: 'redis-stream'
+      threadId?: string | null
+      runId?: string | null
+    }
   }
   callback: AgentChatCallbackTarget
   executionId?: string

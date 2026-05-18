@@ -1,14 +1,20 @@
+import type { I18nText } from '../i18n.model'
+
 export const CONTEXT_COMPRESSION_COMPONENT_TYPE = 'context-compression'
 
 export type TContextCompressionComponentStatus = 'running' | 'success' | 'fail'
+
+export type TContextCompressionComponentReason = 'no_messages' | 'no_unprotected_history' | 'no_token_gain'
 
 export type TContextCompressionComponentData = {
   category: 'Tool'
   type: typeof CONTEXT_COMPRESSION_COMPONENT_TYPE
   status: TContextCompressionComponentStatus
-  title?: string
-  message?: string
-  error?: string
+  reason?: TContextCompressionComponentReason
+  title?: I18nText
+  message?: I18nText
+  summary?: string
+  error?: I18nText
   created_date?: string | Date | null
   end_date?: string | Date | null
 }

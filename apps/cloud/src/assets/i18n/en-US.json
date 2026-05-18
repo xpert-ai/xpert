@@ -55,7 +55,10 @@
     "Chat": {
       "QuoteSelection": "Quote selection",
       "RemoveReference": "Remove reference",
-      "ContextCompression": "Context compression...",
+      "ContextCompression": "Automatically compressing context",
+      "ContextCompressed": "Context automatically compressed",
+      "ContextCompressionSkipped": "Context not compressed",
+      "ContextCompressionFailed": "Context compression failed",
       "ClawXpert": {
         "Loading": "Preparing ClawXpert...",
         "OrganizationRequired": "Select an organization to use ClawXpert",

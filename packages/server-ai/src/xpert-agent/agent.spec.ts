@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common'
+import { ToolMessage } from '@langchain/core/messages'
 import { ChatMessageTypeEnum, IXpertAgent } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
 import { createMapStreamEvents } from './agent'
@@ -151,6 +152,62 @@ describe('createMapStreamEvents', () => {
                         executionId: 'child-execution',
                         parentExecutionId: 'root-execution',
                         runId: 'tool-run-1'
+                    })
+                })
+            })
+        )
+    })
+
+    it('surfaces xpert MCP meta artifacts on tool end components', () => {
+        const subscriber = { next: jest.fn() }
+        const mapStreamEvent = createMapStreamEvents(
+            logger as unknown as Logger,
+            subscriber as unknown as Subscriber<MessageEvent>,
+            {
+                agent: { key: 'Agent_root' } as unknown as IXpertAgent,
+                unmutes: []
+            }
+        )
+        const meta = {
+            'xpertai/visualization': {
+                type: 'uose.mdx.metric_snapshot',
+                payload: {
+                    resourceId: 'inner-bi'
+                }
+            }
+        }
+
+        mapStreamEvent({
+            event: 'on_tool_end',
+            name: 'query_data_xpert',
+            tags: [],
+            data: {
+                output: new ToolMessage({
+                    content: '{"ok":true}',
+                    tool_call_id: 'tool-call-1',
+                    artifact: meta
+                })
+            },
+            metadata: {
+                toolset: 'data-xpert',
+                toolsetId: 'toolset-1'
+            },
+            run_id: 'tool-run-1'
+        })
+
+        expect(subscriber.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    type: ChatMessageTypeEnum.MESSAGE,
+                    data: expect.objectContaining({
+                        id: 'tool-call-1',
+                        type: 'component',
+                        data: expect.objectContaining({
+                            status: 'success',
+                            output: '{"ok":true}',
+                            artifact: meta,
+                            _meta: meta
+                        })
                     })
                 })
             })

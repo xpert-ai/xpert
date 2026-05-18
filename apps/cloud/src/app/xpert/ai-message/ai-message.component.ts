@@ -27,6 +27,7 @@ import {
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
   ChatMessageStepCategory,
+  CONTEXT_COMPRESSION_COMPONENT_TYPE,
   getErrorMessage,
   IChatMessage,
   injectToastr,
@@ -256,6 +257,14 @@ export class ChatAiMessageComponent {
           text: entry.item
         } as TMessageContentComplex)
       : (entry.item as TMessageContentComplex)
+  }
+
+  isContextCompressionContent(content: TMessageContentComplex | null | undefined): boolean {
+    return (
+      content?.type === 'component' &&
+      content.data?.category === 'Tool' &&
+      content.data?.type === CONTEXT_COMPRESSION_COMPONENT_TYPE
+    )
   }
 
   previousEntryContent(units: AgentRunRenderUnit[], index: number) {

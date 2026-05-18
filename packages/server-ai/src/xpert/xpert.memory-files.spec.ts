@@ -35,7 +35,18 @@ jest.mock('../sandbox/sandbox.service', () => ({
 
 jest.mock('../xpert-workspace', () => ({
     GetXpertWorkspaceQuery: class GetXpertWorkspaceQuery {},
-    MyXpertWorkspaceQuery: class MyXpertWorkspaceQuery {}
+    MyXpertWorkspaceQuery: class MyXpertWorkspaceQuery {},
+    XpertWorkspaceAccessService: class XpertWorkspaceAccessService {},
+    XpertWorkspaceBaseService: class XpertWorkspaceBaseService<T> {
+        constructor(
+            public readonly repository?: unknown,
+            public readonly workspaceAccessService?: unknown
+        ) {}
+
+        findOne(): Promise<T> {
+            return Promise.resolve(null)
+        }
+    }
 }))
 
 jest.mock('./commands', () => ({
@@ -102,7 +113,7 @@ jest.mock('../shared/volume', () => ({
 
 import { TFile } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { VolumeClient, WorkspaceVolumeClient } from '../shared/volume'
+import { VolumeSubtreeClient } from '../shared/volume'
 import { XpertService } from './xpert.service'
 
 describe('XpertService memory files', () => {
@@ -113,6 +124,7 @@ describe('XpertService memory files', () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
 
         service = new XpertService(
+            {} as any,
             {} as any,
             {} as any,
             {} as any,
@@ -135,17 +147,18 @@ describe('XpertService memory files', () => {
         await service.getMemoryFiles('xpert-1', 'docs', 2)
 
         expect(service.findOne).toHaveBeenCalledWith('xpert-1')
-        expect(VolumeClient).toHaveBeenCalledWith({
+        expect(mockVolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
-            userId: 'user-1',
             xpertId: 'xpert-1',
-            isolateByUser: true
+            isolateByUser: false
         })
-        expect(WorkspaceVolumeClient).toHaveBeenCalledWith(
+        expect(VolumeSubtreeClient).toHaveBeenCalledWith(
             expect.objectContaining({
                 tenantId: 'tenant-1',
-                userId: 'user-1'
+                catalog: 'xperts',
+                xpertId: 'xpert-1',
+                isolateByUser: false
             }),
             { allowRootWorkspace: true }
         )
@@ -167,12 +180,11 @@ describe('XpertService memory files', () => {
         await service.getMemoryFile('xpert-1', 'README.md')
 
         expect(service.findOne).toHaveBeenCalledWith('xpert-1')
-        expect(VolumeClient).toHaveBeenCalledWith({
+        expect(mockVolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
-            userId: 'user-1',
             xpertId: 'xpert-1',
-            isolateByUser: true
+            isolateByUser: false
         })
         expect(mockReadFile).toHaveBeenCalledWith('.xpert/memory', 'README.md')
     })
@@ -190,12 +202,11 @@ describe('XpertService memory files', () => {
         await service.saveMemoryFile('xpert-1', 'README.md', '# Updated\n')
 
         expect(service.findOne).toHaveBeenCalledWith('xpert-1')
-        expect(VolumeClient).toHaveBeenCalledWith({
+        expect(mockVolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
-            userId: 'user-1',
             xpertId: 'xpert-1',
-            isolateByUser: true
+            isolateByUser: false
         })
         expect(mockSaveFile).toHaveBeenCalledWith('.xpert/memory', 'README.md', '# Updated\n')
     })

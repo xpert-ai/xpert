@@ -159,4 +159,100 @@ describe('ResolvePromptWorkflowInvocationHandler', () => {
 
         expect(result).toBeNull()
     })
+
+    it('resolves connected middleware submit_prompt commands with their original execution type', async () => {
+        const promptWorkflowService = {
+            resolveRuntimeCommandProfile: jest.fn()
+        }
+        const agentMiddlewareRegistry = {
+            get: jest.fn(() => ({
+                meta: {
+                    label: {
+                        en_US: 'Context Compression'
+                    },
+                    slashCommands: [
+                        {
+                            name: 'compact',
+                            aliases: ['compress'],
+                            label: 'Compress',
+                            description: 'Compress this thread context',
+                            kind: 'command',
+                            action: {
+                                type: 'submit_prompt',
+                                template: '/compact'
+                            }
+                        }
+                    ]
+                }
+            }))
+        }
+        const handler = new ResolvePromptWorkflowInvocationHandler(
+            promptWorkflowService as any,
+            agentMiddlewareRegistry as any
+        )
+
+        const result = await handler.execute(
+            new ResolvePromptWorkflowInvocationQuery(
+                {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1',
+                    agent: {
+                        key: 'agent-1'
+                    },
+                    graph: {
+                        nodes: [
+                            {
+                                key: 'middleware-compression',
+                                type: 'workflow',
+                                entity: {
+                                    type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                    provider: 'ContextCompressionMiddleware'
+                                }
+                            }
+                        ],
+                        connections: [{ type: 'workflow', from: 'agent-1', to: 'middleware-compression' }]
+                    }
+                } as any,
+                {
+                    input: '/compact',
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: {
+                            workspaceId: 'workspace-1',
+                            ids: []
+                        },
+                        plugins: {
+                            nodeKeys: []
+                        },
+                        subAgents: {
+                            nodeKeys: []
+                        }
+                    }
+                }
+            )
+        )
+
+        expect(result?.input.input).toBe('/compact')
+        expect(result?.input.runtimeCapabilities).toEqual({
+            mode: 'allowlist',
+            skills: {
+                workspaceId: 'workspace-1',
+                ids: []
+            },
+            plugins: {
+                nodeKeys: ['middleware-compression']
+            },
+            subAgents: {
+                nodeKeys: []
+            }
+        })
+        expect(result?.input.commandSource).toEqual({
+            type: 'slash_command',
+            name: 'compact',
+            source: 'runtime',
+            executionType: 'submit_prompt',
+            kind: 'command'
+        })
+        expect(promptWorkflowService.resolveRuntimeCommandProfile).not.toHaveBeenCalled()
+    })
 })

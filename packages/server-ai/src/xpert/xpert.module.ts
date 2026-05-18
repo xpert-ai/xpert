@@ -30,6 +30,7 @@ import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { PromptWorkflowModule } from '../prompt-workflow'
 import { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 import { RuntimeCommandService } from '../ai/runtime-command.service'
+import { SseStreamModule } from '../shared/stream'
 
 @Module({
     imports: [
@@ -54,7 +55,8 @@ import { RuntimeCommandService } from '../ai/runtime-command.service'
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,
-        HandoffQueueModule
+        HandoffQueueModule,
+        SseStreamModule
     ],
     controllers: [XpertController],
     providers: [

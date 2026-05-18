@@ -63,6 +63,7 @@ import {
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
+import { RedisSseStreamService } from '../../../shared/stream'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -72,7 +73,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly xpertService: XpertService,
         private readonly assistantBindingService: AssistantBindingService,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly redisSseStreamService?: RedisSseStreamService
     ) {}
 
     /**
@@ -542,7 +544,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         input = preparedAgentChatState.input
         const runtimeCapabilities = preparedAgentChatState.runtimeCapabilities
 
-        return new Observable<MessageEvent>((subscriber) => {
+        const stream = new Observable<MessageEvent>((subscriber) => {
             // New conversation
             subscriber.next({
                 data: {
@@ -913,6 +915,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 //
             }
         })
+
+        return (
+            this.redisSseStreamService?.wrapChatStream(stream, {
+                target: options?.streamPersistence,
+                threadId: conversation.threadId,
+                runId: executionId
+            }) ?? stream
+        )
     }
 }
 

@@ -15,13 +15,7 @@ import {
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import {
-    OptionParams,
-    PaginationParams,
-    RequestContext,
-    transformWhere,
-    UserGroupService
-} from '@xpert-ai/server-core'
+import { OptionParams, PaginationParams, RequestContext, transformWhere, UserGroupService } from '@xpert-ai/server-core'
 import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -387,7 +381,9 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             throw new NotFoundException('Some user groups were not found in the current organization.')
         }
 
-        const preservedGroups = (xpert.userGroups ?? []).filter((group) => group.organizationId !== resolvedOrganizationId)
+        const preservedGroups = (xpert.userGroups ?? []).filter(
+            (group) => group.organizationId !== resolvedOrganizationId
+        )
         xpert.userGroups = [...preservedGroups, ...groups]
         await this.repository.save(xpert)
         return this.getUserGroups(id, resolvedOrganizationId)
@@ -565,19 +561,18 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return this.sandboxService.listProviders()
     }
 
-    private createWorkspaceVolumeClient(tenantId: string, userId: string, xpertId: string) {
-        return new VolumeSubtreeClient(this.createVolumeHandle(tenantId, userId, xpertId), {
+    private createWorkspaceVolumeClient(tenantId: string, _userId: string, xpertId: string) {
+        return new VolumeSubtreeClient(this.createVolumeHandle(tenantId, xpertId), {
             allowRootWorkspace: true
         })
     }
 
-    private createVolumeHandle(tenantId: string, userId: string, xpertId: string) {
+    private createVolumeHandle(tenantId: string, xpertId: string) {
         return this.volumeClient.resolve({
             tenantId,
             catalog: 'xperts',
-            userId,
             xpertId,
-            isolateByUser: true
+            isolateByUser: false
         })
     }
 }

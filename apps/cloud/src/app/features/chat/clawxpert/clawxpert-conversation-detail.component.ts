@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
+import { Component, computed, effect, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, TChatElementReference, TChatFileElementReference } from '@xpert-ai/contracts'
@@ -33,6 +33,7 @@ import {
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_REFRESH_INTERVAL_MS = 1000
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
+const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
   'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 
@@ -107,7 +108,7 @@ type ChatKitReferenceComposerControl = {
           <div class="flex h-full min-h-0 flex-col overflow-hidden">
             <div
               data-workspace-tab-header
-              class="flex items-start justify-start border-b border-divider-regular px-4 pt-1"
+              class="flex min-w-0 items-center justify-start gap-1 border-b border-divider-regular px-4 pt-1"
             >
               <nav
                 z-tab-nav-bar
@@ -117,7 +118,7 @@ type ChatKitReferenceComposerControl = {
                 stretchTabs="false"
                 disableRipple
                 zSize="sm"
-                class="min-w-0 flex-1 border-0 p-0 m-0"
+                class="m-0 min-w-0 max-w-full shrink border-0 p-0"
               >
                 @for (tab of workspaceTabs(); track tab.id) {
                   <button
@@ -125,42 +126,54 @@ type ChatKitReferenceComposerControl = {
                     type="button"
                     [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                     [attr.data-tab-id]="tab.id"
-                    class="group/tab flex min-w-0 items-center gap-2"
+                    class="group/tab flex min-w-0 items-center gap-2 !border-transparent transition-colors hover:rounded-2xl hover:bg-hover-bg data-[active=true]:rounded-2xl data-[active=true]:bg-hover-bg data-[active=true]:text-text-primary"
                     [active]="activeTabId() === tab.id"
                     (click)="selectTab(tab.id)"
                   >
+                    <span class="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                      @switch (tab.kind) {
+                        @case ('files') {
+                          <i class="ri-folder-3-line shrink-0 text-base"></i>
+                        }
+                        @case ('computer') {
+                          <i class="ri-computer-line shrink-0 text-base"></i>
+                        }
+                        @case ('terminal') {
+                          <i class="ri-terminal-window-line shrink-0 text-base"></i>
+                        }
+                        @case ('browser') {
+                          <i class="ri-global-line shrink-0 text-base"></i>
+                        }
+                      }
+                      @if (workspaceTabs().length > 1) {
+                        <span
+                          role="button"
+                          tabindex="0"
+                          [attr.data-close-tab]="tab.id"
+                          class="absolute inset-0 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg opacity-0 transition-[background-color,color,opacity] hover:bg-text-secondary group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
+                          (click)="closeWorkspaceTab($event, tab.id)"
+                          (keydown.enter)="closeWorkspaceTab($event, tab.id)"
+                          (keydown.space)="closeWorkspaceTab($event, tab.id)"
+                        >
+                          <i class="ri-close-line text-sm"></i>
+                        </span>
+                      }
+                    </span>
                     @switch (tab.kind) {
                       @case ('files') {
-                        <i class="ri-folder-3-line shrink-0 text-base"></i>
                         <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
                       }
                       @case ('computer') {
-                        <i class="ri-computer-line shrink-0 text-base"></i>
                         <span>{{ 'PAC.Chat.ClawXpert.Computer' | translate: { Default: 'Computer' } }}</span>
                       }
                       @case ('terminal') {
-                        <i class="ri-terminal-window-line shrink-0 text-base"></i>
                         <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
                       }
                       @case ('browser') {
-                        <i class="ri-global-line shrink-0 text-base"></i>
                         <span class="max-w-[12rem] truncate">
                           {{ tab.displayUrl || ('PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
                         </span>
                       }
-                    }
-                    @if (workspaceTabs().length > 1) {
-                      <span
-                        role="button"
-                        tabindex="0"
-                        [attr.data-close-tab]="tab.id"
-                        class="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-text-tertiary opacity-70 transition-colors hover:bg-hover-bg hover:text-text-primary group-hover/tab:opacity-100"
-                        (click)="closeWorkspaceTab($event, tab.id)"
-                        (keydown.enter)="closeWorkspaceTab($event, tab.id)"
-                        (keydown.space)="closeWorkspaceTab($event, tab.id)"
-                      >
-                        <i class="ri-close-line text-sm"></i>
-                      </span>
                     }
                   </button>
                 }
@@ -172,7 +185,7 @@ type ChatKitReferenceComposerControl = {
                 zType="ghost"
                 zSize="icon"
                 data-add-workspace-tab
-                class="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                class="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
                 [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
                 z-menu
                 [zMenuTriggerFor]="workspaceTabMenu"
@@ -327,7 +340,7 @@ type ChatKitReferenceComposerControl = {
       <section [class]="chatShellClasses()">
         <div
           class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform]"
-          [class]="showDetailPanel() ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border' : ''"
+          [class]="chatSurfaceClasses()"
         >
           <div class="min-h-0 flex-1">
             @if (facade.loading()) {
@@ -372,7 +385,7 @@ type ChatKitReferenceComposerControl = {
                   </div>
                 }
                 @case ('ready') {
-                  <xpert-chatkit class="block h-full min-h-0" [control]="control()!" />
+                  <xpert-chatkit #chatkitHost class="block h-full min-h-0" [control]="control()!" />
                 }
                 @default {
                   <div
@@ -485,24 +498,73 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly resolvedConversation = signal<IChatConversation | null>(null)
   readonly contextLoading = signal(false)
   readonly contextError = signal<string | null>(null)
+  readonly isChatMinimizedToPet = signal(false)
+  readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
   readonly showDetailPanel = computed(() => !!this.activePanel())
-  readonly workspaceLayoutClasses = computed(() =>
-    this.showDetailPanel()
+  readonly workspaceLayoutClasses = computed(() => {
+    if (this.isChatMinimizedToPet()) {
+      return this.showDetailPanel()
+        ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[minmax(0,1fr)_0rem] xl:grid-rows-1'
+        : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[0rem_0rem] xl:grid-rows-1'
+    }
+
+    return this.showDetailPanel()
       ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)] xl:grid-rows-1'
       : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[0rem_minmax(0,1fr)] xl:grid-rows-1'
-  )
+  })
   readonly detailPanelShellClasses = computed(() =>
     this.showDetailPanel()
       ? 'min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-[120rem] translate-y-0 opacity-100 xl:translate-x-0 xl:translate-y-0'
       : 'pointer-events-none min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-0 -translate-y-4 opacity-0 xl:max-h-none xl:-translate-x-6 xl:translate-y-0'
   )
-  readonly chatShellClasses = computed(() =>
-    this.showDetailPanel()
+  readonly chatShellClasses = computed(() => {
+    if (this.isChatMinimizedToPet()) {
+      return 'min-h-0 min-w-0 overflow-visible p-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-0 xl:max-w-0 xl:justify-self-end'
+    }
+
+    return this.showDetailPanel()
       ? 'min-h-0 min-w-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-full xl:max-w-[32rem] xl:justify-self-end py-4 px-2'
       : 'min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-full'
+  })
+  readonly chatSurfaceClasses = computed(() =>
+    this.showDetailPanel() && !this.isChatMinimizedToPet()
+      ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border'
+      : ''
   )
 
   constructor() {
+    effect((onCleanup) => {
+      const chatkitHost = this.chatkitHost()?.nativeElement
+      const viewState = this.facade.viewState()
+
+      if (viewState !== 'ready' || !chatkitHost) {
+        this.isChatMinimizedToPet.set(false)
+        return
+      }
+
+      const chatkitElement = resolveEmbeddedChatkitElement(chatkitHost)
+      const syncMinimizedToPetState = () => {
+        this.isChatMinimizedToPet.set(chatkitElement.dataset.chatMinimizedToPet === 'true')
+      }
+
+      syncMinimizedToPetState()
+
+      if (typeof MutationObserver === 'undefined') {
+        return
+      }
+
+      const observer = new MutationObserver(syncMinimizedToPetState)
+      observer.observe(chatkitElement, {
+        attributes: true,
+        attributeFilter: [CHAT_MINIMIZED_TO_PET_ATTRIBUTE]
+      })
+
+      onCleanup(() => {
+        observer.disconnect()
+        this.isChatMinimizedToPet.set(false)
+      })
+    })
+
     effect((onCleanup) => {
       const pendingStartId = this.facade.pendingConversationStartId()
       const control = this.control()
@@ -603,6 +665,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   ngOnDestroy() {
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
+    this.isChatMinimizedToPet.set(false)
     this.facade.setActiveConversation(null)
   }
 
@@ -1028,6 +1091,10 @@ function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQ
       .filter((line): line is string => line !== null)
       .join('\n')
   }
+}
+
+function resolveEmbeddedChatkitElement(host: HTMLElement) {
+  return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
 }
 
 function formatFileElementSource(reference: TChatFileElementReference) {

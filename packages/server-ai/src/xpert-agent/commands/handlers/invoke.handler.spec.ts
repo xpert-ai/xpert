@@ -44,6 +44,7 @@ jest.mock('../../../environment', () => {
 jest.mock('../../../shared', () => ({
     getWorkspace: jest.fn(),
     isPlanModeEnabledFromState: (state: any) => state?.human?.planMode === true,
+    XpertWorkAreaResolver: class XpertWorkAreaResolver {},
     VolumeClient: class VolumeClient {
         static getWorkspacePath = jest.fn()
         static getWorkspaceUrl = jest.fn()
@@ -76,7 +77,7 @@ import { ChatMessageEventTypeEnum } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
-import { VolumeClient, ExecutionCancelService } from '../../../shared'
+import { ExecutionCancelService, XpertWorkAreaResolver } from '../../../shared'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 
 describe('XpertAgentInvokeHandler', () => {
@@ -87,8 +88,7 @@ describe('XpertAgentInvokeHandler', () => {
     let i18nService: { t: jest.Mock }
     let executionCancelService: { register: jest.Mock; unregister: jest.Mock }
     let chatMessageRepository: { find: jest.Mock; save: jest.Mock }
-    let volumeClient: { resolve: jest.Mock }
-    let workspacePathMapperFactory: { forProvider: jest.Mock }
+    let workAreaResolver: { resolve: jest.Mock }
     let handler: XpertAgentInvokeHandler
 
     beforeEach(() => {
@@ -114,23 +114,8 @@ describe('XpertAgentInvokeHandler', () => {
             register: jest.fn(),
             unregister: jest.fn()
         }
-        const volumeHandle = {
-            ensureRoot: jest.fn(),
-            publicBaseUrl: '/xpert-workspace',
-            serverRoot: '/tmp/xpert-workspace'
-        }
-        volumeHandle.ensureRoot.mockResolvedValue(volumeHandle)
-        volumeClient = {
-            resolve: jest.fn().mockReturnValue(volumeHandle)
-        }
-        workspacePathMapperFactory = {
-            forProvider: jest.fn().mockReturnValue({
-                mapVolumeToWorkspace: jest.fn().mockReturnValue({
-                    volumeRoot: '/tmp/xpert-workspace',
-                    workspaceRoot: '/tmp/xpert-workspace',
-                    workspacePath: '/tmp/xpert-workspace'
-                })
-            })
+        workAreaResolver = {
+            resolve: jest.fn((input) => createTestWorkArea(input))
         }
         chatMessageRepository = {
             find: jest.fn().mockResolvedValue([]),
@@ -144,8 +129,7 @@ describe('XpertAgentInvokeHandler', () => {
             envService as any,
             i18nService as unknown as I18nService,
             executionCancelService as unknown as ExecutionCancelService,
-            volumeClient as any,
-            workspacePathMapperFactory as any,
+            workAreaResolver as unknown as XpertWorkAreaResolver,
             chatMessageRepository as any
         )
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
@@ -263,20 +247,25 @@ describe('XpertAgentInvokeHandler', () => {
                 language: 'en-US',
                 user_email: 'user@example.com',
                 thread_id: 'thread-1',
-                workspace_path: '/tmp/xpert-workspace',
-                workspace_url: '/xpert-workspace',
+                workspace_path: '/tmp/xpert-workspace/users/user-1',
+                workspace_url: '/xpert-workspace/users/user-1',
+                workspace_root: '/tmp/xpert-workspace',
+                shared_workspace_path: '/tmp/xpert-workspace/shared',
+                memory_workspace_path: '/tmp/xpert-workspace/.xpert/memory',
                 volume: '/tmp/xpert-workspace'
             })
         })
         expect(graph.streamEvents.mock.calls[0][1]).toMatchObject({
             recursionLimit: 1000
         })
-        expect(volumeClient.resolve).toHaveBeenCalledWith({
+        expect(workAreaResolver.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            catalog: 'xperts',
-            xpertId: 'xpert-1',
             userId: 'user-1',
-            isolateByUser: true
+            provider: undefined,
+            xpertId: 'xpert-1',
+            projectId: undefined,
+            conversationId: undefined,
+            environmentId: undefined
         })
     })
 
@@ -335,8 +324,8 @@ describe('XpertAgentInvokeHandler', () => {
                     profile: '# Profile',
                     language: 'en-US',
                     thread_id: 'thread-1',
-                    workspace_path: '/tmp/xpert-workspace',
-                    workspace_url: '/xpert-workspace',
+                    workspace_path: '/tmp/xpert-workspace/users/user-1',
+                    workspace_url: '/xpert-workspace/users/user-1',
                     volume: '/tmp/xpert-workspace'
                 })
             }
@@ -442,22 +431,22 @@ describe('XpertAgentInvokeHandler', () => {
                     profile: '# Profile',
                     language: 'en-US',
                     thread_id: 'thread-1',
-                    workspace_path: '/tmp/xpert-workspace',
-                    workspace_url: '/xpert-workspace',
+                    workspace_path: '/tmp/xpert-workspace/users/user-1',
+                    workspace_url: '/xpert-workspace/users/user-1',
                     volume: '/tmp/xpert-workspace'
                 })
             }
         })
     })
 
-    it('uses the xpert workspace root as sandbox working directory', async () => {
+    it('uses the xpert user workspace as sandbox working directory', async () => {
         const graph = createGraph()
 
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof SandboxAcquireBackendCommand) {
                 return {
                     provider: 'local-shell-sandbox',
-                    workingDirectory: '/tmp/xpert-workspace'
+                    workingDirectory: '/tmp/xpert-workspace/users/user-1'
                 }
             }
             if (command instanceof CompileGraphCommand) {
@@ -506,7 +495,7 @@ describe('XpertAgentInvokeHandler', () => {
                 params: expect.objectContaining({
                     provider: 'local-shell-sandbox',
                     tenantId: 'tenant-1',
-                    workingDirectory: '/tmp/xpert-workspace',
+                    workingDirectory: '/tmp/xpert-workspace/users/user-1',
                     workFor: {
                         type: 'user',
                         id: 'user-1'
@@ -568,11 +557,14 @@ describe('XpertAgentInvokeHandler', () => {
 
         await consumeStream(stream)
 
-        expect(volumeClient.resolve).toHaveBeenCalledWith({
+        expect(workAreaResolver.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            catalog: 'environment',
-            environmentId: 'sandbox-env-1',
-            userId: 'user-1'
+            userId: 'user-1',
+            provider: 'local-shell-sandbox',
+            xpertId: 'xpert-1',
+            projectId: undefined,
+            conversationId: undefined,
+            environmentId: 'sandbox-env-1'
         })
         expect(commandBus.execute).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -784,6 +776,85 @@ function createCompiledGraph(graph: ReturnType<typeof createGraph>) {
         xpertGraph: {
             nodes: []
         }
+    }
+}
+
+function createTestWorkArea(input: {
+    tenantId: string
+    userId: string
+    provider?: string | null
+    xpertId?: string | null
+    projectId?: string | null
+    conversationId?: string | null
+    environmentId?: string | null
+}) {
+    const defaultRelativePath = input.environmentId ? '' : `users/${input.userId}`
+    const workspacePath = defaultRelativePath ? `/tmp/xpert-workspace/${defaultRelativePath}` : '/tmp/xpert-workspace'
+    const workspaceUrl = defaultRelativePath ? `/xpert-workspace/${defaultRelativePath}` : '/xpert-workspace'
+    const volumeScope = input.environmentId
+        ? {
+              tenantId: input.tenantId,
+              catalog: 'environment',
+              environmentId: input.environmentId,
+              userId: input.userId
+          }
+        : input.projectId
+          ? {
+                tenantId: input.tenantId,
+                catalog: 'projects',
+                projectId: input.projectId,
+                userId: input.userId
+            }
+          : {
+                tenantId: input.tenantId,
+                catalog: 'xperts',
+                xpertId: input.xpertId,
+                userId: input.userId,
+                isolateByUser: false
+            }
+
+    return {
+        volumeScope,
+        workspaceBinding: {
+            volumeRoot: '/tmp/xpert-workspace',
+            workspaceRoot: '/tmp/xpert-workspace',
+            workspacePath
+        },
+        workingDirectory: workspacePath,
+        volumePath: '/tmp/xpert-workspace',
+        workspaceRoot: '/tmp/xpert-workspace',
+        workspaceUrl,
+        sharedPath: input.environmentId
+            ? undefined
+            : {
+                  serverPath: '/tmp/xpert-workspace/shared',
+                  workspacePath: '/tmp/xpert-workspace/shared',
+                  publicUrl: '/xpert-workspace/shared'
+              },
+        agentPath:
+            input.projectId && input.xpertId
+                ? {
+                      serverPath: `/tmp/xpert-workspace/agents/${input.xpertId}`,
+                      workspacePath: `/tmp/xpert-workspace/agents/${input.xpertId}`,
+                      publicUrl: `/xpert-workspace/agents/${input.xpertId}`
+                  }
+                : undefined,
+        sessionPath:
+            input.projectId && input.conversationId
+                ? {
+                      serverPath: `/tmp/xpert-workspace/sessions/${input.conversationId}`,
+                      workspacePath: `/tmp/xpert-workspace/sessions/${input.conversationId}`,
+                      publicUrl: `/xpert-workspace/sessions/${input.conversationId}`
+                  }
+                : undefined,
+        memoryPath:
+            !input.environmentId && !input.projectId
+                ? {
+                      serverPath: '/tmp/xpert-workspace/.xpert/memory',
+                      workspacePath: '/tmp/xpert-workspace/.xpert/memory',
+                      publicUrl: '/xpert-workspace/.xpert/memory'
+                  }
+                : undefined
     }
 }
 

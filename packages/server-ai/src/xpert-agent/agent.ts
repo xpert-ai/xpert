@@ -42,8 +42,28 @@ type TExecutionStreamMetadataSource = {
     run_id?: unknown
 }
 
+const XPERT_MCP_META_KEY_PREFIX = 'xpertai/'
+
 function readString(value: unknown): string | undefined {
     return typeof value === 'string' && value.trim() ? value : undefined
+}
+
+function readXpertMcpMetaArtifact(artifact: unknown): object | null {
+    if (Array.isArray(artifact)) {
+        for (const item of artifact) {
+            const meta = readXpertMcpMetaArtifact(item)
+            if (meta) {
+                return meta
+            }
+        }
+        return null
+    }
+
+    if (!artifact || typeof artifact !== 'object') {
+        return null
+    }
+
+    return Object.keys(artifact).some((key) => key.startsWith(XPERT_MCP_META_KEY_PREFIX)) ? artifact : null
 }
 
 function getExecutionStreamMetadata(
@@ -297,6 +317,10 @@ export function createMapStreamEvents(
                         }
                         if (output.artifact) {
                             component.artifact = output.artifact
+                            const mcpMeta = readXpertMcpMetaArtifact(output.artifact)
+                            if (mcpMeta) {
+                                component._meta = mcpMeta
+                            }
                         }
                     }
                     subscriber.next({

@@ -22,7 +22,6 @@ import { ConversationsController } from './conversation.controller'
 import { ChatConversationModule } from '../chat-conversation'
 import { ChatMessageModule } from '../chat-message'
 import { ChatMessageFeedbackModule } from '../chat-message-feedback'
-import { RedisSseStreamService } from './stream/redis-sse.service'
 import { EnvironmentModule } from '../environment'
 import { AssistantBindingModule } from '../assistant-binding'
 import { XpertAgentModule } from '../xpert-agent'
@@ -30,6 +29,7 @@ import { SkillPackageModule } from '../skill-package'
 import { RuntimeCommandService } from './runtime-command.service'
 import { PromptWorkflowModule } from '../prompt-workflow'
 import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
+import { SseStreamModule } from '../shared/stream'
 
 @Module({
     imports: [
@@ -57,7 +57,8 @@ import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
         forwardRef(() => EnvironmentModule),
         forwardRef(() => ChatConversationModule),
         forwardRef(() => ChatMessageModule),
-        forwardRef(() => ChatMessageFeedbackModule)
+        forwardRef(() => ChatMessageFeedbackModule),
+        SseStreamModule
     ],
     controllers: [
         AIController,
@@ -69,13 +70,6 @@ import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
         ConversationsController,
         StoreController
     ],
-    providers: [
-        AiService,
-        RedisSseStreamService,
-        RuntimeCommandService,
-        RuntimeCapabilitiesService,
-        ...CommandHandlers,
-        ...QueryHandlers
-    ]
+    providers: [AiService, RuntimeCommandService, RuntimeCapabilitiesService, ...CommandHandlers, ...QueryHandlers]
 })
 export class AIModule {}

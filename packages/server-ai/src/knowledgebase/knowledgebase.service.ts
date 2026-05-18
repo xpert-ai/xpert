@@ -83,7 +83,7 @@ import {
 import { KnowledgeSearchQuery } from './queries'
 import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore, TEmbeddingVectorMetadata } from './vector-store'
-import { VOLUME_CLIENT, VolumeClient } from '../shared'
+import { KnowledgeWorkAreaResolver } from '../shared'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { KnowledgeDocumentChunk } from '../knowledge-document/chunk/chunk.entity'
 import { TDocChunkMetadata } from '../knowledge-document/types'
@@ -136,8 +136,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     @Inject(XpertService)
     private readonly xpertService: XpertService
 
-    @Inject(VOLUME_CLIENT)
-    private readonly volumeClient: VolumeClient
+    @Inject(KnowledgeWorkAreaResolver)
+    private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
 
     constructor(
         @InjectRepository(Knowledgebase)
@@ -1309,9 +1309,20 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         knowledgebaseId: string,
         entity: IWFNProcessor,
         isDraft: boolean,
-        input: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>[]
+        input: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>[],
+        options?: {
+            taskId?: string | null
+            documentId?: string | null
+        }
     ) {
         const strategy = this.docTransformerRegistry.get(entity.provider)
+        const workArea = await this.knowledgeWorkAreaResolver.resolve({
+            tenantId: RequestContext.currentTenantId(),
+            userId: RequestContext.currentUserId(),
+            knowledgebaseId,
+            taskId: options?.taskId,
+            documentId: options?.documentId
+        })
 
         const permissions = await this.commandBus.execute(
             new PluginPermissionsCommand(strategy.permissions, {
@@ -1324,16 +1335,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         const results = await strategy.transformDocuments(input, {
             ...(entity.config ?? {}),
             stage: isDraft ? 'test' : 'prod',
-            tempDir: (
-                await this.volumeClient
-                    .resolve({
-                        tenantId: RequestContext.currentTenantId(),
-                        catalog: 'knowledges',
-                        userId: RequestContext.currentUserId(),
-                        knowledgeId: knowledgebaseId
-                    })
-                    .ensureRoot()
-            ).path('tmp'),
+            tempDir: workArea.tmpPath.serverPath,
             permissions
         })
 

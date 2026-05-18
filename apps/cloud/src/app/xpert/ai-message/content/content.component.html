@@ -50,20 +50,24 @@
       <!-- <chat-thought [message]="message()" [content]="content" /> -->
     }
     @case ('component') {
-      @switch (content.data.category) {
-        @case ('Dashboard') {
-          <chat-message-dashboard
-            class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-hover-bg"
-            [messageId]="message().id"
-            [message]="content"
-          />
-        }
-        @default {
-          <chat-component-message
-            class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-hover-bg"
-            [messageId]="message().id"
-            [message]="$any(content)"
-          />
+      @if (content.data.category === 'Tool' && content.data.type === contextCompressionComponentType) {
+        <chat-context-compression-chunk class="block w-full" [chunk]="$any(content.data)" />
+      } @else {
+        @switch (content.data.category) {
+          @case ('Dashboard') {
+            <chat-message-dashboard
+              class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-hover-bg"
+              [messageId]="message().id"
+              [message]="content"
+            />
+          }
+          @default {
+            <chat-component-message
+              class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-hover-bg"
+              [messageId]="message().id"
+              [message]="$any(content)"
+            />
+          }
         }
       }
     }

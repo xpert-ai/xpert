@@ -1,7 +1,12 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { BaseMessage, HumanMessage, SystemMessage, isBaseMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
-import { AiModelTypeEnum, ChatMessageEventTypeEnum, ChatMessageTypeEnum, TAgentMiddlewareMeta } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    ChatMessageEventTypeEnum,
+    ChatMessageTypeEnum,
+    TAgentMiddlewareMeta
+} from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import {
     AgentMiddleware,
@@ -16,7 +21,7 @@ import { FileMemoryWritebackRunner } from './file-memory.writeback-runner'
 import { FileMemoryRecallPlanner } from './recall-planner'
 import { FileMemoryHeader, FileMemoryType } from './types'
 import { assertFileMemoryType } from './taxonomy'
-import { assertFileMemorySandboxFeatureEnabled, extractSandboxConfig, FileMemoryStore, resolveSandboxMemoryStore } from './sandbox-memory.store'
+import { assertFileMemorySandboxFeatureEnabled } from './sandbox-memory.store'
 
 export const XPERT_FILE_MEMORY_MIDDLEWARE_NAME = 'XpertFileMemoryMiddleware'
 
@@ -258,7 +263,10 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
         private readonly writebackRunner: FileMemoryWritebackRunner
     ) {}
 
-    createMiddleware(options: FileMemoryMiddlewareOptions = {}, context: IAgentMiddlewareContext): PromiseOrValue<AgentMiddleware> {
+    createMiddleware(
+        options: FileMemoryMiddlewareOptions = {},
+        context: IAgentMiddlewareContext
+    ): PromiseOrValue<AgentMiddleware> {
         assertFileMemorySandboxFeatureEnabled(context)
         const xpert = this.requireXpertScope(context)
         let explicitWriteOccurred = false
@@ -269,18 +277,8 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
         let completedRecallQuery = ''
         let pendingRecallQuery = ''
         let recallSequence = 0
-        let currentStore: FileMemoryStore | null = null
 
-        const requireMemoryStore = (runtimeLike: unknown, reason: string) => {
-            const sandbox = extractSandboxConfig(runtimeLike)
-            if (!sandbox && currentStore) {
-                return currentStore
-            }
-            currentStore = resolveSandboxMemoryStore(sandbox, xpert.id, this.logger, reason)
-            return currentStore
-        }
-
-        const startBackgroundRecall = (query: string, runtimeLike: unknown, reason: string) => {
+        const startBackgroundRecall = (query: string) => {
             const normalizedQuery = query.trim()
             if (!normalizedQuery) {
                 return
@@ -296,7 +294,6 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
             completedRecallQuery = ''
             pendingRecallQuery = normalizedQuery
             const sequence = ++recallSequence
-            const store = requireMemoryStore(runtimeLike, reason)
             const surfacedSnapshot = new Set(surfacedPaths)
             const remainingSessionBytes = Math.max(
                 0,
@@ -307,8 +304,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
                 surfacedPaths: surfacedSnapshot,
                 remainingSessionBytes,
                 conversationId: context.conversationId,
-                getModel: () => this.createRecallModel(context, options),
-                getStore: () => store
+                getModel: () => this.createRecallModel(context, options)
             })
                 .then((recall) => {
                     if (sequence !== recallSequence) {
@@ -318,7 +314,9 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
                     completedRecallQuery = normalizedQuery
                 })
                 .catch((error) => {
-                    this.logger.warn(`Xpert file memory async recall skipped: ${error instanceof Error ? error.message : String(error)}`)
+                    this.logger.warn(
+                        `Xpert file memory async recall skipped: ${error instanceof Error ? error.message : String(error)}`
+                    )
                 })
                 .finally(() => {
                     if (sequence === recallSequence) {
@@ -345,13 +343,12 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
             name: XPERT_FILE_MEMORY_MIDDLEWARE_NAME,
             tools: [
                 tool(
-                    async (input, config) =>
+                    async (input) =>
                         this.searchMemoryWithSelector(xpert, {
                             query: input.query,
                             types: input.types?.map((type) => assertFileMemoryType(type)),
                             limit: input.limit,
                             conversationId: context.conversationId,
-                            runtime: { store: requireMemoryStore(config, 'memory lookup') },
                             options,
                             getModel: () => this.createRecallModel(context, options)
                         }),
@@ -363,14 +360,14 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
                     }
                 ),
                 tool(
-                    async (input, config) => {
+                    async (input) => {
                         const startedAt = Date.now()
                         const result = await this.fileMemoryService.getMemory(xpert, {
                             memoryId: input.memoryId,
                             relativePath: input.relativePath,
                             canonicalRef: input.canonicalRef,
                             conversationId: context.conversationId
-                        }, { store: requireMemoryStore(config, 'memory lookup') })
+                        })
                         this.logger.log(
                             `[XpertFileMemory] memory_get memoryId=${result.memoryId} path=${result.relativePath} elapsedMs=${Date.now() - startedAt}`
                         )
@@ -384,7 +381,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
                     }
                 ),
                 tool(
-                    async (input, config) => {
+                    async (input) => {
                         const startedAt = Date.now()
                         explicitWriteOccurred = true
                         const result = await this.fileMemoryService.writeMemory(xpert, {
@@ -396,7 +393,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
                             tags: input.tags,
                             sourceRefs: input.sourceRefs,
                             conversationId: context.conversationId
-                        }, { store: requireMemoryStore(config, 'memory write') })
+                        })
                         this.logger.log(
                             `[XpertFileMemory] memory_write memoryId=${result.memoryId} path=${result.relativePath} type=${result.frontmatter.type} elapsedMs=${Date.now() - startedAt}`
                         )
@@ -410,14 +407,13 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
                     }
                 )
             ],
-            beforeAgent: async (state, runtime) => {
+            beforeAgent: async (state) => {
                 const startedAt = Date.now()
-                currentStore = requireMemoryStore(runtime, 'memory recall')
                 lastRecallQuery = extractLastHumanText(readStateMessages(state)) || lastRecallQuery
                 this.logger.log(
                     `[XpertFileMemory] beforeAgent query="${truncateLog(lastRecallQuery)}" mode=${getRecallMode(options)} elapsedMs=${Date.now() - startedAt}`
                 )
-                startBackgroundRecall(lastRecallQuery, runtime, 'memory recall')
+                startBackgroundRecall(lastRecallQuery)
             },
             wrapModelCall: async (request, handler) => {
                 const startedAt = Date.now()
@@ -427,7 +423,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
                         : ((request.systemMessage?.content as string) ?? '')
                 const query = extractLastHumanText(request.messages) || lastRecallQuery
                 lastRecallQuery = query
-                startBackgroundRecall(query, request.runtime, 'memory recall')
+                startBackgroundRecall(query)
                 const recall = consumeCompletedRecall(query)
                 emitMemoryRecallEvent(request.runtime, recall, 'auto')
                 this.logger.log(
@@ -443,7 +439,8 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
             wrapToolCall: async (request, handler) => {
                 const startedAt = Date.now()
                 const result = await handler(request)
-                const toolName = typeof request.tool.name === 'string' ? request.tool.name : String(request.tool.name ?? '')
+                const toolName =
+                    typeof request.tool.name === 'string' ? request.tool.name : String(request.tool.name ?? '')
                 this.logger.log(`[XpertFileMemory] wrapToolCall tool=${toolName} elapsedMs=${Date.now() - startedAt}`)
                 if (toolName === 'memory_search' || toolName === 'memory_get') {
                     emitMemoryRecallToolEvent(request.runtime, toolName, result)
@@ -452,29 +449,32 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
                     const query = extractToolRecallQuery(toolName, result)
                     if (query) {
                         lastRecallQuery = query
-                        startBackgroundRecall(query, request.runtime, 'memory recall')
+                        startBackgroundRecall(query)
                     }
                 }
                 return result
             },
-            afterAgent: (state, runtime) => {
+            afterAgent: (state) => {
                 const startedAt = Date.now()
                 try {
                     if (explicitWriteOccurred) {
-                        this.logger.log(`[XpertFileMemory] afterAgent skipped reason=explicit_write elapsedMs=${Date.now() - startedAt}`)
+                        this.logger.log(
+                            `[XpertFileMemory] afterAgent skipped reason=explicit_write elapsedMs=${Date.now() - startedAt}`
+                        )
                         return
                     }
 
                     const messages = readStateMessages(state)
                     const summary = summarizeMessagesForWriteback(messages)
                     if (!summary) {
-                        this.logger.log(`[XpertFileMemory] afterAgent skipped reason=empty_summary elapsedMs=${Date.now() - startedAt}`)
+                        this.logger.log(
+                            `[XpertFileMemory] afterAgent skipped reason=empty_summary elapsedMs=${Date.now() - startedAt}`
+                        )
                         return
                     }
 
                     const key = this.writebackRunner.enqueue({
                         xpert,
-                        runtime: { store: currentStore ?? requireMemoryStore(runtime, 'memory writeback') },
                         messages,
                         conversationId: context.conversationId,
                         getModel: () => this.createWritebackModel(context, options),
@@ -516,14 +516,12 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
             remainingSessionBytes: number
             conversationId?: string
             getModel: () => Promise<BaseChatModel | null>
-            getStore: () => FileMemoryStore
         }
     ): Promise<PreparedRecall> {
         const startedAt = Date.now()
-        const runtime = { store: params.getStore() }
         const [indexContent, headers] = await Promise.all([
-            this.fileMemoryService.readManagedIndex(xpert, runtime),
-            this.fileMemoryService.listMemoryHeaders(xpert, runtime)
+            this.fileMemoryService.readManagedIndex(xpert),
+            this.fileMemoryService.listMemoryHeaders(xpert)
         ])
         const digest = this.recallPlanner.selectSummaryDigestHeaders(query, headers, {
             limit: params.options.recall?.digestLimit ?? DEFAULT_SUMMARY_DIGEST_LIMIT,
@@ -538,8 +536,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
         const detailBlock = await this.buildDetailBlock(xpert, selected.headers, params.surfacedPaths, {
             perTurnBytes: params.options.recall?.maxDetailBytesPerTurn ?? MAX_DETAIL_BYTES_PER_TURN,
             remainingSessionBytes: params.remainingSessionBytes,
-            conversationId: params.conversationId,
-            store: runtime.store
+            conversationId: params.conversationId
         })
         this.logger.log(
             `[XpertFileMemory] auto recall query="${truncateLog(query)}" headers=${headers.length} digest=${digest.headers.length} selected=${selected.headers.length} detailBytes=${detailBlock.bytes} strategy=${selected.strategy} paths=${formatHeaderPaths(selected.headers)} elapsedMs=${Date.now() - startedAt}`
@@ -547,7 +544,9 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
 
         return {
             policyBlock: `<memory_mechanism>\n${MEMORY_SYSTEM_POLICY}\n</memory_mechanism>`,
-            indexBlock: indexContent.trim() ? `<memory-index-context source="file-memory">\n${truncateText(indexContent.trim(), 12_000)}\n</memory-index-context>` : '',
+            indexBlock: indexContent.trim()
+                ? `<memory-index-context source="file-memory">\n${truncateText(indexContent.trim(), 12_000)}\n</memory-index-context>`
+                : '',
             digestBlock: formatDigestBlock(digest.headers, selected.strategy),
             selectedHeaders: selected.headers,
             detailBlock: detailBlock.block,
@@ -564,7 +563,6 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
             types?: FileMemoryType[]
             limit?: number
             conversationId?: string
-            runtime: { store: FileMemoryStore }
             options: FileMemoryMiddlewareOptions
             getModel: () => Promise<BaseChatModel | null>
         }
@@ -572,7 +570,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
         const startedAt = Date.now()
         const query = input.query.trim()
         const allowedTypes = input.types?.length ? new Set(input.types) : null
-        const headers = (await this.fileMemoryService.listMemoryHeaders(xpert, input.runtime)).filter(
+        const headers = (await this.fileMemoryService.listMemoryHeaders(xpert)).filter(
             (header) => header.status === 'active' && (!allowedTypes || allowedTypes.has(header.type))
         )
         const modelStartedAt = Date.now()
@@ -594,7 +592,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
             query,
             headers: selected.headers,
             conversationId: input.conversationId
-        }, input.runtime)
+        })
         this.logger.log(
             `[XpertFileMemory] memory_search query="${truncateLog(query)}" headers=${headers.length} selected=${selected.headers.length} strategy=${selected.strategy} paths=${formatHeaderPaths(selected.headers)} modelMs=${modelElapsedMs} elapsedMs=${Date.now() - startedAt}`
         )
@@ -616,7 +614,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
         xpert: { tenantId: string; id: string },
         headers: FileMemoryHeader[],
         surfacedPaths: Set<string>,
-        options: { perTurnBytes: number; remainingSessionBytes: number; conversationId?: string; store: FileMemoryStore }
+        options: { perTurnBytes: number; remainingSessionBytes: number; conversationId?: string }
     ) {
         const startedAt = Date.now()
         const blocks: string[] = []
@@ -630,7 +628,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
             const detail = await this.fileMemoryService.getMemory(xpert, {
                 memoryId: header.memoryId,
                 conversationId: options.conversationId
-            }, { store: options.store })
+            })
             const block = `### ${detail.frontmatter.title}\npath: ${detail.relativePath}\nid: ${detail.memoryId}\ntype: ${detail.frontmatter.type}\nsummary: ${detail.frontmatter.summary}\n\n${detail.body.trim()}`
             const blockBytes = Buffer.byteLength(block, 'utf8')
             if (bytes + blockBytes > limit) {
@@ -726,10 +724,12 @@ function createEmptyRecall(): PreparedRecall {
 }
 
 function buildMemorySystemMessage(systemMessage: string) {
-    return new SystemMessage([systemMessage, `<memory_mechanism>\n${MEMORY_SYSTEM_POLICY}\n</memory_mechanism>`]
-        .filter(Boolean)
-        .join('\n\n')
-        .trim())
+    return new SystemMessage(
+        [systemMessage, `<memory_mechanism>\n${MEMORY_SYSTEM_POLICY}\n</memory_mechanism>`]
+            .filter(Boolean)
+            .join('\n\n')
+            .trim()
+    )
 }
 
 function buildMemoryContextMessages(recall: PreparedRecall) {
@@ -808,15 +808,13 @@ function formatDigestBlock(headers: FileMemoryHeader[], strategy: string) {
     if (!headers.length) {
         return ''
     }
-    const lines = headers.flatMap((header, index) =>
-        [
-            `<memory_summary index="${index + 1}" id="${header.memoryId}" type="${header.type}" path="${header.relativePath}" strategy="${strategy}">`,
-            `title: ${header.title}`,
-            header.summary ? `summary: ${header.summary}` : 'summary:',
-            `canonicalRef: ${header.canonicalRef}`,
-            '</memory_summary>'
-        ]
-    )
+    const lines = headers.flatMap((header, index) => [
+        `<memory_summary index="${index + 1}" id="${header.memoryId}" type="${header.type}" path="${header.relativePath}" strategy="${strategy}">`,
+        `title: ${header.title}`,
+        header.summary ? `summary: ${header.summary}` : 'summary:',
+        `canonicalRef: ${header.canonicalRef}`,
+        '</memory_summary>'
+    ])
     return `<memory-summary-digest source="file-memory">
 这些摘要已经是当前回合最相关的候选记忆。
 如果某条 summary 已足够回答，直接回答。

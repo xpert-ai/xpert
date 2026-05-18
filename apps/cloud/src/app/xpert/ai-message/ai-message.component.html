@@ -57,17 +57,20 @@
     />
   } @else {
     @for (submessage of contents(); track submessage.id; let i = $index; let last = $last) {
-      <chat-message-avatar
-        #avatar
-        class="group sticky top-14 z-10 bg-surface-container"
-        [prevContent]="contents()[i - 1]"
-        [message]="message()"
-        [content]="submessage"
-        [collapse]="submessage.id && collapseMessages()[submessage.id]"
-        (collapseChange)="updateCollapse(submessage.id, $event)"
-      />
+      @if (!isContextCompressionContent(submessage)) {
+        <chat-message-avatar
+          #avatar
+          class="group sticky top-14 z-10 bg-surface-container"
+          [prevContent]="contents()[i - 1]"
+          [message]="message()"
+          [content]="submessage"
+          [collapse]="submessage.id && collapseMessages()[submessage.id]"
+          (collapseChange)="updateCollapse(submessage.id, $event)"
+        />
+      }
       <chat-message-content
-        class="px-2 z-0"
+        class="z-0"
+        [class.px-2]="!isContextCompressionContent(submessage)"
         [message]="message()"
         [content]="submessage"
         [last]="last"
@@ -95,7 +98,7 @@
         @if (entry.source === 'content') {
           @let contentValue = entryContent(entry);
           @let entryId = entryContentId(entry);
-          @if (depth === 0) {
+          @if (depth === 0 && !isContextCompressionContent(contentValue)) {
             <chat-message-avatar
               #avatar
               class="group sticky top-14 z-10 bg-surface-container"
@@ -108,7 +111,7 @@
           }
           <chat-message-content
             class="z-0"
-            [class.px-2]="depth === 0"
+            [class.px-2]="depth === 0 && !isContextCompressionContent(contentValue)"
             [message]="message()"
             [content]="contentValue"
             [last]="last"

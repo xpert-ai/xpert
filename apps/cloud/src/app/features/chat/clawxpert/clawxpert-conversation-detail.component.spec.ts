@@ -545,10 +545,18 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
+    const component = fixture.componentInstance as WorkspaceTabTestComponent
+    component.addWorkspaceTab('computer')
+    await settle(fixture)
+
     const chatShell = fixture.nativeElement.querySelectorAll('section')[1]?.querySelector('div') as HTMLElement | null
     const tabHeader = fixture.nativeElement.querySelector('[data-workspace-tab-header]') as HTMLElement | null
     const tabNav = fixture.nativeElement.querySelector('nav[z-tab-nav-bar]') as HTMLElement | null
     const addTabButton = fixture.nativeElement.querySelector('[data-add-workspace-tab]') as HTMLElement | null
+    const tabButton = fixture.nativeElement.querySelector('[data-panel-button="computer"]') as HTMLElement | null
+    const closeButton = fixture.nativeElement.querySelector(
+      `[data-close-tab="${component.activeTabId()}"]`
+    ) as HTMLElement | null
 
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
@@ -561,14 +569,55 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
     expect(chatShell?.className).toContain('rounded-3xl')
     expect(tabHeader?.className).toContain('pt-1')
+    expect(tabHeader?.className).toContain('items-center')
     expect(tabHeader?.className).not.toContain('pt-4')
     expect(tabHeader?.className).not.toContain('flex-col')
     expect(tabNav).not.toBeNull()
-    expect(tabNav?.className).toContain('flex-1')
+    expect(tabNav?.className).not.toContain('flex-1')
     expect(tabNav?.className).toContain('min-w-0')
     expect(tabNav?.contains(addTabButton)).toBe(false)
+    expect(tabButton?.className).toContain('data-[active=true]:rounded-2xl')
+    expect(closeButton?.className).toContain('opacity-0')
+    expect(closeButton?.className).toContain('group-hover/tab:opacity-100')
     expect(addTabButton?.className).toContain('h-8')
     expect(addTabButton?.className).toContain('w-8')
+  })
+
+  it('collapses the chat shell when ChatKit minimizes into the pet overlay', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    expect(chatkit).not.toBeNull()
+    if (!chatkit) {
+      throw new Error('Expected xpert-chatkit to render')
+    }
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+    )
+    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-3xl')
+
+    chatkit.dataset.chatMinimizedToPet = 'true'
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:w-0')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-0')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
+
+    delete chatkit.dataset.chatMinimizedToPet
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+    )
+    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-3xl')
   })
 
   it('allows the embedded chatkit to shrink within compact viewport heights', async () => {

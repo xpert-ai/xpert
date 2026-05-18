@@ -32,7 +32,7 @@ describe('FileMemoryService', () => {
         })
 
         expect(created.relativePath).toMatch(/^project\/filememory-v2-rollout-[a-f0-9-]+\.md$/)
-        await expect(fsPromises.readFile(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/MEMORY.md'), 'utf8')).resolves.toContain(
+        await expect(fsPromises.readFile(path.join(tempRoot, '.xpert/memory/MEMORY.md'), 'utf8')).resolves.toContain(
             created.relativePath
         )
 
@@ -52,7 +52,7 @@ describe('FileMemoryService', () => {
         expect(detail.frontmatter.usage.detailReadCount).toBeGreaterThanOrEqual(1)
         expect(detail.frontmatter.usage.usefulnessScore).toBeGreaterThan(0)
 
-        const signalPath = path.join(tempRoot, '.xpert/memory/xperts/xpert-1/.dream/signals')
+        const signalPath = path.join(tempRoot, '.xpert/memory/.dream/signals')
         const signalFiles = await fsPromises.readdir(signalPath)
         expect(signalFiles.length).toBeGreaterThan(0)
         const signals = await fsPromises.readFile(path.join(signalPath, signalFiles[0]), 'utf8')
@@ -61,7 +61,7 @@ describe('FileMemoryService', () => {
         expect(signals).toContain('"type":"detail_read"')
 
         const scorecard = JSON.parse(
-            await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/.dream/scorecards/index.json'), 'utf8')
+            await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/.dream/scorecards/index.json'), 'utf8')
         )
         expect(scorecard.topics[0]).toEqual(
             expect.objectContaining({
@@ -147,9 +147,9 @@ describe('FileMemoryService', () => {
         )
 
         expect(created.relativePath).toMatch(/^user\/user-name-[a-f0-9-]+\.md$/)
-        await expect(
-            fsPromises.readFile(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/MEMORY.md'), 'utf8')
-        ).resolves.toContain(created.relativePath)
+        await expect(fsPromises.readFile(path.join(tempRoot, '.xpert/memory/MEMORY.md'), 'utf8')).resolves.toContain(
+            created.relativePath
+        )
     })
 
     it('deduplicates usage uniqueness while retaining raw recall signals', async () => {
@@ -178,7 +178,7 @@ describe('FileMemoryService', () => {
         expect(detail.frontmatter.usage.uniqueQueryCount).toBe(1)
 
         const scorecard = JSON.parse(
-            await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/.dream/scorecards/index.json'), 'utf8')
+            await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/.dream/scorecards/index.json'), 'utf8')
         )
         expect(scorecard.topics[0].signalCounts.recall_hit).toBe(2)
     })
@@ -195,10 +195,10 @@ describe('FileMemoryService', () => {
         })
 
         expect(signal.type).toBe('writeback_candidate')
-        await expect(fsPromises.readdir(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/project'))).resolves.toEqual([])
+        await expect(fsPromises.readdir(path.join(tempRoot, '.xpert/memory/project'))).resolves.toEqual([])
 
         const scorecard = JSON.parse(
-            await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/.dream/scorecards/index.json'), 'utf8')
+            await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/.dream/scorecards/index.json'), 'utf8')
         )
         expect(scorecard.candidates[0]).toEqual(
             expect.objectContaining({
@@ -223,8 +223,8 @@ describe('FileMemoryService', () => {
         })
 
         expect(detail.frontmatter.type).toBe('feedback')
-        await expect(fsPromises.stat(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/feedback'))).resolves.toBeTruthy()
-        await expect(fsPromises.stat(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/user/user-1'))).rejects.toThrow()
+        await expect(fsPromises.stat(path.join(tempRoot, '.xpert/memory/feedback'))).resolves.toBeTruthy()
+        await expect(fsPromises.stat(path.join(tempRoot, '.xpert/memory/user/user-1'))).rejects.toThrow()
     })
 
     it('updates existing memory and refreshes the managed index', async () => {
@@ -244,7 +244,7 @@ describe('FileMemoryService', () => {
             content: 'Updated body.'
         })
 
-        const index = await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/MEMORY.md'), 'utf8')
+        const index = await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/MEMORY.md'), 'utf8')
         expect(index).toContain('Updated title')
         expect(index).not.toContain('Initial title')
     })
@@ -260,9 +260,48 @@ describe('FileMemoryService', () => {
 
         await service.archiveMemory(xpert, { memoryId: created.memoryId, reason: 'obsolete' })
 
-        const index = await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/MEMORY.md'), 'utf8')
+        const index = await fsPromises.readFile(path.join(tempRoot, '.xpert/memory/MEMORY.md'), 'utf8')
         expect(index).not.toContain('Archived title')
         const detail = await service.getMemory(xpert, { memoryId: created.memoryId })
         expect(detail.frontmatter.status).toBe('archived')
+    })
+
+    it('lazily migrates legacy xpert memory files without overwriting newer files', async () => {
+        const xpert = { tenantId: 'tenant-1', id: 'xpert-1' }
+        await fsPromises.mkdir(path.join(tempRoot, '.xpert/memory/xperts/xpert-1/project'), { recursive: true })
+        await fsPromises.mkdir(path.join(tempRoot, '.xpert/memory/project'), { recursive: true })
+        await fsPromises.writeFile(
+            path.join(tempRoot, '.xpert/memory/xperts/xpert-1/project/legacy-only.md'),
+            '# Legacy only\n',
+            'utf8'
+        )
+        await fsPromises.writeFile(
+            path.join(tempRoot, '.xpert/memory/xperts/xpert-1/project/conflict.md'),
+            '# Legacy conflict\n',
+            'utf8'
+        )
+        await fsPromises.writeFile(path.join(tempRoot, '.xpert/memory/project/conflict.md'), '# New conflict\n', 'utf8')
+
+        await service.writeMemory(xpert, {
+            type: 'project',
+            title: 'Migration trigger',
+            summary: 'Accessing memory triggers a lazy migration.',
+            content: 'The migration copies legacy files that do not already exist.'
+        })
+
+        await expect(
+            fsPromises.readFile(path.join(tempRoot, '.xpert/memory/project/legacy-only.md'), 'utf8')
+        ).resolves.toBe('# Legacy only\n')
+        await expect(
+            fsPromises.readFile(path.join(tempRoot, '.xpert/memory/project/conflict.md'), 'utf8')
+        ).resolves.toBe('# New conflict\n')
+        const reports = await fsPromises.readdir(path.join(tempRoot, '.xpert/memory/.dream/migrations'))
+        expect(reports).toHaveLength(1)
+        const report = await fsPromises.readFile(
+            path.join(tempRoot, '.xpert/memory/.dream/migrations', reports[0]),
+            'utf8'
+        )
+        expect(report).toContain('project/legacy-only.md')
+        expect(report).toContain('project/conflict.md')
     })
 })

@@ -1,9 +1,6 @@
 import type { TMessageContentComponent } from '@xpert-ai/chatkit-types'
 import { CopilotChatMessage } from './chat-message.model'
-import {
-  CONTEXT_COMPRESSION_COMPONENT_TYPE,
-  TContextCompressionComponentData
-} from './context-compression.model'
+import { CONTEXT_COMPRESSION_COMPONENT_TYPE, TContextCompressionComponentData } from './context-compression.model'
 import {
   appendMessageContent,
   appendMessagePlainText,
@@ -222,6 +219,7 @@ describe('message-content.utils', () => {
         category: 'Tool',
         type: CONTEXT_COMPRESSION_COMPONENT_TYPE,
         status: 'success',
+        summary: '<state_snapshot>Compressed history.</state_snapshot>',
         end_date: '2026-04-17T00:00:02.000Z'
       }
     }
@@ -233,6 +231,7 @@ describe('message-content.utils', () => {
     expect(chunks).toHaveLength(1)
     expect(chunks[0].data.type).toBe(CONTEXT_COMPRESSION_COMPONENT_TYPE)
     expect(chunks[0].data.status).toBe('success')
+    expect(chunks[0].data.summary).toBe('<state_snapshot>Compressed history.</state_snapshot>')
     expect(chunks[0].data.created_date).toBe('2026-04-17T00:00:00.000Z')
     expect(chunks[0].data.end_date).toBe('2026-04-17T00:00:02.000Z')
   })
