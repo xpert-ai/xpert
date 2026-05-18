@@ -1,47 +1,16 @@
 import { inject } from '@angular/core'
 import { Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
-import { CurrentUserHydrationService } from '@xpert-ai/cloud/state'
-import { from, of, race, timer } from 'rxjs'
+import { of } from 'rxjs'
 import { catchError, map, switchMap } from 'rxjs/operators'
 import { AiFeatureEnum, AssistantBindingScope, AssistantBindingService, AssistantCode, Store } from '../../@core'
+import { featureGate, hydrateFeatureContext } from '../feature-gate'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatHomeComponent } from './home/home.component'
-import { ChatBiComponent } from './chatbi/chatbi.component'
 import { ChatCommonAssistantComponent } from './common/common.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
-
-const FEATURE_HYDRATION_TIMEOUT_MS = 3000
-
-function hydrateFeatureContext(options: { skipSessionCache?: boolean } = {}) {
-  const currentUserHydrationService = inject(CurrentUserHydrationService)
-  const hydration = currentUserHydrationService.getFeatureHydration(options)
-
-  return race(
-    from(hydration).pipe(
-      map((user) => !!user),
-      catchError(() => of(false))
-    ),
-    timer(FEATURE_HYDRATION_TIMEOUT_MS).pipe(map(() => false))
-  )
-}
-
-function featureGate(featureKeys: AiFeatureEnum[]) {
-  return () => {
-    const store = inject(Store)
-    const router = inject(Router)
-
-    return hydrateFeatureContext({ skipSessionCache: true }).pipe(
-      map((hydrated) =>
-        hydrated && featureKeys.every((featureKey) => store.hasFeatureEnabled(featureKey))
-          ? true
-          : router.createUrlTree(['/chat'])
-      )
-    )
-  }
-}
 
 function redirectToDefaultChatEntry() {
   return () => {
@@ -111,28 +80,28 @@ export const routes: Routes = [
         path: 'x/common',
         component: ChatCommonAssistantComponent,
         data: {
-          title: 'Common Assistant',
+          title: 'Common Assistant'
         }
       },
       {
         path: 'x/:name',
         component: ChatXpertComponent,
         data: {
-          title: 'Chat Xpert',
+          title: 'Chat Xpert'
         }
       },
       {
         path: 'c/:id',
         component: ChatXpertComponent,
         data: {
-          title: 'Chat Conversation',
+          title: 'Chat Conversation'
         }
       },
       {
         path: 'x/:name/c/:id',
         component: ChatXpertComponent,
         data: {
-          title: 'Chat Xpert Conversation',
+          title: 'Chat Xpert Conversation'
         }
       },
       {
@@ -140,55 +109,52 @@ export const routes: Routes = [
         component: ClawXpertComponent,
         canActivateChild: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
         data: {
-          title: 'ClawXpert',
+          title: 'ClawXpert'
         },
         children: [
           {
             path: '',
             component: ClawXpertOverviewComponent,
             data: {
-              title: 'ClawXpert Overview',
+              title: 'ClawXpert Overview'
             }
           },
           {
             matcher: clawxpertConversationMatcher,
             component: ClawXpertConversationDetailComponent,
             data: {
-              title: 'ClawXpert Conversation',
+              title: 'ClawXpert Conversation'
             }
           }
         ]
       },
       {
         path: 'chatbi',
-        component: ChatBiComponent,
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CHATBI])],
-        data: {
-          title: 'Chat BI',
-        }
+        redirectTo: '/chatbi',
+        pathMatch: 'full'
       },
 
       {
         path: 'tasks',
         component: ChatTasksComponent,
         data: {
-          title: 'Chat Tasks',
-        },
+          title: 'Chat Tasks'
+        }
       },
       {
         path: 'tasks/:id',
         component: ChatTasksComponent,
         data: {
-          title: 'Chat Task',
-        },
+          title: 'Chat Task'
+        }
       },
       {
         path: '**',
         redirectTo: 'x/common',
         pathMatch: 'prefix'
-      },
+      }
     ]
-  },
+  }
 ]
 
 function clawxpertConversationMatcher(segments: UrlSegment[]): UrlMatchResult | null {

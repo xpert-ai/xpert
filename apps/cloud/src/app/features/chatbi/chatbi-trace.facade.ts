@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
-import { AiThreadService, ChatConversationService, getErrorMessage } from '../../../@core'
+import { AiThreadService, ChatConversationService, getErrorMessage } from '../../@core'
 import { ChatBiTraceItem, extractChatBiTraceItemFromLogEvent, extractChatBiTraceItems } from './chatbi-trace.utils'
 
 type ChatBiTraceState = 'idle' | 'loading' | 'ready' | 'error'
@@ -228,10 +228,7 @@ export class ChatBiTraceFacade {
     const lastStep = displayedSteps[displayedSteps.length - 1] ?? null
 
     if (!isDashboardTraceItem(lastStep) || lastStep.pinned) {
-      return [
-        ...items,
-        ensureUniqueTraceDisplayId(createTraceDisplayItem(traceItem, 'live'), displayedSteps)
-      ]
+      return [...items, ensureUniqueTraceDisplayId(createTraceDisplayItem(traceItem, 'live'), displayedSteps)]
     }
 
     if (lastStep.source === 'live') {
@@ -336,16 +333,11 @@ function upsertLiveTraceItem(items: ChatBiTraceDisplayItem[], item: ChatBiTraceD
   return items.map((current, currentIndex) => (currentIndex === index ? mergeTraceDisplayItem(current, item) : current))
 }
 
-function mergeTraceDisplayItem(previous: ChatBiTraceDisplayItem, incoming: ChatBiTraceDisplayItem): ChatBiTraceDisplayItem {
-  const mergedIncomingData = Object.entries(incoming.data ?? {}).reduce(
-    (acc, [key, value]) => {
-      if (value !== null && value !== undefined) {
-        acc[key] = value
-      }
-      return acc
-    },
-    {} as Record<string, unknown>
-  )
+function mergeTraceDisplayItem(
+  previous: ChatBiTraceDisplayItem,
+  incoming: ChatBiTraceDisplayItem
+): ChatBiTraceDisplayItem {
+  const mergedIncomingData = compactTraceData(incoming.data)
 
   return {
     ...previous,
@@ -356,9 +348,22 @@ function mergeTraceDisplayItem(previous: ChatBiTraceDisplayItem, incoming: ChatB
     data: {
       ...(previous.data ?? {}),
       ...mergedIncomingData,
+      category: incoming.data.category || previous.data.category,
       created_date: previous.data?.created_date || incoming.data?.created_date
     }
   }
+}
+
+function compactTraceData(data: ChatBiTraceDisplayItem['data']): Partial<ChatBiTraceDisplayItem['data']> {
+  const compacted: Partial<ChatBiTraceDisplayItem['data']> = {}
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) {
+      compacted[key] = value
+    }
+  })
+
+  return compacted
 }
 
 function updatePinnedState(items: ChatBiTraceDisplayItem[], stepId: string, pinned: boolean) {

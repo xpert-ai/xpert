@@ -6,20 +6,16 @@
         [class.justify-center]="isCollapsed"
         [class.justify-start]="!isCollapsed"
         [class.has-submenu]="item.children?.length"
-        [routerLink]="item.children ? null : item.link"
-        routerLinkActive
-        #rla="routerLinkActive"
-        [class.active]="rla.isActive || hasActiveChild(item)"
-        (click)="toggleMenu(item)"
+        [routerLink]="item.children || isExternalLink(item) ? null : item.link"
+        [class.active]="isMenuItemActive(item, item.pathMatch !== 'prefix') || hasActiveChild(item)"
+        (click)="openExternalLink(item); toggleMenu(item)"
       >
         @if (isCollapsed) {
           <button
             type="button"
             class="menu-button cursor-pointer shrink-0 flex items-center justify-center p-2 leading-4 opacity-80 transition-all duration-200 hover:rounded-lg hover:bg-hover-bg hover:opacity-100"
-            [routerLink]="isCollapsed ? item.link : null"
-            routerLinkActive
-            #rla="routerLinkActive"
-            [class.active]="rla.isActive"
+            [routerLink]="isCollapsed && !isExternalLink(item) ? item.link : null"
+            [class.active]="isMenuItemActive(item, item.pathMatch !== 'prefix')"
             [zTooltip]="item.title"
             zPosition="right"
             [zDisabled]="!!item.children?.length"

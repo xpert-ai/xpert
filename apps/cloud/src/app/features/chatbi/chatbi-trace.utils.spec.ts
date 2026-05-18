@@ -1,7 +1,8 @@
 import {
   extractChatBiTraceItemFromLogEvent,
   extractChatBiTraceItems,
-  mergeChatBiTraceItems
+  mergeChatBiTraceItems,
+  type ChatBiTraceItem
 } from './chatbi-trace.utils'
 
 describe('chatbi trace utils', () => {
@@ -51,9 +52,9 @@ describe('chatbi trace utils', () => {
               }
             }
           ]
-        } as any
+        }
       ]
-    } as any)
+    })
 
     expect(items).toHaveLength(2)
     expect(items[0].id).toBe('dashboard-1')
@@ -74,7 +75,7 @@ describe('chatbi trace utils', () => {
           title: 'Run program',
           status: 'running'
         }
-      } as any,
+      } satisfies ChatBiTraceItem,
       {
         type: 'component',
         id: 'dashboard-1',
@@ -84,7 +85,7 @@ describe('chatbi trace utils', () => {
           type: 'AnalyticalCard',
           title: 'Sales Trend'
         }
-      } as any,
+      } satisfies ChatBiTraceItem,
       {
         type: 'component',
         id: 'program-1',
@@ -95,7 +96,7 @@ describe('chatbi trace utils', () => {
           status: 'success',
           output: '{"ok":true}'
         }
-      } as any
+      } satisfies ChatBiTraceItem
     ])
 
     expect(items).toHaveLength(2)

@@ -665,6 +665,10 @@
       "IsLatest": "已是最新版本。",
       "Certification": "認證",
       "Chat": "聊天",
+      "ChatBI Assistant": "ChatBI 助手",
+      "CodeXpert": "CodeXpert",
+      "DeepResearch": "DeepResearch",
+      "Data & Ontology": "Data & Ontology",
       "Copilot": "智能助理",
       "AI Copilot": "模型提供商",
       "Digital Xpert": "數字專家",
@@ -1907,7 +1911,7 @@
       },
       "ChatBI": {
         "Label": "ChatBI 助手",
-        "Description": "用於 ChatBI 頁面的嵌入式助手。"
+        "Description": "在 ChatBI 頁面與你的資料分析助手對話。"
       },
       "ClawXpert": {
         "Label": "ClawXpert",
@@ -2474,6 +2478,16 @@
     "ChatBI": {
       "DeprecationNotes": "ChatBI 功能請使用數字專家中的 ChatBI 工具集！",
       "Title": "ChatBI-數據分析與洞察",
+      "ComputerTrace": "線程活動",
+      "TraceLoading": "正在載入線程活動...",
+      "TraceLoadFailed": "載入線程活動失敗",
+      "TraceEmpty": "暫無線程活動",
+      "TraceEmptyDesc": "當助手構建圖表、探索文件、運行程式並生成結構化操作時，此 ChatBI 線程中的儀表板輸出和電腦端步驟會顯示在這裡。",
+      "PinDashboard": "固定快照",
+      "UnpinDashboard": "取消固定快照",
+      "DataOntologyGuidePrefix": "建議直接使用",
+      "DataOntologySystem": "數據&本體",
+      "DataOntologyGuideSuffix": "系統的智能體來完成數據分析需求。",
       "TransformData": "利用人工智能將數據轉化為洞察力。",
       "InputPlaceholder": "針對數據集詢問問題，按 Enter 發送",
       "NoSemanticModel": "無語義模型",
@@ -2750,15 +2764,19 @@
         },
         "FEATURE_XPERT_CHATBI": {
           "Name": "ChatBI",
-          "Description": "在聊天左側邊欄中顯示 ChatBI 入口。"
+          "Description": "在主導航中顯示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
-          "Description": "在聊天左側邊欄中顯示 CodeXpert 入口。"
+          "Description": "在主導航中顯示 CodeXpert 入口。"
         },
         "FEATURE_XPERT_DEEP_RESEARCH": {
           "Name": "DeepResearch",
-          "Description": "在聊天左側邊欄中顯示 DeepResearch 入口。"
+          "Description": "在主導航中顯示 DeepResearch 入口。"
+        },
+        "FEATURE_XPERT_DATA_ONTOLOGY": {
+          "Name": "Data & Ontology",
+          "Description": "在主導航中顯示 Data & Ontology 入口。"
         }
       }
     },

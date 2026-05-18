@@ -100,6 +100,10 @@
       "USERS": "Users",
       "FEATURES": "Features",
       "Data": "Data",
+      "ChatBI Assistant": "ChatBI Assistant",
+      "CodeXpert": "CodeXpert",
+      "DeepResearch": "DeepResearch",
+      "Data & Ontology": "Data & Ontology",
       "MANAGE_ORGANIZATIONS": "Manage Organizations",
       "TENANT": {
         "TITLE": "Tenant"
@@ -908,7 +912,7 @@
       },
       "ChatBI": {
         "Label": "ChatBI Assistant",
-        "Description": "Embedded assistant used by the ChatBI page."
+        "Description": "Chat with your data analysis assistant from the ChatBI page."
       },
       "ClawXpert": {
         "Label": "ClawXpert",
@@ -1124,6 +1128,16 @@
       }
     },
     "ChatBI": {
+      "ComputerTrace": "Thread Activity",
+      "TraceLoading": "Loading thread activity...",
+      "TraceLoadFailed": "Failed to load thread activity",
+      "TraceEmpty": "No thread activity yet",
+      "TraceEmptyDesc": "Dashboard outputs and computer-side steps from this ChatBI thread will appear here as the assistant builds charts, explores files, runs programs, and emits structured actions.",
+      "PinDashboard": "Pin snapshot",
+      "UnpinDashboard": "Unpin snapshot",
+      "DataOntologyGuidePrefix": "Use",
+      "DataOntologySystem": "Data & Ontology",
+      "DataOntologyGuideSuffix": "agents directly to complete your data analysis tasks.",
       "NewChatBIModel": "New ChatBI Model",
       "ModelExists": "Model already exists",
       "EntityNotFound": "Entity not found",
@@ -1514,15 +1528,19 @@
       },
       "FEATURE_XPERT_CHATBI": {
         "Name": "ChatBI",
-        "Description": "Show the ChatBI entry in the chat sidebar."
+        "Description": "Show the ChatBI entry in the main navigation."
       },
       "FEATURE_XPERT_CODEXPERT": {
         "Name": "CodeXpert",
-        "Description": "Show the CodeXpert entry in the chat sidebar."
+        "Description": "Show the CodeXpert entry in the main navigation."
       },
       "FEATURE_XPERT_DEEP_RESEARCH": {
         "Name": "DeepResearch",
-        "Description": "Show the DeepResearch entry in the chat sidebar."
+        "Description": "Show the DeepResearch entry in the main navigation."
+      },
+      "FEATURE_XPERT_DATA_ONTOLOGY": {
+        "Name": "Data & Ontology",
+        "Description": "Show the Data & Ontology entry in the main navigation."
       }
     },
     "Workspace": {

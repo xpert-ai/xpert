@@ -35,6 +35,13 @@ describe('features routing', () => {
     expect(route?.loadChildren).toEqual(expect.any(Function))
   })
 
+  it('mounts ChatBI Assistant at the top-level /chatbi route', () => {
+    const route = children.find((item) => item.path === 'chatbi')
+
+    expect(route?.loadChildren).toEqual(expect.any(Function))
+    expect(route?.data?.title).toBe('Chat BI')
+  })
+
   it('mounts the data container at /data and removes the legacy /models route', () => {
     expect(children.some((item) => item.path === 'data')).toBe(true)
     expect(children.some((item) => item.path === 'models')).toBe(false)

@@ -5,13 +5,13 @@ import { TranslateModule } from '@ngx-translate/core'
 import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { firstValueFrom } from 'rxjs'
-import { AssistantCode, IXpert, XpertAPIService } from '../../../@core'
-import { provideOcap } from '../../../@core/providers/ocap'
-import { ChatToolCallChunkComponent } from '../../../@shared/chat'
-import { ChatService, XpertOcapService } from '../../../xpert'
-import { ChatMessageDashboardComponent } from '../../../xpert/ai-message/dashboard/dashboard.component'
-import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
-import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit.runtime'
+import { AssistantCode, IXpert, XpertAPIService } from '../../@core'
+import { provideOcap } from '../../@core/providers/ocap'
+import { ChatToolCallChunkComponent } from '../../@shared/chat'
+import { ChatService, XpertOcapService } from '../../xpert'
+import { ChatMessageDashboardComponent } from '../../xpert/ai-message/dashboard/dashboard.component'
+import { getAssistantRegistryItem } from '../assistant/assistant.registry'
+import { injectAssistantChatkitRuntime } from '../assistant/assistant-chatkit.runtime'
 import { ChatBiTraceFacade } from './chatbi-trace.facade'
 
 @Injectable()
@@ -43,6 +43,11 @@ class ChatBiDashboardChatService {
     provideOcap(),
     XpertOcapService
   ],
+  styles: `
+    :host {
+      width: 100%;
+    }
+  `,
   template: `
     <div class="flex h-full flex-col gap-4 overflow-hidden p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px]">
       <section class="order-2 flex min-h-0 flex-col overflow-hidden rounded-3xl lg:order-1">
@@ -51,14 +56,34 @@ class ChatBiDashboardChatService {
             {{ displayTitle() || (definition.labelKey | translate: { Default: definition.defaultLabel }) }}
           </div>
           <p class="mt-2 max-w-2xl text-sm text-text-secondary">
-            {{
-              displayDescription()
-                || (definition.descriptionKey
+            <span>
+              {{
+                displayDescription() ||
+                  (definition.descriptionKey
+                    | translate
+                      : {
+                          Default: definition.defaultDescription
+                        })
+              }}
+            </span>
+            <span class="">
+              {{ 'PAC.ChatBI.DataOntologyGuidePrefix' | translate: { Default: 'Use' } }}
+              <a
+                class="font-medium text-text-primary underline-offset-4 hover:underline"
+                href="https://data.xpertai.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ 'PAC.ChatBI.DataOntologySystem' | translate: { Default: 'Data & Ontology' } }}
+              </a>
+              {{
+                'PAC.ChatBI.DataOntologyGuideSuffix'
                   | translate
                     : {
-                        Default: definition.defaultDescription
-                      })
-            }}
+                        Default: 'agents directly to complete your data analysis tasks.'
+                      }
+              }}
+            </span>
           </p>
         </div>
 
@@ -98,7 +123,10 @@ class ChatBiDashboardChatService {
                       </div>
                     }
                     @default {
-                      <chat-tool-call-chunk [chunk]="$any(step.data)" [conversationStatus]="traceConversationStatus()" />
+                      <chat-tool-call-chunk
+                        [chunk]="$any(step.data)"
+                        [conversationStatus]="traceConversationStatus()"
+                      />
                     }
                   }
                 }
@@ -106,12 +134,16 @@ class ChatBiDashboardChatService {
             } @else {
               @switch (traceState()) {
                 @case ('loading') {
-                  <div class="flex h-full min-h-[18rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
+                  <div
+                    class="flex h-full min-h-[18rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                  >
                     {{ 'PAC.ChatBI.TraceLoading' | translate: { Default: 'Loading thread activity...' } }}
                   </div>
                 }
                 @case ('error') {
-                  <div class="flex h-full min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center">
+                  <div
+                    class="flex h-full min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
                     <i class="ri-error-warning-line text-3xl text-text-tertiary"></i>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{ 'PAC.ChatBI.TraceLoadFailed' | translate: { Default: 'Failed to load thread activity' } }}
@@ -122,7 +154,9 @@ class ChatBiDashboardChatService {
                   </div>
                 }
                 @default {
-                  <div class="flex h-full min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                  <div
+                    class="flex h-full min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
                     <i class="ri-computer-line text-3xl text-text-tertiary"></i>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{ 'PAC.ChatBI.TraceEmpty' | translate: { Default: 'No thread activity yet' } }}
@@ -160,12 +194,16 @@ class ChatBiDashboardChatService {
               <xpert-chatkit class="h-full min-h-[26rem]" [control]="control()!" />
             }
             @case ('loading') {
-              <div class="flex h-full min-h-[26rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
+              <div
+                class="flex h-full min-h-[26rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+              >
                 {{ 'PAC.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant…' } }}
               </div>
             }
             @case ('disabled') {
-              <div class="flex h-full min-h-[26rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center">
+              <div
+                class="flex h-full min-h-[26rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center"
+              >
                 <i class="ri-pause-circle-line text-3xl text-text-tertiary"></i>
                 <div class="mt-4 text-base font-medium text-text-primary">
                   {{ 'PAC.Assistant.DisabledTitle' | translate: { Default: 'Assistant disabled' } }}
@@ -174,13 +212,17 @@ class ChatBiDashboardChatService {
                   {{
                     'PAC.Assistant.DisabledDesc'
                       | translate
-                        : { Default: 'This assistant is configured but currently disabled for the active organization.' }
+                        : {
+                            Default: 'This assistant is configured but currently disabled for the active organization.'
+                          }
                   }}
                 </div>
               </div>
             }
             @default {
-              <div class="flex h-full min-h-[26rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+              <div
+                class="flex h-full min-h-[26rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+              >
                 <i class="ri-settings-3-line text-3xl text-text-tertiary"></i>
                 <div class="mt-4 text-base font-medium text-text-primary">
                   {{ 'PAC.Assistant.MissingTitle' | translate: { Default: 'Assistant not configured' } }}
@@ -190,7 +232,8 @@ class ChatBiDashboardChatService {
                     'PAC.Assistant.MissingDesc'
                       | translate
                         : {
-                            Default: 'Configure the ChatBI assistant in Settings / Assistants before starting a conversation here.'
+                            Default:
+                              'Configure the ChatBI assistant in Settings / Assistants before starting a conversation here.'
                           }
                   }}
                 </div>
@@ -263,9 +306,9 @@ export class ChatBiComponent {
       const status = this.status()
       const title = this.displayTitle() || this.definition.defaultLabel
       if (status === 'ready') {
-        document.title = `${title} - ChatBI - Power BI Copilot`
+        document.title = `${title} - ChatBI Assistant`
       } else {
-        document.title = `ChatBI - Power BI Copilot`
+        document.title = `ChatBI Assistant`
       }
     })
   }
