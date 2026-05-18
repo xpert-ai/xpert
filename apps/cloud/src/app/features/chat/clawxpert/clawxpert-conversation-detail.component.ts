@@ -5,7 +5,6 @@ import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, TChatElementReference, TChatFileElementReference } from '@xpert-ai/contracts'
 import { ZardButtonComponent, ZardIconComponent, ZardMenuImports, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import {
@@ -31,7 +30,6 @@ import {
 } from './clawxpert-workspace-file-refresh.utils'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
-const CONVERSATION_DETAIL_REFRESH_INTERVAL_MS = 1000
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
 const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
@@ -47,7 +45,7 @@ type ChatKitCodeComposerReference = {
 }
 
 type ChatKitComposerReference = ChatKitCodeComposerReference | ChatKitQuoteReference
-type ClawXpertStaticTabId = 'files' | 'computer' | 'terminal'
+type ClawXpertStaticTabId = 'files' | 'terminal'
 type ClawXpertWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
 type ClawXpertToolTab = {
   id: string
@@ -98,8 +96,7 @@ type ChatKitReferenceComposerControl = {
     ...ZardTabsImports,
     ClawXpertConversationFilesComponent,
     ClawXpertConversationPreviewComponent,
-    ChatSharedTerminalComponent,
-    ChatComputerTimelineComponent
+    ChatSharedTerminalComponent
   ],
   template: `
     <div [class]="workspaceLayoutClasses()">
@@ -126,7 +123,7 @@ type ChatKitReferenceComposerControl = {
                     type="button"
                     [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                     [attr.data-tab-id]="tab.id"
-                    class="group/tab flex min-w-0 items-center gap-2 !border-transparent transition-colors hover:rounded-2xl hover:bg-hover-bg data-[active=true]:rounded-2xl data-[active=true]:bg-hover-bg data-[active=true]:text-text-primary"
+                    class="group/tab flex min-w-0 items-center gap-2 !border-transparent transition-colors hover:rounded-2xl hover:bg-hover-bg data-[active=true]:rounded-xl data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
                     [active]="activeTabId() === tab.id"
                     (click)="selectTab(tab.id)"
                   >
@@ -134,9 +131,6 @@ type ChatKitReferenceComposerControl = {
                       @switch (tab.kind) {
                         @case ('files') {
                           <i class="ri-folder-3-line shrink-0 text-base"></i>
-                        }
-                        @case ('computer') {
-                          <i class="ri-computer-line shrink-0 text-base"></i>
                         }
                         @case ('terminal') {
                           <i class="ri-terminal-window-line shrink-0 text-base"></i>
@@ -162,9 +156,6 @@ type ChatKitReferenceComposerControl = {
                     @switch (tab.kind) {
                       @case ('files') {
                         <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-                      }
-                      @case ('computer') {
-                        <span>{{ 'PAC.Chat.ClawXpert.Computer' | translate: { Default: 'Computer' } }}</span>
                       }
                       @case ('terminal') {
                         <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
@@ -199,12 +190,6 @@ type ChatKitReferenceComposerControl = {
                     <span class="flex items-center gap-2">
                       <i class="ri-folder-3-line text-base"></i>
                       <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-                    </span>
-                  </button>
-                  <button type="button" z-menu-item data-add-computer-tab (click)="addWorkspaceTab('computer')">
-                    <span class="flex items-center gap-2">
-                      <i class="ri-computer-line text-base"></i>
-                      <span>{{ 'PAC.Chat.ClawXpert.Computer' | translate: { Default: 'Computer' } }}</span>
                     </span>
                   </button>
                   <button type="button" z-menu-item data-add-browser-tab (click)="addWorkspaceTab('browser')">
@@ -255,15 +240,6 @@ type ChatKitReferenceComposerControl = {
                                       'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
                                   }
                           }}
-                        } @else if (activeTab()?.kind === 'computer') {
-                          {{
-                            'PAC.Chat.ClawXpert.ComputerEmptyDesc'
-                              | translate
-                                : {
-                                    Default:
-                                      'Once this ClawXpert thread is created, its computer timeline will appear here as workspace tools start running.'
-                                  }
-                          }}
                         } @else if (activeTab()?.kind === 'browser') {
                           {{
                             'PAC.Chat.ClawXpert.PreviewDetailEmptyDesc'
@@ -302,12 +278,6 @@ type ChatKitReferenceComposerControl = {
                         [mode]="'editable'"
                         [reloadKey]="fileListReloadKey()"
                         (referenceRequest)="handleWorkspaceReference($event)"
-                      />
-                    } @else if (activeTab()?.kind === 'computer') {
-                      <xp-chat-computer-timeline
-                        class="h-full"
-                        [conversation]="resolvedConversation()"
-                        [projectId]="resolvedConversation()?.projectId ?? null"
                       />
                     } @else if (activeTab()?.kind === 'browser') {
                       <pac-clawxpert-conversation-preview
@@ -466,10 +436,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     onResponseEnd: () => {
       this.#responseActive.set(false)
       this.facade.patchActiveConversationStatus('idle')
-
-      if (this.activeTab()?.kind === 'computer' && this.resolvedConversationId()) {
-        void this.refreshResolvedConversationDetail()
-      }
     }
   })
   readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([{ ...INITIAL_WORKSPACE_TAB }])
@@ -611,26 +577,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       onCleanup(() => {
         cancelled = true
         clearTimeout(timer)
-      })
-    })
-
-    effect((onCleanup) => {
-      const conversationId = this.resolvedConversationId()
-      const panel = this.activeTab()?.kind
-      const isConversationBusy = this.#responseActive() || this.facade.activeConversation()?.status === 'busy'
-
-      if (panel !== 'computer' || !conversationId || !isConversationBusy) {
-        return
-      }
-
-      let cancelled = false
-      const intervalId = setInterval(() => {
-        void this.refreshResolvedConversationDetail(() => cancelled)
-      }, CONVERSATION_DETAIL_REFRESH_INTERVAL_MS)
-
-      onCleanup(() => {
-        cancelled = true
-        clearInterval(intervalId)
       })
     })
 
@@ -945,33 +891,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       if (!isCancelled() && this.facade.threadId() === threadId) {
         this.contextLoading.set(false)
       }
-    }
-  }
-
-  private async refreshResolvedConversationDetail(isCancelled: () => boolean = () => false) {
-    const conversationId = this.resolvedConversationId()
-    if (!conversationId) {
-      return
-    }
-
-    try {
-      const conversation = await this.loadConversationDetail(conversationId)
-      if (isCancelled() || this.resolvedConversationId() !== conversationId) {
-        return
-      }
-
-      if (!conversation) {
-        return
-      }
-
-      this.syncResolvedConversation(conversationId, conversation)
-      this.contextError.set(null)
-    } catch (error) {
-      if (isCancelled() || this.resolvedConversationId() !== conversationId) {
-        return
-      }
-
-      this.contextError.set(getErrorMessage(error) || 'Failed to refresh the current conversation context.')
     }
   }
 

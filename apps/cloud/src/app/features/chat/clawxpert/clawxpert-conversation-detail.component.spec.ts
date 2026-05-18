@@ -170,25 +170,6 @@ jest.mock('../../../@shared/chat/terminal/terminal.component', () => {
   }
 })
 
-jest.mock('../../../@shared/chat/computer-timeline/computer-timeline.component', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
-
-  @Component({
-    standalone: true,
-    selector: 'xp-chat-computer-timeline',
-    template: ''
-  })
-  class ChatComputerTimelineComponent {
-    @Input() conversation?: unknown
-    @Input() projectId?: string | null
-    @Input() title?: string | null
-  }
-
-  return {
-    ChatComputerTimelineComponent
-  }
-})
-
 jest.mock('./clawxpert.facade', () => ({
   ClawXpertFacade: class ClawXpertFacade {}
 }))
@@ -199,7 +180,6 @@ import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation } from '../../../@core'
-import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
@@ -234,7 +214,7 @@ type MockChatKitRuntimeInput = {
   onResponseEnd?: () => void
 }
 
-type WorkspaceTabKindForTest = 'files' | 'computer' | 'terminal' | 'browser'
+type WorkspaceTabKindForTest = 'files' | 'terminal' | 'browser'
 type WorkspaceTabForTest = {
   id: string
   kind: WorkspaceTabKindForTest
@@ -405,7 +385,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
   })
 
-  it('does not pin computer and terminal tabs before the user adds them', async () => {
+  it('does not pin terminal tabs before the user adds them', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -429,17 +409,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
   })
 
-  it('adds and closes file computer and terminal tabs on demand', async () => {
+  it('adds and closes file and terminal tabs on demand', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     const component = fixture.componentInstance as WorkspaceTabTestComponent
     await settle(fixture)
-
-    const computerTab = component.addWorkspaceTab('computer')
-    await settle(fixture)
-
-    expect(component.activeTab()?.kind).toBe('computer')
-    expect(fixture.nativeElement.querySelector('[data-panel-button="computer"]')).not.toBeNull()
-    expect(fixture.debugElement.query(By.directive(ChatComputerTimelineComponent))).not.toBeNull()
 
     const terminalTab = component.addWorkspaceTab('terminal')
     await settle(fixture)
@@ -457,7 +430,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.nativeElement.querySelector(`[data-tab-id="${terminalTab.id}"]`)).toBeNull()
-    expect(fixture.nativeElement.querySelector(`[data-tab-id="${computerTab.id}"]`)).not.toBeNull()
+    expect(fixture.nativeElement.querySelector(`[data-tab-id="${fileTab.id}"]`)).not.toBeNull()
   })
 
   it('renders the terminal panel with the resolved conversation and project context', async () => {
@@ -472,21 +445,6 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((terminal.componentInstance as ChatSharedTerminalComponent).mode).toBe('interactive')
     expect((terminal.componentInstance as ChatSharedTerminalComponent).conversationId).toBe('conversation-1')
     expect((terminal.componentInstance as ChatSharedTerminalComponent).projectId).toBe('project-1')
-  })
-
-  it('renders the computer panel with the resolved conversation detail', async () => {
-    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settle(fixture)
-
-    fixture.componentInstance.selectPanel('computer')
-    await settle(fixture)
-
-    const computerTimeline = fixture.debugElement.query(By.directive(ChatComputerTimelineComponent))
-    expect(computerTimeline).not.toBeNull()
-    expect((computerTimeline.componentInstance as ChatComputerTimelineComponent).conversation).toEqual(
-      expect.objectContaining({ id: 'conversation-1' })
-    )
-    expect((computerTimeline.componentInstance as ChatComputerTimelineComponent).projectId).toBe('project-1')
   })
 
   it('adds a browser tab with the resolved conversation context', async () => {
@@ -546,14 +504,14 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     const component = fixture.componentInstance as WorkspaceTabTestComponent
-    component.addWorkspaceTab('computer')
+    component.addWorkspaceTab('terminal')
     await settle(fixture)
 
     const chatShell = fixture.nativeElement.querySelectorAll('section')[1]?.querySelector('div') as HTMLElement | null
     const tabHeader = fixture.nativeElement.querySelector('[data-workspace-tab-header]') as HTMLElement | null
     const tabNav = fixture.nativeElement.querySelector('nav[z-tab-nav-bar]') as HTMLElement | null
     const addTabButton = fixture.nativeElement.querySelector('[data-add-workspace-tab]') as HTMLElement | null
-    const tabButton = fixture.nativeElement.querySelector('[data-panel-button="computer"]') as HTMLElement | null
+    const tabButton = fixture.nativeElement.querySelector('[data-panel-button="terminal"]') as HTMLElement | null
     const closeButton = fixture.nativeElement.querySelector(
       `[data-close-tab="${component.activeTabId()}"]`
     ) as HTMLElement | null
@@ -576,7 +534,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(tabNav?.className).not.toContain('flex-1')
     expect(tabNav?.className).toContain('min-w-0')
     expect(tabNav?.contains(addTabButton)).toBe(false)
-    expect(tabButton?.className).toContain('data-[active=true]:rounded-2xl')
+    expect(tabButton?.className).toContain('data-[active=true]:rounded-xl')
+    expect(tabButton?.className).toContain('data-[active=true]:!border-transparent')
+    expect(tabButton?.className).toContain('data-[active=true]:!bg-hover-bg')
     expect(closeButton?.className).toContain('opacity-0')
     expect(closeButton?.className).toContain('group-hover/tab:opacity-100')
     expect(addTabButton?.className).toContain('h-8')
@@ -911,37 +871,6 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(reference.text).toContain('Selector: main > h1')
     expect(reference.text).toContain('<h1 data-testid="hero-title">Hello</h1>')
     expect(focusComposer).toHaveBeenCalled()
-  })
-
-  it('polls and refreshes conversation detail for the computer tab while responses are in flight', async () => {
-    jest.useFakeTimers()
-    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settleWithFakeTimers(fixture)
-
-    fixture.componentInstance.selectPanel('computer')
-    await settleWithFakeTimers(fixture)
-
-    const runtimeInput = getRuntimeInput()
-    conversationService.getById.mockClear()
-
-    runtimeInput.onResponseStart?.()
-    fixture.detectChanges()
-
-    jest.advanceTimersByTime(1000)
-    await Promise.resolve()
-    await Promise.resolve()
-    fixture.detectChanges()
-
-    expect(conversationService.getById).toHaveBeenCalledTimes(1)
-    expect(conversationService.getById).toHaveBeenLastCalledWith('conversation-1', { relations: ['messages'] })
-
-    runtimeInput.onResponseEnd?.()
-    await Promise.resolve()
-    await Promise.resolve()
-    fixture.detectChanges()
-
-    expect(conversationService.getById).toHaveBeenCalledTimes(2)
-    expect(conversationService.getById).toHaveBeenLastCalledWith('conversation-1', { relations: ['messages'] })
   })
 
   it('asks the facade to resolve the preferred conversation entry when the route has no thread id', async () => {
