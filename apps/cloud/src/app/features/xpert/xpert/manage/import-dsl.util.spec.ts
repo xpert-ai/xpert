@@ -69,7 +69,8 @@ describe('import dsl util', () => {
           position: { x: 10, y: 20 },
           entity: {
             key: 'Agent_imported',
-            title: 'Imported Primary Agent'
+            title: 'Imported Primary Agent',
+            prompt: 'Imported primary prompt'
           }
         }
       ],
@@ -89,7 +90,8 @@ describe('import dsl util', () => {
     expect(overwritten.team.agent).toEqual(
       expect.objectContaining({
         key: 'Agent_current',
-        title: 'Current Primary'
+        id: 'agent-1',
+        prompt: 'Imported primary prompt'
       })
     )
     expect(overwritten.nodes[0]).toEqual(
@@ -98,7 +100,7 @@ describe('import dsl util', () => {
         entity: expect.objectContaining({
           key: 'Agent_current',
           id: 'agent-1',
-          title: 'Current Primary'
+          prompt: 'Imported primary prompt'
         })
       })
     )

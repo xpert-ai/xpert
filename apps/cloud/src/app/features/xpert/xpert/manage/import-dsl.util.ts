@@ -1,5 +1,6 @@
 import {
   IXpert,
+  IXpertAgent,
   LongTermMemoryTypeEnum,
   omitXpertRelations,
   replaceAgentInDraft,
@@ -7,6 +8,7 @@ import {
   TMemoryUserProfile,
   TXpertTeamDraft
 } from '../../../../@core'
+import { omit } from 'lodash-es'
 
 type TImportedDslMemory = {
   prefix: string
@@ -34,6 +36,18 @@ const OVERWRITABLE_TEAM_FIELDS = [
   'options'
 ] as const satisfies ReadonlyArray<keyof TXpertTeamDraft['team']>
 
+const OVERWRITE_PROTECTED_AGENT_FIELDS = [
+  'tenantId',
+  'organizationId',
+  'id',
+  'createdById',
+  'updatedById',
+  'createdAt',
+  'updatedAt',
+  'xpertId',
+  'key'
+] as const satisfies ReadonlyArray<keyof IXpertAgent>
+
 export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: TImportedXpertDsl): TXpertTeamDraft {
   if (!currentXpert?.agent?.key) {
     throw new Error('Current xpert primary agent not found')
@@ -53,6 +67,17 @@ export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: T
     agent: currentXpert.agent
   } as TXpertTeamDraft['team']
 
+  const importedPrimaryAgent = importedDsl.nodes?.find(
+    (node) => node.type === 'agent' && node.key === importedDsl.team.agent.key
+  )?.entity as IXpertAgent | undefined
+  const targetPrimaryAgent = importedPrimaryAgent
+    ? ({
+        ...currentXpert.agent,
+        ...omit(importedPrimaryAgent, ...OVERWRITE_PROTECTED_AGENT_FIELDS),
+        key: currentXpert.agent.key
+      } as IXpertAgent)
+    : currentXpert.agent
+
   const team: TXpertTeamDraft['team'] = { ...currentTeam }
   for (const field of OVERWRITABLE_TEAM_FIELDS) {
     team[field] = importedDsl.team?.[field] as any
@@ -66,7 +91,7 @@ export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: T
       connections: importedDsl.connections ?? []
     } as TXpertTeamDraft,
     importedDsl.team.agent.key,
-    currentXpert.agent,
+    targetPrimaryAgent,
     { requireNode: false }
   )
 }
