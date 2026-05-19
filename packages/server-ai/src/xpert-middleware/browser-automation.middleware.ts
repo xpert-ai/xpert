@@ -922,7 +922,8 @@ function buildPageSummaries(elements: unknown[], pageSize: number): JsonObject[]
             const record = readRecord(element)
             const role = record ? readStringProperty(record, 'role') : undefined
             if (role) {
-                roles[role] = (typeof roles[role] === 'number' ? roles[role] : 0) + 1
+                const roleCount = roles[role]
+                roles[role] = (typeof roleCount === 'number' ? roleCount : 0) + 1
             }
         }
 
