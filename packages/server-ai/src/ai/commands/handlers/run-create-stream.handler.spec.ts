@@ -12,10 +12,6 @@ jest.mock('../../../xpert', () => ({
     PublishedXpertAccessService: class PublishedXpertAccessService {}
 }))
 
-jest.mock('../../../assistant-binding', () => ({
-    AssistantBindingService: class AssistantBindingService {}
-}))
-
 jest.mock('@xpert-ai/contracts', () => {
     const actual = jest.requireActual('@xpert-ai/contracts')
 
@@ -695,13 +691,7 @@ describe('RunCreateStreamHandler environment resolution', () => {
                 ]
             })
         }
-        const handler = new RunCreateStreamHandler(
-            {} as any,
-            {} as any,
-            environmentService as any,
-            {} as any,
-            {} as any
-        )
+        const handler = new RunCreateStreamHandler({} as any, {} as any, environmentService as any, {} as any)
 
         const result = await handler['resolveRequestEnvironment'](
             { environmentId: 'environment-1' },
@@ -787,9 +777,6 @@ describe('RunCreateStreamHandler execute', () => {
             }),
             getPublishedXpertInTenant: jest.fn()
         }
-        const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
-        }
 
         const handler = new RunCreateStreamHandler(
             commandBus as any,
@@ -797,8 +784,7 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            publishedXpertAccessService as any,
-            assistantBindingService as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({
@@ -912,9 +898,6 @@ describe('RunCreateStreamHandler execute', () => {
             }),
             getPublishedXpertInTenant: jest.fn()
         }
-        const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
-        }
 
         const handler = new RunCreateStreamHandler(
             commandBus as any,
@@ -922,8 +905,7 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            publishedXpertAccessService as any,
-            assistantBindingService as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({
@@ -1053,9 +1035,6 @@ describe('RunCreateStreamHandler execute', () => {
             }),
             getPublishedXpertInTenant: jest.fn()
         }
-        const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
-        }
 
         const handler = new RunCreateStreamHandler(
             commandBus as any,
@@ -1063,8 +1042,7 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            publishedXpertAccessService as any,
-            assistantBindingService as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({
@@ -1166,9 +1144,6 @@ describe('RunCreateStreamHandler execute', () => {
             }),
             getPublishedXpertInTenant: jest.fn()
         }
-        const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
-        }
 
         const handler = new RunCreateStreamHandler(
             commandBus as any,
@@ -1176,8 +1151,7 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            publishedXpertAccessService as any,
-            assistantBindingService as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({
@@ -1275,9 +1249,6 @@ describe('RunCreateStreamHandler execute', () => {
             }),
             getPublishedXpertInTenant: jest.fn()
         }
-        const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
-        }
 
         const handler = new RunCreateStreamHandler(
             commandBus as any,
@@ -1285,8 +1256,7 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            publishedXpertAccessService as any,
-            assistantBindingService as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({
@@ -1352,9 +1322,6 @@ describe('RunCreateStreamHandler execute', () => {
             }),
             getPublishedXpertInTenant: jest.fn()
         }
-        const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
-        }
 
         const handler = new RunCreateStreamHandler(
             commandBus as any,
@@ -1362,8 +1329,7 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            publishedXpertAccessService as any,
-            assistantBindingService as any
+            publishedXpertAccessService as any
         )
 
         await expect(
@@ -1389,7 +1355,7 @@ describe('RunCreateStreamHandler execute', () => {
         })
     })
 
-    it('loads system-bound assistants from tenant scope when the assistant id matches the effective binding', async () => {
+    it('uses published access checks for system-bound assistant ids in external run APIs', async () => {
         ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
         const commandBus = {
             execute: jest.fn(async (command) => {
@@ -1423,16 +1389,13 @@ describe('RunCreateStreamHandler execute', () => {
             })
         }
         const publishedXpertAccessService = {
-            getAccessiblePublishedXpert: jest.fn(),
-            getPublishedXpertInTenant: jest.fn().mockResolvedValue({
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
                 id: 'org-assistant-1',
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
                 environmentId: null
-            })
-        }
-        const assistantBindingService = {
-            isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(true)
+            }),
+            getPublishedXpertInTenant: jest.fn()
         }
 
         const handler = new RunCreateStreamHandler(
@@ -1441,8 +1404,7 @@ describe('RunCreateStreamHandler execute', () => {
             {
                 findOne: jest.fn().mockResolvedValue(undefined)
             } as any,
-            publishedXpertAccessService as any,
-            assistantBindingService as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({
@@ -1460,11 +1422,10 @@ describe('RunCreateStreamHandler execute', () => {
             }
         } as any)
 
-        expect(assistantBindingService.isEffectiveSystemAssistantId).toHaveBeenCalledWith('org-assistant-1')
-        expect(publishedXpertAccessService.getPublishedXpertInTenant).toHaveBeenCalledWith('org-assistant-1', {
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).toHaveBeenCalledWith('org-assistant-1', {
             relations: ['user', 'createdBy', 'workspace']
         })
-        expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+        expect(publishedXpertAccessService.getPublishedXpertInTenant).not.toHaveBeenCalled()
     })
 
     it('returns a direct stream when background follow_up is submitted', async () => {
@@ -1514,9 +1475,6 @@ describe('RunCreateStreamHandler execute', () => {
                     environmentId: null
                 }),
                 getPublishedXpertInTenant: jest.fn()
-            } as any,
-            {
-                isEffectiveSystemAssistantId: jest.fn().mockResolvedValue(false)
             } as any
         )
 

@@ -1,18 +1,22 @@
-import {
-  appendMessageContent,
-  CopilotChatMessage,
-  IChatConversation,
-  TMessageContentComponent,
-  TMessageContentComplex
-} from '../../../@core'
+import { appendMessageContent, CopilotChatMessage, TMessageContentComponent, TMessageContentComplex } from '../../@core'
 
-const CHATBI_TRACE_CATEGORIES = new Set(['Computer', 'Dashboard'])
+type ChatBiTraceData = {
+  id?: string
+  category: 'Computer' | 'Dashboard'
+  [key: string]: unknown
+}
 
-export type ChatBiTraceItem = TMessageContentComponent<any>
+export type ChatBiTraceItem = TMessageContentComponent<ChatBiTraceData>
 
-export function extractChatBiTraceItems(
-  conversation?: Pick<IChatConversation, 'messages'> | null
-): ChatBiTraceItem[] {
+type ChatBiTraceConversation = {
+  messages?: Array<{
+    id?: string
+    role?: string
+    content?: unknown
+  }>
+}
+
+export function extractChatBiTraceItems(conversation?: ChatBiTraceConversation | null): ChatBiTraceItem[] {
   return mergeChatBiTraceItems(
     (conversation?.messages ?? []).flatMap((message, messageIndex) => {
       if (message.role !== 'ai' || !Array.isArray(message.content)) {
@@ -58,10 +62,21 @@ export function extractChatBiTraceItemFromLogEvent(event: unknown): ChatBiTraceI
   return normalizeTraceItem(component, buildTraceKey(component, 'log', 0, 0))
 }
 
-export function isChatBiTraceComponent(
-  content: TMessageContentComplex | undefined | null
-): content is ChatBiTraceItem {
-  return !!content && content.type === 'component' && CHATBI_TRACE_CATEGORIES.has(content.data?.category)
+export function isChatBiTraceComponent(content: TMessageContentComplex | unknown): content is ChatBiTraceItem {
+  if (!content || typeof content !== 'object' || !('type' in content) || content.type !== 'component') {
+    return false
+  }
+
+  if (!('data' in content) || !content.data || typeof content.data !== 'object' || !('category' in content.data)) {
+    return false
+  }
+
+  const category = content.data.category
+  return isChatBiTraceCategory(category)
+}
+
+function isChatBiTraceCategory(category: unknown): category is ChatBiTraceData['category'] {
+  return category === 'Computer' || category === 'Dashboard'
 }
 
 function resolveTraceComponentFromLogEvent(event: unknown): ChatBiTraceItem | null {
@@ -78,8 +93,8 @@ function findTraceComponent(value: unknown, visited: Set<unknown>): ChatBiTraceI
   }
   visited.add(value)
 
-  if (isChatBiTraceComponent(value as TMessageContentComplex)) {
-    return value as ChatBiTraceItem
+  if (isChatBiTraceComponent(value)) {
+    return value
   }
 
   if (Array.isArray(value)) {
@@ -98,10 +113,9 @@ function findTraceComponent(value: unknown, visited: Set<unknown>): ChatBiTraceI
     return null
   }
 
-  const record = value as Record<string, unknown>
   const preferredKeys = ['data', 'item', 'payload', 'content', 'detail', 'message']
   for (const key of preferredKeys) {
-    const nested = findTraceComponent(record[key], visited)
+    const nested = findTraceComponent(Reflect.get(value, key), visited)
     if (nested) {
       return nested
     }

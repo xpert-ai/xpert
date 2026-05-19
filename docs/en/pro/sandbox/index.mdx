@@ -1,0 +1,128 @@
+---
+title: Sandbox
+description:
+---
+
+More docs:
+
+- [Sandbox Volume Architecture](./volume-architecture)
+- [Sandbox Abnormal Exit Monitoring](./abnormal-exit-monitoring)
+
+本地运行此项目的 Python 代码：
+
+```bash
+pip3 install --break-system-packages -r requirements.txt
+uvicorn main:app --reload
+# or in project root
+yarn start:sandbox
+```
+
+## 🪝 Develop
+
+要使用本地运行的 Sandbox python 程序需要修改 env 环境变量如下：
+
+- 启用 SANDBOX_HOST 与 SANDBOX_PORT 并注释 SANDBOX_NETWORK
+
+```bash
+# SANDBOX_NETWORK=bridge
+SANDBOX_HOST=localhost
+SANDBOX_PORT=8000
+```
+
+要在本地启动 Sandbox docker 容器则按如下配置：
+
+- 注释 SANDBOX_HOST
+- 填写 SANDBOX_NETWORK 为实际的网络名称（此网络为 API 容器与 Sandbox 共用，本地开发使用 bridge）
+
+```bash
+SANDBOX_NETWORK=bridge
+# SANDBOX_HOST=localhost
+SANDBOX_IMAGE=ghcr.io/xpert-ai/xpert-pro-sandbox:latest
+SANDBOX_PORT=8000
+```
+
+### Environment Variables
+
+#### `SANDBOX_NETWORK`
+
+- Docker network used when starting sandbox containers.
+- `bridge` is the usual value for local development.
+- If you use a custom network, make sure both the API service and sandbox container can reach each other on that network.
+
+#### `SANDBOX_IMAGE`
+
+- Docker image used to start the sandbox container.
+- Configure this when you want the API to create sandbox containers through Docker in local development.
+- If it is not configured, the system is more likely to treat the current host as the sandbox runtime instead of creating a separate Docker sandbox.
+
+#### `SANDBOX_VOLUME`
+
+- Real host directory used as the Docker bind mount source.
+- This is not the `/sandbox/...` path that API code uses when reading files inside the API runtime.
+- Prefer an absolute path, for example:
+
+```bash
+SANDBOX_VOLUME=/Users/yourname/xpert-sandbox
+```
+
+- In local development there are two common modes:
+  - Without `SANDBOX_VOLUME`: the app uses the flattened `~/data` layout.
+  - With `SANDBOX_VOLUME`: the app uses a layered layout like `${SANDBOX_VOLUME}/${tenantId}/{user|project|xpert|environment|knowledges|skills}/...`, which is closer to production.
+- Project and Xpert runtime work areas mount their selected root into the sandbox container as `/workspace`; for shared Xperts, that root is `${tenantId}/xpert/${xpertId}`, not `${tenantId}/xpert/${xpertId}/user/${userId}`.
+- If you configure `SANDBOX_IMAGE`, you should usually configure `SANDBOX_VOLUME` as well so container mounts, uploads, and downloads all follow the same path model.
+
+#### `SANDBOX_HOST`
+
+- Hostname used by the API to reach the sandbox HTTP service.
+- `localhost` is the typical value when running the Python sandbox directly on your machine.
+- If sandbox runs in another container or on another machine, this should be an address reachable from the API runtime.
+
+#### `SANDBOX_PORT`
+
+- Port exposed by the sandbox HTTP service, usually `8000`.
+- The API uses this port whether sandbox is started directly in Python or inside Docker.
+
+#### Resource And Cleanup Variables
+
+- `SANDBOX_EXPIRED`: idle timeout before sandbox cleanup, in seconds.
+- `SANDBOX_MEMORY`: memory limit per sandbox container, in MB.
+- `SANDBOX_CPUSHARES`: Docker `CpuShares` setting.
+- `SANDBOX_SHMSIZE`: shared memory size in MB; browser tasks, Node builds, and some scripts often depend on this.
+- `SANDBOX_IPC_MODE`: Docker IPC mode, typically `private`, `host`, or empty.
+
+## 📦 Build Locally
+
+在本地(项目 root 目录)打包 Docker image 进行验证：
+
+`docker build -f ./packages/sandbox/Dockerfile.arm64 -t xpert-ai/xpert-pro-sandbox:latest ./packages/sandbox/`
+
+并更改环境变量，指向本地 Sandbox 镜像：
+
+```bash
+SANDBOX_IMAGE=xpert-ai/xpert-pro-sandbox:latest
+```
+
+## Debug
+
+使用代码编辑器 IDE VSCode 单独打开 sandbox 项目，打开 `main.py` 文件，点击执行 _Python Debugger: Debug Python File_ 进入 debug 运行状态。
+
+访问以下链接，打开 Sandbox 接口文档，可以进行手动测试：http://localhost:8000/docs
+
+## Prompts
+
+```text
+## SYSTEM INFORMATION
+- BASE ENVIRONMENT: Python 3.11 with Ubuntu Linux (24.04)
+- UTC DATE TIME: {{sys.datetime}}
+- INSTALLED TOOLS:
+  * Python `python3 --version`
+  * PDF Processing: poppler-utils, wkhtmltopdf
+  * Document Processing: antiword, unrtf, catdoc
+  * Text Processing: grep, gawk, sed
+  * File Analysis: file
+  * Data Processing: jq, csvkit, xmlstarlet
+  * Utilities: wget, curl, git, zip/unzip, tmux, vim, tree, rsync
+  * JavaScript: Node.js 18.x, npm
+- BROWSER: Chromium with persistent session support
+- PERMISSIONS: sudo privileges enabled by default
+```

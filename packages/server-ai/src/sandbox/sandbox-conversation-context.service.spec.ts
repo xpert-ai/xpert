@@ -113,14 +113,14 @@ describe('SandboxConversationContextService', () => {
                         type: 'user',
                         id: 'user-conversation-owner'
                     },
-                    workingDirectory: '/workspace/root/users/user-conversation-owner'
+                    workingDirectory: '/workspace/root'
                 })
             })
         )
         expect(resolved.userId).toBe('user-conversation-owner')
         expect(resolved.tenantId).toBe('tenant-from-conversation')
         expect(resolved.effectiveSandboxEnvironmentId).toBeNull()
-        expect(resolved.workingDirectory).toBe('/workspace/root/users/user-conversation-owner')
+        expect(resolved.workingDirectory).toBe('/workspace/root')
     })
 
     it('prefers the persisted sandbox environment over project scope for terminal sessions', async () => {
@@ -177,7 +177,7 @@ describe('SandboxConversationContextService', () => {
         expect(resolved.effectiveSandboxEnvironmentId).toBe('sandbox-env-1')
     })
 
-    it('uses the project user workspace as the default terminal cwd', async () => {
+    it('uses the project workspace root as the default terminal cwd', async () => {
         conversationService.findOne.mockResolvedValue({
             createdById: 'user-1',
             id: 'conversation-1',
@@ -210,7 +210,7 @@ describe('SandboxConversationContextService', () => {
         expect(commandBus.execute).toHaveBeenCalledWith(
             expect.objectContaining({
                 params: expect.objectContaining({
-                    workingDirectory: '/workspace/root/users/user-1',
+                    workingDirectory: '/workspace/root',
                     workFor: {
                         type: 'project',
                         id: 'project-1'
@@ -218,7 +218,7 @@ describe('SandboxConversationContextService', () => {
                 })
             })
         )
-        expect(resolved.workingDirectory).toBe('/workspace/root/users/user-1')
+        expect(resolved.workingDirectory).toBe('/workspace/root')
     })
 })
 
@@ -231,8 +231,7 @@ function createWorkArea(input: {
     conversationId?: string | null
     environmentId?: string | null
 }) {
-    const defaultRelativePath = input.environmentId ? '' : `users/${input.userId}`
-    const workspacePath = defaultRelativePath ? `/workspace/root/${defaultRelativePath}` : '/workspace/root'
+    const workspacePath = '/workspace/root'
     const volumeScope = input.environmentId
         ? {
               tenantId: input.tenantId,

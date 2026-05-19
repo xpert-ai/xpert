@@ -3,11 +3,28 @@ import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
-import { XpertAPIService } from '../../../@core'
+import { XpertAPIService } from '../../@core'
 import { ChatBiComponent } from './chatbi.component'
 import { ChatBiTraceFacade } from './chatbi-trace.facade'
 
-jest.mock('../../../xpert/ai-message/dashboard/dashboard.component', () => {
+jest.mock('../../@shared/chat', () => {
+  const angularCore = jest.requireActual('@angular/core')
+
+  class ChatToolCallChunkComponent {}
+
+  angularCore.Component({
+    selector: 'chat-tool-call-chunk',
+    standalone: true,
+    template: '',
+    inputs: ['chunk', 'conversationStatus']
+  })(ChatToolCallChunkComponent)
+
+  return {
+    ChatToolCallChunkComponent
+  }
+})
+
+jest.mock('../../xpert/ai-message/dashboard/dashboard.component', () => {
   const angularCore = jest.requireActual('@angular/core')
 
   class ChatMessageDashboardComponent {}
@@ -24,7 +41,12 @@ jest.mock('../../../xpert/ai-message/dashboard/dashboard.component', () => {
   }
 })
 
-jest.mock('apps/cloud/src/app/@core', () => {
+jest.mock('../../xpert', () => ({
+  ChatService: class ChatService {},
+  XpertOcapService: class XpertOcapService {}
+}))
+
+jest.mock('../../@core', () => {
   return {
     AssistantCode: {
       CHAT_COMMON: 'chat_common',
@@ -41,7 +63,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
   }
 })
 
-jest.mock('../../assistant/assistant-chatkit.runtime', () => {
+jest.mock('../assistant/assistant-chatkit.runtime', () => {
   const { signal } = jest.requireActual('@angular/core')
 
   const runtimeState = {
@@ -58,12 +80,12 @@ jest.mock('../../assistant/assistant-chatkit.runtime', () => {
   }
 })
 
-const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as any
+const runtimeState = jest.requireMock('../assistant/assistant-chatkit.runtime').__runtimeState
 const xpertService = {
-  getById: jest.fn<any, any>(() => of(null))
+  getById: jest.fn(() => of(null))
 }
 const traceFacade = {
-  steps: signal([]),
+  steps: signal<unknown[]>([]),
   state: signal('idle'),
   error: signal(null),
   conversationStatus: signal('idle'),
@@ -186,7 +208,7 @@ describe('ChatBiComponent', () => {
           type: 'AnalyticalCard',
           title: 'Sales Trend'
         }
-      } as any
+      }
     ])
 
     const fixture = TestBed.createComponent(ChatBiComponent)
@@ -208,7 +230,7 @@ describe('ChatBiComponent', () => {
           type: 'AnalyticalCard',
           title: 'Sales Trend'
         }
-      } as any
+      }
     ])
 
     const fixture = TestBed.createComponent(ChatBiComponent)

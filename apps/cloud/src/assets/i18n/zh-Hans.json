@@ -968,7 +968,7 @@
       },
       "ChatBI": {
         "Label": "ChatBI 助手",
-        "Description": "用于 ChatBI 页面的嵌入式助手。"
+        "Description": "在 ChatBI 页面与你的数据分析助手对话。"
       },
       "ClawXpert": {
         "Label": "ClawXpert",
@@ -1336,6 +1336,10 @@
       "Certification": "认证",
       "Skills Repository": "技能库",
       "Chat": "聊天",
+      "ChatBI Assistant": "ChatBI 助手",
+      "CodeXpert": "编码专家",
+      "DeepResearch": "深度研究",
+      "Data & Ontology": "数据与本体",
       "Assistants": "助手",
       "Copilot": "智能助理",
       "AI Copilot": "模型提供商",
@@ -3370,6 +3374,16 @@
       "LiveSignals": "实时信号",
       "PendingEvents": "待处理事件流",
       "AssistantShell": "助手面板",
+      "ComputerTrace": "线程活动",
+      "TraceLoading": "正在加载线程活动...",
+      "TraceLoadFailed": "加载线程活动失败",
+      "TraceEmpty": "暂无线程活动",
+      "TraceEmptyDesc": "当助手构建图表、探索文件、运行程序并生成结构化操作时，此 ChatBI 线程中的仪表板输出和计算机端步骤会显示在这里。",
+      "PinDashboard": "固定快照",
+      "UnpinDashboard": "取消固定快照",
+      "DataOntologyGuidePrefix": "建议直接使用",
+      "DataOntologySystem": "数据&本体",
+      "DataOntologyGuideSuffix": "系统的智能体来完成数据分析需求。",
       "QuestionTimeline": "问题时间线",
       "QuestionTimelineDesc": "跟踪分析流程中产生的提示里程碑、模型动作和事件节点。",
       "ToolInvocations": "工具调用",
@@ -3654,15 +3668,19 @@
         },
         "FEATURE_XPERT_CHATBI": {
           "Name": "ChatBI",
-          "Description": "在聊天左侧边栏中显示 ChatBI 入口。"
+          "Description": "在主导航中显示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
-          "Description": "在聊天左侧边栏中显示 CodeXpert 入口。"
+          "Description": "在主导航中显示 CodeXpert 入口。"
         },
         "FEATURE_XPERT_DEEP_RESEARCH": {
           "Name": "DeepResearch",
-          "Description": "在聊天左侧边栏中显示 DeepResearch 入口。"
+          "Description": "在主导航中显示 DeepResearch 入口。"
+        },
+        "FEATURE_XPERT_DATA_ONTOLOGY": {
+          "Name": "Data & Ontology",
+          "Description": "在主导航中显示 Data & Ontology 入口。"
         }
       }
     },

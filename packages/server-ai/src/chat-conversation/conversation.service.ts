@@ -6,7 +6,6 @@ import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import path from 'node:path'
 import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
@@ -205,7 +204,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                 client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
                     allowRootWorkspace: true
                 }),
-                scopePath: path.posix.join('users', conversation.createdById)
+                scopePath: ''
             }
         }
 
@@ -214,7 +213,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                 client: new VolumeSubtreeClient(this.createXpertVolumeHandle(conversation), {
                     allowRootWorkspace: true
                 }),
-                scopePath: path.posix.join('users', conversation.createdById)
+                scopePath: ''
             }
         }
 

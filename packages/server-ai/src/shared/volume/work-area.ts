@@ -137,14 +137,6 @@ export class XpertWorkAreaResolver {
         }
     }
 
-    getProjectUserPath(userId: string) {
-        return path.posix.join('users', userId)
-    }
-
-    getXpertUserPath(userId: string) {
-        return path.posix.join('users', userId)
-    }
-
     private resolveVolumeScope(input: XpertRuntimeWorkAreaInput): VolumeScope {
         if (input.environmentId) {
             return {
@@ -186,7 +178,7 @@ export class XpertWorkAreaResolver {
         }
 
         if (input.projectId) {
-            const defaultPath = this.getProjectUserPath(input.userId)
+            const defaultPath = ''
             const sharedPath = 'shared'
             const agentPath = input.xpertId ? path.posix.join('agents', input.xpertId) : undefined
             const sessionPath = input.conversationId ? path.posix.join('sessions', input.conversationId) : undefined
@@ -199,7 +191,7 @@ export class XpertWorkAreaResolver {
             }
         }
 
-        const defaultPath = this.getXpertUserPath(input.userId)
+        const defaultPath = ''
         const sharedPath = 'shared'
         const memoryPath = XPERT_FILE_MEMORY_WORKSPACE_PATH
         return {

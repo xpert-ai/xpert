@@ -46,7 +46,7 @@ export const ASSISTANT_REGISTRY: AssistantRegistryItem[] = [
     titleKey: 'PAC.ChatBI.Title',
     defaultTitle: 'Chat BI',
     descriptionKey: 'PAC.Assistant.ChatBI.Description',
-    defaultDescription: 'Embedded assistant used by the ChatBI page.'
+    defaultDescription: 'Chat with your data analysis assistant from the ChatBI page.'
   },
   {
     code: AssistantCode.CLAWXPERT,

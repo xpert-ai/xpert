@@ -23,10 +23,19 @@ export const routes: Routes = [
       // Xpert Routers
       {
         path: 'chat',
-        loadChildren: () => import('./chat/routes').then(m => m.routes),
+        loadChildren: () => import('./chat/routes').then((m) => m.routes),
         canActivate: [authGuard],
         data: {
           title: 'Chat',
+          scopeContext: 'dual-scope'
+        }
+      },
+      {
+        path: 'chatbi',
+        loadChildren: () => import('./chatbi/routes').then((m) => m.routes),
+        canActivate: [authGuard],
+        data: {
+          title: 'Chat BI',
           scopeContext: 'dual-scope'
         }
       },
@@ -41,7 +50,7 @@ export const routes: Routes = [
       },
       {
         path: 'explore',
-        loadChildren: () => import('./explore/routes').then(m => m.routes),
+        loadChildren: () => import('./explore/routes').then((m) => m.routes),
         canActivate: [authGuard],
         data: {
           title: 'Explore Xperts',
@@ -50,7 +59,7 @@ export const routes: Routes = [
       },
       {
         path: 'xpert',
-        loadChildren: () => import('./xpert/routes').then(m => m.routes),
+        loadChildren: () => import('./xpert/routes').then((m) => m.routes),
         canActivate: [
           authGuard,
           () => {
@@ -115,7 +124,7 @@ export const routes: Routes = [
         loadChildren: () => import('./organization/organization.module').then((m) => m.OrganizationModule),
         data: {
           title: 'Organization',
-          scopeContext: 'organization-only',
+          scopeContext: 'organization-only'
         }
       },
       {
@@ -138,7 +147,7 @@ export const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Settings',
-          scopeContext: 'dual-scope',
+          scopeContext: 'dual-scope'
         }
       },
       {

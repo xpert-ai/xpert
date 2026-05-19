@@ -1,0 +1,343 @@
+---
+title: Sandbox 文件卷架构
+description: 梳理物理宿主机、API 容器与 Sandbox 容器之间的挂载关系、路径映射与典型数据流。
+---
+
+本文聚焦 Pro 部署下的 Sandbox 文件卷关系，尤其是下面三层看到的路径如何互相映射：
+
+- 物理宿主机：运行 Docker daemon 的机器。
+- API 容器：运行 `packages/server-ai` 的 `xpert-server` 容器。
+- Sandbox 容器：真正执行代码、终端和文件操作的容器。
+
+核心结论只有一句：
+
+- 同一份数据，在三层里通常会对应三种不同路径：
+  - 物理宿主机：`${SANDBOX_VOLUME}/...`
+  - API 容器：`/sandbox/...`
+  - Sandbox 容器：`/workspace/...`
+
+## 1. 总体拓扑
+
+```text
+[Physical host / Docker host]
+  ${SANDBOX_VOLUME}/<tenant-id>/...
+    ^
+    | Docker daemon 读取的 bind source 路径
+    |
+    +-------------------------------+
+                                    |
+docker-compose                      |
+  ${SANDBOX_VOLUME}:/sandbox        |
+                                    v
+[API container / xpert-server]
+  /sandbox/<tenant-id>/...
+    ^
+    | Node.js fs/git/文件下载接口看到的路径
+    |
+    +-------------------------------+
+                                    |
+Docker API (/var/run/docker.sock)   |
+  HostConfig.Binds:                 |
+  <host-path>:/workspace/           |
+                                    v
+[Sandbox container]
+  /workspace/...
+    ^
+    | 终端、工具、backend.execute、backend.uploadFiles 看到的路径
+```
+
+这三层不是三份独立数据，而是同一份卷数据在不同执行上下文中的不同视图。
+
+## 2. 路径映射规则
+
+### 2.1 API 容器如何看到宿主机卷
+
+生产部署时，`docker/docker-compose-pro.yml` 会把宿主机上的 `SANDBOX_VOLUME` 挂到 API 容器的 `/sandbox/`：
+
+```yaml
+${SANDBOX_VOLUME:-~/data/}:/sandbox/
+```
+
+因此：
+
+- Docker 宿主机真实路径：`${SANDBOX_VOLUME}/${tenantId}/...`
+- API 容器内对应路径：`/sandbox/${tenantId}/...`
+
+这也是为什么 API 容器内做 `fs.stat`、`git fetch`、`git push`、文件下载时，应该使用 `/sandbox/...`，而不是再去使用 `environment.sandboxConfig.volume`。
+
+补充一条本地开发时的判断：
+
+- `dev` 且未配置 `SANDBOX_VOLUME`：仍沿用本机 `~/data` 的扁平目录模型。
+- `dev` 且已配置 `SANDBOX_VOLUME`：应视为“已显式启用挂载卷目录”，路径语义和生产的 tenant/type/id 分层保持一致，不能再按扁平目录去裁掉 `user/<id>`、`project/<id>`、`xpert/<id>` 这类前缀。
+
+### 2.2 Sandbox 容器如何看到同一份卷
+
+创建 Sandbox 容器时，Docker provider 会把宿主机目录挂到 Sandbox 容器的 `/workspace/`：
+
+- Environment 容器走 `src/sandbox/utils/bind-volume.ts`
+- 传统 user/project Sandbox 仍有一套旧逻辑在 `src/sandbox/commands/handlers/load.handler.ts`
+
+对 Environment 场景，现在的 bind source 形状是：
+
+```text
+<host-path> = ${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}
+<container-path> = /workspace/
+```
+
+所以同一份目录会同时表现为：
+
+- 物理宿主机：`${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}`
+- API 容器：`/sandbox/${tenantId}/environment/${environmentId}`
+- Sandbox 容器：`/workspace`
+
+Project 和 Xpert 运行态工作区遵循同样的容器规则：选中的 project 或 Xpert Volume 根会挂载为 `/workspace`，sandbox 的 `cwd` 默认也应该是 `/workspace`，除非调用方显式选择子路径。
+
+## 3. 两类主要卷模型
+
+### 3.1 User、project 与 Xpert 运行态 Volume
+
+这条链路主要由 `SandboxLoadHandler`、`VolumeClient` 和 `XpertWorkAreaResolver` 使用：
+
+- User: `${tenantId}/user/${userId}`
+- Project: `${tenantId}/project/${projectId}`
+- 共享 Xpert: `${tenantId}/xpert/${xpertId}`
+- 用户隔离 Xpert: `${tenantId}/xpert/${xpertId}/user/${userId}`
+
+当前 Xpert 运行态产品语义是：项目对话使用 project 根作为 `/workspace`，非项目 ClawXpert / Xpert 对话使用共享 Xpert 根作为 `/workspace`。用户隔离 Xpert 仍然是受支持的 Volume 形状，但不是共享 Xpert 的默认运行态 cwd。
+
+对应代码入口：
+
+- `src/sandbox/commands/handlers/load.handler.ts`
+- `src/shared/volume/volume.ts`
+- `src/shared/volume/work-area.ts`
+- `src/sandbox/sandbox.controller.ts`
+
+这个模型里，Sandbox 容器里仍然统一挂载到 `/workspace/`。
+
+### 3.2 Sandbox Environment
+
+Environment 是另一条更明确的路径模型：
+
+- 宿主机目录：`${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}`
+- API 容器目录：`/sandbox/${tenantId}/environment/${environmentId}`
+- Sandbox 容器目录：`/workspace`
+
+对应代码入口：
+
+- 挂载：`src/sandbox/utils/bind-volume.ts`
+- 容器创建：`src/sandbox/plugins/docker.provider.ts`
+- Repo 主机路径推导：`src/sandbox-environment/commands/common.ts`
+
+`src/sandbox-environment/commands/common.ts` 现在把 repo 的主机可见路径固定计算为：
+
+```text
+hostWorkspaceRoot = /sandbox/<tenantId>/environment/<environmentId>
+repoHostPath      = hostWorkspaceRoot + relative(workspaceRoot, resolvedTargetDir)
+```
+
+这意味着：
+
+- `workspaceRoot` / `targetDir` / `workspaceDir` 是 Sandbox 容器内路径语义。
+- `/sandbox/...` 是 API 容器内路径语义。
+- `environment.sandboxConfig.volume` 是 Docker 宿主机路径语义。
+
+三者不能混用。
+
+## 4. 典型链路
+
+### 4.1 创建 Environment 容器
+
+`DockerSandboxProvider.create()` 会：
+
+1. 根据 `tenantId + environmentId` 计算 bind source。
+2. 调用 Docker 创建容器，挂载到 `/workspace/`。
+3. 决定容器内工作目录：
+   - `options.workingDirectory`
+   - 或 `environment.workspaceDir`
+   - 或 `environment.workspaceRoot`
+   - 默认 `/workspace`
+
+因此：
+
+- Docker bind mount 用的是宿主机路径。
+- 容器内执行命令、上传文件、终端执行时看到的是 `/workspace/...`。
+
+### 4.2 Environment git clone
+
+`clone-repo.handler.ts` 的流程不是“直接 clone 到挂载卷”，而是：
+
+1. 在 API 容器的临时目录 `/tmp/sandbox-clone-*` 执行 `git clone`
+2. 打包为 `workspace.tar.gz`
+3. 通过 `backend.uploadFiles()` 上传到 Sandbox 容器
+4. 在 Sandbox 容器执行：
+
+```sh
+mkdir -p <resolvedTargetDir>
+tar -xzf workspace.tar.gz -C <resolvedTargetDir>
+```
+
+因为 `<resolvedTargetDir>` 位于 `/workspace/...` 下，而 `/workspace` 是 bind mount，所以解压后的仓库文件会同时出现在：
+
+- 物理宿主机的 `${SANDBOX_VOLUME}/...`
+- API 容器的 `/sandbox/...`
+- Sandbox 容器的 `/workspace/...`
+
+### 4.3 Environment git fetch / git push
+
+`fetch-repo.handler.ts` 和 `push-repo.handler.ts` 运行 `git` 命令时，执行位置在 API 容器，而不是 Sandbox 容器。
+
+因此它们应该使用：
+
+- `repoHostPath = /sandbox/<tenantId>/environment/<environmentId>/<relativeRepoPath>`
+
+而不应该直接使用：
+
+- `environment.sandboxConfig.volume/...`
+
+原因很简单：
+
+- `environment.sandboxConfig.volume` 是 Docker daemon 看的宿主机路径。
+- API 容器内的 Node 进程并不直接运行在这个路径命名空间里。
+
+### 4.4 文件上传的两种写法
+
+当前代码里至少有两种常见写法：
+
+1. 直接写挂载目录
+
+- `sandbox:mounted_workspace`
+- 由 `src/shared/file-upload-targets/strategies/sandbox-mounted-workspace.strategy.ts` 处理
+- 直接写 API 容器内的 `workspacePath`
+- 本质是在写 `/sandbox/...`
+
+2. 通过 Sandbox backend 写容器文件
+
+- `sandbox:backend_upload`
+- 由 `src/shared/file-upload-targets/strategies/sandbox-backend.strategy.ts` 处理
+- 通过 Sandbox HTTP API 写入 `workspace_id`
+- 本质是在写 Sandbox 容器内的 `/workspace/...`
+
+如果挂载关系正确，这两种方式最终写到的是同一份底层数据，只是入口不同。
+
+## 5. 路径应该怎么选
+
+可以直接按这张表判断：
+
+| 场景                                                              | 应该使用的路径                         |
+| ----------------------------------------------------------------- | -------------------------------------- |
+| 调 Docker `HostConfig.Binds` 创建挂载                             | 宿主机真实路径 `${SANDBOX_VOLUME}/...` |
+| 看 `docker inspect` 里的 `Mounts[].Source`                        | 宿主机真实路径 `${SANDBOX_VOLUME}/...` |
+| API 容器内的 `fs.stat` / `fs.readFile` / `git fetch` / `git push` | `/sandbox/...`                         |
+| Sandbox backend 的 `execute` / `uploadFiles` / 终端 / 文件工具    | `/workspace/...`                       |
+| `workspaceRoot` / `workspaceDir` / `targetDir`                    | 只表示 Sandbox 容器内部路径            |
+
+## 6. 调试时最容易混淆的点
+
+### 6.1 `/sandbox` 不是 Docker bind source
+
+在 API 容器里看到 `/sandbox/...`，不代表 Docker daemon 创建 bind mount 时也应该用 `/sandbox/...`。
+
+Docker daemon 读取的是宿主机路径，所以 bind source 必须是：
+
+```text
+${SANDBOX_VOLUME}/...
+```
+
+而不是：
+
+```text
+/sandbox/...
+```
+
+除非你的物理宿主机上本来就真的有 `/sandbox/...` 这套目录结构。
+
+### 6.2 `workspaceRoot` 不是 API 容器路径
+
+`workspaceRoot` 默认是 `/workspace`，它是 Sandbox 容器内路径，不是 API 容器内路径。
+
+如果要从 API 容器访问同一个 repo，需要先做一次路径变换：
+
+```text
+relativeRepoPath = relative(workspaceRoot, resolvedTargetDir)
+repoHostPath     = /sandbox/<tenant>/<type>/<id>/<relativeRepoPath>
+```
+
+### 6.3 当前代码同时存在新旧两套路径构造
+
+这是排查时必须知道的事实：
+
+- 旧链路：
+  - `load.handler.ts`
+  - `sandboxVolume(projectId, userId)`
+  - 目录形状偏向 `/project/<id>`、`/user/<id>`
+
+- 新链路：
+  - `bind-volume.ts`
+  - `resolveSandboxRepoContext()`
+  - Environment 路径固定为 `/environment/<id>`
+
+两条链路都在用，但语义不完全一样，不能简单套用。
+
+## 7. 推荐排查顺序
+
+当你怀疑卷映射异常时，建议按下面顺序检查：
+
+1. 看宿主机目录是否真的存在
+
+```bash
+ls -la ${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}
+```
+
+2. 进入 API 容器，确认同一目录是否能从 `/sandbox/...` 看到
+
+```bash
+ls -la /sandbox/${tenantId}/environment/${environmentId}
+```
+
+3. 看 Sandbox 容器的挂载声明是否正确
+
+```bash
+docker inspect <sandbox-container-id> | jq '.[0].Mounts'
+```
+
+重点确认：
+
+- `Source` 是否是 `${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}`
+- `Destination` 是否是 `/workspace`
+
+4. 进入 Sandbox 容器，确认同样文件是否出现在 `/workspace/...`
+
+```bash
+ls -la /workspace
+```
+
+## 8. 关键代码锚点
+
+- API 容器挂载 `/sandbox/`
+  - `docker/docker-compose-pro.yml`
+- Docker bind source 计算
+  - `src/sandbox/utils/bind-volume.ts`
+- Environment 容器创建
+  - `src/sandbox/plugins/docker.provider.ts`
+- 传统 user/project 绑定
+  - `src/sandbox/commands/handlers/load.handler.ts`
+- API 容器卷访问
+  - `src/shared/volume/volume.ts`
+  - `src/shared/volume/volume-pro.ts`
+- Environment repo 路径换算
+  - `src/sandbox-environment/commands/common.ts`
+- Environment git clone/fetch/push
+  - `src/sandbox-environment/commands/handlers/clone-repo.handler.ts`
+  - `src/sandbox-environment/commands/handlers/fetch-repo.handler.ts`
+  - `src/sandbox-environment/commands/handlers/push-repo.handler.ts`
+- 容器对账与 legacy mount 识别
+  - `src/sandbox/sandbox-environment-container-sync.scheduler.ts`
+  - `src/sandbox/utils/sandbox-related-container.ts`
+
+## 9. 一句话总结
+
+判断路径该怎么写时，不要先问“这个目录长什么样”，而要先问“这段代码运行在哪一层”：
+
+- 运行在 Docker daemon 视角：用 `${SANDBOX_VOLUME}/...`
+- 运行在 API 容器视角：用 `/sandbox/...`
+- 运行在 Sandbox 容器视角：用 `/workspace/...`

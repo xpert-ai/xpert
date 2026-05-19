@@ -31,10 +31,6 @@ jest.mock('./xpert/xpert.component', () => ({
   ChatXpertComponent: class ChatXpertComponent {}
 }))
 
-jest.mock('./chatbi/chatbi.component', () => ({
-  ChatBiComponent: class ChatBiComponent {}
-}))
-
 jest.mock('./clawxpert/clawxpert.component', () => ({
   ClawXpertComponent: class ClawXpertComponent {}
 }))
@@ -172,6 +168,13 @@ describe('chat routes', () => {
     expect(route?.children?.find((item) => item.path === '')?.component).toBe(ClawXpertOverviewComponent)
     expect(conversationRoute?.component).toBe(ClawXpertConversationDetailComponent)
     expect(matchedRoute?.posParams?.threadId?.path).toBe('thread-1')
+  })
+
+  it('redirects legacy /chat/chatbi urls to the top-level ChatBI feature', () => {
+    const route = children.find((item) => item.path === 'chatbi')
+
+    expect(route?.redirectTo).toBe('/chatbi')
+    expect(route?.pathMatch).toBe('full')
   })
 
   it('redirects /chat to the default ClawXpert conversation when a valid binding exists', async () => {
