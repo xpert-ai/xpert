@@ -1,6 +1,5 @@
 import {
   IXpert,
-  IXpertAgent,
   LongTermMemoryTypeEnum,
   omitXpertRelations,
   replaceAgentInDraft,
@@ -8,7 +7,6 @@ import {
   TMemoryUserProfile,
   TXpertTeamDraft
 } from '../../../../@core'
-import { omit } from 'lodash-es'
 
 type TImportedDslMemory = {
   prefix: string
@@ -36,18 +34,6 @@ const OVERWRITABLE_TEAM_FIELDS = [
   'options'
 ] as const satisfies ReadonlyArray<keyof TXpertTeamDraft['team']>
 
-const OVERWRITE_PROTECTED_AGENT_FIELDS = [
-  'tenantId',
-  'organizationId',
-  'id',
-  'createdById',
-  'updatedById',
-  'createdAt',
-  'updatedAt',
-  'xpertId',
-  'key'
-] as const satisfies ReadonlyArray<keyof IXpertAgent>
-
 export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: TImportedXpertDsl): TXpertTeamDraft {
   if (!currentXpert?.agent?.key) {
     throw new Error('Current xpert primary agent not found')
@@ -67,16 +53,28 @@ export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: T
     agent: currentXpert.agent
   } as TXpertTeamDraft['team']
 
-  const importedPrimaryAgent = importedDsl.nodes?.find(
+  const importedPrimaryAgentNode = importedDsl.nodes?.find(
     (node) => node.type === 'agent' && node.key === importedDsl.team.agent.key
-  )?.entity as IXpertAgent | undefined
-  const targetPrimaryAgent = importedPrimaryAgent
-    ? ({
-        ...currentXpert.agent,
-        ...omit(importedPrimaryAgent, ...OVERWRITE_PROTECTED_AGENT_FIELDS),
-        key: currentXpert.agent.key
-      } as IXpertAgent)
-    : currentXpert.agent
+  )
+  const importedPrimaryAgent: unknown = importedPrimaryAgentNode?.entity
+  if (importedPrimaryAgentNode && !hasStringProperty(importedPrimaryAgent, 'key')) {
+    throw new Error('Primary agent not found in DSL')
+  }
+  if (
+    isObject(importedPrimaryAgent) &&
+    'prompt' in importedPrimaryAgent &&
+    !hasStringProperty(importedPrimaryAgent, 'prompt')
+  ) {
+    throw new Error('Invalid primary agent field: prompt')
+  }
+  const importedPrimaryPrompt = hasStringProperty(importedPrimaryAgent, 'prompt') ? importedPrimaryAgent.prompt : null
+  const targetPrimaryAgent =
+    importedPrimaryPrompt != null
+      ? {
+          ...currentXpert.agent,
+          prompt: importedPrimaryPrompt
+        }
+      : currentXpert.agent
 
   const team: TXpertTeamDraft['team'] = { ...currentTeam }
   for (const field of OVERWRITABLE_TEAM_FIELDS) {
@@ -94,6 +92,14 @@ export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: T
     targetPrimaryAgent,
     { requireNode: false }
   )
+}
+
+function isObject(value: unknown): value is object {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function hasStringProperty<K extends string>(value: unknown, key: K): value is object & { [P in K]: string } {
+  return isObject(value) && key in value && typeof Reflect.get(value, key) === 'string'
 }
 
 export function groupImportedDslMemories(memories?: TImportedDslMemory[]): TGroupedDslMemories | null {
