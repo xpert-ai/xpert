@@ -1,0 +1,129 @@
+---
+title: Sandbox
+description:
+---
+
+更多文档：
+
+- [Sandbox 文件卷架构](./volume-architecture)
+- [Sandbox 异常退出监控](./abnormal-exit-monitoring)
+- [Sandbox 活跃续期与安全回收](./activity-touch-and-safe-cleanup)
+
+本地运行此项目的 Python 代码：
+
+```bash
+pip3 install --break-system-packages -r requirements.txt
+uvicorn main:app --reload
+# or in project root
+yarn start:sandbox
+```
+
+## 🪝 Develop
+
+要使用本地运行的 Sandbox python 程序需要修改 env 环境变量如下：
+
+- 启用 SANDBOX_HOST 与 SANDBOX_PORT 并注释 SANDBOX_NETWORK
+
+```bash
+# SANDBOX_NETWORK=bridge
+SANDBOX_HOST=localhost
+SANDBOX_PORT=8000
+```
+
+要在本地启动 Sandbox docker 容器则按如下配置：
+
+- 注释 SANDBOX_HOST
+- 填写 SANDBOX_NETWORK 为实际的网络名称（此网络为 API 容器与 Sandbox 共用，本地开发使用 bridge）
+
+```bash
+SANDBOX_NETWORK=bridge
+# SANDBOX_HOST=localhost
+SANDBOX_IMAGE=ghcr.io/xpert-ai/xpert-pro-sandbox:latest
+SANDBOX_PORT=8000
+```
+
+### 环境变量说明
+
+#### `SANDBOX_NETWORK`
+
+- Docker 启动 sandbox 容器时使用的网络。
+- 本地开发通常使用 `bridge`。
+- 如果你改成自定义网络，需要确保 API 服务和 sandbox 容器处于同一网络，API 才能访问到 sandbox HTTP 服务。
+
+#### `SANDBOX_IMAGE`
+
+- 用于启动 sandbox 容器的镜像。
+- 本地如果希望由 API 自动创建 Docker sandbox，需要配置这个值。
+- 如果不配置，系统会更倾向于把“当前宿主机”当作 sandbox 运行环境，而不是通过 Docker 启动独立容器。
+
+#### `SANDBOX_VOLUME`
+
+- 这是宿主机上的真实卷目录，给 Docker bind mount 使用。
+- 它不是 API 代码里直接访问文件时使用的 `/sandbox/...` 路径。
+- 推荐使用绝对路径，例如：
+
+```bash
+SANDBOX_VOLUME=/Users/yourname/xpert-sandbox
+```
+
+- 本地开发下有两种模式：
+  - 不配置 `SANDBOX_VOLUME`：使用本机 `~/data` 的扁平目录模型。
+  - 配置 `SANDBOX_VOLUME`：使用 `${SANDBOX_VOLUME}/${tenantId}/{user|project|xpert|environment|knowledges|skills}/...` 这类分层目录模型，更接近生产环境。
+- Project 和 Xpert 运行态工作区会把选中的根目录挂载到 sandbox 容器的 `/workspace`；共享 Xpert 的根目录是 `${tenantId}/xpert/${xpertId}`，不是 `${tenantId}/xpert/${xpertId}/user/${userId}`。
+- 如果你已经配置了 `SANDBOX_IMAGE`，通常也应该一起配置 `SANDBOX_VOLUME`，这样容器挂载、文件上传和文件下载的路径语义会保持一致。
+
+#### `SANDBOX_HOST`
+
+- API 访问 sandbox HTTP 服务时使用的主机名。
+- 直接运行本地 Python sandbox 时，通常配置为 `localhost`。
+- 如果 sandbox 运行在其他容器或远端机器上，这里要填写 API 所在环境能够访问到的地址。
+
+#### `SANDBOX_PORT`
+
+- sandbox HTTP 服务端口，默认通常是 `8000`。
+- 无论是本地 Python sandbox 还是 Docker sandbox，只要暴露的是这个端口，API 都会通过它访问 sandbox。
+
+#### 资源与回收相关变量
+
+- `SANDBOX_EXPIRED`：sandbox 空闲自动回收时间，单位秒。
+- `SANDBOX_MEMORY`：单个 sandbox 容器的内存上限，单位 MB。
+- `SANDBOX_CPUSHARES`：Docker `CpuShares` 配置。
+- `SANDBOX_SHMSIZE`：共享内存大小，单位 MB；浏览器、Node 构建、部分脚本任务通常比较依赖它。
+- `SANDBOX_IPC_MODE`：Docker IPC 模式，可选 `private`、`host` 或留空。
+
+## 📦 Build Locally
+
+在本地(项目 root 目录)打包 Docker image 进行验证：
+
+`docker build -f ./packages/sandbox/Dockerfile.arm64 -t xpert-ai/xpert-pro-sandbox:latest ./packages/sandbox/`
+
+并更改环境变量，指向本地 Sandbox 镜像：
+
+```bash
+SANDBOX_IMAGE=xpert-ai/xpert-pro-sandbox:latest
+```
+
+## Debug
+
+使用代码编辑器 IDE VSCode 单独打开 sandbox 项目，打开 `main.py` 文件，点击执行 _Python Debugger: Debug Python File_ 进入 debug 运行状态。
+
+访问以下链接，打开 Sandbox 接口文档，可以进行手动测试：http://localhost:8000/docs
+
+## Prompts
+
+```text
+## SYSTEM INFORMATION
+- BASE ENVIRONMENT: Python 3.11 with Ubuntu Linux (24.04)
+- UTC DATE TIME: {{sys.datetime}}
+- INSTALLED TOOLS:
+  * Python `python3 --version`
+  * PDF Processing: poppler-utils, wkhtmltopdf
+  * Document Processing: antiword, unrtf, catdoc
+  * Text Processing: grep, gawk, sed
+  * File Analysis: file
+  * Data Processing: jq, csvkit, xmlstarlet
+  * Utilities: wget, curl, git, zip/unzip, tmux, vim, tree, rsync
+  * JavaScript: Node.js 18.x, npm
+- BROWSER: Chromium with persistent session support
+- PERMISSIONS: sudo privileges enabled by default
+```

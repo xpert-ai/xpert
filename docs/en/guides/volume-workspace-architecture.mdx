@@ -225,6 +225,7 @@ The design rules are:
 - `shared` remains as an explicit shared subdirectory for backward compatibility and tools that need a stable shared path.
 - Xpert long-term FileMemory is shared at Xpert level and is not isolated by user.
 - Agent invoke, terminal, sandbox upload, conversation workspace files, and managed sandbox services should all use the same resolver output so the Agent cwd and terminal cwd do not diverge.
+- Conversation workspace file APIs must browse the project / Xpert Volume root directly. They should not add a `users/<userId>` subtree under the root.
 
 Canonical layout:
 
@@ -385,6 +386,35 @@ In a Docker sandbox, they map to:
 /workspace/agents/xpert-X
 /workspace/sessions/<conversationId>
 ```
+
+### Conversation workspace file APIs
+
+The ClawXpert file panel and related preview/edit flows use the conversation file endpoints:
+
+```text
+GET    /api/chat-conversation/:conversationId/files
+GET    /api/chat-conversation/:conversationId/file
+POST   /api/chat-conversation/:conversationId/file
+POST   /api/chat-conversation/:conversationId/file/upload
+DELETE /api/chat-conversation/:conversationId/file
+```
+
+These endpoints use the conversation only to resolve the current workspace root:
+
+| Conversation context             | Volume scope                                           | Subtree scope |
+| -------------------------------- | ------------------------------------------------------ | ------------- |
+| `projectId` exists               | `catalog: 'projects'`, `projectId`                     | Volume root   |
+| no `projectId`, `xpertId` exists | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` | Volume root   |
+| no `projectId` and no `xpertId`  | invalid for workspace file access                      | N/A           |
+
+For a non-project ClawXpert conversation, `/api/chat-conversation/:id/files` therefore lists the shared Xpert workspace root:
+
+```text
+/sandbox/<tenantId>/xpert/<xpertId>
+/workspace
+```
+
+The `conversationId` is still used for lookup and permission context, but it is not a filesystem directory segment. Users sharing the same Xpert see the same workspace files.
 
 ### Environment sandboxes
 
@@ -599,6 +629,18 @@ Under the new model, the common runtime fields should keep these meanings:
 
 Do not pass a server path such as `/sandbox/...` directly into a Docker sandbox `workingDirectory`.
 
+## Skills middleware fallback sandbox
+
+Skills middleware normally reads the runtime sandbox from `request.runtime.configurable.sandbox`. If a tool call needs a backend and the runtime sandbox is missing, the fallback sandbox must use the same workspace ownership rules:
+
+| Context                          | Fallback Volume scope                                  |
+| -------------------------------- | ------------------------------------------------------ |
+| `projectId` exists               | `catalog: 'projects'`, `projectId`                     |
+| no `projectId`, `xpertId` exists | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` |
+| neither exists                   | `catalog: 'users'`, `userId`                           |
+
+This prevents skill file reads or skill shell execution from silently switching a ClawXpert run back to a private `user/<userId>` Volume.
+
 ## File-upload semantics
 
 Three target modes matter most here:
@@ -632,7 +674,7 @@ Its job is not to represent a full Workspace. Instead it:
 
 It is a good fit for:
 
-- conversation file directories
+- conversation workspace file APIs, using the project / Xpert Volume root as the subtree
 - xpert memory file directories
 - controlled subdirectories inside projects or workspaces
 

@@ -1,0 +1,288 @@
+---
+title: Sandbox Abnormal Exit Monitoring
+description: Explains the real-time monitoring, deduplication, fallback sync, and persistence flow for abnormal Sandbox container exits.
+---
+
+This document describes the abnormal-exit monitoring pipeline for Pro Sandbox containers. It answers a few practical questions:
+
+- How does the system detect a crashed Docker sandbox container quickly?
+- How does it tell apart an expected `stop/remove` from a real abnormal exit?
+- How does it avoid duplicate records when multiple app instances share one Docker daemon?
+- Why do `environment`, `project`, and `user` sandboxes have different persistence behavior?
+
+The implementation intentionally keeps two paths:
+
+- Real-time primary path: listen to Docker `events` and react to `oom` / `die` immediately.
+- Fallback path: keep the existing scheduler so environment containers are still reconciled when the listener is unavailable or a container disappears early.
+
+## Overall flow
+
+At a high level, the mechanism works like this:
+
+1. `SandboxContainerEventMonitorService` competes for a Redis lock, and only the leader opens the long-lived Docker `events` stream.
+2. When it receives `oom`, it writes short-lived runtime state in Redis only. When it receives `die`, it forwards the event to `SandboxContainerExitRecorderService`.
+3. `SandboxContainerExitRecorderService` merges Docker `inspect`, labels, Redis context, and database records to decide whether the exit is abnormal.
+4. If the real-time listener misses the event, `SandboxEnvironmentContainerSyncScheduler` calls the same recorder on the next reconciliation cycle.
+
+```text
+Docker oom/die event
+  -> SandboxContainerEventMonitorService
+  -> SandboxContainerRuntimeStateService
+     - expected-stop intent
+     - oom mark
+     - container context
+     - exit dedupe signature
+  -> SandboxContainerExitRecorderService
+     - decide abnormality
+     - load inspect / logs
+     - write environment DB fields
+     - emit structured application logs
+
+Scheduler fallback
+  -> SandboxEnvironmentContainerSyncScheduler
+  -> SandboxContainerExitRecorderService
+```
+
+## What each service does
+
+### SandboxContainerEventMonitorService
+
+This is the real-time entry point.
+
+It does not let every application instance subscribe to Docker events. Instead, it elects a leader through Redis. Only the leader instance:
+
+- opens the Docker `events` stream
+- subscribes to container `oom` and `die`
+- reconnects automatically when the stream is interrupted
+
+One important detail is that `oom` is not recorded as an abnormal exit immediately.
+
+- The service only writes a short-TTL OOM marker in Redis.
+- The final abnormal-exit decision is delayed until `die`.
+
+That prevents the same failure from being recorded twice.
+
+### SandboxContainerRuntimeStateService
+
+This service acts as short-lived runtime state storage in Redis. It does not decide abnormality by itself.
+
+It stores four kinds of signals:
+
+- `expected-stop`
+  - written before any intentional stop/remove path
+  - used to suppress false abnormal-exit records
+- `oom`
+  - written when Docker emits an `oom` event
+  - consumed later during `die` processing
+- `container context`
+  - stores `tenantId`, `workForType`, `workForId`, and `environmentId`
+  - helps attribution after a container is gone or labels are incomplete
+- `exit signature`
+  - built from `containerId + finishedAt + exitCode + reason`
+  - shared by both the real-time listener and the scheduler fallback
+
+Its job is to preserve just enough context so later stages can make an accurate decision.
+
+### SandboxContainerExitRecorderService
+
+This is the unified recorder and the core of the whole mechanism.
+
+It is invoked from both:
+
+- the Docker event listener
+- the environment scheduler fallback
+
+The recorder is responsible for:
+
+- loading Docker `inspect` data when available
+- merging labels, Redis runtime context, environment records, and run records
+- checking `expected-stop` and skipping intentional stops
+- deciding the final abnormal reason
+- loading the container log tail
+- writing structured Nest logger output
+- updating environment-related database records
+- writing a dedupe signature so the same exit is not recorded twice
+
+The abnormal reasons are currently fixed to:
+
+- `oom_killed`
+- `non_zero_exit`
+- `missing_container`
+
+## Why expected stops are not misclassified
+
+False positives are controlled through the `expected-stop` intent.
+
+Any code path that intentionally stops or removes a sandbox container must first write the Redis marker. When the recorder sees that marker, it treats the exit as expected and skips abnormal-exit recording.
+
+Covered paths include:
+
+- cleanup processors for legacy `project/user` containers
+- environment cleanup processor
+- manual environment stop/remove
+- `DockerSandboxProvider` replacing an old container
+- environment orphan cleanup
+
+So the following are not treated as abnormal exits:
+
+- containers cleaned up because they expired
+- deliberate container replacement
+- orphan containers removed by the scheduler
+
+## Abnormal-exit rules
+
+The final decision is intentionally simple:
+
+1. If an `expected-stop` marker exists, the exit is not abnormal.
+2. If an OOM signal is present, or `inspect.State.OOMKilled = true`, record `oom_killed`.
+3. Otherwise, if `exitCode != 0`, record `non_zero_exit`.
+4. If the scheduler still sees an environment record referencing the container but Docker `inspect` returns `404`, record `missing_container`.
+5. If `exitCode = 0` and no abnormal signal exists, do not record anything.
+
+This is why `oom` is treated as an intermediate signal and finalized only at `die`.
+
+## Why duplicate records are avoided
+
+There are two layers of protection.
+
+### 1. Only one real-time listener is active
+
+`SandboxContainerEventMonitorService` uses a Redis lock, so only one instance consumes the Docker event stream at a time.
+
+### 2. The recorder is idempotent
+
+Both the listener and the scheduler call the same recorder, and both use the same exit signature:
+
+```text
+containerId + finishedAt + exitCode + reason
+```
+
+If the signature is already reserved, the next attempt is treated as a duplicate and skipped.
+
+That means leader switchovers, short Docker stream interruptions, and later scheduler compensation do not create duplicate abnormal-exit records.
+
+## Behavior by sandbox type
+
+The mechanism covers all Docker sandbox types:
+
+- `environment`
+- `project`
+- `user`
+
+But persistence differs by type.
+
+### environment
+
+For `environment`, abnormal exits are persisted and logged.
+
+The recorder updates:
+
+- `SandboxEnvironment.containerMeta.lastAbnormalExit`
+- `SandboxRun.containerMeta.lastAbnormalExit`
+
+It also continues to maintain the existing fields such as:
+
+- `status`
+- `exitCode`
+- `finishedAt`
+- `containerId`
+
+`lastAbnormalExit` uses this fixed structure:
+
+| Field         | Meaning                                              |
+| ------------- | ---------------------------------------------------- |
+| `observedAt`  | when the system observed the abnormal exit           |
+| `source`      | usually `docker-event` or `scheduler`                |
+| `reason`      | `oom_killed` / `non_zero_exit` / `missing_container` |
+| `containerId` | container id                                         |
+| `exitCode`    | exit code, nullable                                  |
+| `oomKilled`   | whether the container was OOM-killed                 |
+| `finishedAt`  | Docker-reported finish time, nullable                |
+| `logTail`     | last 200 lines, capped at 32 KB                      |
+
+### project / user
+
+For `project` and `user` sandboxes, this phase only requires observability, not new historical query storage.
+
+So these sandbox types:
+
+- do not write new DB records
+- do not introduce a new event table
+- only emit structured application logs
+
+The log context includes, whenever available:
+
+- `containerId`
+- `tenantId`
+- `workForType`
+- `workForId`
+- `reason`
+- `exitCode`
+- `oomKilled`
+
+## Labels and legacy fallback
+
+New containers are labeled first so attribution is straightforward:
+
+- `xpert.sandbox.provider`
+- `xpert.sandbox.tenant_id`
+- `xpert.sandbox.work_for_type`
+- `xpert.sandbox.work_for_id`
+- environment containers also carry `xpert.sandbox.environment_id`
+
+That covers normal `environment`, `project`, and `user` flows.
+
+Older legacy containers may not have all labels, so the implementation keeps fallbacks:
+
+- labels first
+- Redis runtime context next
+- for environment containers, `/workspace` mount-path parsing as a legacy fallback
+
+That is why even older unlabeled containers can still be recognized as sandbox-related and at least produce structured abnormal-exit logs.
+
+## Why the scheduler still exists
+
+Real-time listening is the primary path, but not the only safety net. The environment scheduler still matters for cases like:
+
+- a leader switch in progress
+- a short Docker event stream interruption
+- the container disappearing before the listener processes it
+- historical metadata still pointing to a container that no longer exists
+
+The scheduler mainly does two things:
+
+- if the environment record still references a missing container, it reports `missing_container`
+- if a container has already stopped abnormally, it forwards the result to the same recorder
+
+The important part is consistency: the scheduler does not implement a second abnormal-exit recording system. It reuses the same recorder, so the rules, log-tail policy, DB structure, and deduplication behavior stay aligned.
+
+## Log capture and size limits
+
+When an abnormal exit is recorded, the recorder tries to keep useful diagnostics without letting logs explode:
+
+- Docker logs: last 200 lines
+- stored log tail: at most 32 KB
+- application logger preview: at most 4 KB
+
+This keeps enough context for troubleshooting while preventing excessive DB and application log growth.
+
+This phase does not use object storage and does not reuse `logObjectKey` for abnormal-exit logs. The main troubleshooting entry points remain:
+
+- `SandboxEnvironment.containerMeta.lastAbnormalExit`
+- `SandboxRun.containerMeta.lastAbnormalExit`
+- application service logs
+
+## Troubleshooting order
+
+When investigating a sandbox abnormal exit, this order usually works best:
+
+1. Check `SandboxEnvironment.containerMeta.lastAbnormalExit`.
+2. Check the related `SandboxRun.containerMeta.lastAbnormalExit` plus `status/exitCode/finishedAt`.
+3. For `project/user` sandboxes, inspect structured service logs directly.
+4. For OOM issues, focus on `reason=oom_killed`, `oomKilled=true`, and the saved log tail.
+5. For `missing_container`, investigate external deletion, Docker restarts, or metadata/runtime drift first.
+
+## Related docs
+
+- [Sandbox](/en/pro/sandbox/index)
+- [Sandbox Volume Architecture](/en/pro/sandbox/volume-architecture)

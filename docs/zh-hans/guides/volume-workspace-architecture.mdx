@@ -227,6 +227,7 @@ Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 
 - `shared` 仍作为显式共享子目录保留，用于兼容旧逻辑和需要固定共享路径的工具。
 - Xpert 长期 FileMemory 是 Xpert 级共享状态，不按用户隔离。
 - Agent invoke、terminal、sandbox upload、conversation workspace files、managed sandbox service 都应该使用同一套 resolver 结果，避免 Agent cwd 和终端 cwd 不一致。
+- conversation workspace 文件接口必须直接浏览 project / Xpert 的 Volume 根目录，不能再在根目录下额外拼 `users/<userId>` 子树。
 
 标准目录树如下：
 
@@ -387,6 +388,35 @@ API 服务容器看到的 server-side Volume 目录是：
 /workspace/agents/xpert-X
 /workspace/sessions/<conversationId>
 ```
+
+### Conversation workspace 文件接口
+
+ClawXpert 文件面板以及相关预览 / 编辑流程使用 conversation 文件接口：
+
+```text
+GET    /api/chat-conversation/:conversationId/files
+GET    /api/chat-conversation/:conversationId/file
+POST   /api/chat-conversation/:conversationId/file
+POST   /api/chat-conversation/:conversationId/file/upload
+DELETE /api/chat-conversation/:conversationId/file
+```
+
+这些接口只用 conversation 来解析当前工作区根目录：
+
+| Conversation 上下文               | Volume scope                                           | 子树范围  |
+| --------------------------------- | ------------------------------------------------------ | --------- |
+| 存在 `projectId`                  | `catalog: 'projects'`, `projectId`                     | Volume 根 |
+| 没有 `projectId`，存在 `xpertId`  | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` | Volume 根 |
+| 没有 `projectId` 且没有 `xpertId` | 不允许访问 workspace files                             | N/A       |
+
+因此，非项目 ClawXpert 对话调用 `/api/chat-conversation/:id/files` 时，列出的是共享 Xpert 工作区根目录：
+
+```text
+/sandbox/<tenantId>/xpert/<xpertId>
+/workspace
+```
+
+`conversationId` 仍用于会话定位和权限上下文，但不再作为文件系统目录片段。同一个 Xpert 的多个用户会看到同一份 workspace 文件。
 
 ### 环境 sandbox
 
@@ -601,6 +631,18 @@ const workArea = await this.workAreaResolver.resolve({
 
 不要再把 `/sandbox/...` 的 server 路径直接塞到 Docker sandbox 的 `workingDirectory` 里。
 
+## Skills middleware fallback sandbox
+
+Skills middleware 正常情况下会从 `request.runtime.configurable.sandbox` 读取当前运行态 sandbox。如果工具调用需要 backend，但运行态 sandbox 缺失，fallback sandbox 也必须遵循同一套 workspace 归属规则：
+
+| 上下文                           | Fallback Volume scope                                  |
+| -------------------------------- | ------------------------------------------------------ |
+| 存在 `projectId`                 | `catalog: 'projects'`, `projectId`                     |
+| 没有 `projectId`，存在 `xpertId` | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` |
+| 两者都不存在                     | `catalog: 'users'`, `userId`                           |
+
+这样可以避免 skill 文件读取或 skill shell 执行时，ClawXpert 运行突然退回到私有的 `user/<userId>` Volume。
+
 ## 文件上传语义
 
 和新架构直接相关的是三种目标：
@@ -634,7 +676,7 @@ const workArea = await this.workAreaResolver.resolve({
 
 适合用在：
 
-- conversation 文件目录
+- conversation workspace 文件接口，此时 project / Xpert 的 Volume 根就是受控子树
 - xpert memory 文件目录
 - 项目或 workspace 下的受控子目录
 
