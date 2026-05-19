@@ -22,9 +22,13 @@ const HOST_PAGE_SCREENSHOT_TOOL_NAME = 'host_page_screenshot'
 const HOST_PAGE_WAIT_MIN_SECONDS = 3
 const HOST_PAGE_WAIT_MAX_SECONDS = 60
 const HOST_PAGE_SCREENSHOT_ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg'] as const
-const HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT = 20
+const HOST_PAGE_SNAPSHOT_DEFAULT_PAGE_SIZE = 30
+const HOST_PAGE_SNAPSHOT_MAX_PAGE_SIZE = 100
+const HOST_PAGE_SNAPSHOT_MAX_CRITICAL_BUTTONS = 12
+const HOST_PAGE_SNAPSHOT_PAGE_SAMPLE_COUNT = 3
 const HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS = 24_000
 const HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS = 240
+const HOST_PAGE_SNAPSHOT_PAGE_STRING_CHARS = 120
 const HOST_PAGE_SNAPSHOT_MAX_ARRAY_ITEMS = 4
 
 const HOST_PAGE_AUTOMATION_TOOL_NAMES = [
@@ -126,6 +130,24 @@ type JsonObject = {
     [key: string]: unknown
 }
 
+type HostPageSnapshotPaginationRequest = {
+    page: number
+    pageSize: number
+    snapshotId?: string
+    includeIndex: boolean
+    hasPaginationInput: boolean
+}
+
+type HostPageSnapshotPaginationOptions = HostPageSnapshotPaginationRequest & {
+    snapshotId: string
+    warning?: string
+}
+
+type IndexedSnapshotElement = {
+    index: number
+    element: unknown
+}
+
 type HostPageScreenshotAttachment = {
     toolCallId: string
     mimeType: HostPageScreenshotMimeType
@@ -213,7 +235,7 @@ function createTargetSchema(properties: object = {}, required: string[] = []) {
 const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_snapshot',
-        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, structured form labels/group labels/select options, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, label, groupLabel, options, selectedLabel, nearbyText, or coordinates from this result for later actions. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, structured form labels/group labels/select options, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, label, groupLabel, options, selectedLabel, nearbyText, or coordinates from this result for later actions. For large snapshots, inspect _xpertPagination, pages, and criticalElements. Use criticalElements first for checkbox, radio, switch, and checked controls. If the needed element is not in elements or criticalElements, choose the likely page from pages and call host_page_snapshot again with snapshotId, page, pageSize, and includeIndex=false. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
         schema: stringifySchema({
             type: 'object',
             additionalProperties: false,
@@ -229,6 +251,26 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
                     minimum: 1,
                     maximum: 300,
                     description: 'Maximum actionable elements to return.'
+                },
+                page: {
+                    type: 'number',
+                    minimum: 1,
+                    description: '1-based snapshot element page to return.'
+                },
+                pageSize: {
+                    type: 'number',
+                    minimum: 1,
+                    maximum: HOST_PAGE_SNAPSHOT_MAX_PAGE_SIZE,
+                    description: `Elements per snapshot page. Defaults to ${HOST_PAGE_SNAPSHOT_DEFAULT_PAGE_SIZE}.`
+                },
+                snapshotId: {
+                    type: 'string',
+                    description: 'Snapshot id from a previous host_page_snapshot response when requesting another page.'
+                },
+                includeIndex: {
+                    type: 'boolean',
+                    description:
+                        'Include pagination summaries and critical element index. Defaults to true for initial snapshots and false for page requests.'
                 },
                 includeScreenshot: {
                     type: 'boolean',
@@ -563,15 +605,118 @@ function readFiniteNumber(value: unknown): number | null {
     return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function readBoundedInteger(value: unknown, min: number, max: number): number | null {
+    const numberValue = readFiniteNumber(value)
+    if (numberValue == null) {
+        return null
+    }
+
+    const integer = Math.floor(numberValue)
+    if (integer < min) {
+        return min
+    }
+
+    if (integer > max) {
+        return max
+    }
+
+    return integer
+}
+
+function readNonEmptyString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
+}
+
+function readStringProperty(record: Record<string, unknown>, key: string): string | undefined {
+    return readNonEmptyString(record[key])
+}
+
+function readLowerStringProperty(record: Record<string, unknown>, key: string): string | undefined {
+    return readStringProperty(record, key)?.toLowerCase()
+}
+
+function readBooleanProperty(record: Record<string, unknown>, key: string): boolean | undefined {
+    const value = record[key]
+    return typeof value === 'boolean' ? value : undefined
+}
+
+function readSnapshotPaginationRequest(args: unknown): HostPageSnapshotPaginationRequest {
+    const record = readRecord(args)
+    const page = readBoundedInteger(record?.page, 1, Number.MAX_SAFE_INTEGER)
+    const pageSize =
+        readBoundedInteger(record?.pageSize, 1, HOST_PAGE_SNAPSHOT_MAX_PAGE_SIZE) ??
+        HOST_PAGE_SNAPSHOT_DEFAULT_PAGE_SIZE
+    const snapshotId = readNonEmptyString(record?.snapshotId)
+    const includeIndexValue = record ? record.includeIndex : undefined
+    const hasPaginationInput =
+        !!record && ['page', 'pageSize', 'snapshotId', 'includeIndex'].some((key) => key in record)
+    const isPageRequest = page != null || snapshotId != null
+    const includeIndex = typeof includeIndexValue === 'boolean' ? includeIndexValue : !isPageRequest
+
+    return {
+        page: page ?? 1,
+        pageSize,
+        ...(snapshotId ? { snapshotId } : {}),
+        includeIndex,
+        hasPaginationInput
+    }
+}
+
+function readExistingSnapshotPagination(result: Record<string, unknown>) {
+    const pagination = readRecord(result._xpertPagination)
+    if (!pagination) {
+        return {}
+    }
+
+    return {
+        snapshotId: readNonEmptyString(pagination.snapshotId),
+        warning: readNonEmptyString(pagination.warning)
+    }
+}
+
+function hasSnapshotPagination(result: Record<string, unknown>): boolean {
+    const pagination = readRecord(result._xpertPagination)
+    return (
+        !!pagination &&
+        readNonEmptyString(pagination.snapshotId) != null &&
+        readFiniteNumber(pagination.page) != null &&
+        readFiniteNumber(pagination.pageSize) != null &&
+        readFiniteNumber(pagination.pageCount) != null &&
+        readFiniteNumber(pagination.totalElements) != null
+    )
+}
+
+function resolveSnapshotPaginationOptions(
+    result: Record<string, unknown>,
+    request: HostPageSnapshotPaginationRequest
+): HostPageSnapshotPaginationOptions {
+    const existing = readExistingSnapshotPagination(result)
+    const snapshotId = request.snapshotId ?? existing.snapshotId ?? randomUUID()
+    const warning =
+        request.snapshotId && existing.snapshotId && request.snapshotId !== existing.snapshotId
+            ? 'Requested snapshotId was not returned by the client; using refreshed snapshot data.'
+            : existing.warning
+
+    return {
+        ...request,
+        snapshotId,
+        ...(warning ? { warning } : {})
+    }
+}
+
 function truncateText(value: string, maxChars = HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS): string {
     return value.length > maxChars
         ? `${value.slice(0, maxChars)}... [truncated ${value.length - maxChars} chars]`
         : value
 }
 
-function compactSnapshotValue(value: unknown, depth = 0): unknown {
+function compactSnapshotValue(
+    value: unknown,
+    depth = 0,
+    maxStringChars = HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS
+): unknown {
     if (typeof value === 'string') {
-        return truncateText(value)
+        return truncateText(value, maxStringChars)
     }
 
     if (value == null || typeof value === 'number' || typeof value === 'boolean') {
@@ -580,7 +725,7 @@ function compactSnapshotValue(value: unknown, depth = 0): unknown {
 
     if (Array.isArray(value)) {
         const maxItems = depth === 0 ? HOST_PAGE_SNAPSHOT_MAX_ARRAY_ITEMS : 2
-        const items = value.slice(0, maxItems).map((item) => compactSnapshotValue(item, depth + 1))
+        const items = value.slice(0, maxItems).map((item) => compactSnapshotValue(item, depth + 1, maxStringChars))
         if (value.length > maxItems) {
             items.push(`[truncated ${value.length - maxItems} items]`)
         }
@@ -595,7 +740,7 @@ function compactSnapshotValue(value: unknown, depth = 0): unknown {
     const compacted: JsonObject = {}
     const entries = Object.entries(record)
     for (const [key, entry] of entries.slice(0, 12)) {
-        compacted[key] = compactSnapshotValue(entry, depth + 1)
+        compacted[key] = compactSnapshotValue(entry, depth + 1, maxStringChars)
     }
     if (entries.length > 12) {
         compacted._truncatedKeys = entries.length - 12
@@ -623,6 +768,7 @@ const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
     'label',
     'groupLabel',
     'tag',
+    'type',
     'text',
     'selector',
     'value',
@@ -638,26 +784,167 @@ const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
     'nearbyText'
 ] as const
 
-function compactSnapshotElement(element: unknown): unknown {
+function compactSnapshotElement(element: unknown, maxStringChars = HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS): unknown {
     const record = readRecord(element)
     if (!record) {
-        return compactSnapshotValue(element, 1)
+        return compactSnapshotValue(element, 1, maxStringChars)
     }
 
     const compacted: JsonObject = {}
     for (const key of HOST_PAGE_SNAPSHOT_ELEMENT_KEYS) {
         if (key in record) {
-            compacted[key] = compactSnapshotValue(record[key], 1)
+            compacted[key] = compactSnapshotValue(record[key], 1, maxStringChars)
         }
     }
     return compacted
+}
+
+function buildSnapshotElementIndexEntry(element: unknown, index: number): JsonObject {
+    const compacted = compactSnapshotElement(element, HOST_PAGE_SNAPSHOT_PAGE_STRING_CHARS)
+    const record = readRecord(compacted)
+    return record ? { index, ...record } : { index, value: compacted }
+}
+
+function buildSnapshotElementSummary(element: unknown, index: number): JsonObject {
+    const record = readRecord(element)
+    if (!record) {
+        return { index }
+    }
+
+    const summary: JsonObject = { index }
+    for (const key of ['ref', 'role', 'label', 'name', 'text', 'selector'] as const) {
+        const value = readStringProperty(record, key)
+        if (value) {
+            summary[key] = truncateText(value, 80)
+        }
+    }
+
+    const checked = readBooleanProperty(record, 'checked')
+    if (checked != null) {
+        summary.checked = checked
+    }
+
+    return summary
+}
+
+function isStateControlElement(element: unknown): boolean {
+    const record = readRecord(element)
+    if (!record) {
+        return false
+    }
+
+    const role = readLowerStringProperty(record, 'role')
+    const tag = readLowerStringProperty(record, 'tag')
+    const type = readLowerStringProperty(record, 'type')
+
+    return (
+        role === 'checkbox' ||
+        role === 'radio' ||
+        role === 'switch' ||
+        typeof record.checked === 'boolean' ||
+        (tag === 'input' && (type === 'checkbox' || type === 'radio'))
+    )
+}
+
+function isActionButtonElement(element: unknown): boolean {
+    const record = readRecord(element)
+    if (!record) {
+        return false
+    }
+
+    const role = readLowerStringProperty(record, 'role')
+    const tag = readLowerStringProperty(record, 'tag')
+    const isButtonLike = role === 'button' || role === 'link' || tag === 'button'
+
+    return (
+        isButtonLike &&
+        readBooleanProperty(record, 'visible') !== false &&
+        readBooleanProperty(record, 'actionable') !== false &&
+        readBooleanProperty(record, 'enabled') !== false
+    )
+}
+
+function selectSpreadItems(items: IndexedSnapshotElement[], maxItems: number): IndexedSnapshotElement[] {
+    if (items.length <= maxItems) {
+        return items
+    }
+
+    if (maxItems <= 1) {
+        return items.slice(0, maxItems)
+    }
+
+    const selected = new Map<number, IndexedSnapshotElement>()
+    for (let index = 0; index < maxItems; index += 1) {
+        const itemIndex = Math.round((index * (items.length - 1)) / (maxItems - 1))
+        const item = items[itemIndex]
+        if (item) {
+            selected.set(item.index, item)
+        }
+    }
+
+    for (const item of items) {
+        if (selected.size >= maxItems) {
+            break
+        }
+        selected.set(item.index, item)
+    }
+
+    return Array.from(selected.values()).sort((left, right) => left.index - right.index)
+}
+
+function buildCriticalElementsIndex(elements: unknown[]): JsonObject[] {
+    const indexedElements = elements.map((element, index) => ({ index, element }))
+    const stateControls = indexedElements.filter(({ element }) => isStateControlElement(element))
+    const stateControlIndexes = new Set(stateControls.map(({ index }) => index))
+    const actionButtons = indexedElements.filter(
+        ({ element, index }) => !stateControlIndexes.has(index) && isActionButtonElement(element)
+    )
+    const selectedButtons = selectSpreadItems(actionButtons, HOST_PAGE_SNAPSHOT_MAX_CRITICAL_BUTTONS)
+    const selected = new Map<number, IndexedSnapshotElement>()
+
+    for (const item of [...stateControls, ...selectedButtons]) {
+        selected.set(item.index, item)
+    }
+
+    return Array.from(selected.values())
+        .sort((left, right) => left.index - right.index)
+        .map(({ element, index }) => buildSnapshotElementIndexEntry(element, index))
+}
+
+function buildPageSummaries(elements: unknown[], pageSize: number): JsonObject[] {
+    const pageCount = Math.ceil(elements.length / pageSize)
+    return Array.from({ length: pageCount }, (_, pageIndex) => {
+        const startIndex = pageIndex * pageSize
+        const pageElements = elements.slice(startIndex, startIndex + pageSize)
+        const roles: JsonObject = {}
+
+        for (const element of pageElements) {
+            const record = readRecord(element)
+            const role = record ? readStringProperty(record, 'role') : undefined
+            if (role) {
+                roles[role] = (typeof roles[role] === 'number' ? roles[role] : 0) + 1
+            }
+        }
+
+        return {
+            page: pageIndex + 1,
+            startIndex,
+            endIndex: startIndex + pageElements.length - 1,
+            elementCount: pageElements.length,
+            roles,
+            samples: pageElements
+                .slice(0, HOST_PAGE_SNAPSHOT_PAGE_SAMPLE_COUNT)
+                .map((element, elementIndex) => buildSnapshotElementSummary(element, startIndex + elementIndex))
+        }
+    })
 }
 
 function buildCompactedSnapshotPayload(
     payload: Record<string, unknown>,
     result: Record<string, unknown>,
     originalContentLength: number,
-    keptElementCount: number
+    options: HostPageSnapshotPaginationOptions,
+    returnedElementCount?: number
 ): JsonObject {
     const elements = Array.isArray(result.elements) ? result.elements : []
     const compactedResult: JsonObject = {}
@@ -668,13 +955,33 @@ function buildCompactedSnapshotPayload(
         }
     }
 
-    compactedResult.elements = elements.slice(0, keptElementCount).map((element) => compactSnapshotElement(element))
+    const pageCount = elements.length > 0 ? Math.ceil(elements.length / options.pageSize) : 0
+    const page = pageCount > 0 ? Math.min(options.page, pageCount) : 1
+    const startIndex = pageCount > 0 ? (page - 1) * options.pageSize : 0
+    const pageElements = elements.slice(startIndex, startIndex + (returnedElementCount ?? options.pageSize))
+
+    compactedResult.elements = pageElements.map((element) =>
+        compactSnapshotElement(element, HOST_PAGE_SNAPSHOT_PAGE_STRING_CHARS)
+    )
+    if (options.includeIndex) {
+        compactedResult.pages = buildPageSummaries(elements, options.pageSize)
+        compactedResult.criticalElements = buildCriticalElementsIndex(elements)
+    }
+    compactedResult._xpertPagination = {
+        snapshotId: options.snapshotId,
+        page,
+        pageSize: options.pageSize,
+        pageCount,
+        totalElements: elements.length,
+        indexIncluded: options.includeIndex,
+        ...(options.warning ? { warning: options.warning } : {})
+    }
     compactedResult._xpertCompaction = {
         compacted: true,
         reason: 'host_page_snapshot output compacted before model continuation and message persistence',
         originalContentLength,
         originalElementCount: elements.length,
-        keptElementCount
+        keptElementCount: pageElements.length
     }
 
     const compactedPayload: JsonObject = {
@@ -710,24 +1017,39 @@ function getSnapshotElementCount(result: Record<string, unknown>): number {
     return Array.isArray(result.elements) ? result.elements.length : 0
 }
 
-function shouldCompactSnapshot(result: Record<string, unknown>, serializedLength: number): boolean {
+function shouldCompactSnapshot(
+    result: Record<string, unknown>,
+    serializedLength: number,
+    request: HostPageSnapshotPaginationRequest
+): boolean {
+    if (hasSnapshotPagination(result) && serializedLength <= HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS) {
+        return false
+    }
+
     return (
+        request.hasPaginationInput ||
         serializedLength > HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS ||
-        getSnapshotElementCount(result) > HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT
+        getSnapshotElementCount(result) > request.pageSize
     )
 }
 
 function stringifyCompactedSnapshotPayload(
     payload: Record<string, unknown>,
     result: Record<string, unknown>,
-    originalContentLength: number
+    originalContentLength: number,
+    request: HostPageSnapshotPaginationRequest
 ): string {
     const elements = Array.isArray(result.elements) ? result.elements : []
-    let keptElementCount = Math.min(HOST_PAGE_SNAPSHOT_MAX_ELEMENTS_FOR_CONTEXT, elements.length)
+    const options = resolveSnapshotPaginationOptions(result, request)
+    const pageCount = elements.length > 0 ? Math.ceil(elements.length / options.pageSize) : 0
+    const page = pageCount > 0 ? Math.min(options.page, pageCount) : 1
+    const startIndex = pageCount > 0 ? (page - 1) * options.pageSize : 0
+    const availablePageElementCount = Math.max(0, Math.min(options.pageSize, elements.length - startIndex))
+    let keptElementCount = availablePageElementCount
 
     while (keptElementCount >= 0) {
         const compacted = JSON.stringify(
-            buildCompactedSnapshotPayload(payload, result, originalContentLength, keptElementCount)
+            buildCompactedSnapshotPayload(payload, result, originalContentLength, options, keptElementCount)
         )
         if (compacted.length <= HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS || keptElementCount === 0) {
             return compacted
@@ -735,20 +1057,36 @@ function stringifyCompactedSnapshotPayload(
         keptElementCount = Math.floor(keptElementCount / 2)
     }
 
-    return JSON.stringify(buildCompactedSnapshotPayload(payload, result, originalContentLength, 0))
+    return JSON.stringify(buildCompactedSnapshotPayload(payload, result, originalContentLength, options, 0))
 }
 
 function parseCompactedSnapshotPayload(
     payload: Record<string, unknown>,
     result: Record<string, unknown>,
-    originalContentLength: number
+    originalContentLength: number,
+    request: HostPageSnapshotPaginationRequest
 ): JsonObject {
     try {
-        const compacted = JSON.parse(stringifyCompactedSnapshotPayload(payload, result, originalContentLength))
+        const compacted = JSON.parse(stringifyCompactedSnapshotPayload(payload, result, originalContentLength, request))
         const record = readRecord(compacted)
-        return record ?? buildCompactedSnapshotPayload(payload, result, originalContentLength, 0)
+        return (
+            record ??
+            buildCompactedSnapshotPayload(
+                payload,
+                result,
+                originalContentLength,
+                resolveSnapshotPaginationOptions(result, request),
+                0
+            )
+        )
     } catch {
-        return buildCompactedSnapshotPayload(payload, result, originalContentLength, 0)
+        return buildCompactedSnapshotPayload(
+            payload,
+            result,
+            originalContentLength,
+            resolveSnapshotPaginationOptions(result, request),
+            0
+        )
     }
 }
 
@@ -761,7 +1099,11 @@ function readSnapshotPayload(
     return payload && result ? { payload, result } : null
 }
 
-function compactHostPageSnapshotArtifact(artifact: unknown, artifactLength: number): unknown {
+function compactHostPageSnapshotArtifact(
+    artifact: unknown,
+    artifactLength: number,
+    request: HostPageSnapshotPaginationRequest
+): unknown {
     const snapshot = readSnapshotPayload(artifact)
     if (!snapshot) {
         return {
@@ -774,10 +1116,10 @@ function compactHostPageSnapshotArtifact(artifact: unknown, artifactLength: numb
         }
     }
 
-    return parseCompactedSnapshotPayload(snapshot.payload, snapshot.result, artifactLength)
+    return parseCompactedSnapshotPayload(snapshot.payload, snapshot.result, artifactLength, request)
 }
 
-function compactHostPageSnapshotToolMessage(message: ToolMessage): ToolMessage {
+function compactHostPageSnapshotToolMessage(message: ToolMessage, toolCall?: ToolCall): ToolMessage {
     if (typeof message.content !== 'string') {
         return message
     }
@@ -789,20 +1131,26 @@ function compactHostPageSnapshotToolMessage(message: ToolMessage): ToolMessage {
 
     const artifactLength = getSerializedLength(message.artifact)
     const artifactSnapshot = message.artifact ? readSnapshotPayload(message.artifact) : null
-    const shouldCompactContent = shouldCompactSnapshot(snapshot.result, message.content.length)
+    const paginationRequest = readSnapshotPaginationRequest(toolCall?.args)
+    const shouldCompactContent = shouldCompactSnapshot(snapshot.result, message.content.length, paginationRequest)
     const shouldCompactArtifact =
         artifactLength > HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS ||
-        (artifactSnapshot ? shouldCompactSnapshot(artifactSnapshot.result, artifactLength) : false)
+        (artifactSnapshot ? shouldCompactSnapshot(artifactSnapshot.result, artifactLength, paginationRequest) : false)
 
     if (!shouldCompactContent && !shouldCompactArtifact) {
         return message
     }
 
     const content = shouldCompactContent
-        ? stringifyCompactedSnapshotPayload(snapshot.payload, snapshot.result, message.content.length)
+        ? stringifyCompactedSnapshotPayload(
+              snapshot.payload,
+              snapshot.result,
+              message.content.length,
+              paginationRequest
+          )
         : message.content
     const artifact = shouldCompactArtifact
-        ? compactHostPageSnapshotArtifact(message.artifact, artifactLength)
+        ? compactHostPageSnapshotArtifact(message.artifact, artifactLength, paginationRequest)
         : message.artifact
 
     return new ToolMessage({
@@ -819,11 +1167,11 @@ function compactHostPageSnapshotToolMessage(message: ToolMessage): ToolMessage {
 }
 
 function compactBrowserAutomationToolMessage(message: ToolMessage, toolCall: ToolCall): ToolMessage {
-    if (toolCall.name !== HOST_PAGE_SNAPSHOT_TOOL_NAME && message.name !== HOST_PAGE_SNAPSHOT_TOOL_NAME) {
-        return message
+    if (toolCall.name === HOST_PAGE_SNAPSHOT_TOOL_NAME || message.name === HOST_PAGE_SNAPSHOT_TOOL_NAME) {
+        return compactHostPageSnapshotToolMessage(message, toolCall)
     }
 
-    return compactHostPageSnapshotToolMessage(message)
+    return message
 }
 
 function readViewportSize(value: unknown): HostPageViewportSize | undefined {
