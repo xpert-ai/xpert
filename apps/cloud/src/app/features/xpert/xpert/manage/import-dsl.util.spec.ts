@@ -1,4 +1,10 @@
-import { IXpert, LongTermMemoryTypeEnum, TXpertTeamDraft, XpertTypeEnum } from '../../../../@core'
+import {
+  IXpert,
+  LongTermMemoryTypeEnum,
+  TXpertTeamDraft,
+  XpertParameterTypeEnum,
+  XpertTypeEnum
+} from '../../../../@core'
 import { createOverwriteDraftFromDsl, groupImportedDslMemories } from './import-dsl.util'
 
 describe('import dsl util', () => {
@@ -70,12 +76,41 @@ describe('import dsl util', () => {
           entity: {
             key: 'Agent_imported',
             title: 'Imported Primary Agent',
-            prompt: 'Imported primary prompt'
+            prompt: 'Imported primary prompt',
+            xpertId: 'imported-xpert',
+            promptTemplates: [
+              {
+                id: 'template-1',
+                role: 'human',
+                text: 'Imported template'
+              }
+            ],
+            parameters: [
+              {
+                type: XpertParameterTypeEnum.STRING,
+                name: 'topic'
+              }
+            ],
+            outputVariables: [
+              {
+                type: XpertParameterTypeEnum.STRING,
+                name: 'summary',
+                variableSelector: 'state.summary',
+                operation: 'overwrite'
+              }
+            ],
+            options: {
+              disableMessageHistory: true
+            },
+            copilotModel: {
+              copilotId: 'copilot-imported',
+              model: 'model-imported'
+            }
           }
         }
       ],
       connections: []
-    } as TXpertTeamDraft
+    } as unknown as TXpertTeamDraft
 
     const overwritten = createOverwriteDraftFromDsl(currentXpert, importedDsl)
 
@@ -91,7 +126,35 @@ describe('import dsl util', () => {
       expect.objectContaining({
         key: 'Agent_current',
         id: 'agent-1',
-        prompt: 'Imported primary prompt'
+        prompt: 'Imported primary prompt',
+        promptTemplates: [
+          {
+            id: 'template-1',
+            role: 'human',
+            text: 'Imported template'
+          }
+        ],
+        parameters: [
+          {
+            type: XpertParameterTypeEnum.STRING,
+            name: 'topic'
+          }
+        ],
+        outputVariables: [
+          {
+            type: XpertParameterTypeEnum.STRING,
+            name: 'summary',
+            variableSelector: 'state.summary',
+            operation: 'overwrite'
+          }
+        ],
+        options: {
+          disableMessageHistory: true
+        },
+        copilotModel: {
+          copilotId: 'copilot-imported',
+          model: 'model-imported'
+        }
       })
     )
     expect(overwritten.nodes[0]).toEqual(
@@ -100,10 +163,127 @@ describe('import dsl util', () => {
         entity: expect.objectContaining({
           key: 'Agent_current',
           id: 'agent-1',
-          prompt: 'Imported primary prompt'
+          prompt: 'Imported primary prompt',
+          promptTemplates: [
+            {
+              id: 'template-1',
+              role: 'human',
+              text: 'Imported template'
+            }
+          ],
+          parameters: [
+            {
+              type: XpertParameterTypeEnum.STRING,
+              name: 'topic'
+            }
+          ],
+          outputVariables: [
+            {
+              type: XpertParameterTypeEnum.STRING,
+              name: 'summary',
+              variableSelector: 'state.summary',
+              operation: 'overwrite'
+            }
+          ],
+          options: {
+            disableMessageHistory: true
+          },
+          copilotModel: {
+            copilotId: 'copilot-imported',
+            model: 'model-imported'
+          }
         })
       })
     )
+    expect(overwritten.nodes[0].entity).not.toHaveProperty('title', 'Imported Primary Agent')
+    expect(overwritten.nodes[0].entity).not.toHaveProperty('xpertId', 'imported-xpert')
+  })
+
+  it('throws when an imported primary agent array field is malformed', () => {
+    const currentXpert = createCurrentXpert()
+    const importedDsl = {
+      team: {
+        type: XpertTypeEnum.Agent,
+        agent: {
+          key: 'Agent_imported'
+        }
+      },
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_imported',
+          entity: {
+            key: 'Agent_imported',
+            promptTemplates: 'bad'
+          }
+        }
+      ],
+      connections: []
+    } as unknown as TXpertTeamDraft
+
+    expect(() => createOverwriteDraftFromDsl(currentXpert, importedDsl)).toThrow(
+      'Invalid primary agent field: promptTemplates'
+    )
+  })
+
+  it('throws when an imported primary agent prompt template item is malformed', () => {
+    const currentXpert = createCurrentXpert()
+    const importedDsl = {
+      team: {
+        type: XpertTypeEnum.Agent,
+        agent: {
+          key: 'Agent_imported'
+        }
+      },
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_imported',
+          entity: {
+            key: 'Agent_imported',
+            promptTemplates: [
+              {
+                id: 'template-1',
+                role: 'assistant',
+                text: 'Imported template'
+              }
+            ]
+          }
+        }
+      ],
+      connections: []
+    } as unknown as TXpertTeamDraft
+
+    expect(() => createOverwriteDraftFromDsl(currentXpert, importedDsl)).toThrow(
+      'Invalid primary agent field: promptTemplates'
+    )
+  })
+
+  it('throws when an imported primary agent option field is malformed', () => {
+    const currentXpert = createCurrentXpert()
+    const importedDsl = {
+      team: {
+        type: XpertTypeEnum.Agent,
+        agent: {
+          key: 'Agent_imported'
+        }
+      },
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_imported',
+          entity: {
+            key: 'Agent_imported',
+            options: {
+              disableMessageHistory: 'yes'
+            }
+          }
+        }
+      ],
+      connections: []
+    } as unknown as TXpertTeamDraft
+
+    expect(() => createOverwriteDraftFromDsl(currentXpert, importedDsl)).toThrow('Invalid primary agent field: options')
   })
 
   it('throws when the imported DSL type does not match the current xpert', () => {
