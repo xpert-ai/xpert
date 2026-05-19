@@ -6,16 +6,16 @@ Welcome to the `docker` directory for deploying XpertAI using Docker Compose. Th
 
 #### Volume Permissions
 
-Execute the following command in the *docker* directory to set the permissions for the binding folder:
+Execute the following command in the _docker_ directory to set the permissions for the binding folder:
 
 - Create the directory if it doesn't exist
-`mkdir -p ./volumes/api/public ./volumes/api/data`
+  `mkdir -p ./volumes/api/public ./volumes/api/data`
 
 - Set ownership to UID 1000:GID 1000 (default for node user)
-`sudo chown -R 1000:1000 ./volumes/api/public ./volumes/api/data`
+  `sudo chown -R 1000:1000 ./volumes/api/public ./volumes/api/data`
 
 - Set permissions to allow read/write/execute for owner and group
-`sudo chmod -R 775 ./volumes/api/public ./volumes/api/data`
+  `sudo chmod -R 775 ./volumes/api/public ./volumes/api/data`
 
 #### Start up
 
@@ -23,7 +23,7 @@ Start up the Docker containers
 
 `docker compose up -d`
 
-f you need to enable multidimensional modeling capabilities for data analysis, please start the Docker containers using the `bi` profile
+If you need to enable multidimensional modeling capabilities for data analysis, please start the Docker containers using the `bi` profile
 
 `docker compose --profile bi up -d`
 
