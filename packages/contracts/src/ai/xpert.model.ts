@@ -101,6 +101,35 @@ export type TXpertExportedTemplate = {
   includeMemory: boolean
 }
 
+export type XpertFrequentQuestionsRequest = {
+  locale?: string | null
+  windowDays?: number | null
+  conversationLimit?: number | null
+  questionCount?: number | null
+  forceRefresh?: boolean | null
+}
+
+export type XpertFrequentQuestionsSample = {
+  windowDays: number
+  conversationLimit: number
+  questionCount: number
+  conversationCount: number
+  messageCount: number
+  since: string
+  until: string
+}
+
+export type XpertFrequentQuestionsResponse = {
+  xpertId: string
+  organizationId: string | null
+  locale: string
+  questions: string[]
+  generatedAt: string
+  expiresAt: string
+  cached: boolean
+  sample: XpertFrequentQuestionsSample
+}
+
 export type TXpert = {
   /**
    * Unique slug identifier, generated from name

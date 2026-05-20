@@ -68,6 +68,10 @@ jest.mock('./xpert.service', () => ({
     XpertService: class {}
 }))
 
+jest.mock('./xpert-frequent-questions.service', () => ({
+    XpertFrequentQuestionsService: class {}
+}))
+
 jest.mock('../copilot-store/copilot-store.service', () => ({
     CopilotStoreService: class {}
 }))
@@ -202,6 +206,7 @@ describe('XpertController', () => {
             runtimeCapabilitiesService as unknown as RuntimeCapabilitiesService,
             handoffQueue as any,
             agentChatRealtime as any,
+            {} as never,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
         )
