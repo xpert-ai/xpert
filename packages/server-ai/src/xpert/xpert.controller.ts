@@ -15,7 +15,8 @@ import {
     TXpertTeamDraft,
     SecretTokenBindingType,
     xpertLabel,
-    resolveRuntimeXpert
+    resolveRuntimeXpert,
+    XpertFrequentQuestionsRequest
 } from '@xpert-ai/contracts'
 import {
     CrudController,
@@ -124,6 +125,7 @@ import { HandoffQueueService } from '../handoff/message-queue.service'
 import { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service'
 import { PromptWorkflowService } from '../prompt-workflow'
 import { RUNTIME_CAPABILITY_XPERT_RELATIONS, RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
+import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -142,6 +144,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService,
         private readonly handoffQueue: HandoffQueueService,
         private readonly agentChatRealtime: AgentChatRealtimeService,
+        private readonly frequentQuestionsService: XpertFrequentQuestionsService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {
@@ -917,6 +920,26 @@ export class XpertController extends CrudController<Xpert> {
         }
     }
 
+    @UseGuards(XpertGuard)
+    @Get(':id/frequent-questions')
+    async getFrequentQuestions(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('locale') locale?: string,
+        @Query('windowDays') windowDays?: string,
+        @Query('conversationLimit') conversationLimit?: string,
+        @Query('questionCount') questionCount?: string,
+        @Query('forceRefresh') forceRefresh?: string
+    ) {
+        const request: XpertFrequentQuestionsRequest = {
+            locale,
+            windowDays: this.parseOptionalPositiveInteger(windowDays),
+            conversationLimit: this.parseOptionalPositiveInteger(conversationLimit),
+            questionCount: this.parseOptionalPositiveInteger(questionCount),
+            forceRefresh: parseQueryBoolean(forceRefresh)
+        }
+        return this.frequentQuestionsService.getFrequentQuestions(id, request)
+    }
+
     // Public App
 
     @Public()
@@ -1191,6 +1214,20 @@ export class XpertController extends CrudController<Xpert> {
         return this.agentChatRealtime.createStream(queueTaskId, async () => {
             await this.handoffQueue.enqueue(message)
         })
+    }
+
+    private parseOptionalPositiveInteger(value?: string) {
+        const trimmed = value?.trim()
+        if (!trimmed) {
+            return undefined
+        }
+
+        const parsed = Number.parseInt(trimmed, 10)
+        if (!Number.isFinite(parsed)) {
+            return undefined
+        }
+
+        return parsed
     }
 
     // Statistics

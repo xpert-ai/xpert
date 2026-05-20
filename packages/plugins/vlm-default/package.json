@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-vlm-default",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "private": true,
   "xpert": {
     "plugin": {
