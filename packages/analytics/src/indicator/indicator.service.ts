@@ -1,5 +1,12 @@
 import { BaseStore } from '@langchain/langgraph'
-import { ChecklistItem, EmbeddingStatusEnum, IIndicator, IndicatorStatusEnum, mapTranslationLanguage, TIndicatorDraft } from '@xpert-ai/contracts'
+import {
+	ChecklistItem,
+	EmbeddingStatusEnum,
+	IIndicator,
+	IndicatorStatusEnum,
+	mapTranslationLanguage,
+	TIndicatorDraft
+} from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
@@ -24,7 +31,6 @@ import {
 } from './types'
 import { IndicatorValidator } from './validators'
 
-
 @Injectable()
 export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 	constructor(
@@ -32,7 +38,7 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 		indicatorRepository: Repository<Indicator>,
 		@InjectQueue(JOB_EMBEDDING_INDICATORS) private indicatorQueue: Queue<TJobEmbeddingIndicators>,
 		readonly commandBus: CommandBus,
-		private readonly i18nService: I18nService,
+		private readonly i18nService: I18nService
 	) {
 		super(indicatorRepository, commandBus)
 	}
@@ -71,17 +77,26 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 
 	/**
 	 * Batch creation of indicator drafts.
-	 * 
-	 * @param indicators 
-	 * @returns 
+	 *
+	 * @param indicators
+	 * @returns
 	 */
-	async createBulk(indicators: Indicator[]) {
+	async createBulk(indicators: Array<Indicator & { isActive?: boolean }>) {
 		const results = []
 		for await (const indicator of indicators) {
-			const draft = extractIndicatorDraft(indicator)
-			draft.code = indicator.code
-			draft.name = indicator.name
-			results.push(await this.commandBus.execute(new IndicatorCreateCommand(draft)))
+			const { isActive, ...indicatorFields } = indicator
+			const draft = extractIndicatorDraft(indicatorFields)
+			draft.code = indicatorFields.code
+			draft.name = indicatorFields.name
+			const created = await this.commandBus.execute<IndicatorCreateCommand, Indicator>(
+				new IndicatorCreateCommand(draft)
+			)
+			if (isActive === true) {
+				await this.publish(created.id)
+				results.push(await this.findOne(created.id))
+			} else {
+				results.push(created)
+			}
 		}
 		return results
 	}
@@ -101,7 +116,7 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 
 	/**
 	 * Start embedding all indicators (Released & visible & code) in a BI Project.
-	 * 
+	 *
 	 * @param projectId BI Project ID
 	 */
 	async startEmbedding(projectId: string) {
@@ -179,26 +194,22 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 	async publish(id: string) {
 		const indicator = await this.findOne(id)
 
-		return this.update(
-			id,
-			{...(indicator.draft ? plainToInstance(
-					IndicatorDraftDTO,
-					indicator.draft,
-					{ excludeExtraneousValues: true }
-				) : {}),
-				draft: null,
-				status: IndicatorStatusEnum.RELEASED,
-				publishedAt: new Date(),
-				embeddingStatus: EmbeddingStatusEnum.REQUIRED,
-			}
-		)
+		return this.update(id, {
+			...(indicator.draft
+				? plainToInstance(IndicatorDraftDTO, indicator.draft, { excludeExtraneousValues: true })
+				: {}),
+			draft: null,
+			status: IndicatorStatusEnum.RELEASED,
+			publishedAt: new Date(),
+			embeddingStatus: EmbeddingStatusEnum.REQUIRED
+		})
 	}
 
 	/**
 	 * Embed indicator into vector store
-	 * 
+	 *
 	 * @param id Indicator ID
-	 * @returns 
+	 * @returns
 	 */
 	async embedding(id: string) {
 		const indicator = await this.findOne(id)
@@ -209,8 +220,8 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 			throw new BadRequestException('Indicator must be visible for embedding')
 		}
 		const store = await this.commandBus.execute<CreateProjectStoreCommand, BaseStore>(
-				new CreateProjectStoreCommand({ index: { fields: EMBEDDING_INDICATOR_FIELDS } })
-			)
+			new CreateProjectStoreCommand({ index: { fields: EMBEDDING_INDICATOR_FIELDS } })
+		)
 		const namespace = createIndicatorNamespace(indicator.projectId)
 		try {
 			await store.put(namespace, indicator.code, indicator)
