@@ -249,6 +249,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             en_US: 'A middleware that add skills to the agent. Requires the File toolset to be used together.',
             zh_Hans: '一个中间件，允许向智能体添加技能。需要配合 File 工具集一起使用。'
         },
+        features: ['sandbox'],
         configSchema: {
             type: 'object',
             properties: {
