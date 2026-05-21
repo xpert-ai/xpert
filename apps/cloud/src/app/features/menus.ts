@@ -10,6 +10,7 @@ import {
   RequestScopeLevel,
   RolesEnum
 } from '../@core/types'
+import { codeXpertUrl, dataXpertUrl, researchXpertUrl } from './product-links'
 
 export type MenuScope = 'tenant-only' | 'organization-only' | 'dual-scope'
 type MenuFeatureKey = AiFeatureEnum | AnalyticsFeatures | FeatureEnum
@@ -254,7 +255,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     {
       title: 'CodeXpert',
       icon: 'ri-code-box-line',
-      link: 'https://code.xpertai.cn/',
+      link: codeXpertUrl(),
       external: true,
       scopeContext: 'dual-scope',
       data: {
@@ -265,7 +266,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     {
       title: 'DeepResearch',
       icon: 'ri-binoculars-line',
-      link: 'https://research.xpertai.cn/',
+      link: researchXpertUrl(),
       external: true,
       scopeContext: 'dual-scope',
       data: {
@@ -276,7 +277,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     {
       title: 'Data & Ontology',
       icon: 'ri-node-tree',
-      link: 'https://data.xpertai.cn/',
+      link: dataXpertUrl(),
       external: true,
       scopeContext: 'dual-scope',
       data: {

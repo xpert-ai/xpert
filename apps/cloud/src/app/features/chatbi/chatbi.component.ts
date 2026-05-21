@@ -12,6 +12,7 @@ import { ChatService, XpertOcapService } from '../../xpert'
 import { ChatMessageDashboardComponent } from '../../xpert/ai-message/dashboard/dashboard.component'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
 import { injectAssistantChatkitRuntime } from '../assistant/assistant-chatkit.runtime'
+import { dataXpertUrl } from '../product-links'
 import { ChatBiTraceFacade } from './chatbi-trace.facade'
 
 @Injectable()
@@ -70,7 +71,7 @@ class ChatBiDashboardChatService {
               {{ 'PAC.ChatBI.DataOntologyGuidePrefix' | translate: { Default: 'Use' } }}
               <a
                 class="font-medium text-text-primary underline-offset-4 hover:underline"
-                href="https://data.xpertai.cn/"
+                [href]="dataOntologyUrl"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -259,6 +260,7 @@ export class ChatBiComponent {
   readonly definition = getAssistantRegistryItem(AssistantCode.CHATBI)!
   readonly assistantCode = signal(AssistantCode.CHATBI)
   readonly assistantsRoute = ['/settings/assistants']
+  readonly dataOntologyUrl = dataXpertUrl()
   readonly runtime = injectAssistantChatkitRuntime({
     assistantCode: this.assistantCode.asReadonly(),
     titleKey: this.definition.titleKey,

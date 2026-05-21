@@ -35,4 +35,7 @@ export type IEnvironment = {
 
     API_BASE_URL: string
     CHATKIT_FRAME_URL: string
+    CODE_XPERT_URL?: string
+    DATA_XPERT_URL?: string
+    RESEARCH_XPERT_URL?: string
 }
