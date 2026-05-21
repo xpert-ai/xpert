@@ -669,6 +669,9 @@ export class UserService extends TenantAwareCrudService<User> {
 				email: condition
 			},
 			{
+				username: condition
+			},
+			{
 				firstName: condition
 			},
 			{
