@@ -967,6 +967,26 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const historyVariable = agent.options?.historyVariable
         const errorHandling = agent.options?.errorHandling
         const hasAfterModelHooks = afterModelExecutionOrder.length > 0
+        const createScopedAbortSignal = () => {
+            const controller = new AbortController()
+            const abortHandler = () => controller.abort(abortController.signal.reason)
+
+            if (abortController.signal.aborted) {
+                controller.abort(abortController.signal.reason)
+            } else {
+                abortController.signal.addEventListener('abort', abortHandler, { once: true })
+            }
+
+            return {
+                signal: controller.signal,
+                cleanup: () => {
+                    abortController.signal.removeEventListener('abort', abortHandler)
+                    if (!controller.signal.aborted) {
+                        controller.abort()
+                    }
+                }
+            }
+        }
 
         const stateModifier = async (
             state: typeof AgentStateAnnotation.State,
@@ -1118,7 +1138,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const systemMsg = request.systemMessage ?? systemMessage
                 systemMessageContent = systemMsg.content
                 const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
-                const response = await model.invoke(finalMessages, { ...config, signal: abortController.signal })
+                const scopedSignal = createScopedAbortSignal()
+                const response = await model
+                    .invoke(finalMessages, { ...config, signal: scopedSignal.signal })
+                    .finally(() => {
+                        scopedSignal.cleanup()
+                    })
                 if (isBaseMessage(response) && isAIMessage(response)) {
                     const invalidToolCalls = response.invalid_tool_calls
                     if (invalidToolCalls?.length) {
@@ -1372,9 +1397,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 subgraphBuilder.addNode(
                     name,
-                    new ToolNode([tool], { caller, variables, toolName: toolset.title, wrapToolCall }).withConfig({
-                        signal: abortController.signal
-                    }),
+                    new ToolNode([tool], { caller, variables, toolName: toolset.title, wrapToolCall }),
                     {
                         ends,
                         metadata: omitBy({ toolset: toolset.provider, toolsetId: toolset.id }, isNil)
@@ -1384,13 +1407,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         handoffTools?.forEach((tool) => {
             const name = tool.name
-            subgraphBuilder.addNode(
-                name,
-                new ToolNode([tool], { caller: '', toolName: tool.description }).withConfig({
-                    signal: abortController.signal
-                }),
-                { metadata: { toolset: 'transfer_to' } }
-            )
+            subgraphBuilder.addNode(name, new ToolNode([tool], { caller: '', toolName: tool.description }), {
+                metadata: { toolset: 'transfer_to' }
+            })
         })
 
         // Sub Agents
@@ -1465,14 +1484,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Has other nodes
         if (Object.keys(nodes).length) {
             Object.keys(nodes).forEach((name) =>
-                subgraphBuilder.addNode(
-                    nodes[name].name || name,
-                    nodes[name].graph.withConfig({ signal: abortController.signal }),
-                    {
-                        ends: nodes[name].ends,
-                        defer: hasMultipleInputs(graph, name)
-                    }
-                )
+                subgraphBuilder.addNode(nodes[name].name || name, nodes[name].graph, {
+                    ends: nodes[name].ends,
+                    defer: hasMultipleInputs(graph, name)
+                })
             )
             Object.entries(edges).forEach(([name, value]) => {
                 const ends: string[] = Array.isArray(value) ? value : [value]
