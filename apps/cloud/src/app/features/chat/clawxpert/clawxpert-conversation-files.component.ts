@@ -5,12 +5,14 @@ import {
   FileWorkbenchComponent,
   FileWorkbenchReferenceRequest,
   FileWorkbenchFileDeleter,
+  FileWorkbenchFileDownloader,
   FileWorkbenchFileLoader,
   FileWorkbenchFileSaver,
   FileWorkbenchFileUploader,
   FileWorkbenchFilesLoader
 } from '../../../@shared/files'
 import { TranslateModule } from '@ngx-translate/core'
+import { firstValueFrom } from 'rxjs'
 
 export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
 
@@ -27,6 +29,7 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
       [fileSaver]="mode() === 'editable' ? saveConversationFile : null"
       [fileDeleter]="mode() === 'editable' ? deleteConversationFile : null"
       [fileUploader]="mode() === 'editable' ? uploadConversationFile : null"
+      [fileDownloader]="downloadConversationFile"
       [reloadKey]="reloadKey()"
       [referenceable]="true"
       [treeSize]="'sm'"
@@ -63,6 +66,20 @@ export class ClawXpertConversationFilesComponent {
     }
 
     return this.#conversationService.getFile(conversationId, path)
+  }
+
+  readonly downloadConversationFile: FileWorkbenchFileDownloader = async (path, item) => {
+    const conversationId = this.conversationId()
+    if (!conversationId) {
+      throw new Error('Conversation context is required')
+    }
+
+    const blob = await firstValueFrom(this.#conversationService.downloadFile(conversationId, path))
+    return {
+      kind: 'blob',
+      blob,
+      fileName: item?.hasChildren ? `${path.split('/').pop() || path}.zip` : path.split('/').pop() || path
+    }
   }
 
   readonly saveConversationFile: FileWorkbenchFileSaver = (path: string, content: string) => {

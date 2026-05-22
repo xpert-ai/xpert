@@ -233,7 +233,7 @@ export class XpertWorkspaceSkillsComponent {
     return this.skillPackageAPI.deleteFile(workspaceId, skillId, path)
   }
 
-  readonly downloadActiveSkillFile: FileWorkbenchFileDownloader = async (path: string) => {
+  readonly downloadActiveSkillFile: FileWorkbenchFileDownloader = async (path, item) => {
     const workspaceId = this.workspace()?.id
     const skillId = this.activeSkillId()
     if (!workspaceId || !skillId) {
@@ -244,7 +244,7 @@ export class XpertWorkspaceSkillsComponent {
     return {
       kind: 'blob',
       blob,
-      fileName: path.split('/').pop() || path
+      fileName: item?.hasChildren ? `${path.split('/').pop() || path}.zip` : path.split('/').pop() || path
     } satisfies FileWorkbenchDownloadPayload
   }
 

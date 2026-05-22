@@ -9,11 +9,14 @@ import {
 	transformWhere,
 	UUIDValidationPipe
 } from '@xpert-ai/server-core'
-import { Body, Controller, Delete, Get, HttpStatus, Param, Post, Put, Query, UploadedFile, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpStatus, Param, Post, Put, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Like } from 'typeorm'
+import { createReadStream } from 'fs'
+import type { Response } from 'express'
+import archiver from 'archiver'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
@@ -156,6 +159,37 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		@Query('organizationId') organizationId?: string
 	) {
 		return this.organizationScopeService.run(organizationId, () => this.service.readWorkspaceFile(id, path))
+	}
+
+	@Get(':id/file/download')
+	async downloadFile(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Query('path') path: string,
+		@Query('organizationId') organizationId: string,
+		@Res() res: Response
+	) {
+		const file = await this.organizationScopeService.run(organizationId, () =>
+			this.service.getWorkspaceFileDownload(id, path)
+		)
+		const encodedFilename = encodeURIComponent(file.fileName)
+		res.setHeader('Content-Type', file.mimeType)
+		res.setHeader(
+			'Content-Disposition',
+			`attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+		)
+
+		if (file.type === 'directory') {
+			const archive = archiver('zip', { zlib: { level: 9 } })
+			archive.on('error', (error) => {
+				res.destroy(error)
+			})
+			archive.pipe(res)
+			archive.directory(file.absolutePath, false)
+			await archive.finalize()
+			return
+		}
+
+		createReadStream(file.absolutePath).pipe(res)
 	}
 
 	@Put(':id/file')
