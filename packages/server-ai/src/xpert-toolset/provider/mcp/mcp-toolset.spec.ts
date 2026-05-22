@@ -10,7 +10,7 @@ describe('MCPToolset transport cleanup', () => {
         expect(content).toContain(
             'func: (input, runManager, config) => tool.func(input, runManager, omitSignalFromRunnableConfig(config))'
         )
-        expect(content).toContain('}).map((tool) => wrapMCPTool(tool))')
+        expect(content).toContain('.map((tool) => wrapMCPTool(tool))')
     })
 
     it('force-closes EventSource transports before and after client close', () => {
@@ -22,8 +22,8 @@ describe('MCPToolset transport cleanup', () => {
         expect(content).toContain("Reflect.set(value, 'onopen', null)")
         expect(content).toContain('abort.call(abortController)')
         expect(content).toContain("Reflect.set(transport, '_eventSource', undefined)")
-        expect(content).toContain(
-            'forceCloseMCPClientTransports(this.client)\n\t\tawait this.client.close()\n\t\tforceCloseMCPClientTransports(this.client)'
+        expect(content).toMatch(
+            /forceCloseMCPClientTransports\(this\.client\)\s+await this\.client\.close\(\)\s+forceCloseMCPClientTransports\(this\.client\)/
         )
     })
 })
