@@ -39,4 +39,29 @@ describe('VolumeSubtreeClient', () => {
         })
         await expect(readFile(join(tempRoot, 'README.md'), 'utf8')).resolves.toBe('# Root\n')
     })
+
+    it('returns zip download metadata for folders inside a subtree', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-download-folder-'))
+        await mkdir(join(tempRoot, 'docs', 'nested'), { recursive: true })
+        await writeFile(join(tempRoot, 'docs', 'nested', 'readme.md'), 'hello', 'utf8')
+
+        const volume = new VolumeHandle(
+            {
+                tenantId: 'tenant-1',
+                catalog: 'projects',
+                projectId: 'project-1'
+            },
+            tempRoot,
+            tempRoot,
+            'http://localhost/volume'
+        )
+        const client = new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
+
+        await expect(client.getDownloadTarget('', 'docs')).resolves.toEqual({
+            absolutePath: join(tempRoot, 'docs'),
+            fileName: 'docs.zip',
+            mimeType: 'application/zip',
+            type: 'directory'
+        })
+    })
 })

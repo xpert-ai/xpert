@@ -100,6 +100,16 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
+  downloadFile(id: string, path: string, organizationId?: string) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/file/download`, {
+      params: createOptionalQueryParams({
+        path,
+        organizationId
+      }),
+      responseType: 'blob'
+    })
+  }
+
   saveFile(id: string, path: string, content: string, organizationId?: string) {
     return this.httpClient.put<TFile>(
       this.apiBaseUrl + `/${id}/file`,

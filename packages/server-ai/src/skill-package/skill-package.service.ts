@@ -82,6 +82,13 @@ type SkillPackageInstallMetadata = Partial<SkillMetadata> & {
 	resources?: IUploadedSkill['resources']
 }
 
+type SkillPackageDownloadTarget = {
+	absolutePath: string
+	fileName: string
+	mimeType: string
+	type: 'file' | 'directory'
+}
+
 type SharedSkillMetadataInput = {
 	displayName: string
 	description: string
@@ -1109,17 +1116,31 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		await fs.unlink(absolutePath)
 	}
 
-	async getSkillPackageFileDownload(workspaceId: string, id: string, filePath: string) {
+	async getSkillPackageFileDownload(workspaceId: string, id: string, filePath: string): Promise<SkillPackageDownloadTarget> {
 		const { absolutePath, relativePath } = await this.resolveSkillPackageFilePath(workspaceId, id, filePath)
 		const stat = await fs.stat(absolutePath).catch(() => null)
-		if (!stat?.isFile()) {
+		if (!stat) {
+			throw new BadRequestException('Skill file not found')
+		}
+
+		if (stat.isDirectory()) {
+			return {
+				absolutePath,
+				fileName: `${basename(relativePath)}.zip`,
+				mimeType: 'application/zip',
+				type: 'directory'
+			}
+		}
+
+		if (!stat.isFile()) {
 			throw new BadRequestException('Skill file not found')
 		}
 
 		return {
 			absolutePath,
 			fileName: basename(relativePath),
-			mimeType: getMediaTypeWithCharset(relativePath)
+			mimeType: getMediaTypeWithCharset(relativePath),
+			type: 'file'
 		}
 	}
 
