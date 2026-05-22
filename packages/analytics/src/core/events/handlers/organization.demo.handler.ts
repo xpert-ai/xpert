@@ -44,6 +44,7 @@ import {
 } from '../../entities/internal'
 import { SemanticModelUpdatedEvent } from '../../../model/events'
 import { DataSourceStrategyQuery } from '../../../data-source/queries/datasource.strategy.query'
+import { IndicatorService } from '../../../indicator/indicator.service'
 
 export enum InstallationModeEnum {
 	Standalone = 'standalone',
@@ -88,6 +89,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		private readonly dstRepository: Repository<DataSourceType>,
 		@InjectRepository(Project)
 		private readonly projectRepository: Repository<Project>,
+		private readonly indicatorService: IndicatorService,
 		private readonly commandBus: CommandBus,
 		private readonly eventBus: EventBus,
 		private readonly queryBus: QueryBus,
@@ -664,7 +666,8 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 			calendar: indicator.calendar,
 			...(indicator.options ?? {})
 		}
-		return await this.indicatorRepository.save(_indicator)
+		const saved = await this.indicatorRepository.save(_indicator)
+		return indicator.isActive === true ? await this.indicatorService.publish(saved.id) : saved
 	}
 
 	async createStory(semanticModelId: string, story: IStory) {
