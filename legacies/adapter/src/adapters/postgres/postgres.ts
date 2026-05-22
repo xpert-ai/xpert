@@ -1,10 +1,105 @@
-import { BaseSQLQueryRunner, DBCreateTableMode, DBTableAction, DBTableDataAction, DBTableDataParams, DBTableOperationParams, QueryOptions } from '@xpert-ai/plugin-sdk'
+import * as fs from 'fs'
+import { PassThrough, Readable, Writable } from 'stream'
+import { pipeline } from 'stream/promises'
+import {
+  BaseSQLQueryRunner,
+  DBCreateTableMode,
+  DBTableAction,
+  DBTableDataAction,
+  DBTableDataParams,
+  DBTableOperationParams,
+  QueryOptions
+} from '@xpert-ai/plugin-sdk'
 import { Client, ClientConfig, types } from 'pg'
 import { SQLAdapterOptions, register } from '../../base'
 import { convertPGSchema, getPGSchemaQuery, pgTypeMap, typeToPGDB } from '../../helpers'
 import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema } from '../../types'
 import { pgFormat } from './pg-format'
 
+const { from: copyFrom } = require('pg-copy-streams') as {
+  from(statement: string): NodeJS.ReadWriteStream
+}
+
+async function readCsvHeader(source: Readable): Promise<{ header: string; stream: Readable; hasDataRows: boolean }> {
+  const replay = new PassThrough()
+  let headerBuffer = ''
+  let replayBuffer = ''
+  let header: string | null = null
+  let afterHeaderBuffer = ''
+  let settled = false
+
+  return new Promise((resolve, reject) => {
+    const fail = (error: Error) => {
+      if (settled) {
+        replay.destroy(error)
+        return
+      }
+      settled = true
+      source.destroy()
+      replay.destroy(error)
+      reject(error)
+    }
+
+    source.on('data', (chunk: Buffer | string) => {
+      if (settled) {
+        replay.write(chunk)
+        return
+      }
+
+      const chunkText = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk
+      replayBuffer += chunkText
+
+      if (header === null) {
+        headerBuffer += chunkText
+        const lineEnd = headerBuffer.indexOf('\n')
+        if (lineEnd === -1) {
+          return
+        }
+
+        header = headerBuffer.slice(0, lineEnd).replace(/\r$/, '')
+        afterHeaderBuffer = headerBuffer.slice(lineEnd + 1)
+      } else {
+        afterHeaderBuffer += chunkText
+      }
+
+      if (!/[^\r\n]/.test(afterHeaderBuffer)) {
+        return
+      }
+
+      settled = true
+      source.pause()
+      source.removeAllListeners('data')
+      source.removeAllListeners('end')
+      source.removeAllListeners('error')
+
+      replay.write(replayBuffer)
+      source.pipe(replay)
+      source.resume()
+      resolve({
+        header,
+        stream: replay,
+        hasDataRows: true
+      })
+    })
+
+    source.once('end', () => {
+      if (settled) {
+        return
+      }
+      settled = true
+      const resolvedHeader = header ?? headerBuffer.replace(/\r$/, '')
+      resolve({
+        header: resolvedHeader,
+        stream: replay,
+        hasDataRows: false
+      })
+      replay.end(replayBuffer)
+    })
+
+    source.once('error', fail)
+    replay.once('error', fail)
+  })
+}
 
 export const POSTGRES_TYPE = 'pg'
 
@@ -31,9 +126,11 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
   readonly jdbcDriver: string = 'org.postgresql.Driver'
 
   jdbcUrl(schema?: string) {
-    return `jdbc:postgresql://${this.host}:${this.port}/${this.options.database}?`+
-    (schema?`currentSchema=${schema}&`:'')+
-    `user=${encodeURIComponent(this.options.username as string)}&password=${encodeURIComponent(this.options.password as string)}`
+    return (
+      `jdbc:postgresql://${this.host}:${this.port}/${this.options.database}?` +
+      (schema ? `currentSchema=${schema}&` : '') +
+      `user=${encodeURIComponent(this.options.username as string)}&password=${encodeURIComponent(this.options.password as string)}`
+    )
   }
 
   get configurationSchema() {
@@ -46,31 +143,26 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         password: { type: 'string' },
         database: { type: 'string', title: 'Database Name', default: 'postgres' },
         sslmode: {
-          "type": "string",
-          "title": "SSL Mode",
-          "default": "prefer",
-          "extendedEnum": [
-              {"value": "disable", "name": "Disable"},
-              {"value": "allow", "name": "Allow"},
-              {"value": "prefer", "name": "Prefer"},
-              {"value": "require", "name": "Require"},
-              {"value": "verify-ca", "name": "Verify CA"},
-              {"value": "verify-full", "name": "Verify Full"},
-          ],
+          type: 'string',
+          title: 'SSL Mode',
+          default: 'prefer',
+          extendedEnum: [
+            { value: 'disable', name: 'Disable' },
+            { value: 'allow', name: 'Allow' },
+            { value: 'prefer', name: 'Prefer' },
+            { value: 'require', name: 'Require' },
+            { value: 'verify-ca', name: 'Verify CA' },
+            { value: 'verify-full', name: 'Verify Full' }
+          ]
         },
-        "sslrootcertFile": {"type": "textarea", "title": "SSL Root Certificate"},
-        "sslcertFile": {"type": "textarea", "title": "SSL Client Certificate"},
-        "sslkeyFile": {"type": "textarea", "title": "SSL Client Key"},
+        sslrootcertFile: { type: 'textarea', title: 'SSL Root Certificate' },
+        sslcertFile: { type: 'textarea', title: 'SSL Client Certificate' },
+        sslkeyFile: { type: 'textarea', title: 'SSL Client Key' }
       },
       order: ['username', 'password', 'database'],
       required: ['database'],
-      "secret": ["password", "sslrootcertFile", "sslcertFile", "sslkeyFile"],
-      "extra_options": [
-        "sslmode",
-        "sslrootcertFile",
-        "sslcertFile",
-        "sslkeyFile",
-    ],
+      secret: ['password', 'sslrootcertFile', 'sslcertFile', 'sslkeyFile'],
+      extra_options: ['sslmode', 'sslrootcertFile', 'sslcertFile', 'sslkeyFile']
     }
   }
 
@@ -85,14 +177,14 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
       host: (this.options.host || 'localhost') as string,
       database: (this.options.database || 'postgres') as string,
       password: this.options.password as string,
-      port: (this.options.port || 5432) as number,
+      port: (this.options.port || 5432) as number
     } as ClientConfig
 
-    switch(this.options.sslmode) {
+    switch (this.options.sslmode) {
       case 'verify-ca':
         config.ssl = {
           rejectUnauthorized: true,
-          ca: this.options.sslrootcertFile as string,
+          ca: this.options.sslrootcertFile as string
         }
         break
       case 'require':
@@ -101,7 +193,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
           rejectUnauthorized: true,
           ca: this.options.sslrootcertFile as string,
           key: this.options.sslkeyFile as string,
-          cert: this.options.sslcertFile as string,
+          cert: this.options.sslcertFile as string
         }
         break
     }
@@ -132,7 +224,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
       res = res[(res as any).length - 1]
     }
 
-    const columns = res.fields?.map(field => ({
+    const columns = res.fields?.map((field) => ({
       name: field.name,
       type: pgTypeMap(`${TypesBuiltins[field.dataTypeID]}`.toLowerCase()),
       dataType: `${TypesBuiltins[field.dataTypeID]}`.toLowerCase()
@@ -140,11 +232,11 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     const data = res.rows
 
     return {
-      status: "OK",
+      status: 'OK',
       data,
       columns
     } as QueryResult
-    
+
     // res.rows may have number type results as string values (e.g., sum(int8) becomes string)
     // columns.filter((column) => column.type === 'number' && typeof res.rows[0]?.[column.name] === 'string')
     //   .forEach((column) => {
@@ -155,9 +247,9 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
   async getCatalogs(): Promise<IDSSchema[]> {
     const query =
       "SELECT nspname as name FROM pg_namespace WHERE nspname NOT IN ('information_schema', 'pg_catalog', 'pg_toast', 'pg_toast_temp_1', 'pg_temp_1')"
-    return this.runQuery(query).then(({data}) =>
+    return this.runQuery(query).then(({ data }) =>
       data.map((row: any) => ({
-        name: row.name,
+        name: row.name
       }))
     )
   }
@@ -170,7 +262,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
 
   async describe(catalog: string, statement: string) {
     if (!statement) {
-      return {columns: []}
+      return { columns: [] }
     }
 
     if (catalog) {
@@ -185,9 +277,9 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
 
   /**
    * Import data to a table
-   * 
-   * @param params 
-   * @param options 
+   *
+   * @param params
+   * @param options
    */
   async import(params: CreationTable, options?: { catalog?: string }): Promise<void> {
     const { name, columns, data, mergeType } = params
@@ -199,63 +291,114 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     const tableName = options?.catalog ? `"${options.catalog}"."${name}"` : `"${name}"`
 
     const dropTableStatement = `DROP TABLE IF EXISTS ${tableName}`
-    const createTableStatement = `CREATE TABLE IF NOT EXISTS ${tableName} (${columns
+    const createTableStatement = this.getCreateTableStatement(tableName, columns)
+    const values = data.map((row, index) =>
+      columns.map(({ name, type, length }) => {
+        if (row[name] instanceof Date) {
+          if (type === 'Date') {
+            return row[name].toISOString().slice(0, length ?? 10)
+          } else if (type === 'Datetime') {
+            return row[name].toISOString()
+          } else if (type === 'Time') {
+            return row[name].toISOString().slice(11, 19)
+          }
+          return length ? row[name].toISOString().slice(0, length) : row[name].toISOString()
+        }
+        if (type === 'Date' || type === 'Datetime') {
+          try {
+            const value = new Date(row[name]).toISOString()
+            return type === 'Datetime' ? value : value.slice(0, length ?? 10)
+          } catch (err) {
+            throw new Error(
+              `Converting the value '${row[name]}' in row ${index} column '${name}' to date: ${(<Error>err).message}`
+            )
+          }
+        }
+        return row[name]
+      })
+    )
+    const batchSize = 10000 // Define batch size
+    let insertStatement = ''
+    await this.connect()
+    try {
+      if (mergeType === 'DELETE') {
+        await this.client.query(dropTableStatement)
+      }
+      await this.client.query(createTableStatement)
+      for (let i = 0; i < values.length; i += batchSize) {
+        const batchValues = values.slice(i, i + batchSize)
+        insertStatement = pgFormat(
+          `INSERT INTO ${tableName} (${columns.map(({ fieldName }) => `"${fieldName}"`).join(',')}) VALUES %L`,
+          batchValues
+        )
+        await this.client.query(insertStatement)
+      }
+    } catch (err) {
+      throw {
+        message: err instanceof Error ? err.message : 'An unknown error occurred',
+        stats: {
+          statements: [dropTableStatement, createTableStatement, insertStatement]
+        }
+      }
+    }
+  }
+
+  async importCsv(params: CreationTable, options?: { catalog?: string }): Promise<void> {
+    const { name, columns, file, mergeType, columnSeparator } = params
+
+    if (!file?.stream && !file?.path) {
+      throw new Error(`csv file stream is empty`)
+    }
+
+    const tableName = options?.catalog ? `"${options.catalog}"."${name}"` : `"${name}"`
+    const dropTableStatement = `DROP TABLE IF EXISTS ${tableName}`
+    const createTableStatement = this.getCreateTableStatement(tableName, columns, false)
+    const copyStatement = `COPY ${tableName} (${columns
+      .map(({ fieldName }) => `"${fieldName}"`)
+      .join(',')}) FROM STDIN WITH (FORMAT csv, HEADER true, DELIMITER '${columnSeparator ?? ','}')`
+
+    const source = file.stream ?? fs.createReadStream(file.path)
+    const { header, stream, hasDataRows } = await readCsvHeader(source as Readable)
+    if (!header) {
+      stream.destroy()
+      throw new Error(`CSV file is empty or missing header row`)
+    }
+    if (hasDataRows === false) {
+      stream.destroy()
+      throw new Error(`CSV file has header but no data rows`)
+    }
+
+    await this.connect()
+    try {
+      if (mergeType === 'DELETE') {
+        await this.client.query(dropTableStatement)
+      }
+      await this.client.query(createTableStatement)
+
+      const copyQuery = copyFrom(copyStatement) as unknown as Parameters<Client['query']>[0]
+      const copyStream = this.client.query(copyQuery) as unknown as Writable
+      await pipeline(stream as Readable, copyStream)
+    } catch (err) {
+      throw {
+        message: err instanceof Error ? err.message : 'An unknown error occurred',
+        stats: {
+          statements: [dropTableStatement, createTableStatement, copyStatement]
+        }
+      }
+    }
+  }
+
+  private getCreateTableStatement(tableName: string, columns: CreationTable['columns'], withPrimaryKey = true): string {
+    return `CREATE TABLE IF NOT EXISTS ${tableName} (${columns
       .map((col) => {
-        const colAny = col as any
-        return `"${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length, colAny.precision, colAny.scale || col.fraction, colAny.enumValues)}${col.isKey ? ' PRIMARY KEY' : ''}`
+        const column = col as CreationTable['columns'][number] & {
+          precision?: number
+          scale?: number
+          enumValues?: string[]
+        }
+        return `"${column.fieldName}" ${typeToPGDB(column.type, column.isKey, column.length, column.precision, column.scale || column.fraction, column.enumValues)}${withPrimaryKey && column.isKey ? ' PRIMARY KEY' : ''}`
       })
       .join(', ')})`
-    const values = data.map((row, index) => columns.map(({ name, type, length }) => {
-      if (row[name] instanceof Date) {
-        if (type === 'Date') {
-          return row[name].toISOString().slice(0, length ?? 10)
-        } else if (type === 'Datetime') {
-          return row[name].toISOString()
-        } else if (type === 'Time') {
-          return row[name].toISOString().slice(11, 19)
-        }
-        return length ? row[name].toISOString().slice(0, length) : row[name].toISOString()
-      }
-      if (type === 'Date' || type === 'Datetime') {
-        try {
-          const value = new Date(row[name]).toISOString()
-          return type === 'Datetime' ? value : value.slice(0, length ?? 10)
-        } catch(err) {
-          throw new Error(`Converting the value '${row[name]}' in row ${index} column '${name}' to date: ${(<Error>err).message}`)
-        }
-      }
-      return row[name]
-    }))
-    const batchSize = 10000; // Define batch size
-    let insertStatement = ''
-      await this.connect()
-      try {
-        if (mergeType === 'DELETE') {
-          await this.client.query(dropTableStatement)
-        }
-        await this.client.query(createTableStatement)
-        for (let i = 0; i < values.length; i += batchSize) {
-          const batchValues = values.slice(i, i + batchSize);
-          insertStatement = pgFormat(
-              `INSERT INTO ${tableName} (${columns
-                .map(({ fieldName }) => `"${fieldName}"`)
-                .join(',')}) VALUES %L`,
-              batchValues
-            )
-          await this.client.query(insertStatement)
-        }
-      } catch (err) {
-        throw {
-          message: err instanceof Error ? err.message : 'An unknown error occurred',
-          stats: {
-            statements: [
-              dropTableStatement,
-              createTableStatement,
-              insertStatement,
-            ],
-          },
-        }
-    }
   }
 
   async dropTable(name: string, options?: QueryOptions): Promise<void> {
@@ -266,14 +409,12 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         await this.client.query(`SET search_path TO ${options.catalog};`)
       }
       await this.client.query(statement)
-    }catch(err: any) {
+    } catch (err: any) {
       throw {
         message: err.message,
         stats: {
-          statements: [
-            statement
-          ],
-        },
+          statements: [statement]
+        }
       }
     } finally {
       await this.client.end()
@@ -295,7 +436,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
       const extensionCheck = await this.runQuery(`
         SELECT * FROM pg_extension WHERE extname = 'uuid-ossp'
       `)
-      
+
       if (!Array.isArray(extensionCheck.data) || extensionCheck.data.length === 0) {
         // Create extension if it doesn't exist
         await this.runQuery(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`)
@@ -303,11 +444,8 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     }
   }
 
-  async tableOp(
-    action: DBTableAction,
-    params: DBTableOperationParams,
-  ): Promise<any> {
-    switch(action) {
+  async tableOp(action: DBTableAction, params: DBTableOperationParams): Promise<any> {
+    switch (action) {
       case DBTableAction.CREATE_TABLE: {
         const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
         const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
@@ -339,7 +477,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         if (exists && createMode === DBCreateTableMode.UPGRADE) {
           // Ensure uuid-ossp extension exists if needed (for new columns)
           await this.ensureUuidExtension(columns)
-          
+
           // Get current table structure
           const currentCols = await this.runQuery(`
             SELECT column_name, data_type, is_nullable 
@@ -349,7 +487,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
           `)
 
           // 1. Delete columns not in target list
-          const targetColumnNames = columns.map(c => c.fieldName)
+          const targetColumnNames = columns.map((c) => c.fieldName)
           for (const currentCol of currentCols.data) {
             const colName = (currentCol as any).column_name
             if (!targetColumnNames.includes(colName)) {
@@ -364,19 +502,36 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
             // New field → ADD COLUMN
             if (!existing) {
               const colAny = col as any
-              const typeDDL = typeToPGDB(col.type, col.isKey, col.length, colAny.precision, colAny.scale || col.fraction, colAny.enumValues)
+              const typeDDL = typeToPGDB(
+                col.type,
+                col.isKey,
+                col.length,
+                colAny.precision,
+                colAny.scale || col.fraction,
+                colAny.enumValues
+              )
               const notNull = col.required ? ' NOT NULL' : ''
               const unique = !col.isKey && col.unique ? ' UNIQUE' : ''
               // Auto-increment fields should not have default values, empty string is treated as no default
-              const defaultVal = !col.autoIncrement && col.defaultValue && col.defaultValue.trim() ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}` : ''
-              const autoInc = col.autoIncrement && (col.type === 'number' || col.type === 'bigint' || col.type === 'serial' || col.type === 'bigserial') ? ' GENERATED ALWAYS AS IDENTITY' : ''
+              const defaultVal =
+                !col.autoIncrement && col.defaultValue && col.defaultValue.trim()
+                  ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}`
+                  : ''
+              const autoInc =
+                col.autoIncrement &&
+                (col.type === 'number' || col.type === 'bigint' || col.type === 'serial' || col.type === 'bigserial')
+                  ? ' GENERATED ALWAYS AS IDENTITY'
+                  : ''
               // Add CHECK constraint for ENUM type
-              const enumCheck = col.type === 'enum' && colAny.enumValues && colAny.enumValues.length > 0 
-                ? ` CHECK (${col.fieldName} IN (${colAny.enumValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ')}))`
-                : ''
-              
+              const enumCheck =
+                col.type === 'enum' && colAny.enumValues && colAny.enumValues.length > 0
+                  ? ` CHECK (${col.fieldName} IN (${colAny.enumValues.map((v) => `'${String(v).replace(/'/g, "''")}'`).join(', ')}))`
+                  : ''
+
               // PostgreSQL column order: type PRIMARY KEY GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE DEFAULT CHECK
-              await this.runQuery(`ALTER TABLE ${tableName} ADD COLUMN "${col.fieldName}" ${typeDDL}${autoInc}${notNull}${unique}${defaultVal}${enumCheck}`)
+              await this.runQuery(
+                `ALTER TABLE ${tableName} ADD COLUMN "${col.fieldName}" ${typeDDL}${autoInc}${notNull}${unique}${defaultVal}${enumCheck}`
+              )
               continue
             }
 
@@ -385,13 +540,20 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
             const oldAppType = this.pgTypeToAppType(dbDataType)
             const newAppType = col.type
             const colAny = col as any
-            const newType = typeToPGDB(col.type, col.isKey, col.length, colAny.precision, colAny.scale || col.fraction, colAny.enumValues)
+            const newType = typeToPGDB(
+              col.type,
+              col.isKey,
+              col.length,
+              colAny.precision,
+              colAny.scale || col.fraction,
+              colAny.enumValues
+            )
 
             // Compare application-level types, modify if different
             if (oldAppType !== newAppType) {
               // Use USING clause to handle type conversion
               let usingClause = ''
-              
+
               if (newAppType === 'number' || newAppType === 'bigint') {
                 usingClause = ` USING CASE WHEN "${col.fieldName}" ~ '^[0-9]+$' THEN "${col.fieldName}"::${newType} ELSE NULL END`
               } else if (newAppType === 'string' || newAppType === 'text') {
@@ -405,8 +567,10 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
               } else {
                 usingClause = ` USING "${col.fieldName}"::${newType}`
               }
-              
-              await this.runQuery(`ALTER TABLE ${tableName} ALTER COLUMN "${col.fieldName}" TYPE ${newType}${usingClause}`)
+
+              await this.runQuery(
+                `ALTER TABLE ${tableName} ALTER COLUMN "${col.fieldName}" TYPE ${newType}${usingClause}`
+              )
             }
           }
 
@@ -419,17 +583,32 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
             ${columns
               .map((col) => {
                 const colAny = col as any
-                const typeDDL = typeToPGDB(col.type, col.isKey, col.length, colAny.precision, colAny.scale || col.fraction, colAny.enumValues)
+                const typeDDL = typeToPGDB(
+                  col.type,
+                  col.isKey,
+                  col.length,
+                  colAny.precision,
+                  colAny.scale || col.fraction,
+                  colAny.enumValues
+                )
                 const pk = col.isKey ? ' PRIMARY KEY' : ''
                 const notNull = col.required ? ' NOT NULL' : ''
-                const unique = !col.isKey && col.unique ? ' UNIQUE' : ''  // Primary key is already unique, no need to add UNIQUE
-                const autoInc = col.autoIncrement && (col.type === 'number' || col.type === 'bigint' || col.type === 'serial' || col.type === 'bigserial') ? ' GENERATED ALWAYS AS IDENTITY' : ''
+                const unique = !col.isKey && col.unique ? ' UNIQUE' : '' // Primary key is already unique, no need to add UNIQUE
+                const autoInc =
+                  col.autoIncrement &&
+                  (col.type === 'number' || col.type === 'bigint' || col.type === 'serial' || col.type === 'bigserial')
+                    ? ' GENERATED ALWAYS AS IDENTITY'
+                    : ''
                 // Auto-increment fields should not have default values, empty string is treated as no default
-                const defaultVal = !col.autoIncrement && col.defaultValue && col.defaultValue.trim() ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}` : ''
+                const defaultVal =
+                  !col.autoIncrement && col.defaultValue && col.defaultValue.trim()
+                    ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}`
+                    : ''
                 // Add CHECK constraint for ENUM type
-                const enumCheck = col.type === 'enum' && colAny.enumValues && colAny.enumValues.length > 0 
-                  ? ` CHECK (${col.fieldName} IN (${colAny.enumValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ')}))`
-                  : ''
+                const enumCheck =
+                  col.type === 'enum' && colAny.enumValues && colAny.enumValues.length > 0
+                    ? ` CHECK (${col.fieldName} IN (${colAny.enumValues.map((v) => `'${String(v).replace(/'/g, "''")}'`).join(', ')}))`
+                    : ''
                 // PostgreSQL column order: type PRIMARY KEY GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE DEFAULT CHECK
                 return `"${col.fieldName}" ${typeDDL}${pk}${autoInc}${notNull}${unique}${defaultVal}${enumCheck}`
               })
@@ -451,20 +630,22 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
             AND table_name='${table}'
         `)
 
-        return result.data.length === 0 ? null : {
-          table: tableName,
-          columns: result.data.map((col: any) => ({
-            name: col.column_name,
-            type: pgTypeMap(col.data_type),
-            isNullable: col.is_nullable === 'YES',
-          })),
-        }
+        return result.data.length === 0
+          ? null
+          : {
+              table: tableName,
+              columns: result.data.map((col: any) => ({
+                name: col.column_name,
+                type: pgTypeMap(col.data_type),
+                isNullable: col.is_nullable === 'YES'
+              }))
+            }
       }
       case DBTableAction.RENAME_TABLE: {
         // Rename table
         const { schema, table, newTable } = params
         const oldTableName = schema ? `"${schema}"."${table}"` : `"${table}"`
-        
+
         await this.runQuery(`ALTER TABLE ${oldTableName} RENAME TO "${newTable}"`)
         return
       }
@@ -472,7 +653,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         // Drop table
         const { schema, table } = params
         const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
-        
+
         await this.runQuery(`DROP TABLE IF EXISTS ${tableName}`)
         return
       }
@@ -481,11 +662,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     }
   }
 
-  async tableDataOp(
-    action: DBTableDataAction,
-    params: DBTableDataParams,
-    options?: QueryOptions
-  ) {
+  async tableDataOp(action: DBTableDataAction, params: DBTableDataParams, options?: QueryOptions) {
     const { schema, table, columns, values } = params
     const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
 
@@ -502,12 +679,12 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         const rows = Array.isArray(values) ? values : [values]
 
         // 1. DB columns list
-        const dbColumns = columns.map(col => `"${col.fieldName}"`)
+        const dbColumns = columns.map((col) => `"${col.fieldName}"`)
 
         // 2. Build placeholders
         let paramIndex = 1
         const placeholders = rows
-          .map(row => {
+          .map((row) => {
             const rowPlaceholders = columns.map(() => `$${paramIndex++}`)
             return `(${rowPlaceholders.join(', ')})`
           })
@@ -546,36 +723,44 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     // Check if it's a database function (e.g., CURRENT_TIMESTAMP, uuid_generate_v4())
     const upperValue = value.toUpperCase()
     const lowerValue = value.toLowerCase()
-    
+
     // PostgreSQL time type default value function mapping
     const timeFunctions = {
-      'CURRENT_DATE': true,
-      'CURRENT_TIME': true,
-      'CURRENT_TIMESTAMP': true,
+      CURRENT_DATE: true,
+      CURRENT_TIME: true,
+      CURRENT_TIMESTAMP: true,
       'NOW()': true,
-      'LOCALTIME': true,
-      'LOCALTIMESTAMP': true
+      LOCALTIME: true,
+      LOCALTIMESTAMP: true
     }
-    
+
     // UUID generation function
     if (lowerValue === 'uuid_generate_v4()') {
-      return 'uuid_generate_v4()'  // Return function name directly without quotes
+      return 'uuid_generate_v4()' // Return function name directly without quotes
     }
-    
+
     if (timeFunctions[upperValue]) {
-      return upperValue  // Return function name directly without quotes
+      return upperValue // Return function name directly without quotes
     }
-    
+
     // Add quotes for string, date, and time types
-    if (type === 'string' || type === 'text' || type === 'uuid' || type === 'varchar' ||
-        type === 'date' || type === 'datetime' || type === 'timestamp' || type === 'time') {
-      return `'${value.replace(/'/g, "''")}'`  // Escape single quotes
+    if (
+      type === 'string' ||
+      type === 'text' ||
+      type === 'uuid' ||
+      type === 'varchar' ||
+      type === 'date' ||
+      type === 'datetime' ||
+      type === 'timestamp' ||
+      type === 'time'
+    ) {
+      return `'${value.replace(/'/g, "''")}'` // Escape single quotes
     }
-    
+
     if (type === 'boolean' || type === 'bool') {
       return value.toLowerCase() === 'true' ? 'TRUE' : 'FALSE'
     }
-    
+
     // Numeric types without quotes
     return value
   }
@@ -585,7 +770,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
    */
   private pgTypeToAppType(dbType: string): string {
     const lowerType = dbType.toLowerCase()
-    
+
     // Integer types
     if (lowerType === 'integer' || lowerType === 'int' || lowerType === 'int4' || lowerType === 'smallint') {
       return 'number'
@@ -601,7 +786,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
       return 'float'
     }
     // String types
-    if (lowerType.includes('varchar') || lowerType.includes('char') && !lowerType.includes('character varying')) {
+    if (lowerType.includes('varchar') || (lowerType.includes('char') && !lowerType.includes('character varying'))) {
       return 'string'
     }
     if (lowerType === 'text' || lowerType.includes('character varying')) {
@@ -631,8 +816,8 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     if (lowerType.includes('json')) {
       return 'object'
     }
-    
-    return 'string'  // Default
+
+    return 'string' // Default
   }
 
   async teardown() {
