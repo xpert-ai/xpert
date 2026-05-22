@@ -118,7 +118,8 @@
                 "group": "快速开始",
                 "pages": [
                   "zh-hans/solutions/declarative-extended-view-system",
-                  "zh-hans/solutions/user-me-loading-optimization"
+                  "zh-hans/solutions/user-me-loading-optimization",
+                  "zh-hans/solutions/browser-automation-reading-layer"
                 ]
               }
             ]
