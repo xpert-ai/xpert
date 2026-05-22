@@ -1,0 +1,512 @@
+---
+title: 'Browser Automation 页面阅读层产品说明'
+description: '说明浏览器自动化如何结合操作层和阅读层，在控制 JSON 大小的前提下稳定读取页面正文，并处理遮挡、折叠、虚拟列表等复杂页面问题。'
+---
+
+# 1. 背景
+
+Browser Automation 当前更擅长“操作页面”：识别按钮、输入框、链接、复选框、下拉框等可交互控件，并通过点击、填写、选择、滚动、截图或坐标操作继续完成任务。
+
+但很多网页任务还需要稳定“阅读页面”：商品描述、规格字段、文章段落、评论、问答、帮助说明、后台详情页和表格数据通常不是可操作元素。这些内容可能只是普通的 `h1`、`p`、`ul/li`、`table`、`div/span`，没有 `role`、`tabindex` 或 `aria-label`。
+
+因此，Browser Automation 需要在现有操作层之外增加通用页面阅读层。这个方案不做 Amazon 专用优化；Amazon 商品页只是暴露了当前 snapshot 偏向可操作元素、缺少正文阅读模型的问题。
+
+---
+
+# 2. 目标
+
+目标是把 Xpert 当前的可操作元素能力，与 OpenClaw 风格的页面阅读和压缩思路结合起来：
+
+- 保留现有操作层，用于点击、填写、选择、滚动、截图和坐标操作。
+- 新增阅读层，用于识别标题、段落、列表、表格、详情字段、评论和问答。
+- 引入按需读取工具，避免把整页正文直接塞进 `host_page_snapshot`。
+- 对复杂页面显式报告读取覆盖率、截断、折叠、虚拟列表、跨域 iframe、遮挡等状态。
+- 不按网站堆规则，优先按页面类型和内容结构加通用规则。
+
+---
+
+# 3. 总体架构
+
+页面自动化结果分为三类能力：
+
+```text
+host_page_snapshot = 页面地图
+host_page_read     = 按需读取正文
+host_page_click/fill/select/... = 操作页面
+```
+
+## 3.1 操作层
+
+操作层继续使用 `elements`：
+
+```json
+{
+  "ref": "e42",
+  "role": "button",
+  "name": "Submit",
+  "label": "Submit",
+  "selector": "#submit",
+  "visible": true,
+  "enabled": true,
+  "actionable": true,
+  "rect": { "x": 520, "y": 320, "width": 120, "height": 36 }
+}
+```
+
+`elements` 的职责是后续操作，不承担正文阅读。
+
+## 3.2 阅读层
+
+阅读层在 `host_page_snapshot` 中返回轻量索引，而不是完整正文：
+
+```json
+{
+  "readableContent": {
+    "outline": [
+      {
+        "index": 11,
+        "blockId": "b12",
+        "type": "list",
+        "heading": "关于这个商品",
+        "itemCount": 5,
+        "chars": 428,
+        "truncated": true
+      }
+    ],
+    "blocks": [
+      {
+        "blockId": "b12",
+        "type": "list",
+        "heading": "关于这个商品",
+        "preview": ["这款上衣采用 100% 棉制成，柔软、轻盈且透气。", "前绑带设计和孔眼细节提供时尚外观。"],
+        "itemCount": 5,
+        "chars": 428,
+        "truncated": true,
+        "rect": { "x": 520, "y": 410, "width": 560, "height": 380 }
+      }
+    ],
+    "suggestedReads": [
+      {
+        "blockId": "b12",
+        "type": "list",
+        "heading": "关于这个商品",
+        "reason": "preview_incomplete",
+        "args": { "blockId": "b12", "pageSize": 5 }
+      }
+    ],
+    "totalBlocks": 37,
+    "truncated": true
+  }
+}
+```
+
+`readableContent.blocks` 是正文预览块，不是全文。`readableContent.outline` 是更轻的页面目录，用于在 `blocks` 被压缩时仍保留可读区域结构。`readableContent.suggestedReads` 是通用补读建议，告诉模型哪些 `blockId` 最值得用 `host_page_read` 继续读取。
+
+## 3.3 按需读取
+
+当模型需要某块正文的完整内容时，调用 `host_page_read`：
+
+```json
+{
+  "blockId": "b12",
+  "page": 1,
+  "pageSize": 10,
+  "maxChars": 4000
+}
+```
+
+返回：
+
+```json
+{
+  "blockId": "b12",
+  "type": "list",
+  "heading": "关于这个商品",
+  "items": [
+    "这款上衣采用 100% 棉制成，柔软、轻盈且透气。",
+    "前绑带设计和孔眼细节提供时尚外观。",
+    "宽松剪裁适合多种体型。"
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "pageCount": 1,
+  "chars": 428,
+  "truncated": false
+}
+```
+
+`host_page_snapshot` 负责让模型知道页面上有什么；`host_page_read` 负责读取某一块的完整内容。
+
+---
+
+# 4. 数据协议
+
+## 4.1 host_page_snapshot
+
+建议输出结构：
+
+```json
+{
+  "url": "https://example.com/product",
+  "title": "Product page",
+  "viewport": { "width": 1440, "height": 900 },
+  "scroll": { "x": 0, "y": 320 },
+  "elements": [],
+  "criticalElements": [],
+  "readableContent": {
+    "outline": [],
+    "blocks": [],
+    "suggestedReads": [],
+    "coverage": {},
+    "warnings": []
+  },
+  "_xpertPagination": {}
+}
+```
+
+`elements` 和 `criticalElements` 仍按现有分页策略处理。阅读层只返回目录、预览、统计、位置和状态。
+
+## 4.2 readableContent.blocks
+
+内容块类型：
+
+- `heading`：标题。
+- `paragraph`：段落。
+- `list`：列表。
+- `keyValueList`：详情字段和值。
+- `table`：表格。
+
+评论、问答、商品卖点、后台详情等页面内容先通过这些通用块表达，不在当前迭代引入站点或业务专用 block 类型。
+
+通用字段：
+
+```json
+{
+  "blockId": "b12",
+  "type": "keyValueList",
+  "heading": "商品详情",
+  "preview": ["布料类型: 100% 棉", "保养说明: 机洗"],
+  "itemCount": 4,
+  "chars": 76,
+  "truncated": false,
+  "rect": { "x": 552, "y": 236, "width": 480, "height": 148 },
+  "readHint": {
+    "tool": "host_page_read",
+    "args": { "blockId": "b12" }
+  }
+}
+```
+
+## 4.3 host_page_read
+
+建议工具参数：
+
+```json
+{
+  "blockId": "b12",
+  "scope": "visible",
+  "query": "商品描述",
+  "page": 1,
+  "pageSize": 10,
+  "maxChars": 4000
+}
+```
+
+当前 `scope` 只支持：
+
+- `visible`：读取当前可视区域。
+
+按块读取不通过 `scope` 表达，而是直接传 `blockId`；未知块时使用 `query` 找相关内容。
+
+`host_page_read` 必须分页，且必须受 `maxChars` 约束。
+
+---
+
+# 5. JSON 大小控制
+
+JSON 大小是这个方案的核心约束。原则是：`host_page_snapshot` 永远不能因为正文而变成大 JSON。
+
+## 5.1 snapshot 预算
+
+`host_page_snapshot` 中阅读层只保留：
+
+- `outline`
+- `blockId`
+- `type`
+- `heading`
+- `preview`
+- `itemCount`
+- `chars`
+- `truncated`
+- `rect`
+- `readHint`
+- `suggestedReads`
+- 覆盖率和警告
+
+`outline` 只能保存块级目录字段，例如 `index`、`blockId`、`type`、`heading`、`itemCount`、`chars` 和 `truncated`，不能携带完整 `text`、`items`、`fields` 或表格行。
+
+不返回整页 `innerText`，不返回完整 DOM，不返回所有评论、所有表格行或所有问答。
+
+## 5.2 read 预算
+
+`host_page_read` 也不能无限返回。建议限制：
+
+- 单次 read 最大字符数：例如 `4000`。
+- 单个字符串最大字符数：例如 `500`。
+- 列表单页最大条数：例如 `20`。
+- 表格单页最大行数：例如 `20`。
+- 评论和问答必须分页。
+
+超限时返回：
+
+```json
+{
+  "truncated": true,
+  "nextPage": 2,
+  "pageCount": 6
+}
+```
+
+## 5.3 服务端最终保护
+
+客户端即使做了预算，服务端仍需要兜底：
+
+- tool message 最大字符数，例如 `24_000`。
+- artifact 也要压缩，不能只压缩 content。
+- 超限时保留结构索引和分页信息，不硬塞全文。
+- 被截断的内容必须标记 `truncated` 和 `nextPage`。
+
+---
+
+# 6. 通用提取规则
+
+## 6.1 标题和段落
+
+识别可见 `h1` 到 `h6`、`[role="heading"]` 和段落文本。标题下连续段落、列表、字段区优先归入同一区域。
+
+## 6.2 列表
+
+识别 `ul`、`ol`、`[role="list"]` 和可见 `listitem`。列表前方存在标题时，将标题作为 `heading`。
+
+## 6.3 键值详情字段
+
+识别通用结构：
+
+- `dl/dt/dd`
+- 两列布局
+- 同一行内的 label/value
+- 表格样式规格区
+- 后台详情页的字段和值
+
+输出为 `keyValueList`，保持字段名和值的对应关系。
+
+## 6.4 表格
+
+识别原生 `table`、ARIA `table/grid` 和表格样式布局。snapshot 只返回表头、可见行预览、行列统计；完整行通过 `host_page_read` 分页读取。
+
+## 6.5 评论和问答
+
+评论和问答不依赖站点名称，优先通过结构识别：
+
+- 重复 `article`、card、listitem。
+- 作者、时间、评分、正文组合。
+- 问题和回答成对结构。
+- 区域标题含评论、评价、问答、Reviews、Questions 等常见语义。
+
+## 6.6 折叠区域
+
+识别：
+
+- `aria-expanded`
+- `data-expanded`
+- `hidden`
+- 可见高度小于内容高度
+- 附近存在“显示更多”“展开”“Show more”等控件
+
+阅读层只报告当前可读状态，并尽可能关联展开控件的 `ref`。不要默认展开所有区域。
+
+---
+
+# 7. 读取覆盖率和读不到的原因
+
+阅读层不能承诺 100% 读取完整页面。它必须明确报告当前读取是否完整。
+
+示例：
+
+```json
+{
+  "coverage": {
+    "status": "partial",
+    "visibleTextCaptured": true,
+    "truncatedBlocks": 3,
+    "collapsedSections": 2,
+    "crossOriginFrames": 1,
+    "virtualizedListsDetected": 1,
+    "visualOnlyRegions": 1
+  },
+  "warnings": ["Some content is inside collapsed sections.", "One cross-origin iframe could not be read from DOM."]
+}
+```
+
+常见读不到原因：
+
+- 内容还没有渲染，需要滚动或等待。
+- 虚拟列表只渲染当前窗口内项目。
+- 内容在折叠区域或未激活 tab 中。
+- 内容在跨域 iframe 或 closed shadow DOM 内。
+- 内容是 canvas、WebGL、图片、PDF 或视频。
+- 内容被服务端压缩截断。
+
+对应策略：
+
+- DOM 可读：用阅读层读取。
+- DOM 不完整：尝试 AX tree / CDP DOM snapshot 补充。
+- 折叠或懒加载：通过操作层展开、滚动、等待后再读。
+- 视觉内容：使用 `host_page_screenshot` 和视觉理解。
+- 仍不可读：返回 `partial`、`unreadable` 和 `missingReasons`，不要静默漏掉。
+
+---
+
+# 8. 操作层增强：遮挡和点不到
+
+页面上存在元素，不等于当前能点到。复杂页面常见问题：
+
+- 下拉框、菜单、tooltip、modal、cookie banner 遮挡目标。
+- sticky header/footer 挡住目标中心点。
+- SPA 动画期间元素还没稳定。
+- 旧 ref 或旧坐标失效。
+- iframe 坐标换算错误。
+
+这类问题属于操作层可达性问题，不应由阅读层解决。
+
+## 8.1 点击前 hit-test
+
+点击前不要只测中心点。应尝试多个安全点：
+
+- center
+- left-center
+- right-center
+- top-center
+- bottom-center
+- inner safe points
+
+如果某个点通过 `elementsFromPoint` 命中目标或目标子孙，就使用该点点击。
+
+## 8.2 遮挡诊断
+
+如果所有点都被上层元素挡住，工具应返回结构化失败：
+
+```json
+{
+  "ok": false,
+  "reason": "target_occluded",
+  "target": { "ref": "e42", "name": "Submit" },
+  "occluder": {
+    "role": "listbox",
+    "selector": ".dropdown-menu",
+    "text": "Option A Option B",
+    "rect": { "x": 480, "y": 280, "width": 220, "height": 300 }
+  },
+  "targetVisible": true,
+  "targetEnabled": true,
+  "targetReceivesEvents": false,
+  "recoverable": true,
+  "nextActions": [
+    { "tool": "host_page_press", "args": { "key": "Escape" } },
+    { "tool": "host_page_click", "args": { "ref": "e42", "strategy": "safe_point" } }
+  ]
+}
+```
+
+模型不能只收到 “click failed”，必须知道为什么失败以及下一步如何恢复。
+
+## 8.3 有限恢复策略
+
+自动恢复必须有限次数，避免循环点击：
+
+- 下拉框、menu、listbox 遮挡：优先 `Escape`。
+- modal/dialog 遮挡：尝试 close/cancel，或返回给模型确认。
+- cookie/banner 遮挡：识别 dismiss/accept。
+- sticky header/footer 遮挡：滚动目标到 viewport 中间偏下或偏上。
+- 动画中：等待短时间后重新 hit-test。
+- ref 失效：重新 snapshot，并用语义目标重新定位。
+
+## 8.4 actionability 字段升级
+
+`elements` 可以增加更明确的可达性信息：
+
+```json
+{
+  "ref": "e42",
+  "role": "button",
+  "name": "Submit",
+  "visible": true,
+  "enabled": true,
+  "receivesEvents": false,
+  "occludedBy": {
+    "role": "listbox",
+    "selector": ".dropdown-menu"
+  },
+  "safeClickPoints": []
+}
+```
+
+模型看到目标存在但 `receivesEvents=false`，应先关闭遮挡层，而不是反复点击同一个目标。
+
+---
+
+# 9. 工具选择策略
+
+模型使用规则：
+
+- 要理解页面内容：先看 `readableContent.outline` 和 `readableContent.blocks`。
+- 正文预览不够、`coverage.status=partial`、存在 `_truncatedBlocks` 或存在 `suggestedReads`：先按任务相关的 `suggestedReads` 调用 `host_page_read`，再做最终判断。
+- 要点击、填写、选择：使用 `elements` 和操作工具。
+- 目标存在但不可点击：根据 `target_occluded`、`hitStack`、`nextActions` 恢复。
+- 内容在折叠区：先点击展开控件，再 read。
+- 内容在虚拟列表：滚动后重新 snapshot/read。
+- DOM 不可读：使用 screenshot + 视觉理解。
+- 最终输出必须区分已读取证据、未读取区域和推断内容，不能把缺失块静默摘要掉。
+
+---
+
+# 10. 非目标
+
+首版不做以下事情：
+
+- 不按 Amazon 或任何单个网站写专用抓取逻辑。
+- 不实现全页爬虫。
+- 不默认展开所有折叠内容。
+- 不返回完整 DOM。
+- 不返回整页 `innerText`。
+- 不用阅读层替代操作层。
+- 不保证完整读取跨域 iframe、closed shadow DOM、canvas、WebGL、图片、PDF 或视频内容。
+
+---
+
+# 11. 验收标准
+
+上线后，Xpert 应能够：
+
+- 在 snapshot 中同时看到可操作元素和可读内容索引。
+- 对商品页读取商品描述、规格字段、列表内容。
+- 对文章页读取标题、段落和章节结构。
+- 对后台详情页读取字段和值。
+- 对表格页读取表头、可见行，并通过 read 分页取更多行。
+- 对评论和问答页通过通用列表、段落、表格块读取可见内容，并保留后续分页读取入口。
+- 在内容被折叠、截断、虚拟化或跨域时返回明确状态。
+- 在目标被下拉框或浮层遮挡时返回 occlusion 诊断和恢复建议。
+- 保持现有点击、填写、选择、截图和坐标操作能力不退化。
+
+---
+
+# 12. 迭代路径
+
+1. 保留现有 `elements` 操作层和分页机制。
+2. 在 `host_page_snapshot` 中新增轻量 `readableContent.blocks` 索引。
+3. 新增 `host_page_read`，支持 `blockId`、`visible` scope、`query`、分页和 `maxChars`。
+4. 在服务端 tool message 和 artifact 中加入阅读层压缩兜底。
+5. 扩展 actionability，返回 `receivesEvents`、`safeClickPoints`、`occludedBy`。
+6. 点击失败时返回结构化 `target_occluded`、`hitStack` 和 `nextActions`。
+7. 用商品页、文章页、表格页、评论页、问答页、后台详情页、遮挡弹层页验证通用规则。
+8. 只有通用规则无法覆盖高价值网站时，才评估是否增加小范围补丁。

@@ -18,6 +18,7 @@ import { ClientToolMiddleware, ClientToolMiddlewareConfig } from './client-tool.
 export const BROWSER_AUTOMATION_MIDDLEWARE_NAME = 'browser-automation'
 export const HOST_PAGE_WAIT_TOOL_NAME = 'host_page_wait'
 const HOST_PAGE_SNAPSHOT_TOOL_NAME = 'host_page_snapshot'
+const HOST_PAGE_READ_TOOL_NAME = 'host_page_read'
 const HOST_PAGE_SCREENSHOT_TOOL_NAME = 'host_page_screenshot'
 const HOST_PAGE_WAIT_MIN_SECONDS = 3
 const HOST_PAGE_WAIT_MAX_SECONDS = 60
@@ -30,9 +31,16 @@ const HOST_PAGE_SNAPSHOT_MAX_CONTENT_CHARS = 24_000
 const HOST_PAGE_SNAPSHOT_MAX_STRING_CHARS = 240
 const HOST_PAGE_SNAPSHOT_PAGE_STRING_CHARS = 120
 const HOST_PAGE_SNAPSHOT_MAX_ARRAY_ITEMS = 4
+const HOST_PAGE_READABLE_CONTENT_MAX_BLOCKS = 16
+const HOST_PAGE_READABLE_CONTENT_MAX_OUTLINE_BLOCKS = 120
+const HOST_PAGE_READABLE_CONTENT_MAX_SUGGESTED_READS = 12
+const HOST_PAGE_READABLE_CONTENT_MAX_ITEMS = 4
+const HOST_PAGE_READABLE_CONTENT_MAX_ROWS = 2
+const HOST_PAGE_READABLE_CONTENT_STRING_CHARS = 80
 
 const HOST_PAGE_AUTOMATION_TOOL_NAMES = [
     HOST_PAGE_SNAPSHOT_TOOL_NAME,
+    HOST_PAGE_READ_TOOL_NAME,
     'host_page_click',
     'host_page_fill',
     'host_page_press',
@@ -50,6 +58,10 @@ const HOST_PAGE_TOOL_DISPLAY_MESSAGES = {
     host_page_snapshot: {
         en_US: 'Inspect the page',
         zh_Hans: '查看页面'
+    },
+    host_page_read: {
+        en_US: 'Read page content',
+        zh_Hans: '读取页面正文'
     },
     host_page_click: {
         en_US: 'Click the page',
@@ -160,6 +172,10 @@ type HostPageScreenshotAttachment = {
     coordinateSpace?: 'viewport-css-px'
 }
 
+type HostPageReadRequest = {
+    maxChars: number
+}
+
 const BROWSER_AUTOMATION_USAGE_GUIDANCE =
     'For complex enterprise/SAP/Fiori/iframe pages, avoid looping host_page_snapshot and host_page_click. First inspect one rich snapshot, then fill known form fields with host_page_fill, press F8/Enter or click the Execute/Search button once, and wait with host_page_wait_for or host_page_wait. If one DOM/ref click does not change the page, switch to host_page_screenshot and then host_page_pointer coordinates instead of repeating the same click.'
 
@@ -235,7 +251,7 @@ function createTargetSchema(properties: object = {}, required: string[] = []) {
 const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_snapshot',
-        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, structured form labels/group labels/select options, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, label, groupLabel, options, selectedLabel, nearbyText, or coordinates from this result for later actions. For large snapshots, inspect _xpertPagination, pages, and criticalElements. Use criticalElements first for checkbox, radio, switch, and checked controls. If the needed element is not in elements or criticalElements, choose the likely page from pages and call host_page_snapshot again with snapshotId, page, pageSize, and includeIndex=false. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, readable page content summaries, structured form labels/group labels/select options, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, label, groupLabel, options, selectedLabel, nearbyText, or coordinates from this result for later actions. Use readableContent blocks to understand titles, paragraphs, lists, tables, details fields, reviews, and Q&A-style text. Use readableContent.outline as the lightweight page table of contents when blocks are previewed, compacted, or truncated. If readableContent.suggestedReads is present, or coverage is partial, read the task-relevant suggestedReads blockIds with host_page_read before finalizing content-sensitive answers. When a readableContent block is truncated or only previewed, call host_page_read with its blockId/readHint instead of assuming missing page text. For large snapshots, inspect _xpertPagination, pages, and criticalElements. Use criticalElements first for checkbox, radio, switch, and checked controls. If the needed element is not in elements or criticalElements, choose the likely page from pages and call host_page_snapshot again with snapshotId, page, pageSize, and includeIndex=false. If a click fails with target_occluded/occludedBy, dismiss or move the overlay, use a safeClickPoint, or take a screenshot before switching to coordinates. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
         schema: stringifySchema({
             type: 'object',
             additionalProperties: false,
@@ -283,6 +299,48 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
                 includeConsole: {
                     type: 'boolean',
                     description: 'Include recent console/runtime errors when available.'
+                }
+            }
+        })
+    },
+    {
+        name: HOST_PAGE_READ_TOOL_NAME,
+        description:
+            'Read structured visible page content from the host page. Use this after host_page_snapshot when readableContent previews show that page text, list items, table rows, product details, reviews, Q&A, or long body copy is missing, truncated, or needs exact wording. Prefer blockId from readableContent.readHint or readableContent.suggestedReads; use query only when the block is unknown. Results are paginated and bounded by maxChars.',
+        schema: stringifySchema({
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+                blockId: {
+                    type: 'string',
+                    description:
+                        'Readable content block id from host_page_snapshot readableContent.readHint.args.blockId.'
+                },
+                scope: {
+                    type: 'string',
+                    enum: ['visible'],
+                    description: 'Visible content scope. Use blockId when a specific readable block is known.'
+                },
+                query: {
+                    type: 'string',
+                    description: 'Optional text query for finding relevant readable blocks when no blockId is known.'
+                },
+                page: {
+                    type: 'number',
+                    minimum: 1,
+                    description: '1-based content page to return.'
+                },
+                pageSize: {
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 100,
+                    description: 'Readable fields, items, rows, or blocks per page.'
+                },
+                maxChars: {
+                    type: 'number',
+                    minimum: 500,
+                    maximum: 12000,
+                    description: 'Approximate maximum serialized characters the client should return.'
                 }
             }
         })
@@ -662,6 +720,13 @@ function readSnapshotPaginationRequest(args: unknown): HostPageSnapshotPaginatio
     }
 }
 
+function readHostPageReadRequest(args: unknown): HostPageReadRequest {
+    const record = readRecord(args)
+    return {
+        maxChars: readBoundedInteger(record?.maxChars, 500, 12_000) ?? 4_000
+    }
+}
+
 function readExistingSnapshotPagination(result: Record<string, unknown>) {
     const pagination = readRecord(result._xpertPagination)
     if (!pagination) {
@@ -748,6 +813,331 @@ function compactSnapshotValue(
     return compacted
 }
 
+const HOST_PAGE_READABLE_CONTENT_BLOCK_KEYS = [
+    'blockId',
+    'type',
+    'heading',
+    'level',
+    'text',
+    'selector',
+    'rect',
+    'preview',
+    'itemCount',
+    'chars',
+    'truncated',
+    'readHint'
+] as const
+
+function compactReadableContentBlock(block: unknown): unknown {
+    const record = readRecord(block)
+    if (!record) {
+        return compactSnapshotValue(block, 1, HOST_PAGE_SNAPSHOT_PAGE_STRING_CHARS)
+    }
+
+    const compacted: JsonObject = {}
+    for (const key of HOST_PAGE_READABLE_CONTENT_BLOCK_KEYS) {
+        if (key in record) {
+            compacted[key] = compactSnapshotValue(record[key], 1, HOST_PAGE_SNAPSHOT_PAGE_STRING_CHARS)
+        }
+    }
+
+    if (Array.isArray(record.fields)) {
+        compacted.fields = record.fields
+            .slice(0, HOST_PAGE_READABLE_CONTENT_MAX_ITEMS)
+            .map((field) => compactSnapshotValue(field, 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS))
+        if (record.fields.length > HOST_PAGE_READABLE_CONTENT_MAX_ITEMS) {
+            compacted._truncatedFields = record.fields.length - HOST_PAGE_READABLE_CONTENT_MAX_ITEMS
+        }
+    }
+
+    if (Array.isArray(record.items)) {
+        compacted.items = record.items
+            .slice(0, HOST_PAGE_READABLE_CONTENT_MAX_ITEMS)
+            .map((item) => compactSnapshotValue(item, 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS))
+        if (record.items.length > HOST_PAGE_READABLE_CONTENT_MAX_ITEMS) {
+            compacted._truncatedItems = record.items.length - HOST_PAGE_READABLE_CONTENT_MAX_ITEMS
+        }
+    }
+
+    if (Array.isArray(record.headers)) {
+        compacted.headers = record.headers
+            .slice(0, HOST_PAGE_READABLE_CONTENT_MAX_ITEMS)
+            .map((header) => compactSnapshotValue(header, 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS))
+    }
+
+    if (Array.isArray(record.rows)) {
+        compacted.rows = record.rows
+            .slice(0, HOST_PAGE_READABLE_CONTENT_MAX_ROWS)
+            .map((row) => compactSnapshotValue(row, 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS))
+        if (record.rows.length > HOST_PAGE_READABLE_CONTENT_MAX_ROWS) {
+            compacted._truncatedRows = record.rows.length - HOST_PAGE_READABLE_CONTENT_MAX_ROWS
+        }
+    }
+
+    return compacted
+}
+
+const HOST_PAGE_READABLE_CONTENT_OUTLINE_KEYS = [
+    'index',
+    'blockId',
+    'type',
+    'heading',
+    'level',
+    'itemCount',
+    'chars',
+    'truncated'
+] as const
+
+function compactReadableContentOutlineItem(item: unknown, index: number): unknown {
+    const record = readRecord(item)
+    if (!record) {
+        return compactSnapshotValue(item, 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS)
+    }
+
+    const compacted: JsonObject = {}
+    for (const key of HOST_PAGE_READABLE_CONTENT_OUTLINE_KEYS) {
+        if (key in record) {
+            compacted[key] = compactSnapshotValue(record[key], 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS)
+        }
+    }
+    if (!('index' in compacted)) {
+        compacted.index = index
+    }
+    return compacted
+}
+
+function buildReadableContentOutline(record: Record<string, unknown>): unknown[] {
+    const outline = Array.isArray(record.outline) ? record.outline : undefined
+    const source = outline ?? (Array.isArray(record.blocks) ? record.blocks : [])
+    return source
+        .slice(0, HOST_PAGE_READABLE_CONTENT_MAX_OUTLINE_BLOCKS)
+        .map((item, index) => compactReadableContentOutlineItem(item, index))
+}
+
+const HOST_PAGE_READABLE_CONTENT_SUGGESTED_READ_KEYS = ['blockId', 'type', 'heading', 'reason', 'args'] as const
+
+function compactSuggestedRead(item: unknown): unknown {
+    const record = readRecord(item)
+    if (!record) {
+        return compactSnapshotValue(item, 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS)
+    }
+
+    const compacted: JsonObject = {}
+    for (const key of HOST_PAGE_READABLE_CONTENT_SUGGESTED_READ_KEYS) {
+        if (key in record) {
+            compacted[key] = compactSnapshotValue(record[key], 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS)
+        }
+    }
+    return compacted
+}
+
+function compactReadableContent(value: unknown): unknown {
+    const record = readRecord(value)
+    if (!record) {
+        return compactSnapshotValue(value)
+    }
+
+    const compacted: JsonObject = {}
+    for (const key of ['totalBlocks', 'truncated', 'coverage', 'warnings'] as const) {
+        if (key in record) {
+            compacted[key] = compactSnapshotValue(record[key], 1, HOST_PAGE_SNAPSHOT_PAGE_STRING_CHARS)
+        }
+    }
+
+    const blocks = Array.isArray(record.blocks) ? record.blocks : []
+    compacted.blocks = blocks.slice(0, HOST_PAGE_READABLE_CONTENT_MAX_BLOCKS).map(compactReadableContentBlock)
+    if (blocks.length > HOST_PAGE_READABLE_CONTENT_MAX_BLOCKS) {
+        compacted._truncatedBlocks = blocks.length - HOST_PAGE_READABLE_CONTENT_MAX_BLOCKS
+    }
+    compacted.outline = buildReadableContentOutline(record)
+    if (
+        (Array.isArray(record.outline) && record.outline.length > HOST_PAGE_READABLE_CONTENT_MAX_OUTLINE_BLOCKS) ||
+        (!Array.isArray(record.outline) && blocks.length > HOST_PAGE_READABLE_CONTENT_MAX_OUTLINE_BLOCKS)
+    ) {
+        compacted._truncatedOutline =
+            (Array.isArray(record.outline) ? record.outline.length : blocks.length) -
+            HOST_PAGE_READABLE_CONTENT_MAX_OUTLINE_BLOCKS
+    }
+
+    if (Array.isArray(record.suggestedReads)) {
+        compacted.suggestedReads = record.suggestedReads
+            .slice(0, HOST_PAGE_READABLE_CONTENT_MAX_SUGGESTED_READS)
+            .map(compactSuggestedRead)
+        if (record.suggestedReads.length > HOST_PAGE_READABLE_CONTENT_MAX_SUGGESTED_READS) {
+            compacted._truncatedSuggestedReads =
+                record.suggestedReads.length - HOST_PAGE_READABLE_CONTENT_MAX_SUGGESTED_READS
+        }
+    }
+
+    return compacted
+}
+
+const HOST_PAGE_READ_RESULT_KEYS = [
+    'blockId',
+    'type',
+    'heading',
+    'level',
+    'text',
+    'selector',
+    'rect',
+    'preview',
+    'itemCount',
+    'scope',
+    'page',
+    'pageSize',
+    'pageCount',
+    'nextPage',
+    'chars',
+    'truncated',
+    'budgetExceeded',
+    'warning',
+    'coverage',
+    'warnings',
+    'readHint'
+] as const
+
+type HostPageReadCompactionLimits = {
+    blockLimit: number
+    itemLimit: number
+    rowLimit: number
+}
+
+function addLimitedArray(
+    compacted: JsonObject,
+    record: Record<string, unknown>,
+    key: string,
+    limit: number,
+    truncatedKey: string
+) {
+    const values = record[key]
+    if (!Array.isArray(values)) {
+        return
+    }
+
+    compacted[key] = values
+        .slice(0, limit)
+        .map((item) => compactSnapshotValue(item, 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS))
+    if (values.length > limit) {
+        compacted[truncatedKey] = values.length - limit
+    }
+}
+
+function compactHostPageReadResult(
+    result: Record<string, unknown>,
+    originalContentLength: number,
+    limits: HostPageReadCompactionLimits
+): JsonObject {
+    const compacted: JsonObject = {}
+
+    for (const key of HOST_PAGE_READ_RESULT_KEYS) {
+        if (key in result) {
+            compacted[key] = compactSnapshotValue(result[key], 1, HOST_PAGE_SNAPSHOT_PAGE_STRING_CHARS)
+        }
+    }
+
+    addLimitedArray(compacted, result, 'fields', limits.itemLimit, '_truncatedFields')
+    addLimitedArray(compacted, result, 'items', limits.itemLimit, '_truncatedItems')
+    addLimitedArray(compacted, result, 'headers', limits.itemLimit, '_truncatedHeaders')
+    addLimitedArray(compacted, result, 'rows', limits.rowLimit, '_truncatedRows')
+
+    if (Array.isArray(result.blocks)) {
+        compacted.blocks = result.blocks.slice(0, limits.blockLimit).map(compactReadableContentBlock)
+        if (result.blocks.length > limits.blockLimit) {
+            compacted._truncatedBlocks = result.blocks.length - limits.blockLimit
+        }
+    }
+
+    compacted.truncated = true
+    compacted._xpertCompaction = {
+        compacted: true,
+        reason: 'host_page_read output compacted before model continuation and message persistence',
+        originalContentLength
+    }
+
+    return compacted
+}
+
+function buildCompactedHostPageReadPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number,
+    limits: HostPageReadCompactionLimits
+): JsonObject {
+    const compactedPayload: JsonObject = {
+        ok: typeof payload.ok === 'boolean' ? payload.ok : true,
+        result: compactHostPageReadResult(result, originalContentLength, limits)
+    }
+
+    if (typeof payload.error === 'string') {
+        compactedPayload.error = truncateText(payload.error, HOST_PAGE_READABLE_CONTENT_STRING_CHARS)
+    }
+
+    return compactedPayload
+}
+
+function buildMinimalHostPageReadPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number
+): JsonObject {
+    const compactedResult: JsonObject = {}
+    for (const key of ['blockId', 'type', 'heading', 'scope', 'page', 'pageCount', 'nextPage', 'chars'] as const) {
+        if (key in result) {
+            compactedResult[key] = compactSnapshotValue(result[key], 1, HOST_PAGE_READABLE_CONTENT_STRING_CHARS)
+        }
+    }
+    compactedResult.pageSize = 0
+    compactedResult.truncated = true
+    compactedResult.budgetExceeded = true
+    compactedResult.warning =
+        'Read result exceeded maxChars; retry with a smaller pageSize or a narrower blockId/query.'
+    compactedResult._xpertCompaction = {
+        compacted: true,
+        reason: 'host_page_read output compacted to maxChars fallback',
+        originalContentLength
+    }
+
+    const compactedPayload: JsonObject = {
+        ok: typeof payload.ok === 'boolean' ? payload.ok : true,
+        result: compactedResult
+    }
+    if (typeof payload.error === 'string') {
+        compactedPayload.error = truncateText(payload.error, HOST_PAGE_READABLE_CONTENT_STRING_CHARS)
+    }
+    return compactedPayload
+}
+
+function stringifyCompactedHostPageReadPayload(
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    originalContentLength: number,
+    request: HostPageReadRequest
+): string {
+    const limitSteps: HostPageReadCompactionLimits[] = [
+        {
+            blockLimit: HOST_PAGE_READABLE_CONTENT_MAX_BLOCKS,
+            itemLimit: HOST_PAGE_READABLE_CONTENT_MAX_ITEMS,
+            rowLimit: HOST_PAGE_READABLE_CONTENT_MAX_ROWS
+        },
+        { blockLimit: 8, itemLimit: 2, rowLimit: 1 },
+        { blockLimit: 4, itemLimit: 1, rowLimit: 1 },
+        { blockLimit: 2, itemLimit: 1, rowLimit: 0 },
+        { blockLimit: 1, itemLimit: 0, rowLimit: 0 },
+        { blockLimit: 0, itemLimit: 0, rowLimit: 0 }
+    ]
+
+    for (const limits of limitSteps) {
+        const compacted = JSON.stringify(
+            buildCompactedHostPageReadPayload(payload, result, originalContentLength, limits)
+        )
+        if (compacted.length <= request.maxChars) {
+            return compacted
+        }
+    }
+
+    return JSON.stringify(buildMinimalHostPageReadPayload(payload, result, originalContentLength))
+}
+
 const HOST_PAGE_SNAPSHOT_RESULT_KEYS = [
     'url',
     'title',
@@ -757,7 +1147,8 @@ const HOST_PAGE_SNAPSHOT_RESULT_KEYS = [
     'capabilities',
     'networkState',
     'console',
-    'errors'
+    'errors',
+    'readableContent'
 ] as const
 
 const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
@@ -777,7 +1168,10 @@ const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
     'placeholder',
     'enabled',
     'visible',
+    'receivesEvents',
     'actionable',
+    'occludedBy',
+    'safeClickPoints',
     'checked',
     'rect',
     'center',
@@ -952,7 +1346,8 @@ function buildCompactedSnapshotPayload(
 
     for (const key of HOST_PAGE_SNAPSHOT_RESULT_KEYS) {
         if (key in result) {
-            compactedResult[key] = compactSnapshotValue(result[key])
+            compactedResult[key] =
+                key === 'readableContent' ? compactReadableContent(result[key]) : compactSnapshotValue(result[key])
         }
     }
 
@@ -1167,9 +1562,76 @@ function compactHostPageSnapshotToolMessage(message: ToolMessage, toolCall?: Too
     })
 }
 
+function compactHostPageReadArtifact(artifact: unknown, artifactLength: number, request: HostPageReadRequest): unknown {
+    const readPayload = readSnapshotPayload(artifact)
+    if (!readPayload) {
+        return {
+            type: HOST_PAGE_READ_TOOL_NAME,
+            _xpertCompaction: {
+                compacted: true,
+                reason: 'host_page_read artifact replaced before model continuation and message persistence',
+                originalArtifactLength: artifactLength
+            }
+        }
+    }
+
+    const compacted = parseToolMessageContent(
+        stringifyCompactedHostPageReadPayload(readPayload.payload, readPayload.result, artifactLength, request)
+    )
+    return compacted ?? buildMinimalHostPageReadPayload(readPayload.payload, readPayload.result, artifactLength)
+}
+
+function compactHostPageReadToolMessage(message: ToolMessage, toolCall?: ToolCall): ToolMessage {
+    if (typeof message.content !== 'string') {
+        return message
+    }
+
+    const readPayload = readSnapshotPayload(message.content)
+    if (!readPayload) {
+        return message
+    }
+
+    const request = readHostPageReadRequest(toolCall?.args)
+    const artifactLength = getSerializedLength(message.artifact)
+    const shouldCompactContent = message.content.length > request.maxChars
+    const shouldCompactArtifact = artifactLength > request.maxChars
+
+    if (!shouldCompactContent && !shouldCompactArtifact) {
+        return message
+    }
+
+    const content = shouldCompactContent
+        ? stringifyCompactedHostPageReadPayload(
+              readPayload.payload,
+              readPayload.result,
+              message.content.length,
+              request
+          )
+        : message.content
+    const artifact = shouldCompactArtifact
+        ? compactHostPageReadArtifact(message.artifact, artifactLength, request)
+        : message.artifact
+
+    return new ToolMessage({
+        content,
+        name: message.name ?? HOST_PAGE_READ_TOOL_NAME,
+        tool_call_id: message.tool_call_id,
+        status: message.status,
+        artifact,
+        metadata: message.metadata,
+        additional_kwargs: message.additional_kwargs,
+        response_metadata: message.response_metadata,
+        id: message.id
+    })
+}
+
 function compactBrowserAutomationToolMessage(message: ToolMessage, toolCall: ToolCall): ToolMessage {
     if (toolCall.name === HOST_PAGE_SNAPSHOT_TOOL_NAME || message.name === HOST_PAGE_SNAPSHOT_TOOL_NAME) {
         return compactHostPageSnapshotToolMessage(message, toolCall)
+    }
+
+    if (toolCall.name === HOST_PAGE_READ_TOOL_NAME || message.name === HOST_PAGE_READ_TOOL_NAME) {
+        return compactHostPageReadToolMessage(message, toolCall)
     }
 
     return message

@@ -243,6 +243,140 @@ describe('BrowserAutomationMiddleware', () => {
         expect(snapshotTool?.description).toContain('criticalElements')
         expect(snapshotTool?.description).toContain('snapshotId')
         expect(snapshotTool?.description).toContain('includeIndex=false')
+        expect(snapshotTool?.description).toContain('readableContent')
+        expect(snapshotTool?.description).toContain('outline')
+        expect(snapshotTool?.description).toContain('suggestedReads')
+        expect(snapshotTool?.description).toContain('host_page_read')
+        expect(snapshotTool?.description).toContain('target_occluded')
+    })
+
+    it('exposes host_page_read for paginated readable content retrieval', () => {
+        const readTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_read')
+        const readSchema = JSON.parse(readTool?.schema ?? '{}')
+
+        expect(readTool?.description).toContain('readableContent')
+        expect(readTool?.description).toContain('blockId')
+        expect(readSchema.properties).not.toHaveProperty('snapshotId')
+        expect(readSchema.properties).toEqual(
+            expect.objectContaining({
+                blockId: expect.objectContaining({
+                    type: 'string'
+                }),
+                scope: expect.objectContaining({
+                    type: 'string',
+                    enum: ['visible']
+                }),
+                query: expect.objectContaining({
+                    type: 'string'
+                }),
+                page: expect.objectContaining({
+                    type: 'number',
+                    minimum: 1
+                }),
+                pageSize: expect.objectContaining({
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 100
+                }),
+                maxChars: expect.objectContaining({
+                    type: 'number',
+                    minimum: 500,
+                    maximum: 12000
+                })
+            })
+        )
+    })
+
+    it('compacts large host_page_read results to the requested maxChars budget', async () => {
+        const rawRead = {
+            ok: true,
+            result: {
+                scope: 'visible',
+                blocks: Array.from({ length: 24 }, (_, index) => ({
+                    blockId: `b${index + 1}`,
+                    type: 'list',
+                    heading: `Readable block ${index + 1}`,
+                    items: Array.from(
+                        { length: 12 },
+                        (__, itemIndex) => `Item ${index}.${itemIndex} ${'long content '.repeat(40)}`
+                    ),
+                    preview: [`Item ${index}.0`],
+                    itemCount: 12,
+                    chars: 9_000,
+                    truncated: true,
+                    readHint: {
+                        tool: 'host_page_read',
+                        args: {
+                            blockId: `b${index + 1}`
+                        }
+                    }
+                })),
+                page: 1,
+                pageSize: 24,
+                pageCount: 1,
+                coverage: {
+                    status: 'partial',
+                    visibleTextCaptured: true,
+                    truncatedBlocks: 24,
+                    collapsedSections: 0,
+                    crossOriginFrames: 0,
+                    virtualizedListsDetected: 0,
+                    visualOnlyRegions: 0
+                }
+            }
+        }
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'read-call-1',
+                    content: rawRead,
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'read-call-1',
+                    name: 'host_page_read',
+                    args: {
+                        pageSize: 24,
+                        maxChars: 500
+                    }
+                },
+                tool: getTool(middleware, 'host_page_read'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_read',
+                    tool_call_id: 'read-call-1'
+                })
+        )
+
+        const compactedContent = readStringField(result, 'content')
+        expect(compactedContent.length).toBeLessThanOrEqual(500)
+        expect(compactedContent).not.toContain('long content long content long content')
+
+        const payload = parseJsonContent(result)
+        const resultPayload = readRecordField(payload, 'result')
+        expect(resultPayload).toEqual(
+            expect.objectContaining({
+                truncated: true,
+                _xpertCompaction: expect.objectContaining({
+                    compacted: true
+                })
+            })
+        )
     })
 
     it('exposes rich browser automation targeting schemas', () => {
@@ -585,6 +719,152 @@ describe('BrowserAutomationMiddleware', () => {
         const successPayload = mockDispatchCustomEvent.mock.calls[1]?.[1]
         const emittedOutput = readStringField(successPayload, 'output')
         expect(emittedOutput).toBe(compactedContent)
+    })
+
+    it('compacts readableContent summaries while preserving read hints', async () => {
+        const readableBlocks = Array.from({ length: 32 }, (_, blockIndex) => ({
+            blockId: `b${blockIndex + 1}`,
+            type: 'keyValueList',
+            heading: `Details ${blockIndex}`,
+            fields: Array.from({ length: 18 }, (__, fieldIndex) => ({
+                name: `Field ${blockIndex}.${fieldIndex}`,
+                value: `Value ${blockIndex}.${fieldIndex} ${'long text '.repeat(60)}`
+            })),
+            preview: [`Field ${blockIndex}.0: Value ${blockIndex}.0`],
+            itemCount: 18,
+            chars: 12_000,
+            truncated: true,
+            readHint: {
+                tool: 'host_page_read',
+                args: {
+                    blockId: `b${blockIndex + 1}`
+                }
+            }
+        }))
+        const rawSnapshot = {
+            ok: true,
+            result: {
+                url: 'https://example.com/product',
+                title: 'Product',
+                readableContent: {
+                    blocks: readableBlocks,
+                    outline: readableBlocks.map((block, index) => ({
+                        index,
+                        blockId: block.blockId,
+                        type: block.type,
+                        heading: block.heading,
+                        itemCount: block.itemCount,
+                        chars: block.chars,
+                        truncated: block.truncated
+                    })),
+                    suggestedReads: readableBlocks.slice(0, 14).map((block) => ({
+                        blockId: block.blockId,
+                        type: block.type,
+                        heading: block.heading,
+                        reason: 'structured_fields',
+                        args: {
+                            blockId: block.blockId,
+                            pageSize: 18
+                        }
+                    })),
+                    totalBlocks: readableBlocks.length,
+                    truncated: true,
+                    coverage: {
+                        status: 'partial',
+                        visibleTextCaptured: true,
+                        truncatedBlocks: readableBlocks.length,
+                        collapsedSections: 1,
+                        crossOriginFrames: 0,
+                        virtualizedListsDetected: 0,
+                        visualOnlyRegions: 0
+                    },
+                    warnings: ['Some content is inside collapsed sections.']
+                },
+                elements: [
+                    {
+                        ref: 'e1',
+                        role: 'button',
+                        name: 'Buy now',
+                        selector: '#buy',
+                        enabled: true,
+                        visible: true,
+                        actionable: true,
+                        receivesEvents: true,
+                        safeClickPoints: [{ x: 10, y: 20 }]
+                    }
+                ]
+            }
+        }
+        const rawContent = JSON.stringify(rawSnapshot)
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'snapshot-call-1',
+                    content: rawSnapshot,
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'snapshot-call-1',
+                    name: 'host_page_snapshot',
+                    args: {
+                        mode: 'rich',
+                        pageSize: 30
+                    }
+                },
+                tool: getTool(middleware, 'host_page_snapshot'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_snapshot',
+                    tool_call_id: 'snapshot-call-1'
+                })
+        )
+
+        const compactedContent = readStringField(result, 'content')
+        expect(compactedContent.length).toBeLessThan(rawContent.length)
+        expect(compactedContent.length).toBeLessThanOrEqual(24_000)
+        expect(compactedContent).not.toContain('long text '.repeat(20).trim())
+
+        const payload = parseJsonContent(result)
+        const resultPayload = readRecordField(payload, 'result')
+        const readableContent = readRecordField(resultPayload, 'readableContent')
+        const blocks = readArrayField(readableContent, 'blocks')
+        const outline = readArrayField(readableContent, 'outline')
+        const suggestedReads = readArrayField(readableContent, 'suggestedReads')
+
+        expect(blocks).toHaveLength(16)
+        expect(Reflect.get(readableContent, '_truncatedBlocks')).toBe(16)
+        expect(outline).toHaveLength(32)
+        expect(JSON.stringify(outline)).toContain('b32')
+        expect(JSON.stringify(outline)).not.toContain('long text')
+        expect(suggestedReads).toHaveLength(12)
+        expect(Reflect.get(readableContent, '_truncatedSuggestedReads')).toBe(2)
+        expect(readArrayField(blocks[0], 'fields')).toHaveLength(4)
+        expect(blocks[0]).toEqual(
+            expect.objectContaining({
+                _truncatedFields: 14,
+                readHint: {
+                    tool: 'host_page_read',
+                    args: {
+                        blockId: 'b1'
+                    }
+                }
+            })
+        )
     })
 
     it('returns the requested host_page_snapshot page without the index by default', async () => {
