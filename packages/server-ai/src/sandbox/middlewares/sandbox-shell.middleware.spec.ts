@@ -159,6 +159,14 @@ describe('SandboxShellMiddleware', () => {
     expect(agentMiddleware.tools.map((tool) => tool.name)).toEqual(['sandbox_shell'])
   })
 
+  it('documents one playwright-cli command per sandbox_shell call', async () => {
+    const tool = await createTool('sandbox_shell')
+
+    expect(tool.description).toContain('playwright-cli')
+    expect(tool.description).toContain('one CLI command per sandbox_shell call')
+    expect(tool.description).toContain('Do not chain multiple playwright-cli commands')
+  })
+
   it('passes the 600 second default timeout to the backend', async () => {
     const tool = await createTool('sandbox_shell')
     const backend = createBackend({

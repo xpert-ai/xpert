@@ -237,6 +237,8 @@ Default timeout: ${DEFAULT_SANDBOX_SHELL_TIMEOUT_SEC} seconds.
 
 Use timeout_sec for long-running commands such as npm install, pnpm install, cargo build, pytest, or large test/build jobs. When the timeout is reached, the sandbox terminates the command and returns explicit timeout information.
 
+When using sandbox-provided CLIs that are prepared by middleware, such as playwright-cli, run one CLI command per sandbox_shell call. Do not chain multiple playwright-cli commands with &&, ;, or | in a single command; use separate sandbox_shell calls so each command can be prepared and rewritten correctly.
+
 Do not use this tool to background a long-running server with &, nohup, or disown. Use the SandboxService middleware's sandbox_service_start tool for managed background services so the agent can list, inspect logs, restart, stop, and preview them later.`,
         schema: shellToolSchema
       }
