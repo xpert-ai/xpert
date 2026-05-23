@@ -55,7 +55,10 @@ export type FileWorkbenchFileUploader = (file: File, path: string) => AsyncValue
 export type FileWorkbenchDownloadPayload =
   | { kind: 'url'; url: string; fileName?: string }
   | { kind: 'blob'; blob: Blob; fileName?: string }
-export type FileWorkbenchFileDownloader = (path: string) => AsyncValue<FileWorkbenchDownloadPayload | null | undefined>
+export type FileWorkbenchFileDownloader = (
+  path: string,
+  item?: FileTreeNode
+) => AsyncValue<FileWorkbenchDownloadPayload | null | undefined>
 export type FileWorkbenchCodeReferenceRequest = {
   path: string
   text: string
@@ -182,6 +185,7 @@ export class FileWorkbenchComponent {
   readonly canDeleteFiles = computed(() => !!this.fileDeleter())
   readonly canUploadFiles = computed(() => !!this.fileUploader() && !!this.rootId())
   readonly canDownloadFiles = computed(() => !!this.fileDownloader() || !!this.fileLoader())
+  readonly canDownloadDirectories = computed(() => !!this.fileDownloader())
   readonly canDownloadActiveFile = computed(() => {
     const activeFile = this.activeFile()
     return (
@@ -386,7 +390,7 @@ export class FileWorkbenchComponent {
 
   async downloadTreeFile(item: FileTreeNode) {
     const filePath = item.fullPath || item.filePath
-    if (!filePath || item.hasChildren) {
+    if (!filePath) {
       return
     }
 
@@ -831,7 +835,7 @@ export class FileWorkbenchComponent {
   ): Promise<FileWorkbenchDownloadPayload | null | undefined> {
     const fileDownloader = this.fileDownloader()
     if (fileDownloader) {
-      const payload = await resolveAsyncValue(fileDownloader(filePath))
+      const payload = await resolveAsyncValue(fileDownloader(filePath, item))
       if (payload) {
         return payload
       }

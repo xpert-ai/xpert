@@ -7,8 +7,41 @@ import {
 } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { Test, TestingModule } from '@nestjs/testing'
+import { SkillsMiddleware } from '../../../skill-package/plugins/skills-middleware'
 import { SKILLS_MIDDLEWARE_NAME } from '../../../skill-package/types'
 import { WorkflowMiddlewareNodeValidator } from './validator'
+
+jest.mock('../../../skill-package/skill-package.entity', () => ({
+    SkillPackage: class SkillPackage {}
+}))
+
+jest.mock('../../../skill-package/skill-package.service', () => ({
+    SkillPackageService: class SkillPackageService {}
+}))
+
+jest.mock('../../../skill-repository/repository-index/skill-repository-index.service', () => ({
+    SkillRepositoryIndexService: class SkillRepositoryIndexService {}
+}))
+
+jest.mock('../../../xpert-workspace', () => ({
+    getWorkspaceRoot: jest.fn(() => '/workspace-root')
+}))
+
+jest.mock('../../../xpert-workspace/workspace.entity', () => ({
+    XpertWorkspace: class XpertWorkspace {}
+}))
+
+jest.mock('../../../sandbox', () => ({
+    SandboxAcquireBackendCommand: class SandboxAcquireBackendCommand {
+        constructor(public readonly payload: unknown) {}
+    },
+    SandboxCopyTreeCommand: class SandboxCopyTreeCommand {
+        constructor(
+            public readonly sandbox: unknown,
+            public readonly copyTree: unknown
+        ) {}
+    }
+}))
 
 jest.mock('../../../xpert/types', () => ({
     EventNameXpertValidate: 'xpert.validate',
@@ -71,6 +104,9 @@ describe('WorkflowMiddlewareNodeValidator', () => {
     const createEvent = (draft: TXpertTeamDraft): Parameters<WorkflowMiddlewareNodeValidator['handle']>[0] => ({
         draft
     })
+
+    const createSkillsMiddlewareMeta = () =>
+        new SkillsMiddleware({} as never, {} as never, {} as never, {} as never).meta
 
     beforeEach(async () => {
         middlewareRegistry = {
@@ -137,6 +173,28 @@ describe('WorkflowMiddlewareNodeValidator', () => {
         const results = validator.handle(createEvent(createDraft(createFeatures(true))))
 
         expect(results).toEqual([])
+    })
+
+    it('returns a checklist error when skills middleware is connected and sandbox is disabled', () => {
+        middlewareRegistry.get.mockReturnValue({
+            meta: createSkillsMiddlewareMeta()
+        })
+
+        const results = validator.handle(createEvent(createDraft(undefined, SKILLS_MIDDLEWARE_NAME)))
+
+        expect(results).toEqual([
+            {
+                node: 'Middleware_1',
+                ruleCode: 'MIDDLEWARE_REQUIRED_FEATURE_DISABLED',
+                field: 'provider',
+                value: 'sandbox',
+                message: {
+                    en_US: 'Middleware "Skills Middleware" requires the xpert "sandbox" feature to be enabled',
+                    zh_Hans: '中间件 "技能中间件" 需要先开启 xpert 的 "sandbox" 功能'
+                },
+                level: 'error'
+            }
+        ])
     })
 
     it('returns a checklist error when the middleware provider is unavailable', () => {

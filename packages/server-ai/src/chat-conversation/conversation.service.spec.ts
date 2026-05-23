@@ -127,6 +127,23 @@ describe('ChatConversationService workspace files', () => {
         expect(readWorkspaceFile).toHaveBeenCalledWith('', 'README.md')
     })
 
+    it('returns download targets inside the current conversation workspace', async () => {
+        const findConversation = jest
+            .spyOn(service, 'findOne')
+            .mockResolvedValue(conversation as ChatConversation)
+        const getDownloadTarget = jest.spyOn(VolumeSubtreeClient.prototype, 'getDownloadTarget').mockResolvedValue({
+            absolutePath: '/workspace/root/docs',
+            fileName: 'docs.zip',
+            mimeType: 'application/zip',
+            type: 'directory'
+        })
+
+        await service.getWorkspaceFileDownload('conversation-1', 'docs')
+
+        expect(findConversation).toHaveBeenCalledWith('conversation-1')
+        expect(getDownloadTarget).toHaveBeenCalledWith('', 'docs')
+    })
+
     it('saves files inside the current conversation workspace', async () => {
         const findConversation = jest
             .spyOn(service, 'findOne')

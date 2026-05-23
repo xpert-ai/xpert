@@ -29,6 +29,7 @@ export class FileTreeComponent {
   readonly loading = input(false)
   readonly loadingPaths = input<Set<string>>(new Set())
   readonly canDownload = input(false)
+  readonly canDownloadDirectory = input(false)
   readonly canDelete = input(false)
   readonly canUpload = input(false)
   readonly uploadDisabled = input(false)
@@ -125,8 +126,12 @@ export class FileTreeComponent {
     return !!filePath && this.deletingPaths().has(filePath)
   }
 
+  canDownloadItem(item: FileTreeNode) {
+    return this.canDownload() && (!item.hasChildren || this.canDownloadDirectory())
+  }
+
   showActions(item: FileTreeNode) {
-    return this.canDelete() || (!item.hasChildren && this.canDownload())
+    return this.canDownloadItem(item) || this.canDelete()
   }
 
   onItemClick(item: FileTreeNode) {

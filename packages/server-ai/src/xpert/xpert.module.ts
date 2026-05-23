@@ -32,11 +32,15 @@ import { PromptWorkflowModule } from '../prompt-workflow'
 import { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 import { RuntimeCommandService } from '../ai/runtime-command.service'
 import { SseStreamModule } from '../shared/stream'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatMessage } from '../chat-message/chat-message.entity'
+import { XpertFrequentQuestionCache } from './xpert-frequent-question-cache.entity'
+import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert', module: XpertModule }]),
-        TypeOrmModule.forFeature([Xpert]),
+        TypeOrmModule.forFeature([Xpert, ChatConversation, ChatMessage, XpertFrequentQuestionCache]),
         DiscoveryModule,
         TenantModule,
         SecretTokenModule,
@@ -71,6 +75,7 @@ import { SseStreamModule } from '../shared/stream'
         XpertAuthoringMiddleware,
         RuntimeCommandService,
         RuntimeCapabilitiesService,
+        XpertFrequentQuestionsService,
         ...CommandHandlers,
         ...QueryHandlers
     ],

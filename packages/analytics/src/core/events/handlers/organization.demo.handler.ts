@@ -44,7 +44,7 @@ import {
 } from '../../entities/internal'
 import { SemanticModelUpdatedEvent } from '../../../model/events'
 import { DataSourceStrategyQuery } from '../../../data-source/queries/datasource.strategy.query'
-
+import { IndicatorService } from '../../../indicator/indicator.service'
 
 export enum InstallationModeEnum {
 	Standalone = 'standalone',
@@ -52,8 +52,8 @@ export enum InstallationModeEnum {
 	WithStarrocks = 'with-starrocks'
 }
 
-const OrganizationDemoNetworkAliyun = 'https://metad-oss.oss-cn-shanghai.aliyuncs.com/ocap/demos-v1.1.0.zip'
-const OrganizationDemoNetworkGitHub = 'https://github.com/meta-d/samples/raw/main/ocap/demos-v1.1.0.zip'
+const DefaultOrganizationDemoNetworkAliyun = 'https://metad-oss.oss-cn-shanghai.aliyuncs.com/ocap/demos-v1.2.0.zip'
+const DefaultOrganizationDemoNetworkGitHub = 'https://github.com/meta-d/samples/raw/main/ocap/demos-v1.2.0.zip'
 
 const axios = _axios.default
 
@@ -89,6 +89,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		private readonly dstRepository: Repository<DataSourceType>,
 		@InjectRepository(Project)
 		private readonly projectRepository: Repository<Project>,
+		private readonly indicatorService: IndicatorService,
 		private readonly commandBus: CommandBus,
 		private readonly eventBus: EventBus,
 		private readonly queryBus: QueryBus,
@@ -98,9 +99,9 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 	) {}
 
 	public async execute(command: OrganizationDemoCommand): Promise<void> {
-		const { id, options } = command.input as { id: string; options: OrgGenerateDemoOptions}
+		const { id, options } = command.input as { id: string; options: OrgGenerateDemoOptions }
 		const userId = RequestContext.currentUserId()
-		const organization = await this.orgRepository.findOne({where: {id}, relations: ['tenant'] })
+		const organization = await this.orgRepository.findOne({ where: { id }, relations: ['tenant'] })
 		this.organization = organization
 		this.tenant = organization.tenant
 		this.owner = RequestContext.currentUser()
@@ -108,17 +109,19 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		const isDemo = this.configService.get('demo') as boolean
 		const withDoris = this.nestConfigService.get('INSTALLATION_MODE') === InstallationModeEnum.WithDoris
 		const withStarrocks = this.nestConfigService.get('INSTALLATION_MODE') === InstallationModeEnum.WithStarrocks
-		const standalone = !this.nestConfigService.get('INSTALLATION_MODE') || this.nestConfigService.get('INSTALLATION_MODE') === InstallationModeEnum.Standalone
+		const standalone =
+			!this.nestConfigService.get('INSTALLATION_MODE') ||
+			this.nestConfigService.get('INSTALLATION_MODE') === InstallationModeEnum.Standalone
 
-		this.logger.log(`Generate demo data for tenant ${organization.tenantId}, organzation ${organization.id}, user ${userId}`)
-		
+		this.logger.log(
+			`Generate demo data for tenant ${organization.tenantId}, organzation ${organization.id}, user ${userId}`
+		)
+
 		//extracted import data files directory path
 		const samplesPath = await this.getUserSamplesPath(userId)
 		const demosFolder = path.join(samplesPath, 'demos')
-		const file = options?.source === OrganizationDemoNetworkEnum.aliyun ? OrganizationDemoNetworkAliyun
-			: options?.source === OrganizationDemoNetworkEnum.github ? OrganizationDemoNetworkGitHub
-			: options?.source
-	    const files = await this.unzipAndRead(file, samplesPath)
+		const file = this.getDemoFileSource(options?.source)
+		const files = await this.unzipAndRead(file, samplesPath)
 
 		this.logger.debug(`Start to import files in demo file: ${files}`)
 
@@ -141,7 +144,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 				>(path.join(demosFolder, file))
 			} catch (err) {
 				this.logger.error(err.message)
-				continue;
+				continue
 			}
 			for await (const {
 				name,
@@ -157,15 +160,15 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 				this.logger.debug(`		Start to import record: ${name}`)
 
 				if (withStarrocks && installationMode && installationMode !== 'with-starrocks') {
-					continue;
+					continue
 				}
 
 				if (withDoris && installationMode && installationMode !== 'with-doris') {
-					continue;
+					continue
 				}
 
 				if (standalone && installationMode && installationMode !== 'standalone') {
-					continue;
+					continue
 				}
 
 				let dataSourceId = null
@@ -191,14 +194,16 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 						name = dataSourceEntity.name
 					}
 
-					dataSourceEntity = await prepareDataSource(await this.dsRepository.findOne({
-						where: {
-							tenantId: this.tenant.id,
-							organizationId: this.organization.id,
-							name
-						},
-						relations: ['type', 'authentications']
-					}))
+					dataSourceEntity = await prepareDataSource(
+						await this.dsRepository.findOne({
+							where: {
+								tenantId: this.tenant.id,
+								organizationId: this.organization.id,
+								name
+							},
+							relations: ['type', 'authentications']
+						})
+					)
 				}
 
 				if (options.importData && !isDemo && dataset) {
@@ -213,21 +218,30 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 					// Create dataSource runner
 					const isDev = process.env.NODE_ENV === 'development'
 					// const runner = createQueryRunnerByType(dataSourceEntity.type.type, {...dataSourceEntity.options, debug: isDev, trace: isDev})
-					const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSourceEntity.type.type, {...dataSourceEntity.options, debug: isDev, trace: isDev}))
+					const runner = await this.queryBus.execute(
+						new DataSourceStrategyQuery(dataSourceEntity.type.type, {
+							...dataSourceEntity.options,
+							debug: isDev,
+							trace: isDev
+						})
+					)
 
 					for await (const item of dataset) {
 						this.logger.debug(`			Start to import dataset file: ${item.fileUrl}`)
 						try {
 							// Load data file into database table
 							await importSheetTables(runner, [item], {
-								stream: (withDoris || withStarrocks) ? fs.createReadStream(path.join(demosFolder, item.fileUrl)) : null,
+								stream:
+									withDoris || withStarrocks
+										? fs.createReadStream(path.join(demosFolder, item.fileUrl))
+										: null,
 								fieldname: '',
 								originalname: '',
 								path: path.join(demosFolder, item.fileUrl),
 								encoding: '',
 								mimetype: 'text/csv'
 							} as any)
-						} catch(err) {
+						} catch (err) {
 							runner.teardown()
 							throw new Error(`Can't import dataset file: ${item.fileUrl} with error: ${err.message}`)
 						}
@@ -288,10 +302,26 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 
 		// Delete the samples folder
 		// fs.rmSync(samplesPath, { recursive: true, force: true })
-		
+
 		this.logger.debug(`Generate demo data all done!`)
 
 		return Promise.resolve()
+	}
+
+	private getDemoSourceUrl(envKey: string, fallback: string): string {
+		return this.nestConfigService.get<string>(envKey) || fallback
+	}
+
+	private getDemoFileSource(source?: OrgGenerateDemoOptions['source']): string | undefined {
+		if (source === OrganizationDemoNetworkEnum.aliyun) {
+			return this.getDemoSourceUrl('ORG_DEMO_ALIYUN_URL', DefaultOrganizationDemoNetworkAliyun)
+		}
+
+		if (source === OrganizationDemoNetworkEnum.github) {
+			return this.getDemoSourceUrl('ORG_DEMO_GITHUB_URL', DefaultOrganizationDemoNetworkGitHub)
+		}
+
+		return source
 	}
 
 	async getUserSamplesPath(userId: string) {
@@ -313,7 +343,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 
 	public async unzipAndRead(url: string, assetPath = '') {
 		const demoFilePath = path.join(assetPath, 'demos.zip')
-		
+
 		await this.downloadDemoFile(url, demoFilePath)
 		await decompress(demoFilePath, assetPath)
 
@@ -332,15 +362,15 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 			url,
 			method: 'GET',
 			responseType: 'stream'
-		  })
-		
-		response.data.pipe(writer)
-	  
-		return new Promise<void>((resolve, reject) => {
-		  writer.on('finish', () => resolve())
-		  writer.on('error', reject)
 		})
-	  }
+
+		response.data.pipe(writer)
+
+		return new Promise<void>((resolve, reject) => {
+			writer.on('finish', () => resolve())
+			writer.on('error', reject)
+		})
+	}
 
 	async createDorisDataSource(_dataSource: IDataSource): Promise<DataSource> {
 		// Remove existing data sources with the same name
@@ -374,17 +404,20 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		const dorisDatabase = this.nestConfigService.get('DORIS_DATABASE', 'demo')
 		const dorisApiHost = this.nestConfigService.get('DORIS_API_HOST', '')
 		const dorisApiPort = this.nestConfigService.get('DORIS_API_PORT', '8030')
-		dataSource.options = assign({
-			host: dorisHost,
-			port: dorisPort,
-			// catalog 当前充当了 database 的角色， 后续要分开理清
-			catalog: dorisDatabase,
-			database: dorisDatabase,
-			username: dorisUsername,
-			password: dorisPassword,
-			apiHost: dorisApiHost,
-			apiPort: dorisApiPort,
-		}, _dataSource.options)
+		dataSource.options = assign(
+			{
+				host: dorisHost,
+				port: dorisPort,
+				// catalog 当前充当了 database 的角色， 后续要分开理清
+				catalog: dorisDatabase,
+				database: dorisDatabase,
+				username: dorisUsername,
+				password: dorisPassword,
+				apiHost: dorisApiHost,
+				apiPort: dorisApiPort
+			},
+			_dataSource.options
+		)
 
 		return await this.dsRepository.save(dataSource)
 	}
@@ -422,18 +455,21 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		const starrocksDatabase = this.nestConfigService.get('STARROCKS_DATABASE', 'demo')
 		const starrocksApiHost = this.nestConfigService.get('STARROCKS_API_HOST', '')
 		const starrocksApiPort = this.nestConfigService.get('STARROCKS_API_PORT', '8030')
-		dataSource.options = assign({
-			version: starrocksVersion,
-			host: starrocksHost,
-			port: starrocksPort,
-			// catalog 当前充当了 database 的角色， 后续要分开理清
-			catalog: starrocksDatabase,
-			database: starrocksDatabase,
-			username: starrocksUsername,
-			password: starrocksPassword,
-			apiHost: starrocksApiHost,
-			apiPort: starrocksApiPort,
-		}, _dataSource.options)
+		dataSource.options = assign(
+			{
+				version: starrocksVersion,
+				host: starrocksHost,
+				port: starrocksPort,
+				// catalog 当前充当了 database 的角色， 后续要分开理清
+				catalog: starrocksDatabase,
+				database: starrocksDatabase,
+				username: starrocksUsername,
+				password: starrocksPassword,
+				apiHost: starrocksApiHost,
+				apiPort: starrocksApiPort
+			},
+			_dataSource.options
+		)
 
 		return await this.dsRepository.save(dataSource)
 	}
@@ -537,19 +573,21 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 						organizationId: this.organization.id,
 						name: semanticModel.dataSourceId
 					})
-			  ).id
+				).id
 			: dataSourceId
-		model.businessAreaId = semanticModel.businessAreaId ? (
-				await this.businessAreaRepository.findOneBy({
-					tenantId: this.tenant.id,
-					organizationId: this.organization.id,
-					name: semanticModel.businessAreaId
-				})
-			)?.id : null
+		model.businessAreaId = semanticModel.businessAreaId
+			? (
+					await this.businessAreaRepository.findOneBy({
+						tenantId: this.tenant.id,
+						organizationId: this.organization.id,
+						name: semanticModel.businessAreaId
+					})
+				)?.id
+			: null
 		model = await this.modelRepository.save(model)
 
 		model = await this.modelRepository.findOne({
-			where: {id: model.id},
+			where: { id: model.id },
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
@@ -628,7 +666,8 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 			calendar: indicator.calendar,
 			...(indicator.options ?? {})
 		}
-		return await this.indicatorRepository.save(_indicator)
+		const saved = await this.indicatorRepository.save(_indicator)
+		return indicator.isActive === true ? await this.indicatorService.publish(saved.id) : saved
 	}
 
 	async createStory(semanticModelId: string, story: IStory) {
@@ -648,13 +687,15 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		// 			})
 		// 	  ).id
 		// 	: semanticModelId
-		_story.models = await Promise.all(story.models.map((model) => {
-			return this.modelRepository.findOneBy({
-				tenantId: this.tenant.id,
-				organizationId: this.organization.id,
-				key: model.key
+		_story.models = await Promise.all(
+			story.models.map((model) => {
+				return this.modelRepository.findOneBy({
+					tenantId: this.tenant.id,
+					organizationId: this.organization.id,
+					key: model.key
+				})
 			})
-		}))
+		)
 		_story.status = StoryStatusEnum.RELEASED
 		_story.visibility = Visibility.Private
 		_story.businessAreaId = story.businessAreaId
@@ -664,7 +705,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 						organizationId: this.organization.id,
 						name: story.businessAreaId
 					})
-			  )?.id
+				)?.id
 			: null
 
 		_story = await this.storyRepository.save(_story)

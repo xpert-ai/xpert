@@ -21,6 +21,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { createReadStream } from 'fs'
 import type { Response } from 'express'
+import archiver from 'archiver'
 import { SkillPackage } from './skill-package.entity'
 import { InstallGithubSkillPackagesInput, SkillPackageService } from './skill-package.service'
 import { WorkspaceGuard } from '../xpert-workspace'
@@ -171,6 +172,18 @@ export class SkillPackageController {
 			'Content-Disposition',
 			`attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
 		)
+
+		if (file.type === 'directory') {
+			const archive = archiver('zip', { zlib: { level: 9 } })
+			archive.on('error', (error) => {
+				res.destroy(error)
+			})
+			archive.pipe(res)
+			archive.directory(file.absolutePath, false)
+			await archive.finalize()
+			return
+		}
+
 		createReadStream(file.absolutePath).pipe(res)
 	}
 

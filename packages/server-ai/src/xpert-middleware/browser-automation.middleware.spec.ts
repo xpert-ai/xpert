@@ -118,6 +118,42 @@ function readObjectField(value: unknown, field: string): object {
     return fieldValue
 }
 
+function parseJsonContent(value: unknown): object {
+    const content = readStringField(value, 'content')
+    const parsed = JSON.parse(content) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Expected JSON object content.')
+    }
+
+    return parsed
+}
+
+function readRecordField(value: unknown, field: string): object {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error(`Expected payload object with object field ${field}.`)
+    }
+
+    const fieldValue = Reflect.get(value, field)
+    if (!fieldValue || typeof fieldValue !== 'object' || Array.isArray(fieldValue)) {
+        throw new Error(`Expected object field ${field}.`)
+    }
+
+    return fieldValue
+}
+
+function readArrayField(value: unknown, field: string): unknown[] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error(`Expected payload object with array field ${field}.`)
+    }
+
+    const fieldValue = Reflect.get(value, field)
+    if (!Array.isArray(fieldValue)) {
+        throw new Error(`Expected array field ${field}.`)
+    }
+
+    return fieldValue
+}
+
 async function flushPromises() {
     for (let index = 0; index < 5; index += 1) {
         await Promise.resolve()
@@ -173,6 +209,174 @@ describe('BrowserAutomationMiddleware', () => {
                 expect(schema).not.toHaveProperty(keyword)
             }
         }
+    })
+
+    it('exposes host_page_snapshot pagination parameters', () => {
+        const snapshotTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_snapshot')
+        const snapshotSchema = JSON.parse(snapshotTool?.schema ?? '{}')
+
+        expect(snapshotSchema.properties).toEqual(
+            expect.objectContaining({
+                page: expect.objectContaining({
+                    type: 'number',
+                    minimum: 1
+                }),
+                pageSize: expect.objectContaining({
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 100
+                }),
+                snapshotId: expect.objectContaining({
+                    type: 'string'
+                }),
+                includeIndex: expect.objectContaining({
+                    type: 'boolean'
+                })
+            })
+        )
+    })
+
+    it('describes how agents should use paginated host_page_snapshot results', () => {
+        const snapshotTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_snapshot')
+
+        expect(snapshotTool?.description).toContain('_xpertPagination')
+        expect(snapshotTool?.description).toContain('criticalElements')
+        expect(snapshotTool?.description).toContain('snapshotId')
+        expect(snapshotTool?.description).toContain('includeIndex=false')
+        expect(snapshotTool?.description).toContain('readableContent')
+        expect(snapshotTool?.description).toContain('outline')
+        expect(snapshotTool?.description).toContain('suggestedReads')
+        expect(snapshotTool?.description).toContain('host_page_read')
+        expect(snapshotTool?.description).toContain('target_occluded')
+    })
+
+    it('exposes host_page_read for paginated readable content retrieval', () => {
+        const readTool = BROWSER_AUTOMATION_CLIENT_TOOLS.find((tool) => tool.name === 'host_page_read')
+        const readSchema = JSON.parse(readTool?.schema ?? '{}')
+
+        expect(readTool?.description).toContain('readableContent')
+        expect(readTool?.description).toContain('blockId')
+        expect(readSchema.properties).not.toHaveProperty('snapshotId')
+        expect(readSchema.properties).toEqual(
+            expect.objectContaining({
+                blockId: expect.objectContaining({
+                    type: 'string'
+                }),
+                scope: expect.objectContaining({
+                    type: 'string',
+                    enum: ['visible']
+                }),
+                query: expect.objectContaining({
+                    type: 'string'
+                }),
+                page: expect.objectContaining({
+                    type: 'number',
+                    minimum: 1
+                }),
+                pageSize: expect.objectContaining({
+                    type: 'number',
+                    minimum: 1,
+                    maximum: 100
+                }),
+                maxChars: expect.objectContaining({
+                    type: 'number',
+                    minimum: 500,
+                    maximum: 12000
+                })
+            })
+        )
+    })
+
+    it('compacts large host_page_read results to the requested maxChars budget', async () => {
+        const rawRead = {
+            ok: true,
+            result: {
+                scope: 'visible',
+                blocks: Array.from({ length: 24 }, (_, index) => ({
+                    blockId: `b${index + 1}`,
+                    type: 'list',
+                    heading: `Readable block ${index + 1}`,
+                    items: Array.from(
+                        { length: 12 },
+                        (__, itemIndex) => `Item ${index}.${itemIndex} ${'long content '.repeat(40)}`
+                    ),
+                    preview: [`Item ${index}.0`],
+                    itemCount: 12,
+                    chars: 9_000,
+                    truncated: true,
+                    readHint: {
+                        tool: 'host_page_read',
+                        args: {
+                            blockId: `b${index + 1}`
+                        }
+                    }
+                })),
+                page: 1,
+                pageSize: 24,
+                pageCount: 1,
+                coverage: {
+                    status: 'partial',
+                    visibleTextCaptured: true,
+                    truncatedBlocks: 24,
+                    collapsedSections: 0,
+                    crossOriginFrames: 0,
+                    virtualizedListsDetected: 0,
+                    visualOnlyRegions: 0
+                }
+            }
+        }
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'read-call-1',
+                    content: rawRead,
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'read-call-1',
+                    name: 'host_page_read',
+                    args: {
+                        pageSize: 24,
+                        maxChars: 500
+                    }
+                },
+                tool: getTool(middleware, 'host_page_read'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_read',
+                    tool_call_id: 'read-call-1'
+                })
+        )
+
+        const compactedContent = readStringField(result, 'content')
+        expect(compactedContent.length).toBeLessThanOrEqual(500)
+        expect(compactedContent).not.toContain('long content long content long content')
+
+        const payload = parseJsonContent(result)
+        const resultPayload = readRecordField(payload, 'result')
+        expect(resultPayload).toEqual(
+            expect.objectContaining({
+                truncated: true,
+                _xpertCompaction: expect.objectContaining({
+                    compacted: true
+                })
+            })
+        )
     })
 
     it('exposes rich browser automation targeting schemas', () => {
@@ -375,8 +579,8 @@ describe('BrowserAutomationMiddleware', () => {
         )
     })
 
-    it('compacts host_page_snapshot results before returning tool messages and emitting display output', async () => {
-        const elements = Array.from({ length: 60 }, (_, index) => ({
+    it('paginates large host_page_snapshot results and keeps critical controls in the index', async () => {
+        const textElements = Array.from({ length: 64 }, (_, index) => ({
             ref: `e${index}`,
             role: 'textbox',
             name: `Field ${index} ${'label '.repeat(60)}`,
@@ -400,6 +604,32 @@ describe('BrowserAutomationMiddleware', () => {
                 text: 'stack '.repeat(80)
             }))
         }))
+        const elements = [
+            ...textElements,
+            {
+                ref: 'e64',
+                role: 'checkbox',
+                name: '我已阅读并确认遵守公司差旅政策',
+                label: '我已阅读并确认遵守公司差旅政策',
+                tag: 'input',
+                selector: '#promisePolicy',
+                checked: false,
+                enabled: true,
+                visible: true,
+                actionable: true,
+                rect: {
+                    x: 505,
+                    y: 1120,
+                    width: 20,
+                    height: 20
+                },
+                center: {
+                    x: 515,
+                    y: 1130
+                },
+                nearbyText: ['我已阅读并确认遵守公司差旅政策']
+            }
+        ]
         const rawSnapshot = {
             ok: true,
             result: {
@@ -413,6 +643,10 @@ describe('BrowserAutomationMiddleware', () => {
                 viewport: {
                     width: 1440,
                     height: 900
+                },
+                scroll: {
+                    x: 0,
+                    y: 0
                 },
                 elements
             }
@@ -439,7 +673,8 @@ describe('BrowserAutomationMiddleware', () => {
                     name: 'host_page_snapshot',
                     args: {
                         mode: 'rich',
-                        maxElements: 250
+                        maxElements: 250,
+                        pageSize: 30
                     }
                 },
                 tool: getTool(middleware, 'host_page_snapshot'),
@@ -460,12 +695,321 @@ describe('BrowserAutomationMiddleware', () => {
         const compactedContent = readStringField(result, 'content')
         expect(compactedContent.length).toBeLessThan(rawContent.length)
         expect(compactedContent.length).toBeLessThanOrEqual(24_000)
-        expect(compactedContent).toContain('_xpertCompaction')
+        expect(compactedContent).toContain('_xpertPagination')
         expect(compactedContent).not.toContain('stack stack stack stack stack')
+
+        const payload = parseJsonContent(result)
+        const resultPayload = readRecordField(payload, 'result')
+        const pagination = readRecordField(resultPayload, '_xpertPagination')
+        expect(pagination).toEqual(
+            expect.objectContaining({
+                page: 1,
+                pageSize: 30,
+                pageCount: 3,
+                totalElements: 65,
+                indexIncluded: true
+            })
+        )
+        expect(typeof Reflect.get(pagination, 'snapshotId')).toBe('string')
+        expect(readArrayField(resultPayload, 'pages')).toHaveLength(3)
+        expect(readArrayField(resultPayload, 'elements')).toHaveLength(30)
+        expect(JSON.stringify(readArrayField(resultPayload, 'elements'))).not.toContain('#promisePolicy')
+        expect(JSON.stringify(readArrayField(resultPayload, 'criticalElements'))).toContain('#promisePolicy')
 
         const successPayload = mockDispatchCustomEvent.mock.calls[1]?.[1]
         const emittedOutput = readStringField(successPayload, 'output')
         expect(emittedOutput).toBe(compactedContent)
+    })
+
+    it('compacts readableContent summaries while preserving read hints', async () => {
+        const readableBlocks = Array.from({ length: 32 }, (_, blockIndex) => ({
+            blockId: `b${blockIndex + 1}`,
+            type: 'keyValueList',
+            heading: `Details ${blockIndex}`,
+            fields: Array.from({ length: 18 }, (__, fieldIndex) => ({
+                name: `Field ${blockIndex}.${fieldIndex}`,
+                value: `Value ${blockIndex}.${fieldIndex} ${'long text '.repeat(60)}`
+            })),
+            preview: [`Field ${blockIndex}.0: Value ${blockIndex}.0`],
+            itemCount: 18,
+            chars: 12_000,
+            truncated: true,
+            readHint: {
+                tool: 'host_page_read',
+                args: {
+                    blockId: `b${blockIndex + 1}`
+                }
+            }
+        }))
+        const rawSnapshot = {
+            ok: true,
+            result: {
+                url: 'https://example.com/product',
+                title: 'Product',
+                readableContent: {
+                    blocks: readableBlocks,
+                    outline: readableBlocks.map((block, index) => ({
+                        index,
+                        blockId: block.blockId,
+                        type: block.type,
+                        heading: block.heading,
+                        itemCount: block.itemCount,
+                        chars: block.chars,
+                        truncated: block.truncated
+                    })),
+                    suggestedReads: readableBlocks.slice(0, 14).map((block) => ({
+                        blockId: block.blockId,
+                        type: block.type,
+                        heading: block.heading,
+                        reason: 'structured_fields',
+                        args: {
+                            blockId: block.blockId,
+                            pageSize: 18
+                        }
+                    })),
+                    totalBlocks: readableBlocks.length,
+                    truncated: true,
+                    coverage: {
+                        status: 'partial',
+                        visibleTextCaptured: true,
+                        truncatedBlocks: readableBlocks.length,
+                        collapsedSections: 1,
+                        crossOriginFrames: 0,
+                        virtualizedListsDetected: 0,
+                        visualOnlyRegions: 0
+                    },
+                    warnings: ['Some content is inside collapsed sections.']
+                },
+                elements: [
+                    {
+                        ref: 'e1',
+                        role: 'button',
+                        name: 'Buy now',
+                        selector: '#buy',
+                        enabled: true,
+                        visible: true,
+                        actionable: true,
+                        receivesEvents: true,
+                        safeClickPoints: [{ x: 10, y: 20 }]
+                    }
+                ]
+            }
+        }
+        const rawContent = JSON.stringify(rawSnapshot)
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'snapshot-call-1',
+                    content: rawSnapshot,
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'snapshot-call-1',
+                    name: 'host_page_snapshot',
+                    args: {
+                        mode: 'rich',
+                        pageSize: 30
+                    }
+                },
+                tool: getTool(middleware, 'host_page_snapshot'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_snapshot',
+                    tool_call_id: 'snapshot-call-1'
+                })
+        )
+
+        const compactedContent = readStringField(result, 'content')
+        expect(compactedContent.length).toBeLessThan(rawContent.length)
+        expect(compactedContent.length).toBeLessThanOrEqual(24_000)
+        expect(compactedContent).not.toContain('long text '.repeat(20).trim())
+
+        const payload = parseJsonContent(result)
+        const resultPayload = readRecordField(payload, 'result')
+        const readableContent = readRecordField(resultPayload, 'readableContent')
+        const blocks = readArrayField(readableContent, 'blocks')
+        const outline = readArrayField(readableContent, 'outline')
+        const suggestedReads = readArrayField(readableContent, 'suggestedReads')
+
+        expect(blocks).toHaveLength(16)
+        expect(Reflect.get(readableContent, '_truncatedBlocks')).toBe(16)
+        expect(outline).toHaveLength(32)
+        expect(JSON.stringify(outline)).toContain('b32')
+        expect(JSON.stringify(outline)).not.toContain('long text')
+        expect(suggestedReads).toHaveLength(12)
+        expect(Reflect.get(readableContent, '_truncatedSuggestedReads')).toBe(2)
+        expect(readArrayField(blocks[0], 'fields')).toHaveLength(4)
+        expect(blocks[0]).toEqual(
+            expect.objectContaining({
+                _truncatedFields: 14,
+                readHint: {
+                    tool: 'host_page_read',
+                    args: {
+                        blockId: 'b1'
+                    }
+                }
+            })
+        )
+    })
+
+    it('returns the requested host_page_snapshot page without the index by default', async () => {
+        const elements = Array.from({ length: 65 }, (_, index) => ({
+            ref: `e${index}`,
+            role: 'textbox',
+            name: `Field ${index}`,
+            selector: `#field-${index}`,
+            enabled: true,
+            visible: true,
+            actionable: true
+        }))
+        const rawSnapshot = {
+            ok: true,
+            result: {
+                url: 'https://example.com/form',
+                title: 'Paged form',
+                elements
+            }
+        }
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'snapshot-call-1',
+                    content: rawSnapshot,
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'snapshot-call-1',
+                    name: 'host_page_snapshot',
+                    args: {
+                        snapshotId: 'snapshot-previous',
+                        page: 3,
+                        pageSize: 30
+                    }
+                },
+                tool: getTool(middleware, 'host_page_snapshot'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_snapshot',
+                    tool_call_id: 'snapshot-call-1'
+                })
+        )
+
+        const payload = parseJsonContent(result)
+        const resultPayload = readRecordField(payload, 'result')
+        const pagination = readRecordField(resultPayload, '_xpertPagination')
+        const pageElements = readArrayField(resultPayload, 'elements')
+
+        expect(pagination).toEqual(
+            expect.objectContaining({
+                snapshotId: 'snapshot-previous',
+                page: 3,
+                pageSize: 30,
+                pageCount: 3,
+                totalElements: 65,
+                indexIncluded: false
+            })
+        )
+        expect(pageElements).toHaveLength(5)
+        expect(pageElements[0]).toEqual(expect.objectContaining({ ref: 'e60' }))
+        expect(resultPayload).not.toHaveProperty('pages')
+        expect(resultPayload).not.toHaveProperty('criticalElements')
+    })
+
+    it('leaves already paginated host_page_snapshot responses unchanged when they fit the content budget', async () => {
+        const rawSnapshot = {
+            ok: true,
+            result: {
+                url: 'https://example.com/form',
+                title: 'Paged form',
+                elements: [
+                    {
+                        ref: 'e60',
+                        role: 'textbox',
+                        name: 'Field 60',
+                        selector: '#field-60'
+                    }
+                ],
+                _xpertPagination: {
+                    snapshotId: 'snapshot-client',
+                    page: 3,
+                    pageSize: 30,
+                    pageCount: 3,
+                    totalElements: 65,
+                    indexIncluded: false
+                }
+            }
+        }
+        const rawContent = JSON.stringify(rawSnapshot)
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'snapshot-call-1',
+                    content: rawSnapshot,
+                    status: 'success'
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'snapshot-call-1',
+                    name: 'host_page_snapshot',
+                    args: {
+                        snapshotId: 'snapshot-client',
+                        page: 3,
+                        pageSize: 30
+                    }
+                },
+                tool: getTool(middleware, 'host_page_snapshot'),
+                state: {
+                    messages: []
+                },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_snapshot',
+                    tool_call_id: 'snapshot-call-1'
+                })
+        )
+
+        expect(readStringField(result, 'content')).toBe(rawContent)
     })
 
     it('leaves small host_page_snapshot results unchanged', async () => {

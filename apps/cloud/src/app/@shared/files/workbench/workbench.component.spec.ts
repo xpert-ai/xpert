@@ -68,6 +68,7 @@ jest.mock('../tree/tree.component', () => {
     @Input() uploading?: boolean
     @Input() uploadTargetHint?: string | null
     @Input() canDownload?: boolean
+    @Input() canDownloadDirectory?: boolean
     @Input() canDelete?: boolean
     @Input() downloadingPaths?: Set<string>
     @Input() deletingPaths?: Set<string>
@@ -137,6 +138,7 @@ async function setup(options?: {
   rootFiles?: TFileDirectory[]
   nestedFiles?: Record<string, TFileDirectory[]>
   fileContents?: Record<string, TFile>
+  fileDownloader?: jest.Mock
   referenceable?: boolean
 }) {
   const rootFiles =
@@ -207,6 +209,7 @@ async function setup(options?: {
     } as TFile)
   )
   const fileDeleter = jest.fn(() => of(undefined))
+  const fileDownloader = options?.fileDownloader
 
   TestBed.resetTestingModule()
   await TestBed.configureTestingModule({
@@ -227,6 +230,9 @@ async function setup(options?: {
   fixture.componentRef.setInput('fileSaver', fileSaver)
   fixture.componentRef.setInput('fileUploader', fileUploader)
   fixture.componentRef.setInput('fileDeleter', fileDeleter)
+  if (fileDownloader) {
+    fixture.componentRef.setInput('fileDownloader', fileDownloader)
+  }
   fixture.componentRef.setInput('referenceable', options?.referenceable ?? false)
   fixture.detectChanges()
   await fixture.whenStable()
@@ -276,6 +282,34 @@ describe('FileWorkbenchComponent', () => {
     expect((component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.[0]?.fullPath).toBe(
       'docs/guide.md'
     )
+  })
+
+  it('downloads folder nodes through the configured downloader', async () => {
+    const fileDownloader = jest.fn(() =>
+      of({
+        kind: 'url',
+        url: '/download/docs',
+        fileName: 'docs.zip'
+      })
+    )
+    const { component } = await setup({ fileDownloader })
+    const docsNode = component.fileTree().find((item) => item.fullPath === 'docs')
+    expect(docsNode).toBeDefined()
+    if (!docsNode) {
+      throw new Error('Expected docs node to be present')
+    }
+
+    await component.downloadTreeFile(docsNode)
+
+    expect(fileDownloader).toHaveBeenCalledWith('docs', expect.objectContaining({ hasChildren: true }))
+  })
+
+  it('does not enable folder downloads without a configured downloader', async () => {
+    const { fixture } = await setup()
+    const tree = fixture.debugElement.query(By.directive(MockFileTreeComponent)).componentInstance as any
+
+    expect(tree.canDownload).toBe(true)
+    expect(tree.canDownloadDirectory).toBe(false)
   })
 
   it('supports markdown edit and save', async () => {

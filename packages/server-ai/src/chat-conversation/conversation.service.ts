@@ -176,6 +176,12 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         return client.readFile(scopePath, filePath)
     }
 
+    async getWorkspaceFileDownload(id: string, filePath: string) {
+        const conversation = await this.findOne(id)
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        return client.getDownloadTarget(scopePath, filePath)
+    }
+
     async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
         const conversation = await this.findOne(id)
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)

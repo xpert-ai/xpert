@@ -32,6 +32,7 @@ jest.mock('../../../@shared/files', () => {
     @Input() fileSaver?: unknown
     @Input() fileDeleter?: unknown
     @Input() fileUploader?: unknown
+    @Input() fileDownloader?: unknown
     @Input() referenceable?: boolean
     @Input() reloadKey?: number
     @Input() treeSize?: 'sm' | 'default' | 'lg'
@@ -48,7 +49,8 @@ describe('ClawXpertConversationFilesComponent', () => {
   const conversationService = {
     getFiles: jest.fn(),
     getFile: jest.fn(),
-    saveFile: jest.fn()
+    saveFile: jest.fn(),
+    downloadFile: jest.fn()
   }
 
   beforeEach(async () => {
@@ -97,6 +99,7 @@ describe('ClawXpertConversationFilesComponent', () => {
     expect(typeof workbench.filesLoader).toBe('function')
     expect(typeof workbench.fileLoader).toBe('function')
     expect(typeof workbench.fileSaver).toBe('function')
+    expect(typeof workbench.fileDownloader).toBe('function')
     expect(workbench.reloadKey).toBe(3)
   })
 

@@ -64,7 +64,15 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
             : (xpert as IXpert)
 
         const abortController = new AbortController()
-        signal?.addEventListener('abort', () => abortController.abort())
+        const abortHandler = () => abortController.abort()
+        signal?.addEventListener('abort', abortHandler)
+        abortController.signal.addEventListener(
+            'abort',
+            () => {
+                signal?.removeEventListener('abort', abortHandler)
+            },
+            { once: true }
+        )
 
         const startNodes = options.startNodes?.length ? options.startNodes : getWorkflowStartNodes(subGraph)
         if (!startNodes.length) {
@@ -317,14 +325,10 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
         }
 
         Object.keys(nodes).forEach((name) => {
-            subgraphBuilder.addNode(
-                nodes[name].name || name,
-                nodes[name].graph.withConfig({ signal: abortController.signal }),
-                {
-                    ends: nodes[name].ends,
-                    defer: hasMultipleInputs(subGraph, name)
-                }
-            )
+            subgraphBuilder.addNode(nodes[name].name || name, nodes[name].graph, {
+                ends: nodes[name].ends,
+                defer: hasMultipleInputs(subGraph, name)
+            })
         })
 
         Object.entries(edges).forEach(([name, value]) => {
