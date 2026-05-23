@@ -28,6 +28,7 @@
         "@notionhq/client": "2.2.15",
         "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
         "@sap_oss/odata-library": "2.4.0",
+        "archiver": "^7.0.1",
         "duck-duck-scrape": "^2.2.5",
         "cronstrue": "2.53.0",
         "epub2": "^3.0.2",
@@ -45,6 +46,7 @@
         "playwright": "^1.50.1",
         "python-shell": "5.0.0",
         "tar": "^7.5.13",
+        "tslib": "^2.3.0",
         "turndown": "7.2.0",
         "zod-to-json-schema": "^3.23.2"
     },

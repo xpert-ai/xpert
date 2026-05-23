@@ -1733,6 +1733,9 @@ importers:
       '@xpert-ai/chatkit-types':
         specifier: 0.3.8
         version: 0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      archiver:
+        specifier: ^7.0.1
+        version: 7.0.1
       cronstrue:
         specifier: 2.53.0
         version: 2.53.0
@@ -1784,6 +1787,9 @@ importers:
       tar:
         specifier: ^7.5.13
         version: 7.5.13
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
       turndown:
         specifier: 7.2.0
         version: 7.2.0
