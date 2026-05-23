@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.9.9
+
+### Patch Changes
+
+- 2acc11a: fqa of xpert agent
+
 ## 3.9.8
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @xpert-ai/plugin-textsplitter-common
 
+## 0.0.9
+
+### Patch Changes
+
+- @xpert-ai/plugin-sdk@3.9.9
+
 ## 0.0.8
 
 ### Patch Changes
