@@ -1739,9 +1739,6 @@ importers:
       cronstrue:
         specifier: 2.53.0
         version: 2.53.0
-      duck-duck-scrape:
-        specifier: ^2.2.5
-        version: 2.2.7
       epub2:
         specifier: ^3.0.2
         version: 3.0.2(ts-toolbelt@9.6.0)

@@ -6,7 +6,6 @@ import { ToolsetFolderPath } from '../../types'
 import { BingToolset } from './bing/bing'
 import { DingTalkToolset } from './dingtalk/dingtalk'
 import { DiscordToolset } from './discord/discord'
-import { DuckDuckGoToolset } from './duckduckgo/duckduckgo'
 import { EmailToolset } from './email/email'
 import { SearchAPIToolset } from './searchapi/searchapi'
 import { SerperToolset } from './serper/serper'
@@ -28,7 +27,6 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
             TavilyToolset,
             SearchAPIToolset,
             EmailToolset,
-            DuckDuckGoToolset,
             BingToolset,
             DingTalkToolset,
             SlackToolset,
