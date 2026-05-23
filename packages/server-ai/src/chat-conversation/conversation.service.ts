@@ -199,6 +199,19 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     private createWorkspaceVolumeClient(conversation: ChatConversation) {
+        const sandboxEnvironmentId = conversation.options?.sandboxEnvironmentId?.trim()
+        if (sandboxEnvironmentId) {
+            return {
+                client: new VolumeSubtreeClient(
+                    this.createEnvironmentVolumeHandle(conversation, sandboxEnvironmentId),
+                    {
+                        allowRootWorkspace: true
+                    }
+                ),
+                scopePath: ''
+            }
+        }
+
         if (conversation.projectId) {
             return {
                 client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
@@ -218,6 +231,15 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         }
 
         throw new BadRequestException('Non-project conversations require xpertId to access workspace files')
+    }
+
+    private createEnvironmentVolumeHandle(conversation: ChatConversation, sandboxEnvironmentId: string) {
+        return this.volumeClient.resolve({
+            tenantId: conversation.tenantId,
+            catalog: 'environment',
+            environmentId: sandboxEnvironmentId,
+            userId: conversation.createdById
+        })
     }
 
     private createProjectVolumeHandle(conversation: ChatConversation) {
