@@ -3,6 +3,7 @@ import { BrowserAutomationMiddleware } from './browser-automation.middleware'
 import { ClientToolMiddleware } from './client-tool.middleware'
 import { ContextCompressionMiddleware } from './context-compression.middleware'
 import { HumanInTheLoopMiddleware } from './human-in-the-loop.middleware'
+import { OfficeAutomationMiddleware } from './office-automation.middleware'
 import { RalphLoopMiddleware } from './ralph-loop.middleware'
 
 @Module({
@@ -11,6 +12,7 @@ import { RalphLoopMiddleware } from './ralph-loop.middleware'
         ClientToolMiddleware,
         ContextCompressionMiddleware,
         HumanInTheLoopMiddleware,
+        OfficeAutomationMiddleware,
         RalphLoopMiddleware
     ],
     exports: [
@@ -18,6 +20,7 @@ import { RalphLoopMiddleware } from './ralph-loop.middleware'
         ClientToolMiddleware,
         ContextCompressionMiddleware,
         HumanInTheLoopMiddleware,
+        OfficeAutomationMiddleware,
         RalphLoopMiddleware
     ]
 })
