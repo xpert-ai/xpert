@@ -1,4 +1,5 @@
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { GetFilePreviewQuery } from '../../file-understanding'
 import { createHumanMessage } from './message'
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
 
@@ -177,5 +178,65 @@ describe('createHumanMessage', () => {
                 text: expect.stringContaining('[Image] reference-only.png')
             }
         ])
+    })
+
+    it('adds file understanding cards without inlining preview chunks', async () => {
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof GetFilePreviewQuery) {
+                    return {
+                        file: {
+                            summary: 'preview summary',
+                            workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/report.pdf'
+                        },
+                        chunks: [
+                            {
+                                id: 'chunk-1',
+                                orderNo: 0,
+                                anchor: { page: 1 },
+                                content: 'FULL_FILE_TEXT_SHOULD_NOT_BE_IN_PROMPT'
+                            }
+                        ]
+                    }
+                }
+                return null
+            })
+        }
+        const commandBus = {
+            execute: jest.fn()
+        }
+
+        const message = await createHumanMessage(
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                human: {
+                    input: 'What is this?',
+                    files: [
+                        {
+                            filePath: '/tmp/report.pdf',
+                            originalName: 'report.pdf',
+                            mimeType: 'application/pdf',
+                            fileAsset: {
+                                id: 'file-asset-1',
+                                status: 'ready',
+                                capabilities: ['preview', 'read', 'search', 'workspace'],
+                                summary: 'A'.repeat(900)
+                            }
+                        } as any
+                    ]
+                }
+            },
+            undefined
+        )
+
+        expect(Array.isArray(message.content)).toBe(true)
+        const fileCard = (message.content as Array<{ type: string; text?: string }>)[0].text
+        expect(fileCard).toContain('fileId: file-asset-1')
+        expect(fileCard).toContain('workspacePath: /workspace/sessions/conversation-1/files/file-asset-1/report.pdf')
+        expect(fileCard).toContain('availableAnchors: page 1')
+        expect(fileCard).not.toContain('FULL_FILE_TEXT_SHOULD_NOT_BE_IN_PROMPT')
+        expect(fileCard).not.toContain('<preview_chunks>')
+        expect(commandBus.execute).not.toHaveBeenCalled()
     })
 })

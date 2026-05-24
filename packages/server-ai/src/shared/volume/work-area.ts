@@ -193,12 +193,14 @@ export class XpertWorkAreaResolver {
 
         const defaultPath = ''
         const sharedPath = 'shared'
+        const sessionPath = input.conversationId ? path.posix.join('sessions', input.conversationId) : undefined
         const memoryPath = XPERT_FILE_MEMORY_WORKSPACE_PATH
         return {
             defaultPath,
             sharedPath,
+            sessionPath,
             memoryPath,
-            allPaths: [defaultPath, sharedPath, memoryPath, '.xpert'].filter(isNonEmptyString)
+            allPaths: [defaultPath, sharedPath, sessionPath, memoryPath, '.xpert'].filter(isNonEmptyString)
         }
     }
 

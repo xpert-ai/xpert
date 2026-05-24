@@ -2,14 +2,14 @@ import { TFile } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
- * Create or update a file attachment for conversation
- * 
+ * @deprecated Use FileAsset upload/link commands instead. This command mutates
+ * legacy conversation StorageFile attachments.
  */
 export class ConvFileUpsertCommand implements ICommand {
-	static readonly type = '[Chat Conversation] Upsert file'
+    static readonly type = '[Chat Conversation] Upsert file'
 
-	constructor(
-		public readonly id: string,
-		public readonly file: TFile
-	) {}
+    constructor(
+        public readonly id: string,
+        public readonly file: TFile
+    ) {}
 }

@@ -131,8 +131,10 @@ import { parseXmlString } from './types'
 import { collectStartDrivenAgentEntrySources, rerouteAgentEntryTarget } from './subgraph-entry-routing'
 import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 import { getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
+import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
+const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
@@ -743,6 +745,30 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             tools: toolMap,
             runtime: this.agentMiddlewareRuntimeService.api
         }
+        const fileUnderstandingStrategy = this.agentMiddlewareRegistry.get(FILE_UNDERSTANDING_MIDDLEWARE_NAME)
+        // Platform-required middleware: it is hidden from the graph UI but is
+        // still created through the normal middleware path so its tools enter
+        // toolMap, tracing, and runtime filtering consistently.
+        const fileUnderstandingMiddleware = await fileUnderstandingStrategy.createMiddleware(
+            { conversationId: options.conversationId },
+            {
+                ...middlewareContext,
+                node: {
+                    id: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                    key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                    type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                    provider: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
+                    required: true
+                }
+            }
+        )
+        fileUnderstandingMiddleware.tools?.forEach((tool) => toolMap.set(tool.name, tool))
+        const builtinMiddlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = [
+            {
+                key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                middleware: fileUnderstandingMiddleware
+            }
+        ]
         const visibleAgentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(
             graph,
             agent,
@@ -781,6 +807,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                       }
                   ]
                 : []),
+            ...builtinMiddlewareEntries,
             ...visibleMiddlewareNodes.reduce<Array<{ key: string; middleware: AgentMiddleware }>>(
                 (acc, node, index) => {
                     const middleware = visibleAgentMiddlewares[index]
@@ -794,7 +821,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...runtimeMiddlewareEntries
         ]
         // Middleware tools
-        const middlewareTools: TGraphTool[] = [...visibleAgentMiddlewares, ...runtimeAgentMiddlewares]
+        const middlewareTools: TGraphTool[] = [
+            ...builtinMiddlewareEntries.map(({ middleware }) => middleware),
+            ...visibleAgentMiddlewares,
+            ...runtimeAgentMiddlewares
+        ]
             .filter((middleware) => middleware?.tools?.length)
             .flatMap((middleware) =>
                 middleware.tools.map((tool) => {
@@ -823,37 +854,38 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...(variables ?? []).map((variable) => variable.name),
             ...stateVariables.map((variable) => variable.name)
         ])
-        const middlewareStateAnnotations = visibleAgentMiddlewares.reduce<
-            Record<string, ReturnType<typeof Annotation>>
-        >((acc, middleware) => {
-            const shape = (middleware.stateSchema as any)?.shape
-            if (!shape) {
-                return acc
-            }
-            Object.keys(shape).forEach((key) => {
-                if (key.startsWith('_') || existedStateVariables.has(key) || acc[key]) {
-                    return
+        const middlewareStateAnnotations = middlewareEntries.reduce<Record<string, ReturnType<typeof Annotation>>>(
+            (acc, { middleware }) => {
+                const shape = (middleware.stateSchema as any)?.shape
+                if (!shape) {
+                    return acc
                 }
-                acc[key] = Annotation({
-                    reducer: (a, b) => (b === undefined ? a : b),
-                    default: () => {
-                        try {
-                            const def = (shape as any)[key]?._def?.defaultValue
-                            if (typeof def === 'function') {
-                                return def()
-                            }
-                            if (def !== undefined) {
-                                return def
-                            }
-                        } catch (error) {
-                            // ignore default parse errors
-                        }
-                        return null
+                Object.keys(shape).forEach((key) => {
+                    if (key.startsWith('_') || existedStateVariables.has(key) || acc[key]) {
+                        return
                     }
+                    acc[key] = Annotation({
+                        reducer: (a, b) => (b === undefined ? a : b),
+                        default: () => {
+                            try {
+                                const def = (shape as any)[key]?._def?.defaultValue
+                                if (typeof def === 'function') {
+                                    return def()
+                                }
+                                if (def !== undefined) {
+                                    return def
+                                }
+                            } catch (error) {
+                                // ignore default parse errors
+                            }
+                            return null
+                        }
+                    })
                 })
-            })
-            return acc
-        }, {})
+                return acc
+            },
+            {}
+        )
 
         const {
             beforeAgentHooks,

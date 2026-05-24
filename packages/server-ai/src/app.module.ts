@@ -44,6 +44,7 @@ import { InitializationModule } from './initialization/initialization.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 import { VolumeModule } from './shared/volume'
 import { FileMemoryModule } from './file-memory'
+import { FileUnderstandingModule } from './file-understanding'
 
 @Module({
     imports: [
@@ -69,6 +70,7 @@ import { FileMemoryModule } from './file-memory'
         FileUploadTargetsModule,
         VolumeModule,
         FileMemoryModule,
+        FileUnderstandingModule,
         XpertModule,
         XpertAgentModule,
         XpertMiddlewareModule,
@@ -81,9 +83,9 @@ import { FileMemoryModule } from './file-memory'
         XpertTaskModule,
         XpertTableModule,
         SkillRepositoryModule,
-		SkillRepositoryIndexModule,
-		SkillPackageModule,
-		PromptWorkflowModule,
+        SkillRepositoryIndexModule,
+        SkillPackageModule,
+        PromptWorkflowModule,
         InitializationModule,
         KnowledgebaseModule,
         KnowledgeDocumentModule,

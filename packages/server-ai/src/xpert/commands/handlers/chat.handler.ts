@@ -64,6 +64,7 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
 import { RedisSseStreamService } from '../../../shared/stream'
+import { AttachFileToConversationCommand } from '../../../file-understanding'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -163,7 +164,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
         if (request.action === 'follow_up') {
             const conversation = await this.queryBus.execute(
-                new GetChatConversationQuery({ id: request.conversationId }, ['messages'])
+                new GetChatConversationQuery({ id: request.conversationId }, messageRelations())
             )
             if (!conversation) {
                 throw new BadRequestException(`Conversation "${request.conversationId}" not found`)
@@ -202,6 +203,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
                 null
 
+            const followUpFileAssets = toFileAssetReferences(followUpInput.files)
+            const followUpLegacyAttachments = toLegacyStorageFileAttachments(followUpInput.files)
+
             await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
                     parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
@@ -213,9 +217,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                               references
                           }
                         : {}),
-                    ...(followUpInput.files
+                    ...(followUpLegacyAttachments.length
                         ? {
-                              attachments: followUpInput.files as IStorageFile[]
+                              attachments: followUpLegacyAttachments
+                          }
+                        : {}),
+                    ...(followUpFileAssets.length
+                        ? {
+                              fileAssets: followUpFileAssets
                           }
                         : {}),
                     executionId: targetExecutionId ?? undefined,
@@ -229,6 +238,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     }
                 })
             )
+            const followUpXpert = xpertId
+                ? await this.xpertService.findOne(xpertId, { relations: ['agent'] }).catch(() => null)
+                : null
+            await attachFileAssetsToConversation(this.commandBus, conversation, followUpInput.files, {
+                xpertId: followUpXpert?.id ?? xpertId,
+                projectId: options.projectId,
+                sandboxProvider: followUpXpert
+                    ? figureOutXpert(followUpXpert as IXpert, Boolean(options?.isDraft)).features?.sandbox?.provider
+                    : undefined
+            })
 
             return EMPTY
         }
@@ -278,7 +297,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         // conversation, target AI message, and execution instead of creating a new run.
         if (request.action === 'resume') {
             conversation = await this.queryBus.execute(
-                new GetChatConversationQuery({ id: request.conversationId }, ['messages'])
+                new GetChatConversationQuery({ id: request.conversationId }, messageRelations())
             )
             conversation.status = 'busy'
             const targetMessage = resolveResumeTargetMessage(request, conversation.messages)
@@ -346,7 +365,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     sandboxEnvironmentId: requestedSandboxEnvironmentId
                                 }
                             },
-                            ['messages']
+                            messageRelations()
                         )
                     )
                 }
@@ -378,7 +397,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             from,
                             fromEndUserId
                         },
-                        ['messages']
+                        messageRelations()
                     )
                 )
 
@@ -428,9 +447,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                               references: userMessage.references
                           }
                         : {}),
-                    ...(userMessage.attachments?.length
+                    ...(getMessageFiles(userMessage).length
                         ? {
-                              files: userMessage.attachments
+                              files: getMessageFiles(userMessage)
                           }
                         : {})
                 }
@@ -494,6 +513,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     const persistedRuntimeCapabilities =
                         getRuntimeCapabilitiesFromState(state) ??
                         normalizeRuntimeCapabilitiesSelection(persistedInput?.runtimeCapabilities)
+                    const fileAssets = toFileAssetReferences(persistedInput?.files)
+                    const legacyAttachments = toLegacyStorageFileAttachments(persistedInput?.files)
                     const _humanMessage: Partial<IChatMessage> = {
                         parent: conversation.messages[conversation.messages.length - 1],
                         role: 'human',
@@ -504,9 +525,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                   references
                               }
                             : {}),
-                        ...(persistedInput?.files
+                        ...(legacyAttachments.length
                             ? {
-                                  attachments: persistedInput.files as IStorageFile[]
+                                  attachments: legacyAttachments
+                              }
+                            : {}),
+                        ...(fileAssets.length
+                            ? {
+                                  fileAssets
                               }
                             : {}),
                         ...(persistedRuntimeCapabilities
@@ -518,6 +544,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             : {})
                     }
                     userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand(_humanMessage))
+                    await attachFileAssetsToConversation(this.commandBus, conversation, persistedInput?.files, {
+                        xpertId: xpert.id,
+                        projectId: options.projectId,
+                        sandboxProvider: figureOutXpert(xpert as IXpert, Boolean(options?.isDraft)).features?.sandbox
+                            ?.provider
+                    })
                 }
             }
 
@@ -1170,6 +1202,152 @@ function extractRetryHumanInput(sourceInputs: unknown): unknown {
 
 function isChatRequestHumanRecord(value: unknown): value is TChatRequestHuman {
     return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function messageRelations() {
+    // Keep both relations loaded while retry/follow-up can replay historical
+    // StorageFile attachments and new FileAsset handles in the same thread.
+    return ['messages', 'messages.attachments', 'messages.fileAssets']
+}
+
+type FileAssetHandle = {
+    id: string
+    storageFileId?: string
+}
+
+async function attachFileAssetsToConversation(
+    commandBus: CommandBus,
+    conversation: Pick<IChatConversation, 'id' | 'threadId'>,
+    files: unknown,
+    context?: {
+        xpertId?: string
+        projectId?: string
+        sandboxProvider?: string | null
+    }
+) {
+    const fileAssets = toFileAssetHandles(files)
+    if (!conversation?.id || !fileAssets.length) {
+        return
+    }
+
+    // Attach before invoking the agent so built-in file tools can enforce the
+    // conversation boundary and workspace projection has the final run context.
+    await Promise.all(
+        fileAssets.map((file) =>
+            commandBus.execute(
+                new AttachFileToConversationCommand({
+                    fileAssetId: file.id,
+                    conversationId: conversation.id,
+                    storageFileId: file.storageFileId,
+                    threadId: conversation.threadId,
+                    projectId: context?.projectId,
+                    xpertId: context?.xpertId,
+                    sandboxProvider: context?.sandboxProvider
+                })
+            )
+        )
+    )
+}
+
+function toFileAssetReferences(files: unknown): Array<{ id: string }> {
+    return toFileAssetHandles(files).map((file) => ({ id: file.id }))
+}
+
+/**
+ * Normalizes new ChatKit `AgentFile` handles into FileAsset relation stubs.
+ * StorageFile-only legacy inputs intentionally fall through to the deprecated
+ * attachment bridge below.
+ */
+function toFileAssetHandles(files: unknown): FileAssetHandle[] {
+    if (!Array.isArray(files)) {
+        return []
+    }
+
+    const seen = new Set<string>()
+    const handles = files
+        .map<FileAssetHandle | null>((file) => {
+            if (!file || typeof file !== 'object') {
+                return null
+            }
+            const record = file as Record<string, unknown>
+            const storageFileId = typeof record.storageFileId === 'string' ? record.storageFileId : undefined
+            const fileAssetId =
+                typeof record.fileAssetId === 'string'
+                    ? record.fileAssetId
+                    : typeof record.fileId === 'string'
+                      ? record.fileId
+                      : storageFileId && typeof record.id === 'string'
+                        ? record.id
+                        : null
+            return typeof fileAssetId === 'string'
+                ? {
+                      id: fileAssetId,
+                      storageFileId
+                  }
+                : null
+        })
+        .filter((file): file is FileAssetHandle => Boolean(file))
+
+    return handles.filter((file) => {
+        if (seen.has(file.id)) {
+            return false
+        }
+        seen.add(file.id)
+        return true
+    })
+}
+
+/**
+ * @deprecated Use `toFileAssetReferences` and persist `fileAssets`. This bridge
+ * only preserves old clients that still submit StorageFile-shaped attachments
+ * without a `storageFileId`.
+ */
+function toLegacyStorageFileAttachments(files: unknown): IStorageFile[] {
+    if (!Array.isArray(files)) {
+        return []
+    }
+
+    return files
+        .map((file) => {
+            if (!file || typeof file !== 'object') {
+                return null
+            }
+            const record = file as Record<string, unknown>
+            if (typeof record.storageFileId === 'string') {
+                return null
+            }
+            return typeof record.id === 'string'
+                ? ({
+                      ...record,
+                      id: record.id
+                  } as unknown as IStorageFile)
+                : null
+        })
+        .filter((file): file is IStorageFile => Boolean(file))
+}
+
+function getMessageFiles(message: IChatMessage): unknown[] {
+    // Retry reconstructs the original human input from persisted relations.
+    // Prefer FileAsset handles, but append StorageFile attachments for old runs.
+    const fileAssets = Array.isArray(message.fileAssets)
+        ? message.fileAssets.map((file) => ({
+              id: file.id,
+              fileId: file.id,
+              storageFileId: file.storageFileId,
+              originalName: file.originalName,
+              mimeType: file.mimeType,
+              size: file.size,
+              status: file.status,
+              parseStatus: file.status,
+              parseMode: file.parseMode,
+              purpose: file.purpose,
+              capabilities: file.capabilities,
+              summary: file.summary,
+              workspacePath: file.workspacePath
+          }))
+        : []
+    const legacyAttachments = Array.isArray(message.attachments) ? message.attachments : []
+    return [...fileAssets, ...legacyAttachments]
 }
 
 function resolveRetryMessage(request: TXpertChatRetryRequest, messages?: IChatMessage[] | null) {

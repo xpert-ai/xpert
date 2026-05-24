@@ -84,7 +84,7 @@ importers:
         version: 1.7.5
       '@langchain/community':
         specifier: 0.3.53
-        version: 0.3.53(e41b3a4cbf202a3549c0430e55dbfa59)
+        version: 0.3.53(06d08a0996589fe79e8fb4a121222f43)
       '@langchain/core':
         specifier: 0.3.72
         version: 0.3.72(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
@@ -655,11 +655,11 @@ importers:
         specifier: ~0.3.0
         version: 0.3.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-types':
-        specifier: ~0.3.9
-        version: 0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+        specifier: ~0.3.10
+        version: 0.3.10(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-ui':
-        specifier: ~0.3.11
-        version: 0.3.11(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
+        specifier: ~0.3.12
+        version: 0.3.12(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
       '@xpert-ai/chatkit-web-component':
         specifier: ~0.3.5
         version: 0.3.5(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
@@ -1106,8 +1106,8 @@ importers:
   packages/contracts:
     dependencies:
       '@xpert-ai/chatkit-types':
-        specifier: ~0.3.9
-        version: 0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+        specifier: ~0.3.10
+        version: 0.3.10(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
     publishDirectory: dist
 
   packages/core:
@@ -1341,7 +1341,7 @@ importers:
     dependencies:
       '@langchain/community':
         specifier: 0.3.53
-        version: 0.3.53(e3a9bca1e3ccafff43166d7b19c92f74)
+        version: 0.3.53(62a63cbb6d226088733bfdb31f4dc492)
       '@nestjs/common':
         specifier: '>=10'
         version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
@@ -1392,7 +1392,7 @@ importers:
     dependencies:
       '@langchain/community':
         specifier: '*'
-        version: 0.3.53(e3a9bca1e3ccafff43166d7b19c92f74)
+        version: 0.3.53(62a63cbb6d226088733bfdb31f4dc492)
       '@langchain/core':
         specifier: 0.3.72
         version: 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
@@ -1675,7 +1675,7 @@ importers:
         version: 0.3.0(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@langchain/community':
         specifier: 0.3.53
-        version: 0.3.53(51521be596c5a485101f39505f5b0cd3)
+        version: 0.3.53(a8e16a3c83e96b2c2ccc08d612fd295e)
       '@langchain/core':
         specifier: 0.3.72
         version: 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
@@ -9529,20 +9529,20 @@ packages:
       '@a2ui/lit': ^0.8.1
       '@langchain/core': 0.3.72
 
+  '@xpert-ai/chatkit-types@0.3.10':
+    resolution: {integrity: sha512-SVH62fF0geEVeXPEiHdf2DdlddyrnIVWiN9mSwv6iO9OEFbXRe/IdotjOrvpNOn11hgSNcz1+pfX2g0qS4MQ9Q==}
+    peerDependencies:
+      '@a2ui/lit': ^0.8.1
+      '@langchain/core': 0.3.72
+
   '@xpert-ai/chatkit-types@0.3.8':
     resolution: {integrity: sha512-led+MsncMIEaIcMee/kd7Xzli8WPELKHATanG8N0d207Vk8VRW2xl1vgAgqa3XP9HZ2nvnIsch1ox3o6NJBoLw==}
     peerDependencies:
       '@a2ui/lit': ^0.8.1
       '@langchain/core': 0.3.72
 
-  '@xpert-ai/chatkit-types@0.3.9':
-    resolution: {integrity: sha512-9bxqPO6OZJDQBK/FJXwP7ddw+7Jk4gK0npwlcaALeWrcoYJJwWqPFMRTREPy0Popc1lphwvvOj72ikwEi74LsQ==}
-    peerDependencies:
-      '@a2ui/lit': ^0.8.1
-      '@langchain/core': 0.3.72
-
-  '@xpert-ai/chatkit-ui@0.3.11':
-    resolution: {integrity: sha512-SCZuirqlEtK0sZBJEeicMQzlgyjRS2DXbUPGncInfwYxycV2+MALQwVPecQVbwK0JQ2ZD6KkkGNohYWh8l7n4A==}
+  '@xpert-ai/chatkit-ui@0.3.12':
+    resolution: {integrity: sha512-XsuXZEXp+zkhU/c4dI+jupA1mLtMdgaHqyXyjy+7ZyGcZeDbWyxFS1parZVjBf06DAf16NDYX4v8wE/+2Oy5HA==}
     peerDependencies:
       react: '>=19'
       react-dom: '>=19'
@@ -26056,7 +26056,141 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@langchain/community@0.3.53(51521be596c5a485101f39505f5b0cd3)':
+  '@langchain/community@0.3.53(06d08a0996589fe79e8fb4a121222f43)':
+    dependencies:
+      '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@17.2.3)(encoding@0.1.13)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(zod@3.25.67)
+      '@ibm-cloud/watsonx-ai': 1.7.7
+      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
+      '@langchain/openai': 0.6.9(@langchain/core@0.3.72(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))(ws@8.18.0)
+      '@langchain/weaviate': 0.2.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))(encoding@0.1.13)
+      binary-extensions: 2.3.0
+      expr-eval: 2.0.2
+      flat: 5.0.2
+      ibm-cloud-sdk-core: 5.4.6
+      js-yaml: 4.1.1
+      langchain: 0.3.31(6e95839de10dc570c1a5e7d3819b77ce)
+      langsmith: 0.3.87(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
+      openai: 5.23.2(ws@8.18.0)(zod@3.25.67)
+      uuid: 10.0.0
+      zod: 3.25.67
+    optionalDependencies:
+      '@aws-crypto/sha256-js': 5.2.0
+      '@aws-sdk/credential-provider-node': 3.972.9
+      '@browserbasehq/sdk': 2.6.0(encoding@0.1.13)
+      '@notionhq/client': 2.2.15(encoding@0.1.13)
+      '@smithy/util-utf8': 2.3.0
+      cheerio: 1.2.0
+      chromadb: 3.3.0
+      cohere-ai: 7.20.0
+      crypto-js: 4.2.0
+      duck-duck-scrape: 2.2.7
+      epub2: 3.0.2(ts-toolbelt@9.6.0)
+      fast-xml-parser: 5.3.4
+      html-to-text: 9.0.5
+      ignore: 5.3.2
+      ioredis: 5.9.3
+      jsdom: 26.1.0
+      jsonwebtoken: 9.0.3
+      lodash: 4.17.23
+      mammoth: 1.11.0
+      mysql2: 3.17.1
+      notion-to-md: 3.1.5(encoding@0.1.13)
+      pg: 8.18.0
+      pg-copy-streams: 6.0.6
+      playwright: 1.58.2
+      redis: 4.7.1
+      typeorm: 0.3.28(babel-plugin-macros@3.1.0)(ioredis@5.9.3)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.17.1)(pg@8.18.0)(redis@4.7.1)(ts-node@10.9.1(@swc/core@1.3.96(@swc/helpers@0.5.3))(@types/node@22.19.11)(typescript@5.9.3))
+      weaviate-client: 3.11.0(encoding@0.1.13)
+      ws: 8.18.0
+    transitivePeerDependencies:
+      - '@langchain/anthropic'
+      - '@langchain/aws'
+      - '@langchain/cerebras'
+      - '@langchain/cohere'
+      - '@langchain/deepseek'
+      - '@langchain/google-genai'
+      - '@langchain/google-vertexai'
+      - '@langchain/google-vertexai-web'
+      - '@langchain/groq'
+      - '@langchain/mistralai'
+      - '@langchain/ollama'
+      - '@langchain/xai'
+      - '@opentelemetry/api'
+      - '@opentelemetry/exporter-trace-otlp-proto'
+      - '@opentelemetry/sdk-trace-base'
+      - axios
+      - encoding
+      - handlebars
+      - peggy
+
+  '@langchain/community@0.3.53(62a63cbb6d226088733bfdb31f4dc492)':
+    dependencies:
+      '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@17.2.3)(encoding@0.1.13)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(zod@3.25.67)
+      '@ibm-cloud/watsonx-ai': 1.7.7
+      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
+      '@langchain/openai': 0.6.9(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(ws@8.19.0)
+      '@langchain/weaviate': 0.2.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(encoding@0.1.13)
+      binary-extensions: 2.3.0
+      expr-eval: 2.0.2
+      flat: 5.0.2
+      ibm-cloud-sdk-core: 5.4.6
+      js-yaml: 4.1.1
+      langchain: 0.3.31(85bc0ff3d5c8f00fad1c07e6bf287678)
+      langsmith: 0.3.87(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
+      openai: 5.23.2(ws@8.19.0)(zod@3.25.67)
+      uuid: 10.0.0
+      zod: 3.25.67
+    optionalDependencies:
+      '@aws-crypto/sha256-js': 5.2.0
+      '@aws-sdk/credential-provider-node': 3.972.9
+      '@browserbasehq/sdk': 2.6.0(encoding@0.1.13)
+      '@notionhq/client': 2.2.15(encoding@0.1.13)
+      '@smithy/util-utf8': 2.3.0
+      cheerio: 1.2.0
+      chromadb: 3.3.0
+      cohere-ai: 7.20.0
+      crypto-js: 4.2.0
+      duck-duck-scrape: 2.2.7
+      epub2: 3.0.2(ts-toolbelt@9.6.0)
+      fast-xml-parser: 5.3.4
+      html-to-text: 9.0.5
+      ignore: 5.3.2
+      ioredis: 5.9.3
+      jsdom: 26.1.0
+      jsonwebtoken: 9.0.3
+      lodash: 4.17.23
+      mammoth: 1.11.0
+      mysql2: 3.17.1
+      notion-to-md: 3.1.5(encoding@0.1.13)
+      pg: 8.18.0
+      pg-copy-streams: 6.0.6
+      playwright: 1.58.2
+      redis: 4.7.1
+      typeorm: 0.3.28(babel-plugin-macros@3.1.0)(ioredis@5.9.3)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.17.1)(pg@8.18.0)(redis@4.7.1)(ts-node@10.9.2(@swc/core@1.3.96(@swc/helpers@0.5.3))(@types/node@22.19.11)(typescript@5.9.3))
+      weaviate-client: 3.11.0(encoding@0.1.13)
+      ws: 8.19.0
+    transitivePeerDependencies:
+      - '@langchain/anthropic'
+      - '@langchain/aws'
+      - '@langchain/cerebras'
+      - '@langchain/cohere'
+      - '@langchain/deepseek'
+      - '@langchain/google-genai'
+      - '@langchain/google-vertexai'
+      - '@langchain/google-vertexai-web'
+      - '@langchain/groq'
+      - '@langchain/mistralai'
+      - '@langchain/ollama'
+      - '@langchain/xai'
+      - '@opentelemetry/api'
+      - '@opentelemetry/exporter-trace-otlp-proto'
+      - '@opentelemetry/sdk-trace-base'
+      - axios
+      - encoding
+      - handlebars
+      - peggy
+
+  '@langchain/community@0.3.53(a8e16a3c83e96b2c2ccc08d612fd295e)':
     dependencies:
       '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@17.2.3)(encoding@0.1.13)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(zod@3.25.67)
       '@ibm-cloud/watsonx-ai': 1.7.7
@@ -26098,143 +26232,12 @@ snapshots:
       officeparser: 5.1.1
       pdf-parse: 1.1.4
       pg: 8.18.0
+      pg-copy-streams: 6.0.6
       playwright: 1.58.2
       redis: 4.7.1
       typeorm: 0.3.28(babel-plugin-macros@3.1.0)(ioredis@5.9.3)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.17.1)(pg@8.18.0)(redis@4.7.1)(ts-node@10.9.2(@swc/core@1.3.96(@swc/helpers@0.5.3))(@types/node@22.19.11)(typescript@5.9.3))
       weaviate-client: 3.11.0(encoding@0.1.13)
       ws: 8.19.0
-    transitivePeerDependencies:
-      - '@langchain/anthropic'
-      - '@langchain/aws'
-      - '@langchain/cerebras'
-      - '@langchain/cohere'
-      - '@langchain/deepseek'
-      - '@langchain/google-genai'
-      - '@langchain/google-vertexai'
-      - '@langchain/google-vertexai-web'
-      - '@langchain/groq'
-      - '@langchain/mistralai'
-      - '@langchain/ollama'
-      - '@langchain/xai'
-      - '@opentelemetry/api'
-      - '@opentelemetry/exporter-trace-otlp-proto'
-      - '@opentelemetry/sdk-trace-base'
-      - axios
-      - encoding
-      - handlebars
-      - peggy
-
-  '@langchain/community@0.3.53(e3a9bca1e3ccafff43166d7b19c92f74)':
-    dependencies:
-      '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@17.2.3)(encoding@0.1.13)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(zod@3.25.67)
-      '@ibm-cloud/watsonx-ai': 1.7.7
-      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
-      '@langchain/openai': 0.6.9(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(ws@8.19.0)
-      '@langchain/weaviate': 0.2.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(encoding@0.1.13)
-      binary-extensions: 2.3.0
-      expr-eval: 2.0.2
-      flat: 5.0.2
-      ibm-cloud-sdk-core: 5.4.6
-      js-yaml: 4.1.1
-      langchain: 0.3.31(85bc0ff3d5c8f00fad1c07e6bf287678)
-      langsmith: 0.3.87(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
-      openai: 5.23.2(ws@8.19.0)(zod@3.25.67)
-      uuid: 10.0.0
-      zod: 3.25.67
-    optionalDependencies:
-      '@aws-crypto/sha256-js': 5.2.0
-      '@aws-sdk/credential-provider-node': 3.972.9
-      '@browserbasehq/sdk': 2.6.0(encoding@0.1.13)
-      '@notionhq/client': 2.2.15(encoding@0.1.13)
-      '@smithy/util-utf8': 2.3.0
-      cheerio: 1.2.0
-      chromadb: 3.3.0
-      cohere-ai: 7.20.0
-      crypto-js: 4.2.0
-      duck-duck-scrape: 2.2.7
-      epub2: 3.0.2(ts-toolbelt@9.6.0)
-      fast-xml-parser: 5.3.4
-      html-to-text: 9.0.5
-      ignore: 5.3.2
-      ioredis: 5.9.3
-      jsdom: 26.1.0
-      jsonwebtoken: 9.0.3
-      lodash: 4.17.23
-      mammoth: 1.11.0
-      mysql2: 3.17.1
-      notion-to-md: 3.1.5(encoding@0.1.13)
-      pg: 8.18.0
-      playwright: 1.58.2
-      redis: 4.7.1
-      typeorm: 0.3.28(babel-plugin-macros@3.1.0)(ioredis@5.9.3)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.17.1)(pg@8.18.0)(redis@4.7.1)(ts-node@10.9.2(@swc/core@1.3.96(@swc/helpers@0.5.3))(@types/node@22.19.11)(typescript@5.9.3))
-      weaviate-client: 3.11.0(encoding@0.1.13)
-      ws: 8.19.0
-    transitivePeerDependencies:
-      - '@langchain/anthropic'
-      - '@langchain/aws'
-      - '@langchain/cerebras'
-      - '@langchain/cohere'
-      - '@langchain/deepseek'
-      - '@langchain/google-genai'
-      - '@langchain/google-vertexai'
-      - '@langchain/google-vertexai-web'
-      - '@langchain/groq'
-      - '@langchain/mistralai'
-      - '@langchain/ollama'
-      - '@langchain/xai'
-      - '@opentelemetry/api'
-      - '@opentelemetry/exporter-trace-otlp-proto'
-      - '@opentelemetry/sdk-trace-base'
-      - axios
-      - encoding
-      - handlebars
-      - peggy
-
-  '@langchain/community@0.3.53(e41b3a4cbf202a3549c0430e55dbfa59)':
-    dependencies:
-      '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@17.2.3)(encoding@0.1.13)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(zod@3.25.67)
-      '@ibm-cloud/watsonx-ai': 1.7.7
-      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
-      '@langchain/openai': 0.6.9(@langchain/core@0.3.72(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))(ws@8.18.0)
-      '@langchain/weaviate': 0.2.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))(encoding@0.1.13)
-      binary-extensions: 2.3.0
-      expr-eval: 2.0.2
-      flat: 5.0.2
-      ibm-cloud-sdk-core: 5.4.6
-      js-yaml: 4.1.1
-      langchain: 0.3.31(6e95839de10dc570c1a5e7d3819b77ce)
-      langsmith: 0.3.87(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
-      openai: 5.23.2(ws@8.18.0)(zod@3.25.67)
-      uuid: 10.0.0
-      zod: 3.25.67
-    optionalDependencies:
-      '@aws-crypto/sha256-js': 5.2.0
-      '@aws-sdk/credential-provider-node': 3.972.9
-      '@browserbasehq/sdk': 2.6.0(encoding@0.1.13)
-      '@notionhq/client': 2.2.15(encoding@0.1.13)
-      '@smithy/util-utf8': 2.3.0
-      cheerio: 1.2.0
-      chromadb: 3.3.0
-      cohere-ai: 7.20.0
-      crypto-js: 4.2.0
-      duck-duck-scrape: 2.2.7
-      epub2: 3.0.2(ts-toolbelt@9.6.0)
-      fast-xml-parser: 5.3.4
-      html-to-text: 9.0.5
-      ignore: 5.3.2
-      ioredis: 5.9.3
-      jsdom: 26.1.0
-      jsonwebtoken: 9.0.3
-      lodash: 4.17.23
-      mammoth: 1.11.0
-      mysql2: 3.17.1
-      notion-to-md: 3.1.5(encoding@0.1.13)
-      pg: 8.18.0
-      playwright: 1.58.2
-      redis: 4.7.1
-      typeorm: 0.3.28(babel-plugin-macros@3.1.0)(ioredis@5.9.3)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.17.1)(pg@8.18.0)(redis@4.7.1)(ts-node@10.9.1(@swc/core@1.3.96(@swc/helpers@0.5.3))(@types/node@22.19.11)(typescript@5.9.3))
-      weaviate-client: 3.11.0(encoding@0.1.13)
-      ws: 8.18.0
     transitivePeerDependencies:
       - '@langchain/anthropic'
       - '@langchain/aws'
@@ -31600,7 +31603,7 @@ snapshots:
   '@xpert-ai/chatkit-angular@0.3.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
       '@angular/core': 21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0)
-      '@xpert-ai/chatkit-types': 0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.3.10(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-web-component': 0.3.5(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       tslib: 2.8.1
     transitivePeerDependencies:
@@ -31612,17 +31615,17 @@ snapshots:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
 
+  '@xpert-ai/chatkit-types@0.3.10(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
+    dependencies:
+      '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
+      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
+
   '@xpert-ai/chatkit-types@0.3.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
 
-  '@xpert-ai/chatkit-types@0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
-    dependencies:
-      '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
-      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
-
-  '@xpert-ai/chatkit-ui@0.3.11(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))':
+  '@xpert-ai/chatkit-ui@0.3.12(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@types/node@22.19.11)(@types/react@19.2.14)(babel-plugin-macros@3.1.0)(openai@5.23.2(ws@8.19.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))':
     dependencies:
       '@fontsource-variable/geist': 5.2.8
       '@fontsource-variable/inter': 5.2.8
@@ -31636,7 +31639,7 @@ snapshots:
       '@radix-ui/react-tooltip': 1.2.8(@types/react@19.2.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tailwindcss/vite': 4.2.2(vite@7.3.0(@types/node@22.19.11)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
       '@xpert-ai/a2ui-react': 0.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(tailwindcss@4.2.2)
-      '@xpert-ai/chatkit-types': 0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.3.10(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-web-shared': 0.3.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/xpert-sdk': 0.0.11
       class-variance-authority: 0.7.1
@@ -31688,7 +31691,7 @@ snapshots:
 
   '@xpert-ai/chatkit-web-component@0.3.5(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
-      '@xpert-ai/chatkit-types': 0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.3.10(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-web-shared': 0.3.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
     transitivePeerDependencies:
       - '@a2ui/lit'
@@ -31697,7 +31700,7 @@ snapshots:
   '@xpert-ai/chatkit-web-shared@0.3.3(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
       '@microsoft/fetch-event-source': 2.0.1
-      '@xpert-ai/chatkit-types': 0.3.9(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.3.10(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
     transitivePeerDependencies:
       - '@a2ui/lit'
       - '@langchain/core'
@@ -34489,6 +34492,7 @@ snapshots:
     dependencies:
       html-entities: 2.6.0
       needle: 3.3.1
+    optional: true
 
   duck@0.1.12:
     dependencies:
@@ -40015,6 +40019,7 @@ snapshots:
     dependencies:
       iconv-lite: 0.6.3
       sax: 1.4.4
+    optional: true
 
   negotiator@0.6.3: {}
 
