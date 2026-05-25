@@ -277,6 +277,34 @@ describe('FileViewerComponent', () => {
     expect((pathLabel.nativeElement as HTMLElement).getAttribute('title')).toBe('docs/architecture/long-file-name.md')
   })
 
+  it('shows save and discard actions only in edit mode', () => {
+    const fixture = TestBed.createComponent(FileViewerComponent)
+    fixture.componentRef.setInput('filePath', 'README.md')
+    fixture.componentRef.setInput('dirty', true)
+    fixture.componentRef.setInput('mode', 'view')
+    fixture.detectChanges()
+
+    expect(fixture.debugElement.query(By.css('[data-discard-button="viewer"]'))).toBeNull()
+    expect(fixture.debugElement.query(By.css('[data-save-button="viewer"]'))).toBeNull()
+
+    fixture.componentRef.setInput('mode', 'edit')
+    fixture.detectChanges()
+
+    expect(fixture.debugElement.query(By.css('[data-discard-button="viewer"]'))).not.toBeNull()
+    expect(fixture.debugElement.query(By.css('[data-save-button="viewer"]'))).not.toBeNull()
+  })
+
+  it('marks the file content heading as a responsive header detail', () => {
+    const fixture = TestBed.createComponent(FileViewerComponent)
+    fixture.componentRef.setInput('filePath', 'README.md')
+    fixture.detectChanges()
+
+    const heading = fixture.debugElement.query(By.css('[data-file-content-heading="viewer"]'))
+
+    expect(heading).not.toBeNull()
+    expect((heading.nativeElement as HTMLElement).classList.contains('xp-file-heading')).toBe(true)
+  })
+
   it('disables the inline selection action in markdown preview while keeping full-file references', () => {
     const fixture = TestBed.createComponent(FileViewerComponent)
     fixture.componentRef.setInput('filePath', 'README.md')

@@ -139,19 +139,17 @@ type ChatKitReferenceComposerControl = {
                           <i class="ri-global-line shrink-0 text-base"></i>
                         }
                       }
-                      @if (workspaceTabs().length > 1) {
-                        <span
-                          role="button"
-                          tabindex="0"
-                          [attr.data-close-tab]="tab.id"
-                          class="absolute inset-0 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg opacity-0 transition-[background-color,color,opacity] hover:bg-text-secondary group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
-                          (click)="closeWorkspaceTab($event, tab.id)"
-                          (keydown.enter)="closeWorkspaceTab($event, tab.id)"
-                          (keydown.space)="closeWorkspaceTab($event, tab.id)"
-                        >
-                          <i class="ri-close-line text-sm"></i>
-                        </span>
-                      }
+                      <span
+                        role="button"
+                        tabindex="0"
+                        [attr.data-close-tab]="tab.id"
+                        class="absolute inset-0 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg opacity-0 transition-[background-color,color,opacity] hover:bg-text-secondary group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
+                        (click)="closeWorkspaceTab($event, tab.id)"
+                        (keydown.enter)="closeWorkspaceTab($event, tab.id)"
+                        (keydown.space)="closeWorkspaceTab($event, tab.id)"
+                      >
+                        <i class="ri-close-line text-sm"></i>
+                      </span>
                     </span>
                     @switch (tab.kind) {
                       @case ('files') {
@@ -210,7 +208,63 @@ type ChatKitReferenceComposerControl = {
 
             <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div class="min-h-0 flex-1 p-2 pr-0">
-                @if (contextLoading() && !resolvedConversationId()) {
+                @if (!activeTab()) {
+                  <div
+                    data-empty-workspace-placeholder
+                    class="flex h-full min-h-[24rem] items-center justify-center px-4 py-8 sm:px-6"
+                  >
+                    <div
+                      data-empty-workspace-card-grid
+                      class="grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 sm:gap-4"
+                    >
+                      <button
+                        type="button"
+                        data-empty-workspace-card="files"
+                        class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                        (click)="addWorkspaceTab('files')"
+                      >
+                        <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
+                        <div class="mt-4 text-xl font-semibold text-text-primary">
+                          {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
+                        </div>
+                        <div class="mt-2 text-lg text-text-secondary">
+                          {{ 'PAC.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        data-empty-workspace-card="browser"
+                        class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                        (click)="addWorkspaceTab('browser')"
+                      >
+                        <i class="ri-global-line text-3xl text-text-tertiary"></i>
+                        <div class="mt-4 text-xl font-semibold text-text-primary">
+                          {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
+                        </div>
+                        <div class="mt-2 text-lg text-text-secondary">
+                          {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        data-empty-workspace-card="terminal"
+                        class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                        (click)="addWorkspaceTab('terminal')"
+                      >
+                        <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
+                        <div class="mt-4 text-xl font-semibold text-text-primary">
+                          {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                        </div>
+                        <div class="mt-2 text-lg text-text-secondary">
+                          {{
+                            'PAC.Chat.ClawXpert.TerminalLauncherDesc'
+                              | translate: { Default: 'Launch interactive shell' }
+                          }}
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                } @else if (contextLoading() && !resolvedConversationId()) {
                   <div
                     class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
                   >
@@ -466,7 +520,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly contextError = signal<string | null>(null)
   readonly isChatMinimizedToPet = signal(false)
   readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
-  readonly showDetailPanel = computed(() => !!this.activePanel())
+  readonly showDetailPanel = computed(() => this.workspaceTabs().length === 0 || !!this.activePanel())
   readonly workspaceLayoutClasses = computed(() => {
     if (this.isChatMinimizedToPet()) {
       return this.showDetailPanel()
@@ -702,10 +756,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     event.stopPropagation()
 
     const tabs = this.workspaceTabs()
-    if (tabs.length <= 1) {
-      return
-    }
-
     const closedIndex = tabs.findIndex((tab) => tab.id === tabId)
     if (closedIndex < 0) {
       return
@@ -713,7 +763,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     const nextTabs = tabs.filter((tab) => tab.id !== tabId)
     this.workspaceTabs.set(nextTabs)
-    if (this.activeTabId() !== tabId) {
+    if (this.activeTabId() !== tabId && nextTabs.length > 0) {
       return
     }
 

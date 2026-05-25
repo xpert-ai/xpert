@@ -175,6 +175,22 @@ describe('ClawXpertConversationPreviewComponent', () => {
     expect(component.reloadNonce()).toBeGreaterThan(reloadBefore)
   })
 
+  it('renders a compact browser toolbar', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+
+    const backButton = fixture.nativeElement.querySelector('[data-browser-back]') as HTMLButtonElement | null
+    const addressInput = fixture.nativeElement.querySelector('[data-browser-address]') as HTMLInputElement | null
+    const menuButton = fixture.nativeElement.querySelector('[data-browser-menu]') as HTMLButtonElement | null
+
+    expect(backButton?.className).toContain('h-8')
+    expect(backButton?.className).toContain('w-8')
+    expect(addressInput?.className).toContain('h-8')
+    expect(menuButton?.className).toContain('h-8')
+    expect(menuButton?.className).toContain('w-8')
+  })
+
   it('renders a responsive device toolbar with viewport controls', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
