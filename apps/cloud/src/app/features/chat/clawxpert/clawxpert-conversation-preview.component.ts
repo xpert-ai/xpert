@@ -459,33 +459,33 @@ function buildElementReference(service: ISandboxManagedService, element: Element
     <div
       class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg"
     >
-      <div class="border-b border-divider-regular px-3 py-2">
-        <div class="flex min-w-0 items-center gap-2">
+      <div class="border-b border-divider-regular px-2 py-1.5">
+        <div class="flex min-w-0 items-center gap-1.5">
           <button
             type="button"
             data-browser-back
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg enabled:hover:text-text-primary disabled:text-text-quaternary"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg enabled:hover:text-text-primary disabled:text-text-quaternary"
             [disabled]="!canGoBack()"
             (click)="goBack()"
           >
-            <i class="ri-arrow-left-line text-xl"></i>
+            <i class="ri-arrow-left-line text-lg"></i>
           </button>
           <button
             type="button"
             data-browser-forward
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg enabled:hover:text-text-primary disabled:text-text-quaternary"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg enabled:hover:text-text-primary disabled:text-text-quaternary"
             [disabled]="!canGoForward()"
             (click)="goForward()"
           >
-            <i class="ri-arrow-right-line text-xl"></i>
+            <i class="ri-arrow-right-line text-lg"></i>
           </button>
           <button
             type="button"
             data-browser-refresh
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
             (click)="reloadFrame()"
           >
-            <i class="ri-refresh-line text-xl"></i>
+            <i class="ri-refresh-line text-lg"></i>
           </button>
 
           <form class="flex min-w-0 flex-1 items-center" (submit)="navigateFromAddressEvent($event)">
@@ -494,16 +494,16 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                 z-input
                 data-browser-address
                 name="browserAddress"
-                class="h-10 w-full rounded-xl border-divider-regular bg-components-card-bg pl-4 pr-10 text-center text-sm text-text-primary"
+                class="h-8 w-full rounded-xl border-divider-regular bg-components-card-bg pl-3 pr-8 text-center text-sm text-text-primary"
                 [ngModel]="addressValue()"
                 (ngModelChange)="addressValue.set($event)"
                 [placeholder]="'PAC.Chat.ClawXpert.EnterUrl' | translate: { Default: 'Enter URL' }"
               />
               <button
                 type="submit"
-                class="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                class="absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
               >
-                <i class="ri-arrow-right-up-line text-lg"></i>
+                <i class="ri-arrow-right-up-line text-base"></i>
               </button>
             </label>
           </form>
@@ -513,22 +513,22 @@ function buildElementReference(service: ISandboxManagedService, element: Element
             data-browser-inspect
             [class]="
               mode() === 'inspect'
-                ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-accent transition-colors hover:bg-hover-bg'
-                : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary'
+                ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-accent transition-colors hover:bg-hover-bg'
+                : 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary'
             "
             (click)="toggleInspectMode()"
           >
-            <i class="ri-focus-3-line text-xl"></i>
+            <i class="ri-focus-3-line text-lg"></i>
           </button>
 
           <button
             type="button"
             data-open-external
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg enabled:hover:text-text-primary disabled:text-text-quaternary"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg enabled:hover:text-text-primary disabled:text-text-quaternary"
             [disabled]="!openableUrl()"
             (click)="openExternal()"
           >
-            <i class="ri-external-link-line text-xl"></i>
+            <i class="ri-external-link-line text-lg"></i>
           </button>
 
           <button
@@ -537,11 +537,11 @@ function buildElementReference(service: ISandboxManagedService, element: Element
             zType="ghost"
             zSize="icon"
             data-browser-menu
-            class="rounded-lg text-text-secondary hover:text-text-primary"
+            class="h-8 w-8 rounded-lg text-text-secondary hover:text-text-primary"
             z-menu
             [zMenuTriggerFor]="browserMenu"
           >
-            <i class="ri-more-2-fill text-xl"></i>
+            <i class="ri-more-2-fill text-lg"></i>
           </button>
         </div>
 
