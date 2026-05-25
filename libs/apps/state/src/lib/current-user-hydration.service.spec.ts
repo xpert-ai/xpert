@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing'
 import { IFeatureOrganization, IOrganization, IUser } from '@xpert-ai/contracts'
 import { Store } from './store.service'
-import { CURRENT_USER_FEATURE_RELATIONS, UsersService } from './users.service'
+import { CURRENT_USER_FEATURE_RELATIONS, UserMeSelect, UsersService } from './users.service'
 import {
   buildCurrentUserFeatureHydrationKey,
   CurrentUserHydrationService,
@@ -10,7 +10,7 @@ import {
 
 describe('CurrentUserHydrationService', () => {
   let service: CurrentUserHydrationService
-  let usersService: { getMe: jest.Mock<Promise<IUser>, [string[]]> }
+  let usersService: { getMe: jest.Mock<Promise<IUser>, [string[], UserMeSelect?]> }
   let storeState: {
     userId: string | null
     user: IUser | null

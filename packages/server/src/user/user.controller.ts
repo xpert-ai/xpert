@@ -34,7 +34,7 @@ import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes'
 import { PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards'
 import { Permissions, Roles } from './../shared/decorators'
 import { User, UserPreferredLanguageDTO } from './user.entity'
-import { UserService } from './user.service'
+import { CurrentUserRelationSelect, UserService } from './user.service'
 import { UserBulkCreateCommand, UserCreateCommand } from './commands'
 import { FactoryResetService } from './factory-reset/factory-reset.service'
 import { UserDeleteCommand } from './commands/user.delete.command'
@@ -72,9 +72,11 @@ export class UserController extends CrudController<User> {
 		description: 'Record not found'
 	})
 	@Get('/me')
-	async findMe(@Query('data', ParseJsonPipe) data: { relations?: string[] } | null): Promise<User> {
+	async findMe(
+		@Query('data', ParseJsonPipe) data: { relations?: string[]; select?: CurrentUserRelationSelect } | null
+	): Promise<User> {
 		const id = RequestContext.currentUserId()
-		return await this.userService.findCurrentUser(id, data?.relations)
+		return await this.userService.findCurrentUser(id, data?.relations, data?.select)
 	}
 
 	/**

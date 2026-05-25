@@ -136,6 +136,32 @@ describe('UserService', () => {
 		expect(result).toBe(user)
 	})
 
+	it('passes requested select fields to the original current-user query', async () => {
+		const user = { id: 'user-1' }
+		const select = {
+			id: true,
+			email: true,
+			organizations: {
+				id: true,
+				organizationId: true,
+				organization: {
+					id: true,
+					name: true
+				}
+			}
+		}
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+
+		const result = await service.findCurrentUser('user-1', ['organizations', 'organizations.organization'], select)
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: ['employee', 'role', 'role.rolePermissions', 'tenant', 'organizations', 'organizations.organization'],
+			select
+		})
+		expect(result).toBe(user)
+	})
+
 	it('keeps unknown current-user relations on the original findOne path', async () => {
 		const user = { id: 'user-1' }
 

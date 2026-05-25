@@ -44,6 +44,8 @@ type CurrentUserFeatureContext = {
 	organizationFeatureOrganizations: IFeatureOrganization[]
 }
 
+export type CurrentUserRelationSelect = FindOneOptions<User>['select']
+
 function resolveCurrentUserRelations(relations?: string[]) {
 	return Array.from(new Set([...CURRENT_USER_CORE_RELATIONS, ...(relations ?? [])]))
 }
@@ -87,13 +89,14 @@ export class UserService extends TenantAwareCrudService<User> {
 		super(userRepository)
 	}
 
-	async findCurrentUser(id: string, relations?: string[]): Promise<User> {
+	async findCurrentUser(id: string, relations?: string[], select?: CurrentUserRelationSelect): Promise<User> {
 		if (isKnownCurrentUserFeatureHydrationRelations(relations) && this.featureOrganizationRepository) {
 			return this.findCurrentUserFeatureContext(id, relations ?? [])
 		}
 
 		return this.findOne(id, {
-			relations: resolveCurrentUserRelations(relations)
+			relations: resolveCurrentUserRelations(relations),
+			...(select ? { select } : {})
 		})
 	}
 
