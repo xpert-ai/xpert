@@ -33,7 +33,7 @@ export class XpertNewKnowledgeComponent {
   readonly knowledgebaseService = inject(KnowledgebaseService)
 
   readonly workspaceId = signal(this.#dialogData?.workspaceId)
-  readonly name = model<string>()
+  readonly name = model<string>('')
   readonly copilotModel = model<ICopilotModel>()
   readonly chatModel = model<ICopilotModel>()
   readonly rerankModel = model<ICopilotModel>()
