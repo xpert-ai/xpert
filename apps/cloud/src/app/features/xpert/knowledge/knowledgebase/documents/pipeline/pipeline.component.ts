@@ -68,7 +68,7 @@ export class KnowledgeDocumentPipelineComponent {
   readonly #pipeline = toSignal(
     this.knowledgebaseAPI.getOneById(this.knowledgebaseComponent.paramId(), {
       relations: ['pipeline'],
-      select: ['id', 'name']
+      select: ['id', 'name', 'tenantId', 'organizationId', 'workspaceId']
     })
   )
 
