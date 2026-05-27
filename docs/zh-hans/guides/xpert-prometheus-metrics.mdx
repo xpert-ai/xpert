@@ -1,0 +1,132 @@
+# Xpert 智能体对话监控指标
+
+本文记录 `xpert-develop` 中智能体对话监控的当前实现范围，以及后续适合继续用 Prometheus 或 OpenTelemetry 补充的指标。
+
+## 当前状态
+
+当前已在 `server-ai` 中新增应用级 Prometheus metrics：
+
+- 暴露 root `GET /metrics`，供部署侧 Prometheus scrape。
+- 同时保留 `GET /api/metrics`，走 Nest controller。
+- 指标为进程内内存统计，单个进程重启后清零；多副本场景由 Prometheus 按实例 scrape 后再聚合。
+- 不采集用户输入、消息内容、用户 ID、`conversationId`、`threadId`、`executionId` 等高基数或敏感信息。
+- Chat request 指标记录的是已经进入 chat 执行流，或 `follow_up` 已成功持久化入队的请求；handler 前置校验阶段直接失败的 400 请求不计入。
+
+部署侧 `xpert-installer` 已有 scrape 目标，例如 `xpert-pro-api:3000/metrics`。本次只在 `xpert-develop` 中补齐应用端 `/metrics` 和智能体对话埋点。
+
+实现位置：
+
+- `packages/analytics/src/bootstrap/index.ts`
+- `packages/server-ai/src/metrics/application-metrics.ts`
+- `packages/server-ai/src/metrics/metrics.module.ts`
+- `packages/server-ai/src/xpert/commands/handlers/chat.handler.ts`
+- `packages/server-ai/src/xpert-agent/commands/handlers/chat.handler.ts`
+- `packages/server-ai/src/xpert-agent-execution/types.ts`
+
+## 已实现的 Prometheus 指标
+
+### 基础信息
+
+| 指标                 | 类型  | 含义                                    | labels    |
+| -------------------- | ----- | --------------------------------------- | --------- |
+| `xpert_metrics_info` | Gauge | metrics endpoint 基础信息，值固定为 `1` | `service` |
+
+### 对话层
+
+| 指标                              | 类型      | 含义                                       | labels                     |
+| --------------------------------- | --------- | ------------------------------------------ | -------------------------- |
+| `xpert_chat_requests_total`       | Counter   | 已进入执行流或已成功入队的智能体对话请求数 | `action`, `from`, `status` |
+| `xpert_chat_active_conversations` | Gauge     | 当前进行中的对话数                         | `from`                     |
+| `xpert_chat_duration_seconds`     | Histogram | 一轮对话端到端耗时                         | `action`, `status`         |
+
+`status` 当前包含：
+
+- `success`：对话正常结束。
+- `error`：对话链路失败。
+- `interrupted`：进入 HITL / 敏感操作等待。
+- `aborted`：客户端取消或 stream 取消。
+- `queued`：`follow_up` 被持久化为待消费消息，但不立即执行 agent。
+
+### Agent execution 层
+
+| 指标                                     | 类型      | 含义                                     | labels                            |
+| ---------------------------------------- | --------- | ---------------------------------------- | --------------------------------- |
+| `xpert_agent_executions_total`           | Counter   | agent / workflow node execution 完成总数 | `category`, `node_type`, `status` |
+| `xpert_agent_execution_duration_seconds` | Histogram | agent / workflow node execution 执行耗时 | `category`, `node_type`, `status` |
+
+这些指标来自 agent execution 生命周期，适合观察智能体执行成功率、失败率和耗时分布。
+
+### LLM 层
+
+| 指标                                 | 类型      | 含义                   | labels                           |
+| ------------------------------------ | --------- | ---------------------- | -------------------------------- |
+| `xpert_llm_tokens_total`             | Counter   | LLM token 消耗         | `provider`, `model`, `direction` |
+| `xpert_llm_cost_total`               | Counter   | LLM 调用成本           | `provider`, `model`, `currency`  |
+| `xpert_llm_response_latency_seconds` | Histogram | 模型 provider 响应延迟 | `provider`, `model`              |
+
+`direction` 当前包含：
+
+- `input`
+- `output`
+- `total`
+
+这些指标来自现有的 LLM usage callback，和 execution 中的 token、cost、latency 字段保持同一来源。
+
+### Tool 层
+
+| 指标                          | 类型      | 含义              | labels                      |
+| ----------------------------- | --------- | ----------------- | --------------------------- |
+| `xpert_tool_calls_total`      | Counter   | tool 调用完成总数 | `toolset`, `tool`, `status` |
+| `xpert_tool_duration_seconds` | Histogram | tool 调用耗时     | `toolset`, `tool`, `status` |
+
+当前只统计已经结束的 tool event，忽略 `running` 状态，避免同一次 tool 调用被重复计数。
+
+## 暂未实现但仍适合 Prometheus 的指标
+
+这些指标适合做低基数聚合，但不建议在 `/metrics` 每次 scrape 时直接查数据库。更合适的做法是后台定时聚合并缓存，`/metrics` 只暴露缓存值。
+
+| 指标方向                | 建议实现方式                                         | 说明                                                                                          |
+| ----------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 每日 conversation 数    | 定时 DB 聚合或从 counter 用 PromQL `increase()` 计算 | 需要明确是否排除 `debugger`、`job`、`api` 来源。                                              |
+| 每日 message 数         | 定时 DB 聚合或从 message 事件 counter 计算           | 需要区分 human / ai / tool message。                                                          |
+| 每日活跃用户数          | 定时 DB 聚合                                         | 活跃用户天然是去重统计，不适合纯 counter 直接表达。                                           |
+| 平均每会话交互轮数      | 定时 DB 聚合                                         | 需要定义一轮交互是 human+ai，还是只按 human message 计算。                                    |
+| 用户满意率              | 定时 DB 聚合                                         | 需要关联 feedback，并处理无反馈和零分母。                                                     |
+| 平台 tokens/sec 吞吐    | PromQL 或 recording rule                             | 可用 `rate(xpert_llm_tokens_total[5m])` 表达整体 token 消耗速率。                             |
+| 单次模型生成 tokens/sec | OTel trace 或新增专用 histogram                      | 需要把单次 LLM call 的 token 数和真实耗时绑定，当前 Prometheus 指标还没有按调用维度直接表达。 |
+| token cost 日报         | PromQL 或定时聚合                                    | 已有 `xpert_llm_cost_total`，日级成本可用 `increase()` 计算。                                 |
+
+## 暂未实现且建议用 OTel 的内容
+
+以下内容不是简单的时间序列，更适合用 OpenTelemetry trace 表达。它们用于排查单次对话为什么慢、为什么失败、卡在哪一步。
+
+| 观测目标                      | 建议 OTel span                     |
+| ----------------------------- | ---------------------------------- |
+| 单次 chat request 全链路      | `xpert.chat` root span             |
+| conversation 创建 / 更新      | `conversation.upsert`              |
+| human / ai message 持久化     | `message.persist`                  |
+| root execution 和子 execution | `execution.root`, `execution.node` |
+| agent 调用                    | `agent.invoke`                     |
+| LLM 调用                      | `llm.call`                         |
+| tool 调用                     | `tool.call`                        |
+| client tool 等待              | `client_tool.wait`                 |
+| browser automation 调用       | `browser_automation.call`          |
+| Redis SSE 持久化              | `stream.persist`                   |
+| retry / fallback 路径         | `llm.retry`, `llm.fallback`        |
+
+OTel span attribute 可以放用于定位单次请求的 ID，例如 `conversationId`、`threadId`、`executionId`。这些字段不适合做 Prometheus label，但适合放在 trace 中用于排查单次问题。
+
+## 标签约束
+
+Prometheus 指标应保持低基数：
+
+- 可以使用：`status`, `action`, `from`, `provider`, `model`, `currency`, `toolset`, `tool`, `category`, `node_type`。
+- 不要使用：用户 ID、组织 ID、租户 ID、`conversationId`、`threadId`、`executionId`、message ID、tool call ID、用户输入、错误全文。
+
+错误类型如果后续要加 Prometheus label，应先做归一化，例如 `timeout`、`provider_error`、`tool_error`、`validation_error`，不要直接把错误消息放进 label。
+
+## 后续建议
+
+1. 先用当前 Prometheus 指标做 Grafana 面板和基础告警。
+2. 再补一个后台聚合任务，把日级业务指标缓存后暴露给 Prometheus。
+3. 如果需要排查单次对话链路，再引入 OTel trace，并在部署侧决定是直连阿里云 OTLP endpoint，还是新增 OTel Collector。
