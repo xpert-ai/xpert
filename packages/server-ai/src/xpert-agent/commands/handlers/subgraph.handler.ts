@@ -1405,44 +1405,46 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
 
         // Add nodes for tools
-        tools
-            ?.filter((_) => !_.graph)
-            .forEach(({ caller, tool, variables, toolset }) => {
-                const name = tool.name
-                const ends = []
-                if (endNodes?.includes(tool.name)) {
-                    // If it is end of the agent, connect the subsequent nodes of the agent
-                    if (nextNodeKey?.length) {
-                        ends.push(...nextNodeKey)
-                        subgraphBuilder.addConditionalEdges(name, (state, config) => {
-                            return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
-                        })
+        if (!hiddenAgent) {
+            tools
+                ?.filter((_) => !_.graph)
+                .forEach(({ caller, tool, variables, toolset }) => {
+                    const name = tool.name
+                    const ends = []
+                    if (endNodes?.includes(tool.name)) {
+                        // If it is end of the agent, connect the subsequent nodes of the agent
+                        if (nextNodeKey?.length) {
+                            ends.push(...nextNodeKey)
+                            subgraphBuilder.addConditionalEdges(name, (state, config) => {
+                                return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
+                            })
+                        } else {
+                            // No subsequent node, go to the end
+                            subgraphBuilder.addEdge(name, END)
+                            ends.push(END)
+                        }
                     } else {
-                        // No subsequent node, go to the end
-                        subgraphBuilder.addEdge(name, END)
-                        ends.push(END)
+                        // Not the end of the agent, return to the agent node
+                        subgraphBuilder.addEdge(name, agentLoopEntryNode)
+                        // ends.push(agentKey)
                     }
-                } else {
-                    // Not the end of the agent, return to the agent node
-                    subgraphBuilder.addEdge(name, agentLoopEntryNode)
-                    // ends.push(agentKey)
-                }
-                subgraphBuilder.addNode(
-                    name,
-                    new ToolNode([tool], { caller, variables, toolName: toolset.title, wrapToolCall }),
-                    {
-                        ends,
-                        metadata: omitBy({ toolset: toolset.provider, toolsetId: toolset.id }, isNil)
-                    }
-                )
-            })
+                    subgraphBuilder.addNode(
+                        name,
+                        new ToolNode([tool], { caller, variables, toolName: toolset.title, wrapToolCall }),
+                        {
+                            ends,
+                            metadata: omitBy({ toolset: toolset.provider, toolsetId: toolset.id }, isNil)
+                        }
+                    )
+                })
 
-        handoffTools?.forEach((tool) => {
-            const name = tool.name
-            subgraphBuilder.addNode(name, new ToolNode([tool], { caller: '', toolName: tool.description }), {
-                metadata: { toolset: 'transfer_to' }
+            handoffTools?.forEach((tool) => {
+                const name = tool.name
+                subgraphBuilder.addNode(name, new ToolNode([tool], { caller: '', toolName: tool.description }), {
+                    metadata: { toolset: 'transfer_to' }
+                })
             })
-        })
+        }
 
         // Sub Agents
         if (subAgents) {
