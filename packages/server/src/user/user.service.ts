@@ -3,7 +3,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { Cache } from 'cache-manager'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult, IsNull } from 'typeorm'
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult, IsNull, FindManyOptions, FindOptionsSelect, FindOptionsWhere } from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@xpert-ai/server-config'
 import { nanoid } from 'nanoid'
@@ -14,6 +14,7 @@ import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
+import { UserOrganization } from '../user-organization/user-organization.entity'
 import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from './events'
 import { FeatureOrganization } from '../feature/feature-organization.entity'
 import {
@@ -26,6 +27,7 @@ import {
 const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 const CURRENT_USER_CORE_RELATIONS = ['employee', 'role', 'role.rolePermissions', 'tenant'] as const
 const CURRENT_USER_BOOTSTRAP_RELATIONS = ['organizations', 'organizations.organization'] as const
+const CURRENT_USER_LIMITABLE_ORGANIZATION_RELATIONS: ReadonlySet<string> = new Set(CURRENT_USER_BOOTSTRAP_RELATIONS)
 const CURRENT_USER_FEATURE_RELATIONS = [
 	'tenant.featureOrganizations',
 	'tenant.featureOrganizations.feature',
@@ -44,8 +46,59 @@ type CurrentUserFeatureContext = {
 	organizationFeatureOrganizations: IFeatureOrganization[]
 }
 
+export type CurrentUserRelationSelect = FindOptionsSelect<User>
+export type CurrentUserFindOptions = {
+	select?: CurrentUserRelationSelect
+	currentOrganizationId?: string | null
+	limitOrganizations?: boolean
+}
+
+type CurrentUserOrganizationSelect = FindManyOptions<UserOrganization>['select']
+type CurrentUserOrganizationWhere = FindOptionsWhere<UserOrganization>
+
 function resolveCurrentUserRelations(relations?: string[]) {
 	return Array.from(new Set([...CURRENT_USER_CORE_RELATIONS, ...(relations ?? [])]))
+}
+
+function isCurrentUserOrganizationRelation(relation: string) {
+	return relation === 'organizations' || relation.startsWith('organizations.')
+}
+
+function shouldLimitCurrentUserOrganizations(relations?: string[], options?: CurrentUserFindOptions) {
+	if (!options?.limitOrganizations) {
+		return false
+	}
+
+	const organizationRelations = (relations ?? []).filter(isCurrentUserOrganizationRelation)
+	return (
+		organizationRelations.length > 0 &&
+		organizationRelations.every((relation) => CURRENT_USER_LIMITABLE_ORGANIZATION_RELATIONS.has(relation))
+	)
+}
+
+function resolveBaseCurrentUserRelations(relations?: string[]) {
+	return (relations ?? []).filter((relation) => !isCurrentUserOrganizationRelation(relation))
+}
+
+function splitCurrentUserSelect(select?: CurrentUserRelationSelect) {
+	if (!select) {
+		return {
+			baseSelect: undefined,
+			organizationSelect: undefined
+		}
+	}
+
+	const baseSelect = { ...select }
+	const organizationSelect = baseSelect.organizations
+	delete baseSelect.organizations
+
+	return {
+		baseSelect: Object.keys(baseSelect).length ? baseSelect : undefined,
+		organizationSelect:
+			organizationSelect && typeof organizationSelect === 'object' && !Array.isArray(organizationSelect)
+				? (organizationSelect as CurrentUserOrganizationSelect)
+				: undefined
+	}
 }
 
 function isKnownCurrentUserFeatureHydrationRelations(relations?: string[]) {
@@ -87,14 +140,84 @@ export class UserService extends TenantAwareCrudService<User> {
 		super(userRepository)
 	}
 
-	async findCurrentUser(id: string, relations?: string[]): Promise<User> {
+	async findCurrentUser(id: string, relations?: string[], options?: CurrentUserFindOptions): Promise<User> {
 		if (isKnownCurrentUserFeatureHydrationRelations(relations) && this.featureOrganizationRepository) {
 			return this.findCurrentUserFeatureContext(id, relations ?? [])
 		}
 
+		if (shouldLimitCurrentUserOrganizations(relations, options)) {
+			return this.findCurrentUserWithLimitedOrganizations(id, relations, options)
+		}
+
 		return this.findOne(id, {
-			relations: resolveCurrentUserRelations(relations)
+			relations: resolveCurrentUserRelations(relations),
+			...(options?.select ? { select: options.select } : {})
 		})
+	}
+
+	private async findCurrentUserWithLimitedOrganizations(
+		id: string,
+		relations?: string[],
+		options?: CurrentUserFindOptions
+	) {
+		const { baseSelect, organizationSelect } = splitCurrentUserSelect(options?.select)
+		const user = await this.findOne(id, {
+			relations: resolveCurrentUserRelations(resolveBaseCurrentUserRelations(relations)),
+			...(baseSelect ? { select: baseSelect } : {})
+		})
+		user.organizations = await this.findCurrentUserBootstrapOrganizations(
+			user,
+			id,
+			options?.currentOrganizationId,
+			organizationSelect
+		)
+		return user
+	}
+
+	private async findCurrentUserBootstrapOrganizations(
+		user: User,
+		userId: string,
+		currentOrganizationId?: string | null,
+		select?: CurrentUserOrganizationSelect
+	) {
+		const tenantId = RequestContext.currentTenantId() ?? user.tenantId ?? user.tenant?.id
+		const baseWhere = {
+			userId,
+			...(tenantId ? { tenantId } : {}),
+			isActive: true
+		}
+		const order: FindManyOptions<UserOrganization>['order'] = { id: 'ASC' }
+		const organizationQuery = async (where: CurrentUserOrganizationWhere) => {
+			const { items } = await this.userOrganizationService.findAll({
+				where: {
+					...where,
+					organization: { isActive: true }
+				},
+				relations: ['organization'],
+				...(select ? { select } : {}),
+				order,
+				take: 1
+			})
+
+			return items[0] ?? null
+		}
+
+		const preferredMembership = currentOrganizationId
+			? await organizationQuery({
+					...baseWhere,
+					organizationId: currentOrganizationId
+			  })
+			: null
+
+		const membership =
+			preferredMembership ??
+			(await organizationQuery({
+				...baseWhere,
+				isDefault: true
+			})) ??
+			(await organizationQuery(baseWhere))
+
+		return membership ? [membership] : []
 	}
 
 	private async findCurrentUserFeatureContext(id: string, relations: string[]) {
