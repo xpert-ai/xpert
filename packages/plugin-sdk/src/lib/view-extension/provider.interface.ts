@@ -1,9 +1,13 @@
 import {
   XpertExtensionViewManifest,
+  XpertRemoteComponentEntry,
+  XpertRemoteComponentViewSchema,
   XpertResolvedViewHostContext,
   XpertViewActionRequest,
   XpertViewActionResult,
   XpertViewDataResult,
+  XpertViewParameterOptionsQuery,
+  XpertViewParameterOptionsResult,
   XpertViewQuery
 } from '@xpert-ai/contracts'
 
@@ -27,4 +31,17 @@ export interface IXpertViewExtensionProvider {
     actionKey: string,
     request: XpertViewActionRequest
   ): Promise<XpertViewActionResult> | XpertViewActionResult
+
+  getViewParameterOptions?(
+    context: XpertResolvedViewHostContext,
+    viewKey: string,
+    parameterKey: string,
+    query: XpertViewParameterOptionsQuery
+  ): Promise<XpertViewParameterOptionsResult> | XpertViewParameterOptionsResult
+
+  getRemoteComponentEntry?(
+    context: XpertResolvedViewHostContext,
+    viewKey: string,
+    component: XpertRemoteComponentViewSchema['component']
+  ): Promise<XpertRemoteComponentEntry> | XpertRemoteComponentEntry
 }
