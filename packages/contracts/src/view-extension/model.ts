@@ -44,9 +44,16 @@ export interface XpertViewHostContext {
   locale?: string
 }
 
+export interface XpertViewHostCapabilities {
+  features?: string[]
+  middlewareProviders?: string[]
+  middlewareNodeKeys?: string[]
+}
+
 export interface XpertResolvedViewHostContext extends XpertViewHostContext {
   slots: XpertViewSlot[]
   hostSnapshot?: unknown
+  capabilities?: XpertViewHostCapabilities
 }
 
 export interface XpertViewSlot {
@@ -70,6 +77,21 @@ export interface XpertViewBadge {
 export interface XpertViewPolling {
   enabled: boolean
   intervalMs?: number
+}
+
+export interface XpertViewActivation {
+  requiredFeatures?: string[]
+  requiredMiddlewareProviders?: string[]
+}
+
+export interface XpertWorkbenchViewOptions {
+  fixed?: boolean
+  menu?: {
+    enabled?: boolean
+    label?: string | I18nObject
+    order?: number
+    icon?: string
+  }
 }
 
 export interface XpertViewCachePolicy {
@@ -263,6 +285,8 @@ export interface XpertExtensionViewManifest {
   badge?: XpertViewBadge
   refreshable?: boolean
   polling?: XpertViewPolling
+  activation?: XpertViewActivation
+  workbench?: XpertWorkbenchViewOptions
   view: XpertViewSchema
   dataSource: XpertViewDataSource
   parameters?: XpertViewParameterDefinition[]

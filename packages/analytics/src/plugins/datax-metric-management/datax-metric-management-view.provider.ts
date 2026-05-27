@@ -29,6 +29,8 @@ import { Indicator } from '../../indicator/indicator.entity'
 import { ProjectMyQuery } from '../../project'
 import {
 	AGENT_WORKBENCH_MAIN_SLOT,
+	AGENT_WORKBENCH_FIXED_SLOT,
+	DATA_X_METRIC_MANAGEMENT_FEATURE,
 	DATA_X_METRIC_PLUGIN_NAME,
 	DATA_X_METRIC_PROVIDER_KEY,
 	DATA_X_METRIC_REMOTE_ENTRY_KEY,
@@ -106,9 +108,11 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 	}
 
 	getViewManifests(_context: XpertResolvedViewHostContext, slot: string): XpertExtensionViewManifest[] {
-		if (slot !== AGENT_WORKBENCH_MAIN_SLOT) {
+		if (slot !== AGENT_WORKBENCH_MAIN_SLOT && slot !== AGENT_WORKBENCH_FIXED_SLOT) {
 			return []
 		}
+
+		const isFixedWorkbenchView = slot === AGENT_WORKBENCH_FIXED_SLOT
 
 		return [
 			{
@@ -122,6 +126,22 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				slot,
 				order: 10,
 				refreshable: true,
+				...(isFixedWorkbenchView
+					? {
+							activation: {
+								requiredFeatures: [DATA_X_METRIC_MANAGEMENT_FEATURE]
+							},
+							workbench: {
+								fixed: true,
+								menu: {
+									enabled: true,
+									label: text('Metric Management', '指标管理'),
+									order: 10,
+									icon: 'ri-line-chart-line'
+								}
+							}
+						}
+					: {}),
 				source: {
 					provider: DATA_X_METRIC_PROVIDER_KEY,
 					plugin: DATA_X_METRIC_PLUGIN_NAME

@@ -17,7 +17,13 @@ jest.mock('../../project', () => ({
 	}
 }))
 
-import { AGENT_WORKBENCH_MAIN_SLOT, DATA_X_METRIC_REMOTE_ENTRY_KEY, DATA_X_METRIC_VIEW_KEY } from './constants'
+import {
+	AGENT_WORKBENCH_FIXED_SLOT,
+	AGENT_WORKBENCH_MAIN_SLOT,
+	DATA_X_METRIC_MANAGEMENT_FEATURE,
+	DATA_X_METRIC_REMOTE_ENTRY_KEY,
+	DATA_X_METRIC_VIEW_KEY
+} from './constants'
 import { DataXMetricManagementViewProvider } from './datax-metric-management-view.provider'
 
 describe('DataXMetricManagementViewProvider', () => {
@@ -44,6 +50,22 @@ describe('DataXMetricManagementViewProvider', () => {
 					isolation: 'iframe',
 					entry: DATA_X_METRIC_REMOTE_ENTRY_KEY
 				}
+			})
+		)
+	})
+
+	it('declares fixed workbench metadata behind the metric management feature', () => {
+		const provider = new DataXMetricManagementViewProvider({} as never, {} as never)
+		const [manifest] = provider.getViewManifests(context, AGENT_WORKBENCH_FIXED_SLOT)
+
+		expect(manifest.slot).toBe(AGENT_WORKBENCH_FIXED_SLOT)
+		expect(manifest.activation?.requiredFeatures).toEqual([DATA_X_METRIC_MANAGEMENT_FEATURE])
+		expect(manifest.workbench).toEqual(
+			expect.objectContaining({
+				fixed: true,
+				menu: expect.objectContaining({
+					enabled: true
+				})
 			})
 		)
 	})

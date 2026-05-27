@@ -75,7 +75,7 @@ export type TAgentMiddlewareMeta = {
   icon?: IconDefinition
   description?: I18nObject
   configSchema?: JsonSchemaObjectType
-  features?: TXpertFeatureKey[]
+  features?: Array<TXpertFeatureKey | string>
   slashCommands?: SkillSlashCommand[]
 }
 

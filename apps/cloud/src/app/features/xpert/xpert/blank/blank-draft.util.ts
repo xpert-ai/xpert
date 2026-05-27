@@ -135,7 +135,7 @@ export type BlankKnowledgeSelectionGraph = {
 export type BlankMiddlewareDefinition = {
   name: string
   configSchema?: JsonSchemaObjectType
-  features?: TXpertFeatureKey[]
+  features?: Array<TXpertFeatureKey | string>
 }
 
 export type BlankXpertDraftBuildOptions = {
@@ -890,7 +890,24 @@ function collectBlankMiddlewareRequiredFeatures(
   const definitions = new Map(middlewareDefinitions.map((definition) => [definition.name, definition]))
 
   return Array.from(
-    new Set(uniqueStrings(middlewares).flatMap((provider) => definitions.get(provider)?.features ?? []))
+    new Set(
+      uniqueStrings(middlewares)
+        .flatMap((provider) => definitions.get(provider)?.features ?? [])
+        .filter(isBlankStructuredFeatureKey)
+    )
+  )
+}
+
+function isBlankStructuredFeatureKey(feature: TXpertFeatureKey | string): feature is TXpertFeatureKey {
+  return (
+    feature === 'opener' ||
+    feature === 'suggestion' ||
+    feature === 'textToSpeech' ||
+    feature === 'speechToText' ||
+    feature === 'attachment' ||
+    feature === 'memoryReply' ||
+    feature === 'sandbox' ||
+    feature === 'title'
   )
 }
 

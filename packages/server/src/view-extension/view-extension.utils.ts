@@ -82,6 +82,35 @@ export function normalizeManifest(
 	}
 }
 
+export function isManifestActiveForContext(
+	manifest: XpertExtensionViewManifest,
+	context: XpertResolvedViewHostContext
+): boolean {
+	const activation = manifest.activation
+	if (!activation) {
+		return true
+	}
+
+	const requiredFeatures = normalizeStringList(activation.requiredFeatures)
+	const requiredMiddlewareProviders = normalizeStringList(activation.requiredMiddlewareProviders)
+
+	if (requiredFeatures.length) {
+		const availableFeatures = new Set(normalizeStringList(context.capabilities?.features))
+		if (!requiredFeatures.every((feature) => availableFeatures.has(feature))) {
+			return false
+		}
+	}
+
+	if (requiredMiddlewareProviders.length) {
+		const availableProviders = new Set(normalizeStringList(context.capabilities?.middlewareProviders))
+		if (!requiredMiddlewareProviders.every((provider) => availableProviders.has(provider))) {
+			return false
+		}
+	}
+
+	return true
+}
+
 export function composePublicViewKey(providerKey: string, manifestKey: string) {
 	validateProviderKey(providerKey)
 	validateManifestKey(manifestKey)
@@ -281,6 +310,10 @@ function normalizeActions(actions?: XpertViewActionDefinition[]) {
 			placement
 		}
 	})
+}
+
+function normalizeStringList(values?: string[]) {
+	return (values ?? []).map((value) => value?.trim()).filter((value): value is string => Boolean(value))
 }
 
 function validateProviderKey(providerKey: string) {

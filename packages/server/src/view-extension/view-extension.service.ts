@@ -14,7 +14,13 @@ import {
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
 import { ViewExtensionCacheService } from './view-extension.cache.service'
-import { buildBaseViewHostContext, normalizeManifest, splitPublicViewKey, validateQuery } from './view-extension.utils'
+import {
+	buildBaseViewHostContext,
+	isManifestActiveForContext,
+	normalizeManifest,
+	splitPublicViewKey,
+	validateQuery
+} from './view-extension.utils'
 
 @Injectable()
 export class ViewExtensionService {
@@ -42,7 +48,9 @@ export class ViewExtensionService {
 
 					const providerManifests = await provider.getViewManifests(context, slot)
 					manifests.push(
-						...providerManifests.map((manifest) => normalizeManifest(manifest, providerKey, context, slot))
+						...providerManifests
+							.map((manifest) => normalizeManifest(manifest, providerKey, context, slot))
+							.filter((manifest) => isManifestActiveForContext(manifest, context))
 					)
 				} catch (error) {
 					this.logger.warn(
@@ -203,10 +211,15 @@ export class ViewExtensionService {
 					continue
 				}
 
+				const normalized = normalizeManifest(manifest, providerKey, context, slot.key)
+				if (!isManifestActiveForContext(normalized, context)) {
+					throw new NotFoundException(`View '${publicViewKey}' was not found`)
+				}
+
 				return {
 					provider,
 					manifestKey,
-					manifest: normalizeManifest(manifest, providerKey, context, slot.key)
+					manifest: normalized
 				}
 			}
 		}
@@ -233,6 +246,7 @@ export class ViewExtensionService {
 			...baseContext,
 			workspaceId: resolution.workspaceId ?? null,
 			hostSnapshot: resolution.hostSnapshot,
+			capabilities: resolution.capabilities,
 			slots: [...definition.slots].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 		}
 	}
