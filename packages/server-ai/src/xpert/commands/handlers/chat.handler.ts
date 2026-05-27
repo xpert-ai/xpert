@@ -65,6 +65,7 @@ import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/quer
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
 import { RedisSseStreamService } from '../../../shared/stream'
 import { AttachFileToConversationCommand } from '../../../file-understanding'
+import { applicationMetrics } from '../../../metrics'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -134,6 +135,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             request.action === 'follow_up' ? (hydratedRequest as Extract<TChatRequest, { action: 'follow_up' }>) : null
         const { options } = c
         const { xpertId, taskId, from, fromEndUserId } = options ?? {}
+        const metricStart = Date.now()
+        const metricAction = request.action
+        const metricFrom = from
         let { execution } = options ?? {}
         const userId = RequestContext.currentUserId()
         const sendInput = request.action === 'send' ? request.message?.input : null
@@ -247,6 +251,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 sandboxProvider: followUpXpert
                     ? figureOutXpert(followUpXpert as IXpert, Boolean(options?.isDraft)).features?.sandbox?.provider
                     : undefined
+            })
+            applicationMetrics.recordChatRequest({
+                action: metricAction,
+                from: metricFrom,
+                status: 'queued',
+                durationMs: Date.now() - metricStart
             })
 
             return EMPTY
@@ -577,6 +587,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const runtimeCapabilities = preparedAgentChatState.runtimeCapabilities
 
         const stream = new Observable<MessageEvent>((subscriber) => {
+            let chatMetricsFinished = false
+            applicationMetrics.startChat({ from: metricFrom })
+            const finishChatMetrics = (status: string) => {
+                if (chatMetricsFinished) {
+                    return
+                }
+                chatMetricsFinished = true
+                applicationMetrics.finishChat({
+                    action: metricAction,
+                    from: metricFrom,
+                    status,
+                    durationMs: Date.now() - metricStart
+                })
+            }
+
             // New conversation
             subscriber.next({
                 data: {
@@ -720,6 +745,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                         break
                                     }
                                     case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                                        applicationMetrics.recordToolMessage(event.data.data)
                                         appendMessageSteps(aiMessage, [event.data.data])
                                         break
                                     }
@@ -815,6 +841,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 } else if (_execution?.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
                                     convStatus = 'interrupted'
                                 }
+                                const metricStatus =
+                                    _execution?.status === XpertAgentExecutionStatusEnum.ERROR ||
+                                    status === XpertAgentExecutionStatusEnum.ERROR
+                                        ? 'error'
+                                        : _execution?.status === XpertAgentExecutionStatusEnum.INTERRUPTED
+                                          ? 'interrupted'
+                                          : 'success'
                                 const _conversation = await this.commandBus.execute(
                                     new ChatConversationUpsertCommand({
                                         id: conversation.id,
@@ -836,6 +869,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     )
                                 }
 
+                                finishChatMetrics(metricStatus)
+
                                 return {
                                     data: {
                                         type: ChatMessageTypeEnum.EVENT,
@@ -850,6 +885,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     }
                                 } as MessageEvent
                             } catch (err) {
+                                finishChatMetrics('error')
                                 this.#logger.warn(err)
                                 subscriber.error(err)
                             }
@@ -897,7 +933,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                             options: conversation.options
                                         })
                                     )
+                                    finishChatMetrics('aborted')
                                 } catch (err) {
+                                    finishChatMetrics('error')
                                     this.#logger.error(err)
                                 }
                             }
@@ -927,6 +965,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 })
                 .catch((err) => {
                     console.error(err)
+                    finishChatMetrics('error')
                     subscriber.next({
                         data: {
                             type: ChatMessageTypeEnum.EVENT,

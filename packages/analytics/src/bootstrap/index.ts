@@ -1,5 +1,6 @@
 import { environment as env, getConfig, setConfig } from '@xpert-ai/server-config'
 import { API_PRINCIPAL_USER_ID_HEADER } from '@xpert-ai/contracts'
+import { MetricsService } from '@xpert-ai/server-ai'
 import {
 	AppService,
 	AuthGuard,
@@ -25,7 +26,7 @@ import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { useContainer } from 'class-validator'
 import chalk from 'chalk'
 import cookieParser from 'cookie-parser'
-import { json, text, urlencoded } from 'express'
+import { json, Request, Response, text, urlencoded } from 'express'
 import expressSession from 'express-session'
 import i18next from 'i18next'
 import * as middleware from 'i18next-http-middleware'
@@ -52,6 +53,12 @@ export async function bootstrap(options: { title: string; version: string }) {
 
 	app.useLogger(app.get(Logger))
 	NestLogger.overrideLogger(resolveNestLogLevels())
+
+	const metricsService = app.get(MetricsService)
+	app.getHttpAdapter().get('/metrics', (_req: Request, res: Response) => {
+		res.setHeader('Content-Type', metricsService.contentType)
+		res.send(metricsService.render())
+	})
 
 	// Set query parser to extended (In Express v5, query parameters are no longer parsed using the qs library by default.)
 	app.set('query parser', 'extended')

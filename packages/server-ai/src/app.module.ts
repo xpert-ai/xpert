@@ -45,6 +45,7 @@ import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscr
 import { VolumeModule } from './shared/volume'
 import { FileMemoryModule } from './file-memory'
 import { FileUnderstandingModule } from './file-understanding'
+import { MetricsModule } from './metrics'
 
 @Module({
     imports: [
@@ -68,6 +69,7 @@ import { FileUnderstandingModule } from './file-understanding'
         GraphragModule,
         HandoffQueueModule,
         FileUploadTargetsModule,
+        MetricsModule,
         VolumeModule,
         FileMemoryModule,
         FileUnderstandingModule,
