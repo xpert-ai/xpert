@@ -1,4 +1,3 @@
-
 import { SelectionModel } from '@angular/cdk/collections'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -40,7 +39,7 @@ import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
     KnowledgeDocumentPipelineStep1Component,
     KnowledgeDocumentPipelineStep2Component,
     KnowledgeDocumentCreateStep3Component
-]
+  ]
 })
 export class KnowledgeDocumentPipelineComponent {
   eKDocumentSourceType = KDocumentSourceType
@@ -68,14 +67,17 @@ export class KnowledgeDocumentPipelineComponent {
   readonly #pipeline = toSignal(
     this.knowledgebaseAPI.getOneById(this.knowledgebaseComponent.paramId(), {
       relations: ['pipeline'],
-      select: ['id', 'name']
+      select: ['id', 'name', 'tenantId', 'organizationId', 'workspaceId']
     })
   )
 
   readonly pipeline = computed(() => this.#pipeline()?.pipeline)
   readonly graph = computed(() => this.pipeline()?.graph)
   readonly sources = computed(() =>
-    this.graph()?.nodes.filter((node): node is TXpertTeamNode & {type: 'workflow'; entity: IWFNSource } => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.SOURCE)
+    this.graph()?.nodes.filter(
+      (node): node is TXpertTeamNode & { type: 'workflow'; entity: IWFNSource } =>
+        node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.SOURCE
+    )
   )
 
   readonly strategies = toSignal(this.knowledgebaseAPI.documentSourceStrategies$)
@@ -91,7 +93,7 @@ export class KnowledgeDocumentPipelineComponent {
       })
   )
 
-  readonly selectedSource = signal<TXpertTeamNode & {type: 'workflow'; entity: IWFNSource }>(null)
+  readonly selectedSource = signal<TXpertTeamNode & { type: 'workflow'; entity: IWFNSource }>(null)
   readonly selectedStrategy = computed(
     () =>
       this.selectedSource() &&
@@ -119,7 +121,9 @@ export class KnowledgeDocumentPipelineComponent {
     }
   })
   readonly documentIds = new SelectionModel<string>(true, [])
-  readonly documents = computed(() => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds.isSelected(doc.id)))
+  readonly documents = computed(() =>
+    this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds.isSelected(doc.id))
+  )
 
   readonly files = model<KnowledgeFileUploader[]>([])
 

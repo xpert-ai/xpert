@@ -10,6 +10,7 @@
 
 .xp-pane-header {
   @apply flex items-start justify-between gap-3;
+  container-type: inline-size;
 }
 
 .xp-pane-body {
@@ -30,4 +31,14 @@
 
 .xp-file-preview-reference-button {
   transform: translate(-50%, -100%);
+}
+
+.xp-file-heading {
+  display: none;
+}
+
+@container (min-width: 52rem) {
+  .xp-file-heading {
+    display: flex;
+  }
 }

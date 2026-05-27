@@ -1,10 +1,18 @@
-import { ChecklistItem, IWFNKnowledgeBase, TXpertTeamNode, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import {
+    ChecklistItem,
+    IKnowledgebase,
+    IWFNKnowledgeBase,
+    TXpertTeamNode,
+    WorkflowNodeTypeEnum
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { QueryBus } from '@nestjs/cqrs'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/types'
 import { CopilotGetOneQuery } from '../../../copilot'
+import { KnowledgebaseGetOneQuery } from '../../queries'
 
 @Injectable()
 export class WorkflowKnowledgeBaseNodeValidator {
@@ -18,13 +26,37 @@ export class WorkflowKnowledgeBaseNodeValidator {
             (node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE
         )
         const items: ChecklistItem[] = []
+        let knowledgebase = draft.team?.knowledgebase
+        if (knowledgebase?.id) {
+            try {
+                knowledgebase = await this.queryBus.execute(
+                    new KnowledgebaseGetOneQuery({
+                        id: knowledgebase.id,
+                        options: { relations: ['copilotModel', 'rerankModel', 'chatModel', 'visionModel'] }
+                    })
+                )
+            } catch (error) {
+                const message = getErrorMessage(error) || 'Unknown error'
+                return codeNodes.map((node) => ({
+                    ruleCode: 'PIPELINE_KB_CONFIG_LOAD_FAILED',
+                    node: node.key,
+                    field: 'knowledgebase.id',
+                    value: knowledgebase.id,
+                    level: 'error',
+                    message: {
+                        en_US: `Failed to load knowledgebase configuration: ${message}`,
+                        zh_Hans: `读取知识库配置失败：${message}`
+                    }
+                }))
+            }
+        }
         for await (const node of codeNodes) {
-            items.push(...(await this.check(node)))
+            items.push(...(await this.check(node, knowledgebase)))
         }
         return items
     }
 
-    async check(node: TXpertTeamNode) {
+    async check(node: TXpertTeamNode, knowledgebase?: Partial<IKnowledgebase> | null) {
         const entity = node.entity as IWFNKnowledgeBase
         const items: ChecklistItem[] = []
 
@@ -74,8 +106,7 @@ export class WorkflowKnowledgeBaseNodeValidator {
             })
         }
 
-        // Embedding model must be specified
-        if (!entity.copilotModel) {
+        if (!knowledgebase?.copilotModel && !knowledgebase?.copilotModelId) {
             items.push({
                 ruleCode: 'PIPELINE_KB_EMBEDDING_MODEL_MISSING',
                 node: node.key,
@@ -87,7 +118,7 @@ export class WorkflowKnowledgeBaseNodeValidator {
                     zh_Hans: `必须指定嵌入模型。`
                 }
             })
-        } else if (!entity.copilotModel.copilotId) {
+        } else if (knowledgebase.copilotModel && !knowledgebase.copilotModel.copilotId) {
             items.push({
                 ruleCode: 'PIPELINE_KB_EMBEDDING_MODEL_PROVIDER_MISSING',
                 node: node.key,
@@ -101,16 +132,16 @@ export class WorkflowKnowledgeBaseNodeValidator {
             })
         }
 
-        if (entity.copilotModel?.copilotId) {
+        if (knowledgebase?.copilotModel?.copilotId) {
             const copilot = await this.queryBus.execute(
-                new CopilotGetOneQuery(RequestContext.currentTenantId(), entity.copilotModel.copilotId)
+                new CopilotGetOneQuery(RequestContext.currentTenantId(), knowledgebase.copilotModel.copilotId)
             )
             if (!copilot) {
                 items.push({
                     ruleCode: 'PIPELINE_KB_EMBEDDING_MODEL_PROVIDER_NOT_FOUND',
                     node: node.key,
                     field: 'copilotModel.copilotId',
-                    value: entity.copilotModel.copilotId,
+                    value: knowledgebase.copilotModel.copilotId,
                     level: 'error',
                     message: {
                         en_US: `Embedding model provider not found.`,
@@ -120,7 +151,7 @@ export class WorkflowKnowledgeBaseNodeValidator {
             }
         }
 
-        if (entity.rerankModel && !entity.rerankModel.copilotId) {
+        if (knowledgebase?.rerankModel && !knowledgebase.rerankModel.copilotId) {
             items.push({
                 ruleCode: 'PIPELINE_KB_RERANK_MODEL_PROVIDER_MISSING',
                 node: node.key,
@@ -134,7 +165,7 @@ export class WorkflowKnowledgeBaseNodeValidator {
             })
         }
 
-        if (entity.chatModel && !entity.chatModel.copilotId) {
+        if (knowledgebase?.chatModel && !knowledgebase.chatModel.copilotId) {
             items.push({
                 ruleCode: 'PIPELINE_KB_CHAT_MODEL_PROVIDER_MISSING',
                 node: node.key,
@@ -148,7 +179,7 @@ export class WorkflowKnowledgeBaseNodeValidator {
             })
         }
 
-        if (entity.visionModel && !entity.visionModel.copilotId) {
+        if (knowledgebase?.visionModel && !knowledgebase.visionModel.copilotId) {
             items.push({
                 ruleCode: 'PIPELINE_KB_VISION_MODEL_PROVIDER_MISSING',
                 node: node.key,

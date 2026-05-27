@@ -394,19 +394,43 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-panel-button="terminal"]')).toBeNull()
   })
 
-  it('does not allow closing the last remaining workspace tab', async () => {
+  it('allows closing the last remaining workspace tab and shows the empty workspace placeholder', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
     const onlyTabId = fixture.componentInstance.activeTabId()
-    expect(fixture.nativeElement.querySelector(`[data-close-tab="${onlyTabId}"]`)).toBeNull()
+    expect(fixture.nativeElement.querySelector(`[data-close-tab="${onlyTabId}"]`)).not.toBeNull()
 
     fixture.componentInstance.closeWorkspaceTab(new MouseEvent('click'), onlyTabId)
     await settle(fixture)
 
-    expect(fixture.componentInstance.workspaceTabs()).toHaveLength(1)
-    expect(fixture.componentInstance.activeTabId()).toBe(onlyTabId)
-    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
+    expect(fixture.componentInstance.workspaceTabs()).toHaveLength(0)
+    expect(fixture.componentInstance.activeTabId()).toBe('')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-placeholder]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card-grid]')?.className).toContain(
+      'grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]'
+    )
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card="files"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card="browser"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card="review"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card="terminal"]')).not.toBeNull()
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))).toBeNull()
+    expect(fixture.debugElement.query(By.directive(ChatSharedTerminalComponent))).toBeNull()
+  })
+
+  it('opens workspace tabs from the empty workspace placeholder', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    fixture.componentInstance.closeWorkspaceTab(new MouseEvent('click'), fixture.componentInstance.activeTabId())
+    await settle(fixture)
+    ;(fixture.nativeElement.querySelector('[data-empty-workspace-card="browser"]') as HTMLElement).click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeTab()?.kind).toBe('browser')
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))).not.toBeNull()
   })
 
   it('adds and closes file and terminal tabs on demand', async () => {
