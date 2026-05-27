@@ -22,6 +22,92 @@ export const CURRENT_USER_FULL_RELATIONS = [
   ...CURRENT_USER_FEATURE_RELATIONS
 ] as const
 
+export type UserMeSelect = {
+  [field: string]: true | UserMeSelect
+}
+
+export type UserMeOptions = {
+  currentOrganizationId?: string | null
+  limitOrganizations?: boolean
+}
+
+export const CURRENT_USER_BOOTSTRAP_SELECT: UserMeSelect = {
+  id: true,
+  email: true,
+  username: true,
+  firstName: true,
+  lastName: true,
+  mobile: true,
+  imageUrl: true,
+  timeZone: true,
+  tenantId: true,
+  preferredLanguage: true,
+  role: {
+    id: true,
+    name: true,
+    rolePermissions: {
+      id: true,
+      permission: true,
+      enabled: true
+    }
+  },
+  tenant: {
+    id: true,
+    name: true
+  },
+  employee: {
+    id: true,
+    userId: true,
+    organizationId: true,
+    isActive: true
+  },
+  organizations: {
+    id: true,
+    userId: true,
+    tenantId: true,
+    organizationId: true,
+    isDefault: true,
+    isActive: true,
+    organization: {
+      id: true,
+      name: true,
+      imageUrl: true,
+      isDefault: true,
+      isActive: true,
+      defaultValueDateType: true,
+      allowManualTime: true,
+      allowModifyTime: true,
+      allowDeleteTime: true,
+      futureDateAllowed: true
+    }
+  }
+}
+
+export const CURRENT_USER_ORGANIZATIONS_SELECT: UserMeSelect = {
+  id: true,
+  tenantId: true,
+  organizations: {
+    id: true,
+    userId: true,
+    tenantId: true,
+    organizationId: true,
+    isDefault: true,
+    isActive: true,
+    organization: {
+      id: true,
+      name: true,
+      imageUrl: true,
+      isDefault: true,
+      isActive: true,
+      defaultValueDateType: true,
+      allowManualTime: true,
+      allowModifyTime: true,
+      allowDeleteTime: true,
+      futureDateAllowed: true
+    }
+  }
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -30,12 +116,16 @@ export class UsersService {
 
   API_URL = `${API_PREFIX}/user`
 
-  getMe(relations?: string[]): Promise<IUser> {
-    if (!relations?.length) {
+  getMe(relations?: string[], select?: UserMeSelect, options?: UserMeOptions): Promise<IUser> {
+    if (!relations?.length && !select && !options) {
       return firstValueFrom(this.http.get<IUser>(`${this.API_URL}/me`))
     }
 
-    const data = JSON.stringify({ relations })
+    const data = JSON.stringify({
+      ...(relations?.length ? { relations } : {}),
+      ...(select ? { select } : {}),
+      ...(options ?? {})
+    })
     return firstValueFrom(
       this.http.get<IUser>(`${this.API_URL}/me`, {
         params: { data }

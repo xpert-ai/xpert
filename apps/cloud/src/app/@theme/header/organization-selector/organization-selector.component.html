@@ -11,6 +11,7 @@
   zPosition="right"
   [zDisabled]="!isCollapsed()"
   [cdkMenuTriggerFor]="canOpenMenu() ? menu : null"
+  (cdkMenuOpened)="loadOrganizations()"
   (closed)="resetSearch()"
 >
   <div class="flex items-center gap-2">

@@ -136,15 +136,26 @@ describe('UserService', () => {
 		expect(result).toBe(user)
 	})
 
-	it('keeps unknown current-user relations on the original findOne path', async () => {
+	it('passes requested select fields to the original current-user query', async () => {
 		const user = { id: 'user-1' }
+		const select = {
+			id: true,
+			email: true,
+			organizations: {
+				id: true,
+				organizationId: true,
+				organization: {
+					id: true,
+					name: true
+				}
+			}
+		}
 
 		service.findOne = jest.fn().mockResolvedValue(user)
 
-		const result = await service.findCurrentUser('user-1', [
-			...featureHydrationRelations,
-			'profile'
-		])
+		const result = await service.findCurrentUser('user-1', ['organizations', 'organizations.organization'], {
+			select
+		})
 
 		expect(service.findOne).toHaveBeenCalledWith('user-1', {
 			relations: [
@@ -152,9 +163,159 @@ describe('UserService', () => {
 				'role',
 				'role.rolePermissions',
 				'tenant',
-				...featureHydrationRelations,
-				'profile'
+				'organizations',
+				'organizations.organization'
+			],
+			select
+		})
+		expect(result).toBe(user)
+	})
+
+	it('limits current user organizations for the bootstrap query when explicitly requested', async () => {
+		const user = { id: 'user-1', tenantId: 'tenant-1' }
+		const select = {
+			id: true,
+			email: true,
+			organizations: {
+				id: true,
+				userId: true,
+				tenantId: true,
+				organizationId: true,
+				isDefault: true,
+				isActive: true,
+				organization: {
+					id: true,
+					name: true,
+					isDefault: true,
+					isActive: true
+				}
+			}
+		}
+		const membership = {
+			id: 'membership-1',
+			userId: 'user-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			isDefault: true,
+			isActive: true,
+			organization: { id: 'org-1', name: 'Org', isActive: true }
+		}
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+		userOrganizationService.findAll.mockResolvedValue({ items: [membership], total: 1 })
+
+		const result = await service.findCurrentUser('user-1', ['organizations', 'organizations.organization'], {
+			select,
+			currentOrganizationId: 'org-1',
+			limitOrganizations: true
+		})
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: ['employee', 'role', 'role.rolePermissions', 'tenant'],
+			select: {
+				id: true,
+				email: true
+			}
+		})
+		expect(userOrganizationService.findAll).toHaveBeenCalledWith({
+			where: {
+				userId: 'user-1',
+				tenantId: 'tenant-1',
+				isActive: true,
+				organization: { isActive: true },
+				organizationId: 'org-1'
+			},
+			relations: ['organization'],
+			select: select.organizations,
+			order: { id: 'ASC' },
+			take: 1
+		})
+		expect(result.organizations).toEqual([membership])
+	})
+
+	it('filters limited bootstrap organization queries to active organizations with deterministic ordering', async () => {
+		const user = { id: 'user-1', tenantId: 'tenant-1' }
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+		userOrganizationService.findAll
+			.mockResolvedValueOnce({ items: [], total: 0 })
+			.mockResolvedValueOnce({ items: [], total: 0 })
+			.mockResolvedValueOnce({ items: [], total: 0 })
+
+		await service.findCurrentUser('user-1', ['organizations', 'organizations.organization'], {
+			currentOrganizationId: 'missing-org',
+			limitOrganizations: true
+		})
+
+		expect(userOrganizationService.findAll).toHaveBeenNthCalledWith(1, {
+			where: {
+				userId: 'user-1',
+				tenantId: 'tenant-1',
+				isActive: true,
+				organization: { isActive: true },
+				organizationId: 'missing-org'
+			},
+			relations: ['organization'],
+			order: { id: 'ASC' },
+			take: 1
+		})
+		expect(userOrganizationService.findAll).toHaveBeenNthCalledWith(2, {
+			where: {
+				userId: 'user-1',
+				tenantId: 'tenant-1',
+				isActive: true,
+				organization: { isActive: true },
+				isDefault: true
+			},
+			relations: ['organization'],
+			order: { id: 'ASC' },
+			take: 1
+		})
+		expect(userOrganizationService.findAll).toHaveBeenNthCalledWith(3, {
+			where: {
+				userId: 'user-1',
+				tenantId: 'tenant-1',
+				isActive: true,
+				organization: { isActive: true }
+			},
+			relations: ['organization'],
+			order: { id: 'ASC' },
+			take: 1
+		})
+	})
+
+	it('keeps the original current-user query when organization limiting is not explicit', async () => {
+		const user = { id: 'user-1' }
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+
+		const result = await service.findCurrentUser('user-1', ['organizations', 'organizations.organization'], {
+			limitOrganizations: false
+		})
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: [
+				'employee',
+				'role',
+				'role.rolePermissions',
+				'tenant',
+				'organizations',
+				'organizations.organization'
 			]
+		})
+		expect(userOrganizationService.findAll).not.toHaveBeenCalled()
+		expect(result).toBe(user)
+	})
+
+	it('keeps unknown current-user relations on the original findOne path', async () => {
+		const user = { id: 'user-1' }
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+
+		const result = await service.findCurrentUser('user-1', [...featureHydrationRelations, 'profile'])
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: ['employee', 'role', 'role.rolePermissions', 'tenant', ...featureHydrationRelations, 'profile']
 		})
 		expect(featureOrganizationRepository.find).not.toHaveBeenCalled()
 		expect(result).toBe(user)
